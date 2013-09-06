@@ -439,7 +439,27 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
       } else {
         message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tsigkeyname, d_trc, d_trc.d_mac, false);
       }
-      string ourMac=calculateMD5HMAC(d_tsigsecret, message);
+      TSIGHashEnum algo;
+
+      if (*(d_trc.d_algoName.rbegin()) != '.') d_trc.d_algoName.append(".");
+
+      if (d_trc.d_algoName == "hmac-md5.sig-alg.reg.int.")
+      algo = TSIG_MD5;
+      else if (d_trc.d_algoName == "hmac-sha1.")
+      algo = TSIG_SHA1;
+      else if (d_trc.d_algoName == "hmac-sha224.")
+      algo = TSIG_SHA224;
+      else if (d_trc.d_algoName == "hmac-sha256.")
+      algo = TSIG_SHA256;
+      else if (d_trc.d_algoName == "hmac-sha384.")
+      algo = TSIG_SHA384;
+      else if (d_trc.d_algoName == "hmac-sha512.")
+      algo = TSIG_SHA512;
+      else {
+        throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName);
+      }
+
+      string ourMac=calculateHMAC(d_tsigsecret, message, algo);
 
       // ourMac[0]++; // sabotage == for testing :-)
       if(ourMac != theirMac) {
