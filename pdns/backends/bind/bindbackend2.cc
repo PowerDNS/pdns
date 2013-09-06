@@ -76,6 +76,7 @@ shared_ptr<Bind2Backend::State> Bind2Backend::s_state;
 */
 
 int Bind2Backend::s_first=1;
+bool Bind2Backend::s_ignore_broken_records=false;
 
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_state_lock=PTHREAD_MUTEX_INITIALIZER;
@@ -418,15 +419,21 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
 
   recordstorage_t& records=*bb2.d_records; 
 
-  bdr.qname=toLower(canonic(qnameu));
+  bdr.qname=canonic(qnameu);
+  //cerr << "qname = " << bdr.qname << ", d_name = " << bb2.d_name << endl;
   if(bb2.d_name.empty())
     ;
-  else if(bdr.qname==toLower(bb2.d_name))
-    bdr.qname.clear();
-  else if(bdr.qname.length() > bb2.d_name.length() && dottedEndsOn(bdr.qname, bb2.d_name))
-    bdr.qname.resize(bdr.qname.length() - (bb2.d_name.length() + 1));
-  else
-    throw PDNSException("Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'");
+  else if(dottedEndsOn(bdr.qname, bb2.d_name))
+    bdr.qname.resize(max(0, static_cast<int>(bdr.qname.length() - (bb2.d_name.length() + 1))));
+  else {
+    string msg = "Trying to insert non-zone data, name='"+bdr.qname+"', qtype="+qtype.getName()+", zone='"+bb2.d_name+"'";
+    if(s_ignore_broken_records) {
+        L<<Logger::Warning<<msg<< " ignored" << endl;
+        return;
+    }
+    else
+      throw PDNSException(msg);
+  }
 
   bdr.qname.swap(bdr.qname);
 
@@ -526,8 +533,10 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
 
 Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
-  d_logprefix="[bind"+suffix+"backend]";
   setArgPrefix("bind"+suffix);
+  d_logprefix="[bind"+suffix+"backend]";
+  s_ignore_broken_records=mustDo("ignore-broken-records");
+
   Lock l(&s_startup_lock);
   
   d_transaction_id=0;
@@ -638,7 +647,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   {
     rr.qname=qname+"."+bb2.d_name+".";
     if(nsec3zone)
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
     insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
   }
 }
@@ -1346,13 +1355,13 @@ class Bind2Factory : public BackendFactory
 
       void declareArguments(const string &suffix="")
       {
+         declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound for the zone.","yes");
          declare(suffix,"config","Location of named.conf","");
-         //         declare(suffix,"example-zones","Install example zones","no");
          declare(suffix,"check-interval","Interval for zonefile changes","0");
          declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");
          declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
-         declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");
+         declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");         
       }
 
       DNSBackend *make(const string &suffix="")

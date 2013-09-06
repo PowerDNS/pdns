@@ -20216,6 +20216,13 @@ C\052.wtest.com:server1.wtest.com.:3600
 +\052.something.wtest.com:4.3.2.1:3600
 +a.something.wtest.com:10.11.12.13:3600
 #2005092501 auto axfr-get
+Znztest.com:ns1.nztest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
++nztest.com:127.0.0.1:3600
+&nztest.com::ns1.nztest.com.:3600
+&nztest.com::ns2.nztest.com.:3600
++ns1.nztest.com:1.1.1.1:3600
++ns2.nztest.com:2.2.2.2:3600
+#2005092501 auto axfr-get
 Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +dnssec-parent.com:9.9.9.9:3600
 &dnssec-parent.com::ns1.dnssec-parent.com.:3600

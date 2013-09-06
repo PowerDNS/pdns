@@ -173,7 +173,7 @@ public:
     id_zone_map_t id_zone_map;
   };
 
-  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());  
+  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -222,6 +222,7 @@ private:
   static pthread_mutex_t s_state_swap_lock;               
   static shared_ptr<State> getState();
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
+  static bool s_ignore_broken_records;
 
   static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
   string d_logprefix;

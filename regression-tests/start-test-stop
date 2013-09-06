@@ -167,7 +167,7 @@ bindwait ()
 {
 	check_process
 	configname=$1
-	domcount=$(grep -c zone named.conf)
+	domcount=$(grep -c ^zone named.conf)
 	if [ ! -x ../pdns/pdns_control ]; then
 		echo "No pdns_control found"
 		exit 1
