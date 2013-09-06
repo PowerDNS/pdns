@@ -9,7 +9,7 @@ before_script:
  - sudo restart mysql
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http
+ - ./configure --with-modules='gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http
  - make dist
  - make -j 4
  - make check
@@ -28,14 +28,18 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-both
  - ./start-test-stop 5300 gmysql-nsec3-optout-both
  - ./start-test-stop 5300 gmysql-nsec3-narrow
- - ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./start-test-stop 5300 gsqlite3-both
- - ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+ - ./start-test-stop 5300 gpgsql-nodnssec
+ - ./start-test-stop 5300 gpgsql
+ - ./start-test-stop 5300 gpgsql-nsec3
+ - ./start-test-stop 5300 gsqlite3-nodnssec
+ - ./start-test-stop 5300 gsqlite3
+ - ./start-test-stop 5300 gsqlite3-nsec3
  - ./start-test-stop 5300 mydns
  - ./start-test-stop 5300 tinydns
  - ./start-test-stop 5300 remotebackend-pipe
  - ./start-test-stop 5300 remotebackend-pipe-dnssec
+ - ./start-test-stop 5300 remotebackend-unix
+ - ./start-test-stop 5300 remotebackend-unix-dnssec
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
