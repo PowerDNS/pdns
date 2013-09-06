@@ -27,3 +27,9 @@ real_result
 /recursor.log
 /top-1m.csv
 /report.json
+/nsd.*
+/*.nsd
+/*.signed
+/*.bind
+/dsset-*
+/bind.conf

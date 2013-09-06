@@ -3,11 +3,164 @@
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
 
+nsdfix ()
+{
+	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
+	sed '/EUI/s/^/;/g' < example.com > example.com.nsd
+}
+
+bindfix ()
+{
+	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.bind
+	sed -e '/EUI/s/^/;/g' -e '/host\.\*\.sub/s/^/;/g' < example.com > example.com.bind
+}
+
+tonsd ()
+{
+	cat > nsd.conf << __EOF__
+server:
+	ip-address: 127.0.0.1@$port
+	database: ./nsd.db
+	zonesdir: .
+	username: ""
+__EOF__
+
+	rm -f K*
+	rm -f *.nsd
+
+	nsdfix
+
+	for zone in $(grep zone named.conf  | cut -f2 -d\")
+	do
+
+		if [ -f $zone.nsd ]
+		then
+			zonefile=${zone}.nsd
+		else
+			zonefile=${zone}
+		fi
+
+		if [ "$1" != "unsigned" ]
+		then
+			if [ ! "${zone: 0:16}" = "secure-delegated" ]
+			then
+				ksk=$(ldns-keygen -r /dev/urandom -a RSASHA256 -k $zone)
+			else
+				ksk="secure-delegated.dnssec-parent.com"
+			fi
+			zsk=$(ldns-keygen -r /dev/urandom -a RSASHA256 $zone)
+		fi
+
+		case $1 in
+			nsec)
+				ldns-signzone -f ${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			nsec3)
+				ldns-signzone -n -a 1 -s abcd -t 1 -f ${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			nsec3-optout)
+				ldns-signzone -n -p -a 1 -s abcd -t 1 -f ${zone}.signed ${zonefile} $ksk $zsk
+				if [ "$zone" = "dnssec-parent.com" ]
+				then
+					echo "insecure.dnssec-parent.com.	IN	NS	ns.insecure.dnssec-parent.com." >> ${zone}.signed
+				fi
+				;;
+			unsigned)
+				cp ${zonefile} ${zone}.signed
+				;;
+			*)
+				echo 'tonsd called with wrong param'
+				exit 1
+		esac
+
+		echo "" >> nsd.conf
+		echo "zone:" >> nsd.conf
+		echo "  name: \"${zone}\"" >> nsd.conf
+		echo "  zonefile: \"${zone}.signed\"" >> nsd.conf
+		echo "  provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
+		echo "  provide-xfr: ::0/0 NOKEY" >> nsd.conf
+	done
+	nsdc -c nsd.conf rebuild
+}
+
+
+
+tobind ()
+{
+	cat > bind.conf << __EOF__
+options {
+	dnssec-enable yes;
+	listen-on port $port { 127.0.0.1; };
+	minimal-responses yes;
+	pid-file "pdns.pid";
+};
+__EOF__
+
+	rm -f K*
+	rm -f *.bind
+
+	bindfix
+
+	for zone in $(grep zone named.conf  | cut -f2 -d\")
+	do
+
+		if [ ! -f $zone.bind ]
+		then
+			cp $zone $zone.bind
+		fi
+
+		if [ "$1" != "unsigned" ]
+		then
+			if [ ! "${zone: 0:16}" = "secure-delegated" ]
+			then
+				ksk=$(dnssec-keygen -r/dev/urandom -f KSK -a RSASHA256 -b 2048 -n ZONE $zone)
+			else
+				cp secure-delegated.dnssec-parent.com.private  Ksecure-delegated.dnssec-parent.com.+008+54319.private
+				cp secure-delegated.dnssec-parent.com.key  Ksecure-delegated.dnssec-parent.com.+008+54319.key
+				ksk="Ksecure-delegated.dnssec-parent.com.+008+54319"
+			fi
+			zsk=$(dnssec-keygen -r/dev/urandom -a RSASHA256 -b 1024 -n ZONE $zone)
+
+			echo "\$include $ksk.key ; KSK" >> $zone.bind
+			echo "\$include $zsk.key ; ZSK" >> $zone.bind
+		fi
+
+		case $1 in
+			nsec)
+				dnssec-signzone -o $zone -f $zone.signed $zone.bind
+				;;
+			nsec3)
+				dnssec-signzone -3 abcd -H 1 -o $zone -f $zone.signed $zone.bind
+				;;
+			nsec3-optout)
+				dnssec-signzone -3 abcd -H 1 -A -o $zone -f $zone.signed $zone.bind
+				if [ "$zone" = "dnssec-parent.com" ]
+				then
+					echo "insecure.dnssec-parent.com.	IN	NS	ns.insecure.dnssec-parent.com." >> ${zone}.signed
+				fi
+				;;
+			unsigned)
+				cp ${zone}.bind ${zone}.signed
+				;;
+			*)
+				echo 'tonsd called with wrong param'
+				exit 1
+		esac
+
+		echo "" >> bind.conf
+		echo "zone \"${zone}\" {" >> bind.conf
+		echo "	type master;" >> bind.conf
+		echo "	file \"${zone}.signed\";" >> bind.conf
+		echo "};" >> bind.conf
+	done
+}
+
+
+
 tosql ()
 {
 	make -C ../pdns/backends/bind zone2sql > /dev/null
 	../pdns/backends/bind/zone2sql --transactions --$1 --named-conf=./named.conf
-
 }
 
 bindwait ()
@@ -45,7 +198,7 @@ securezone ()
 	fi
 	if [ "${zone: 0:16}" = "secure-delegated" ]
 	then
-		../pdns/pdnssec --config-dir=. $configname import-zone-key $zone $zone.key ksk 2>&1
+		../pdns/pdnssec --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
 		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
 		keyid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
 		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
@@ -106,6 +259,7 @@ then
 Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
 
 context is one of:
+ext-nsd ext-nsd-nsec ext-nsd-nsec3 ext-bind ext-bind-nsec ext-bind-nsec3
 bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
 gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-optout gmysql-nsec3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3
@@ -118,8 +272,8 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
-* Add -presigned to any gmysql test (except narrow) to
-  test presigned operation
+* Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
+  to test presigned operation
 
 * Add 'wait' (literally) after the context to not kill
   pdns_server immediately after testing. 'nowait' will kill it.
@@ -163,6 +317,60 @@ fi
 
 
 case $context in
+		ext-nsd | ext-nsd-nsec | ext-nsd-nsec3 | ext-nsd-nsec3-optout)
+			case $context in
+				ext-nsd)
+					tonsd unsigned
+					extracontexts="extnsd"
+					skipreasons="nsd nodnssec nodyndns"
+					;;
+				ext-nsd-nsec)
+					tonsd nsec
+					extracontexts="extnsd dnssec"
+					skipreasons="nsd nodyndns"
+					;;
+				ext-nsd-nsec3)
+					tonsd nsec3
+					extracontexts="extnsd dnssec nsec3"
+					skipreasons="nsd nsec3 nodyndns"
+					;;
+				ext-nsd-nsec3-optout)
+					tonsd nsec3-optout
+					extracontexts="extnsd dnssec nsec3 nsec3-optout"
+					skipreasons="nsd optout nodyndns"
+					;;
+			esac
+			nsd -c nsd.conf -P pdns.pid -d &
+			sleep 5
+			;;
+
+		ext-bind | ext-bind-nsec | ext-bind-nsec3 | ext-bind-nsec3-optout)
+			case $context in
+				ext-bind)
+					tobind unsigned
+					extracontexts="extbind"
+					skipreasons="bind nodnssec nodyndns"
+					;;
+				ext-bind-nsec)
+					tobind nsec
+					extracontexts="extbind dnssec"
+					skipreasons="bind nodyndns"
+					;;
+				ext-bind-nsec3)
+					tobind nsec3
+					extracontexts="extbind dnssec nsec3"
+					skipreasons="bind nsec3 nodyndns"
+					;;
+				ext-bind-nsec3-optout)
+					tobind nsec3-optout
+					extracontexts="extbind dnssec nsec3 nsec3-optout"
+					skipreasons="bind optout nodyndns"
+					;;
+			esac
+			named -c bind.conf -f &
+			sleep 5
+			;;
+
 		bind)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=bind --bind-config=./named.conf                \
@@ -176,7 +384,6 @@ case $context in
 		bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
 			rm -f dnssec.sqlite3
 			../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
-			../pdns/pdnssec --config-dir=. import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
 
 			for zone in $(grep zone named.conf  | cut -f2 -d\")
 			do
@@ -207,7 +414,8 @@ case $context in
 				skipreasons="nodyndns"
 			fi
 
-                        ../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=bind --bind-config=./named.conf \
@@ -332,7 +540,7 @@ __EOF__
 
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
 			../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
@@ -388,8 +596,8 @@ __EOF__
 				fi
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-                        ../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
@@ -508,8 +716,8 @@ __EOF__
 				fi
 			done
 
-                        ../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-                        ../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
@@ -541,10 +749,10 @@ __EOF__
 			remotetype=$(echo $context | cut -d- -f 2)
 			remotesec=$(echo $context | cut -d- -f 3)
 			narrow=$(echo $context | cut -d- -f 4)
-						testsdir=../modules/remotebackend/regression-tests/
+			testsdir=../modules/remotebackend/regression-tests/
 
-						# cleanup unbound-host.conf to avoid failures
-						rm -f unbound-host.conf
+			# cleanup unbound-host.conf to avoid failures
+			rm -f unbound-host.conf
 
 			case $remotetype in
 			http)
@@ -661,7 +869,7 @@ export optout
 if [ $presigned = yes ]
 then
         skipreasons="$skipreasons presigned nodyndns"
-	if [ ${context:0:6} = gmysql ]
+	if [ ${context:0:6} = gmysql ] || [ ${context:0:7} = ext-nsd ] || [ ${context:0:8} = ext-bind ]
 	then
 		context=${context}-presigned
 		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
@@ -684,15 +892,13 @@ then
 			-e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
 		done
 
-                set +e
-                echo $skipreasons | grep -q nodnssec
-                if [ $? -ne 0 ]; then
-			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-	                "$GMYSQL2DB" \
-	                -e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
-        	        mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-	                "$GMYSQL2DB" \
-	                -e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+		set +e
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+			-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+			-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
 		set -e
 
@@ -735,12 +941,12 @@ then
 		do
 			sqlite3 pdns.sqlite31 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 		done
-                
-                set +e
-                echo $skipreasons | grep -q nodnssec
-                if [ $? -ne 0 ]; then
-	                sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
-        	        sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+
+		set +e
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
 		set -e
 
@@ -788,11 +994,11 @@ then
 		../pdns/pdnssec --config-dir=. create-bind-db dnssec-slave.sqlite3
 
 		set +e
-                echo $skipreasons | grep -q nodnssec
-                if [ $? -ne 0 ]; then
-                   sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
-                   sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
-                fi
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
+		fi
 		set -e
 
 		port=$((port+100))
@@ -818,13 +1024,13 @@ then
 	read l
 fi
 kill $(cat pdns*.pid)
-rm pdns*.pid
+rm pdns*.pid || true
 
 if [ -s "./failed_tests" ]
 then
 	for t in `cat failed_tests`
 	do
-		echo $t
+		echo -e "\n\n$t"
 		cat $t/diff
 	done
 	exit 1
