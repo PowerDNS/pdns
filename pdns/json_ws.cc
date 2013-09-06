@@ -27,6 +27,11 @@
 #include "misc.hh"
 #include "syncres.hh"
 #include "config.h"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+
+using namespace rapidjson;
 
 JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
 {
@@ -110,7 +115,16 @@ void JWebserver::readRequest(int fd)
 string JWebserver::handleRequest(const string &method, const string &uri, const map<string,string> &rovarmap, string &headers)
 {
   map<string,string> varmap = rovarmap;
-  string callback = varmap["callback"];
+  string callback;
+  if (varmap.count("callback")) {
+    callback = varmap["callback"];
+    varmap.erase("callback");
+  }
+  string command;
+  if (varmap.count("command")) {
+    command = varmap["command"];
+    varmap.erase("command");
+  }
 
   headers += "Access-Control-Allow-Origin: *\r\n";
   headers += "Content-Type: application/json\r\n";
@@ -120,64 +134,98 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
     content=callback+"(";
 
   map<string, string> stats; 
-  if(varmap["command"] =="domains") {
-    content += "[";
-    bool first=1;
+  if(command == "domains") {
+    Document doc;
+    doc.SetArray();
     BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
-      if(!first) content+= ", ";
-      first=false;
-      stats.clear();
-      stats["name"] = val.first;
-      stats["type"] = val.second.d_servers.empty() ? "Native" : "Forwarded";
-      stats["servers"];
-      BOOST_FOREACH(const ComboAddress& server, val.second.d_servers) {
-        stats["servers"]+= server.toStringWithPort() + " ";
+      Value jzone;
+      jzone.SetObject();
+
+      const SyncRes::AuthDomain& zone = val.second;
+      Value zonename(val.first.c_str(), doc.GetAllocator());
+      jzone.AddMember("name", zonename, doc.GetAllocator());
+      jzone.AddMember("type", "Zone", doc.GetAllocator());
+      jzone.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
+      Value servers;
+      servers.SetArray();
+      BOOST_FOREACH(const ComboAddress& server, zone.d_servers) {
+        Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
+        servers.PushBack(value, doc.GetAllocator());
       }
-      stats["rdbit"] = lexical_cast<string>(val.second.d_servers.empty() ? 0 : val.second.d_rdForward);
-      // fill out forwarders too one day, and rdrequired
-      content += returnJSONObject(stats);
+      jzone.AddMember("servers", servers, doc.GetAllocator());
+      bool rdbit = zone.d_servers.empty() ? false : zone.d_rdForward;
+      jzone.AddMember("rdbit", rdbit, doc.GetAllocator());
+
+      doc.PushBack(jzone, doc.GetAllocator());
     }
-    content += "]";
+    content += makeStringFromDocument(doc);
   }
-  else if(varmap["command"] =="get-zone") {
+  else if(command == "zone") {
     SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
-    
-    content += "[";
-    bool first=1;
-    
-    if(ret != t_sstorage->domainmap->end()) {
-      BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& val, ret->second.d_records) {
-	if(!first) content+= ", ";
-	first=false;
-	stats.clear();
-	stats["name"] = val.qname;
-	stats["type"] = val.qtype.getName();
-	stats["ttl"] = lexical_cast<string>(val.ttl);
-	stats["priority"] = lexical_cast<string>(val.priority);
-	stats["content"] = val.content;
-	content += returnJSONObject(stats);
+    if (ret != t_sstorage->domainmap->end()) {
+      Document doc;
+      doc.SetObject();
+      Value root;
+      root.SetObject();
+
+      const SyncRes::AuthDomain& zone = ret->second;
+      Value zonename(ret->first.c_str(), doc.GetAllocator());
+      root.AddMember("name", zonename, doc.GetAllocator());
+      root.AddMember("type", "Zone", doc.GetAllocator());
+      root.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
+      Value servers;
+      servers.SetArray();
+      BOOST_FOREACH(const ComboAddress& server, zone.d_servers) {
+        Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
+        servers.PushBack(value, doc.GetAllocator());
       }
+      root.AddMember("servers", servers, doc.GetAllocator());
+      bool rdbit = zone.d_servers.empty() ? false : zone.d_rdForward;
+      root.AddMember("rdbit", rdbit, doc.GetAllocator());
+
+      Value records;
+      records.SetArray();
+      BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
+        Value object;
+        object.SetObject();
+        Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+        object.AddMember("name", jname, doc.GetAllocator());
+        Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
+        object.AddMember("type", jtype, doc.GetAllocator());
+        object.AddMember("ttl", rr.ttl, doc.GetAllocator());
+        object.AddMember("priority", rr.priority, doc.GetAllocator());
+        Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+        object.AddMember("content", jcontent, doc.GetAllocator());
+        records.PushBack(object, doc.GetAllocator());
+      }
+      root.AddMember("records", records, doc.GetAllocator());
+
+      doc.AddMember("zone", root, doc.GetAllocator());
+      content += makeStringFromDocument(doc);
+    } else {
+      map<string, string> err;
+      err["error"] = "Could not find domain '"+varmap["zone"]+"'";
+      content += returnJSONObject(err);
     }
-    content += "]";
-  }  
-  else if(varmap["command"]=="flush-cache") {
+  }
+  else if(command == "flush-cache") {
     string canon=toCanonic("", varmap["domain"]);
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
     content += returnJSONObject(stats);  
   }
-  else if(varmap["command"] == "config") {
+  else if(command == "config") {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
     content += returnJSONObject(stats);  
   }
-  else if(varmap["command"]=="log-grep") {
+  else if(command == "log-grep") {
     content += makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns_recursor[");
   }
-  else { //  if(varmap["command"] == "stats") {
+  else { //  if(command == "stats") {
     stats = getAllStatsMap();
     content += returnJSONObject(stats);  
   } 
