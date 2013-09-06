@@ -647,7 +647,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   {
     rr.qname=qname+"."+bb2.d_name+".";
     if(nsec3zone)
-      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
+      hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
     insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
   }
 }
@@ -1355,7 +1355,7 @@ class Bind2Factory : public BackendFactory
 
       void declareArguments(const string &suffix="")
       {
-         declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound for the zone.","yes");
+         declare(suffix,"ignore-broken-records","Ignore records that are out-of-bound for the zone.","no");
          declare(suffix,"config","Location of named.conf","");
          declare(suffix,"check-interval","Interval for zonefile changes","0");
          declare(suffix,"supermaster-config","Location of (part of) named.conf where pdns can write zone-statements to","");

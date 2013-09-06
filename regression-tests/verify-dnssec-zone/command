@@ -1,5 +1,5 @@
 #!/bin/sh
-for zone in $(grep zone named.conf  | cut -f2 -d\" | grep -v '^example.com$')
+for zone in $(grep zone named.conf  | cut -f2 -d\" | grep -v '^\(example.com\|nztest.com\)$')
 do
 	TFILE=$(mktemp)
 	dig axfr $zone @$nameserver -p $port | ldns-read-zone -z > $TFILE
