@@ -96,13 +96,9 @@ void *StatWebServer::threadHelper(void *p)
 
 void printtable(ostringstream &ret, const string &ringname, const string &title, int limit=10)
 {
-  vector<pair <string,unsigned int> >ring=S.getRing(ringname);
-  if (ring.size() == 0) {
-    return;
-  }
-
   int tot=0;
   int entries=0;
+  vector<pair <string,unsigned int> >ring=S.getRing(ringname);
 
   for(vector<pair<string, unsigned int> >::const_iterator i=ring.begin(); i!=ring.end();++i) {
     tot+=i->second;
