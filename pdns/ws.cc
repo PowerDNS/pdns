@@ -122,13 +122,14 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
 
   ret<<"<table class=\"data\">";
   int printed=0;
+  int total=max(1,tot);
   for(vector<pair<string,unsigned int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
-    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/tot)<<"</td>"<<endl;
+    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
   if(printed!=tot)
-    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< StatWebServer::makePercentage((tot-printed)*100.0/tot)<<"</b></td>"<<endl;
+    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< StatWebServer::makePercentage((tot-printed)*100.0/total)<<"</b></td>"<<endl;
 
   ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</b></td><td align=right><b>100%</b></td>";
   ret<<"</table></div>"<<endl;
