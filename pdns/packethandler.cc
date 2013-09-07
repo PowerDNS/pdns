@@ -578,25 +578,24 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
 
 void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, const string& wildcard, const string& auth, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
-  DLOG(L<<"mode="<<mode<<" target="<<target<<" wildcard="<<wildcard<<" auth="<<auth<<endl);
-  
+  DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
+
   SOAData sd;
-  sd.db = (DNSBackend*)-1;
+  sd.db = (DNSBackend*)-1; // force uncached answer
   if(!B.getSOA(auth, sd)) {
-    // cerr<<"Could not get SOA for domain in NSEC3\n";
+    DLOG(L<<"Could not get SOA for domain");
     return;
   }
-  // cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
-  
+
   string unhashed, hashed, before, after;
   string closest;
-  
+
   if (mode == 2 || mode == 3 || mode == 4) {
     closest=wildcard;
-    chopOff(closest);
+    (void) chopOff(closest);
   } else
     closest=target;
-  
+
   if (mode == 1) {
     DNSResourceRecord rr;
     while( chopOff( closest ) && (closest != sd.qname))  { // stop at SOA
@@ -607,7 +606,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
       }
     }
   }
-  
+
   // add matching NSEC3 RR
   // we used to skip this one for mode 3, but old BIND needs it
   // see https://github.com/PowerDNS/pdns/issues/814
@@ -616,7 +615,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
-  
+
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
     DLOG(L<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
@@ -637,14 +636,14 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     DLOG(L<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
   }
-  
+
   // wildcard denial
   if (mode == 2 || mode == 4) {
     unhashed=dotConcat("*", closest);
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     DLOG(L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
-    
+
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
     DLOG(L<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
@@ -653,12 +652,9 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& wildcard, const string& auth, int mode)
 {
-  DLOG(L<<"Should add NSEC covering '"<<target<<"' from zone '"<<auth<<"', mode = "<<mode<<endl);
-  SOAData sd;
+  DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
-  if(auth.empty()) {
-    getAuth(p, &sd, target, 0);
-  }
+  SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer
   if(!B.getSOA(auth, sd)) {
     DLOG(L<<"Could not get SOA for domain"<<endl);
