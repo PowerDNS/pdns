@@ -23,6 +23,7 @@
 *.o
 .deps
 .libs
+.dirstamp
 modules/*/Makefile
 modules/*/Makefile.in
 codedocs/Makefile
