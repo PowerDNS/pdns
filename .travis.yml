@@ -4,17 +4,21 @@ compiler:
   - clang
 before_script:
  - sudo apt-get update
- - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat
+ - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time
  - sudo sed -i '0,/\[mysqld\]/s//[mysqld]\nskip-character-set-client-handshake/' /etc/mysql/my.cnf
  - sudo restart mysql
+ - cd regression-tests
+ - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+ - unzip top-1m.csv.zip
+ - cd ..
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http
+ - ./configure --with-modules='gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http --enable-tools
  - make dist
  - make -j 4
- - make check
+ - make -j 4 check
  - cd pdns
- - make pdns_recursor
+ - make -j 4 pdns_recursor
  - cd docs
  - make
  - cd ../../regression-tests
@@ -41,6 +45,7 @@ script:
  - ./start-test-stop 5300 remotebackend-pipe-dnssec
  - ./start-test-stop 5300 remotebackend-unix
  - ./start-test-stop 5300 remotebackend-unix-dnssec
+ - THRESHOLD=90 TRACE=no ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
