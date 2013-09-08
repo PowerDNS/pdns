@@ -409,8 +409,6 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   BOOST_FOREACH(struct pollfd &pfd, rfds) {
     if(pfd.revents & POLLIN) {
       sock=pfd.fd;        
-      len=0;
-        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
 	if(errno != EAGAIN)
 	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
