@@ -52,7 +52,6 @@ bool LUABackend::startTransaction(const string &qname, int id) {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return false;
     }
 
     size_t returnedwhat = lua_type(lua, -1);
@@ -84,7 +83,6 @@ bool LUABackend::commitTransaction() {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return false;
     }
 
     size_t returnedwhat = lua_type(lua, -1);
@@ -116,7 +114,6 @@ bool LUABackend::abortTransaction() {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return false;
     }
 
     size_t returnedwhat = lua_type(lua, -1);
@@ -148,7 +145,6 @@ bool LUABackend::feedRecord(const DNSResourceRecord &rr) {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return false;
     }
 
     size_t returnedwhat = lua_type(lua, -1);
@@ -239,7 +235,6 @@ bool LUABackend::isMaster(const string &domain, const string &ip) {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return false;
     }
 
     size_t returnedwhat = lua_type(lua, -1);
@@ -272,7 +267,6 @@ bool LUABackend::getDomainInfo(const string &domain, DomainInfo &di) {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return false;
     }
 
     size_t returnedwhat = lua_type(lua, -1);

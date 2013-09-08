@@ -168,7 +168,6 @@ void LUABackend::rediscover(string* status) {
         lua_pop(lua, 1);
 
         throw runtime_error(e);
-        return;
     }
 
     size_t returnedwhat = lua_type(lua, -1);

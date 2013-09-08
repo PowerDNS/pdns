@@ -232,7 +232,6 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
 
     lua_pop(d_lua, 1);
     throw runtime_error(error);
-    return 0;
   }
   bool res=lua_toboolean(d_lua, 1);
   lua_pop(d_lua, 1);
