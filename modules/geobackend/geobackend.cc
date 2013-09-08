@@ -201,8 +201,9 @@ void GeoBackend::answerGeoRecord(const QType &qtype, const string &qdomain, DNSP
         fillGeoResourceRecord(qdomain, target, rr);
         
         L << Logger::Debug << logprefix << "Serving " << qdomain << " "
-        	<< rr->qtype.getName() << " " << target << " to " << p->getRemote()
-        	<< " (" << isocode << ")" << endl;
+                << rr->qtype.getName() << " " << target << " to "
+                << (p != NULL ? p->getRemote() : "(unknown)")
+                << " (" << isocode << ")" << endl;
         	
         answers.push_back(rr);		
 }

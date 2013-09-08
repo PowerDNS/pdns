@@ -72,7 +72,6 @@ bool LUABackend::list(const string &target, int domain_id) {
 	lua_pop(lua, 1);
 	
 	throw runtime_error(e);
-	return false;
     }
     
     size_t returnedwhat = lua_type(lua, -1);
