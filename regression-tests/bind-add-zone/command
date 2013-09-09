@@ -6,13 +6,12 @@ fi
 
 cleandig ns1.addzone.com A
 cleandig ns1.test.com A
-sleep 2
 ../pdns/pdns_control --config-dir=. bind-add-zone addzone.com addzone.com
 ../pdns/pdns_control --config-dir=. purge addzone.com
-sleep 2
+sleep 1
 ../pdns/pdns_control --config-dir=. bind-add-zone addzone.com addzone.com
-sleep 2
+sleep 1
 cleandig ns1.addzone.com A
-sleep 2
+sleep 1
 cleandig ns1.addzone.com A
 cleandig ns1.test.com A
