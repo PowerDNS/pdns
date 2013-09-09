@@ -7,6 +7,7 @@ nsdfix ()
 {
 	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
 	sed '/EUI/s/^/;/g' < example.com > example.com.nsd
+	sed -e '/testnonzone\.com\./s/^/;/g' -e '/NZTEST\.COM\.NET\./s/^/;/g' < nztest.com > nztest.com.nsd
 }
 
 bindfix ()

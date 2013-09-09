@@ -557,25 +557,35 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   return message;
 }
 
+
+bool getTSIGHashEnum(string algoName, TSIGHashEnum& algoEnum)
+{
+  if (*(algoName.rbegin()) != '.')
+    algoName.append(".");
+
+  if (algoName == "hmac-md5.sig-alg.reg.int.")
+    algoEnum = TSIG_MD5;
+  else if (algoName == "hmac-sha1.")
+    algoEnum = TSIG_SHA1;
+  else if (algoName == "hmac-sha224.")
+    algoEnum = TSIG_SHA224;
+  else if (algoName == "hmac-sha256.")
+    algoEnum = TSIG_SHA256;
+  else if (algoName == "hmac-sha384.")
+    algoEnum = TSIG_SHA384;
+  else if (algoName == "hmac-sha512.")
+    algoEnum = TSIG_SHA512;
+  else {
+     return false;
+  }
+  return true;
+}
+
+
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
   TSIGHashEnum algo;
-
-  if (*(trc->d_algoName.rbegin()) != '.') trc->d_algoName.append(".");
-
-  if (trc->d_algoName == "hmac-md5.sig-alg.reg.int.")
-  algo = TSIG_MD5;
-  else if (trc->d_algoName == "hmac-sha1.")
-  algo = TSIG_SHA1;
-  else if (trc->d_algoName == "hmac-sha224.")
-  algo = TSIG_SHA224;
-  else if (trc->d_algoName == "hmac-sha256.")
-  algo = TSIG_SHA256;
-  else if (trc->d_algoName == "hmac-sha384.")
-  algo = TSIG_SHA384;
-  else if (trc->d_algoName == "hmac-sha512.")
-  algo = TSIG_SHA512;
-  else {
+  if (!getTSIGHashEnum(trc->d_algoName, algo)) {
      L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
      return;
   }
