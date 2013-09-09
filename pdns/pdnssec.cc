@@ -340,36 +340,49 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
-  
+
   set<string> records, cnames, noncnames;
+  map<string, int> ttl;
+
+  ostringstream content;
+  pair<map<string, int>::iterator,bool> ret;
 
   while(sd.db->get(rr)) {
+    if(!rr.qtype.getCode())
+      continue;
+
     if(!endsOn(rr.qname, zone)) {
-      cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" in zone "<<zone<<" is out-of-zone."<<endl;
+      cout<<"[Warning] The record '"<<rr.qname<<"' with type "<<rr.qtype.getName()<<" in zone "<<zone<<" is out-of-zone."<<endl;
       numwarnings++;
       continue;
     }
 
-    if(!rr.qtype.getCode())
-      continue;
-
-    ostringstream content;
+    content.str("");
     content<<rr.qname<<" "<<rr.qtype.getName();
     if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
       content<<" "<<rr.priority;
     content<<" "<<rr.content;
     if (records.count(content.str())) {
-      cout<<"[Error] Duplicate record found '"<<content.str()<<"' This do not belong in the database."<<endl;
+      cout<<"[Error] Duplicate record found in rrset '"<<rr.qname<<"' with type "<<rr.qtype.getName()<<"."<<endl;
       numerrors++;
       continue;
     } else
       records.insert(content.str());
 
+    content.str("");
+    content<<rr.qname<<" "<<rr.qtype.getName();
+    ret = ttl.insert(pair<string ,int>(content.str(), rr.ttl));
+    if (ret.second==false && ret.first->second != rr.ttl) {
+      cout<<"[Error] TTL mismatch in rrset '"<<rr.qname<<"' with type "<<rr.qtype.getName()<<" ("<<ret.first->second<<" <> "<<rr.ttl<<")"<<endl;
+      numerrors++;
+      continue;
+    }
+
     if (rr.qtype.getCode() == QType::CNAME) {
       if (!cnames.count(rr.qname))
         cnames.insert(rr.qname);
       else {
-        cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
+        cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'."<<endl;
         numerrors++;
         continue;
       }
