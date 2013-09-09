@@ -354,15 +354,18 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     if (rr.qtype.getCode() == QType::CNAME) {
       if (!cnames.count(rr.qname))
         cnames.insert(rr.qname);
-      else
-      {
+      else {
         cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
         numerrors++;
         continue;
       }
-    }
-    else {
-      if (rr.qtype.getCode() != QType::RRSIG)
+    } else {
+      if (rr.qtype.getCode() == QType::RRSIG) {
+        if(!dk.isPresigned(zone)) {
+          cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
+          numerrors++;
+        }
+      } else
         noncnames.insert(rr.qname);
     }
 
@@ -387,8 +390,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
         }
         else
         {
-          cout<<"[Error] DNSKEY in non-presigned zone will mostly be ignored and can cause problems."<<endl;
-          numerrors++;
+          cout<<"[Warning] DNSKEY at '"<<rr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
+          numwarnings++;
         }
       }
     }
