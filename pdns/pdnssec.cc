@@ -352,9 +352,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     if(!rr.qtype.getCode())
       continue;
-    
+
     if (rr.qtype.getCode() == QType::CNAME) {
-      cnames.insert(rr.qname);
+      if (!cnames.count(rr.qname))
+        cnames.insert(rr.qname);
+      else
+      {
+        cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
+        numerrors++;
+        continue;
+      }
     }
     else {
       if (rr.qtype.getCode() != QType::RRSIG)
