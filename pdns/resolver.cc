@@ -122,7 +122,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
   if(!tsigkeyname.empty()) {
     // cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
     TSIGRecordContent trc;
-    if (tsigalgorithm == "hmac-md5")  
+    if (tsigalgorithm == "hmac-md5")
       trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
     else
       trc.d_algoName = tsigalgorithm;
@@ -439,23 +439,9 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
       } else {
         message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tsigkeyname, d_trc, d_trc.d_mac, false);
       }
+
       TSIGHashEnum algo;
-
-      if (*(d_trc.d_algoName.rbegin()) != '.') d_trc.d_algoName.append(".");
-
-      if (d_trc.d_algoName == "hmac-md5.sig-alg.reg.int.")
-      algo = TSIG_MD5;
-      else if (d_trc.d_algoName == "hmac-sha1.")
-      algo = TSIG_SHA1;
-      else if (d_trc.d_algoName == "hmac-sha224.")
-      algo = TSIG_SHA224;
-      else if (d_trc.d_algoName == "hmac-sha256.")
-      algo = TSIG_SHA256;
-      else if (d_trc.d_algoName == "hmac-sha384.")
-      algo = TSIG_SHA384;
-      else if (d_trc.d_algoName == "hmac-sha512.")
-      algo = TSIG_SHA512;
-      else {
+      if (!getTSIGHashEnum(d_trc.d_algoName, algo)) {
         throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName);
       }
 

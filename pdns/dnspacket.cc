@@ -596,16 +596,15 @@ void DNSPacket::commitD()
 bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
-  
+
   q->getTSIGDetails(trc, keyname, &message);
   uint64_t now = time(0);
   if(abs(trc->d_time - now) > trc->d_fudge) {
     L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
-  
+
   string secret64;
-    
   if(!B->getTSIGKey(*keyname, &trc->d_algoName, &secret64)) {
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
     return false;
@@ -613,32 +612,17 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
   if (trc->d_algoName == "hmac-md5")
     trc->d_algoName += ".sig-alg.reg.int.";
 
-  bool result;
   TSIGHashEnum algo;
-  if (*(trc->d_algoName.rbegin()) != '.') trc->d_algoName.append(".");
-
-  if (trc->d_algoName == "hmac-md5.sig-alg.reg.int.")
-  algo = TSIG_MD5;
-  else if (trc->d_algoName == "hmac-sha1.") 
-  algo = TSIG_SHA1;
-  else if (trc->d_algoName == "hmac-sha224.") 
-  algo = TSIG_SHA224;
-  else if (trc->d_algoName == "hmac-sha256.") 
-  algo = TSIG_SHA256;
-  else if (trc->d_algoName == "hmac-sha384.") 
-  algo = TSIG_SHA384;
-  else if (trc->d_algoName == "hmac-sha512.") 
-  algo = TSIG_SHA512;
-  else {
+  if(!getTSIGHashEnum(trc->d_algoName, algo)) {
      L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
      return false;
   }
 
   B64Decode(secret64, *secret);
-  result=calculateHMAC(*secret, message, algo) == trc->d_mac;
-
+  bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
   if(!result) {
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
   }
+
   return result;
 }
