@@ -26,6 +26,7 @@ real_result
 /recursor-bulktest/
 /recursor.log
 /top-1m.csv
+/Quantcast-Top-Million.txt
 /report.json
 /nsd.*
 /*.nsd
