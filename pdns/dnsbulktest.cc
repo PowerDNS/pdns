@@ -247,11 +247,17 @@ int main(int argc, char** argv)
   while(stringfgets(stdin, line)) {
     if(limit && domains.size() >= limit)
       break;
-      
+
     trim_right(line);
+    if(line.empty() || line[0] == '#')
+      continue;
     split=splitField(line,',');
+    if (split.second.empty())
+      split=splitField(line,'\t');
+    if(!split.second.find('.')) // skip 'Hidden profile' in quantcast list.
+      continue;
     pos=split.second.find('/');
-    if(pos != string::npos) // alexa has whole urls in the list now..
+    if(pos != string::npos) // alexa has whole urls in the list now.
       split.second.resize(pos);
     if(find_if(split.second.begin(), split.second.end(), isalpha) == split.second.end())
     {
