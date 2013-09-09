@@ -135,6 +135,7 @@ string calculateSHAHMAC(const std::string& key_, const std::string& text, TSIGHa
 string calculateHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash);
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
+bool getTSIGHashEnum(string algoName, TSIGHashEnum& algoEnum);
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
 
 #endif
