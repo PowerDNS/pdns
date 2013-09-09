@@ -657,6 +657,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   
   string keyname;
   set<string> ns3rrs;
+  unsigned int udiff;
   DTime dt;
   dt.set();
   int records=0;
@@ -707,8 +708,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       }
     }
   }
-  unsigned int udiff=dt.udiffNoReset();
   /*
+  udiff=dt.udiffNoReset();
   cerr<<"Starting NSEC: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
   cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
   cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
@@ -794,8 +795,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       }
     }
   }
-  udiff=dt.udiffNoReset();
   /*
+  udiff=dt.udiffNoReset();
   cerr<<"Flushing pipe: "<<csp.d_signed/(udiff/1000000.0)<<" sigs/s, "<<csp.d_signed<<" / "<<udiff/1000000.0<<endl;
   cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
   cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
