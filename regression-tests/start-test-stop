@@ -81,15 +81,15 @@ __EOF__
 
 		echo "" >> nsd.conf
 		echo "zone:" >> nsd.conf
-		echo "  name: \"${zone}\"" >> nsd.conf
-		echo "  zonefile: \"${zone}.signed\"" >> nsd.conf
-		if [ "${zone}" == "tsig.com" ]
+		echo "	name: \"${zone}\"" >> nsd.conf
+		echo "	zonefile: \"${zone}.signed\"" >> nsd.conf
+		if [ "${zone}" = "tsig.com" ]
 		then
-			echo "  provide-xfr: 0.0.0.0/0 test" >> nsd.conf
-			echo "  provide-xfr: ::0/0 test" >> nsd.conf
+			echo "	provide-xfr: 0.0.0.0/0 test" >> nsd.conf
+			echo "	provide-xfr: ::0/0 test" >> nsd.conf
 		else
-			echo "  provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
-			echo "  provide-xfr: ::0/0 NOKEY" >> nsd.conf
+			echo "	provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
+			echo "	provide-xfr: ::0/0 NOKEY" >> nsd.conf
 		fi
 	done
 	nsdc -c nsd.conf rebuild
@@ -105,6 +105,11 @@ options {
 	listen-on port $port { 127.0.0.1; };
 	minimal-responses yes;
 	pid-file "pdns.pid";
+};
+
+key test {
+	algorithm hmac-md5;
+	secret "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=";
 };
 __EOF__
 
@@ -162,6 +167,10 @@ __EOF__
 		echo "" >> bind.conf
 		echo "zone \"${zone}\" {" >> bind.conf
 		echo "	type master;" >> bind.conf
+		if [ "${zone}" = "tsig.com" ]
+		then
+			echo "	allow-transfer { key test; none; };" >> bind.conf
+		fi
 		echo "	file \"${zone}.signed\";" >> bind.conf
 		echo "};" >> bind.conf
 	done
