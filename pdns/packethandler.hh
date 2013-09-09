@@ -107,7 +107,6 @@ private:
   static pthread_mutex_t s_rfc2136lock;
   bool d_doFancyRecords;
   bool d_doRecursion;
-  bool d_doCNAME;
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
   AuthLua* d_pdl;
