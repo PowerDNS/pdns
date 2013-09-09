@@ -339,7 +339,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
   
-  set<string> cnames, noncnames;
+  set<string> records, cnames, noncnames;
 
   while(sd.db->get(rr)) {
     if(!endsOn(rr.qname, zone)) {
@@ -350,6 +350,18 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     if(!rr.qtype.getCode())
       continue;
+
+    ostringstream content;
+    content<<rr.qname<<" "<<rr.qtype.getName();
+    if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+      content<<" "<<rr.priority;
+    content<<" "<<rr.content;
+    if (records.count(content.str())) {
+      cout<<"[Error] Duplicate record found '"<<content.str()<<"' This do not belong in the database."<<endl;
+      numerrors++;
+      continue;
+    } else
+      records.insert(content.str());
 
     if (rr.qtype.getCode() == QType::CNAME) {
       if (!cnames.count(rr.qname))
@@ -364,6 +376,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
         if(!dk.isPresigned(zone)) {
           cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
           numerrors++;
+          continue;
         }
       } else
         noncnames.insert(rr.qname);
