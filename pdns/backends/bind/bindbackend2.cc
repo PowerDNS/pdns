@@ -409,6 +409,35 @@ static string canonic(string ret)
   return ret;
 }
 
+void Bind2Backend::parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd, bool loaded)
+{
+  NSEC3PARAMRecordContent ns3pr;
+  bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
+        
+  ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
+  DNSResourceRecord rr;
+  string hashed;
+  while(zpt.get(rr)) {  // FIXME this code is duplicate
+    if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
+      continue; // we synthesise NSECs on demand
+
+    if(nsec3zone) {
+      if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
+        hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+      else
+        hashed="";
+    }
+    insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
+  }
+
+  fixupAuth(staging->id_zone_map[bbd->d_id].d_records);
+  doEmptyNonTerminals(staging, bbd->d_id, nsec3zone, ns3pr);
+
+  bbd->setCtime();
+  bbd->d_loaded=loaded; 
+  bbd->d_status="parsed into memory at "+nowTime();
+}
+
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
@@ -734,38 +763,12 @@ void Bind2Backend::loadConfig(string* status)
         if(filenameChanged || !bbd->d_loaded || !bbd->current()) {
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 
-          NSEC3PARAMRecordContent ns3pr;
-          bool nsec3zone=getNSEC3PARAM(i->name, &ns3pr);
-        
           try {
             // we need to allocate a new vector so we don't kill the original, which is still in use!
             bbd->d_records=shared_ptr<recordstorage_t> (new recordstorage_t()); 
 
-            ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
-            DNSResourceRecord rr;
-            string hashed;
-            while(zpt.get(rr)) {  // FIXME this code is duplicate
-              if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
-                continue; // we synthesise NSECs on demand
+            parseZoneFile(staging, bbd);
 
-              if(nsec3zone) {
-                if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
-                  hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-                else
-                  hashed="";
-              }
-              insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
-            }
-        
-            // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
-            
-            fixupAuth(staging->id_zone_map[bbd->d_id].d_records);
-            doEmptyNonTerminals(staging, bbd->d_id, nsec3zone, ns3pr);
-            
-            staging->id_zone_map[bbd->d_id].setCtime();
-            staging->id_zone_map[bbd->d_id].d_loaded=true; 
-            staging->id_zone_map[bbd->d_id].d_status="parsed into memory at "+nowTime();
-            
             //  s_stage->id_zone_map[bbd->d_id].d_records->swap(*s_staging_zone_map[bbd->d_id].d_records);
           }
           catch(PDNSException &ae) {
@@ -870,38 +873,16 @@ void Bind2Backend::queueReload(BB2DomainInfo *bbd)
     shared_ptr<recordstorage_t > newrecords(new recordstorage_t);
     staging->id_zone_map[bbd->d_id].d_records=newrecords;
 
-    ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
-    DNSResourceRecord rr;
-    string hashed;
-    NSEC3PARAMRecordContent ns3pr;
-    bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
-    while(zpt.get(rr)) {
-      if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
-        continue; // we synthesise NSECs on demand
-
-      if(nsec3zone) {
-        if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
-          hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-        else
-          hashed="";
-      }
-      insert(staging, bbd->d_id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
-    }
-    // cerr<<"Start sort of "<<staging->id_zone_map[bbd->d_id].d_records->size()<<" records"<<endl;        
-    // sort(staging->id_zone_map[bbd->d_id].d_records->begin(), staging->id_zone_map[bbd->d_id].d_records->end());
-    // cerr<<"Sorting done"<<endl;
-    
-    fixupAuth(staging->id_zone_map[bbd->d_id].d_records);
-    doEmptyNonTerminals(staging, bbd->d_id, nsec3zone, ns3pr);
+    parseZoneFile(staging, &staging->id_zone_map[bbd->d_id]);
     staging->id_zone_map[bbd->d_id].setCtime();
 
     s_state->id_zone_map[bbd->d_id]=staging->id_zone_map[bbd->d_id]; // move over
 
-    bbd->setCtime();
-    // and raise d_loaded again!
-    bbd->d_loaded=1;
-    bbd->d_checknow=0;
-    bbd->d_status="parsed into memory at "+nowTime();
+    // bbd can still be in use in another thread so update it as well
+    // but dont update ctime and status on that copy
+    bbd->d_loaded=true;
+    bbd->d_checknow=false;
+
     L<<Logger::Warning<<"Zone '"<<bbd->d_name<<"' ("<<bbd->d_filename<<") reloaded"<<endl;
   }
   catch(PDNSException &ae) {
