@@ -3,6 +3,9 @@
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
 
+ALGORITHM=${ALGORITHM:="hmac-md5"}
+KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
+
 nsdfix ()
 {
 	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
@@ -27,8 +30,8 @@ server:
 
 key:
 	name: test
-	algorithm: hmac-md5
-	secret: "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="
+	algorithm: $ALGORITHM
+	secret: "$KEY"
 __EOF__
 
 	rm -f K*
@@ -81,15 +84,15 @@ __EOF__
 
 		echo "" >> nsd.conf
 		echo "zone:" >> nsd.conf
-		echo "  name: \"${zone}\"" >> nsd.conf
-		echo "  zonefile: \"${zone}.signed\"" >> nsd.conf
-		if [ "${zone}" == "tsig.com" ]
+		echo "	name: \"${zone}\"" >> nsd.conf
+		echo "	zonefile: \"${zone}.signed\"" >> nsd.conf
+		if [ "${zone}" = "tsig.com" ]
 		then
-			echo "  provide-xfr: 0.0.0.0/0 test" >> nsd.conf
-			echo "  provide-xfr: ::0/0 test" >> nsd.conf
+			echo "	provide-xfr: 0.0.0.0/0 test" >> nsd.conf
+			echo "	provide-xfr: ::0/0 test" >> nsd.conf
 		else
-			echo "  provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
-			echo "  provide-xfr: ::0/0 NOKEY" >> nsd.conf
+			echo "	provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
+			echo "	provide-xfr: ::0/0 NOKEY" >> nsd.conf
 		fi
 	done
 	nsdc -c nsd.conf rebuild
@@ -105,6 +108,11 @@ options {
 	listen-on port $port { 127.0.0.1; };
 	minimal-responses yes;
 	pid-file "pdns.pid";
+};
+
+key test {
+	algorithm $ALGORITHM;
+	secret "$KEY";
 };
 __EOF__
 
@@ -162,6 +170,10 @@ __EOF__
 		echo "" >> bind.conf
 		echo "zone \"${zone}\" {" >> bind.conf
 		echo "	type master;" >> bind.conf
+		if [ "${zone}" = "tsig.com" ]
+		then
+			echo "	allow-transfer { key test; none; };" >> bind.conf
+		fi
 		echo "	file \"${zone}.signed\";" >> bind.conf
 		echo "};" >> bind.conf
 	done
@@ -435,7 +447,7 @@ case $context in
 				skipreasons="nodyndns"
 			fi
 
-			../pdns/pdnssec --config-dir=. import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. import-tsig-key test $ALGORITHM $KEY
 			../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
@@ -562,7 +574,7 @@ __EOF__
 
 			done
 
-			../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test $ALGORITHM $KEY
 			../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
@@ -618,7 +630,7 @@ __EOF__
 				fi
 			done
 
-			../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test $ALGORITHM $KEY
 			../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
@@ -738,7 +750,7 @@ __EOF__
 				fi
 			done
 
-			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test $ALGORITHM $KEY
 			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
@@ -911,7 +923,7 @@ startslave ()
 		echo $skipreasons | grep -q nodnssec
 		if [ $? -ne 0 ]; then
 			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
-			-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
 			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
 			-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
@@ -960,7 +972,7 @@ startslave ()
 		set +e
 		echo $skipreasons | grep -q nodnssec
 		if [ $? -ne 0 ]; then
-			sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','$ALGORITHM', '$KEY')"
 			sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 		fi
 		set -e
@@ -1011,7 +1023,7 @@ startslave ()
 		set +e
 		echo $skipreasons | grep -q nodnssec
 		if [ $? -ne 0 ]; then
-			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=')"
+			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
 			sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
 		fi
 		set -e

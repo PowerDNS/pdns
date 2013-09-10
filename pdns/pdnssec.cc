@@ -336,29 +336,72 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   if(!B.getSOA(zone, sd)) {
     cout<<"No SOA for zone '"<<zone<<"'"<<endl;
     return -1;
-  } 
+  }
+  bool presigned=dk.isPresigned(zone);
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
-  
-  set<string> cnames, noncnames;
+
+  set<string> records, cnames, noncnames;
+  map<string, unsigned int> ttl;
+
+  ostringstream content;
+  pair<map<string, unsigned int>::iterator,bool> ret;
 
   while(sd.db->get(rr)) {
+    if(!rr.qtype.getCode())
+      continue;
+
     if(!endsOn(rr.qname, zone)) {
-      cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" in zone "<<zone<<" is out-of-zone."<<endl;
+      cout<<"[Warning] Record '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
       numwarnings++;
       continue;
     }
 
-    if(!rr.qtype.getCode())
-      continue;
-    
-    if (rr.qtype.getCode() == QType::CNAME) {
-      cnames.insert(rr.qname);
+    if(rr.qtype.getCode() == QType::SOA)
+    {
+      fillSOAData(rr.content, sd);
+      rr.content = serializeSOAData(sd);
     }
-    else {
-      if (rr.qtype.getCode() != QType::RRSIG)
-        noncnames.insert(rr.qname);
+
+    content.str("");
+    content<<rr.qname<<" "<<rr.qtype.getName();
+    if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+      content<<" "<<rr.priority;
+    content<<" "<<rr.content;
+    if (records.count(toLower(content.str()))) {
+      cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"'"<<endl;
+      numerrors++;
+      continue;
+    } else
+      records.insert(toLower(content.str()));
+
+    content.str("");
+    content<<rr.qname<<" "<<rr.qtype.getName();
+    ret = ttl.insert(pair<string, unsigned int>(toLower(content.str()), rr.ttl));
+    if (ret.second == false && ret.first->second != rr.ttl) {
+      cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
+      numerrors++;
+      continue;
+    }
+
+    if (rr.qtype.getCode() == QType::CNAME) {
+      if (!cnames.count(toLower(rr.qname)))
+        cnames.insert(toLower(rr.qname));
+      else {
+        cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'"<<endl;
+        numerrors++;
+        continue;
+      }
+    } else {
+      if (rr.qtype.getCode() == QType::RRSIG) {
+        if(presigned) {
+          cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
+          numerrors++;
+          continue;
+        }
+      } else
+        noncnames.insert(toLower(rr.qname));
     }
 
     if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
@@ -370,7 +413,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     if(rr.qtype.getCode() == QType::DNSKEY)
     {
-      if(!dk.isPresigned(zone))
+      if(presigned)
       {
         if(::arg().mustDo("experimental-direct-dnskey"))
         {
@@ -382,30 +425,24 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
         }
         else
         {
-          cout<<"[Error] DNSKEY in non-presigned zone will mostly be ignored and can cause problems."<<endl;
-          numerrors++;
+          cout<<"[Warning] DNSKEY at '"<<rr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
+          numwarnings++;
         }
       }
     }
 
-    if(rr.qtype.getCode() == QType::SOA)
-    {
-      fillSOAData(rr.content, sd);
-      rr.content = serializeSOAData(sd);
-    }
-    
     if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) {
       cout<<"[Error] The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
       numerrors++;
       continue;
     }
-      
+
     if (rr.qname[rr.qname.size()-1] == '.') {
       cout<<"[Error] Record '"<<rr.qname<<"' has a trailing dot. PowerDNS will ignore this record!"<<endl;
       numerrors++;
     }
-      
-    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
+
+    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
       rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
 
     if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) &&
@@ -415,8 +452,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     }
 
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
-      rr.content = "\""+rr.content+"\"";  
-      
+      rr.content = "\""+rr.content+"\"";
+
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
       cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
@@ -426,7 +463,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
       string tmp=drc->serialize(rr.qname);
     }
-    catch(std::exception& e) 
+    catch(std::exception& e)
     {
       cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       cout<<"[Error] Error was: "<<e.what()<<endl;
@@ -441,8 +478,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       numerrors++;
     }
   }
-
-
 
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
   return numerrors;
