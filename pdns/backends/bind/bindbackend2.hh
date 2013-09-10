@@ -173,6 +173,7 @@ public:
     id_zone_map_t id_zone_map;
   };
 
+  void parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd, bool loaded=true);
   static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());
   void rediscover(string *status=0);
 
