@@ -409,7 +409,7 @@ static string canonic(string ret)
   return ret;
 }
 
-void Bind2Backend::parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd, bool loaded)
+void Bind2Backend::parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd)
 {
   NSEC3PARAMRecordContent ns3pr;
   bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
@@ -434,7 +434,7 @@ void Bind2Backend::parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd, 
   doEmptyNonTerminals(staging, bbd->d_id, nsec3zone, ns3pr);
 
   bbd->setCtime();
-  bbd->d_loaded=loaded; 
+  bbd->d_loaded=true; 
   bbd->d_status="parsed into memory at "+nowTime();
 }
 
