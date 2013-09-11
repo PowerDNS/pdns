@@ -542,6 +542,9 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   if(getState()->name_id_map.count(domainname))
     return "Already loaded";
 
+  // Interference with loadConfig() and createSlaveDomain(), use locking
+  Lock l(&s_state_lock);
+
   Bind2Backend bb2;
   BB2DomainInfo& bbd = bb2.createDomain(domainname, filename);
 
@@ -551,10 +554,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   bbd.d_lastcheck=0;
   bbd.d_status="parsing into memory";
           
-  {
-    Lock l(&s_state_lock);
-    s_state->name_id_map[bbd.d_name]=bbd.d_id;
-  }
+  s_state->name_id_map[bbd.d_name]=bbd.d_id;
 
   L<<Logger::Warning<<"Zone "<<domainname<< " loaded"<<endl;
 
@@ -1333,9 +1333,6 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
 
 BB2DomainInfo &Bind2Backend::createDomain(const string &domain, const string &filename)
 {
-  // Interference with loadConfig(), use locking
-  Lock l(&s_state_lock);
-
   int newid=1;
   // Find a free zone id nr.  
   
@@ -1378,14 +1375,14 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   c_of << "};" << endl;
   c_of.close();
 
+  // Interference with loadConfig() and DLAddDomainHandler(), use locking
+  Lock l(&s_state_lock);
+
   BB2DomainInfo &bbd = createDomain(canonic(domain), filename);
 
   bbd.d_masters.push_back(ip);
   
-  {
-    Lock l(&s_state_lock);
-    s_state->name_id_map[bbd.d_name] = bbd.d_id;
-  }
+  s_state->name_id_map[bbd.d_name] = bbd.d_id;
 
   return true;
 }
