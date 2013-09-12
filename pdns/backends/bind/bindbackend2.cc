@@ -1354,6 +1354,9 @@ BB2DomainInfo &Bind2Backend::createDomain(const string &domain, const string &fi
 
 bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
+  // Interference with loadConfig() and DLAddDomainHandler(), use locking
+  Lock l(&s_state_lock);
+
   string filename = getArg("supermaster-destdir")+'/'+domain;
   
   L << Logger::Warning << d_logprefix
@@ -1374,9 +1377,6 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   c_of << "\tmasters { " << ip << "; };" << endl;
   c_of << "};" << endl;
   c_of.close();
-
-  // Interference with loadConfig() and DLAddDomainHandler(), use locking
-  Lock l(&s_state_lock);
 
   BB2DomainInfo &bbd = createDomain(canonic(domain), filename);
 
