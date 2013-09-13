@@ -6,6 +6,9 @@ PDNS2=${PDNS2:-../pdns/pdns_server}
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
 
+export ALGORITHM
+export KEY
+
 nsdfix ()
 {
 	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
