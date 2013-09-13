@@ -558,22 +558,21 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
 }
 
 
-bool getTSIGHashEnum(string algoName, TSIGHashEnum& algoEnum)
+bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
 {
-  if (*(algoName.rbegin()) != '.')
-    algoName.append(".");
+  string normalizedName = toLowerCanonic(algoName);
 
-  if (algoName == "hmac-md5.sig-alg.reg.int.")
+  if (normalizedName == "hmac-md5.sig-alg.reg.int")
     algoEnum = TSIG_MD5;
-  else if (algoName == "hmac-sha1.")
+  else if (normalizedName == "hmac-sha1")
     algoEnum = TSIG_SHA1;
-  else if (algoName == "hmac-sha224.")
+  else if (normalizedName == "hmac-sha224")
     algoEnum = TSIG_SHA224;
-  else if (algoName == "hmac-sha256.")
+  else if (normalizedName == "hmac-sha256")
     algoEnum = TSIG_SHA256;
-  else if (algoName == "hmac-sha384.")
+  else if (normalizedName == "hmac-sha384")
     algoEnum = TSIG_SHA384;
-  else if (algoName == "hmac-sha512.")
+  else if (normalizedName == "hmac-sha512")
     algoEnum = TSIG_SHA512;
   else {
      return false;
