@@ -300,7 +300,7 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
-  to test presigned operation
+  to test presigned operation.
 
 * Add 'wait' (literally) after the context to not kill
   pdns_server immediately after testing. 'nowait' will kill it.
@@ -329,11 +329,15 @@ rm -f *_tests
 presigned=no
 both=no
 
-if [ "${context: -10}" = "-presigned" ]
+if [[ "$context" =~ .+-presigned.* ]]
 then
 	presigned=yes
 	port=$((port-100))
-	context=${context%-presigned}
+	eval "$(echo "$context" | sed -r 's/(.+)(-presigned)(-(.*))?/context=\1 presignedcontext=\4/')"
+	if [ -z "$presignedcontext" ]
+	then
+		presignedcontext=$context
+	fi
 fi
 
 if [ "${context: -5}" = "-both" ]
@@ -341,6 +345,7 @@ then
 	both=yes
 	port=$((port-100))
 	context=${context%-both}
+	presignedcontext=$context
 fi
 
 optout=0
@@ -899,7 +904,7 @@ check_process
 startslave ()
 {
 	skipreasons="$skipreasons presigned nodyndns"
-	if [ ${context:0:6} = gmysql ] || [ ${context:0:7} = ext-nsd ] || [ ${context:0:8} = ext-bind ]
+	if [ ${presignedcontext:0:6} = gmysql ] || [ ${presignedcontext:0:7} = ext-nsd ] || [ ${presignedcontext:0:8} = ext-bind ]
 	then
 		context=${context}-presigned
 		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
@@ -960,7 +965,7 @@ startslave ()
 		if [ $todo -ne 0 ]; then 
 			echo "AXFR FAILED" >> failed_tests
 		fi
-	elif [ ${context:0:8} = gsqlite3 ]
+	elif [ ${presignedcontext:0:8} = gsqlite3 ]
 	then
 		context=${context}-presigned
 		rm -f pdns.sqlite31
@@ -1009,7 +1014,7 @@ startslave ()
 		fi
 		set -e
 		sqlite3 pdns.sqlite31 ANALYZE;
-	elif [ ${context:0:4} = bind ]
+	elif [ ${presignedcontext:0:4} = bind ]
 	then
 		context=${context}-presigned
 		sed -e 's/type master;/type slave;\n\tmasters { 127.0.0.1:'$port'; };/' -e 's/file "\([^"]\+\)/file "\1-slave/' < named.conf > named-slave.conf
@@ -1040,6 +1045,55 @@ startslave ()
 			--cache-ttl=$cachettl --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
+	elif [ ${presignedcontext:0:3} = nsd ]
+	then
+		skipreasons="$skipreasons nsd"
+		context=nsd-presigned
+		cat > nsd-slave.conf << __EOF__
+server:
+	ip-address: 127.0.0.1@$((port+100))
+	database: ./nsd-slave.db
+	difffile: ./ixfr-slave.db
+	xfrdfile: ./ixfr-slave.state
+	zonesdir: .
+	username: ""
+
+key:
+	name: test
+	algorithm: $ALGORITHM
+	secret: "$KEY"
+__EOF__
+
+		rm -f ixfr-slave.db
+		rm -f ixfr-slave.state
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\")
+		do
+			rm -f $zone-slave
+
+			echo "" >> nsd-slave.conf
+			echo "zone:" >> nsd-slave.conf
+			echo "	name: \"${zone}\"" >> nsd-slave.conf
+			echo "	zonefile: \"${zone}-slave\"" >> nsd-slave.conf
+			if [ "${zone}" = "tsig.com" ]
+			then
+				echo "	allow-notify: 127.0.0.1 test" >> nsd-slave.conf
+				echo "	request-xfr: AXFR 127.0.0.1@$port test" >> nsd-slave.conf
+				echo "	provide-xfr: 0.0.0.0/0 test" >> nsd-slave.conf
+				echo "	provide-xfr: ::0/0 test" >> nsd-slave.conf
+			else
+				echo "	allow-notify: 127.0.0.1 NOKEY" >> nsd-slave.conf
+				echo "	request-xfr: AXFR 127.0.0.1@$port NOKEY" >> nsd-slave.conf
+				echo "	provide-xfr: 0.0.0.0/0 NOKEY" >> nsd-slave.conf
+				echo "	provide-xfr: ::0/0 NOKEY" >> nsd-slave.conf
+			fi
+		done
+
+		port=$((port+100))
+		nsdc -c nsd-slave.conf rebuild
+
+		nsd -c nsd-slave.conf -P pdns-slave.pid -d &
+		sleep 20
 	fi
 }
 

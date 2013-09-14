@@ -29,7 +29,10 @@ real_result
 /Quantcast-Top-Million.txt
 /report.json
 /nsd.*
+/nsd-slave.*
 /*.nsd
+/ixfr-slave.db
+/ixfr-slave.state
 /*.signed
 /*.bind
 /dsset-*
