@@ -1757,8 +1757,11 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_doAAAAAdditionalProcessing = ::arg().mustDo("aaaa-additional-processing");
   SyncRes::s_doAdditionalProcessing = ::arg().mustDo("additional-processing") | SyncRes::s_doAAAAAdditionalProcessing;
   
-  SyncRes::s_noEDNSPing = ::arg().mustDo("disable-edns-ping");
+  SyncRes::s_noEDNSPing = true; // ::arg().mustDo("disable-edns-ping");
   SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
+  if(!SyncRes::s_noEDNS) {
+    L<<Logger::Warning<<"Running in experimental EDNS mode - may cause problems"<<endl;
+  }
 
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");
 
@@ -2089,8 +2092,8 @@ int main(int argc, char **argv)
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
-    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing" )= "no"; 
-    ::arg().setSwitch( "disable-edns", "Disable EDNS" )= ""; 
+//    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no"; 
+    ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
     ::arg().set("include-dir","Include *.conf files from this directory")="";
