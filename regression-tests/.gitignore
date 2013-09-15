@@ -37,3 +37,4 @@ real_result
 /*.bind
 /dsset-*
 /bind.conf
+/bind-slave.conf

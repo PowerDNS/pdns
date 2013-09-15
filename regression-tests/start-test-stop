@@ -28,6 +28,9 @@ tonsd ()
 server:
 	ip-address: 127.0.0.1@$port
 	database: ./nsd.db
+	difffile: ./ixfr.db
+	xfrdfile: ./ixfr.state
+
 	zonesdir: .
 	username: ""
 
@@ -418,7 +421,7 @@ case $context in
 					skipreasons="bind optout nodyndns"
 					;;
 			esac
-			named -c bind.conf -f &
+			named -c bind.conf -g &
 			sleep 5
 			;;
 
@@ -921,7 +924,7 @@ check_process
 startslave ()
 {
 	skipreasons="$skipreasons presigned nodyndns"
-	if [ ${presignedcontext:0:6} = gmysql ] || [ ${presignedcontext:0:7} = ext-nsd ] || [ ${presignedcontext:0:8} = ext-bind ]
+	if [ ${presignedcontext:0:6} = gmysql ]
 	then
 		context=${context}-presigned
 		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
@@ -1062,10 +1065,10 @@ startslave ()
 			--cache-ttl=$cachettl --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
-	elif [ ${presignedcontext:0:3} = nsd ]
+	elif [ ${presignedcontext:0:7} = ext-nsd ]
 	then
 		skipreasons="$skipreasons nsd"
-		context=nsd-presigned
+		context=$context-presigned
 		cat > nsd-slave.conf << __EOF__
 server:
 	ip-address: 127.0.0.1@$((port+100))
@@ -1110,6 +1113,49 @@ __EOF__
 		nsdc -c nsd-slave.conf rebuild
 
 		nsd -c nsd-slave.conf -P pdns-slave.pid -d &
+		sleep 20
+	elif [ ${presignedcontext:0:8} = ext-bind ]
+	then
+		skipreasons="$skipreasons bind"
+		context=$context-presigned
+		cat > bind-slave.conf << __EOF__
+options {
+	dnssec-enable yes;
+	listen-on port $(($port+100)) { 127.0.0.1; };
+	minimal-responses yes;
+	pid-file "pdns-slave.pid";
+};
+
+key test {
+	algorithm $ALGORITHM;
+	secret "$KEY";
+};
+__EOF__
+
+		rm -f ixfr-slave.db
+		rm -f ixfr-slave.state
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\")
+		do
+			rm -f $zone-slave
+
+			echo "" >> bind-slave.conf
+			echo "zone \"${zone}\" {" >> bind-slave.conf
+			echo "	type slave;" >> bind-slave.conf
+			echo "	file \"${zone}-slave\";" >> bind-slave.conf
+			if [ "${zone}" = "tsig.com" ]
+			then
+				echo "	masters port $port { 127.0.0.1 key test; };" >> bind-slave.conf
+				echo "	allow-transfer { key test; none; };" >> bind-slave.conf
+			else
+				echo "	masters port $port { 127.0.0.1; };" >> bind-slave.conf
+			fi
+			echo "};" >> bind-slave.conf
+		done
+
+		port=$((port+100))
+
+		named -c bind-slave.conf -g &
 		sleep 20
 	fi
 }
