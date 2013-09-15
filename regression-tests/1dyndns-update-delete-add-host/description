@@ -1,1 +1,2 @@
-This test deletes a record and add's it again. Another record with the same name exists, this test check if we only delete the correct record.
+This test deletes a record and add's it again. Another record with the same name
+exists, this test check if we only delete the correct record.

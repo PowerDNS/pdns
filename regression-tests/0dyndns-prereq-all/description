@@ -1,2 +1,3 @@
-This test checks section 3.2.1 and 3.2.3 of RFC2136, which is the prerequisite section.
-This test also checks to see what happens when a backend does NOT support RFC2136.
+This test checks section 3.2.1 and 3.2.3 of RFC2136, which is the prerequisite
+section. This test also checks to see what happens when a backend does NOT
+support RFC2136.

@@ -6,6 +6,9 @@ PDNS2=${PDNS2:-../pdns/pdns_server}
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
 
+export ALGORITHM
+export KEY
+
 nsdfix ()
 {
 	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
@@ -25,6 +28,9 @@ tonsd ()
 server:
 	ip-address: 127.0.0.1@$port
 	database: ./nsd.db
+	difffile: ./ixfr.db
+	xfrdfile: ./ixfr.state
+
 	zonesdir: .
 	username: ""
 
@@ -192,22 +198,26 @@ bindwait ()
 	check_process
 	configname=$1
 	domcount=$(grep -c ^zone named.conf)
-	if [ ! -x ../pdns/pdns_control ]; then
+	if [ ! -x ../pdns/pdns_control ]
+	then
 		echo "No pdns_control found"
 		exit 1
 	fi
 	loopcount=0
 
-	while [ $loopcount -lt 20 ]; do
+	while [ $loopcount -lt 20 ]
+	do
 		sleep 5
 		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
-		if [ $done = $domcount ]; then
+		if [ $done = $domcount ]
+		then
 			return
 		fi
 		let loopcount=loopcount+1
 	done
 
-	if [ $done != $domcount ]; then
+	if [ $done != $domcount ]
+	then
 		echo "Domain parsing failed" >> failed_tests
 	fi
 }
@@ -240,9 +250,11 @@ check_process ()
 	while [ $loopcount -lt 5 ]; do
 		sleep 1
 		pids=$(cat pdns*.pid 2>/dev/null)
-		if [ ! -z "$pids" ]; then
+		if [ ! -z "$pids" ]
+		then
 			kill -0 $pids >/dev/null 2>&1
-			if [ $? -eq 0 ]; then
+			if [ $? -eq 0 ]
+			then
 				set -e
 				return
 			fi
@@ -253,12 +265,14 @@ check_process ()
 	exit 1
 }
 
-if [ ! -x $PDNS ]; then
+if [ ! -x $PDNS ]
+ then
 	echo "$PDNS is not executable binary"
 	exit 1
 fi
 
-if [ ! -x $PDNS2 ]; then
+if [ ! -x $PDNS2 ]
+then
 	echo "$PDNS2 is not executable binary"
 	exit 1
 fi
@@ -297,7 +311,10 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
-  to test presigned operation
+  to test presigned operation.
+
+* Add -both to any bind or gmysql test (except narrow) to
+  test normal and presigned operation.
 
 * Add 'wait' (literally) after the context to not kill
   pdns_server immediately after testing. 'nowait' will kill it.
@@ -326,11 +343,15 @@ rm -f *_tests
 presigned=no
 both=no
 
-if [ "${context: -10}" = "-presigned" ]
+if [[ "$context" =~ .+-presigned.* ]]
 then
 	presigned=yes
 	port=$((port-100))
-	context=${context%-presigned}
+	eval "$(echo "$context" | sed -r 's/(.+)(-presigned)(-(.*))?/context=\1 presignedcontext=\4/')"
+	if [ -z "$presignedcontext" ]
+	then
+		presignedcontext=$context
+	fi
 fi
 
 if [ "${context: -5}" = "-both" ]
@@ -338,6 +359,7 @@ then
 	both=yes
 	port=$((port-100))
 	context=${context%-both}
+	presignedcontext=$context
 fi
 
 optout=0
@@ -399,7 +421,7 @@ case $context in
 					skipreasons="bind optout nodyndns"
 					;;
 			esac
-			named -c bind.conf -f &
+			named -c bind.conf -g &
 			sleep 5
 			;;
 
@@ -727,7 +749,7 @@ __EOF__
 				--opendbx-database=pdns-opendbx.sqlite3 &
 			skipreasons="nodnssec noent nodyndns"
 
-			;;									
+			;;
 		gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
 			rm -f pdns.sqlite3
 			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
@@ -799,10 +821,13 @@ __EOF__
 				# make sure it runs before continuing
 				loopcount=0
 				while [ $loopcount -lt 20 ]; do
-				     res=$(curl http://localhost:62434/ping 2>/dev/null)
-				     if [ "x$res" == "xpong" ]; then break; fi
-				     sleep 1
-				     let loopcount=loopcount+1
+					res=$(curl http://localhost:62434/ping 2>/dev/null)
+					if [ "x$res" == "xpong" ]
+					then
+						break
+					fi
+					sleep 1
+					let loopcount=loopcount+1
 				done
 				set -e
 				;;
@@ -822,23 +847,25 @@ __EOF__
 
 			skipreasons="nodnssec nodyndns"
 
-			if [ "$remotesec" = "nsec3" ]; then
+			if [ "$remotesec" = "nsec3" ]
+			then
 				remotedosec="yes"
-				if [ "$narrow" = "narrow" ]; then
+				if [ "$narrow" = "narrow" ]
+				then
 					extracontexts="dnssec nsec3 narrow"
 					skipreasons="narrow nsec3 nodyndns"
-			else
+				else
 					extracontexts="dnssec nsec3"
 					skipreasons="nsec3 nodyndns"
 				fi
-							remote_add_param="--remote-dnssec=yes"
-						else 
-				if [ "$remotesec" = "dnssec" ]; then
-					remotedosec="yes"
-					remote_add_param="--remote-dnssec=yes"
-					extracontexts="dnssec"
-					skipreasons="nonsec3 nonarrow nodyndns"
-				fi
+				
+				remote_add_param="--remote-dnssec=yes"
+			elif [ "$remotesec" = "dnssec" ]
+			then
+				remotedosec="yes"
+				remote_add_param="--remote-dnssec=yes"
+				extracontexts="dnssec"
+				skipreasons="nonsec3 nonarrow nodyndns"
 			fi
 
 			# generate pdns.conf for pdnssec
@@ -853,35 +880,36 @@ EOF
 				--send-root-referral \
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--remote-connection-string="$connstr" $remote_add_param &
-						
+
 			echo "Setting up test database..."
 			# setup test database
 			rm -f $testsdir/remote.sqlite3
 			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
 			chmod 0666 $testsdir/remote.sqlite3
-			if [ "$remotedosec" = "yes" ]; then
-								echo "remote-dnssec=yes" >> pdns-remote.conf
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
-								../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
 
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
-								../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
-								../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+			if [ "$remotedosec" = "yes" ]
+			then
+				echo "remote-dnssec=yes" >> pdns-remote.conf
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
+				../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
 
-				if [ "$remotesec" = "nsec3" ]; then
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
+				../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
+				../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+
+				if [ "$remotesec" = "nsec3" ]
+				then
 					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 example.com
-										../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
+					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
 				fi
-
 			fi
-
 			;;
 		*)
 			echo unknown context $context
@@ -896,7 +924,7 @@ check_process
 startslave ()
 {
 	skipreasons="$skipreasons presigned nodyndns"
-	if [ ${context:0:6} = gmysql ] || [ ${context:0:7} = ext-nsd ] || [ ${context:0:8} = ext-bind ]
+	if [ ${presignedcontext:0:6} = gmysql ]
 	then
 		context=${context}-presigned
 		[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
@@ -957,7 +985,7 @@ startslave ()
 		if [ $todo -ne 0 ]; then 
 			echo "AXFR FAILED" >> failed_tests
 		fi
-	elif [ ${context:0:8} = gsqlite3 ]
+	elif [ ${presignedcontext:0:8} = gsqlite3 ]
 	then
 		context=${context}-presigned
 		rm -f pdns.sqlite31
@@ -1006,7 +1034,7 @@ startslave ()
 		fi
 		set -e
 		sqlite3 pdns.sqlite31 ANALYZE;
-	elif [ ${context:0:4} = bind ]
+	elif [ ${presignedcontext:0:4} = bind ]
 	then
 		context=${context}-presigned
 		sed -e 's/type master;/type slave;\n\tmasters { 127.0.0.1:'$port'; };/' -e 's/file "\([^"]\+\)/file "\1-slave/' < named.conf > named-slave.conf
@@ -1037,6 +1065,98 @@ startslave ()
 			--cache-ttl=$cachettl --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
 		echo 'waiting for zones to be loaded'
 		bindwait bind-slave
+	elif [ ${presignedcontext:0:7} = ext-nsd ]
+	then
+		skipreasons="$skipreasons nsd"
+		context=$context-presigned
+		cat > nsd-slave.conf << __EOF__
+server:
+	ip-address: 127.0.0.1@$((port+100))
+	database: ./nsd-slave.db
+	difffile: ./ixfr-slave.db
+	xfrdfile: ./ixfr-slave.state
+	zonesdir: .
+	username: ""
+
+key:
+	name: test
+	algorithm: $ALGORITHM
+	secret: "$KEY"
+__EOF__
+
+		rm -f ixfr-slave.db
+		rm -f ixfr-slave.state
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\")
+		do
+			rm -f $zone-slave
+
+			echo "" >> nsd-slave.conf
+			echo "zone:" >> nsd-slave.conf
+			echo "	name: \"${zone}\"" >> nsd-slave.conf
+			echo "	zonefile: \"${zone}-slave\"" >> nsd-slave.conf
+			if [ "${zone}" = "tsig.com" ]
+			then
+				echo "	allow-notify: 127.0.0.1 test" >> nsd-slave.conf
+				echo "	request-xfr: AXFR 127.0.0.1@$port test" >> nsd-slave.conf
+				echo "	provide-xfr: 0.0.0.0/0 test" >> nsd-slave.conf
+				echo "	provide-xfr: ::0/0 test" >> nsd-slave.conf
+			else
+				echo "	allow-notify: 127.0.0.1 NOKEY" >> nsd-slave.conf
+				echo "	request-xfr: AXFR 127.0.0.1@$port NOKEY" >> nsd-slave.conf
+				echo "	provide-xfr: 0.0.0.0/0 NOKEY" >> nsd-slave.conf
+				echo "	provide-xfr: ::0/0 NOKEY" >> nsd-slave.conf
+			fi
+		done
+
+		port=$((port+100))
+		nsdc -c nsd-slave.conf rebuild
+
+		nsd -c nsd-slave.conf -P pdns-slave.pid -d &
+		sleep 20
+	elif [ ${presignedcontext:0:8} = ext-bind ]
+	then
+		skipreasons="$skipreasons bind"
+		context=$context-presigned
+		cat > bind-slave.conf << __EOF__
+options {
+	dnssec-enable yes;
+	listen-on port $(($port+100)) { 127.0.0.1; };
+	minimal-responses yes;
+	pid-file "pdns-slave.pid";
+};
+
+key test {
+	algorithm $ALGORITHM;
+	secret "$KEY";
+};
+__EOF__
+
+		rm -f ixfr-slave.db
+		rm -f ixfr-slave.state
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\")
+		do
+			rm -f $zone-slave
+
+			echo "" >> bind-slave.conf
+			echo "zone \"${zone}\" {" >> bind-slave.conf
+			echo "	type slave;" >> bind-slave.conf
+			echo "	file \"${zone}-slave\";" >> bind-slave.conf
+			if [ "${zone}" = "tsig.com" ]
+			then
+				echo "	masters port $port { 127.0.0.1 key test; };" >> bind-slave.conf
+				echo "	allow-transfer { key test; none; };" >> bind-slave.conf
+			else
+				echo "	masters port $port { 127.0.0.1; };" >> bind-slave.conf
+			fi
+			echo "};" >> bind-slave.conf
+		done
+
+		port=$((port+100))
+
+		named -c bind-slave.conf -g &
+		sleep 20
 	fi
 }
 

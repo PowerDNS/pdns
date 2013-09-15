@@ -1,3 +1,5 @@
-For DNSSEC, PowerDNS uses the Auth and Ordername fields in the database. This tests adds an (delegate) NS and A record
-to the test.dyndns zone, it also deletes these records. The test is rather big because it should cover
-all the scenario's.  This thus validates the correction of these records, known as rectify-zone.
+For DNSSEC, PowerDNS uses the Auth and Ordername fields in the database. This
+tests adds an (delegate) NS and A record to the test.dyndns zone, it also
+deletes these records. The test is rather big because it should cover all the
+scenario's. This thus validates the correction of these records, known as
+rectify-zone.
