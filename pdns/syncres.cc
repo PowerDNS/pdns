@@ -416,6 +416,8 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
           for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
             if(i->d_place == DNSResourceRecord::ANSWER)
               ret.push_back(*i);
+            if((i->d_place == DNSResourceRecord::AUTHORITY)&&(i->qtype.getCode()==QType::SOA))
+              ret.push_back(*i);
           }
           return res;
         }
