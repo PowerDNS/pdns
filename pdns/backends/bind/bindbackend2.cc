@@ -1312,6 +1312,7 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
   return true;
 }
 
+// NEED TO CALL THIS with s_state_lock held!
 BB2DomainInfo &Bind2Backend::createDomain(const string &domain, const string &filename)
 {
   int newid=1;
