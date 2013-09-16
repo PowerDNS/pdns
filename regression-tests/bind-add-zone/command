@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ "${context:0:4}" != "bind" ]; then
+    exit 0
+fi
+
+cleandig ns1.addzone.com A
+cleandig ns1.test.com A
+../pdns/pdns_control --config-dir=. bind-add-zone addzone.com addzone.com
+../pdns/pdns_control --config-dir=. purge addzone.com
+sleep 1
+../pdns/pdns_control --config-dir=. bind-add-zone addzone.com addzone.com
+sleep 1
+cleandig ns1.addzone.com A
+sleep 1
+cleandig ns1.addzone.com A
+cleandig ns1.test.com A
