@@ -560,6 +560,36 @@ string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::p
   return ret.str();
 }
 
+string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid)
+{
+  if(parts.size() < 3)
+    return "ERROR: Domain name and zone filename are required";
+
+  string domainname = canonic(parts[1]);
+  const string &filename = parts[2];
+
+  if(getState()->name_id_map.count(domainname))
+    return "Already loaded";
+
+  // Interference with loadConfig() and createSlaveDomain(), use locking
+  Lock l(&s_state_lock);
+
+  Bind2Backend bb2;
+  BB2DomainInfo& bbd = bb2.createDomain(domainname, filename);
+
+  bbd.d_filename=filename;
+  bbd.d_checknow=true;
+  bbd.d_loaded=true;
+  bbd.d_lastcheck=0;
+  bbd.d_status="parsing into memory";
+          
+  s_state->name_id_map[bbd.d_name]=bbd.d_id;
+
+  L<<Logger::Warning<<"Zone "<<domainname<< " loaded"<<endl;
+
+  return "Loaded zone " + domainname + " from " + filename;
+}
+
 Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
   setArgPrefix("bind"+suffix);
@@ -584,6 +614,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
   dl->registerFunc("BIND-RELOAD-NOW", &DLReloadNowHandler, "bindbackend: reload domains", "<domains>");
   dl->registerFunc("BIND-DOMAIN-STATUS", &DLDomStatusHandler, "bindbackend: list status of all domains", "[domains]");
   dl->registerFunc("BIND-LIST-REJECTS", &DLListRejectsHandler, "bindbackend: list rejected domains");
+  dl->registerFunc("BIND-ADD-ZONE", &DLAddDomainHandler, "bindbackend: add zone", "<domain> <filename>");
 }
 
 Bind2Backend::~Bind2Backend()
@@ -683,9 +714,9 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
 
 void Bind2Backend::loadConfig(string* status)
 {
-  // Interference with createSlaveDomain()
+  // Interference with createDomain()
   Lock l(&s_state_lock);
-  
+
   static int domain_id=1;
 
   shared_ptr<State> staging = shared_ptr<State>(new State);
@@ -1281,9 +1312,30 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
   return true;
 }
 
+BB2DomainInfo &Bind2Backend::createDomain(const string &domain, const string &filename)
+{
+  int newid=1;
+  // Find a free zone id nr.  
+  
+  if (!s_state->id_zone_map.empty()) {
+    id_zone_map_t::reverse_iterator i = s_state->id_zone_map.rbegin();
+    newid = i->second.d_id + 1;
+  }
+  
+  BB2DomainInfo &bbd = s_state->id_zone_map[newid];
+
+  bbd.d_id = newid;
+  bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
+  bbd.d_name = domain;
+  bbd.setCheckInterval(getArgAsNum("check-interval"));
+  bbd.d_filename = filename;
+
+  return bbd;
+}
+
 bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
-  // Interference with loadConfig(), use locking
+  // Interference with loadConfig() and DLAddDomainHandler(), use locking
   Lock l(&s_state_lock);
 
   string filename = getArg("supermaster-destdir")+'/'+domain;
@@ -1307,25 +1359,12 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   c_of << "};" << endl;
   c_of.close();
 
-  int newid=1;
-  // Find a free zone id nr.  
-  
-  if (!s_state->id_zone_map.empty()) {
-    id_zone_map_t::reverse_iterator i = s_state->id_zone_map.rbegin();
-    newid = i->second.d_id + 1;
-  }
-  
-  BB2DomainInfo &bbd = s_state->id_zone_map[newid];
+  BB2DomainInfo &bbd = createDomain(canonic(domain), filename);
 
-  bbd.d_id = newid;
-  bbd.d_records = shared_ptr<recordstorage_t >(new recordstorage_t);
-  bbd.d_name = domain;
-  bbd.setCheckInterval(getArgAsNum("check-interval"));
   bbd.d_masters.push_back(ip);
-  bbd.d_filename = filename;
-
-  s_state->name_id_map[domain] = bbd.d_id;
   
+  s_state->name_id_map[bbd.d_name] = bbd.d_id;
+
   return true;
 }
 

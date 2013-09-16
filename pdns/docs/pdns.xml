@@ -19207,6 +19207,14 @@ VALUES (:zoneid, :ip)
 	<para>
 	  <variablelist>
 	    <varlistentry>
+	      <term>bind-add-zone <userinput>domain</userinput> <userinput>filename</userinput></term>
+	      <listitem>
+		<para>
+		  Add zone &lt;domain&gt; from &lt;filename&gt; to PDNS's bind backend. Zone will be loaded at first request.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
 	      <term>bind-domain-status <userinput>domain</userinput> [<userinput>domain</userinput>]</term>
 	      <listitem>
 		<para>
