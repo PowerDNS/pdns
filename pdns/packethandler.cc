@@ -426,7 +426,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
-  if(sd.qname == begin)
+  if(pdns_iequals(sd.qname, begin))
     nrc.d_set.insert(QType::DNSKEY);
 
   DNSResourceRecord rr;
@@ -665,20 +665,17 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
   emitNSEC(before, after, target, sd, r, mode);
 
-  if (mode == 2) {
-    // wildcard NO-DATA
+  if (mode == 2 || mode == 4) {
+    // wildcard NO-DATA or wildcard denial
     before.clear();
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, wildcard, before, after);
+    string closest(wildcard);
+    if (mode == 4) {
+      (void) chopOff(closest);
+      closest=dotConcat("*", closest);
+    }
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, closest, before, after);
     emitNSEC(before, after, target, sd, r, mode);
   }
-
-  if (mode == 4) {
-    // this one does wildcard denial, if applicable
-    before='.';
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, auth, before, after);
-    emitNSEC(auth, after, auth, sd, r, mode);
-  }
-
   return;
 }
 
