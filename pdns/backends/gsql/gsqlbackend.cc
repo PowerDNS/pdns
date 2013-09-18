@@ -128,6 +128,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   stringtok(di.masters, d_result[0][2], " ,\t");
   di.last_check=atol(d_result[0][3].c_str());
   di.notified_serial = atol(d_result[0][4].c_str());
+  string type=d_result[0][5];
   di.backend=this;
 
   di.serial = 0;
@@ -142,7 +143,6 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
   }
 
-  string type=d_result[0][5];
   if(pdns_iequals(type,"SLAVE"))
     di.kind=DomainInfo::Slave;
   else if(pdns_iequals(type,"MASTER"))
