@@ -81,6 +81,7 @@ bool Bind2Backend::s_ignore_broken_records=false;
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_state_lock=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t Bind2Backend::s_state_swap_lock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t Bind2Backend::s_supermaster_config_lock=PTHREAD_MUTEX_INITIALIZER;
 string Bind2Backend::s_binddirectory;  
 /* when a query comes in, we find the most appropriate zone and answer from that */
 
@@ -1336,29 +1337,34 @@ BB2DomainInfo &Bind2Backend::createDomain(const string &domain, const string &fi
 
 bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
-  // Interference with loadConfig() and DLAddDomainHandler(), use locking
-  Lock l(&s_state_lock);
 
   string filename = getArg("supermaster-destdir")+'/'+domain;
   
   L << Logger::Warning << d_logprefix
     << " Writing bind config zone statement for superslave zone '" << domain
     << "' from supermaster " << ip << endl;
+
+  {
+    Lock l2(&s_supermaster_config_lock);
         
-  ofstream c_of(getArg("supermaster-config").c_str(),  std::ios::app);
-  if (!c_of) {
-    L << Logger::Error << "Unable to open supermaster configfile for append: " << stringerror() << endl;
-    throw DBException("Unable to open supermaster configfile for append: "+stringerror());
+    ofstream c_of(getArg("supermaster-config").c_str(),  std::ios::app);
+    if (!c_of) {
+      L << Logger::Error << "Unable to open supermaster configfile for append: " << stringerror() << endl;
+      throw DBException("Unable to open supermaster configfile for append: "+stringerror());
+    }
+    
+    c_of << endl;
+    c_of << "# Superslave zone " << domain << " (added: " << nowTime() << ") (account: " << account << ')' << endl;
+    c_of << "zone \"" << domain << "\" {" << endl;
+    c_of << "\ttype slave;" << endl;
+    c_of << "\tfile \"" << filename << "\";" << endl;
+    c_of << "\tmasters { " << ip << "; };" << endl;
+    c_of << "};" << endl;
+    c_of.close();
   }
-  
-  c_of << endl;
-  c_of << "# Superslave zone " << domain << " (added: " << nowTime() << ") (account: " << account << ')' << endl;
-  c_of << "zone \"" << domain << "\" {" << endl;
-  c_of << "\ttype slave;" << endl;
-  c_of << "\tfile \"" << filename << "\";" << endl;
-  c_of << "\tmasters { " << ip << "; };" << endl;
-  c_of << "};" << endl;
-  c_of.close();
+
+  // Interference with loadConfig() and DLAddDomainHandler(), use locking
+  Lock l(&s_state_lock);
 
   BB2DomainInfo &bbd = createDomain(canonic(domain), filename);
 
