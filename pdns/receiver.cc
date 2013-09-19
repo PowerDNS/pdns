@@ -117,7 +117,7 @@ static void takedown(int i)
 {
   if(cpid) {
     L<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
-    kill(cpid,SIGKILL);
+    kill(-getpgid(cpid),SIGKILL);
     exit(0);
   }
 }
@@ -139,8 +139,7 @@ pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
 {
-  kill(cpid, SIGKILL); // why?
-  kill(cpid, SIGKILL); // why?
+  kill(-getpgid(cpid), SIGKILL);
   sleep(1);
   return "ok";
 }
@@ -219,6 +218,11 @@ static int guardian(int argc, char **argv)
       signal(SIGHUP, SIG_DFL);
       signal(SIGUSR1, SIG_DFL);
       signal(SIGUSR2, SIG_DFL);
+
+      // Set different pgrp for this child,
+      // so we could kill all of it's children
+      // with one kill call
+      setpgid(getpid(), 0);
 
       char **const newargv=new char*[argc+2];
       int n;
