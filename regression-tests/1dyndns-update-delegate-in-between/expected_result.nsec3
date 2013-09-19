@@ -130,8 +130,6 @@ Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P NS
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd LRESBBP3LV8BLGJ9FSGTDMM4Q7VJ3D6J
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
@@ -184,8 +182,6 @@ Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P NS
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd LRESBBP3LV8BLGJ9FSGTDMM4Q7VJ3D6J
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
