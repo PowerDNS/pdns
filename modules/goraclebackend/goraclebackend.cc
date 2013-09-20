@@ -91,6 +91,7 @@ public:
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
+    declare(suffix,"insert-zone-query","", "insert into domains (id, type, name) values(domain_id_sequence.nextval, 'NATIVE','%s')");
     declare(suffix,"insert-slave-query","", "insert into domains (id, type,name,master,account) values(domain_id_sequence.nextval, 'SLAVE','%s','%s','%s')"); 
     declare(suffix,"insert-record-query","", "insert into records (id, content,ttl,prio,type,domain_id,name) values (records_id_sequence.nextval, '%s',%d,%d,'%s',%d,'%s')"); 
     declare(suffix,"insert-record-query-auth","", "insert into records (id, content,ttl,prio,type,domain_id,name,auth) values (records_id_sequence.nextval, '%s',%d,%d,'%s',%d,'%s','%d')");

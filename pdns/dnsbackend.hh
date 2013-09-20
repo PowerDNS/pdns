@@ -273,6 +273,12 @@ public:
     return false;
   }
 
+  //! called by PowerDNS to create a new domain
+  virtual bool createDomain(const string &domain)
+  {
+    return false;
+  }
+
   //! called by PowerDNS to create a slave record for a superMaster
   virtual bool createSlaveDomain(const string &ip, const string &domain, const string &account)
   {

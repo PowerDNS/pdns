@@ -273,6 +273,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
+  d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
   d_InsertEntQuery=getArg("insert-ent-query"+authswitch);
@@ -876,6 +877,18 @@ bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, con
   return false;
 }
 
+bool GSQLBackend::createDomain(const string &domain)
+{
+  string query = (boost::format(d_InsertZoneQuery) % toLower(sqlEscape(domain))).str();
+  try {
+    d_db->doCommand(query);
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("Database error trying to insert new domain '"+domain+"': "+ e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
   string format;
@@ -886,7 +899,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
     d_db->doCommand(output);
   }
   catch(SSqlException &e) {
-    throw PDNSException("Database error trying to insert new slave '"+domain+"': "+ e.txtReason());
+    throw PDNSException("Database error trying to insert new slave domain '"+domain+"': "+ e.txtReason());
   }
   return true;
 }
