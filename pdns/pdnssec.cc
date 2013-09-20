@@ -1289,7 +1289,7 @@ try
       return 0; 
     }
     if (! dk.setPresigned(cmds[1])) {
-      cerr << "Could not set presigned on for " << zone << endl;
+      cerr << "Could not set presigned on for " << cmds[1] << endl;
       return 1;
     }
     return 0;
@@ -1300,7 +1300,7 @@ try
       return 0;  
     }
     if (! dk.unsetPresigned(cmds[1])) {
-      cerr << "Could not unset presigned on for " << zone << endl;
+      cerr << "Could not unset presigned on for " << cmds[1] << endl;
       return 1;
     }
     return 0;
@@ -1330,7 +1330,7 @@ try
       return 0;
     }
     if ( ! dk.unsetNSEC3PARAM(cmds[1])) {
-      cerr<<"Cannot unset NSEC3 param for " << zone << endl;
+      cerr<<"Cannot unset NSEC3 param for " << cmds[1] << endl;
       return 1;
     }
     return 0;
