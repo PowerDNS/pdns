@@ -1132,8 +1132,10 @@ try
       return 0;
     }
     const string& zone=cmds[1];
-    if(!disableDNSSECOnZone(dk, zone))
+    if(!disableDNSSECOnZone(dk, zone)) {
+      cerr << "Cannot disable DNSSEC on " << zone << endl;
       return 1;
+    }
   }
   else if(cmds[0] == "activate-zone-key") {
     if(cmds.size() != 3) {
@@ -1228,6 +1230,7 @@ try
     const string& zone=cmds[1];
     unsigned int id=atoi(cmds[2].c_str());
     if (!dk.removeKey(zone, id)) {
+       cerr<<"Cannot remove key " << id << " from " << zone <<endl;
       return 1;
     }
     return 0;
@@ -1286,6 +1289,7 @@ try
       return 0; 
     }
     if (! dk.setPresigned(cmds[1])) {
+      cerr << "Could not set presigned on for " << zone << endl;
       return 1;
     }
     return 0;
@@ -1296,6 +1300,7 @@ try
       return 0;  
     }
     if (! dk.unsetPresigned(cmds[1])) {
+      cerr << "Could not unset presigned on for " << zone << endl;
       return 1;
     }
     return 0;
@@ -1325,6 +1330,7 @@ try
       return 0;
     }
     if ( ! dk.unsetNSEC3PARAM(cmds[1])) {
+      cerr<<"Cannot unset NSEC3 param for " << zone << endl;
       return 1;
     }
     return 0;
