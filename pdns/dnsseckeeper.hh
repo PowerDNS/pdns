@@ -68,17 +68,17 @@ public:
     if(d_ourDB)
       delete d_keymetadb;
   }
-  bool isSecuredZone(const std::string& zone);
+  bool isSecuredZone(const std::string& zname);
 
-  keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
-  DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
+  keyset_t getKeys(const std::string& zname, boost::tribool allOrKeyOrZone = boost::indeterminate);
+  DNSSECPrivateKey getKeyById(const std::string& zname, unsigned int id);
   bool addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
   bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
   bool removeKey(const std::string& zname, unsigned int id);
   bool activateKey(const std::string& zname, unsigned int id);
   bool deactivateKey(const std::string& zname, unsigned int id);
 
-  bool secureZone(const std::string& fname, int algorithm, int size);
+  bool secureZone(const std::string& zname, int algorithm, int size);
 
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
   bool setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
@@ -90,8 +90,8 @@ public:
   bool setPresigned(const std::string& zname);
   bool unsetPresigned(const std::string& zname);
 
-  bool TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm);
-  bool getTSIGForAccess(const string& zone, const string& master, string* keyname);
+  bool TSIGGrantsAccess(const string& zname, const string& keyname, const string& algorithm);
+  bool getTSIGForAccess(const string& zname, const string& master, string* keyname);
 
   void startTransaction()
   {

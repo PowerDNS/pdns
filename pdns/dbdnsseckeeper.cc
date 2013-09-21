@@ -49,9 +49,9 @@ pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
 
-bool DNSSECKeeper::isSecuredZone(const std::string& zone)
+bool DNSSECKeeper::isSecuredZone(const std::string& zname)
 {
-  if(isPresigned(zone))
+  if(isPresigned(zname))
     return true;
 
   if(!((++s_ops) % 100000)) {
@@ -60,7 +60,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
 
   {
     ReadLock l(&s_keycachelock);
-    keycache_t::const_iterator iter = s_keycache.find(zone);
+    keycache_t::const_iterator iter = s_keycache.find(zname);
     if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) {
       if(iter->d_keys.empty())
         return false;
@@ -70,7 +70,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
     else
       ;
   }
-  keyset_t keys = getKeys(zone, true); // does the cache
+  keyset_t keys = getKeys(zname, true); // does the cache
 
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
     if(val.second.active) {
@@ -80,14 +80,14 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
   return false;
 }
 
-bool DNSSECKeeper::isPresigned(const std::string& name)
+bool DNSSECKeeper::isPresigned(const std::string& zname)
 {
   string meta;
-  getFromMeta(name, "PRESIGNED", meta);
+  getFromMeta(zname, "PRESIGNED", meta);
   return meta=="1";
 }
 
-bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
+bool DNSSECKeeper::addKey(const std::string& zname, bool keyOrZone, int algorithm, int bits, bool active)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -108,7 +108,7 @@ bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = keyOrZone ? 257 : 256;
-  return addKey(name, dspk, active);
+  return addKey(zname, dspk, active);
 }
 
 void DNSSECKeeper::clearAllCaches() {
@@ -120,28 +120,28 @@ void DNSSECKeeper::clearAllCaches() {
   s_metacache.clear();
 }
 
-void DNSSECKeeper::clearCaches(const std::string& name)
+void DNSSECKeeper::clearCaches(const std::string& zname)
 {
   {
     WriteLock l(&s_keycachelock);
-    s_keycache.erase(name);
+    s_keycache.erase(zname);
   }
   WriteLock l(&s_metacachelock);
-  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
+  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(zname);
   while(range.first != range.second)
     s_metacache.erase(range.first++);
 }
 
 
-bool DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, bool active)
+bool DNSSECKeeper::addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active)
 {
-  clearCaches(name);
+  clearCaches(zname);
   DNSBackend::KeyData kd;
   kd.flags = dpk.d_flags; // the dpk doesn't get stored, only they key part
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb->addDomainKey(name, kd) >= 0; // >= 0 == s
+  return d_keymetadb->addDomainKey(zname, kd) >= 0; // >= 0 == s
 }
 
 
@@ -287,7 +287,7 @@ bool DNSSECKeeper::unsetPresigned(const std::string& zname)
 }
 
 
-DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone)
+DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zname, boost::tribool allOrKeyOrZone)
 {
   unsigned int now = time(0);
 
@@ -297,7 +297,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
 
   {
     ReadLock l(&s_keycachelock);
-    keycache_t::const_iterator iter = s_keycache.find(zone);
+    keycache_t::const_iterator iter = s_keycache.find(zname);
 
     if(iter != s_keycache.end() && iter->d_ttd > now) {
       keyset_t ret;
@@ -311,7 +311,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   keyset_t retkeyset, allkeyset;
   vector<UeberBackend::KeyData> dbkeyset;
 
-  d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
+  d_keymetadb->getDomainKeys(zname, 0, dbkeyset);
 
   BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset)
   {
@@ -323,7 +323,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
 
     dpk.d_flags = kd.flags;
     dpk.d_algorithm = dkrc.d_algorithm;
-    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zone))
+    if(dpk.d_algorithm == 5 && getNSEC3PARAM(zname))
       dpk.d_algorithm+=2;
 
     KeyMetaData kmd;
@@ -340,7 +340,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   sort(allkeyset.begin(), allkeyset.end(), keyCompareByKindAndID);
 
   KeyCacheEntry kce;
-  kce.d_domain=zone;
+  kce.d_domain=zname;
   kce.d_keys = allkeyset;
   kce.d_ttd = now + 30;
   {
@@ -351,10 +351,10 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
   return retkeyset;
 }
 
-bool DNSSECKeeper::secureZone(const std::string& name, int algorithm, int size)
+bool DNSSECKeeper::secureZone(const std::string& zname, int algorithm, int size)
 {
-  clearCaches(name); // just to be sure ;)
-  return addKey(name, true, algorithm, size);
+  clearCaches(zname); // just to be sure ;)
+  return addKey(zname, true, algorithm, size);
 }
 
 bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname,
@@ -387,11 +387,11 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
   return true;
 }
 
-bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm)
+bool DNSSECKeeper::TSIGGrantsAccess(const string& zname, const string& keyname, const string& algorithm)
 {
   vector<string> allowed;
 
-  d_keymetadb->getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
+  d_keymetadb->getDomainMetadata(zname, "TSIG-ALLOW-AXFR", allowed);
 
   BOOST_FOREACH(const string& dbkey, allowed) {
     if(pdns_iequals(dbkey, keyname))
@@ -400,10 +400,10 @@ bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, c
   return false;
 }
 
-bool DNSSECKeeper::getTSIGForAccess(const string& zone, const string& master, string* keyname)
+bool DNSSECKeeper::getTSIGForAccess(const string& zname, const string& master, string* keyname)
 {
   vector<string> keynames;
-  d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
+  d_keymetadb->getDomainMetadata(zname, "AXFR-MASTER-TSIG", keynames);
   keyname->clear();
 
   // XXX FIXME this should check for a specific master!
