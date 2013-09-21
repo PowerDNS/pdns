@@ -62,22 +62,12 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zname)
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zname);
     if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) {
-      BOOST_FOREACH(keyset_t::value_type& val, iter->d_keys) {
-        if(val.second.keyOrZone && val.second.active) {
-          return true;
-        }
-      }
-      return false;
+      return iter->d_isSecure;
     }
   }
-  keyset_t keys = getKeys(zname, true); // does the cache
 
-  BOOST_FOREACH(keyset_t::value_type& val, keys) {
-    if(val.second.active) {
-      return true;
-    }
-  }
-  return false;
+  KeyCacheEntry kce(getKeyCacheEntry(zname));
+  return kce.d_isSecure;
 }
 
 bool DNSSECKeeper::isPresigned(const std::string& zname)
@@ -308,9 +298,38 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zname, boost::tr
       return ret;
     }
   }
-  keyset_t retkeyset, allkeyset;
-  vector<UeberBackend::KeyData> dbkeyset;
 
+  KeyCacheEntry kce(getKeyCacheEntry(zname));
+
+  keyset_t ret;
+  BOOST_FOREACH(const keyset_t::value_type& value, kce.d_keys) {
+    if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
+      ret.push_back(value);
+  }
+  return ret;
+}
+
+DNSSECKeeper::KeyCacheEntry DNSSECKeeper::getKeyCacheEntry(const std::string& zname)
+{
+  unsigned int now = time(0);
+
+  if(!((++s_ops) % 100000)) {
+    cleanup();
+  }
+
+  {
+    ReadLock l(&s_keycachelock);
+    keycache_t::const_iterator iter = s_keycache.find(zname);
+
+    if(iter != s_keycache.end() && iter->d_ttd > now) return *iter;
+  }
+
+  KeyCacheEntry kce;
+  kce.d_domain = zname;
+  kce.d_ttd = now + 30;
+  kce.d_isSecure = false;
+
+  vector<UeberBackend::KeyData> dbkeyset;
   d_keymetadb->getDomainKeys(zname, 0, dbkeyset);
 
   BOOST_FOREACH(UeberBackend::KeyData& kd, dbkeyset)
@@ -332,23 +351,18 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zname, boost::tr
     kmd.keyOrZone = (kd.flags == 257);
     kmd.id = kd.id;
 
-    if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == kmd.keyOrZone)
-      retkeyset.push_back(make_pair(dpk, kmd));
-    allkeyset.push_back(make_pair(dpk, kmd));
-  }
-  sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
-  sort(allkeyset.begin(), allkeyset.end(), keyCompareByKindAndID);
+    kce.d_keys.push_back(make_pair(dpk, kmd));
 
-  KeyCacheEntry kce;
-  kce.d_domain=zname;
-  kce.d_keys = allkeyset;
-  kce.d_ttd = now + 30;
+    if (kmd.active && kmd.keyOrZone) kce.d_isSecure = true;
+  }
+  sort(kce.d_keys.begin(), kce.d_keys.end(), keyCompareByKindAndID);
+
   {
     WriteLock l(&s_keycachelock);
     replacing_insert(s_keycache, kce);
   }
 
-  return retkeyset;
+  return kce;
 }
 
 bool DNSSECKeeper::secureZone(const std::string& zname, int algorithm, int size)

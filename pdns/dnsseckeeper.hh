@@ -44,7 +44,7 @@ public:
   {
     unsigned int id;
     bool active;
-    bool keyOrZone;
+    bool keyOrZone; /* true: KSK, false: ZSK */
     string fname;
   };
   typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t;
@@ -119,6 +119,7 @@ private:
     string d_domain;
     unsigned int d_ttd;
     mutable keys_t d_keys;
+    bool d_isSecure; /* whether any active KSK is present */
   };
 
   struct METACacheEntry
@@ -156,6 +157,7 @@ private:
   > metacache_t;
 
   void cleanup();
+  KeyCacheEntry getKeyCacheEntry(const std::string& zone);
 
   static keycache_t s_keycache;
   static metacache_t s_metacache;
