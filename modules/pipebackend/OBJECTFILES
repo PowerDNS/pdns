@@ -1,1 +1,1 @@
-coprocess.o pipebackend.o
+coprocess.lo pipebackend.lo

@@ -1,1 +1,1 @@
-goraclebackend.o soracle.o
+goraclebackend.lo soracle.lo

@@ -1,1 +1,1 @@
-luabackend.o minimal.o reload.o lua_functions.o master.o private.o slave.o supermaster.o dnssec.o
+luabackend.lo minimal.lo reload.lo lua_functions.lo master.lo private.lo slave.lo supermaster.lo dnssec.lo
