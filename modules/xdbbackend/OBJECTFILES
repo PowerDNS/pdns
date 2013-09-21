@@ -1,1 +1,1 @@
-xdbbackend.o xtdb.o
+xdbbackend.lo xtdb.lo

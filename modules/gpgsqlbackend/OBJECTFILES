@@ -1,1 +1,1 @@
-gpgsqlbackend.o spgsql.o
+gpgsqlbackend.lo spgsql.lo
