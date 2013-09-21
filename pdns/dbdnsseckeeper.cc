@@ -62,13 +62,13 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zname)
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zname);
     if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) {
-      if(iter->d_keys.empty())
-        return false;
-      else
-        return true;
+      BOOST_FOREACH(keyset_t::value_type& val, iter->d_keys) {
+        if(val.second.keyOrZone && val.second.active) {
+          return true;
+        }
+      }
+      return false;
     }
-    else
-      ;
   }
   keyset_t keys = getKeys(zname, true); // does the cache
 
