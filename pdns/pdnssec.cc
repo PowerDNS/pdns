@@ -461,7 +461,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       }
     } else {
       if (rr.qtype.getCode() == QType::RRSIG) {
-        if(presigned) {
+        if(!presigned) {
           cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
           numerrors++;
           continue;
