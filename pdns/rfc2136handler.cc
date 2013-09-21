@@ -86,7 +86,7 @@ int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
 
 
 // Implements section 3.4.2 of RFC2136
-uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
+uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool isKskOffline, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial) {
 
   string rrLabel = stripDot(rr->d_label);
   rrLabel = toLower(rrLabel);
@@ -97,9 +97,22 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     return 0;
   }
 
-  if (!isPresigned && ((!::arg().mustDo("experimental-direct-dnskey") && rrType == QType::DNSKEY) || rrType == QType::RRSIG)) {
-    L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<" in non-presigned zone, ignoring!"<<endl;
-    return 0;
+  if (!isPresigned && (rrType == QType::DNSKEY || rrType == QType::RRSIG)) {
+    if (d_dk.isKskOffline(di->zone)) {
+      if (rrType == QType::RRSIG) {
+        shared_ptr<RRSIGRecordContent> rrsig(boost::dynamic_pointer_cast<RRSIGRecordContent>(rr->d_content));
+        if (!rrsig || rrsig->d_type != QType::DNSKEY) {
+          L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<" (not for DNSKEY) in KSK offline zone, ignoring!"<<endl;
+          return 0;
+        }
+      }
+      /* DNSKEY updates are allowed */
+    }
+    /* in "experimental-direct-dnskey=yes" mode only DNSKEY updates are allowed, otherwise neither DNSKEY nor RRSIG updates */
+    else if (!::arg().mustDo("experimental-direct-dnskey") || rrType == QType::RRSIG) {
+      L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<" in non-presigned zone, ignoring!"<<endl;
+      return 0;
+    }
   }
 
   if ((rrType == QType::NSEC3PARAM || rrType == QType::DNSKEY) && rrLabel != di->zone) {
@@ -848,6 +861,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     bool narrow=false;
     bool haveNSEC3 = d_dk.getNSEC3PARAM(di.zone, &ns3pr, &narrow);
     bool isPresigned = d_dk.isPresigned(di.zone);
+    bool kskOffline = d_dk.isKskOffline(di.zone);
 
     // 3.4.2 - Perform the updates.
     // There's a special condition where deleting the last NS record at zone apex is never deleted (3.4.2.4)
@@ -859,7 +873,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && stripDot(rr->d_label) == di.zone)
           nsRRtoDelete.push_back(rr);
         else
-          changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+          changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, kskOffline, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
       }
     }
     if (nsRRtoDelete.size()) {
@@ -873,7 +887,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         for (vector<DNSResourceRecord>::iterator inZone=nsRRInZone.begin(); inZone != nsRRInZone.end(); inZone++) {
           for (vector<const DNSRecord *>::iterator rr=nsRRtoDelete.begin(); rr != nsRRtoDelete.end(); rr++) {
             if (inZone->getZoneRepresentation() == (*rr)->d_content->getZoneRepresentation())
-              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+              changedRecords += performUpdate(msgPrefix, *rr, &di, isPresigned, kskOffline, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }
       }

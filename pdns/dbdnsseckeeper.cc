@@ -70,6 +70,26 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zname)
   return kce.d_isSecure;
 }
 
+bool DNSSECKeeper::isKskOffline(const std::string& zname) {
+  if (isPresigned(zname))
+    return false;
+
+  if(!((++s_ops) % 100000)) {
+    cleanup();
+  }
+
+  {
+    ReadLock l(&s_keycachelock);
+    keycache_t::const_iterator iter = s_keycache.find(zname);
+    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) {
+      return iter->d_isSecure && !iter->d_haveActiveKSK;
+    }
+  }
+
+  KeyCacheEntry kce(getKeyCacheEntry(zname));
+  return kce.d_isSecure && !kce.d_haveActiveKSK;
+}
+
 bool DNSSECKeeper::isPresigned(const std::string& zname)
 {
   string meta;
@@ -328,6 +348,7 @@ DNSSECKeeper::KeyCacheEntry DNSSECKeeper::getKeyCacheEntry(const std::string& zn
   kce.d_domain = zname;
   kce.d_ttd = now + 30;
   kce.d_isSecure = false;
+  kce.d_haveActiveKSK = false;
 
   vector<UeberBackend::KeyData> dbkeyset;
   d_keymetadb->getDomainKeys(zname, 0, dbkeyset);
@@ -353,7 +374,10 @@ DNSSECKeeper::KeyCacheEntry DNSSECKeeper::getKeyCacheEntry(const std::string& zn
 
     kce.d_keys.push_back(make_pair(dpk, kmd));
 
-    if (kmd.active && kmd.keyOrZone) kce.d_isSecure = true;
+    if (kmd.active) {
+      kce.d_isSecure = true;
+      if (kmd.keyOrZone) kce.d_haveActiveKSK = true;
+    }
   }
   sort(kce.d_keys.begin(), kce.d_keys.end(), keyCompareByKindAndID);
 

@@ -69,6 +69,8 @@ public:
       delete d_keymetadb;
   }
   bool isSecuredZone(const std::string& zname);
+  /* not presigned, has active ZSK but no active KSK - assume DNSKEYs (including a KSK from backend) are presigned offline with KSK */
+  bool isKskOffline(const std::string& zname);
 
   keyset_t getKeys(const std::string& zname, boost::tribool allOrKeyOrZone = boost::indeterminate);
   DNSSECPrivateKey getKeyById(const std::string& zname, unsigned int id);
@@ -119,7 +121,8 @@ private:
     string d_domain;
     unsigned int d_ttd;
     mutable keys_t d_keys;
-    bool d_isSecure; /* whether any active KSK is present */
+    bool d_isSecure; /* whether any active KSK or ZSK is present */
+    bool d_haveActiveKSK; /* whether any active KSK is present */
   };
 
   struct METACacheEntry
