@@ -620,7 +620,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
       }
       doNextcloser = true;
       unhashed=closest;
-      hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed)
+      hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
       DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
       getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
