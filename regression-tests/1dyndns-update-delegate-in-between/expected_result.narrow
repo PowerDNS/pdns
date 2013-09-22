@@ -136,10 +136,8 @@ Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
-1	fgun0ru4oe3g76tr551hg97mpu37b6mh.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FGUN0RU4OE3G76TR551HG97MPU37B6MJ
-1	fgun0ru4oe3g76tr551hg97mpu37b6mh.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd LMRSADK2BB62QPRUAULES5I5AP06CP56
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FGUN0RU4OE3G76TR551HG97MPU37B6MJ NS
+1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
@@ -194,10 +192,8 @@ Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
-1	fgun0ru4oe3g76tr551hg97mpu37b6mh.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FGUN0RU4OE3G76TR551HG97MPU37B6MJ
-1	fgun0ru4oe3g76tr551hg97mpu37b6mh.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd LMRSADK2BB62QPRUAULES5I5AP06CP56
-1	lmrsadk2bb62qpruaules5i5ap06cp55.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
+1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FGUN0RU4OE3G76TR551HG97MPU37B6MJ NS
+1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
