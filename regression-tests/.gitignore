@@ -31,8 +31,8 @@ real_result
 /nsd.*
 /nsd-slave.*
 /*.nsd
-/ixfr-slave.db
-/ixfr-slave.state
+/ixfr*.db
+/ixfr*.state
 /*.signed
 /*.bind
 /dsset-*
