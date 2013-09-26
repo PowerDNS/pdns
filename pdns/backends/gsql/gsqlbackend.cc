@@ -1031,7 +1031,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &no
       output = (boost::format(d_InsertEntQuery) % domain_id % toLower(sqlEscape(qname))).str();
     } else {
       ordername=toBase32Hex(hashQNameWithSalt(times, salt, qname));
-      output = (boost::format(d_InsertEntOrderQuery) % domain_id % toLower(sqlEscape(qname)) % sqlEscape(ordername)).str();
+      output = (boost::format(d_InsertEntOrderQuery) % domain_id % toLower(sqlEscape(qname)) % toLower(sqlEscape(ordername))).str();
     }
 
     try {
