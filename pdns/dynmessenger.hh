@@ -58,8 +58,16 @@ class DynMessenger
 public:
   // CREATORS
 
-  DynMessenger(const string &ldir, const string &filename);  //!< Create a DynMessenger sending to this file
-  DynMessenger(const ComboAddress& remote, const string &password);  //!< Create a DynMessenger sending to this file
+  DynMessenger(const string &ldir,
+    const string &filename,
+    int timeout_sec = 7,
+    int timeout_usec = 0);  //!< Create a DynMessenger sending to this file
+
+  DynMessenger(const ComboAddress& remote,
+    const string &password,
+    int timeout_sec = 7,
+    int timeout_usec = 0);  //!< Create a DynMessenger sending to this file
+
   ~DynMessenger();
 
   // ACCESSORS
