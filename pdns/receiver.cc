@@ -314,8 +314,7 @@ static int guardian(int argc, char **argv)
         L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
         L<<Logger::Error<<"Respawning"<<endl;
 
-        sleep(1);
-        continue;
+        goto respawn;
       }
       if(WIFSIGNALED(status)) {
         int sig=WTERMSIG(status);
@@ -327,10 +326,15 @@ static int guardian(int argc, char **argv)
 #endif
 
         L<<Logger::Error<<"Respawning"<<endl;
-        sleep(1);
-        continue;
+        goto respawn;
       }
       L<<Logger::Error<<"No clue what happened! Respawning"<<endl;
+respawn:
+      if (cpid) {
+        L<<Logger::Error<<"Cleaning up any remaining children with PGRP "<<cpid<<endl;
+        kill(-cpid, SIGKILL);
+      }
+      sleep(1);
     }
     else {
       L<<Logger::Error<<"Unable to fork: "<<strerror(errno)<<endl;
