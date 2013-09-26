@@ -142,7 +142,7 @@ extern Logger &theL(const string &pname="");
 #ifdef VERBOSELOG
 #define DLOG(x) x
 #else
-#define DLOG(x) 
+#define DLOG(x) ((void)0)
 #endif
 
 
