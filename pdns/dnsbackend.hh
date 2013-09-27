@@ -281,6 +281,18 @@ public:
   {
   }
 
+  //! Called when the Master of a domain should be changed
+  virtual bool setMaster(const string &domain, const string &ip)
+  {
+    return false;
+  }
+
+  //! Called when the Kind of a domain should be changed (master -> native and similar)
+  virtual bool setKind(const string &domain, const DomainInfo::DomainKind kind)
+  {
+    return false;
+  }
+
   //! Can be called to seed the getArg() function with a prefix
   void setArgPrefix(const string &prefix);
 
