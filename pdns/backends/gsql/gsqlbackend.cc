@@ -143,12 +143,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
   }
 
-  if(pdns_iequals(type,"SLAVE"))
-    di.kind=DomainInfo::Slave;
-  else if(pdns_iequals(type,"MASTER"))
-    di.kind=DomainInfo::Master;
-  else 
-    di.kind=DomainInfo::Native;
+  di.kind = DomainInfo::stringToKind(type);
 
   return true;
 }

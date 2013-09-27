@@ -35,11 +35,12 @@ class DNSPacket;
 # include <dirent.h>
 #endif // WIN32
 
+#include "misc.hh"
 #include "qtype.hh"
 #include "dns.hh"
 #include <vector>
 #include "namespaces.hh"
-  
+
 class DNSBackend;  
 struct DomainInfo
 {
@@ -50,7 +51,7 @@ struct DomainInfo
   uint32_t notified_serial;
   uint32_t serial;
   time_t last_check;
-  enum {Master,Slave,Native} kind;
+  enum DomainKind { Master, Slave, Native } kind;
   DNSBackend *backend;
   
   bool operator<(const DomainInfo& rhs) const
@@ -60,9 +61,25 @@ struct DomainInfo
 
   const char *getKindString() const
   {
+    return DomainInfo::getKindString(kind);
+  }
+
+  static const char *getKindString(enum DomainKind kind)
+  {
     const char *kinds[]={"Master", "Slave", "Native"};
     return kinds[kind];
   }
+
+  static DomainKind stringToKind(const string& kind)
+  {
+    if(pdns_iequals(kind,"SLAVE"))
+      return DomainInfo::Slave;
+    else if(pdns_iequals(kind,"MASTER"))
+      return DomainInfo::Master;
+    else
+      return DomainInfo::Native;
+  }
+
 };
 
 struct TSIGKey {
