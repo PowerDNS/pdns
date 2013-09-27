@@ -115,6 +115,8 @@ public:
     declare( suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,auth) values (null,'%d','%s','1')");
     declare( suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,ordername,auth) values (null,'%d','%s','%s','1')");
 
+    declare( suffix, "update-master-query", "", "update domains set master='%s' where name='%s'");
+    declare( suffix, "update-kind-query", "", "update domains set type='%s' where name='%s'");
     declare( suffix, "update-serial-query", "", "update domains set notified_serial=%d where id=%d");
     declare( suffix, "update-lastcheck-query", "", "update domains set last_check=%d where id=%d");
     declare (suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");

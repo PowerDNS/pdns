@@ -43,6 +43,9 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
+  bool setMaster(const string &domain, const string &ip);
+  bool setKind(const string &domain, const DomainInfo::DomainKind kind);
+
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
   virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
@@ -98,6 +101,8 @@ private:
   string d_InsertEntQuery;
   string d_InsertRecordOrderQuery;
   string d_InsertEntOrderQuery;
+  string d_UpdateMasterOfZoneQuery;
+  string d_UpdateKindOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;

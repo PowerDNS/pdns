@@ -105,6 +105,33 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
   return 0;  
 }
 
+bool GSQLBackend::setMaster(const string &domain, const string &ip)
+{
+  string query = (boost::format(d_UpdateMasterOfZoneQuery) % sqlEscape(ip) % sqlEscape(toLower(domain))).str();
+
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set master of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::setKind(const string &domain, const DomainInfo::DomainKind kind)
+{
+  string kind_str = toUpper(DomainInfo::getKindString(kind));
+  string query = (boost::format(d_UpdateKindOfZoneQuery) % sqlEscape(kind_str) % sqlEscape(toLower(domain))).str();
+
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set kind of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
@@ -272,6 +299,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
   d_InsertEntQuery=getArg("insert-ent-query"+authswitch);
+  d_UpdateMasterOfZoneQuery=getArg("update-master-query");
+  d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
