@@ -314,6 +314,12 @@ public:
     return false;
   }
 
+  //! called to delete a domain, incl. all metadata, zone contents, etc.
+  virtual bool deleteDomain(const string &domain)
+  {
+    return false;
+  }
+
 protected:
   bool mustDo(const string &key);
   const string &getArg(const string &key);
