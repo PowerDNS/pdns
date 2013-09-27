@@ -545,6 +545,24 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
       sd.db->commitTransaction();
 
       return getZone(zonename);
+    } else if (method == "DELETE") {
+      // delete
+      UeberBackend B;
+      SOAData sd;
+      DomainInfo di;
+      sd.db = (DNSBackend*)-1;
+      if(!B.getDomainInfo(zonename, di) || !di.backend) {
+        map<string, string> err;
+        err["error"] = "Deleting domain '"+zonename+"' failed: domain does not exist";
+        return returnJSONObject(err);
+      }
+      if (!di.backend->deleteDomain(zonename)) {
+        map<string, string> err;
+        err["error"] = "Deleting domain '"+zonename+"' failed: backend delete failed/unsupported";
+        return returnJSONObject(err);
+      }
+      map<string, string> success; // empty success object
+      return returnJSONObject(success);
     } else {
       map<string, string> err;
       err["error"] = "Method not allowed";
