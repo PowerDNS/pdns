@@ -37,6 +37,7 @@ public:
   bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow);
   bool createDomain(const string &domain);
   bool createSlaveDomain(const string &ip, const string &domain, const string &account);
+  bool deleteDomain(const string &domain);
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
   void setFresh(uint32_t domain_id);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
@@ -63,6 +64,7 @@ public:
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool clearDomainAllMetadata(const string& domain);
   
   bool removeDomainKey(const string& name, unsigned int id);
   bool activateDomainKey(const string& name, unsigned int id);
@@ -106,7 +108,8 @@ private:
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
-  string d_DeleteZoneQuery;		
+  string d_DeleteDomainQuery;
+  string d_DeleteZoneQuery;
   string d_DeleteRRSet;
   string d_ZoneLastChangeQuery;
   
@@ -127,11 +130,13 @@ private:
   string d_ListDomainKeysQuery;
   string d_GetDomainMetadataQuery;
   string d_ClearDomainMetadataQuery;
+  string d_ClearDomainAllMetadataQuery;
   string d_SetDomainMetadataQuery;
 
   string d_RemoveDomainKeyQuery;
   string d_ActivateDomainKeyQuery;
   string d_DeactivateDomainKeyQuery;
+  string d_ClearDomainAllKeysQuery;
   
   string d_getTSIGKeyQuery;
   string d_setTSIGKeyQuery;

@@ -305,6 +305,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
+  d_DeleteDomainQuery=getArg("delete-domain-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_DeleteRRSet=getArg("delete-rrset-query");
   d_getAllDomainsQuery=getArg("get-all-domains-query");
@@ -329,14 +330,17 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
+    d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
     
     d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
     d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
+    d_ClearDomainAllMetadataQuery = getArg("clear-domain-all-metadata-query");
     d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
     
     d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
     d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
     d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
+    d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
     
     d_getTSIGKeyQuery = getArg("get-tsig-key-query");
     d_setTSIGKeyQuery = getArg("set-tsig-key-query");
@@ -778,7 +782,6 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
   return true;
 }
 
-
 void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int domain_id)
 {
   string format;
@@ -924,6 +927,39 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new slave domain '"+domain+"': "+ e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::deleteDomain(const string &domain)
+{
+  string sqlDomain = sqlEscape(toLower(domain));
+
+  DomainInfo di;
+  if (!getDomainInfo(domain, di)) {
+    return false;
+  }
+
+  string recordsQuery = (boost::format(d_DeleteZoneQuery) % di.id).str();
+  string metadataQuery;
+  string keysQuery;
+  string domainQuery = (boost::format(d_DeleteDomainQuery) % sqlDomain).str();
+
+  if (d_dnssecQueries) {
+    metadataQuery = (boost::format(d_ClearDomainAllMetadataQuery) % sqlDomain).str();
+    keysQuery = (boost::format(d_ClearDomainAllKeysQuery) % sqlDomain).str();
+  }
+
+  try {
+    d_db->doCommand(recordsQuery);
+    if (d_dnssecQueries) {
+      d_db->doCommand(metadataQuery);
+      d_db->doCommand(keysQuery);
+    }
+    d_db->doCommand(domainQuery);
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("Database error trying to delete domain '"+domain+"': "+ e.txtReason());
   }
   return true;
 }
