@@ -257,6 +257,62 @@ static int int_from_json(const Value& val) {
   }
 }
 
+static string getZone(const string& zonename) {
+  UeberBackend B;
+  SOAData sd;
+  DomainInfo di;
+  sd.db = (DNSBackend*)-1;
+  if(!B.getSOA(zonename, sd) || !sd.db || !B.getDomainInfo(zonename, di)) {
+    map<string, string> err;
+    err["error"] = "Could not find domain '"+zonename+"'";
+    return returnJSONObject(err);
+  }
+
+  Document doc;
+  doc.SetObject();
+
+  Value root;
+  root.SetObject();
+  root.AddMember("name", zonename.c_str(), doc.GetAllocator());
+  root.AddMember("type", "Zone", doc.GetAllocator());
+  root.AddMember("kind", di.getKindString(), doc.GetAllocator());
+  Value masters;
+  masters.SetArray();
+  BOOST_FOREACH(const string& master, di.masters) {
+    Value value(master.c_str(), doc.GetAllocator());
+    masters.PushBack(value, doc.GetAllocator());
+  }
+  root.AddMember("masters", masters, doc.GetAllocator());
+  root.AddMember("serial", di.serial, doc.GetAllocator());
+  root.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
+  root.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
+
+  DNSResourceRecord rr;
+  Value records;
+  records.SetArray();
+  sd.db->list(zonename, sd.domain_id);
+  while(sd.db->get(rr)) {
+    if (!rr.qtype.getCode())
+      continue; // skip empty non-terminals
+
+    Value object;
+    object.SetObject();
+    Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+    object.AddMember("name", jname, doc.GetAllocator());
+    Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
+    object.AddMember("type", jtype, doc.GetAllocator());
+    object.AddMember("ttl", rr.ttl, doc.GetAllocator());
+    object.AddMember("priority", rr.priority, doc.GetAllocator());
+    Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+    object.AddMember("content", jcontent, doc.GetAllocator());
+    records.PushBack(object, doc.GetAllocator());
+  }
+  root.AddMember("records", records, doc.GetAllocator());
+
+  doc.AddMember("zone", root, doc.GetAllocator());
+  return makeStringFromDocument(doc);
+}
+
 static string json_dispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
   if(command=="get") {
     if(varmap.empty()) {
@@ -447,60 +503,66 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
 
     if(method == "GET") {
       // get current zone
+      return getZone(zonename);
+    } else if (method == "POST") {
+      // create
       UeberBackend B;
       SOAData sd;
       DomainInfo di;
       sd.db = (DNSBackend*)-1;
-      if(!B.getSOA(zonename, sd) || !sd.db || !B.getDomainInfo(zonename, di)) {
+      if(B.getSOA(zonename, sd) && sd.db && B.getDomainInfo(zonename, di)) {
         map<string, string> err;
-        err["error"] = "Could not find domain '"+zonename+"'";
+        err["error"] = "Domain '"+zonename+"' already exists";
         return returnJSONObject(err);
       }
 
-      Document doc;
-      doc.SetObject();
-
-      Value root;
-      root.SetObject();
-      root.AddMember("name", zonename.c_str(), doc.GetAllocator());
-      root.AddMember("type", "Zone", doc.GetAllocator());
-      root.AddMember("kind", di.getKindString(), doc.GetAllocator());
-      Value masters;
-      masters.SetArray();
-      BOOST_FOREACH(const string& master, di.masters) {
-        Value value(master.c_str(), doc.GetAllocator());
-        masters.PushBack(value, doc.GetAllocator());
+      if (!B.createDomain(zonename, &sd.db)) {
+        map<string, string> err;
+        err["error"] = "Creating domain '"+zonename+"' failed";
+        return returnJSONObject(err);
       }
-      root.AddMember("masters", masters, doc.GetAllocator());
-      root.AddMember("serial", di.serial, doc.GetAllocator());
-      root.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
-      root.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
 
-      DNSResourceRecord rr;
-      Value records;
-      records.SetArray();
-      sd.db->list(zonename, sd.domain_id);
-      while(sd.db->get(rr)) {
-        if (!rr.qtype.getCode())
-          continue; // skip empty non-terminals
-
-        Value object;
-        object.SetObject();
-        Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
-        object.AddMember("name", jname, doc.GetAllocator());
-        Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
-        object.AddMember("type", jtype, doc.GetAllocator());
-        object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-        object.AddMember("priority", rr.priority, doc.GetAllocator());
-        Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
-        object.AddMember("content", jcontent, doc.GetAllocator());
-        records.PushBack(object, doc.GetAllocator());
+      if(!B.getDomainInfo(zonename, di) || !di.backend) {
+        map<string, string> err;
+        err["error"] = "Creating domain '"+zonename+"' failed: lookup of domain_id failed";
+        return returnJSONObject(err);
       }
-      root.AddMember("records", records, doc.GetAllocator());
 
-      doc.AddMember("zone", root, doc.GetAllocator());
-      return makeStringFromDocument(doc);
+      di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
+      di.backend->setMaster(zonename, varmap["master"]);
 
+      DNSResourceRecord soa;
+      soa.qname = zonename;
+      soa.content = "1";
+      soa.qtype = "SOA";
+      soa.domain_id = di.id;
+      soa.auth = 0;
+      soa.ttl = ::arg().asNum( "default-ttl" );;
+      soa.priority = 0;
+
+      sd.db->startTransaction(zonename, di.id);
+      sd.db->feedRecord(soa);
+      sd.db->commitTransaction();
+
+      return getZone(zonename);
+    } else if (method == "DELETE") {
+      // delete
+      UeberBackend B;
+      SOAData sd;
+      DomainInfo di;
+      sd.db = (DNSBackend*)-1;
+      if(!B.getDomainInfo(zonename, di) || !di.backend) {
+        map<string, string> err;
+        err["error"] = "Deleting domain '"+zonename+"' failed: domain does not exist";
+        return returnJSONObject(err);
+      }
+      if (!di.backend->deleteDomain(zonename)) {
+        map<string, string> err;
+        err["error"] = "Deleting domain '"+zonename+"' failed: backend delete failed/unsupported";
+        return returnJSONObject(err);
+      }
+      map<string, string> success; // empty success object
+      return returnJSONObject(success);
     } else {
       map<string, string> err;
       err["error"] = "Method not allowed";

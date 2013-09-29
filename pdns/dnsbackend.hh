@@ -35,11 +35,12 @@ class DNSPacket;
 # include <dirent.h>
 #endif // WIN32
 
+#include "misc.hh"
 #include "qtype.hh"
 #include "dns.hh"
 #include <vector>
 #include "namespaces.hh"
-  
+
 class DNSBackend;  
 struct DomainInfo
 {
@@ -50,7 +51,7 @@ struct DomainInfo
   uint32_t notified_serial;
   uint32_t serial;
   time_t last_check;
-  enum {Master,Slave,Native} kind;
+  enum DomainKind { Master, Slave, Native } kind;
   DNSBackend *backend;
   
   bool operator<(const DomainInfo& rhs) const
@@ -60,9 +61,25 @@ struct DomainInfo
 
   const char *getKindString() const
   {
+    return DomainInfo::getKindString(kind);
+  }
+
+  static const char *getKindString(enum DomainKind kind)
+  {
     const char *kinds[]={"Master", "Slave", "Native"};
     return kinds[kind];
   }
+
+  static DomainKind stringToKind(const string& kind)
+  {
+    if(pdns_iequals(kind,"SLAVE"))
+      return DomainInfo::Slave;
+    else if(pdns_iequals(kind,"MASTER"))
+      return DomainInfo::Master;
+    else
+      return DomainInfo::Native;
+  }
+
 };
 
 struct TSIGKey {
@@ -264,6 +281,18 @@ public:
   {
   }
 
+  //! Called when the Master of a domain should be changed
+  virtual bool setMaster(const string &domain, const string &ip)
+  {
+    return false;
+  }
+
+  //! Called when the Kind of a domain should be changed (master -> native and similar)
+  virtual bool setKind(const string &domain, const DomainInfo::DomainKind kind)
+  {
+    return false;
+  }
+
   //! Can be called to seed the getArg() function with a prefix
   void setArgPrefix(const string &prefix);
 
@@ -273,8 +302,20 @@ public:
     return false;
   }
 
+  //! called by PowerDNS to create a new domain
+  virtual bool createDomain(const string &domain)
+  {
+    return false;
+  }
+
   //! called by PowerDNS to create a slave record for a superMaster
   virtual bool createSlaveDomain(const string &ip, const string &domain, const string &account)
+  {
+    return false;
+  }
+
+  //! called to delete a domain, incl. all metadata, zone contents, etc.
+  virtual bool deleteDomain(const string &domain)
   {
     return false;
   }

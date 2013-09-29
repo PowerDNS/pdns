@@ -105,6 +105,33 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
   return 0;  
 }
 
+bool GSQLBackend::setMaster(const string &domain, const string &ip)
+{
+  string query = (boost::format(d_UpdateMasterOfZoneQuery) % sqlEscape(ip) % sqlEscape(toLower(domain))).str();
+
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set master of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::setKind(const string &domain, const DomainInfo::DomainKind kind)
+{
+  string kind_str = toUpper(DomainInfo::getKindString(kind));
+  string query = (boost::format(d_UpdateKindOfZoneQuery) % sqlEscape(kind_str) % sqlEscape(toLower(domain))).str();
+
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set kind of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
@@ -143,12 +170,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
     L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
   }
 
-  if(pdns_iequals(type,"SLAVE"))
-    di.kind=DomainInfo::Slave;
-  else if(pdns_iequals(type,"MASTER"))
-    di.kind=DomainInfo::Master;
-  else 
-    di.kind=DomainInfo::Native;
+  di.kind = DomainInfo::stringToKind(type);
 
   return true;
 }
@@ -273,13 +295,17 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
+  d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
   d_InsertEntQuery=getArg("insert-ent-query"+authswitch);
+  d_UpdateMasterOfZoneQuery=getArg("update-master-query");
+  d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
+  d_DeleteDomainQuery=getArg("delete-domain-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
   d_DeleteRRSet=getArg("delete-rrset-query");
   d_getAllDomainsQuery=getArg("get-all-domains-query");
@@ -304,14 +330,17 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
+    d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
     
     d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
     d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
+    d_ClearDomainAllMetadataQuery = getArg("clear-domain-all-metadata-query");
     d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
     
     d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
     d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
     d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
+    d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
     
     d_getTSIGKeyQuery = getArg("get-tsig-key-query");
     d_setTSIGKeyQuery = getArg("set-tsig-key-query");
@@ -753,7 +782,6 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
   return true;
 }
 
-
 void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int domain_id)
 {
   string format;
@@ -876,6 +904,18 @@ bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, con
   return false;
 }
 
+bool GSQLBackend::createDomain(const string &domain)
+{
+  string query = (boost::format(d_InsertZoneQuery) % toLower(sqlEscape(domain))).str();
+  try {
+    d_db->doCommand(query);
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("Database error trying to insert new domain '"+domain+"': "+ e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
   string format;
@@ -886,7 +926,40 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
     d_db->doCommand(output);
   }
   catch(SSqlException &e) {
-    throw PDNSException("Database error trying to insert new slave '"+domain+"': "+ e.txtReason());
+    throw PDNSException("Database error trying to insert new slave domain '"+domain+"': "+ e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::deleteDomain(const string &domain)
+{
+  string sqlDomain = sqlEscape(toLower(domain));
+
+  DomainInfo di;
+  if (!getDomainInfo(domain, di)) {
+    return false;
+  }
+
+  string recordsQuery = (boost::format(d_DeleteZoneQuery) % di.id).str();
+  string metadataQuery;
+  string keysQuery;
+  string domainQuery = (boost::format(d_DeleteDomainQuery) % sqlDomain).str();
+
+  if (d_dnssecQueries) {
+    metadataQuery = (boost::format(d_ClearDomainAllMetadataQuery) % sqlDomain).str();
+    keysQuery = (boost::format(d_ClearDomainAllKeysQuery) % sqlDomain).str();
+  }
+
+  try {
+    d_db->doCommand(recordsQuery);
+    if (d_dnssecQueries) {
+      d_db->doCommand(metadataQuery);
+      d_db->doCommand(keysQuery);
+    }
+    d_db->doCommand(domainQuery);
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("Database error trying to delete domain '"+domain+"': "+ e.txtReason());
   }
   return true;
 }

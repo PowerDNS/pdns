@@ -91,6 +91,7 @@ public:
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
+    declare(suffix,"insert-zone-query","", "insert into domains (id, type, name) values(domain_id_sequence.nextval, 'NATIVE','%s')");
     declare(suffix,"insert-slave-query","", "insert into domains (id, type,name,master,account) values(domain_id_sequence.nextval, 'SLAVE','%s','%s','%s')"); 
     declare(suffix,"insert-record-query","", "insert into records (id, content,ttl,prio,type,domain_id,name) values (records_id_sequence.nextval, '%s',%d,%d,'%s',%d,'%s')"); 
     declare(suffix,"insert-record-query-auth","", "insert into records (id, content,ttl,prio,type,domain_id,name,auth) values (records_id_sequence.nextval, '%s',%d,%d,'%s',%d,'%s','%d')");
@@ -104,20 +105,25 @@ public:
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=0 where name='%s' and type='%s' and domain_id='%d'");
     declare(suffix,"set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=1 where domain_id='%d' and name='%s' and type='DS'");
 
+    declare(suffix,"update-master-query","", "update domains set master='%s' where name='%s'");
+    declare(suffix,"update-kind-query","", "update domains set type='%s' where name='%s'");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");
     declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");
     declare(suffix,"info-all-master-query","", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
+    declare(suffix,"delete-domain-query","", "delete from domains where name='%s'");
     declare(suffix,"delete-zone-query","", "delete from records where domain_id=%d");
     declare(suffix,"delete-rrset-query","","delete from records where domain_id=%d and name='%s' and type='%s'");
     declare(suffix,"add-domain-key-query","", "insert into cryptokeys (id, domain_id, flags, active, content) select cryptokeys_id_sequence.nextval, id, %d, %d, '%s' from domains where name='%s'");
     declare(suffix,"list-domain-keys-query","", "select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name='%s'");
     declare(suffix,"get-domain-metadata-query","", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name='%s' and domainmetadata.kind='%s'");
     declare(suffix,"clear-domain-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name='%s') and domainmetadata.kind='%s'");
+    declare(suffix,"clear-domain-all-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name='%s')");
     declare(suffix,"set-domain-metadata-query","", "insert into domainmetadata (id, domain_id, kind, content) select domainmetadata_sequence_id.nextval, id, '%s', '%s' from domains where name='%s'");
     declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=1 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d");    
+    declare(suffix,"clear-domain-all-keys-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s')");
     declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name='%s'");
     declare(suffix,"set-tsig-key-query","", "insert into tsigkeys (name,algorithm,secret) VALUES('%s','%s','%s')");
     declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name='%s'");

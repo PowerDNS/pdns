@@ -105,6 +105,7 @@ public:
 
     declare( suffix, "info-all-slaves-query", "","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare( suffix, "supermaster-query", "", "select account from supermasters where ip='%s' and nameserver='%s'");
+    declare( suffix, "insert-zone-query", "", "insert into domains (type,name) values('NATIVE','%s')");
     declare( suffix, "insert-slave-query", "", "insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')");
 
     declare( suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')");
@@ -114,10 +115,13 @@ public:
     declare( suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,auth) values (null,'%d','%s','1')");
     declare( suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,ordername,auth) values (null,'%d','%s','%s','1')");
 
+    declare( suffix, "update-master-query", "", "update domains set master='%s' where name='%s'");
+    declare( suffix, "update-kind-query", "", "update domains set type='%s' where name='%s'");
     declare( suffix, "update-serial-query", "", "update domains set notified_serial=%d where id=%d");
     declare( suffix, "update-lastcheck-query", "", "update domains set last_check=%d where id=%d");
     declare (suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");
     declare( suffix, "info-all-master-query", "", "select id,name,master,last_check,notified_serial,type from domains where type='MASTER'");
+    declare(suffix,"delete-domain-query","", "delete from domains where name='%s'");
     declare( suffix, "delete-zone-query", "", "delete from records where domain_id=%d");
     declare( suffix, "delete-rrset-query", "", "delete from records where domain_id = %d and name='%s' and type='%s'");
     declare(suffix, "dnssec", "Assume DNSSEC Schema is in place","no");
@@ -126,10 +130,12 @@ public:
     declare(suffix,"list-domain-keys-query","", "select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name='%s'");
     declare(suffix,"get-domain-metadata-query","", "select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name='%s' and domainmetadata.kind='%s'");
     declare(suffix,"clear-domain-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name='%s') and domainmetadata.kind='%s'");
+    declare(suffix,"clear-domain-all-metadata-query","", "delete from domainmetadata where domain_id=(select id from domains where name='%s')");
     declare(suffix,"set-domain-metadata-query","", "insert into domainmetadata (domain_id, kind, content) select id, '%s', '%s' from domains where name='%s'");
     declare(suffix,"activate-domain-key-query","", "update cryptokeys set active=1 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"deactivate-domain-key-query","", "update cryptokeys set active=0 where domain_id=(select id from domains where name='%s') and  cryptokeys.id=%d");
     declare(suffix,"remove-domain-key-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s') and cryptokeys.id=%d");
+    declare(suffix,"clear-domain-all-keys-query","", "delete from cryptokeys where domain_id=(select id from domains where name='%s')");
     declare(suffix,"get-tsig-key-query","", "select algorithm, secret from tsigkeys where name='%s'");
     declare(suffix,"set-tsig-key-query","", "replace into tsigkeys (name,algorithm,secret) values('%s','%s','%s')");
     declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name='%s'");
