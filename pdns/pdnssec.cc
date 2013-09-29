@@ -343,6 +343,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
+  bool hasNsAtApex = false;
   set<string> records, cnames, noncnames;
   map<string, unsigned int> ttl;
 
@@ -353,23 +354,52 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     if(!rr.qtype.getCode())
       continue;
 
+    numrecords++;
+
+    if(rr.qtype.getCode() == QType::SOA) {
+      vector<string>parts;
+      stringtok(parts, rr.content);
+
+      ostringstream o;
+      o<<rr.content;
+      for(int pleft=parts.size(); pleft < 7; ++pleft) {
+        o<<" 0";
+      }
+      rr.content=o.str();
+    }
+
+    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
+    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
+      rr.content = "\""+rr.content+"\"";
+
+    try {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+      string tmp=drc->serialize(rr.qname);
+      tmp = drc->getZoneRepresentation();
+      if (!pdns_iequals(tmp, rr.content)) {
+        cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+        rr.content=tmp;
+        numwarnings++;
+      }
+    }
+    catch(std::exception& e)
+    {
+      cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"[Error] Error was: "<<e.what()<<endl;
+      numerrors++;
+      continue;
+    }
+
     if(!endsOn(rr.qname, zone)) {
       cout<<"[Warning] Record '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
       numwarnings++;
       continue;
     }
 
-    if(rr.qtype.getCode() == QType::SOA)
-    {
-      fillSOAData(rr.content, sd);
-      rr.content = serializeSOAData(sd);
-    }
-
     content.str("");
-    content<<rr.qname<<" "<<rr.qtype.getName();
-    if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-      content<<" "<<rr.priority;
-    content<<" "<<rr.content;
+    content<<rr.qname<<" "<<rr.qtype.getName()<<" "<<rr.content;
     if (records.count(toLower(content.str()))) {
       cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"'"<<endl;
       numerrors++;
@@ -384,6 +414,24 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
       numerrors++;
       continue;
+    }
+
+    if(pdns_iequals(rr.qname, zone)) {
+      if (rr.qtype.getCode() == QType::NS) {
+        hasNsAtApex=true;
+      } else if (rr.qtype.getCode() == QType::DS) {
+        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should no be here."<<endl;
+        numwarnings++;
+      }
+    } else {
+      if (rr.qtype.getCode() == QType::SOA) {
+        cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
+        numerrors++;
+        continue;
+      } else if (rr.qtype.getCode() == QType::DNSKEY) {
+        cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
+        numwarnings++;
+      }
     }
 
     if (rr.qtype.getCode() == QType::CNAME) {
@@ -443,34 +491,17 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       numerrors++;
     }
 
-    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
     if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) &&
          rr.content[rr.content.size()-1] == '.') {
       cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" has a trailing dot in the content ("<<rr.content<<"). Your backend might not work well with this."<<endl;
       numwarnings++;
     }
 
-    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
-      rr.content = "\""+rr.content+"\"";
-
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
       cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
     }
-    try {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
-      string tmp=drc->serialize(rr.qname);
-    }
-    catch(std::exception& e)
-    {
-      cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
-      cout<<"[Error] Error was: "<<e.what()<<endl;
-      numerrors++;
-    }
-    numrecords++;
   }
 
   for(set<string>::const_iterator i = cnames.begin(); i != cnames.end(); i++) {
@@ -478,6 +509,11 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] CNAME "<<*i<<" found, but other records with same label exist."<<endl;
       numerrors++;
     }
+  }
+
+  if(!hasNsAtApex) {
+    cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
+    numerrors++;
   }
 
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
