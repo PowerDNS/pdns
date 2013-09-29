@@ -340,7 +340,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
-
   bool hasNsAtApex = false;
   set<string> records, cnames, noncnames;
   map<string, unsigned int> ttl;
@@ -358,10 +357,16 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       continue;
     }
 
-    if(rr.qtype.getCode() == QType::SOA)
-    {
-      fillSOAData(rr.content, sd);
-      rr.content = serializeSOAData(sd);
+    if(rr.qtype.getCode() == QType::SOA) {
+      vector<string>parts;
+      stringtok(parts, rr.content);
+
+      ostringstream o;
+      o<<rr.content;
+      for(int pleft=parts.size(); pleft < 7; ++pleft) {
+        o<<" 0";
+      }
+      rr.content=o.str();
     }
 
     content.str("");
