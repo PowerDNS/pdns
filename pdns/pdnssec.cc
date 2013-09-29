@@ -369,11 +369,32 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       rr.content=o.str();
     }
 
+    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
+    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
+      rr.content = "\""+rr.content+"\"";
+
+    try {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+      string tmp=drc->serialize(rr.qname);
+      tmp = drc->getZoneRepresentation();
+      if (!pdns_iequals(tmp, rr.content)) {
+        cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+        rr.content=tmp;
+        numwarnings++;
+      }
+    }
+    catch(std::exception& e)
+    {
+      cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"[Error] Error was: "<<e.what()<<endl;
+      numerrors++;
+      continue;
+    }
+
     content.str("");
-    content<<rr.qname<<" "<<rr.qtype.getName();
-    if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-      content<<" "<<rr.priority;
-    content<<" "<<rr.content;
+    content<<rr.qname<<" "<<rr.qtype.getName()<<" "<<rr.content;
     if (records.count(toLower(content.str()))) {
       cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"'"<<endl;
       numerrors++;
@@ -465,36 +486,15 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       numerrors++;
     }
 
-    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
     if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) &&
          rr.content[rr.content.size()-1] == '.') {
       cout<<"[Warning] The record "<<rr.qname<<" with type "<<rr.qtype.getName()<<" has a trailing dot in the content ("<<rr.content<<"). Your backend might not work well with this."<<endl;
       numwarnings++;
     }
 
-    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
-      rr.content = "\""+rr.content+"\"";
-
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
       cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
-      numerrors++;
-    }
-    try {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
-      string tmp=drc->serialize(rr.qname);
-      tmp = drc->getZoneRepresentation();
-      if (!pdns_iequals(tmp, rr.content)) {
-        cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
-        numwarnings++;
-      }
-    }
-    catch(std::exception& e)
-    {
-      cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
-      cout<<"[Error] Error was: "<<e.what()<<endl;
       numerrors++;
     }
     numrecords++;
