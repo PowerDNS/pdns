@@ -354,11 +354,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     if(!rr.qtype.getCode())
       continue;
 
-    if(!endsOn(rr.qname, zone)) {
-      cout<<"[Warning] Record '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
-      numwarnings++;
-      continue;
-    }
+    numrecords++;
 
     if(rr.qtype.getCode() == QType::SOA) {
       vector<string>parts;
@@ -393,6 +389,12 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       cout<<"[Error] Error was: "<<e.what()<<endl;
       numerrors++;
+      continue;
+    }
+
+    if(!endsOn(rr.qname, zone)) {
+      cout<<"[Warning] Record '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
+      numwarnings++;
       continue;
     }
 
@@ -500,7 +502,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
     }
-    numrecords++;
   }
 
   for(set<string>::const_iterator i = cnames.begin(); i != cnames.end(); i++) {
