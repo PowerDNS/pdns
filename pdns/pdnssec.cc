@@ -340,6 +340,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
+
+  bool hasNsAtApex = false;
   set<string> records, cnames, noncnames;
   map<string, unsigned int> ttl;
 
@@ -381,6 +383,24 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
       numerrors++;
       continue;
+    }
+
+    if(pdns_iequals(rr.qname, zone)) {
+      if (rr.qtype.getCode() == QType::NS) {
+        hasNsAtApex=true;
+      } else if (rr.qtype.getCode() == QType::DS) {
+        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should no be here."<<endl;
+        numwarnings++;
+      }
+    } else {
+      if (rr.qtype.getCode() == QType::SOA) {
+        cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
+        numerrors++;
+        continue;
+      } else if (rr.qtype.getCode() == QType::DNSKEY) {
+        cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
+        numwarnings++;
+      }
     }
 
     if (rr.qtype.getCode() == QType::CNAME) {
@@ -480,6 +500,11 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] CNAME "<<*i<<" found, but other records with same label exist."<<endl;
       numerrors++;
     }
+  }
+
+  if(!hasNsAtApex) {
+    cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
+    numerrors++;
   }
 
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
