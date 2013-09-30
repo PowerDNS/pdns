@@ -375,10 +375,23 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
       string tmp=drc->serialize(rr.qname);
       tmp = drc->getZoneRepresentation();
-      if (!pdns_iequals(tmp, rr.content)) {
-        cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+      if (rr.qtype.getCode() != QType::AAAA) {
+        if (!pdns_iequals(tmp, rr.content)) {
+          cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+          rr.content=tmp;
+          numwarnings++;
+        }
+      } else {
+        struct addrinfo hint, *res;
+        memset(&hint, 0, sizeof(hint));
+        hint.ai_family = AF_INET6;
+        hint.ai_flags = AI_NUMERICHOST;
+        if(getaddrinfo(rr.content.c_str(), 0, &hint, &res)) {
+          cout<<"[Warning] Folowing record is not a vallid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+          numwarnings++;
+        } else
+          freeaddrinfo(res);
         rr.content=tmp;
-        numwarnings++;
       }
     }
     catch(std::exception& e)
