@@ -99,7 +99,7 @@ static string htmlescape(const string &s) {
   for(string::const_iterator it=s.begin(); it!=s.end(); ++it) {
     switch (*it) {
     case '&':
-      result += "&amp";
+      result += "&amp;";
       break;
     case '<':
       result += "&lt;";
