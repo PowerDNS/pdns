@@ -94,6 +94,26 @@ void *StatWebServer::threadHelper(void *p)
   return 0; // never reached
 }
 
+static string htmlescape(const string &s) {
+  string result;
+  for(string::const_iterator it=s.begin(); it!=s.end(); ++it) {
+    switch (*it) {
+    case '&':
+      result += "&amp";
+      break;
+    case '<':
+      result += "&lt;";
+      break;
+    case '>':
+      result += "&gt;";
+      break;
+    default:
+      result += *it;
+    }
+  }
+  return result;
+}
+
 void printtable(ostringstream &ret, const string &ringname, const string &title, int limit=10)
 {
   int tot=0;
@@ -124,7 +144,7 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
   int printed=0;
   int total=max(1,tot);
   for(vector<pair<string,unsigned int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
-    ret<<"<tr><td>"<<i->first<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
+    ret<<"<tr><td>"<<htmlescape(i->first)<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
