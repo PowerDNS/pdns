@@ -123,6 +123,7 @@ public:
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
+  bool createDomain(const string &domain, DNSBackend** db);
   
   int addDomainKey(const string& name, const KeyData& key);
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
