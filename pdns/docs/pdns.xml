@@ -192,6 +192,10 @@
       </para>
       </sect2>
       <sect2 id="changelog-auth-3-3"><title>PowerDNS Authoritative Server version 3.3</title>
+      <warning><para>Version 3.3 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0, 3.1 or 3.2.
+  Please refer to <xref linkend="from2.9to3.0"/>, <xref linkend="from3.0to3.1"/>, <xref linkend="from3.1to3.2"/> and <xref linkend="from3.2to3.3"/> for important information on 
+  correct and stable operation, as well as notes on performance and memory use.</para>
+      </warning>
       <note>
         <para>
           Released on July 5th 2013
