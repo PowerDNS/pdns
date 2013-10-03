@@ -1,1 +1,1 @@
--lmysqlclient
+$(MYSQL_lib)
