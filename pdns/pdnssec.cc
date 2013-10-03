@@ -390,7 +390,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
         hint.ai_family = AF_INET6;
         hint.ai_flags = AI_NUMERICHOST;
         if(getaddrinfo(rr.content.c_str(), 0, &hint, &res)) {
-          cout<<"[Warning] Folowing record is not a vallid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+          cout<<"[Warning] Following record is not a vallid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
           numwarnings++;
         } else
           freeaddrinfo(res);
