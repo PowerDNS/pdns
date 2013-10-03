@@ -20,13 +20,9 @@
 #define PDNS_DNSPROXY
 #include <pthread.h>
 #include <map>
-
-#ifndef WIN32
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <arpa/inet.h>
-#endif // WIN32
-
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "dnspacket.hh"
 #include "lock.hh"
 #include "iputils.hh"

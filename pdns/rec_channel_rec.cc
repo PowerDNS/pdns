@@ -18,13 +18,11 @@
 #include "logger.hh"
 #include "dnsparser.hh"
 #include "arguments.hh"
-#ifndef WIN32
 #include <sys/resource.h>
 #include <sys/time.h>
-#endif
 
 #include "namespaces.hh"
-#include "namespaces.hh"
+
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
 map<string, function< uint32_t() > >  d_get32bitmembers;
@@ -245,7 +243,6 @@ string doWipeCache(T begin, T end)
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
 }
 
-#ifndef WIN32
 static uint64_t getSysTimeMsec()
 {
   struct rusage ru;
@@ -259,7 +256,6 @@ static uint64_t getUserTimeMsec()
   getrusage(RUSAGE_SELF, &ru);
   return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 }
-#endif
 
 static uint64_t calculateUptime()
 {
@@ -499,11 +495,9 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("uptime", calculateUptime);
 
-#ifndef WIN32
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
-#endif
 }
 
 static void doExitGeneric(bool nicely)

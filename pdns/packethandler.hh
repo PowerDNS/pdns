@@ -19,12 +19,9 @@
 #ifndef PACKETHANDLER_HH
 #define PACKETHANDLER_HH
 
-#ifndef WIN32
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <arpa/inet.h>
-#endif // WIN32
-
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "ueberbackend.hh"
 #include "dnspacket.hh"
 #include "packetcache.hh"

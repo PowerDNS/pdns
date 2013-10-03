@@ -11,14 +11,7 @@
 #include <fstream>
 #include "pdns/logger.hh"
 #include "misc.hh"
-
-#ifdef WIN32
-# include <io.h>
-# define access _access
-# define F_OK 0
-#else // WIN32
-# include <unistd.h>
-#endif // Unix
+#include <unistd.h>
 
 // Constructor.
 SSQLite3::SSQLite3( const std::string & database, bool creat )

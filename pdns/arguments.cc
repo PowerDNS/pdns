@@ -175,7 +175,6 @@ const string & ArgvMap::operator[](const string &arg)
   return params[arg];
 }
 
-#ifndef WIN32
 mode_t ArgvMap::asMode(const string &arg) 
 {
   mode_t mode;
@@ -233,7 +232,6 @@ uid_t ArgvMap::asUid(const string &arg)
    }
    return uid;
 }
-#endif
 
 int ArgvMap::asNum(const string &arg)
 {

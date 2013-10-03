@@ -30,11 +30,9 @@
 #include <boost/multi_index/sequenced_index.hpp>
 using namespace boost::multi_index;
 
-#ifndef WIN32 
-# include <unistd.h>
-# include <fcntl.h>
-# include <netdb.h>
-#endif // WIN32
+#include <unistd.h>
+#include <fcntl.h>
+#include <netdb.h>
 
 #include "lock.hh"
 #include "packethandler.hh"

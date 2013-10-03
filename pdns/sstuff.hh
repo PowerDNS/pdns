@@ -7,13 +7,11 @@
 #include "iputils.hh"
 #include <errno.h>
 #include <sys/types.h>
-#ifndef WIN32
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
-#endif
 #include <fcntl.h>
 #include <stdexcept>
 #include <boost/shared_ptr.hpp>

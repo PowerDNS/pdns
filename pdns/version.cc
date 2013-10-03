@@ -28,8 +28,6 @@ string compilerVersion()
   return string("clang "__clang_version__);
 #elif defined(__GNUC__)
   return string("gcc "__VERSION__);
-#elif defined(_MSC_VER)
-  return string("MSVC "<<_MSC_VER);
 #else  // add other compilers here
   return string("Unknown compiler");
 #endif

@@ -24,12 +24,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#ifndef WIN32
-# include "config.h"
-# include <unistd.h>
-#else
-# include "pdnsservice.hh"
-#endif // WIN32
+#include "config.h"
+#include <unistd.h>
 
 #include "namespaces.hh"
 

@@ -22,11 +22,6 @@
 #include <inttypes.h>
 #include <string>
 #include <stdexcept>
-#if !defined SOLARIS8 && !defined WIN32
-
-#elif defined WIN32
-# include "utility.hh"
-#endif
 
 #include "namespaces.hh"
 

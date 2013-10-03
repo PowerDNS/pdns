@@ -67,7 +67,7 @@ int UeberBackend::s_s=-1; // ?
 bool UeberBackend::loadmodule(const string &name)
 {
   // TODO: Implement dynamic loading?
-#if !defined(WIN32) && !defined(DARWIN)
+#if !defined(DARWIN)
   void *dlib=dlopen(name.c_str(), RTLD_NOW);
   
   if(dlib == NULL) {
@@ -83,8 +83,7 @@ bool UeberBackend::loadmodule(const string &name)
   L << Logger::Warning << "This version doesn't support dynamic loading (yet)." << endl;
    return false;
 
-#endif // WIN32
-
+#endif
 }
 
 void UeberBackend::go(void)

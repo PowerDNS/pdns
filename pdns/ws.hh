@@ -24,10 +24,7 @@
 #include <pthread.h>
 #include <sstream>
 #include <iomanip>
-
-#ifndef WIN32
-# include <unistd.h>
-#endif // WIN32
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>

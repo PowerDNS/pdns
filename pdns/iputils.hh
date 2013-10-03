@@ -20,13 +20,9 @@
 #define PDNS_IPUTILSHH
 
 #include <string>
-
-#ifndef WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif // WIN32
-
 #include <iostream>
 #include <stdio.h>
 #include <functional>

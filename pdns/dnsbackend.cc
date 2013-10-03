@@ -96,7 +96,6 @@ vector<string> BackendMakerClass::getModules()
 void BackendMakerClass::load_all()
 {
   // TODO: Implement this?
-#ifndef WIN32
   DIR *dir=opendir(arg()["module-dir"].c_str());
   if(!dir) {
     L<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
@@ -110,7 +109,6 @@ void BackendMakerClass::load_all()
       load(entry->d_name);
   }
   closedir(dir);
-#endif // WIN32
 }
 
 void BackendMakerClass::load(const string &module)
