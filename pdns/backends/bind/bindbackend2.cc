@@ -575,7 +575,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   Lock l(&s_state_lock);
 
   Bind2Backend bb2;
-  BB2DomainInfo& bbd = bb2.createDomain(domainname, filename);
+  BB2DomainInfo& bbd = bb2.createDomainEntry(domainname, filename);
 
   bbd.d_filename=filename;
   bbd.d_checknow=true;
@@ -714,7 +714,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
 
 void Bind2Backend::loadConfig(string* status)
 {
-  // Interference with createDomain()
+  // Interference with createDomainEntry()
   Lock l(&s_state_lock);
 
   static int domain_id=1;
@@ -1313,7 +1313,7 @@ bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, co
 }
 
 // NEED TO CALL THIS with s_state_lock held!
-BB2DomainInfo &Bind2Backend::createDomain(const string &domain, const string &filename)
+BB2DomainInfo &Bind2Backend::createDomainEntry(const string &domain, const string &filename)
 {
   int newid=1;
   // Find a free zone id nr.  
@@ -1360,7 +1360,7 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, con
   c_of << "};" << endl;
   c_of.close();
 
-  BB2DomainInfo &bbd = createDomain(canonic(domain), filename);
+  BB2DomainInfo &bbd = createDomainEntry(canonic(domain), filename);
 
   bbd.d_masters.push_back(ip);
   
