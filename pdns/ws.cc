@@ -337,7 +337,7 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
     return returnJSONError("Domain '"+zonename+"' already exists");
 
   if(!exists) {
-    if(!B.createDomain(zonename, &di.backend))
+    if(!B.createDomain(zonename))
       return returnJSONError("Creating domain '"+zonename+"' failed");
 
     if(!B.getDomainInfo(zonename, di))
