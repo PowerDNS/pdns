@@ -273,7 +273,7 @@ static int intFromJson(const Value& val) {
   } else if (val.IsString()) {
     return atoi(val.GetString());
   } else {
-    throw Exception("Value not an Integer");
+    throw PDNSException("Value not an Integer");
   }
 }
 
@@ -429,9 +429,8 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     return returnJSONObject(object);
   }
   else if(command == "pdns-control") {
-    // TODO: turn this into a 405
     if(method!="POST")
-      return returnJSONError("pdns-control requires a POST");
+      throw HttpMethodNotAllowedException();
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
     if(document.Parse<0>(post.c_str()).HasParseError())
@@ -560,8 +559,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       map<string, string> success; // empty success object
       return returnJSONObject(success);
     } else {
-      // TODO: turn this into a 405
-      return returnJSONError("Method not allowed");
+      throw HttpMethodNotAllowedException();
     }
   }
   else if(command=="log-grep") {
