@@ -267,7 +267,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
   return ret.str();
 }
 
-static int int_from_json(const Value& val) {
+static int intFromJson(const Value& val) {
   if (val.IsInt()) {
     return val.GetInt();
   } else if (val.IsString()) {
@@ -333,7 +333,7 @@ static string getZone(const string& zonename) {
   return makeStringFromDocument(doc);
 }
 
-static string json_dispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
+static string jsonDispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
   if(command=="get") {
     if(varmap.empty()) {
       vector<string> entries = S.getEntries();
@@ -487,8 +487,8 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
         rr.qtype=record["type"].GetString();
         rr.domain_id = sd.domain_id;
         rr.auth=0;
-        rr.ttl=int_from_json(record["ttl"]);
-        rr.priority=int_from_json(record["priority"]);
+        rr.ttl=intFromJson(record["ttl"]);
+        rr.priority=intFromJson(record["priority"]);
         
         rrset.push_back(rr);
         
@@ -657,7 +657,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
   if(!callback.empty())
       ret += callback+"(";
 
-  ret += json_dispatch(method, post, ourvarmap, command);
+  ret += jsonDispatch(method, post, ourvarmap, command);
 
   if(!callback.empty()) {
     ret += ");";
