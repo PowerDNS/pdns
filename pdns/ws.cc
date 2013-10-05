@@ -279,10 +279,8 @@ static int intFromJson(const Value& val) {
 
 static string getZone(const string& zonename) {
   UeberBackend B;
-  SOAData sd;
   DomainInfo di;
-  sd.db = (DNSBackend*)-1;
-  if(!B.getSOA(zonename, sd) || !sd.db || !B.getDomainInfo(zonename, di)) {
+  if(!B.getDomainInfo(zonename, di)) {
     map<string, string> err;
     err["error"] = "Could not find domain '"+zonename+"'";
     return returnJSONObject(err);
@@ -310,8 +308,8 @@ static string getZone(const string& zonename) {
   DNSResourceRecord rr;
   Value records;
   records.SetArray();
-  sd.db->list(zonename, sd.domain_id);
-  while(sd.db->get(rr)) {
+  di.backend->list(zonename, di.id);
+  while(di.backend->get(rr)) {
     if (!rr.qtype.getCode())
       continue; // skip empty non-terminals
 
@@ -335,32 +333,28 @@ static string getZone(const string& zonename) {
 
 static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap_t& varmap) {
   UeberBackend B;
-  SOAData sd;
   DomainInfo di;
-  sd.db = (DNSBackend*)-1;
-  bool exists = (B.getSOA(zonename, sd) && sd.db && B.getDomainInfo(zonename, di));
-  if (exists && onlyCreate) {
+
+  bool exists = B.getDomainInfo(zonename, di);
+  if(exists && onlyCreate) {
     map<string, string> err;
     err["error"] = "Domain '"+zonename+"' already exists";
     return returnJSONObject(err);
   }
 
-  if (!exists && !B.createDomain(zonename, &sd.db)) {
-    map<string, string> err;
-    err["error"] = "Creating domain '"+zonename+"' failed";
-    return returnJSONObject(err);
-  }
+  if(!exists) {
+    if(!B.createDomain(zonename, &di.backend)) {
+      map<string, string> err;
+      err["error"] = "Creating domain '"+zonename+"' failed";
+      return returnJSONObject(err);
+    }
 
-  if(!B.getDomainInfo(zonename, di) || !di.backend) {
-    map<string, string> err;
-    err["error"] = "Modifying domain '"+zonename+"' failed: lookup of domain_id failed";
-    return returnJSONObject(err);
-  }
+    if(!B.getDomainInfo(zonename, di)) {
+      map<string, string> err;
+      err["error"] = "Creating domain '"+zonename+"' failed: lookup of domain ID failed";
+      return returnJSONObject(err);
+    }
 
-  di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
-  di.backend->setMaster(zonename, varmap["master"]);
-
-  if (!exists) {
     // create SOA record so zone "really" exists
     DNSResourceRecord soa;
     soa.qname = zonename;
@@ -371,10 +365,13 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
     soa.ttl = ::arg().asNum( "default-ttl" );
     soa.priority = 0;
 
-    sd.db->startTransaction(zonename, di.id);
-    sd.db->feedRecord(soa);
-    sd.db->commitTransaction();
+    di.backend->startTransaction(zonename, di.id);
+    di.backend->feedRecord(soa);
+    di.backend->commitTransaction();
   }
+
+  di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
+  di.backend->setMaster(zonename, varmap["master"]);
 
   return getZone(zonename);
 }
@@ -579,10 +576,8 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     } else if (method == "DELETE") {
       // delete
       UeberBackend B;
-      SOAData sd;
       DomainInfo di;
-      sd.db = (DNSBackend*)-1;
-      if(!B.getDomainInfo(zonename, di) || !di.backend) {
+      if(!B.getDomainInfo(zonename, di)) {
         map<string, string> err;
         err["error"] = "Deleting domain '"+zonename+"' failed: domain does not exist";
         return returnJSONObject(err);
