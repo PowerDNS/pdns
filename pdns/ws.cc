@@ -333,18 +333,19 @@ static string getZone(const string& zonename) {
   return makeStringFromDocument(doc);
 }
 
-static string createZone(const string& zonename, varmap_t& varmap) {
+static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap_t& varmap) {
   UeberBackend B;
   SOAData sd;
   DomainInfo di;
   sd.db = (DNSBackend*)-1;
-  if (B.getSOA(zonename, sd) && sd.db && B.getDomainInfo(zonename, di)) {
+  bool exists = (B.getSOA(zonename, sd) && sd.db && B.getDomainInfo(zonename, di));
+  if (exists && onlyCreate) {
     map<string, string> err;
     err["error"] = "Domain '"+zonename+"' already exists";
     return returnJSONObject(err);
   }
 
-  if (!B.createDomain(zonename, &sd.db)) {
+  if (!exists && !B.createDomain(zonename, &sd.db)) {
     map<string, string> err;
     err["error"] = "Creating domain '"+zonename+"' failed";
     return returnJSONObject(err);
@@ -352,26 +353,28 @@ static string createZone(const string& zonename, varmap_t& varmap) {
 
   if(!B.getDomainInfo(zonename, di) || !di.backend) {
     map<string, string> err;
-    err["error"] = "Creating domain '"+zonename+"' failed: lookup of domain_id failed";
+    err["error"] = "Modifying domain '"+zonename+"' failed: lookup of domain_id failed";
     return returnJSONObject(err);
   }
 
   di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
   di.backend->setMaster(zonename, varmap["master"]);
 
-  // create SOA record so zone "really" exists
-  DNSResourceRecord soa;
-  soa.qname = zonename;
-  soa.content = "1";
-  soa.qtype = "SOA";
-  soa.domain_id = di.id;
-  soa.auth = 0;
-  soa.ttl = ::arg().asNum( "default-ttl" );
-  soa.priority = 0;
+  if (!exists) {
+    // create SOA record so zone "really" exists
+    DNSResourceRecord soa;
+    soa.qname = zonename;
+    soa.content = "1";
+    soa.qtype = "SOA";
+    soa.domain_id = di.id;
+    soa.auth = 0;
+    soa.ttl = ::arg().asNum( "default-ttl" );
+    soa.priority = 0;
 
-  sd.db->startTransaction(zonename, di.id);
-  sd.db->feedRecord(soa);
-  sd.db->commitTransaction();
+    sd.db->startTransaction(zonename, di.id);
+    sd.db->feedRecord(soa);
+    sd.db->commitTransaction();
+  }
 
   return getZone(zonename);
 }
@@ -569,7 +572,10 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       return getZone(zonename);
     } else if (method == "POST") {
       // create
-      return createZone(zonename, varmap);
+      return createOrUpdateZone(zonename, true, varmap);
+    } else if (method == "PUT") {
+      // update or create
+      return createOrUpdateZone(zonename, false, varmap);
     } else if (method == "DELETE") {
       // delete
       UeberBackend B;
