@@ -280,11 +280,8 @@ static int intFromJson(const Value& val) {
 static string getZone(const string& zonename) {
   UeberBackend B;
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di)) {
-    map<string, string> err;
-    err["error"] = "Could not find domain '"+zonename+"'";
-    return returnJSONObject(err);
-  }
+  if(!B.getDomainInfo(zonename, di))
+    return returnJSONError("Could not find domain '"+zonename+"'");
 
   Document doc;
   doc.SetObject();
@@ -336,24 +333,15 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
   DomainInfo di;
 
   bool exists = B.getDomainInfo(zonename, di);
-  if(exists && onlyCreate) {
-    map<string, string> err;
-    err["error"] = "Domain '"+zonename+"' already exists";
-    return returnJSONObject(err);
-  }
+  if(exists && onlyCreate)
+    return returnJSONError("Domain '"+zonename+"' already exists");
 
   if(!exists) {
-    if(!B.createDomain(zonename, &di.backend)) {
-      map<string, string> err;
-      err["error"] = "Creating domain '"+zonename+"' failed";
-      return returnJSONObject(err);
-    }
+    if(!B.createDomain(zonename, &di.backend))
+      return returnJSONError("Creating domain '"+zonename+"' failed");
 
-    if(!B.getDomainInfo(zonename, di)) {
-      map<string, string> err;
-      err["error"] = "Creating domain '"+zonename+"' failed: lookup of domain ID failed";
-      return returnJSONObject(err);
-    }
+    if(!B.getDomainInfo(zonename, di))
+      return returnJSONError("Creating domain '"+zonename+"' failed: lookup of domain ID failed");
 
     // create SOA record so zone "really" exists
     DNSResourceRecord soa;
@@ -441,16 +429,13 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     return returnJSONObject(object);
   }
   else if(command == "pdns-control") {
-    if(method!="POST") {
-      map<string, string> m;
-      m["error"]="pdns-control requires a POST";
-      return returnJSONObject(m);
-    }
+    // TODO: turn this into a 405
+    if(method!="POST")
+      return returnJSONError("pdns-control requires a POST");
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
-    if(document.Parse<0>(post.c_str()).HasParseError()) {
-      return "{\"error\": \"Unable to parse JSON\"}";
-    }
+    if(document.Parse<0>(post.c_str()).HasParseError())
+      return returnJSONError("Unable to parse JSON");
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
     stringtok(parameters, document["parameters"].GetString(), " \t");
@@ -471,15 +456,12 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     vector<string> parts;
     stringtok(parts, varmap["rest"], "/");
     if(parts.size() != 3) 
-      return "{\"error\": \"Could not parse rest parameter\"}";
+      return returnJSONError("Could not parse rest parameter");
     UeberBackend B;
     SOAData sd;
     sd.db = (DNSBackend*)-1;
-    if(!B.getSOA(parts[0], sd) || !sd.db) {
-      map<string, string> err;
-      err["error"]= "Could not find domain '"+parts[0]+"'";
-      return returnJSONObject(err);
-    }
+    if(!B.getSOA(parts[0], sd) || !sd.db)
+      return returnJSONError("Could not find domain '"+parts[0]+"'");
     
     QType qtype;
     qtype=parts[2];
@@ -516,9 +498,8 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     }
     else if(method=="POST") {
       rapidjson::Document document;
-      if(document.Parse<0>(post.c_str()).HasParseError()) {
-        return "{\"error\": \"Unable to parse JSON\"";
-      }
+      if(document.Parse<0>(post.c_str()).HasParseError())
+        return returnJSONError("Unable to parse JSON");
       
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
@@ -544,9 +525,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
         }
         catch(std::exception& e) 
         {
-          map<string, string> err;
-          err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
-          return returnJSONObject(err);
+	  return returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
         }
       }
       // but now what
@@ -558,11 +537,8 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
   }
   else if(command == "zone") {
     string zonename = varmap["zone"];
-    if (zonename.empty()) {
-      map<string, string> err;
-      err["error"] = "Must give zone parameter";
-      return returnJSONObject(err);
-    }
+    if (zonename.empty())
+      return returnJSONError("Must give zone parameter");
 
     if(method == "GET") {
       // get current zone
@@ -577,22 +553,15 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       // delete
       UeberBackend B;
       DomainInfo di;
-      if(!B.getDomainInfo(zonename, di)) {
-        map<string, string> err;
-        err["error"] = "Deleting domain '"+zonename+"' failed: domain does not exist";
-        return returnJSONObject(err);
-      }
-      if (!di.backend->deleteDomain(zonename)) {
-        map<string, string> err;
-        err["error"] = "Deleting domain '"+zonename+"' failed: backend delete failed/unsupported";
-        return returnJSONObject(err);
-      }
+      if(!B.getDomainInfo(zonename, di))
+	return returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
+      if(!di.backend->deleteDomain(zonename))
+	return returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
       map<string, string> success; // empty success object
       return returnJSONObject(success);
     } else {
-      map<string, string> err;
-      err["error"] = "Method not allowed";
-      return returnJSONObject(err);
+      // TODO: turn this into a 405
+      return returnJSONError("Method not allowed");
     }
   }
   else if(command=="log-grep") {
@@ -630,9 +599,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     return makeStringFromDocument(doc);
   }
 
-  map<string, string> err;
-  err["error"] = "No or unknown command given";
-  return returnJSONObject(err);
+  return returnJSONError("No or unknown command given");
 }
 
 string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)

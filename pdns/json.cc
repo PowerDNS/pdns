@@ -76,6 +76,15 @@ string returnJSONObject(const map<string, string>& items)
   return makeStringFromDocument(doc);
 }
 
+string returnJSONError(const string& error)
+{
+  Document doc;
+  doc.SetObject();
+  Value jerror(error.c_str(), doc.GetAllocator()); // copy
+  doc.AddMember("error", jerror, doc.GetAllocator());
+  return makeStringFromDocument(doc);
+}
+
 string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const string& prefix)
 {
   FILE* ptr = fopen(fname.c_str(), "r");
