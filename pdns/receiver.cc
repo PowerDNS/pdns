@@ -410,6 +410,10 @@ int main(int argc, char **argv)
   versionSetProduct("Authoritative Server");
   reportAllTypes(); // init MOADNSParser
 
+  // Even if PDNS is not deamonized it must be
+  // the leader of the process group
+  setpgid(getpid(), 0);
+
   s_programname="pdns";
   s_starttime=time(0);
 
