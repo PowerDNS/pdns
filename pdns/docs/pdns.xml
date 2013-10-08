@@ -21743,12 +21743,13 @@ Reply:
 	unauthoritative response.
       </para>
       <para>
-	Simplified, without CNAME processing and wildcards, the algorithm is like this:
+	Simplified, without CNAME processing, wildcards, referrals and DNSSEC, the algorithm is like this:
       </para>
       <para>
-	When a query for a <command>qname</command>/<command>qtype</command> tuple comes in, it is requested directly from the backend. 
-	If present, PDNS adds the contents of the reply to the list of records to return. A question tuple may generate multiple answer 
-	records.
+	When a query for a <command>qname</command>/<command>qtype</command> tuple comes in, PDNS queries backends to find the closest matching
+  SOA, thus figuring out what backend owns this zone. When the right backend has been found, PDNS issues a 
+  <command>qname</command>/<command>ANY</command> query to the backend. If the response is empty, NXDOMAIN is concluded. If the response is
+  not empty, any contents matching the original qtype are added to the list of records to return, and NOERROR is sset.
       </para>
       <para>
 	Each of these records is now investigated to see if it needs 'additional processing'. This holds for example for MX records which may
@@ -21763,16 +21764,10 @@ Reply:
 	<command>domain_id</command>. This is why all records in a domain need to have the same domain_id.
       </para>
       <para>
-	When a query comes in for a specific qname, PDNS starts looking for SOA records of all subdomains of the qname, so 
-	no.such.powerdns.com turns into a SOA query for no.such.powerdns.com, such.powerdns.com, powerdns.com, com, ''. When a SOA is found,
-	that zone is consulted for relevant NS instructions which lead to a referral. If nothing is found within the zone, an authoritative 
-	NXDOMAIN is sent out.
-      </para>
-      <para>
 	If no SOA was found, an unauthoritative no-error is returned.
       </para>
       <para>
-	PDNS breaks strict RFC compatibility by not always checking for the presence of a SOA record first. This is unlikely to lead to 
+	PDNS (before 3.0) broke strict RFC compatibility by not always checking for the presence of a SOA record first. This was unlikely to lead to 
 	problems though.
       </para>
   </sect1>
