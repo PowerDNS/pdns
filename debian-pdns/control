@@ -93,14 +93,6 @@ Provides: pdns-backend
 Description: SQLite backend for PowerDNS
  This package contains a generic SQLite backend for SQLite.
 
-Package: pdns-backend-xdb
-Architecture: any
-Depends: pdns (= ${source:Version}), ${shlibs:Depends}
-Provides: pdns-backend
-Description: XDB/tdb/gdb backend for PowerDNS
- This package contains a table backend for PowerDNS. Currently includes TDB,
- the Trivial Database or Tridgell Database.
-
 Package: pdns-backend-oracle
 Architecture: any
 Depends: pdns (= ${source:Version}), ${shlibs:Depends}
