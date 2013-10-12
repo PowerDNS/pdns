@@ -1412,8 +1412,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     BOOST_FOREACH(const DNSResourceRecord& rr, r->getRRS()) {
       if(rr.scopeMask) {
-	noCache=1;
-	break;
+        noCache=1;
+        break;
       }
     }
     if(p->d_dnssecOk)
