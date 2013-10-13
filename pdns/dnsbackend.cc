@@ -201,7 +201,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 }
 
 /** getSOA() is a function that is called to get the SOA of a domain. Callers should ONLY
-    use getSOA() and no perform a lookup() themselves as backends may decide to special case
+    use getSOA() and not perform a lookup() themselves as backends may decide to special case
     the SOA record.
     
     Returns false if there is definitely no SOA for the domain. May throw a DBException
