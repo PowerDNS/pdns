@@ -12032,7 +12032,7 @@ local0.err                        /var/log/pdns.err
 	keep slave zones as slaves, and not convert them to native operation. 
       </para>
       <para>
-	By default, zone2sql outputs code suitable for the mysqlbackend, but it can also generate SQL for the Generic PostgreSQL, Generic MySQL and 
+	zone2sql can generate SQL for the Generic PostgreSQL, Generic MySQL and
 	Oracle backends. 
 	The following commands are available:
       </para>
@@ -12071,14 +12071,6 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		List options.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>--mysql</term>
-	    <listitem>
-	      <para>
-		Output in format suitable for the default configuration of the MySQL backend. Default.
 	      </para>
 	    </listitem>
 	  </varlistentry>
