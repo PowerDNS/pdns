@@ -50,9 +50,6 @@ To add multiple modules, try:
 
 See http://doc.powerdns.com/compiling-powerdns.html for more details.
 
-Please don't use the 'mysql' backend, it is deprecated. Use the 'gmysql'
-one!
-
 COMPILING THE RECURSOR
 ----------------------
 Either use ./configure --enable-recursor or explicitly do 'make pdns_recursor'. Releases

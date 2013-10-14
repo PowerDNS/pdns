@@ -10,12 +10,11 @@ on standard out, which can then be fed to your database.
 \fBzone2sql\fR understands the Bind master file extension '$GENERATE' and will
 also honour '$ORIGIN' and '$TTL'.
 .PP
-For backends supporting slave operation (currently only the PostgreSQL
-backend), there is also an option to keep slave zones as slaves, and not
-convert them to native operation.
+For backends supporting slave operation there is also an option to keep slave
+zones as slaves, and not convert them to native operation.
 .PP
-By default, zone2sql outputs code suitable for the mysqlbackend, but it can
-also generate SQL for the Generic PostgreSQL and Oracle backends.
+zone2sql can generate SQL for the Generic MySQL, Generic PostgreSQL and Oracle
+backends.
 .SH OPTIONS
 Input options:
 .TP
@@ -47,10 +46,6 @@ backend.
 .B \-\-gpgsql
 Output in format suitable for the default configuration of the Generic
 PostgreSQL backend.
-.TP
-.B \-\-mysql
-Output in format suitable for the default configuration of the MySQL backend
-(the default output format).
 .TP
 .B \-\-oracle
 Output in format suitable for the default configuration of the Generic Oracle
