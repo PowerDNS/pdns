@@ -203,9 +203,7 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
       doc.AddMember("zone", root, doc.GetAllocator());
       content += makeStringFromDocument(doc);
     } else {
-      map<string, string> err;
-      err["error"] = "Could not find domain '"+varmap["zone"]+"'";
-      content += returnJSONObject(err);
+      content += returnJSONError("Could not find domain '"+varmap["zone"]+"'");
     }
   }
   else if(command == "flush-cache") {

@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include "dns.hh"
 #include "base64.hh"
+#include "json.hh"
 
 
 map<string,WebServer::HandlerFunction *>WebServer::d_functions;
@@ -47,16 +48,19 @@ void WebServer::setCaller(void *that)
 }
 
 void *WebServer::serveConnection(void *p)
-{
+try {
   pthread_detach(pthread_self());
   Session *client=static_cast<Session *>(p);
+  bool want_html=false;
+  bool want_json=false;
+
   try {
     string line;
     client->setTimeout(5);
     client->getLine(line);
     stripLine(line);
     if(line.empty())
-      throw Exception("Invalid web request");
+      throw HttpBadRequestException();
     //    L<<"page: "<<line<<endl;
 
     vector<string> parts;
@@ -110,27 +114,44 @@ void *WebServer::serveConnection(void *p)
       client->getLine(line);
       stripLine(line);
 
-      //      L<<Logger::Error<<"got line: '"<<line<<"'"<<endl;
-      if(!toLower(line).find("authorization: basic ")) {
-        string cookie=line.substr(21);
+      if(line.empty())
+	break;
+
+      size_t colon = line.find(":");
+      if(colon==std::string::npos)
+	throw HttpBadRequestException();
+
+      string header = toLower(line.substr(0, colon));
+      string value = line.substr(line.find_first_not_of(' ', colon+1));
+
+      if(header == "authorization" && toLower(value).find("basic ") == 0) {
+        string cookie=value.substr(6);
         string plain;
 
         B64Decode(cookie,plain);
         vector<string>cparts;
         stringtok(cparts,plain,":");
-        //	L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
+        // L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
         if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
           authOK=1;
         }
       }
-      else if(boost::starts_with(line, "Content-Length: ") && method=="POST") {
-	postlen = atoi(line.c_str() + strlen("Content-Length: "));
+      else if(header == "content-length" && method=="POST") {
+	postlen = atoi(value.c_str());
 //	cout<<"Got a post: "<<postlen<<" bytes"<<endl;
+      }
+      else if(header == "accept") {
+	// json wins over html
+	if(value.find("application/json")!=std::string::npos) {
+	  want_json=true;
+	} else if(value.find("text/html")!=std::string::npos) {
+	  want_html=true;
+	}
       }
       else
 	; // cerr<<"Ignoring line: "<<line<<endl;
       
-    }while(!line.empty());
+    } while(true);
 
     string post;
     if(postlen) 
@@ -138,17 +159,8 @@ void *WebServer::serveConnection(void *p)
   
  //   cout<<"Post: '"<<post<<"'"<<endl;
 
-    if(!d_password.empty() && !authOK) {
-      client->putLine("HTTP/1.1 401 OK\n");
-      client->putLine("WWW-Authenticate: Basic realm=\"PowerDNS\"\n");
-      
-      client->putLine("Connection: close\n");
-      client->putLine("Content-Type: text/html; charset=utf-8\n\n");
-      client->putLine("Please enter a valid password!\n");
-      client->close();
-      delete client;
-      return 0;
-    }
+    if(!d_password.empty() && !authOK)
+      throw HttpUnauthorizedException();
 
     HandlerFunction *fptr;
     if(d_functions.count(baseUrl) && (fptr=d_functions[baseUrl])) {
@@ -163,44 +175,45 @@ void *WebServer::serveConnection(void *p)
       client->putLine(ret);
     }
     else {
-      client->putLine("HTTP/1.1 404 Not found\n");
-      client->putLine("Connection: close\n");
-      client->putLine("Content-Type: text/html; charset=utf-8\n\n");
-      // FIXME: CSS problem?
-      client->putLine("<html><body><h1>Did not find file '"+baseUrl+"'</body></html>\n");
+      throw HttpNotFoundException();
     }
-        
-    client->close();
-    delete client;
-    client=0;
-    return 0;
 
   }
-  catch(SessionTimeoutException &e) {
-    // L<<Logger::Error<<"Timeout in webserver"<<endl;
+  catch(HttpException &e) {
+    client->putLine(e.statusLine());
+    client->putLine("Connection: close\n");
+    client->putLine(e.headers());
+    if(want_html) {
+      client->putLine("Content-Type: text/html; charset=utf-8\n\n");
+      client->putLine("<!html><title>" + e.what() + "</title><h1>" + e.what() + "</h1>");
+    } else if (want_json) {
+      client->putLine("Content-Type: application/json\n\n");
+      client->putLine(returnJSONError(e.what()));
+    } else {
+      client->putLine("Content-Type: text/plain; charset=utf-8\n\n");
+      client->putLine(e.what());
+    }
   }
-  catch(SessionException &e) {
-    L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
-  }
-  catch(Exception &e) {
-    L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
-  }
-  catch(PDNSException &e) {
-    L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
-  }
-  catch(std::exception &e) {
-    L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
-  }
-  catch(...) {
-    L<<Logger::Error<<"Unknown exception in webserver"<<endl;
-  }
-  if(client) {
-    client->close();
-    delete client;
-    client=0;
-  }
+
+  client->close();
+  delete client;
+  client=0;
+
   return 0;
 }
+catch(SessionTimeoutException &e) {
+  // L<<Logger::Error<<"Timeout in webserver"<<endl;
+}
+catch(PDNSException &e) {
+  L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
+}
+catch(std::exception &e) {
+  L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
+}
+catch(...) {
+  L<<Logger::Error<<"Unknown exception in webserver"<<endl;
+}
+
 
 WebServer::WebServer(const string &listenaddress, int port, const string &password)
 {
@@ -232,12 +245,6 @@ void WebServer::go()
   }
   catch(SessionTimeoutException &e) {
     //    L<<Logger::Error<<"Timeout in webserver"<<endl;
-  }
-  catch(SessionException &e) {
-    L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
-  }
-  catch(Exception &e) {
-    L<<Logger::Error<<"Fatal error in main webserver thread: "<<e.reason<<endl;
   }
   catch(PDNSException &e) {
     L<<Logger::Error<<"Exception in main webserver thread: "<<e.reason<<endl;

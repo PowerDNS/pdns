@@ -103,11 +103,10 @@ bool UeberBackend::getDomainInfo(const string &domain, DomainInfo &di)
   return false;
 }
 
-bool UeberBackend::createDomain(const string &domain, DNSBackend** db)
+bool UeberBackend::createDomain(const string &domain)
 {
   BOOST_FOREACH(DNSBackend* mydb, backends) {
     if(mydb->createDomain(domain)) {
-      *db = mydb;
       return true;
     }
   }

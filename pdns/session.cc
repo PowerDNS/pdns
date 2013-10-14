@@ -291,7 +291,7 @@ Server::Server(int port, const string &localaddress)
   s = socket(d_local.sin4.sin_family ,SOCK_STREAM,0);
 
   if(s < 0)
-    throw Exception(string("socket: ")+strerror(errno));
+    throw SessionException(string("socket: ")+strerror(errno));
 
   Utility::setCloseOnExec(s);
   

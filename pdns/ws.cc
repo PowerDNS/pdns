@@ -267,26 +267,21 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
   return ret.str();
 }
 
-static int int_from_json(const Value& val) {
+static int intFromJson(const Value& val) {
   if (val.IsInt()) {
     return val.GetInt();
   } else if (val.IsString()) {
     return atoi(val.GetString());
   } else {
-    throw Exception("Value not an Integer");
+    throw PDNSException("Value not an Integer");
   }
 }
 
 static string getZone(const string& zonename) {
   UeberBackend B;
-  SOAData sd;
   DomainInfo di;
-  sd.db = (DNSBackend*)-1;
-  if(!B.getSOA(zonename, sd) || !sd.db || !B.getDomainInfo(zonename, di)) {
-    map<string, string> err;
-    err["error"] = "Could not find domain '"+zonename+"'";
-    return returnJSONObject(err);
-  }
+  if(!B.getDomainInfo(zonename, di))
+    return returnJSONError("Could not find domain '"+zonename+"'");
 
   Document doc;
   doc.SetObject();
@@ -310,8 +305,8 @@ static string getZone(const string& zonename) {
   DNSResourceRecord rr;
   Value records;
   records.SetArray();
-  sd.db->list(zonename, sd.domain_id);
-  while(sd.db->get(rr)) {
+  di.backend->list(zonename, di.id);
+  while(di.backend->get(rr)) {
     if (!rr.qtype.getCode())
       continue; // skip empty non-terminals
 
@@ -333,7 +328,43 @@ static string getZone(const string& zonename) {
   return makeStringFromDocument(doc);
 }
 
-static string json_dispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
+static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap_t& varmap) {
+  UeberBackend B;
+  DomainInfo di;
+
+  bool exists = B.getDomainInfo(zonename, di);
+  if(exists && onlyCreate)
+    return returnJSONError("Domain '"+zonename+"' already exists");
+
+  if(!exists) {
+    if(!B.createDomain(zonename))
+      return returnJSONError("Creating domain '"+zonename+"' failed");
+
+    if(!B.getDomainInfo(zonename, di))
+      return returnJSONError("Creating domain '"+zonename+"' failed: lookup of domain ID failed");
+
+    // create SOA record so zone "really" exists
+    DNSResourceRecord soa;
+    soa.qname = zonename;
+    soa.content = "1";
+    soa.qtype = "SOA";
+    soa.domain_id = di.id;
+    soa.auth = 0;
+    soa.ttl = ::arg().asNum( "default-ttl" );
+    soa.priority = 0;
+
+    di.backend->startTransaction(zonename, di.id);
+    di.backend->feedRecord(soa);
+    di.backend->commitTransaction();
+  }
+
+  di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
+  di.backend->setMaster(zonename, varmap["master"]);
+
+  return getZone(zonename);
+}
+
+static string jsonDispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
   if(command=="get") {
     if(varmap.empty()) {
       vector<string> entries = S.getEntries();
@@ -398,16 +429,12 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
     return returnJSONObject(object);
   }
   else if(command == "pdns-control") {
-    if(method!="POST") {
-      map<string, string> m;
-      m["error"]="pdns-control requires a POST";
-      return returnJSONObject(m);
-    }
+    if(method!="POST")
+      throw HttpMethodNotAllowedException();
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
-    if(document.Parse<0>(post.c_str()).HasParseError()) {
-      return "{\"error\": \"Unable to parse JSON\"}";
-    }
+    if(document.Parse<0>(post.c_str()).HasParseError())
+      return returnJSONError("Unable to parse JSON");
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
     stringtok(parameters, document["parameters"].GetString(), " \t");
@@ -428,15 +455,12 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
     vector<string> parts;
     stringtok(parts, varmap["rest"], "/");
     if(parts.size() != 3) 
-      return "{\"error\": \"Could not parse rest parameter\"}";
+      return returnJSONError("Could not parse rest parameter");
     UeberBackend B;
     SOAData sd;
     sd.db = (DNSBackend*)-1;
-    if(!B.getSOA(parts[0], sd) || !sd.db) {
-      map<string, string> err;
-      err["error"]= "Could not find domain '"+parts[0]+"'";
-      return returnJSONObject(err);
-    }
+    if(!B.getSOA(parts[0], sd) || !sd.db)
+      return returnJSONError("Could not find domain '"+parts[0]+"'");
     
     QType qtype;
     qtype=parts[2];
@@ -473,9 +497,8 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
     }
     else if(method=="POST") {
       rapidjson::Document document;
-      if(document.Parse<0>(post.c_str()).HasParseError()) {
-        return "{\"error\": \"Unable to parse JSON\"";
-      }
+      if(document.Parse<0>(post.c_str()).HasParseError())
+        return returnJSONError("Unable to parse JSON");
       
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
@@ -487,8 +510,8 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
         rr.qtype=record["type"].GetString();
         rr.domain_id = sd.domain_id;
         rr.auth=0;
-        rr.ttl=int_from_json(record["ttl"]);
-        rr.priority=int_from_json(record["priority"]);
+        rr.ttl=intFromJson(record["ttl"]);
+        rr.priority=intFromJson(record["priority"]);
         
         rrset.push_back(rr);
         
@@ -501,9 +524,7 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
         }
         catch(std::exception& e) 
         {
-          map<string, string> err;
-          err["error"]= "Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what();
-          return returnJSONObject(err);
+	  return returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
         }
       }
       // but now what
@@ -515,78 +536,30 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
   }
   else if(command == "zone") {
     string zonename = varmap["zone"];
-    if (zonename.empty()) {
-      map<string, string> err;
-      err["error"] = "Must give zone parameter";
-      return returnJSONObject(err);
-    }
+    if (zonename.empty())
+      return returnJSONError("Must give zone parameter");
 
     if(method == "GET") {
       // get current zone
       return getZone(zonename);
     } else if (method == "POST") {
       // create
-      UeberBackend B;
-      SOAData sd;
-      DomainInfo di;
-      sd.db = (DNSBackend*)-1;
-      if(B.getSOA(zonename, sd) && sd.db && B.getDomainInfo(zonename, di)) {
-        map<string, string> err;
-        err["error"] = "Domain '"+zonename+"' already exists";
-        return returnJSONObject(err);
-      }
-
-      if (!B.createDomain(zonename, &sd.db)) {
-        map<string, string> err;
-        err["error"] = "Creating domain '"+zonename+"' failed";
-        return returnJSONObject(err);
-      }
-
-      if(!B.getDomainInfo(zonename, di) || !di.backend) {
-        map<string, string> err;
-        err["error"] = "Creating domain '"+zonename+"' failed: lookup of domain_id failed";
-        return returnJSONObject(err);
-      }
-
-      di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
-      di.backend->setMaster(zonename, varmap["master"]);
-
-      DNSResourceRecord soa;
-      soa.qname = zonename;
-      soa.content = "1";
-      soa.qtype = "SOA";
-      soa.domain_id = di.id;
-      soa.auth = 0;
-      soa.ttl = ::arg().asNum( "default-ttl" );;
-      soa.priority = 0;
-
-      sd.db->startTransaction(zonename, di.id);
-      sd.db->feedRecord(soa);
-      sd.db->commitTransaction();
-
-      return getZone(zonename);
+      return createOrUpdateZone(zonename, true, varmap);
+    } else if (method == "PUT") {
+      // update or create
+      return createOrUpdateZone(zonename, false, varmap);
     } else if (method == "DELETE") {
       // delete
       UeberBackend B;
-      SOAData sd;
       DomainInfo di;
-      sd.db = (DNSBackend*)-1;
-      if(!B.getDomainInfo(zonename, di) || !di.backend) {
-        map<string, string> err;
-        err["error"] = "Deleting domain '"+zonename+"' failed: domain does not exist";
-        return returnJSONObject(err);
-      }
-      if (!di.backend->deleteDomain(zonename)) {
-        map<string, string> err;
-        err["error"] = "Deleting domain '"+zonename+"' failed: backend delete failed/unsupported";
-        return returnJSONObject(err);
-      }
+      if(!B.getDomainInfo(zonename, di))
+	return returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
+      if(!di.backend->deleteDomain(zonename))
+	return returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
       map<string, string> success; // empty success object
       return returnJSONObject(success);
     } else {
-      map<string, string> err;
-      err["error"] = "Method not allowed";
-      return returnJSONObject(err);
+      throw HttpMethodNotAllowedException();
     }
   }
   else if(command=="log-grep") {
@@ -624,9 +597,7 @@ static string json_dispatch(const string& method, const string& post, varmap_t& 
     return makeStringFromDocument(doc);
   }
 
-  map<string, string> err;
-  err["error"] = "No or unknown command given";
-  return returnJSONObject(err);
+  return returnJSONError("No or unknown command given");
 }
 
 string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
@@ -657,7 +628,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
   if(!callback.empty())
       ret += callback+"(";
 
-  ret += json_dispatch(method, post, ourvarmap, command);
+  ret += jsonDispatch(method, post, ourvarmap, command);
 
   if(!callback.empty()) {
     ret += ");";
