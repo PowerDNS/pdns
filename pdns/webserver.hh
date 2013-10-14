@@ -25,6 +25,55 @@
 #include "namespaces.hh"
 class Server;
 
+class HttpException
+{
+public:
+  HttpException(int status_code, const std::string& reason_phrase) :
+    d_status_code(status_code), d_reason_phrase(reason_phrase)
+  {
+  };
+
+  virtual std::string statusLine() const {
+    return "HTTP/1.0 " + lexical_cast<string>(d_status_code) + " " + d_reason_phrase + "\n";
+  }
+
+  virtual std::string headers() const {
+    return "";
+  }
+
+  virtual std::string what() const {
+    return d_reason_phrase;
+  }
+
+private:
+  int d_status_code;
+  std::string d_reason_phrase;
+};
+
+class HttpBadRequestException : public HttpException {
+public:
+  HttpBadRequestException() : HttpException(400, "Bad Request") { };
+};
+
+class HttpUnauthorizedException : public HttpException {
+public:
+  HttpUnauthorizedException() : HttpException(401, "Unauthorized") { };
+
+  std::string headers() const {
+    return "WWW-Authenticate: Basic realm=\"PowerDNS\"\n";
+  }
+};
+
+class HttpNotFoundException : public HttpException {
+public:
+  HttpNotFoundException() : HttpException(404, "Not Found") { };
+};
+
+class HttpMethodNotAllowedException : public HttpException {
+public:
+  HttpMethodNotAllowedException() : HttpException(405, "Method Not Allowed") { };
+};
+
 class WebServer
 {
 public:

@@ -103,12 +103,4 @@ private:
   int s;
 };
 
-class Exception
-{
-public:
-  Exception(){reason="Unspecified";};
-  Exception(string r){reason=r;};
-  string reason;
-};
-
 #endif /* SESSION_HH */

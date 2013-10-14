@@ -16,6 +16,8 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "common_startup.hh"
+#include "ws.hh"
+
 bool g_anyToTcp;
 bool g_addSuperfluousNSEC3;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
