@@ -17922,7 +17922,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	  Do not wrap statements in quotes as this will not work.
 	  Besides the query related settings, the following configuration
 	  options are available, where one should substitute 'gmysql',
-	  'gpgsql', 'godbc' or 'goracle' for the prefix 'backend'. So
+	  'gpgsql', or 'goracle' for the prefix 'backend'. So
 	  'backend-dbname' can stand for 'gpgsql-dbname' or 'gmysql-dbname'
 	  etc.
 	</para>
