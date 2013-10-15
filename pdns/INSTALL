@@ -1,3 +1,0 @@
-Read http://doc.powerdns.com/compiling-powerdns.html
-
-./configure ; make; make install should do the trick though

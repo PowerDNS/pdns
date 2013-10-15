@@ -1,6 +1,6 @@
 SUBDIRS=modules codedocs @programdescend@
 DIST_SUBDIRS=modules codedocs pdns pdns/ext/rapidjson
-EXTRA_DIST=TODO README HACKING INSTALL debian-pdns/* pdns.spec  \
+EXTRA_DIST=README HACKING INSTALL debian-pdns/* pdns.spec  \
 codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1 \
@@ -21,11 +21,9 @@ pdns/docs/dnstcpbench.1:
 
 install-exec-local: 
 	-@chmod +x pdns/pdns
-	-@chmod +x pdns/precursor
 	@echo "***********************************************************"
 	@echo
-	@echo init.d startup scripts have been made for you in pdns/pdns
-	@echo and in pdns/precursor
+	@echo An init.d startup script has been made for you in pdns/pdns.
 	@echo You may want to copy these to /etc/init.d or equivalent
 	@echo
 	@echo "***********************************************************"
