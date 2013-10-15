@@ -102,7 +102,7 @@ public:
 #endif
   double asDouble(const string &var); //!< return a variable value as a number
   string &set(const string &); //!< Gives a writable reference and allocates space for it
-  string &set(const string &, const string &); //!< Does the same but also allows to specify a help message
+  string &set(const string &, const string &); //!< Does the same but also allows one to specify a help message
   void setCmd(const string &, const string &); //!< Add a command flag
   string &setSwitch(const string &, const string &); //!< Add a command flag
   string helpstring(string prefix=""); //!< generates the --help

@@ -1542,7 +1542,7 @@ try
         else if(algorithm == 14)
           bits = 384;
         else {
-          throw runtime_error("Can't guess key size for algoritm "+lexical_cast<string>(algorithm));
+          throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algorithm));
         }
       }
     }
