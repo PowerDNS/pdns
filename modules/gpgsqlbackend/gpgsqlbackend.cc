@@ -1,17 +1,14 @@
 #include <string>
 #include <map>
-
 #include "pdns/namespaces.hh"
-
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
-#include "gpgsqlbackend.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/ueberbackend.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
-
+#include "gpgsqlbackend.hh"
 #include "spgsql.hh"
 #include <sstream>
 
@@ -25,7 +22,7 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
         	  getArg("user"),
         	  getArg("password")));
   }
-  
+
   catch(SSqlException &e) {
     L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
@@ -38,7 +35,6 @@ class gPgSQLFactory : public BackendFactory
 public:
   gPgSQLFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
 
-  // XXX FIXME this stuff is duplicate with gmysqlbackend
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"dbname","Pdns backend database name to connect to","");
@@ -47,7 +43,8 @@ public:
     declare(suffix,"port","Database backend port to connect to","");
     declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
-    declare(suffix, "dnssec", "Assume DNSSEC Schema is in place","no");
+
+    declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
 
     declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name=E'%s'");
     declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name=E'%s' and domain_id=%d");
@@ -64,7 +61,7 @@ public:
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
     declare(suffix,"insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type) values ('%d','%s',null)");
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
-  
+
     // and now with auth
     declare(suffix,"basic-query-auth","Basic query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name=E'%s'");
     declare(suffix,"id-query-auth","Basic with ID query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name=E'%s' and domain_id=%d");
@@ -79,7 +76,7 @@ public:
     declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, auth::int from records where domain_id='%d' order by name, type");
 
     declare(suffix,"insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,auth) values ('%d','%s',null,true)");
-    
+
     declare(suffix,"master-zone-query","Data", "select master from domains where name=E'%s' and type='SLAVE'");
 
     declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name=E'%s'");
@@ -95,7 +92,7 @@ public:
     declare(suffix,"insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,name) values (null,'%d',E'%s')");
     declare(suffix,"insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,auth) values (null,'%d',E'%s',true)");
     declare(suffix,"insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,name,ordername,auth) values (null,'%d',E'%s',E'%s',true)");
-    
+
     declare(suffix,"get-order-first-query","DNSSEC Ordering Query, last", "select ordername, name from records where domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername ~<=~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
     declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select ordername from records where ordername ~>~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
@@ -105,7 +102,7 @@ public:
 
     declare(suffix,"nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=%d::bool where domain_id='%d' and name='%s'");
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=false where name=E'%s' and type=E'%s' and domain_id='%d'");
-    
+
     declare(suffix,"update-master-query","", "update domains set master='%s' where name='%s'");
     declare(suffix,"update-kind-query","", "update domains set type='%s' where name='%s'");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
@@ -133,7 +130,7 @@ public:
 
     declare(suffix,"get-all-domains-query", "Retrieve all domains", "select records.domain_id, records.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from records, domains where records.domain_id=domains.id and records.type='SOA'");
   }
-  
+
   DNSBackend *make(const string &suffix="")
   {
     return new gPgSQLBackend(d_mode,suffix);
