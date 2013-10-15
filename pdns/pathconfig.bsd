@@ -1,8 +1,0 @@
-INITDPATH=/usr/local/etc/rc.d/
-BINARYPATH=/usr/local/sbin
-CONFIGPATH=/usr/local/etc/powerdns
-SOCKETPATH=/var/run/
-DOCPATH=/usr/local/share/doc/powerdns
-LIBRARYPATH=/usr/local/lib/powerdns
-PDNSUID=pdns
-PDNSGID=pdns
