@@ -3,15 +3,9 @@
 
 #include <string>
 #include <stdint.h>
-#ifdef HAVE_LIBPOLARSSLSSL
 #include <polarssl/sha1.h>
 #include <polarssl/sha2.h>
 #include <polarssl/sha4.h>
-#else
-#include "ext/polarssl-1.1.2/include/polarssl/sha1.h"
-#include "ext/polarssl-1.1.2/include/polarssl/sha2.h"
-#include "ext/polarssl-1.1.2/include/polarssl/sha4.h"
-#endif
 
 class SHA1Summer
 {
