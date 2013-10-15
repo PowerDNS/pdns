@@ -1,6 +1,5 @@
 #include <string>
 #include <map>
-
 #include "pdns/backends/gsql/gsqlbackend.hh"
 
 #include "pdns/namespaces.hh"
@@ -11,6 +10,4 @@ class gMySQLBackend : public GSQLBackend
 {
 public:
   gMySQLBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
- 
-private:
 };
