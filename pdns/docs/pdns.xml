@@ -19081,6 +19081,7 @@ VALUES (:zoneid, :ip)
     </sect1>
     
     <sect1 id="db2"><title>DB2 backend</title>
+      <note><para>This backend is unsupported.</para></note>
       <para>
 	<table>
 	  <title>DB2 backend capabilities</title>
