@@ -21,11 +21,9 @@ pdns/docs/dnstcpbench.1:
 
 install-exec-local: 
 	-@chmod +x pdns/pdns
-	-@chmod +x pdns/precursor
 	@echo "***********************************************************"
 	@echo
-	@echo init.d startup scripts have been made for you in pdns/pdns
-	@echo and in pdns/precursor
+	@echo An init.d startup script has been made for you in pdns/pdns.
 	@echo You may want to copy these to /etc/init.d or equivalent
 	@echo
 	@echo "***********************************************************"
