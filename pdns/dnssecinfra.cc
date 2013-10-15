@@ -282,7 +282,7 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
     dsrc.d_digest = dpk->hash(toHash);
   }
   else 
-    throw std::runtime_error("Asked to a DS of unkown digest type " + lexical_cast<string>(digest)+"\n");
+    throw std::runtime_error("Asked to a DS of unknown digest type " + lexical_cast<string>(digest)+"\n");
   
   dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;

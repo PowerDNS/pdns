@@ -29,7 +29,7 @@ This nameserver then contains the GSLB smartness. Based on the IP Address of
 the nameserver of the ISP, it determines which of the 'www.thesite.com'
 servers is closest.
 
-A multitude of algoritms is in use for determining which server is closest.
+A multitude of algorithms is in use for determining which server is closest.
 Some of them employ the Border Gateway Protocol, BGP, which is used for
 global internet routing. Some use 'ICMP Ping' measurements, some use
 modified DNS Queries. The simplest algorithm is to use IP Netmasks, which
