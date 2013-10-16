@@ -697,7 +697,7 @@ AC_SUBST(LIBS)
 
 export moduledirs moduleobjects modulelibs
 
-AC_OUTPUT(Makefile modules/Makefile pdns/Makefile codedocs/Makefile \
+AC_CONFIG_FILES([Makefile modules/Makefile pdns/Makefile codedocs/Makefile \
 pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
 modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/geobackend/Makefile modules/opendbxbackend/Makefile \
@@ -707,4 +707,5 @@ modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
 modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
 modules/remotebackend/Makefile \
-modules/randombackend/Makefile)
+modules/randombackend/Makefile])
+AC_OUTPUT
