@@ -107,10 +107,11 @@ AC_SUBST(LIBDL)
 AC_MSG_CHECKING([for RTLD_NOW]);
 ac_save_LIBS="$LIBS"
 LIBS="$LIBS $LIBDL"
-AC_TRY_LINK(
-[#include <dlfcn.h>],
-[ (void) dlopen("",RTLD_NOW); ],
-has_RTLD_NOW=yes, has_RTLD_NOW=no)
+AC_LINK_IFELSE(
+  [AC_LANG_PROGRAM([[#include <dlfcn.h>]],
+    [[(void) dlopen("",RTLD_NOW);]])],
+  [has_RTLD_NOW=yes],
+  [has_RTLD_NOW=no])
 AC_MSG_RESULT([$has_RTLD_NOW])
 if test "$has_RTLD_NOW" = "no"
 then
