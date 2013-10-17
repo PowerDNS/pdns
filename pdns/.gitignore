@@ -10,7 +10,6 @@
 /pdns_server
 /pdns_recursor
 /pdnssec
-/precursor
 /sdig
 /dnslabeltext.cc
 /dnsreplay
@@ -21,6 +20,7 @@
 /bind-dnssec.schema.sqlite3.sql.h
 /pdns-recursor-*
 /dnsdemog
+/dnsdist
 /dnsgram
 /dnsscan
 /dnsscope
@@ -31,4 +31,5 @@
 /speedtest
 /toysdig
 /tsig-tests
+/tcpbench
 version_generated.h

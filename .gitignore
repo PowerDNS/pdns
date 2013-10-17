@@ -2,6 +2,7 @@
 /Makefile.in
 /aclocal.m4
 /autom4te.cache
+/config.cache
 /config.guess
 /config.h
 /config.h.in
@@ -14,6 +15,7 @@
 /mkinstalldirs
 /stamp-h
 /stamp-h1
+/test-driver
 /ylwrap
 *.la
 *.lo
@@ -21,6 +23,7 @@
 *.o
 .deps
 .libs
+.dirstamp
 modules/*/Makefile
 modules/*/Makefile.in
 codedocs/Makefile
