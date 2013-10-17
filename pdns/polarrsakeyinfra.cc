@@ -168,7 +168,7 @@ bool RSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& si
     hashKind = SIG_RSA_SHA512;
   
   int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context),
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
+#if POLARSSL_VERSION_NUMBER >= 0x01020900
     NULL, NULL,
 #endif
     RSA_PUBLIC,
