@@ -29,6 +29,35 @@ int Utility::closesocket( Utility::sock_t socket )
   return ::closesocket( socket );
 }
 
+// Connects to socket with timeout
+int Utility::timed_connect( Utility::sock_t sock,
+    const sockaddr *addr,
+    Utility::socklen_t sockaddr_size,
+    int timeout_sec,
+    int timeout_usec )
+{
+  fd_set set;
+  struct timeval timeout;
+  int ret;
+
+  timeout.tv_sec = timeout_sec;
+  timeout.tv_usec = timeout_usec;
+
+  FD_ZERO(&set);
+  FD_SET(sock, &set);
+
+  setNonBlocking(sock);
+
+  if ((ret = connect (sock, addr, sockaddr_size)) < 0) {
+    if (errno != WSAEINPROGRESS)
+      return ret;
+  }
+
+  ret = select(sock + 1, NULL, &set, NULL, &timeout);
+  setBlocking(sock);
+
+  return ret;
+}
 
 // Drops the program's privileges.
 void Utility::dropPrivs( int uid, int gid )

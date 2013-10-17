@@ -43,6 +43,14 @@ doPC()
 NOTRUNNING=0
 doPC ping || NOTRUNNING=$?
 
+# Check for timeout error
+if test "$NOTRUNNING" -eq "2"
+then
+	echo "Unresponsive pdns_server... Killing it."
+	killall -v -g -9 pdns_server
+	NOTRUNNING="1"
+fi
+
 case "$1" in
 	status)
 		if test "$NOTRUNNING" = "0" 
@@ -68,7 +76,7 @@ case "$1" in
 
 	force-stop)
 		echo -n "Stopping PowerDNS authoritative nameserver: "
-		killall -v -9 pdns_server
+		killall -v -g -9 pdns_server
 		echo "killed"
 	;;
 

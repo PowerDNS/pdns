@@ -117,7 +117,7 @@ static void takedown(int i)
 {
   if(cpid) {
     L<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
-    kill(cpid,SIGKILL);
+    kill(-getpgid(cpid),SIGKILL);
     exit(0);
   }
 }
@@ -139,8 +139,7 @@ pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
 {
-  kill(cpid, SIGKILL); // why?
-  kill(cpid, SIGKILL); // why?
+  kill(-getpgid(cpid), SIGKILL);
   sleep(1);
   return "ok";
 }
@@ -219,6 +218,11 @@ static int guardian(int argc, char **argv)
       signal(SIGHUP, SIG_DFL);
       signal(SIGUSR1, SIG_DFL);
       signal(SIGUSR2, SIG_DFL);
+
+      // Set different pgrp for this child,
+      // so we could kill all of it's children
+      // with one kill call
+      setpgid(getpid(), 0);
 
       char **const newargv=new char*[argc+2];
       int n;
@@ -310,8 +314,7 @@ static int guardian(int argc, char **argv)
         L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
         L<<Logger::Error<<"Respawning"<<endl;
 
-        sleep(1);
-        continue;
+        goto respawn;
       }
       if(WIFSIGNALED(status)) {
         int sig=WTERMSIG(status);
@@ -323,10 +326,15 @@ static int guardian(int argc, char **argv)
 #endif
 
         L<<Logger::Error<<"Respawning"<<endl;
-        sleep(1);
-        continue;
+        goto respawn;
       }
       L<<Logger::Error<<"No clue what happened! Respawning"<<endl;
+respawn:
+      if (cpid) {
+        L<<Logger::Error<<"Cleaning up any remaining children with PGRP "<<cpid<<endl;
+        kill(-cpid, SIGKILL);
+      }
+      sleep(1);
     }
     else {
       L<<Logger::Error<<"Unable to fork: "<<strerror(errno)<<endl;
@@ -401,6 +409,10 @@ int main(int argc, char **argv)
 {
   versionSetProduct("Authoritative Server");
   reportAllTypes(); // init MOADNSParser
+
+  // Even if PDNS is not deamonized it must be
+  // the leader of the process group
+  setpgid(getpid(), 0);
 
   s_programname="pdns";
   s_starttime=time(0);
