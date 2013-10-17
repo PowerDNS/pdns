@@ -19,6 +19,7 @@ script:
  - make -j 4 check
  - cd pdns
  - make -j 4 pdns_recursor
+ - ./dist-recursor
  - cd docs
  - make
  - cd ../../regression-tests
