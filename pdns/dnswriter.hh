@@ -4,11 +4,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#if !defined SOLARIS8 && !defined WIN32
-
-#elif defined WIN32
-#include "utility.hh"
-#endif
 #include "dns.hh"
 #include "namespaces.hh"
 

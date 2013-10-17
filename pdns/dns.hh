@@ -123,13 +123,8 @@ public:
   }
 };
 
-#ifdef _MSC_VER
-# pragma pack ( push )
-# pragma pack ( 1 )
-# define GCCPACKATTRIBUTE
-#else
-# define GCCPACKATTRIBUTE __attribute__((packed))
-#endif
+#define GCCPACKATTRIBUTE __attribute__((packed))
+
 struct dnsrecordheader
 {
   uint16_t d_type;
@@ -143,9 +138,6 @@ struct EDNS0Record
         uint8_t extRCode, version; 
         uint16_t Z; 
 } GCCPACKATTRIBUTE;
-#ifdef _MSC_VER
-#pragma pack (pop)
-#endif 
 
 enum  {
         ns_t_invalid = 0,       /* Cookie. */
@@ -208,10 +200,7 @@ enum  {
         ns_t_any = 255,         /* Wildcard match. */
 };
 
-#ifdef WIN32
-#define BYTE_ORDER 1
-#define LITTLE_ENDIAN 1
-#elif __FreeBSD__ || __APPLE__ || __OpenBSD__
+#if __FreeBSD__ || __APPLE__ || __OpenBSD__
 #include <machine/endian.h>
 #elif __linux__
 # include <endian.h>

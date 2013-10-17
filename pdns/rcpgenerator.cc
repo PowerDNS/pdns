@@ -450,16 +450,8 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   
   struct tm tm;
   time_t time=val; // Y2038 bug!
-#ifndef WIN32
   Utility::gmtime_r(&time, &tm);
-#else
-  struct tm* tmptr;
-  tmptr=gmtime(&time);
-  if(!tmptr)
-    throw RecordTextException("Unable to convert timestamp into pretty printable time");
-  tm=*tmptr;
-#endif
-  
+
   char tmp[16];
   snprintf(tmp,sizeof(tmp)-1, "%04d%02d%02d" "%02d%02d%02d", 
            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 

@@ -16,11 +16,6 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-// $Id$ 
-#ifdef WIN32
-# pragma warning ( disable: 4786 )
-#endif // WIN32
-
 #include <string>
 #include <map>
 

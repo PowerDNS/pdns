@@ -20,18 +20,13 @@
 #ifndef DISTRIBUTOR_HH
 #define DISTRIBUTOR_HH
 
-
 #include <string>
 #include <deque>
 #include <queue>
 #include <vector>
 #include <pthread.h>
 #include <semaphore.h>
-
-#ifndef WIN32
-# include <unistd.h>
-#endif // WIN32
-
+#include <unistd.h>
 #include "logger.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"

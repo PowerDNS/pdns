@@ -147,11 +147,7 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
   int err;
   Utility::socklen_t len=sizeof(err);
 
-#ifndef WIN32
-  if((err=connect(fd, remote, socklen))<0 && errno!=EINPROGRESS) 
-#else
-  if((err=connect(clisock, remote, socklen))<0 && WSAGetLastError() != WSAEWOULDBLOCK ) 
-#endif // WIN32
+  if((err=connect(fd, remote, socklen))<0 && errno!=EINPROGRESS)
     throw NetworkError("connect: "+stringerror());
 
   if(!err)
@@ -860,9 +856,7 @@ TCPNameserver::TCPNameserver()
     d_ng.addMask( *i );
   }
 
-#ifndef WIN32
   signal(SIGPIPE,SIG_IGN);
-#endif // WIN32
 
   for(vector<string>::const_iterator laddr=locals.begin();laddr!=locals.end();++laddr) {
     int s=socket(AF_INET,SOCK_STREAM,0); 
@@ -896,7 +890,7 @@ TCPNameserver::TCPNameserver()
     d_prfds.push_back(pfd);
   }
 
-#if !WIN32 && HAVE_IPV6
+#if HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
 
@@ -931,7 +925,7 @@ TCPNameserver::TCPNameserver()
 
     d_prfds.push_back(pfd);
   }
-#endif // WIN32
+#endif
 }
 
 

@@ -181,7 +181,7 @@ bool AddressIsUs(const ComboAddress& remote)
 
 void UDPNameserver::bindIPv6()
 {
-#if !WIN32 && HAVE_IPV6
+#if HAVE_IPV6
   vector<string> locals;
   stringtok(locals,::arg()["local-ipv6"]," ,");
 
@@ -223,7 +223,7 @@ void UDPNameserver::bindIPv6()
     L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
     
   }
-#endif // WIN32
+#endif
 }
 
 UDPNameserver::UDPNameserver()

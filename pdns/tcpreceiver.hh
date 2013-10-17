@@ -26,18 +26,15 @@
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <poll.h>
-
-#ifndef WIN32
-# include <sys/select.h>
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <arpa/inet.h>
-# include <sys/stat.h>
-# include <unistd.h>
-# include <netdb.h>
-# include <sys/uio.h>
-# include <sys/select.h>
-#endif // WIN32
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/uio.h>
+#include <sys/select.h>
 
 #include "namespaces.hh"
 

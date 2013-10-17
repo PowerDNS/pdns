@@ -18,18 +18,14 @@
 #ifndef NAMESERVER_HH
 #define NAMESERVER_HH
 
-#ifndef WIN32
-# include <poll.h>
-# include <sys/types.h>
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <sys/time.h>
-# include <unistd.h>
-# include <arpa/inet.h>
-# include <netdb.h>
-
-#endif // WIN32
-
+#include <poll.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <vector>
 #include <boost/foreach.hpp>
 #include "statbag.hh"

@@ -27,11 +27,9 @@
 #include <iostream>
 #include "misc.hh"
 #include "pdnsexception.hh"
-#ifndef WIN32
-# include <sys/types.h>
-# include <pwd.h>
-# include <grp.h>
-#endif
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include "namespaces.hh"
 
@@ -95,11 +93,9 @@ public:
   bool parmIsset(const string &var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
   int asNum(const string &var); //!< return a variable value as a number
-#ifndef WIN32
   mode_t asMode(const string &var); //<!< return value interpreted as octal number
   uid_t asUid(const string &var); //!< return user id, resolves if necessary
   gid_t asGid(const string &var); //!< return group id, resolves if necessary
-#endif
   double asDouble(const string &var); //!< return a variable value as a number
   string &set(const string &); //!< Gives a writable reference and allocates space for it
   string &set(const string &, const string &); //!< Does the same but also allows one to specify a help message

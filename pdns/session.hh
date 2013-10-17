@@ -22,18 +22,16 @@
 #include <string>
 #include <cerrno>
 
-#ifndef WIN32
-# include <sys/stat.h>
-# include <netdb.h>
-# include <unistd.h>
-# include <sys/time.h>
-# include <sys/socket.h>
-# include <arpa/inet.h>  
-# include <netinet/in.h>
-# include <sys/types.h>
-# include <strings.h>
+#include <sys/stat.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <strings.h>
 
-#endif // WIN32
 #include "iputils.hh"
 #include "pdnsexception.hh"
 
