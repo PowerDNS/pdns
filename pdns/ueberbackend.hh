@@ -26,7 +26,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#ifndef WIN32
 #include <sys/un.h>
 #include <dlfcn.h>
 #include <unistd.h>
@@ -35,7 +34,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#endif // WIN32
 #include <boost/utility.hpp>
 #include "dnspacket.hh"
 #include "dnsbackend.hh"

@@ -28,14 +28,11 @@
 #include <sstream>
 #include "iputils.hh"
 #include <boost/utility.hpp>
-#ifndef WIN32
 #include <unistd.h>
 #include <sys/un.h>
 #include <dlfcn.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
-#endif // WIN32
 
 #include "namespaces.hh"
 
@@ -64,10 +61,6 @@ private:
   void listenOnUnixDomain(const std::string& fname);
   void listenOnTCP(const ComboAddress&);
   void createSocketAndBind(int family, struct sockaddr*local, size_t len);
-
-#ifdef WIN32
-  HANDLE m_pipeHandle;
-#endif // WIN32
 
   Utility::socklen_t d_addrlen;
   NetmaskGroup d_tcprange;

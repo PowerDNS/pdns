@@ -21,19 +21,11 @@
 
 #include <string>
 #include <sys/types.h>
-
-#ifndef WIN32
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <sys/un.h>
-# include <unistd.h>
-# include <libgen.h>
-
-#else
-# include "pdnsservice.hh"
-
-#endif // WIN32
-
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <libgen.h>
 #include <errno.h>
 #include "iputils.hh"
 #include "pdnsexception.hh"
@@ -45,14 +37,9 @@ class DynMessenger
 {
   int d_s;
 
-#ifndef WIN32
   struct sockaddr_un d_local; // our local address
   struct sockaddr_un d_remote; // our remote address
 
-#else
-  HANDLE m_pipeHandle; // Named pipe handle.
-
-#endif // WIN32
   DynMessenger(const DynMessenger &); // NOT IMPLEMENTED
   
 public:

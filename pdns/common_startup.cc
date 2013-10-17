@@ -336,7 +336,6 @@ void mainthread()
          DNSPacket::s_ednssubnetcodes.push_back(boost::lexical_cast<int>(code));
       }
    }
-#ifndef WIN32
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
@@ -347,7 +346,6 @@ void mainthread()
      else
        L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
    }  
-#endif
 
   StatWebServer sws;
   Utility::dropPrivs(newuid, newgid);

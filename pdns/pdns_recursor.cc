@@ -16,15 +16,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef WIN32
-# include <netdb.h>
-# include <sys/stat.h>
-# include <unistd.h>
-#else 
- #include "ntservice.hh"
- #include "recursorservice.hh"
-#endif // WIN32
-
+#include <netdb.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <boost/foreach.hpp>
 #include "json_ws.hh"
 #include <pthread.h>
@@ -701,7 +695,6 @@ void makeControlChannelSocket(int processNum=-1)
   sockname+=".controlsocket";
   s_rcc.listen(sockname);
   
-#ifndef WIN32
   int sockowner = -1;
   int sockgroup = -1;
 
@@ -721,7 +714,6 @@ void makeControlChannelSocket(int processNum=-1)
     mode_t sockmode=::arg().asMode("socket-mode");
     chmod(sockname.c_str(), sockmode);
   }
-#endif
 }
 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
@@ -1056,7 +1048,6 @@ void makeUDPServerSockets()
 }
 
 
-#ifndef WIN32
 void daemonize(void)
 {
   if(fork())
@@ -1074,7 +1065,6 @@ void daemonize(void)
     close(i);
   }
 }
-#endif
 
 uint64_t counter;
 bool statsWanted;
@@ -1796,7 +1786,6 @@ int serviceMain(int argc, char*argv[])
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file 
   
-#ifndef WIN32
   if(::arg().mustDo("daemon")) {
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
@@ -1806,7 +1795,6 @@ int serviceMain(int argc, char*argv[])
   signal(SIGUSR2,usr2Handler);
   signal(SIGPIPE,SIG_IGN);
   writePid();
-#endif
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
   
   int newgid=0;
@@ -1981,25 +1969,6 @@ catch(...) {
    return 0;
 }
 
-#ifdef WIN32
-void doWindowsServiceArguments(RecursorService& recursor)
-{
-  if(::arg().mustDo( "register-service" )) {
-    if ( !recursor.registerService( "The PowerDNS Recursor.", true )) {
-      cerr << "Could not register service." << endl;
-      exit( 99 );
-    }
-    
-    exit( 0 );
-  }
-
-  if ( ::arg().mustDo( "unregister-service" )) {
-    recursor.unregisterService();
-    exit( 0 );
-  }
-}
-#endif
-
 
 int main(int argc, char **argv) 
 {
@@ -2011,14 +1980,6 @@ int main(int argc, char **argv)
   reportOtherTypes();
 
   int ret = EXIT_SUCCESS;
-#ifdef WIN32
-  RecursorService service;
-  WSADATA wsaData;
-  if(WSAStartup( MAKEWORD( 2, 2 ), &wsaData )) {
-    cerr<<"Unable to initialize winsock\n";
-    exit(1);
-  }
-#endif // WIN32
 
   try {
     ::arg().set("stack-size","stack size per mthread")="200000";
@@ -2039,25 +2000,14 @@ int main(int argc, char **argv)
     ::arg().set("threads", "Launch this number of threads")="2";
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1";
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
-#ifdef WIN32
-    ::arg().set("quiet","Suppress logging of questions and answers")="off";
-    ::arg().setSwitch( "register-service", "Register the service" )= "no";
-    ::arg().setSwitch( "unregister-service", "Unregister the service" )= "no";
-    ::arg().setSwitch( "ntservice", "Run as service" )= "no";
-    ::arg().setSwitch( "use-ntlog", "Use the NT logging facilities" )= "yes"; 
-    ::arg().setSwitch( "use-logfile", "Use a log file" )= "no"; 
-#else
     ::arg().set( "experimental-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log"; 
     ::arg().setSwitch( "experimental-json-interface", "If we should run a JSON webserver") = "no";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
-#endif
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
-#ifndef WIN32
     ::arg().set("socket-owner","Owner of socket")="";
     ::arg().set("socket-group","Group of socket")="";
     ::arg().set("socket-mode", "Permissions for socket")="";
-#endif
     
     ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
@@ -2135,14 +2085,7 @@ int main(int argc, char **argv)
       exit(99);
     }
 
-#ifndef WIN32
     serviceMain(argc, argv);
-#else
-    doWindowsServiceArguments(service);
-        L.toNTLog();
-    RecursorService::instance()->start( argc, argv, ::arg().mustDo( "ntservice" )); 
-#endif
-
   }
   catch(PDNSException &ae) {
     L<<Logger::Error<<"Exception: "<<ae.reason<<endl;
@@ -2157,9 +2100,5 @@ int main(int argc, char **argv)
     ret=EXIT_FAILURE;
   }
   
-#ifdef WIN32
-  WSACleanup();
-#endif // WIN32
-
   return ret;
 }

@@ -51,17 +51,11 @@ struct TSCTimer
 
 #include "utility.hh"
 #include "dns.hh"
-#ifndef WIN32
-# include <sys/time.h>
-# include <sys/types.h>
-# include <sys/socket.h>
-# include <time.h>
-# include <syslog.h>
-#else
-# define WINDOWS_LEAN_AND_MEAN
-# include <windows.h>
-# include "utility.hh"
-#endif // WIN32
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <time.h>
+#include <syslog.h>
 #include <deque>
 #include <stdexcept>
 #include <string>

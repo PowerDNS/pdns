@@ -24,17 +24,15 @@
 #include <sys/types.h>
 #include "misc.hh"
 #include "iputils.hh"
-#ifndef WIN32
-# include <netdb.h> 
-# include <unistd.h>
-# include <sys/time.h>
-# include <sys/uio.h>
-# include <fcntl.h>
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <arpa/inet.h>
-# undef res_mkquery
-#endif // WIN32
+#include <netdb.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#undef res_mkquery
 
 #include "pdnsexception.hh"
 #include "dns.hh"

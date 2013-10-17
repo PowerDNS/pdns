@@ -19,14 +19,10 @@
 #ifndef MTASKER_HH
 #define MTASKER_HH
 
-#ifdef WIN32
-# include "win32_mtasker.hh"
-#else
-
 #include <signal.h>
 #include <ucontext.h>
 #include <queue>
-#include <vector> 
+#include <vector>
 #include <map>
 #include <time.h>
 #include <boost/multi_index_container.hpp>
@@ -113,6 +109,5 @@ private:
 };
 #include "mtasker.cc"
 
-#endif // WIN32
 #endif // MTASKER_HH
 

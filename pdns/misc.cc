@@ -17,7 +17,6 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef WIN32
 #include <sys/param.h>
 #include <netdb.h>
 #include <sys/time.h>
@@ -25,8 +24,6 @@
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <unistd.h>
-#endif // WIN32
-
 #include "misc.hh"
 #include <vector>
 #include <sstream>
@@ -407,11 +404,8 @@ string urlEncode(const string &text)
 
 string getHostname()
 {
-#ifdef WIN32
-# define MAXHOSTNAMELEN 1025
-#endif // WIN32
 #ifndef MAXHOSTNAMELEN
-# define MAXHOSTNAMELEN 255
+#define MAXHOSTNAMELEN 255
 #endif
 
   char tmp[MAXHOSTNAMELEN];
@@ -441,25 +435,10 @@ string stringerror()
   return strerror(errno);
 }
 
-#ifdef WIN32
-string netstringerror()
-{
-  char buf[512];
-  int err=WSAGetLastError();
-  if(FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
-        	     0, buf, sizeof(buf)-1, NULL)) {
-    return string(buf);
-  }
-  else {
-    return strerror(err);
-  }
-}
-#else
 string netstringerror()
 {
   return stringerror();
 }
-#endif
 
 void cleanSlashes(string &str)
 {

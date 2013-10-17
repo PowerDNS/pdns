@@ -4,10 +4,6 @@
 #ifndef SSQL_HH
 #define SSQL_HH
 
-#ifdef WIN32
-# pragma warning ( disable: 4786 )
-#endif // WIN32
-
 #include <string>
 #include <vector>
 #include "../../namespaces.hh"

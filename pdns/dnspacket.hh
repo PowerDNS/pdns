@@ -34,14 +34,11 @@
 #include "iputils.hh"
 #include "ednssubnet.hh"
 
-#ifndef WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-
-#endif // WIN32
 
 #include <iostream>
 #include <string>
@@ -58,13 +55,6 @@
 #include "config.h"
  #endif // HAVE_CONFIG_H
 
-
-#ifdef WIN32
-# ifdef BYTE_ORDER
-#   undef BYTE_ORDER
-# endif // BYTE_ORDER
-# define BYTE_ORDER LITTLE_ENDIAN
-#endif // WIN32
 
 class DNSBackend;
 class DNSSECKeeper;

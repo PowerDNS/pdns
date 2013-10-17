@@ -60,20 +60,8 @@ string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLRQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-#ifndef WIN32
   signal(SIGALRM, dokill);
-
   alarm(1);
-
-#else
-
-  if ( !PDNSService::instance()->isRunningAsService())
-    GenerateConsoleCtrlEvent( CTRL_C_EVENT, 0 );
-  else
-    PDNSService::instance()->stop();
-  
-#endif // WIN32
-
   return "Exiting";
 }
 

@@ -29,12 +29,8 @@ class DNSPacket;
 #include "pdnsexception.hh"
 #include <set>
 #include <iostream>
-
-#ifndef WIN32
-# include <sys/socket.h>
-# include <dirent.h>
-#endif // WIN32
-
+#include <sys/socket.h>
+#include <dirent.h>
 #include "misc.hh"
 #include "qtype.hh"
 #include "dns.hh"
