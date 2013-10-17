@@ -45,7 +45,6 @@ rm -rf $DIRNAME
 mkdir  $DIRNAME
 cp $INCLUDES $CFILES $DIRNAME
 cp Makefile-recursor $DIRNAME/Makefile
-cp Makefile-recursor.win32 $DIRNAME/Makefile.win32
 cp README-recursor $DIRNAME/README
 cp ../COPYING $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
@@ -69,7 +68,6 @@ cp ../contrib/systemd-pdns-recursor.service $DIRNAME/contrib
 mkdir -p $DIRNAME/sysdeps
 rm -f sysdeps-recursor/*~
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
-cp "PowerDNS Recursor.vcproj" $DIRNAME/
 tar cf $DIRNAME.tar $DIRNAME
 bzip2 -f $DIRNAME.tar # .. solaris
 
