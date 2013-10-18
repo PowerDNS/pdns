@@ -945,7 +945,7 @@
       <itemizedlist>
           <listitem>
             <para>
-              The local zone server now understands wilcards, code in c2062.
+              The local zone server now understands wildcards, code in c2062.
             </para>
           </listitem>
          <listitem>
