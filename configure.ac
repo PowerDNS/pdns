@@ -46,7 +46,7 @@ AC_ARG_ENABLE([unit-tests],
   [enable_unit_tests=yes],
   [enable_unit_tests=no]
 )
-AC_MSG_RESULT([$enable_unit_tests])
+AC_MSG_RESULT($enable_unit_tests)
 
 AS_IF([test "x$enable_unit_test" = "xyes"], [
    BOOST_TEST([mt])
@@ -156,13 +156,18 @@ AC_SUBST(THREADFLAGS)
 
 AC_SUBST(DYNLINKFLAGS)
 
-AC_MSG_CHECKING(whether we will be doing verbose logging)
-AC_ARG_ENABLE(verbose-logging,
- AS_HELP_STRING([--enable-verbose-logging],[do verbose logging]), [enable_verbose_logging=yes], [enable_verbose_logging=no])
-
-if test $enable_verbose_logging = yes; then AC_DEFINE(VERBOSELOG, 1, [If verbose logging should be enabled])
-fi
-AC_MSG_RESULT($enable_verbose_logging)
+AC_MSG_CHECKING([whether to enable verbose logging])
+AC_ARG_ENABLE([verbose-logging],
+  AS_HELP_STRING([--enable-verbose-logging],
+    [enable verbose logging @<:@default=no@:>@]
+  ),
+  [enable_verbose_logging=yes],
+  [enable_verbose_logging=no]
+)
+AS_IF([test "x$enable_verbose_logging" = "xyes"],
+  [AC_DEFINE([VERBOSELOG], [1], [Define to 1 if verbose logging is enabled])]
+)
+AC_MSG_RESULT([$enable_verbose_logging])
 
 AC_ARG_WITH([system-polarssl],
  AS_HELP_STRING([--without-system-polarssl], [do not use system PolarSSL]))
