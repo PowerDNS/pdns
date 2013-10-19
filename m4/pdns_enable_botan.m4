@@ -1,4 +1,4 @@
-AC_DEFUN([PDNS_WITH_BOTAN],[
+AC_DEFUN([PDNS_ENABLE_BOTAN],[
   AC_MSG_CHECKING([whether we will be linking in Botan 1.10])
   AC_ARG_ENABLE([botan1.10], [
     AS_HELP_STRING([--enable-botan1.10],
