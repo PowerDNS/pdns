@@ -24,41 +24,47 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LANG([C++])
 
+# detect pkg-config explicitly
+PKG_PROG_PKG_CONFIG
+
 AC_CHECK_PROG([RAGEL], [ragel], [ragel])
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 dnl Check for lua
-AC_MSG_CHECKING(if with lua)
-AC_ARG_WITH(lua, AS_HELP_STRING([--with-lua],[use Lua]), [WITH_LUA=$withval],[WITH_LUA=yes])
+AC_ARG_WITH([lua],
+  [AS_HELP_STRING([--with-lua],
+    [Build Lua Bindings @<:@default=yes@:>@])],
+  [with_lua=$withval],
+  [with_lua=yes])
 
-# detect pkg-config explicitly
-PKG_PROG_PKG_CONFIG
+AS_IF([test "x$with_lua" != "xno"],[
+  AS_IF([test "x$with_lua" = "xyes"],
+    [LUAPC=lua],
+    [LUAPC=$with_lua])
 
-AC_MSG_RESULT($WITH_LUA)
-if test "$WITH_LUA" != "no"; then
- # try pkgconfig
- if test "$WITH_LUA" = "yes"; then
-      LUAPC=lua
- else
-      LUAPC=$WITH_LUA
- fi
- PKG_CHECK_MODULES(LUA, $LUAPC >= 5.1, [
- 	AC_DEFINE([HAVE_LUA], [1], [liblua])
+  PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
+    AC_DEFINE([HAVE_LUA], [1], [liblua])
+    AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+    with_lua=yes
+  ],[
+    LUAPC=lua5.1
+    PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
+      AC_DEFINE([HAVE_LUA], [1], [liblua])
+      AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+      with_lua=yes
+    ],[
+      LUAPC=lua-5.1
+      PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
+        AC_DEFINE([HAVE_LUA], [1], [liblua])
         AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-        ],[
-        PKG_CHECK_MODULES(LUA, lua5.1 >= 5.1, [
-        	AC_DEFINE([HAVE_LUA], [1], [liblua])
-                AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-        ],[
-        PKG_CHECK_MODULES(LUA, lua-5.1 >= 5.1, [
-        	AC_DEFINE([HAVE_LUA], [1], [liblua])
-                AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-                ]) 
-                ]) 
-        ])
- AC_SUBST(LUA_CFLAGS)
- AC_SUBST(LUA_LIBS)
-fi
+        with_lua=yes
+      ],[
+        AC_DEFINE([HAVE_LUA],["x"],["x"])
+        with_lua=no
+      ])
+    ])
+  ])
+])
 
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
@@ -73,6 +79,8 @@ if test x"$enable_unit_tests" = "xyes"; then
    BOOST_TEST([mt])
 fi
 #BOOST_SYSTEM([mt])
+
+
 
 dnl Allow user to require SQLite3
 AC_MSG_CHECKING(whether user requires sqlite3)
