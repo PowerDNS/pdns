@@ -172,7 +172,7 @@ AC_MSG_RESULT([$enable_verbose_logging])
 
 PDNS_WITH_SYSTEM_POLARSSL
 
-PDNS_WITH_BOTAN
+PDNS_ENABLE_BOTAN
 
 AC_MSG_CHECKING(whether we will be linking in Crypto++)
 AC_ARG_ENABLE(cryptopp,
