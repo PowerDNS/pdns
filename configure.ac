@@ -149,21 +149,7 @@ PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_WITH_CRYPTOPP
-
-AC_ARG_ENABLE(remotebackend_http, AS_HELP_STRING([--enable-remotebackend-http],[enable HTTP connector for remotebackend]),[enable_remotebackend_http=yes], [enable_remotebackend_http=no])
-AC_MSG_CHECKING(whether to enable http connector in remotebackend)
-AC_MSG_RESULT($enable_remotebackend_http)
-AM_CONDITIONAL(REMOTEBACKEND_HTTP,test x"$enable_remotebackend_http" = "xyes")
-if test "x$enable_remotebackend_http" = "xyes"
-then
-        PKG_CHECK_MODULES(LIBCURL, libcurl, HAVE_LIBCURL=yes, AC_MSG_ERROR([Could not find libcurl]))
-        REMOTEBACKEND_HTTP=yes
-        AC_SUBST(LIBCURL_LIBS)
-        AC_SUBST(LIBCURL_CFLAGS)
-        AC_DEFINE(HAVE_LIBCURL,1,[If we have libcurl])
-	AC_DEFINE(REMOTEBACKEND_HTTP,1,[If we want HTTP connector])
-        AC_SUBST(REMOTEBACKEND_HTTP)
-fi
+PDNS_ENABLE_REMOTEBACKEND_HTTP
 
 AC_ARG_ENABLE(remotebackend_zeromq, AS_HELP_STRING([--enable-remotebackend-zeromq],[enable ZeroMQ connector for remotebackend]),[enable_remotebackend_zeromq=yes], [enable_remotebackend_zeromq=no])
 AC_MSG_CHECKING(whether to enable ZeroMQ connector in remotebackend)
