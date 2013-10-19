@@ -38,13 +38,19 @@ BOOST_REQUIRE([1.35])
 BOOST_FOREACH
 BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
-AC_ARG_ENABLE(unit-tests, AS_HELP_STRING([--enable-unit-tests],[enable unit test building]), [enable_unit_tests=yes],[enable_unit_tests=no])
 
-if test x"$enable_unit_tests" = "xyes"; then
+AC_MSG_CHECKING([whether to enable unit test building])
+AC_ARG_ENABLE([unit-tests],
+  AS_HELP_STRING([--enable-unit-tests],
+    [enable unit test building @<:@default=no@:>@]),
+  [enable_unit_tests=yes],
+  [enable_unit_tests=no]
+)
+AC_MSG_RESULT([$enable_unit_tests])
+
+AS_IF([test "x$enable_unit_test" = "xyes"], [
    BOOST_TEST([mt])
-fi
-#BOOST_SYSTEM([mt])
-
+])
 
 
 dnl Allow user to require SQLite3
