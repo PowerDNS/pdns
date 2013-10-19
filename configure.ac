@@ -69,9 +69,6 @@ if test "$WITH_SQLITE3" != "no"; then
   fi
 fi
 
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
-
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strcasestr)
 
