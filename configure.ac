@@ -30,42 +30,7 @@ PKG_PROG_PKG_CONFIG
 AC_CHECK_PROG([RAGEL], [ragel], [ragel])
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
-dnl Check for lua
-AC_ARG_WITH([lua],
-  [AS_HELP_STRING([--with-lua],
-    [Build Lua Bindings @<:@default=yes@:>@])],
-  [with_lua=$withval],
-  [with_lua=yes])
-
-AS_IF([test "x$with_lua" != "xno"],[
-  AS_IF([test "x$with_lua" = "xyes"],
-    [LUAPC=lua],
-    [LUAPC=$with_lua])
-
-  PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-    AC_DEFINE([HAVE_LUA], [1], [liblua])
-    AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-    with_lua=yes
-  ],[
-    LUAPC=lua5.1
-    PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-      AC_DEFINE([HAVE_LUA], [1], [liblua])
-      AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-      with_lua=yes
-    ],[
-      LUAPC=lua-5.1
-      PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-        AC_DEFINE([HAVE_LUA], [1], [liblua])
-        AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-        with_lua=yes
-      ],[
-        AC_DEFINE([HAVE_LUA],["x"],["x"])
-        with_lua=no
-      ])
-    ])
-  ])
-])
-
+PDNS_WITH_LUA
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
