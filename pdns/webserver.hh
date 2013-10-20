@@ -78,6 +78,21 @@ public:
   HttpMethodNotAllowedException() : HttpException(405, "Method Not Allowed") { };
 };
 
+class HttpRequest {
+public:
+  HttpRequest() : accept_json(false), accept_html(false) { };
+
+  string method;
+  string post;
+  string uri;
+  string path;
+  string body;
+  map<string,string> pathArgs;
+  map<string,string> queryArgs;
+  bool accept_json;
+  bool accept_html;
+};
+
 class WebServer
 {
 public:
@@ -86,7 +101,7 @@ public:
 
   void serveConnection(Session* client);
 
-  typedef boost::function<string(const string& method, const string& post, const map<string,string>&varmap, bool *custom)> HandlerFunction;
+  typedef boost::function<string(HttpRequest* req, bool *custom)> HandlerFunction;
   struct HandlerRegistration {
     std::list<string> urlParts;
     std::list<string> paramNames;

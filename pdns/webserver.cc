@@ -42,7 +42,7 @@ int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 
 // url is supposed to start with a slash.
 // url can contain variable names, marked as <variable>; such variables
-// are parsed out during routing and are put into the "urlArgs" map.
+// are parsed out during routing and are put into the "pathArgs" map.
 // route() makes no assumptions about the contents of variables except
 // that the following URL segment can't be part of the variable.
 //
@@ -79,13 +79,13 @@ void WebServer::registerHandler(const string& url, HandlerFunction handler)
   d_handlers.push_back(reg);
 }
 
-bool WebServer::route(const std::string& url, std::map<std::string, std::string>& urlArgs, HandlerFunction** handler)
+bool WebServer::route(const std::string& url, std::map<std::string, std::string>& pathArgs, HandlerFunction** handler)
 {
   for (std::list<HandlerRegistration>::iterator reg=d_handlers.begin(); reg != d_handlers.end(); ++reg) {
     bool matches = true;
     size_t lastpos = 0, pos = 0;
     string lastParam;
-    urlArgs.clear();
+    pathArgs.clear();
     for (std::list<string>::iterator urlPart = reg->urlParts.begin(), param = reg->paramNames.begin();
          urlPart != reg->urlParts.end() && param != reg->paramNames.end();
          urlPart++, param++) {
@@ -97,7 +97,7 @@ bool WebServer::route(const std::string& url, std::map<std::string, std::string>
         }
         if (!lastParam.empty()) {
           // store
-          urlArgs[lastParam] = url.substr(lastpos, pos-lastpos);
+          pathArgs[lastParam] = url.substr(lastpos, pos-lastpos);
         }
         lastpos = pos + urlPart->size();
         lastParam = *param;
@@ -106,7 +106,7 @@ bool WebServer::route(const std::string& url, std::map<std::string, std::string>
     if (matches) {
       if (!lastParam.empty()) {
         // store trailing parameter
-        urlArgs[lastParam] = url.substr(lastpos, pos-lastpos);
+        pathArgs[lastParam] = url.substr(lastpos, pos-lastpos);
       } else if (lastpos != url.size()) {
         matches = false;
         continue;
@@ -129,8 +129,7 @@ static void *WebServerConnectionThreadStart(void *p) {
 
 void WebServer::serveConnection(Session* client)
 try {
-  bool want_html=false;
-  bool want_json=false;
+  HttpRequest req;
 
   try {
     string line;
@@ -142,25 +141,21 @@ try {
     //    L<<"page: "<<line<<endl;
 
     vector<string> parts;
-    stringtok(parts,line);
-    
-    string method, uri;
+    stringtok(parts, line);
+
     if(parts.size()>1) {
-      method=parts[0];
-      uri=parts[1];
+      req.method = parts[0];
+      req.uri = parts[1];
     }
 
     parts.clear();
-    stringtok(parts,uri,"?");
+    stringtok(parts,req.uri,"?");
+    req.path = parts[0];
 
-    string baseUrl=parts[0];
-
-    vector<string>variables;
+    vector<string> variables;
     if(parts.size()>1) {
       stringtok(variables,parts[1],"&");
     }
-
-    map<string,string>varmap;
 
     for(vector<string>::const_iterator i=variables.begin();
         i!=variables.end();++i) {
@@ -168,10 +163,9 @@ try {
       parts.clear();
       stringtok(parts,*i,"=");
       if(parts.size()>1)
-        varmap[parts[0]]=parts[1];
+        req.queryArgs[parts[0]]=parts[1];
       else
-        varmap[parts[0]]="";
-
+        req.queryArgs[parts[0]]="";
     }
 
     bool authOK=0;
@@ -203,16 +197,16 @@ try {
           authOK=1;
         }
       }
-      else if(header == "content-length" && method=="POST") {
+      else if(header == "content-length" && req.method=="POST") {
         postlen = atoi(value.c_str());
 //        cout<<"Got a post: "<<postlen<<" bytes"<<endl;
       }
       else if(header == "accept") {
         // json wins over html
         if(value.find("application/json")!=std::string::npos) {
-          want_json=true;
+          req.accept_json=true;
         } else if(value.find("text/html")!=std::string::npos) {
-          want_html=true;
+          req.accept_html=true;
         }
       }
       else
@@ -220,20 +214,16 @@ try {
       
     } while(true);
 
-    string post;
     if(postlen) 
-      post = client->get(postlen);
+      req.body = client->get(postlen);
   
- //   cout<<"Post: '"<<post<<"'"<<endl;
-
     if(!d_password.empty() && !authOK)
       throw HttpUnauthorizedException();
 
     HandlerFunction *handler;
-    map<string, string> urlArgs;
-    if (route(baseUrl, urlArgs, &handler)) {
+    if (route(req.path, req.pathArgs, &handler)) {
       bool custom=false;
-      string ret=(*handler)(method, post, varmap, &custom);
+      string ret=(*handler)(&req, &custom);
 
       if(!custom) {
         client->putLine("HTTP/1.1 200 OK\n");
@@ -250,10 +240,10 @@ try {
     client->putLine(e.statusLine());
     client->putLine("Connection: close\n");
     client->putLine(e.headers());
-    if(want_html) {
+    if(req.accept_html) {
       client->putLine("Content-Type: text/html; charset=utf-8\n\n");
       client->putLine("<!html><title>" + e.what() + "</title><h1>" + e.what() + "</h1>");
-    } else if (want_json) {
+    } else if (req.accept_json) {
       client->putLine("Content-Type: application/json\n\n");
       client->putLine(returnJSONError(e.what()));
     } else {

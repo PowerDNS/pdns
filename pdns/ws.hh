@@ -76,6 +76,7 @@ private:
 };
 
 class WebServer;
+class HttpRequest;
 
 class StatWebServer
 {
@@ -86,9 +87,9 @@ public:
 private:
   static void *threadHelper(void *);
   static void *statThreadHelper(void *p);
-  string indexfunction(const string& method, const string& post, const map<string,string> &varmap, bool *custom);
-  string cssfunction(const string& method, const string& post, const map<string,string> &varmap, bool *custom);
-  string jsonstat(const string& method, const string& post, const map<string,string> &varmap, bool *custom);
+  string indexfunction(HttpRequest* req, bool *custom);
+  string cssfunction(HttpRequest* req, bool *custom);
+  string jsonstat(HttpRequest* req, bool *custom);
   void printvars(ostringstream &ret);
   void printargs(ostringstream &ret);
   void launch();

@@ -186,17 +186,16 @@ string StatWebServer::makePercentage(const double& val)
   return (boost::format("%.01f%%") % val).str();
 }
 
-string StatWebServer::indexfunction(const string& method, const string& post, const map<string,string> &varmap, bool *custom)
+string StatWebServer::indexfunction(HttpRequest* req, bool *custom)
 {
-  map<string,string>rvarmap=varmap;
-  if(!rvarmap["resetring"].empty()){
+  if(!req->queryArgs["resetring"].empty()){
     *custom=true;
-    S.resetRing(rvarmap["resetring"]);
+    S.resetRing(req->queryArgs["resetring"]);
     return "HTTP/1.1 301 Moved Permanently\nLocation: /\nConnection: close\n\n";
   }
-  if(!rvarmap["resizering"].empty()){
+  if(!req->queryArgs["resizering"].empty()){
     *custom=true;
-    S.resizeRing(rvarmap["resizering"], atoi(rvarmap["size"].c_str()));
+    S.resizeRing(req->queryArgs["resizering"], atoi(req->queryArgs["size"].c_str()));
     return "HTTP/1.1 301 Moved Permanently\nLocation: /\nConnection: close\n\n";
   }
 
@@ -251,7 +250,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     "<br>"<<endl;
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
-  if(rvarmap["ring"].empty()) {
+  if(req->queryArgs["ring"].empty()) {
     vector<string>entries=S.listRings();
     for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
       printtable(ret,*i,S.getRingTitle(*i));
@@ -261,7 +260,7 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
       printargs(ret);
   }
   else
-    printtable(ret,rvarmap["ring"],S.getRingTitle(rvarmap["ring"]),100);
+    printtable(ret,req->queryArgs["ring"],S.getRingTitle(req->queryArgs["ring"]),100);
 
   ret<<"</div></div>"<<endl;
   ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
@@ -367,22 +366,22 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
   return getZone(zonename);
 }
 
-static string jsonDispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
+static string jsonDispatch(HttpRequest* req, const string& command) {
   if(command=="get") {
-    if(varmap.empty()) {
+    if(req->queryArgs.empty()) {
       vector<string> entries = S.getEntries();
       BOOST_FOREACH(string& ent, entries) {
-        varmap[ent];
+        req->queryArgs[ent];
       }
-      varmap["version"];
-      varmap["uptime"];
+      req->queryArgs["version"];
+      req->queryArgs["uptime"];
     }
 
     string variable, value;
     
     Document doc;
     doc.SetObject();
-    for(varmap_t::const_iterator iter = varmap.begin(); iter != varmap.end() ; ++iter) {
+    for(varmap_t::const_iterator iter = req->queryArgs.begin(); iter != req->queryArgs.end() ; ++iter) {
       variable = iter->first;
       if(variable == "version") {
         value = VERSION;
@@ -421,22 +420,22 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
   else if(command == "flush-cache") {
     extern PacketCache PC;
     int number; 
-    if(varmap["domain"].empty())
+    if(req->queryArgs["domain"].empty())
       number = PC.purge();
     else
-      number = PC.purge(varmap["domain"]);
+      number = PC.purge(req->queryArgs["domain"]);
       
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
-    //cerr<<"Flushed cache for '"<<varmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
+    //cerr<<"Flushed cache for '"<<queryArgs["domain"]<<"', cleaned "<<number<<" records"<<endl;
     return returnJSONObject(object);
   }
   else if(command == "pdns-control") {
-    if(method!="POST")
+    if(req->method!="POST")
       throw HttpMethodNotAllowedException();
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
-    if(document.Parse<0>(post.c_str()).HasParseError())
+    if(document.Parse<0>(req->body.c_str()).HasParseError())
       return returnJSONError("Unable to parse JSON");
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
@@ -456,7 +455,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
   }
   else if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
     vector<string> parts;
-    stringtok(parts, varmap["rest"], "/");
+    stringtok(parts, req->queryArgs["rest"], "/");
     if(parts.size() != 3) 
       return returnJSONError("Could not parse rest parameter");
     UeberBackend B;
@@ -472,7 +471,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     PC.purge(qname);
     // cerr<<"domain id: "<<sd.domain_id<<", lookup name: '"<<parts[1]<<"', for type: '"<<qtype.getName()<<"'"<<endl;
     
-    if(method == "GET" ) {
+    if(req->method == "GET") {
       B.lookup(qtype, parts[1], 0, sd.domain_id);
       
       DNSResourceRecord rr;
@@ -494,13 +493,13 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       ret+="]}";
       return ret;
     }
-    else if(method=="DELETE") {
+    else if(req->method=="DELETE") {
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
       
     }
-    else if(method=="POST") {
+    else if(req->method=="POST") {
       rapidjson::Document document;
-      if(document.Parse<0>(post.c_str()).HasParseError())
+      if(document.Parse<0>(req->body.c_str()).HasParseError())
         return returnJSONError("Unable to parse JSON");
       
       DNSResourceRecord rr;
@@ -534,24 +533,24 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       sd.db->startTransaction(qname);
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
       sd.db->commitTransaction();
-      return post;
+      return req->body;
     }  
   }
   else if(command == "zone") {
-    string zonename = varmap["zone"];
+    string zonename = req->queryArgs["zone"];
     if (zonename.empty())
       return returnJSONError("Must give zone parameter");
 
-    if(method == "GET") {
+    if(req->method == "GET") {
       // get current zone
       return getZone(zonename);
-    } else if (method == "POST") {
+    } else if (req->method == "POST") {
       // create
-      return createOrUpdateZone(zonename, true, varmap);
-    } else if (method == "PUT") {
+      return createOrUpdateZone(zonename, true, req->queryArgs);
+    } else if (req->method == "PUT") {
       // update or create
-      return createOrUpdateZone(zonename, false, varmap);
-    } else if (method == "DELETE") {
+      return createOrUpdateZone(zonename, false, req->queryArgs);
+    } else if (req->method == "DELETE") {
       // delete
       UeberBackend B;
       DomainInfo di;
@@ -566,7 +565,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     }
   }
   else if(command=="log-grep") {
-    return makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns[");
+    return makeLogGrepJSON(req->queryArgs, ::arg()["experimental-logfile"], " pdns[");
   }
   else if(command=="domains") {
     UeberBackend B;
@@ -603,7 +602,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
   return returnJSONError("No or unknown command given");
 }
 
-string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, bool *custom)
+string StatWebServer::jsonstat(HttpRequest* req, bool *custom)
 {
   *custom=1; // indicates we build the response
   string ret="HTTP/1.1 200 OK\r\n"
@@ -613,25 +612,24 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
   "Content-Type: application/json\r\n"
   "\r\n" ;
 
-  varmap_t ourvarmap=varmap;
   string callback;
   string command;
 
-  if(ourvarmap.count("callback")) {
-    callback=ourvarmap["callback"];
-    ourvarmap.erase("callback");
+  if(req->queryArgs.count("callback")) {
+    callback=req->queryArgs["callback"];
+    req->queryArgs.erase("callback");
   }
   
-  if(ourvarmap.count("command")) {
-    command=ourvarmap["command"];
-    ourvarmap.erase("command");
+  if(req->queryArgs.count("command")) {
+    command=req->queryArgs["command"];
+    req->queryArgs.erase("command");
   }
 
-  ourvarmap.erase("_");
+  req->queryArgs.erase("_");
   if(!callback.empty())
       ret += callback+"(";
 
-  ret += jsonDispatch(method, post, ourvarmap, command);
+  ret += jsonDispatch(req, command);
 
   if(!callback.empty()) {
     ret += ");";
@@ -639,7 +637,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
   return ret;
 }
 
-string StatWebServer::cssfunction(const string& method, const string& post, const map<string,string> &varmap, bool *custom)
+string StatWebServer::cssfunction(HttpRequest* req, bool *custom)
 {
   *custom=1; // indicates we build the response
   ostringstream ret;
@@ -682,10 +680,10 @@ string StatWebServer::cssfunction(const string& method, const string& post, cons
 void StatWebServer::launch()
 {
   try {
-    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2, _3, _4));
-    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2, _3, _4));
+    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
+    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
     if(::arg().mustDo("experimental-json-interface"))
-      d_ws->registerHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2, _3, _4));
+      d_ws->registerHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
     d_ws->go();
   }
   catch(...) {
