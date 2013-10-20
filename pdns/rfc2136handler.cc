@@ -851,7 +851,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
     // 3.4.2 - Perform the updates.
     // There's a special condition where deleting the last NS record at zone apex is never deleted (3.4.2.4)
-    // This means we must do it outside the normal performUpdate() because that focusses only on a seperate RR.
+    // This means we must do it outside the normal performUpdate() because that focusses only on a separate RR.
     vector<const DNSRecord *> nsRRtoDelete;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
@@ -898,7 +898,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       zone.append("$");
       PC.purge(zone);
 
-      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records commited."<<endl;
+      L<<Logger::Info<<msgPrefix<<"Update completed, "<<changedRecords<<" changed records committed."<<endl;
     } else {
       //No change, no commit, we perform abort() because some backends might like this more.
       L<<Logger::Info<<msgPrefix<<"Update completed, 0 changes, rolling back."<<endl;

@@ -25,7 +25,7 @@ typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
 StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
-PacketCache PC; //!< This is the main PacketCache, shared accross all threads
+PacketCache PC; //!< This is the main PacketCache, shared across all threads
 DNSProxy *DP;
 DynListener *dl;
 CommunicatorClass Communicator;
@@ -179,7 +179,7 @@ void declareStats(void)
   S.declare("query-cache-miss","Number of misses on the query cache");
 
   S.declare("rfc2136-queries", "RFC2136 packets received.");
-  S.declare("rfc2136-answers", "RFC2136 packets succesfully answered.");
+  S.declare("rfc2136-answers", "RFC2136 packets successfully answered.");
   S.declare("rfc2136-refused", "RFC2136 packets that are refused.");
   S.declare("rfc2136-changes", "RFC2136 changes to records in total.");
 

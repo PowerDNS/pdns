@@ -212,7 +212,7 @@ template<class Key, class Val>void MTasker<Key,Val>::yield()
 }
 
 //! reports that an event took place for which threads may be waiting
-/** From the kernel loop, sendEvent can be called to report that something occured for which there may be waiters.
+/** From the kernel loop, sendEvent can be called to report that something occurred for which there may be waiters.
     \param key Key of the event for which threads may be waiting
     \param val If non-zero, pointer to the content of the event
     \return Returns -1 in case of error, 0 if there were no waiters, 1 if a thread was woken up.

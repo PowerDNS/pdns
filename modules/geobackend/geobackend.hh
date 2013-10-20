@@ -88,7 +88,7 @@ public:
         
         void declareArguments(const string &suffix = "") {
         	declare(suffix, "zone", "zonename to be served", "");
-        	declare(suffix, "soa-values", "values of the SOA master nameserver and hostmaster fields, comma seperated", "");
+        	declare(suffix, "soa-values", "values of the SOA master nameserver and hostmaster fields, comma separated", "");
         	declare(suffix, "ns-records", "targets of the NS records, comma separated.", "");
         	declare(suffix, "ttl", "TTL value for geo records", "3600");
         	declare(suffix, "ns-ttl", "TTL value for NS records", "86400");
