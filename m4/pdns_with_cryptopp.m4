@@ -1,8 +1,7 @@
 AC_DEFUN([PDNS_WITH_CRYPTOPP],[
   AC_MSG_CHECKING([whether we will be linking in Crypto++])
   AC_ARG_ENABLE([cryptopp],
-    AS_HELP_STRING([--enable-cryptopp],
-      [use Crypto++]),
+    [AS_HELP_STRING([--enable-cryptopp],[use Crypto++ @<:@default=no@:>@])],
     [enable_cryptopp=yes],
     [enable_cryptopp=no]
   )

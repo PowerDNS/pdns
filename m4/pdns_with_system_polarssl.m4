@@ -1,7 +1,6 @@
 AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
-  AC_ARG_WITH([system-polarssl],[
-    AS_HELP_STRING([--with-system-polarssl],
-      [use system PolarSSL @<:@default=no@:>@])],
+  AC_ARG_WITH([system-polarssl],
+    [AS_HELP_STRING([--with-system-polarssl], [use system PolarSSL @<:@default=no@:>@])],
     [],
     [with_system_polarssl=no],
   )

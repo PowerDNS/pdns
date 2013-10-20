@@ -1,8 +1,7 @@
 AC_DEFUN([PDNS_WITH_LUA],[
   dnl Check for lua
   AC_ARG_WITH([lua],
-    [AS_HELP_STRING([--with-lua],
-      [Build Lua Bindings @<:@default=yes@:>@])],
+    [AS_HELP_STRING([--with-lua], [build Lua Bindings @<:@default=yes@:>@])],
     [with_lua=$withval],
     [with_lua=yes])
 
