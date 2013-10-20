@@ -266,13 +266,7 @@ for a in $modules $dynmodules; do
       PDNS_CHECK_LDAP
       ;;
     opendbx)
-      AC_CHECK_HEADERS([odbx.h], , [AC_MSG_ERROR([opendbx header (odbx.h) not found])])
-      AC_SUBST([LIBOPENDBX])
-      AC_CHECK_LIB([opendbx], [odbx_init],
-        [AC_DEFINE([HAVE_LIBOPENDBX], [], [Have -lopendbx])
-         LIBOPENDBX="opendbx"
-        ]
-      )
+      PDNS_CHECK_OPENDBX
       ;;
     tinydns)
       needcdb=yes
