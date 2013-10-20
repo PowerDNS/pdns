@@ -1,8 +1,6 @@
 AC_DEFUN([PDNS_WITH_MYSQL],[
-  AC_ARG_WITH([mysql],[
-    AS_HELP_STRING([--with-mysql=<path>],
-      [root directory path of MySQL installation]
-    )],
+  AC_ARG_WITH([mysql],
+    [AS_HELP_STRING([--with-mysql=<path>], [root directory path of MySQL installation])],
     [
       MYSQL_lib_check="$withval/lib/mysql $with_mysql/lib"
       MYSQL_inc_check="$withval/include/mysql"
@@ -17,27 +15,21 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
     ]
   )
 
-  AC_ARG_WITH([mysql-config],[
-    AS_HELP_STRING([--with-mysql-config=<path>],
-      [file path to mysql_config]
-    )],
+  AC_ARG_WITH([mysql-config],
+    [AS_HELP_STRING([--with-mysql-config=<path>], [file path to mysql_config])],
     [MYSQL_config_check=$withval]
   )
 
-  AC_ARG_WITH([mysql-lib],[
-    AS_HELP_STRING([--with-mysql-lib=<path>],
-      [directory path of MySQL library installation]
-    )],
+  AC_ARG_WITH([mysql-lib],
+    [AS_HELP_STRING([--with-mysql-lib=<path>], [directory path of MySQL library installation])],
     [
       MYSQL_lib_check="$withval/lib/mysql $withval/mysql $withval"
       MYSQL_config_check="skip"
     ]
   )
 
-  AC_ARG_WITH([mysql-includes],[
-    AS_HELP_STRING([--with-mysql-includes=<path>],
-      [directory path of MySQL header installation]
-    )],
+  AC_ARG_WITH([mysql-includes],
+    [AS_HELP_STRING([--with-mysql-includes=<path>], [directory path of MySQL header installation])],
     [
       MYSQL_inc_check="$withval/include/mysql $withval/mysql $withval"
       MYSQL_config_check="skip"

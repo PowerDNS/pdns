@@ -53,8 +53,12 @@ PDNS_ENABLE_UNIT_TESTS
 
 dnl Allow user to require SQLite3
 AC_MSG_CHECKING(whether user requires sqlite3)
-AC_ARG_WITH(sqlite3, AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver]), [WITH_SQLITE3=$withval],[WITH_SQLITE3=no])
-AC_MSG_RESULT($WITH_SQLITE3)
+AC_ARG_WITH([sqlite3],
+  [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
+  [WITH_SQLITE3=$withval],
+  [WITH_SQLITE3=no]
+)
+AC_MSG_RESULT([$WITH_SQLITE3])
 SQLITE3PC=sqlite3
 if test "$WITH_SQLITE3" != "no"; then
   needsqlite3=yes
@@ -172,20 +176,20 @@ fi
 
 modules="gmysql geo random"
 AC_ARG_WITH([modules],
-  [AS_HELP_STRING([--with-modules],[which backends to compile with])],
+  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=gmysql geo random@:>@])],
   [modules="$withval"]
 )
 
 dynmodules="pipe"
 AC_ARG_WITH([dynmodules],
-  [AS_HELP_STRING([--with-dynmodules],[which backends to build for dynamic loading])],
+  [AS_HELP_STRING([--with-dynmodules],[which backends to build for dynamic loading @<:@default=pipe@:>@])],
   [dynmodules="$withval"]
 )
 
 AC_SUBST(socketdir)
 socketdir="/var/run"
 AC_ARG_WITH([socketdir],
-  [AS_HELP_STRING([--with-socketdir],[where the controlsocket lives])],
+  [AS_HELP_STRING([--with-socketdir],[where the controlsocket lives @<:@default=/var/run@:>@])],
   [socketdir="$withval"]
 )
 
@@ -196,7 +200,7 @@ AC_DEFINE_UNQUOTED([PDNS_MODULES],"$modules", [Built-in modules])
 
 AC_MSG_CHECKING([whether we will be building the server])
 AC_ARG_ENABLE([pdns-server],
-  [AS_HELP_STRING([--enable-pdns_server],[if we should build the server])],
+  [AS_HELP_STRING([--enable-pdns_server],[if we should build the server @<:@default=yes@:>@])],
   [enable_pdns_server=$enableval],
   [enable_pdns_server=yes]
 )
@@ -209,13 +213,13 @@ AS_IF([test "x$enable_pdns_server" = "xyes"],
 AC_SUBST(programdescend)
 
 AC_ARG_ENABLE([gcc-skip-locking],
-  [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking])],
+  [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking @<:@default=no@:>@])],
   [AC_DEFINE(GCC_SKIP_LOCKING,[],[Skip gcc locking])],
 )
 
 AC_MSG_CHECKING([whether we will be building and installing the extra tools])
 AC_ARG_ENABLE([tools],
-  [AS_HELP_STRING([--enable-tools],[if we should build and install the tools])],
+  [AS_HELP_STRING([--enable-tools],[if we should build and install the tools @<:@default=no@:>@])],
   [enable_tools=$enableval],
   [enable_tools=no]
 )
