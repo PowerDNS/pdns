@@ -7,7 +7,7 @@ AC_DEFUN([PDNS_ENABLE_UNIT_TESTS], [
     [enable_unit_tests=no]
   )
   AC_MSG_RESULT([$enable_unit_tests])
-  AS_IF([test "x$enable_unit_test" = "xyes"], [
+  AS_IF([test "x$enable_unit_tests" = "xyes"], [
      BOOST_TEST([mt])
    ])
 ])
