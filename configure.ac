@@ -299,12 +299,7 @@ if test "$needsqlite3"; then
 fi
 
 if test "$needcdb"; then
-  PKG_CHECK_MODULES([CDB], [libcdb],
-    [HAVE_CDB=yes],
-    [AC_MSG_ERROR([Could not find libcdb/tinycdb])]
-  )
-  AC_SUBST(CDB_LIBS)
-  AC_SUBST(CDB_CFLAGS)
+  PDNS_CHECK_CDB
 fi
 
 for a in $modules; do
