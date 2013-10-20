@@ -61,7 +61,6 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(strcasestr)
 
 # Check for libdl
-
 LIBS="$LIBS -lz"
 
 my_save_LIBS="$LIBS"
@@ -80,9 +79,8 @@ AC_LINK_IFELSE(
   [has_RTLD_NOW=yes],
   [has_RTLD_NOW=no])
 AC_MSG_RESULT([$has_RTLD_NOW])
-if test "$has_RTLD_NOW" = "no"
-then
-	AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
+if test "$has_RTLD_NOW" = "no"; then
+  AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
 fi
 LIBS=$ac_save_LIBS
 
@@ -101,44 +99,44 @@ THREADFLAGS=""
 AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
-	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
-	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-	;;
+  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
+  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  ;;
 
 solaris2.8 | solaris2.9 )
-	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-	AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-	;;
+  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
+  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
+  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
+  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  ;;
 solaris2.6 | solaris2.7)
-	AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-	AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-	LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-	CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-	;;
+  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
+  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
+  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
+  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  ;;
 linux*)
-	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-	DYNLINKFLAGS="-rdynamic"
-	LDFLAGS="$LDFLAGS -lrt"
-	THREADFLAGS="-pthread"
-	CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
-	;;
+  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+  DYNLINKFLAGS="-rdynamic"
+  LDFLAGS="$LDFLAGS -lrt"
+  THREADFLAGS="-pthread"
+  CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
+  ;;
 darwin11* | darwin12*)
-	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-	DYNLINKFLAGS="-rdynamic"
-	LDFLAGS="-pthread $LDFLAGS"
-	CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
-	AM_CONDITIONAL([OS_MACOSX], true)
-	;;
+  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+  DYNLINKFLAGS="-rdynamic"
+  LDFLAGS="-pthread $LDFLAGS"
+  CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
+  AM_CONDITIONAL([OS_MACOSX], true)
+  ;;
 *)
-	AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-	DYNLINKFLAGS="-rdynamic"
-	LDFLAGS="-pthread $LDFLAGS"
-	CXXFLAGS="-pthread $CXXFLAGS"
-	;;
+  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+  DYNLINKFLAGS="-rdynamic"
+  LDFLAGS="-pthread $LDFLAGS"
+  CXXFLAGS="-pthread $CXXFLAGS"
+  ;;
 esac
 
 AC_SUBST(THREADFLAGS)
@@ -163,9 +161,8 @@ AC_MSG_RESULT($static)
 
 AM_CONDITIONAL(ALLSTATIC, test x$static = xtrue)
 
-if test x$static = xtrue;
-then
-	LDFLAGS="-all-static $LDFLAGS"
+if test x$static = xtrue; then
+  LDFLAGS="-all-static $LDFLAGS"
 fi
 
 
@@ -182,8 +179,6 @@ AC_ARG_WITH(dynmodules, AS_HELP_STRING([--with-dynmodules],[which backends to bu
         dynmodules="$withval"
 ])
 
-
-
 AC_SUBST(socketdir)
 socketdir="/var/run"
 AC_ARG_WITH(socketdir, AS_HELP_STRING([--with-socketdir],[where the controlsocket lives]),
@@ -198,265 +193,292 @@ AC_DEFINE_UNQUOTED(PDNS_MODULES,"$modules", [Built-in modules])
 
 AC_MSG_CHECKING(whether we will be building the server)
 AC_ARG_ENABLE(pdns-server,
- AS_HELP_STRING([--enable-pdns_server],[if we should build the server]),
-	[enable_pdns_server=$enableval],
-	[enable_pdns_server=yes])
+  AS_HELP_STRING([--enable-pdns_server],[if we should build the server]),
+  [enable_pdns_server=$enableval],
+  [enable_pdns_server=yes])
 
 AC_MSG_RESULT($enable_pdns_server)
 
-if test x"$enable_pdns_server" = "xyes"
-then
-	programdescend=pdns
+if test x"$enable_pdns_server" = "xyes"; then
+  programdescend=pdns
 fi
 
 AC_SUBST(programdescend)
 
 AC_ARG_ENABLE(gcc-skip-locking,
- AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking]),
-	AC_DEFINE(GCC_SKIP_LOCKING,,[Skip gcc locking]),
- )
+  AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking]),
+  AC_DEFINE(GCC_SKIP_LOCKING,,[Skip gcc locking]),
+)
 
 AC_MSG_CHECKING(whether we will be building and installing the extra tools)
 AC_ARG_ENABLE(tools,
- AS_HELP_STRING([--enable-tools],[if we should build+install the tools]),
-	enable_tools=$enableval,
-	enable_tools=no )
+  AS_HELP_STRING([--enable-tools],[if we should build+install the tools]),
+  enable_tools=$enableval,
+  enable_tools=no )
 
 AC_MSG_RESULT($enable_tools)
 AM_CONDITIONAL(TOOLS,test x"$enable_tools" = "xyes")
 
-for a in $modules $dynmodules
-do
-	case "$a" in
-                oracle|goracle)
-                        needoracle=yes
-		;;
-		gmysql )
-			needmysql=yes
-		;;
-		mydns )
-			needmysql=yes
-		;;
-		gpgsql )
-			needpgsql=yes
-		;;
-		gsqlite3 )
-			needsqlite3=yes
-		;;
-		pdns )
-			needmysql=yes
-		;;
-		ldap)
-			PDNS_CHECK_LDAP
-		;;
-		opendbx)
-			AC_CHECK_HEADERS([odbx.h], , [AC_MSG_ERROR([opendbx header (odbx.h) not found])])
-			AC_SUBST([LIBOPENDBX])
-			AC_CHECK_LIB(
-				[opendbx], [odbx_init],
-				[AC_DEFINE([HAVE_LIBOPENDBX], 1, [Have -lopendbx]) LIBOPENDBX="opendbx"]
-			)
-		;;
-		tinydns)
-			needcdb=yes
-		;;
-	esac
+for a in $modules $dynmodules; do
+  case "$a" in
+    oracle|goracle)
+      needoracle=yes
+      ;;
+    gmysql)
+      needmysql=yes
+      ;;
+    mydns)
+      needmysql=yes
+      ;;
+    gpgsql)
+      needpgsql=yes
+      ;;
+    gsqlite3)
+      needsqlite3=yes
+      ;;
+    pdns)
+      needmysql=yes
+      ;;
+    ldap)
+      PDNS_CHECK_LDAP
+      ;;
+    opendbx)
+      AC_CHECK_HEADERS([odbx.h], , [AC_MSG_ERROR([opendbx header (odbx.h) not found])])
+      AC_SUBST([LIBOPENDBX])
+      AC_CHECK_LIB(
+        [opendbx], [odbx_init],
+        [AC_DEFINE([HAVE_LIBOPENDBX], 1, [Have -lopendbx]) LIBOPENDBX="opendbx"]
+      )
+      ;;
+    tinydns)
+      needcdb=yes
+      ;;
+ esac
 done
 
 AM_CONDITIONAL(ORACLE,test x"$needoracle" = "xyes")
-if test "$needoracle"
-then
-	AC_ARG_WITH(oracle_includes, AS_HELP_STRING([--with-oracle-includes=<path>],[instantclient sdk include dir]))
-        AC_ARG_WITH(oracle_libs, AS_HELP_STRING([--with-oracle-libs=<path>],[instantclient oracle library dir]))
+if test "$needoracle"; then
+  AC_ARG_WITH(oracle_includes, AS_HELP_STRING([--with-oracle-includes=<path>],[instantclient sdk include dir]))
+  AC_ARG_WITH(oracle_libs, AS_HELP_STRING([--with-oracle-libs=<path>],[instantclient oracle library dir]))
 
-        if test x"$with_oracle_includes" = "x"
-        then
-           # check possible locations
-           for p1 in /usr/include/oracle /usr/local/include/oracle
-           do
-             for p2 in $p1/*/client*
-             do
-if test -d "$p2"
-then
-with_oracle_includes=$p2
-fi
-             done
-           done
+  if test x"$with_oracle_includes" = "x"; then
+    # check possible locations
+    for p1 in /usr/include/oracle /usr/local/include/oracle; do
+      for p2 in $p1/*/client*; do
+        if test -d "$p2"; then
+          with_oracle_includes=$p2
         fi
+      done
+    done
+  fi
 
-        if test x"$with_oracle_includes" = x && test "$ORACLE_HOME/rdbms/public" != "/rdbms/public"; then
-if test -d $ORACLE_HOME/rdbms/public; then
-  with_oracle_includes=$ORACLE_HOME/rdbms/public
+  if test x"$with_oracle_includes" = x && test "$ORACLE_HOME/rdbms/public" != "/rdbms/public"; then
+    if test -d $ORACLE_HOME/rdbms/public; then
+      with_oracle_includes=$ORACLE_HOME/rdbms/public
+    fi
+  fi
+
+  # test header
+  old_CXXFLAGS="$CXXFLAGS"
+  old_CFLAGS="$CFLAGS"
+  CXXFLAGS="$CXXFLAGS -I$with_oracle_includes"
+  CPPFLAGS="$CPPFLAGS -I$with_oracle_includes"
+  AC_CHECK_HEADER([oci.h], ORACLE_CFLAGS="-I$with_oracle_includes", AC_MSG_ERROR([Could not find oci.h]))
+  CXXFLAGS="$old_CXXFLAGS"
+  CPPFLAGS="$old_CPPFLAGS"
+  AC_SUBST([ORACLE_CFLAGS])
+  AC_SUBST([ORACLE_LIBS])
+
+  if test x"$with_oracle_libs" = "x"; then
+     # check possible locationse
+     for p1 in /usr/lib/oracle /usr/local/lib/oracle; do
+       for p2 in $p1/*/client*/lib; do
+         if test -d "$p2"; then
+           with_oracle_libs=$p2
+         fi
+       done
+     done
+  fi
+
+  if test x"$with_oracle_libs" = x && test "$ORACLE_HOME/lib" != "/lib"; then
+    if test -d $ORACLE_HOME/lib; then
+      with_oracle_libs=$ORACLE_HOME/lib
+    fi
+  fi
+
+  # we have to check for client9 as well...
+
+  # test -lclntsh
+  old_LDFLAGS="$LDFLAGS"
+  LDFLAGS="-L$with_oracle_libs -lnnz11 -locci"
+  AC_CHECK_LIB([clntsh],[OCIEnvInit],
+    [ORACLE_LIBS="-L$with_oracle_libs -lnnz11 -lclntsh -locci"],
+    AC_CHECK_LIB([client9], [OCIEnvInit],
+      [ORACLE_LIBS="-L$with_oracle_libs -lclient9 -lclntsh9"],
+      [AC_MSG_ERROR([Could not find client libraries])]
+    )
+  )
+  LDFLAGS="$old_LDFLAGS"
 fi
-        fi
 
-        # test header
-        old_CXXFLAGS="$CXXFLAGS"
-        old_CFLAGS="$CFLAGS"
-        CXXFLAGS="$CXXFLAGS -I$with_oracle_includes"
-	CPPFLAGS="$CPPFLAGS -I$with_oracle_includes"
-        AC_CHECK_HEADER([oci.h], ORACLE_CFLAGS="-I$with_oracle_includes", AC_MSG_ERROR([Could not find oci.h]))
-	CXXFLAGS="$old_CXXFLAGS"
-	CPPFLAGS="$old_CPPFLAGS"
-        AC_SUBST([ORACLE_CFLAGS])
-        AC_SUBST([ORACLE_LIBS])
-
-	if test x"$with_oracle_libs" = "x"
-        then
-           # check possible locationse
-           for p1 in /usr/lib/oracle /usr/local/lib/oracle
-           do
-             for p2 in $p1/*/client*/lib
-             do
-if test -d "$p2"
-then
-with_oracle_libs=$p2
-fi
-             done
-           done
-        fi
-
-        if test x"$with_oracle_libs" = x && test "$ORACLE_HOME/lib" != "/lib"; then
-if test -d $ORACLE_HOME/lib; then
-  with_oracle_libs=$ORACLE_HOME/lib
-fi
-        fi
-
-        # we have to check for client9 as well...
-
-	# test -lclntsh
-	old_LDFLAGS="$LDFLAGS"
-	LDFLAGS="-L$with_oracle_libs -lnnz11 -locci"
-	AC_CHECK_LIB([clntsh],[OCIEnvInit],ORACLE_LIBS="-L$with_oracle_libs -lnnz11 -lclntsh -locci",
-           AC_CHECK_LIB([client9], [OCIEnvInit],ORACLE_LIBS="-L$with_oracle_libs -lclient9 -lclntsh9",AC_MSG_ERROR([Could not find client libraries])))
-        LDFLAGS="$old_LDFLAGS"
-fi
-
-if test "$needmysql"
-then
-	PDNS_WITH_MYSQL
+if test "$needmysql"; then
+  PDNS_WITH_MYSQL
 fi
 
 
 
-if test "$needpgsql"
-then
-	AC_ARG_WITH(pgsql,
-	    AS_HELP_STRING([--with-pgsql=<path>],[root directory path of PgSQL installation]),
-	    [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
-	PGSQL_inc_check="$withval/include/pgsql"],
-	    [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64"
-	PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"])
-		AC_ARG_WITH(pgsql-lib,
-	    AS_HELP_STRING([--with-pgsql-lib=<path>],[directory path of PgSQL library installation]),
-	    [PGSQL_lib_check="$withval/lib/pgsql $withval/pgsql $withval"])
-		AC_ARG_WITH(pgsql-includes,
-	    AS_HELP_STRING([--with-pgsql-includes=<path>],[directory path of PgSQL header installation]),
-	    [PGSQL_inc_check="$withval/include/pgsql $withval/pgsql $withval"])
-		AC_MSG_CHECKING([for PgSQL library directory])
-	PGSQL_libdir=
-	for m in $PGSQL_lib_check; do
-	        if test -d "$m" && \
-		   (test -f "$m/libpq.a" || test -f "$m/libpq.so")
-	        then
-	                PGSQL_libdir=$m
-	                break
-	        fi
-	done
-		if test -z "$PGSQL_libdir"; then
-	        AC_MSG_ERROR([Didn't find the pgsql library dir in '$PGSQL_lib_check'])
-	fi
-	case "$PGSQL_libdir" in
-	  /usr/lib ) PGSQL_lib="" ;;
-	  /usr/lib64 ) PGSQL_lib="" ;;
-	  /* ) PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir"
-	       LDFLAGS="$PGSQL_lib $LDFLAGS"
-               ;;
-	  * )  AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.]) ;;
-	esac
+if test "$needpgsql"; then
+  AC_ARG_WITH([pgsql],
+    AS_HELP_STRING([--with-pgsql=<path>],
+      [root directory path of PgSQL installation]
+   ),
+   [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
+    PGSQL_inc_check="$withval/include/pgsql"
+   ],
+   [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64"
+    PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"
+   ]
+  )
 
-	AC_SUBST(PGSQL_lib)
-	AC_MSG_RESULT([$PGSQL_libdir])
-		AC_MSG_CHECKING([for PgSQL include directory])
-	PGSQL_incdir=
-	for m in $PGSQL_inc_check; do
-	        if test -d "$m" && test -f "$m/libpq-fe.h"
-	        then
-	                PGSQL_incdir=$m
-	                break
-	        fi
-	done
-		if test -z "$PGSQL_incdir"; then
-	        AC_MSG_ERROR([Didn't find the PgSQL include dir in '$PGSQL_inc_check'])
-	fi
-	case "$PGSQL_incdir" in
-	  /* ) ;;
-	  * )  AC_MSG_ERROR([The PgSQL include directory ($PGSQL_incdir) must be an absolute path.]) ;;
-	esac
-	AC_SUBST(PGSQL_incdir)
-	AC_MSG_RESULT([$PGSQL_incdir])
+  AC_ARG_WITH([pgsql-lib],
+    AS_HELP_STRING([--with-pgsql-lib=<path>],
+      [directory path of PgSQL library installation]
+    ),
+    [PGSQL_lib_check="$withval/lib/pgsql $withval/pgsql $withval"]
+  )
+
+  AC_ARG_WITH([pgsql-includes],
+    AS_HELP_STRING([--with-pgsql-includes=<path>],
+      [directory path of PgSQL header installation]
+    ),
+    [PGSQL_inc_check="$withval/include/pgsql $withval/pgsql $withval"]i
+  )
+
+  AC_MSG_CHECKING([for PgSQL library directory])
+  PGSQL_libdir=
+  for m in $PGSQL_lib_check; do
+    if test -d "$m" && (test -f "$m/libpq.a" || test -f "$m/libpq.so"); then
+      PGSQL_libdir=$m
+      break
+    fi
+  done
+  if test -z "$PGSQL_libdir"; then
+    AC_MSG_ERROR([Did not find the pgsql library dir in '$PGSQL_lib_check'])
+  fi
+  case "$PGSQL_libdir" in
+    /usr/lib)
+      PGSQL_lib=""
+      ;;
+    /usr/lib64)
+      PGSQL_lib=""
+      ;;
+    /*)
+      PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir"
+      LDFLAGS="$PGSQL_lib $LDFLAGS"
+      ;;
+    *)
+      AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.])
+      ;;
+  esac
+
+  AC_SUBST(PGSQL_lib)
+  AC_MSG_RESULT([$PGSQL_libdir])
+  AC_MSG_CHECKING([for PgSQL include directory])
+  PGSQL_incdir=
+  for m in $PGSQL_inc_check; do
+    if test -d "$m" && test -f "$m/libpq-fe.h"; then
+      PGSQL_incdir=$m
+      break
+    fi
+  done
+  if test -z "$PGSQL_incdir"; then 
+    AC_MSG_ERROR([Did not find the PgSQL include dir in '$PGSQL_inc_check'])
+  fi
+  case "$PGSQL_incdir" in
+    /* )
+      ;;
+    * )
+      AC_MSG_ERROR([The PgSQL include directory ($PGSQL_incdir) must be an absolute path.])
+      ;;
+  esac
+  AC_SUBST(PGSQL_incdir)
+  AC_MSG_RESULT([$PGSQL_incdir])
 fi
 
 AM_CONDITIONAL(SQLITE3, test "$needsqlite3")
-if test "$needsqlite3"
-then
-	PKG_CHECK_MODULES(SQLITE3, $SQLITE3PC, HAVE_SQLITE3=yes, AC_MSG_ERROR([+Could not find sqlite3]))
-        AC_SUBST(SQLITE3_LIBS)
-        AC_SUBST(SQLITE3_CFLAGS)
-        AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
+if test "$needsqlite3"; then
+  PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
+    [HAVE_SQLITE3=yes],
+    [AC_MSG_ERROR([Could not find sqlite3])]
+  )
+  AC_SUBST(SQLITE3_LIBS)
+  AC_SUBST(SQLITE3_CFLAGS)
+  AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
 fi
 
-if test "$needcdb"
-then
-	PKG_CHECK_MODULES(CDB, libcdb, HAVE_CDB=yes, AC_MSG_ERROR([+Could not find libcdb/tinycdb]))
-        AC_SUBST(CDB_LIBS)
-        AC_SUBST(CDB_CFLAGS)
+if test "$needcdb"; then
+  PKG_CHECK_MODULES([CDB], [libcdb],
+    [HAVE_CDB=yes],
+    [AC_MSG_ERROR([Could not find libcdb/tinycdb])]
+  )
+  AC_SUBST(CDB_LIBS)
+  AC_SUBST(CDB_CFLAGS)
 fi
 
-for a in $modules
-do
-        moduledirs="$moduledirs ${a}backend"
+for a in $modules; do
+  moduledirs="$moduledirs ${a}backend"
 
-	for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`
-	do
-	        moduleobjects="$moduleobjects ../modules/${a}backend/$b"
-	done
-	modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
+  for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`; do
+    moduleobjects="$moduleobjects ../modules/${a}backend/$b"
+  done
+  modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
 
-	if test ${a} = "gpgsql"; then
-		LIBS="$LIBS $LIBCRYPT"
-	
-		case "$host_os" in
-		freebsd*)
-			;;
-		darwin*)
-			modulelibs="$modulelibs -lresolv"
-			;;
-		*)
-			modulelibs="$modulelibs -lresolv -lnsl"
-			;;
-		esac
-	fi
+  if test ${a} = "gpgsql"; then
+    LIBS="$LIBS $LIBCRYPT"
+
+    case "$host_os" in
+      freebsd*)
+        ;;
+      darwin*)
+        modulelibs="$modulelibs -lresolv"
+        ;;
+      *)
+        modulelibs="$modulelibs -lresolv -lnsl"
+        ;;
+    esac
+  fi
 done
 
-for a in $dynmodules
-do
-        moduledirs="$moduledirs ${a}backend"
+for a in $dynmodules; do
+  moduledirs="$moduledirs ${a}backend"
 done
 
 AC_SUBST(LIBS)
 
 export moduledirs moduleobjects modulelibs
 
-AC_CONFIG_FILES([Makefile modules/Makefile pdns/Makefile codedocs/Makefile \
-pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
-modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
-modules/geobackend/Makefile modules/opendbxbackend/Makefile \
-modules/pipebackend/Makefile modules/oraclebackend/Makefile \
-modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
-modules/gsqlite3backend/Makefile \
-modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
-modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
-modules/remotebackend/Makefile \
-modules/randombackend/Makefile])
+AC_CONFIG_FILES([
+  Makefile
+  modules/Makefile
+  pdns/Makefile
+  codedocs/Makefile
+  pdns/backends/Makefile
+  pdns/backends/bind/Makefile
+  pdns/pdns
+  modules/db2backend/Makefile
+  modules/geobackend/Makefile
+  modules/gmysqlbackend/Makefile
+  modules/goraclebackend/Makefile
+  modules/gpgsqlbackend/Makefile
+  modules/gsqlite3backend/Makefile
+  modules/ldapbackend/Makefile
+  modules/luabackend/Makefile
+  modules/mydnsbackend/Makefile
+  modules/opendbxbackend/Makefile
+  modules/oraclebackend/Makefile
+  modules/pipebackend/Makefile
+  modules/randombackend/Makefile
+  modules/remotebackend/Makefile
+  modules/tinydnsbackend/Makefile
+])
 AC_OUTPUT
