@@ -52,7 +52,7 @@ BOOST_SERIALIZATION([mt])
 PDNS_ENABLE_UNIT_TESTS
 
 dnl Allow user to require SQLite3
-AC_MSG_CHECKING(whether user requires sqlite3)
+AC_MSG_CHECKING([whether user requires sqlite3])
 AC_ARG_WITH([sqlite3],
   [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
   [WITH_SQLITE3=$withval],
@@ -68,7 +68,7 @@ if test "$WITH_SQLITE3" != "no"; then
 fi
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strcasestr)
+AC_CHECK_FUNCS([strcasestr])
 
 # Check for libdl
 LIBS="$LIBS -lz"
@@ -158,19 +158,22 @@ PDNS_ENABLE_BOTAN
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_REMOTEBACKEND_HTTP
 
-AC_MSG_CHECKING(whether we should build static binaries)
+AC_MSG_CHECKING([whether we should build static binaries])
 
-AC_ARG_ENABLE(static-binaries, AS_HELP_STRING([--enable-static-binaries],[Build static binaries]),
-     [case "${enableval}" in
-       yes) static=true ;;
-       no)  static=false ;;
-       *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
-     esac],[debug=false])
-AC_MSG_RESULT($static)
+AC_ARG_ENABLE([static-binaries],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries])],
+  [case "${enableval}" in
+    yes) static=true ;;
+    no)  static=false ;;
+    *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
+   esac],
+   [debug=false]
+)
+AC_MSG_RESULT([$static])
 
-AM_CONDITIONAL(ALLSTATIC, test x$static = xtrue)
+AM_CONDITIONAL([ALLSTATIC], [test "x$static" = "xtrue"])
 
-if test x$static = xtrue; then
+if test "x$static" = "xtrue"; then
   LDFLAGS="-all-static $LDFLAGS"
 fi
 
@@ -230,22 +233,17 @@ AM_CONDITIONAL([TOOLS],[test "x$enable_tools" = "xyes"])
 for a in $modules $dynmodules; do
   case "$a" in
     oracle|goracle)
+      PDNS_WITH_ORACLE
       needoracle=yes
       ;;
-    gmysql)
-      needmysql=yes
-      ;;
-    mydns)
-      needmysql=yes
+    mydns|gmysql|pdns)
+      PDNS_WITH_MYSQL
       ;;
     gpgsql)
-      needpgsql=yes
+      PDNS_WITH_POSTGRESQL
       ;;
     gsqlite3)
       needsqlite3=yes
-      ;;
-    pdns)
-      needmysql=yes
       ;;
     ldap)
       PDNS_CHECK_LDAP
@@ -254,25 +252,14 @@ for a in $modules $dynmodules; do
       PDNS_CHECK_OPENDBX
       ;;
     tinydns)
-      needcdb=yes
+      PDNS_CHECK_CDB
       ;;
   esac
 done
 
-AM_CONDITIONAL(ORACLE,test x"$needoracle" = "xyes")
-if test "$needoracle"; then
-  PDNS_WITH_ORACLE
-fi
+AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 
-if test "$needmysql"; then
-  PDNS_WITH_MYSQL
-fi
-
-if test "$needpgsql"; then
-  PDNS_WITH_POSTGRESQL
-fi
-
-AM_CONDITIONAL(SQLITE3, test "$needsqlite3")
+AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 if test "$needsqlite3"; then
   PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
     [HAVE_SQLITE3=yes],
@@ -281,10 +268,6 @@ if test "$needsqlite3"; then
   AC_SUBST(SQLITE3_LIBS)
   AC_SUBST(SQLITE3_CFLAGS)
   AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
-fi
-
-if test "$needcdb"; then
-  PDNS_CHECK_CDB
 fi
 
 for a in $modules; do
@@ -344,3 +327,4 @@ AC_CONFIG_FILES([
   modules/tinydnsbackend/Makefile
 ])
 AC_OUTPUT
+
