@@ -1,17 +1,22 @@
-dnl intro
+AC_PREREQ([2.61])
+
 dnl The following lines may be patched by set-version-auth.
 AC_INIT([pdns], [git])
 dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
 dnl End patch area.
+
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
-AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects])
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-AC_CANONICAL_HOST
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_AUX_DIR([build-aux])
+
+AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+AC_CANONICAL_HOST
 AC_C_BIGENDIAN
-AC_PREREQ([2.61])
 : ${CXXFLAGS="-Wall -O2"}
+
 AC_PROG_CC
 AC_PROG_CXX
 AM_PROG_CC_C_O
@@ -19,6 +24,7 @@ AC_PROG_YACC
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
+
 AC_LANG([C++])
 
 m4_ifndef([LT_INIT],[
@@ -27,6 +33,9 @@ AC_PROG_LIBTOOL
 LT_INIT
 ])
 
+AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
+
+
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG([0.22])
 
@@ -34,8 +43,6 @@ AC_CHECK_PROG([RAGEL], [ragel], [ragel])
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 PDNS_WITH_LUA
-
-AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
@@ -139,7 +146,6 @@ darwin11* | darwin12*)
 esac
 
 AC_SUBST(THREADFLAGS)
-
 AC_SUBST(DYNLINKFLAGS)
 
 PDNS_ENABLE_VERBOSE_LOGGING
@@ -164,59 +170,58 @@ if test x$static = xtrue; then
   LDFLAGS="-all-static $LDFLAGS"
 fi
 
-
-
 modules="gmysql geo random"
-AC_ARG_WITH(modules, AS_HELP_STRING([--with-modules],[which backends to compile with]),
-[
-        modules="$withval"
-])
+AC_ARG_WITH([modules],
+  [AS_HELP_STRING([--with-modules],[which backends to compile with])],
+  [modules="$withval"]
+)
 
 dynmodules="pipe"
-AC_ARG_WITH(dynmodules, AS_HELP_STRING([--with-dynmodules],[which backends to build for dynamic loading]),
-[
-        dynmodules="$withval"
-])
+AC_ARG_WITH([dynmodules],
+  [AS_HELP_STRING([--with-dynmodules],[which backends to build for dynamic loading])],
+  [dynmodules="$withval"]
+)
 
 AC_SUBST(socketdir)
 socketdir="/var/run"
-AC_ARG_WITH(socketdir, AS_HELP_STRING([--with-socketdir],[where the controlsocket lives]),
-[
-        socketdir="$withval"
-])
+AC_ARG_WITH([socketdir],
+  [AS_HELP_STRING([--with-socketdir],[where the controlsocket lives])],
+  [socketdir="$withval"]
+)
 
 AC_SUBST(moduledirs)
 AC_SUBST(moduleobjects)
 AC_SUBST(modulelibs)
-AC_DEFINE_UNQUOTED(PDNS_MODULES,"$modules", [Built-in modules])
+AC_DEFINE_UNQUOTED([PDNS_MODULES],"$modules", [Built-in modules])
 
-AC_MSG_CHECKING(whether we will be building the server)
-AC_ARG_ENABLE(pdns-server,
-  AS_HELP_STRING([--enable-pdns_server],[if we should build the server]),
+AC_MSG_CHECKING([whether we will be building the server])
+AC_ARG_ENABLE([pdns-server],
+  [AS_HELP_STRING([--enable-pdns_server],[if we should build the server])],
   [enable_pdns_server=$enableval],
-  [enable_pdns_server=yes])
+  [enable_pdns_server=yes]
+)
+AC_MSG_RESULT([$enable_pdns_server])
 
-AC_MSG_RESULT($enable_pdns_server)
-
-if test x"$enable_pdns_server" = "xyes"; then
-  programdescend=pdns
-fi
+AS_IF([test "x$enable_pdns_server" = "xyes"],
+  [programdescend=pdns]
+)
 
 AC_SUBST(programdescend)
 
-AC_ARG_ENABLE(gcc-skip-locking,
-  AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking]),
-  AC_DEFINE(GCC_SKIP_LOCKING,,[Skip gcc locking]),
+AC_ARG_ENABLE([gcc-skip-locking],
+  [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking])],
+  [AC_DEFINE(GCC_SKIP_LOCKING,[],[Skip gcc locking])],
 )
 
-AC_MSG_CHECKING(whether we will be building and installing the extra tools)
-AC_ARG_ENABLE(tools,
-  AS_HELP_STRING([--enable-tools],[if we should build+install the tools]),
-  enable_tools=$enableval,
-  enable_tools=no )
+AC_MSG_CHECKING([whether we will be building and installing the extra tools])
+AC_ARG_ENABLE([tools],
+  [AS_HELP_STRING([--enable-tools],[if we should build and install the tools])],
+  [enable_tools=$enableval],
+  [enable_tools=no]
+)
 
-AC_MSG_RESULT($enable_tools)
-AM_CONDITIONAL(TOOLS,test x"$enable_tools" = "xyes")
+AC_MSG_RESULT([$enable_tools])
+AM_CONDITIONAL([TOOLS],[test "x$enable_tools" = "xyes"])
 
 for a in $modules $dynmodules; do
   case "$a" in
@@ -244,15 +249,16 @@ for a in $modules $dynmodules; do
     opendbx)
       AC_CHECK_HEADERS([odbx.h], , [AC_MSG_ERROR([opendbx header (odbx.h) not found])])
       AC_SUBST([LIBOPENDBX])
-      AC_CHECK_LIB(
-        [opendbx], [odbx_init],
-        [AC_DEFINE([HAVE_LIBOPENDBX], 1, [Have -lopendbx]) LIBOPENDBX="opendbx"]
+      AC_CHECK_LIB([opendbx], [odbx_init],
+        [AC_DEFINE([HAVE_LIBOPENDBX], [], [Have -lopendbx])
+         LIBOPENDBX="opendbx"
+        ]
       )
       ;;
     tinydns)
       needcdb=yes
       ;;
- esac
+  esac
 done
 
 AM_CONDITIONAL(ORACLE,test x"$needoracle" = "xyes")
@@ -306,7 +312,6 @@ if test "$needoracle"; then
   fi
 
   # we have to check for client9 as well...
-
   # test -lclntsh
   old_LDFLAGS="$LDFLAGS"
   LDFLAGS="-L$with_oracle_libs -lnnz11 -locci"
@@ -323,8 +328,6 @@ fi
 if test "$needmysql"; then
   PDNS_WITH_MYSQL
 fi
-
-
 
 if test "$needpgsql"; then
   AC_ARG_WITH([pgsql],
