@@ -225,7 +225,7 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
     content += returnJSONObject(stats);  
   }
   else if(command == "log-grep") {
-    content += makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns_recursor[");
+    content += makeLogGrepJSON(varmap["needle"], ::arg()["experimental-logfile"], " pdns_recursor[");
   }
   else { //  if(command == "stats") {
     stats = getAllStatsMap();

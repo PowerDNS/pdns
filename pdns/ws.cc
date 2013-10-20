@@ -366,6 +366,72 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
   return getZone(zonename);
 }
 
+static string apiServerConfig(HttpRequest* req) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  vector<string> items = ::arg().list();
+  Document doc;
+  doc.SetArray();
+  BOOST_FOREACH(const string& var, items) {
+    Value kv, key, value;
+    kv.SetArray();
+    key.SetString(var.c_str(), var.length());
+    kv.PushBack(key, doc.GetAllocator());
+
+    if(var.find("password") != string::npos)
+      value="*****";
+    else
+      value.SetString(::arg()[var].c_str(), ::arg()[var].length(), doc.GetAllocator());
+
+    kv.PushBack(value, doc.GetAllocator());
+    doc.PushBack(kv, doc.GetAllocator());
+  }
+  return makeStringFromDocument(doc);
+}
+
+static string apiServerSearchLog(HttpRequest* req) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  return makeLogGrepJSON(req->queryArgs["q"], ::arg()["experimental-logfile"], " pdns[");
+}
+
+static string apiServerZones(HttpRequest* req) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  UeberBackend B;
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains);
+
+  Document doc;
+  doc.SetObject();
+
+  Value jdomains;
+  jdomains.SetArray();
+
+  BOOST_FOREACH(const DomainInfo& di, domains) {
+    Value jdi;
+    jdi.SetObject();
+    jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
+    jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
+    Value masters;
+    masters.SetArray();
+    BOOST_FOREACH(const string& master, di.masters) {
+      Value value(master.c_str(), doc.GetAllocator());
+      masters.PushBack(value, doc.GetAllocator());
+    }
+    jdi.AddMember("masters", masters, doc.GetAllocator());
+    jdi.AddMember("serial", di.serial, doc.GetAllocator());
+    jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
+    jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
+    jdomains.PushBack(jdi, doc.GetAllocator());
+  }
+  doc.AddMember("domains", jdomains, doc.GetAllocator());
+  return makeStringFromDocument(doc);
+}
+
 static string jsonDispatch(HttpRequest* req, const string& command) {
   if(command=="get") {
     if(req->queryArgs.empty()) {
@@ -398,24 +464,7 @@ static string jsonDispatch(HttpRequest* req, const string& command) {
     return makeStringFromDocument(doc);
   }
   else if(command=="config") {
-    vector<string> items = ::arg().list();
-    Document doc;
-    doc.SetArray();
-    BOOST_FOREACH(const string& var, items) {
-      Value kv, key, value;
-      kv.SetArray();
-      key.SetString(var.c_str(), var.length());
-      kv.PushBack(key, doc.GetAllocator());
-      
-      if(var.find("password") != string::npos)
-        value="*****";
-      else 
-        value.SetString(::arg()[var].c_str(), ::arg()[var].length(), doc.GetAllocator());
-      
-      kv.PushBack(value, doc.GetAllocator());
-      doc.PushBack(kv, doc.GetAllocator());
-    }
-    return makeStringFromDocument(doc);
+    return apiServerConfig(req);
   }
   else if(command == "flush-cache") {
     extern PacketCache PC;
@@ -565,45 +614,16 @@ static string jsonDispatch(HttpRequest* req, const string& command) {
     }
   }
   else if(command=="log-grep") {
-    return makeLogGrepJSON(req->queryArgs, ::arg()["experimental-logfile"], " pdns[");
+    return makeLogGrepJSON(req->queryArgs["needle"], ::arg()["experimental-logfile"], " pdns[");
   }
   else if(command=="domains") {
-    UeberBackend B;
-    vector<DomainInfo> domains;
-    B.getAllDomains(&domains);
-    
-    Document doc;
-    doc.SetObject();
-    
-    Value jdomains;
-    jdomains.SetArray();
-    
-    BOOST_FOREACH(const DomainInfo& di, domains) {
-      Value jdi;
-      jdi.SetObject();
-      jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
-      jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
-      Value masters;
-      masters.SetArray();
-      BOOST_FOREACH(const string& master, di.masters) {
-        Value value(master.c_str(), doc.GetAllocator());
-        masters.PushBack(value, doc.GetAllocator());
-      }
-      jdi.AddMember("masters", masters, doc.GetAllocator());
-      jdi.AddMember("serial", di.serial, doc.GetAllocator());
-      jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
-      jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
-      jdomains.PushBack(jdi, doc.GetAllocator());
-    }
-    doc.AddMember("domains", jdomains, doc.GetAllocator());
-    return makeStringFromDocument(doc);
+    return apiServerZones(req);
   }
 
   return returnJSONError("No or unknown command given");
 }
 
-string StatWebServer::jsonstat(HttpRequest* req, bool *custom)
-{
+static string apiWrapper(boost::function<string(HttpRequest*)> handler, HttpRequest* req, bool *custom) {
   *custom=1; // indicates we build the response
   string ret="HTTP/1.1 200 OK\r\n"
   "Server: PowerDNS/"VERSION"\r\n"
@@ -613,28 +633,40 @@ string StatWebServer::jsonstat(HttpRequest* req, bool *custom)
   "\r\n" ;
 
   string callback;
-  string command;
 
   if(req->queryArgs.count("callback")) {
     callback=req->queryArgs["callback"];
     req->queryArgs.erase("callback");
   }
   
-  if(req->queryArgs.count("command")) {
-    command=req->queryArgs["command"];
-    req->queryArgs.erase("command");
-  }
+  req->queryArgs.erase("_"); // jQuery cache buster
 
-  req->queryArgs.erase("_");
   if(!callback.empty())
       ret += callback+"(";
 
-  ret += jsonDispatch(req, command);
+  ret += handler(req);
 
   if(!callback.empty()) {
     ret += ");";
   }
   return ret;
+}
+
+void StatWebServer::registerApiHandler(const string& url, boost::function<string(HttpRequest*)> handler) {
+  WebServer::HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
+  d_ws->registerHandler(url, f);
+}
+
+string StatWebServer::jsonstat(HttpRequest* req)
+{
+  string command;
+
+  if(req->queryArgs.count("command")) {
+    command=req->queryArgs["command"];
+    req->queryArgs.erase("command");
+  }
+
+  return jsonDispatch(req, command);
 }
 
 string StatWebServer::cssfunction(HttpRequest* req, bool *custom)
@@ -682,8 +714,13 @@ void StatWebServer::launch()
   try {
     d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
     d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
-    if(::arg().mustDo("experimental-json-interface"))
-      d_ws->registerHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
+    if(::arg().mustDo("experimental-json-interface")) {
+      registerApiHandler("/servers/localhost/config", &apiServerConfig);
+      registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+      registerApiHandler("/servers/localhost/zones", &apiServerZones);
+      // legacy dispatch
+      registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1));
+    }
     d_ws->go();
   }
   catch(...) {

@@ -27,5 +27,5 @@
 
 std::string returnJSONObject(const std::map<std::string, std::string>& items);
 std::string returnJSONError(const std::string& error);
-std::string makeLogGrepJSON(std::map<std::string, std::string>& varmap, const std::string& fname, const std::string& prefix="");
+std::string makeLogGrepJSON(const std::string& q, const std::string& fname, const std::string& prefix="");
 std::string makeStringFromDocument(const rapidjson::Document& doc);

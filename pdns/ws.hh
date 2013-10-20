@@ -84,12 +84,14 @@ public:
   StatWebServer();
   void go();
   static string makePercentage(const double& val);
+
 private:
   static void *threadHelper(void *);
   static void *statThreadHelper(void *p);
   string indexfunction(HttpRequest* req, bool *custom);
   string cssfunction(HttpRequest* req, bool *custom);
-  string jsonstat(HttpRequest* req, bool *custom);
+  string jsonstat(HttpRequest* req);
+  void registerApiHandler(const string& url, boost::function<string(HttpRequest*)> handler);
   void printvars(ostringstream &ret);
   void printargs(ostringstream &ret);
   void launch();

@@ -85,7 +85,7 @@ string returnJSONError(const string& error)
   return makeStringFromDocument(doc);
 }
 
-string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const string& prefix)
+string makeLogGrepJSON(const string& q, const string& fname, const string& prefix)
 {
   FILE* ptr = fopen(fname.c_str(), "r");
   if(!ptr) {
@@ -94,7 +94,7 @@ string makeLogGrepJSON(map<string, string>& varmap, const string& fname, const s
   boost::shared_ptr<FILE> fp(ptr, fclose);
 
   string line;
-  string needle=varmap["needle"];
+  string needle = q;
   trim_right(needle);
 
   boost::replace_all(needle, "%20", " ");  
