@@ -51,7 +51,7 @@ public:
     bool getDomainInfo(const string &domain, DomainInfo &di);
     bool isMaster(const string &name, const string &ip);
     void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-    void setFresh(int id);
+    void setFresh(uint32_t id);
 
     bool startTransaction(const string &qname, int id);
     bool commitTransaction();

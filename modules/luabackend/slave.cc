@@ -31,7 +31,7 @@
    virtual bool getDomainInfo(const string &domain, DomainInfo &di);
    virtual bool isMaster(const string &name, const string &ip);
    virtual void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-   virtual void setFresh(int id);
+   virtual void setFresh(uint32_t id);
 */
 
 bool LUABackend::startTransaction(const string &qname, int id) {
@@ -161,7 +161,7 @@ bool LUABackend::feedRecord(const DNSResourceRecord &rr) {
     return ok;
 }
 
-void LUABackend::setFresh(int id) {
+void LUABackend::setFresh(uint32_t id) {
     
     if (f_lua_setfresh == 0)
         return;
