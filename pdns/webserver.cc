@@ -50,7 +50,7 @@ int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 //   registerHandler("/", &index);
 //   registerHandler("/foo", &foo);
 //   registerHandler("/foo/<bar>/<baz>", &foobarbaz);
-void WebServer::registerHandler(const string& url, HandlerFunction *handler)
+void WebServer::registerHandler(const string& url, HandlerFunction handler)
 {
   std::size_t pos = 0, lastpos = 0;
 
@@ -112,16 +112,11 @@ bool WebServer::route(const std::string& url, std::map<std::string, std::string>
         continue;
       }
 
-      *handler = reg->handler;
+      *handler = &reg->handler;
       return true;
     }
   }
   return false;
-}
-
-void WebServer::setCaller(void *that)
-{
-  d_that=that;
 }
 
 static void *WebServerConnectionThreadStart(void *p) {
@@ -238,7 +233,7 @@ try {
     map<string, string> urlArgs;
     if (route(baseUrl, urlArgs, &handler)) {
       bool custom=false;
-      string ret=(*handler)(method, post, varmap, d_that, &custom);
+      string ret=(*handler)(method, post, varmap, &custom);
 
       if(!custom) {
         client->putLine("HTTP/1.1 200 OK\n");

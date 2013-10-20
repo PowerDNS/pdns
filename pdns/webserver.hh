@@ -86,16 +86,14 @@ public:
 
   void serveConnection(Session* client);
 
-  void setCaller(void *that);
-
-  typedef string HandlerFunction(const string& method, const string& post, const map<string,string>&varmap, void *that, bool *custom);
+  typedef boost::function<string(const string& method, const string& post, const map<string,string>&varmap, bool *custom)> HandlerFunction;
   struct HandlerRegistration {
     std::list<string> urlParts;
     std::list<string> paramNames;
-    HandlerFunction *handler;
+    HandlerFunction handler;
   };
 
-  void registerHandler(const string& url, HandlerFunction *handler);
+  void registerHandler(const string& url, HandlerFunction handler);
 
 private:
   static char B64Decode1(char cInChar);
@@ -105,7 +103,6 @@ private:
   string d_listenaddress;
   int d_port;
   std::list<HandlerRegistration> d_handlers;
-  void* d_that;
   string d_password;
   Server* d_server;
 };

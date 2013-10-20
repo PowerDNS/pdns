@@ -186,9 +186,8 @@ string StatWebServer::makePercentage(const double& val)
   return (boost::format("%.01f%%") % val).str();
 }
 
-string StatWebServer::indexfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
+string StatWebServer::indexfunction(const string& method, const string& post, const map<string,string> &varmap, bool *custom)
 {
-  StatWebServer *sws=static_cast<StatWebServer *>(ptr);
   map<string,string>rvarmap=varmap;
   if(!rvarmap["resetring"].empty()){
     *custom=true;
@@ -226,29 +225,29 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     "<br>"<<endl;
 
   ret<<"Queries/second, 1, 5, 10 minute averages:  "<<std::setprecision(3)<<
-    sws->d_queries.get1()<<", "<<
-    sws->d_queries.get5()<<", "<<
-    sws->d_queries.get10()<<". Max queries/second: "<<sws->d_queries.getMax()<<
+    d_queries.get1()<<", "<<
+    d_queries.get5()<<", "<<
+    d_queries.get10()<<". Max queries/second: "<<d_queries.getMax()<<
     "<br>"<<endl;
   
-  if(sws->d_cachemisses.get10()+sws->d_cachehits.get10()>0)
+  if(d_cachemisses.get10()+d_cachehits.get10()>0)
     ret<<"Cache hitrate, 1, 5, 10 minute averages: "<<
-      makePercentage((sws->d_cachehits.get1()*100.0)/((sws->d_cachehits.get1())+(sws->d_cachemisses.get1())))<<", "<<
-      makePercentage((sws->d_cachehits.get5()*100.0)/((sws->d_cachehits.get5())+(sws->d_cachemisses.get5())))<<", "<<
-      makePercentage((sws->d_cachehits.get10()*100.0)/((sws->d_cachehits.get10())+(sws->d_cachemisses.get10())))<<
+      makePercentage((d_cachehits.get1()*100.0)/((d_cachehits.get1())+(d_cachemisses.get1())))<<", "<<
+      makePercentage((d_cachehits.get5()*100.0)/((d_cachehits.get5())+(d_cachemisses.get5())))<<", "<<
+      makePercentage((d_cachehits.get10()*100.0)/((d_cachehits.get10())+(d_cachemisses.get10())))<<
       "<br>"<<endl;
 
-  if(sws->d_qcachemisses.get10()+sws->d_qcachehits.get10()>0)
+  if(d_qcachemisses.get10()+d_qcachehits.get10()>0)
     ret<<"Backend query cache hitrate, 1, 5, 10 minute averages: "<<std::setprecision(2)<<
-      makePercentage((sws->d_qcachehits.get1()*100.0)/((sws->d_qcachehits.get1())+(sws->d_qcachemisses.get1())))<<", "<<
-      makePercentage((sws->d_qcachehits.get5()*100.0)/((sws->d_qcachehits.get5())+(sws->d_qcachemisses.get5())))<<", "<<
-      makePercentage((sws->d_qcachehits.get10()*100.0)/((sws->d_qcachehits.get10())+(sws->d_qcachemisses.get10())))<<
+      makePercentage((d_qcachehits.get1()*100.0)/((d_qcachehits.get1())+(d_qcachemisses.get1())))<<", "<<
+      makePercentage((d_qcachehits.get5()*100.0)/((d_qcachehits.get5())+(d_qcachemisses.get5())))<<", "<<
+      makePercentage((d_qcachehits.get10()*100.0)/((d_qcachehits.get10())+(d_qcachemisses.get10())))<<
       "<br>"<<endl;
 
   ret<<"Backend query load, 1, 5, 10 minute averages: "<<std::setprecision(3)<<
-    sws->d_qcachemisses.get1()<<", "<<
-    sws->d_qcachemisses.get5()<<", "<<
-    sws->d_qcachemisses.get10()<<". Max queries/second: "<<sws->d_qcachemisses.getMax()<<
+    d_qcachemisses.get1()<<", "<<
+    d_qcachemisses.get5()<<", "<<
+    d_qcachemisses.get10()<<". Max queries/second: "<<d_qcachemisses.getMax()<<
     "<br>"<<endl;
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
@@ -257,9 +256,9 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
       printtable(ret,*i,S.getRingTitle(*i));
 
-    sws->printvars(ret);
+    printvars(ret);
     if(arg().mustDo("webserver-print-arguments"))
-      sws->printargs(ret);
+      printargs(ret);
   }
   else
     printtable(ret,rvarmap["ring"],S.getRingTitle(rvarmap["ring"]),100);
@@ -604,7 +603,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
   return returnJSONError("No or unknown command given");
 }
 
-string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
+string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, bool *custom)
 {
   *custom=1; // indicates we build the response
   string ret="HTTP/1.1 200 OK\r\n"
@@ -640,7 +639,7 @@ string StatWebServer::jsonstat(const string& method, const string& post, const m
   return ret;
 }
 
-string StatWebServer::cssfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
+string StatWebServer::cssfunction(const string& method, const string& post, const map<string,string> &varmap, bool *custom)
 {
   *custom=1; // indicates we build the response
   ostringstream ret;
@@ -683,11 +682,10 @@ string StatWebServer::cssfunction(const string& method, const string& post, cons
 void StatWebServer::launch()
 {
   try {
-    d_ws->setCaller(this);
-    d_ws->registerHandler("/",&indexfunction);
-    d_ws->registerHandler("/style.css",&cssfunction);
+    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2, _3, _4));
+    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2, _3, _4));
     if(::arg().mustDo("experimental-json-interface"))
-      d_ws->registerHandler("/jsonstat", &jsonstat);
+      d_ws->registerHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2, _3, _4));
     d_ws->go();
   }
   catch(...) {
