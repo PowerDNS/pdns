@@ -22386,7 +22386,7 @@ static RandomLoader randomloader;
 	   virtual bool startTransaction(const string &amp;qname, int id);
 	   virtual bool commitTransaction();
 	   virtual bool abortTransaction();
-	   virtual bool feedRecord(const DNSResourceRecord &amp;rr);
+	   virtual bool feedRecord(const DNSResourceRecord &amp;rr, string *ordername=0);
 	   virtual void getUnfreshSlaveInfos(vector&lt;DomainInfo&gt;* domains);
 	   virtual void setFresh(uint32_t id);
            /* ... */
@@ -22467,7 +22467,7 @@ static RandomLoader randomloader;
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>bool feedRecord(const DNSResourceRecord &amp;rr)</term>
+	    <term>bool feedRecord(const DNSResourceRecord &amp;rr, string *ordername)</term>
 	    <listitem>
 	      <para>
 		Insert this record.
@@ -22613,7 +22613,7 @@ public:
   virtual bool startTransaction(const string &amp;qname, int id);
   virtual bool commitTransaction();
   virtual bool abortTransaction();
-  virtual bool feedRecord(const DNSResourceRecord &amp;rr);
+  virtual bool feedRecord(const DNSResourceRecord &amp;rr, string *ordername);
   virtual bool replaceRRSet(uint32_t domain_id, const string&amp; qname, const QType&amp; qt, const vector&lt;DNSResourceRecord&gt;&amp; rrset)
   virtual bool listSubZone(const string &amp;zone, int domain_id);
   /* ... */
@@ -22647,7 +22647,7 @@ public:
 	    </listitem>
 	  </varlistentry>
           <varlistentry>
-	    <term>virtual bool feedRecord(const DNSResourceRecord &amp;rr);</term>
+	    <term>virtual bool feedRecord(const DNSResourceRecord &amp;rr, string *ordername);</term>
 	    <listitem>
 	      <para>See <xref linkend="rw-backends" />. Please keep in mind that the zone is not empty because <function>startTransaction()</function> was called different.</para>
 	    </listitem>

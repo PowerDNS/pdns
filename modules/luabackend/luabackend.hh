@@ -56,7 +56,7 @@ public:
     bool startTransaction(const string &qname, int id);
     bool commitTransaction();
     bool abortTransaction();
-    bool feedRecord(const DNSResourceRecord &rr);
+    bool feedRecord(const DNSResourceRecord &rr, string *ordername=0);
 
 
 //  SUPERMASTER BACKEND
