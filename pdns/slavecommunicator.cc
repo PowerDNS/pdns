@@ -144,11 +144,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         return;
       }
     } else {
-		  laddr.sin4.sin_family = 0;
+                  laddr.sin4.sin_family = 0;
     }
 
     AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret,
-		(laddr.sin4.sin_family == 0) ? NULL : &laddr);
+                (laddr.sin4.sin_family == 0) ? NULL : &laddr);
 
     bool gotPresigned = false;
     bool gotNSEC3 = false;
@@ -567,8 +567,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     DomainInfo& di(val.di);
     // might've come from the packethandler
     if(!di.backend && !B->getDomainInfo(di.zone, di)) {
-	L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
-	continue;
+        L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
+        continue;
     }
       
     if(!ssr.d_freshness.count(di.id)) 

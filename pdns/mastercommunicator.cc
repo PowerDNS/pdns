@@ -179,8 +179,8 @@ time_t CommunicatorClass::doNotifications()
         if((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) ||
            (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET))
              continue; // don't try to notify what we can't!
-	if(d_preventSelfNotification && AddressIsUs(remote))
-	  continue;
+        if(d_preventSelfNotification && AddressIsUs(remote))
+          continue;
 
         sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id); 
         drillHole(domain, ip);

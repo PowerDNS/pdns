@@ -244,7 +244,7 @@ int PacketCache::purge(const string &match)
 
     for(; iter != d_map.end(); ++iter) {
       if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
-        //	cerr<<"Stopping!"<<endl;
+        //        cerr<<"Stopping!"<<endl;
         break;
       }
       delcount++;

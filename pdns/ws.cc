@@ -528,7 +528,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
         }
         catch(std::exception& e) 
         {
-	  return returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
+          return returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
         }
       }
       // but now what
@@ -557,9 +557,9 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       UeberBackend B;
       DomainInfo di;
       if(!B.getDomainInfo(zonename, di))
-	return returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
+        return returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
       if(!di.backend->deleteDomain(zonename))
-	return returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
+        return returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
       map<string, string> success; // empty success object
       return returnJSONObject(success);
     } else {
@@ -684,10 +684,10 @@ void StatWebServer::launch()
 {
   try {
     d_ws->setCaller(this);
-    d_ws->registerHandler("",&indexfunction);
-    d_ws->registerHandler("style.css",&cssfunction);
+    d_ws->registerHandler("/",&indexfunction);
+    d_ws->registerHandler("/style.css",&cssfunction);
     if(::arg().mustDo("experimental-json-interface"))
-      d_ws->registerHandler("jsonstat", &jsonstat);
+      d_ws->registerHandler("/jsonstat", &jsonstat);
     d_ws->go();
   }
   catch(...) {

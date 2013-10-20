@@ -358,33 +358,33 @@ bool DNSSECKeeper::secureZone(const std::string& name, int algorithm, int size)
 }
 
 bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, 
-	const std::string& wildcardname, const QType& qtype, 
-	DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
+        const std::string& wildcardname, const QType& qtype, 
+        DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
-	SOAData sd;
-	sd.db=(DNSBackend *)-1; // force uncached answer
-	if(!db.getSOA(signer, sd)) {
-		DLOG(L<<"Could not get SOA for domain"<<endl);
-		return false;
-	}
-	db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname, NULL, sd.domain_id);
-	DNSResourceRecord rr;
-	while(db.get(rr)) { 
-		// cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
-		vector<string> parts;
-		stringtok(parts, rr.content);
-		if(parts[0] == qtype.getName() && pdns_iequals(parts[7], signer+".")) {
-			// cerr<<"Got it"<<endl;
-			if (!wildcardname.empty())
-				rr.qname = qname;
-			rr.d_place = (DNSResourceRecord::Place)signPlace;
-			rr.ttl = signTTL;
-			rrsigs.push_back(rr);
-		}
-		else ; // cerr<<"Skipping!"<<endl;
-	}
-	return true;
+        SOAData sd;
+        sd.db=(DNSBackend *)-1; // force uncached answer
+        if(!db.getSOA(signer, sd)) {
+                DLOG(L<<"Could not get SOA for domain"<<endl);
+                return false;
+        }
+        db.lookup(QType(QType::RRSIG), wildcardname.empty() ? qname : wildcardname, NULL, sd.domain_id);
+        DNSResourceRecord rr;
+        while(db.get(rr)) { 
+                // cerr<<"Considering for '"<<qtype.getName()<<"' RRSIG '"<<rr.content<<"'\n";
+                vector<string> parts;
+                stringtok(parts, rr.content);
+                if(parts[0] == qtype.getName() && pdns_iequals(parts[7], signer+".")) {
+                        // cerr<<"Got it"<<endl;
+                        if (!wildcardname.empty())
+                                rr.qname = qname;
+                        rr.d_place = (DNSResourceRecord::Place)signPlace;
+                        rr.ttl = signTTL;
+                        rrsigs.push_back(rr);
+                }
+                else ; // cerr<<"Skipping!"<<endl;
+        }
+        return true;
 }
 
 bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm)

@@ -151,7 +151,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, 
 }
 
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, 
-        				       PacketReader& pr)
+                                               PacketReader& pr)
 {
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
@@ -164,7 +164,7 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr,
 }
 
 DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
-        				       const string& content)
+                                               const string& content)
 {
   zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
   if(i==getZmakermap().end()) {
@@ -285,7 +285,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 #if 0    
     if(pr.d_pos!=contentlen) {
       throw MOADNSException("Packet ("+d_qname+"|#"+lexical_cast<string>(d_qtype)+") has trailing garbage ("+ lexical_cast<string>(pr.d_pos) + " < " + 
-        		    lexical_cast<string>(contentlen) + ")");
+                            lexical_cast<string>(contentlen) + ")");
     }
 #endif 
   }
@@ -303,8 +303,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     }
     else {
       throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes (rd="+
-        		    lexical_cast<string>(d_header.rd)+
-        		    "), out of bounds: "+string(re.what()));
+                            lexical_cast<string>(d_header.rd)+
+                            "), out of bounds: "+string(re.what()));
     }
   }
 }
@@ -570,8 +570,8 @@ public:
     uint8_t len; 
     while((len=get8BitInt())) { 
       if(len >= 0xc0) { // extended label
-	get8BitInt();
-	return;
+        get8BitInt();
+        return;
       }
       skipBytes(len);
     }
@@ -653,7 +653,7 @@ void ageDNSPacket(std::string& packet, uint32_t seconds)
       /* uint16_t dnsclass = */ dpm.get16BitInt();
       
       if(dnstype == QType::OPT) // not aging that one with a stick
-	break;
+        break;
       
       dpm.decreaseAndSkip32BitInt(seconds);
       dpm.skipRData();

@@ -30,19 +30,93 @@
 #include "base64.hh"
 #include "json.hh"
 
-
-map<string,WebServer::HandlerFunction *>WebServer::d_functions;
-void *WebServer::d_that;
-string WebServer::d_password;
+struct connectionThreadData {
+  WebServer* webServer;
+  Session* client;
+};
 
 int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 {
   return ::B64Decode(strInput, strOutput);
 }
 
-void WebServer::registerHandler(const string&s, HandlerFunction *ptr)
+// url is supposed to start with a slash.
+// url can contain variable names, marked as <variable>; such variables
+// are parsed out during routing and are put into the "urlArgs" map.
+// route() makes no assumptions about the contents of variables except
+// that the following URL segment can't be part of the variable.
+//
+// Examples:
+//   registerHandler("/", &index);
+//   registerHandler("/foo", &foo);
+//   registerHandler("/foo/<bar>/<baz>", &foobarbaz);
+void WebServer::registerHandler(const string& url, HandlerFunction *handler)
 {
-  d_functions[s]=ptr;
+  std::size_t pos = 0, lastpos = 0;
+
+  HandlerRegistration reg;
+  while ((pos = url.find('<', lastpos)) != std::string::npos) {
+    std::string part = url.substr(lastpos, pos-lastpos);
+    lastpos = pos;
+    pos = url.find('>', pos);
+
+    if (pos == std::string::npos) {
+      throw std::logic_error("invalid url given");
+    }
+
+    std::string paramName = url.substr(lastpos+1, pos-lastpos-1);
+    lastpos = pos+1;
+
+    reg.urlParts.push_back(part);
+    reg.paramNames.push_back(paramName);
+  }
+  std::string remainder = url.substr(lastpos);
+  if (!remainder.empty()) {
+    reg.urlParts.push_back(remainder);
+    reg.paramNames.push_back("");
+  }
+  reg.handler = handler;
+  d_handlers.push_back(reg);
+}
+
+bool WebServer::route(const std::string& url, std::map<std::string, std::string>& urlArgs, HandlerFunction** handler)
+{
+  for (std::list<HandlerRegistration>::iterator reg=d_handlers.begin(); reg != d_handlers.end(); ++reg) {
+    bool matches = true;
+    size_t lastpos = 0, pos = 0;
+    string lastParam;
+    urlArgs.clear();
+    for (std::list<string>::iterator urlPart = reg->urlParts.begin(), param = reg->paramNames.begin();
+         urlPart != reg->urlParts.end() && param != reg->paramNames.end();
+         urlPart++, param++) {
+      if (!urlPart->empty()) {
+        pos = url.find(*urlPart, lastpos);
+        if (pos == std::string::npos) {
+          matches = false;
+          break;
+        }
+        if (!lastParam.empty()) {
+          // store
+          urlArgs[lastParam] = url.substr(lastpos, pos-lastpos);
+        }
+        lastpos = pos + urlPart->size();
+        lastParam = *param;
+      }
+    }
+    if (matches) {
+      if (!lastParam.empty()) {
+        // store trailing parameter
+        urlArgs[lastParam] = url.substr(lastpos, pos-lastpos);
+      } else if (lastpos != url.size()) {
+        matches = false;
+        continue;
+      }
+
+      *handler = reg->handler;
+      return true;
+    }
+  }
+  return false;
 }
 
 void WebServer::setCaller(void *that)
@@ -50,10 +124,16 @@ void WebServer::setCaller(void *that)
   d_that=that;
 }
 
-void *WebServer::serveConnection(void *p)
-try {
+static void *WebServerConnectionThreadStart(void *p) {
+  connectionThreadData* data = static_cast<connectionThreadData*>(p);
   pthread_detach(pthread_self());
-  Session *client=static_cast<Session *>(p);
+  data->webServer->serveConnection(data->client);
+  delete data;
+  return NULL;
+}
+
+void WebServer::serveConnection(Session* client)
+try {
   bool want_html=false;
   bool want_json=false;
 
@@ -75,23 +155,12 @@ try {
       uri=parts[1];
     }
 
-    vector<string>variables;
-
     parts.clear();
     stringtok(parts,uri,"?");
 
-    //    L<<"baseUrl: '"<<parts[0]<<"'"<<endl;
-    
-    vector<string>urlParts;
-    stringtok(urlParts,parts[0],"/");
-    string baseUrl;
-    if(urlParts.empty())
-      baseUrl="";
-    else
-      baseUrl=urlParts[0];
+    string baseUrl=parts[0];
 
-    //    L<<"baseUrl real: '"<<baseUrl<<"'"<<endl;
-
+    vector<string>variables;
     if(parts.size()>1) {
       stringtok(variables,parts[1],"&");
     }
@@ -118,11 +187,11 @@ try {
       stripLine(line);
 
       if(line.empty())
-	break;
+        break;
 
       size_t colon = line.find(":");
       if(colon==std::string::npos)
-	throw HttpBadRequestException();
+        throw HttpBadRequestException();
 
       string header = toLower(line.substr(0, colon));
       string value = line.substr(line.find_first_not_of(' ', colon+1));
@@ -140,19 +209,19 @@ try {
         }
       }
       else if(header == "content-length" && method=="POST") {
-	postlen = atoi(value.c_str());
-//	cout<<"Got a post: "<<postlen<<" bytes"<<endl;
+        postlen = atoi(value.c_str());
+//        cout<<"Got a post: "<<postlen<<" bytes"<<endl;
       }
       else if(header == "accept") {
-	// json wins over html
-	if(value.find("application/json")!=std::string::npos) {
-	  want_json=true;
-	} else if(value.find("text/html")!=std::string::npos) {
-	  want_html=true;
-	}
+        // json wins over html
+        if(value.find("application/json")!=std::string::npos) {
+          want_json=true;
+        } else if(value.find("text/html")!=std::string::npos) {
+          want_html=true;
+        }
       }
       else
-	; // cerr<<"Ignoring line: "<<line<<endl;
+        ; // cerr<<"Ignoring line: "<<line<<endl;
       
     } while(true);
 
@@ -165,10 +234,11 @@ try {
     if(!d_password.empty() && !authOK)
       throw HttpUnauthorizedException();
 
-    HandlerFunction *fptr;
-    if(d_functions.count(baseUrl) && (fptr=d_functions[baseUrl])) {
+    HandlerFunction *handler;
+    map<string, string> urlArgs;
+    if (route(baseUrl, urlArgs, &handler)) {
       bool custom=false;
-      string ret=(*fptr)(method, post, varmap, d_that, &custom);
+      string ret=(*handler)(method, post, varmap, d_that, &custom);
 
       if(!custom) {
         client->putLine("HTTP/1.1 200 OK\n");
@@ -176,8 +246,7 @@ try {
         client->putLine("Content-Type: text/html; charset=utf-8\n\n");
       }
       client->putLine(ret);
-    }
-    else {
+    } else {
       throw HttpNotFoundException();
     }
 
@@ -201,8 +270,6 @@ try {
   client->close();
   delete client;
   client=0;
-
-  return 0;
 }
 catch(SessionTimeoutException &e) {
   // L<<Logger::Error<<"Timeout in webserver"<<endl;
@@ -246,7 +313,11 @@ void WebServer::go()
     L<<Logger::Error<<"Launched webserver on " << d_server->d_local.toStringWithPort() <<endl;
 
     while((client=d_server->accept())) {
-      pthread_create(&tid, 0 , &serveConnection, (void *)client);
+      // will be freed by thread
+      connectionThreadData *data = new connectionThreadData;
+      data->webServer = this;
+      data->client = client;
+      pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
     }
   }
   catch(SessionTimeoutException &e) {

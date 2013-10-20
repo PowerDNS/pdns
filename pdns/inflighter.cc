@@ -117,9 +117,9 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
 
         if(ival != d_ttdWatch.end()) { // found something!
           ++processed;
-	  struct timeval now;
-	  gettimeofday(&now, 0);
-	  unsigned int usec = 1000000*(now.tv_sec - ival->sentTime.tv_sec) + (now.tv_usec - ival->sentTime.tv_usec);
+          struct timeval now;
+          gettimeofday(&now, 0);
+          unsigned int usec = 1000000*(now.tv_sec - ival->sentTime.tv_sec) + (now.tv_usec - ival->sentTime.tv_usec);
           d_sr.deliverAnswer(*ival->iter, answer, usec);    // deliver to sender/receiver
           d_ttdWatch.erase(ival);
           break; // we can send new questions!

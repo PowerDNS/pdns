@@ -124,8 +124,8 @@ try
             lastreport = pr.d_pheader.ts;
           }
           
-          //	  if(pr.d_pheader.ts.tv_sec > 1176897290 && pr.d_pheader.ts.tv_sec < 1176897310 ) 
-          //	    pw.write();
+          //          if(pr.d_pheader.ts.tv_sec > 1176897290 && pr.d_pheader.ts.tv_sec < 1176897310 ) 
+          //            pw.write();
 
           if(mdp.d_header.rd && !mdp.d_header.qr) {
             g_lastquestionTime=pr.d_pheader.ts;
@@ -158,7 +158,7 @@ try
           
         }
         catch(MOADNSException& mde) {
-          //	cerr<<"error parsing packet: "<<mde.what()<<endl;
+          //        cerr<<"error parsing packet: "<<mde.what()<<endl;
           parseErrors++;
           continue;
         }

@@ -125,7 +125,7 @@ unsigned int g_numThreads;
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
   DNSComboWriter(const char* data, uint16_t len, const struct timeval& now) : d_mdp(data, len), d_now(now), 
-        											        d_tcp(false), d_socket(-1)
+                                                                                                        d_tcp(false), d_socket(-1)
   {}
   MOADNSParser d_mdp;
   void setRemote(const ComboAddress* sa)
@@ -536,14 +536,14 @@ void startDoResolve(void *p)
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
-      	  vector<DNSResourceRecord>::const_iterator i;
-      	  for(i=ret.begin(); i!=ret.end(); ++i) 
-    	      if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
-          		break;
-      	  if(i == ret.end())
-      	    (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-      	}
-      	else if(res == RCode::NXDomain)
+                vector<DNSResourceRecord>::const_iterator i;
+                for(i=ret.begin(); i!=ret.end(); ++i) 
+                  if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
+                          break;
+                if(i == ret.end())
+                  (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+              }
+              else if(res == RCode::NXDomain)
           (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       
       (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
@@ -607,10 +607,10 @@ void startDoResolve(void *p)
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
       if(!SyncRes::s_nopacketcache && !variableAnswer ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
-        				   min(minTTL, 
-        				       (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
-        				       ) 
-        				  );
+                                           min(minTTL, 
+                                               (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
+                                               ) 
+                                          );
       }
     }
     else {
@@ -851,7 +851,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uint32_t age;
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
-	L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+        L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -915,11 +915,11 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           L<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else {
-	string question(data, len);
-	if(g_weDistributeQueries)
-	  distributeAsyncFunction(boost::bind(doProcessUDPQuestion, question, fromaddr, fd));
-	else
-	  doProcessUDPQuestion(question, fromaddr, fd);
+        string question(data, len);
+        if(g_weDistributeQueries)
+          distributeAsyncFunction(boost::bind(doProcessUDPQuestion, question, fromaddr, fd));
+        else
+          doProcessUDPQuestion(question, fromaddr, fd);
       }
     }
     catch(MOADNSException& mde) {

@@ -87,7 +87,7 @@ static void algorithm2name(uint8_t algo, string &name) {
            name = "PRIVATEOID"; return;
         default:
            name = "Unallocated/Reserved"; return;
-	}
+        }
 };
 
 static int shorthand2algorithm(const string &algorithm)
@@ -1283,7 +1283,7 @@ try
     else {
       cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
       if(bits)
-	cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
+        cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
     }
   }
   else if(cmds[0] == "remove-zone-key") {
@@ -1486,17 +1486,17 @@ try
 
     for(unsigned int n = 3; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "ZSK"))
-	dpk.d_flags = 256;
+        dpk.d_flags = 256;
       else if(pdns_iequals(cmds[n], "KSK"))
-	dpk.d_flags = 257;
+        dpk.d_flags = 257;
       else if(pdns_iequals(cmds[n], "active"))
-	active = 1;
+        active = 1;
       else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive"))
-	active = 0;
+        active = 0;
       else { 
-	cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
-	exit(1);
-      }	  
+        cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
+        exit(1);
+      }          
     }
     if(!dk.addKey(zone, dpk, active)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
@@ -1740,7 +1740,7 @@ try
        keys.assign(cmds.begin() + 2, cmds.end());
     } else {
        keys = boost::assign::list_of("ALLOW-2136-FROM")
-			("ALLOW-AXFR-FROM")("ALSO-NOTIFY")("AXFR-MASTER-TSIG")
+                        ("ALLOW-AXFR-FROM")("ALSO-NOTIFY")("AXFR-MASTER-TSIG")
                         ("AXFR-SOURCE")("LUA-AXFR-SCRIPT")("NSEC3NARROW")
                         ("NSEC3PARAM")("PRESIGNED")("SOA-EDIT")
                         ("TSIG-ALLOW-2136")("TSIG-ALLOW-AXFR"); // NOTE: Add new metas here

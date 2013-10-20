@@ -29,7 +29,7 @@ try
 
   /*
   IPEndpoint remote(argc > 2 ? argv[2] : "127.0.0.1", 
-        	    argc > 3 ? atoi(argv[3]) : 5300);
+                    argc > 3 ? atoi(argv[3]) : 5300);
 
   */
 
@@ -53,12 +53,12 @@ try
 
         for(unsigned int i=0; i < mdp.d_qname.length(); ++i)
           if(!isalnum(mdp.d_qname[i]) && mdp.d_qname[i]!='.' && mdp.d_qname[i]!='-' && mdp.d_qname[i]!='_') {
-            //	  cout<<mdp.d_qname<<"|"<<mdp.d_qtype<<"|"<<mdp.d_qclass<<"\n";
+            //          cout<<mdp.d_qname<<"|"<<mdp.d_qtype<<"|"<<mdp.d_qclass<<"\n";
             // sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
             break;
           }
         if(mdp.d_qtype > 256 || mdp.d_qclass!=1 ) {
-          //	sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
+          //        sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
           
         }
         for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
@@ -68,7 +68,7 @@ try
       }
       catch(MOADNSException &e) {
         cout<<"Error from remote "<<U32ToIP(ntohl(*((uint32_t*)&pr.d_ip->ip_src)))<<": "<<e.what()<<"\n";
-        //	sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
+        //        sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
       }
     }
   }

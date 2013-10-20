@@ -45,9 +45,9 @@ struct SendReceive
   typedef accumulator_set<
         double
       , stats<boost::accumulators::tag::extended_p_square,
-	      boost::accumulators::tag::median(with_p_square_quantile),
+              boost::accumulators::tag::median(with_p_square_quantile),
               boost::accumulators::tag::mean(immediate)
-	      >
+              >
     > acc_t;
   acc_t* d_acc;
   

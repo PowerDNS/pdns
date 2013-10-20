@@ -35,8 +35,8 @@ void primeHints(void)
 
   if(::arg()["hint-file"].empty()) {
     static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", 
-        		     "192.112.36.4", "128.63.2.53",
-        		     "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
+                             "192.112.36.4", "128.63.2.53",
+                             "192.36.148.17","192.58.128.30", "193.0.14.129", "199.7.83.42", "202.12.27.33"};
     static const char *ip6s[]={
       "2001:503:ba3e::2:30", NULL, NULL, "2001:500:2d::d", NULL,
       "2001:500:2f::f", NULL, "2001:500:1::803f:235", "2001:7fe::53",
@@ -238,7 +238,7 @@ string reloadAuthAndForwards()
   
     for(SyncRes::domainmap_t::const_iterator i = t_sstorage->domainmap->begin(); i != t_sstorage->domainmap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-	broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -257,7 +257,7 @@ string reloadAuthAndForwards()
     // purge again - new zones need to blank out the cache
     for(SyncRes::domainmap_t::const_iterator i = newDomainMap->begin(); i != newDomainMap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-	broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
     }
 
     // this is pretty blunt
@@ -396,28 +396,28 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       string searchSuffix = ::arg()["export-etc-hosts-search-suffix"];
       string::size_type pos;
       while(getline(ifs,line)) {
-	pos=line.find('#');
-	if(pos!=string::npos)
-	  line.resize(pos);
-	trim(line);
-	if(line.empty())
-	  continue;
-	parts.clear();
-	stringtok(parts, line, "\t\r\n ");
-	if(parts[0].find(':')!=string::npos)
-	  continue;
-	
-	for(unsigned int n=1; n < parts.size(); ++n) {
-	  if(searchSuffix.empty() || parts[n].find('.') != string::npos)
-  	    makeNameToIPZone(newMap, parts[n], parts[0]);
-	  else {
-  	    string canonic=toCanonic(searchSuffix, parts[n]);
-  	    if(canonic != parts[n]) {
-	      makeNameToIPZone(newMap, canonic, parts[0]);
+        pos=line.find('#');
+        if(pos!=string::npos)
+          line.resize(pos);
+        trim(line);
+        if(line.empty())
+          continue;
+        parts.clear();
+        stringtok(parts, line, "\t\r\n ");
+        if(parts[0].find(':')!=string::npos)
+          continue;
+        
+        for(unsigned int n=1; n < parts.size(); ++n) {
+          if(searchSuffix.empty() || parts[n].find('.') != string::npos)
+              makeNameToIPZone(newMap, parts[n], parts[0]);
+          else {
+              string canonic=toCanonic(searchSuffix, parts[n]);
+              if(canonic != parts[n]) {
+              makeNameToIPZone(newMap, canonic, parts[0]);
             }
           }
         }
-	makeIPToNamesZone(newMap, parts);
+        makeIPToNamesZone(newMap, parts);
       }
     }
   }

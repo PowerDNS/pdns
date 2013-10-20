@@ -24,12 +24,12 @@
 #include "dns.hh"
 
 namespace {
-	struct EDNSSubnetOptsWire
-	{
-		uint16_t family;
-		uint8_t sourceMask;
-		uint8_t scopeMask;
-	} GCCPACKATTRIBUTE;
+        struct EDNSSubnetOptsWire
+        {
+                uint16_t family;
+                uint8_t sourceMask;
+                uint8_t scopeMask;
+        } GCCPACKATTRIBUTE;
 
 }
 

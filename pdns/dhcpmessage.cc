@@ -30,7 +30,7 @@ void dm_init(struct dhcp_message *msg) {
 }
 
 void dm_add_option(struct dhcp_message *msg, u_int8_t option,
-        	   u_int8_t length, void *opt) {
+                   u_int8_t length, void *opt) {
   u_int8_t *pos = msg->pos;
 
   if (&msg->options[MAX_OPT_LEN] - pos < length + 2) abort();
@@ -168,7 +168,7 @@ string DHCPCommunicator::getMac(const std::string& ip)
 #if 0
 
 int dm_parse_msg_raw(char *dframe, int plen,
-        	     struct in_addr *from_ip, struct dhcp_message *msg) {
+                     struct in_addr *from_ip, struct dhcp_message *msg) {
   struct iphdr *ip;
   struct udphdr *udp;
   int iphlen, udplen;

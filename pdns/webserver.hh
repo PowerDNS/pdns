@@ -23,10 +23,11 @@
 #define WEBSERVER_HH
 #include <map>
 #include <string>
-
+#include <list>
 
 #include "namespaces.hh"
 class Server;
+class Session;
 
 class HttpException
 {
@@ -82,18 +83,30 @@ class WebServer
 public:
   WebServer(const string &listenaddress, int port, const string &password="");
   void go();
-  static void* serveConnection(void *);
+
+  void serveConnection(Session* client);
+
   void setCaller(void *that);
+
   typedef string HandlerFunction(const string& method, const string& post, const map<string,string>&varmap, void *that, bool *custom);
-  void registerHandler(const string &, HandlerFunction *ptr);
+  struct HandlerRegistration {
+    std::list<string> urlParts;
+    std::list<string> paramNames;
+    HandlerFunction *handler;
+  };
+
+  void registerHandler(const string& url, HandlerFunction *handler);
+
 private:
   static char B64Decode1(char cInChar);
   static int B64Decode(const std::string& strInput, std::string& strOutput);
+  bool route(const std::string& url, std::map<std::string, std::string>& urlArgs, HandlerFunction** handler);
+
   string d_listenaddress;
   int d_port;
-  static map<string,HandlerFunction *>d_functions;
-  static void *d_that;
-  static string d_password;
+  std::list<HandlerRegistration> d_handlers;
+  void* d_that;
+  string d_password;
   Server* d_server;
 };
 #endif /* WEBSERVER_HH */

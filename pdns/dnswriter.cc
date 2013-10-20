@@ -249,7 +249,7 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
       d_record.resize(len + part.size());
 
       memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
-      pos+=(part.size())+1;        		 
+      pos+=(part.size())+1;                         
     }
     else {
       char labelsize=(char)(i->second - i->first);
