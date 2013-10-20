@@ -35,7 +35,7 @@ map<uint16_t, uint64_t> ResponseStats::getQTypeResponseCounts()
 {
   map<uint16_t, uint64_t> ret;
   uint64_t count;
-  for(int i = 0 ; i < d_qtypecounters.size() ; ++i) {
+  for(unsigned int i = 0 ; i < d_qtypecounters.size() ; ++i) {
     count= d_qtypecounters[i];
     if(count)
       ret[i]=count;
