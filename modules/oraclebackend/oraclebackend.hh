@@ -65,8 +65,8 @@ public:
   void alsoNotifies(const string &domain, set<string> *addrs);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
-  void setFresh(uint32_t zoneId); // No, it's not int zoneId. Really.
-  void setNotified(uint32_t zoneId, uint32_t serial); // ditto
+  void setFresh(uint32_t zoneId);
+  void setNotified(uint32_t zoneId, uint32_t serial);
   bool list(const string &domain, int zoneId);
   bool startTransaction(const string &domain, int zoneId);
   bool feedRecord(const DNSResourceRecord &rr);
