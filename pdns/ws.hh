@@ -77,6 +77,7 @@ private:
 
 class WebServer;
 class HttpRequest;
+class HttpResponse;
 
 class StatWebServer
 {
@@ -88,10 +89,10 @@ public:
 private:
   static void *threadHelper(void *);
   static void *statThreadHelper(void *p);
-  string indexfunction(HttpRequest* req, bool *custom);
-  string cssfunction(HttpRequest* req, bool *custom);
-  string jsonstat(HttpRequest* req);
-  void registerApiHandler(const string& url, boost::function<string(HttpRequest*)> handler);
+  void indexfunction(HttpRequest* req, HttpResponse* resp);
+  void cssfunction(HttpRequest* req, HttpResponse* resp);
+  void jsonstat(HttpRequest* req, HttpResponse* resp);
+  void registerApiHandler(const string& url, boost::function<void(HttpRequest*, HttpResponse*)> handler);
   void printvars(ostringstream &ret);
   void printargs(ostringstream &ret);
   void launch();

@@ -24,74 +24,69 @@
 #include <map>
 #include <string>
 #include <list>
+#include "yahttp/yahttp.hpp"
 
 #include "namespaces.hh"
 class Server;
 class Session;
 
+class HttpRequest : public YaHTTP::Request {
+public:
+  HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false) { };
+
+  map<string,string> path_parameters;
+  bool accept_json;
+  bool accept_html;
+};
+
+class HttpResponse: public YaHTTP::Response {
+public:
+  HttpResponse() : YaHTTP::Response() { };
+  HttpResponse(const YaHTTP::Request &req) : YaHTTP::Response(req) { };
+  HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
+};
+
+
 class HttpException
 {
 public:
-  HttpException(int status_code, const std::string& reason_phrase) :
-    d_status_code(status_code), d_reason_phrase(reason_phrase)
+  HttpException(int status) : d_response()
   {
+    d_response.status = status;
   };
 
-  virtual std::string statusLine() const {
-    return "HTTP/1.0 " + lexical_cast<string>(d_status_code) + " " + d_reason_phrase + "\n";
+  HttpResponse response()
+  {
+    return d_response;
   }
 
-  virtual std::string headers() const {
-    return "";
-  }
-
-  virtual std::string what() const {
-    return d_reason_phrase;
-  }
-
-private:
-  int d_status_code;
-  std::string d_reason_phrase;
+protected:
+  HttpResponse d_response;
 };
 
 class HttpBadRequestException : public HttpException {
 public:
-  HttpBadRequestException() : HttpException(400, "Bad Request") { };
+  HttpBadRequestException() : HttpException(400) { };
 };
 
 class HttpUnauthorizedException : public HttpException {
 public:
-  HttpUnauthorizedException() : HttpException(401, "Unauthorized") { };
-
-  std::string headers() const {
-    return "WWW-Authenticate: Basic realm=\"PowerDNS\"\n";
+  HttpUnauthorizedException() : HttpException(401)
+  {
+    d_response.headers["WWW-Authenticate"] = "Basic realm=\"PowerDNS\"";
   }
 };
 
 class HttpNotFoundException : public HttpException {
 public:
-  HttpNotFoundException() : HttpException(404, "Not Found") { };
+  HttpNotFoundException() : HttpException(404) { };
 };
 
 class HttpMethodNotAllowedException : public HttpException {
 public:
-  HttpMethodNotAllowedException() : HttpException(405, "Method Not Allowed") { };
+  HttpMethodNotAllowedException() : HttpException(405) { };
 };
 
-class HttpRequest {
-public:
-  HttpRequest() : accept_json(false), accept_html(false) { };
-
-  string method;
-  string post;
-  string uri;
-  string path;
-  string body;
-  map<string,string> pathArgs;
-  map<string,string> queryArgs;
-  bool accept_json;
-  bool accept_html;
-};
 
 class WebServer
 {
@@ -100,8 +95,9 @@ public:
   void go();
 
   void serveConnection(Session* client);
+  HttpResponse handleRequest(HttpRequest request);
 
-  typedef boost::function<string(HttpRequest* req, bool *custom)> HandlerFunction;
+  typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
   struct HandlerRegistration {
     std::list<string> urlParts;
     std::list<string> paramNames;

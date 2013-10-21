@@ -123,154 +123,129 @@ static void *WebServerConnectionThreadStart(void *p) {
   connectionThreadData* data = static_cast<connectionThreadData*>(p);
   pthread_detach(pthread_self());
   data->webServer->serveConnection(data->client);
+
+  data->client->close();
+  delete data->client;
+
   delete data;
+
   return NULL;
+}
+
+HttpResponse WebServer::handleRequest(HttpRequest req)
+{
+  HttpResponse resp(req);
+  // set default headers
+  resp.headers["Content-Type"] = "text/html; charset=utf-8";
+
+  try {
+    YaHTTP::strstr_map_t::iterator header;
+
+    if ((header = req.headers.find("accept")) != req.headers.end()) {
+      // json wins over html
+      if (header->second.find("application/json") != std::string::npos) {
+        req.accept_json = true;
+      } else if (header->second.find("text/html") != std::string::npos) {
+        req.accept_html = true;
+      }
+    }
+
+    if (!d_password.empty()) {
+      // validate password
+      header = req.headers.find("authorization");
+      bool auth_ok = false;
+      if (header != req.headers.end() && toLower(header->second).find("basic ") == 0) {
+        string cookie = header->second.substr(6);
+
+        string plain;
+        B64Decode(cookie, plain);
+
+        vector<string> cparts;
+        stringtok(cparts, plain, ":");
+
+        // this gets rid of terminating zeros
+        auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), d_password.c_str())));
+      }
+      if (!auth_ok) {
+        throw HttpUnauthorizedException();
+      }
+    }
+
+    HandlerFunction *handler;
+    if (!route(req.url.path, req.path_parameters, &handler)) {
+      throw HttpNotFoundException();
+    }
+
+    (*handler)(&req, &resp);
+  }
+  catch(HttpException &e) {
+    resp = e.response();
+    string what = YaHTTP::Utility::status2text(resp.status);
+    if(req.accept_html) {
+      resp.headers["Content-Type"] = "text/html; charset=utf-8";
+      resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
+    } else if (req.accept_json) {
+      resp.headers["Content-Type"] = "application/json";
+      resp.body = returnJSONError(what);
+    } else {
+      resp.headers["Content-Type"] = "text/plain; charset=utf-8";
+      resp.body = what;
+    }
+  }
+
+  // always set these headers
+  resp.headers["Server"] = "PowerDNS/"VERSION;
+  resp.headers["Connection"] = "close";
+
+  return resp;
 }
 
 void WebServer::serveConnection(Session* client)
 try {
   HttpRequest req;
+  YaHTTP::AsyncRequestLoader yarl(&req);
 
+  client->setTimeout(5);
+
+  bool complete = false;
   try {
-    string line;
-    client->setTimeout(5);
-    client->getLine(line);
-    stripLine(line);
-    if(line.empty())
-      throw HttpBadRequestException();
-    //    L<<"page: "<<line<<endl;
-
-    vector<string> parts;
-    stringtok(parts, line);
-
-    if(parts.size()>1) {
-      req.method = parts[0];
-      req.uri = parts[1];
-    }
-
-    parts.clear();
-    stringtok(parts,req.uri,"?");
-    req.path = parts[0];
-
-    vector<string> variables;
-    if(parts.size()>1) {
-      stringtok(variables,parts[1],"&");
-    }
-
-    for(vector<string>::const_iterator i=variables.begin();
-        i!=variables.end();++i) {
-
-      parts.clear();
-      stringtok(parts,*i,"=");
-      if(parts.size()>1)
-        req.queryArgs[parts[0]]=parts[1];
-      else
-        req.queryArgs[parts[0]]="";
-    }
-
-    bool authOK=0;
-    int postlen = 0;
-    // read & ignore other lines
-    do {
-      client->getLine(line);
-      stripLine(line);
-
-      if(line.empty())
-        break;
-
-      size_t colon = line.find(":");
-      if(colon==std::string::npos)
-        throw HttpBadRequestException();
-
-      string header = toLower(line.substr(0, colon));
-      string value = line.substr(line.find_first_not_of(' ', colon+1));
-
-      if(header == "authorization" && toLower(value).find("basic ") == 0) {
-        string cookie=value.substr(6);
-        string plain;
-
-        B64Decode(cookie,plain);
-        vector<string>cparts;
-        stringtok(cparts,plain,":");
-        // L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
-        if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
-          authOK=1;
+    while(client->good()) {
+      int bytes;
+      char buf[1024];
+      bytes = client->read(buf, sizeof(buf));
+      if (bytes) {
+        string data = string(buf, bytes);
+        if (yarl.feed(data)) {
+          complete = true;
+          break;
         }
       }
-      else if(header == "content-length" && req.method=="POST") {
-        postlen = atoi(value.c_str());
-//        cout<<"Got a post: "<<postlen<<" bytes"<<endl;
-      }
-      else if(header == "accept") {
-        // json wins over html
-        if(value.find("application/json")!=std::string::npos) {
-          req.accept_json=true;
-        } else if(value.find("text/html")!=std::string::npos) {
-          req.accept_html=true;
-        }
-      }
-      else
-        ; // cerr<<"Ignoring line: "<<line<<endl;
-      
-    } while(true);
-
-    if(postlen) 
-      req.body = client->get(postlen);
-  
-    if(!d_password.empty() && !authOK)
-      throw HttpUnauthorizedException();
-
-    HandlerFunction *handler;
-    if (route(req.path, req.pathArgs, &handler)) {
-      bool custom=false;
-      string ret=(*handler)(&req, &custom);
-
-      if(!custom) {
-        client->putLine("HTTP/1.1 200 OK\n");
-        client->putLine("Connection: close\n");
-        client->putLine("Content-Type: text/html; charset=utf-8\n\n");
-      }
-      client->putLine(ret);
-    } else {
-      throw HttpNotFoundException();
     }
-
-  }
-  catch(HttpException &e) {
-    client->putLine(e.statusLine());
-    client->putLine("Connection: close\n");
-    client->putLine(e.headers());
-    if(req.accept_html) {
-      client->putLine("Content-Type: text/html; charset=utf-8\n\n");
-      client->putLine("<!html><title>" + e.what() + "</title><h1>" + e.what() + "</h1>");
-    } else if (req.accept_json) {
-      client->putLine("Content-Type: application/json\n\n");
-      client->putLine(returnJSONError(e.what()));
-    } else {
-      client->putLine("Content-Type: text/plain; charset=utf-8\n\n");
-      client->putLine(e.what());
-    }
+  } catch (YaHTTP::ParseError &e) {
+    complete = false;
   }
 
-  client->close();
-  delete client;
-  client=0;
+  if (!complete) {
+    client->put("HTTP/1.0 400 Bad Request\r\nConnection: close\r\n\r\nYour Browser sent a request that this server failed to understand.\r\n");
+    return;
+  }
+
+  HttpResponse resp = WebServer::handleRequest(req);
+  ostringstream ss;
+  resp.write(ss);
+  client->put(ss.str());
 }
 catch(SessionTimeoutException &e) {
   // L<<Logger::Error<<"Timeout in webserver"<<endl;
-  return 0;
 }
 catch(PDNSException &e) {
   L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
-  return 0;
 }
 catch(std::exception &e) {
   L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
-  return 0;
 }
 catch(...) {
   L<<Logger::Error<<"Unknown exception in webserver"<<endl;
-  return 0;
 }
 
 WebServer::WebServer(const string &listenaddress, int port, const string &password)
@@ -278,9 +253,8 @@ WebServer::WebServer(const string &listenaddress, int port, const string &passwo
   d_listenaddress=listenaddress;
   d_port=port;
   d_password=password;
-  d_server = 0; // on exception, this class becomes a NOOP later on
   try {
-    d_server = new Server(d_port, d_listenaddress);
+    d_server = new Server(d_listenaddress, d_port);
   }
   catch(SessionException &e) {
     L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;

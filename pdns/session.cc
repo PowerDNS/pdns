@@ -33,63 +33,43 @@
 
 void Session::init()
 {
-  d_bufsize=15049; // why?!
-
-  d_verbose=false;
-
-  rdbuf=new char[d_bufsize];  
-  rdoffset=0;
-  wroffset=0;
-}
-
-void Session::beVerbose()
-{
-  d_verbose=true;
+  d_good = true;
 }
 
 Session::Session(int s, struct sockaddr_in r)
 {
   init();
-  remote=r;
-  clisock=s;
+  d_remote=r;
+  d_socket=s;
 }
 
 int Session::close()
 {
   int rc=0;
   
-  if(clisock>=0)
-    rc=Utility::closesocket(clisock);
+  if(d_socket>=0)
+    rc=Utility::closesocket(d_socket);
 
-  clisock=-1;
+  d_socket=-1;
   return rc;
 }
 
 Session::~Session()
 {
-
   /* NOT CLOSING AUTOMATICALLY ANYMORE!
-    if(clisock>=0)
-    ::close(clisock);
+    if(d_socket>=0)
+    ::close(d_socket);
   */  
-
-  delete[] rdbuf;
 }
 
 //! This function makes a deep copy of Session
 Session::Session(const Session &s)
 {
-  d_bufsize=s.d_bufsize;
+  init();
 
-  init(); // needs d_bufsize, but will reset rdoffset & wroffset
-
-  rdoffset=s.rdoffset;
-  wroffset=s.wroffset;
-  clisock=s.clisock;
-  remote=s.remote;
-
-  memcpy(rdbuf,s.rdbuf,d_bufsize);
-}  
+  d_socket=s.d_socket;
+  d_remote=s.d_remote;
+}
 
 void Session::setTimeout(unsigned int seconds)
 {
@@ -97,7 +77,7 @@ void Session::setTimeout(unsigned int seconds)
 }
 
   
-bool Session::putLine(const string &s)
+bool Session::put(const string &s)
 {
   int length=s.length();
   int written=0;
@@ -105,11 +85,11 @@ bool Session::putLine(const string &s)
 
   while(written < length)
     {
-      err=waitForRWData(clisock, false, d_timeout, 0);
+      err=waitForRWData(d_socket, false, d_timeout, 0);
       if(err<=0)
         throw SessionException("nonblocking write failed: "+string(strerror(errno)));
 
-      err = send(clisock, s.c_str() + written, length-written, 0);
+      err = send(d_socket, s.c_str() + written, length-written, 0);
 
       if(err < 0)
         return false;
@@ -120,40 +100,9 @@ bool Session::putLine(const string &s)
   return true;
 }
 
-char *strnchr(char *p, char c, int len)
+static int timeoutRead(int s, char *buf, size_t len, int timeout)
 {
-  int n;
-  for(n=0;n<len;n++)
-    if(p[n]==c)
-      return p+n;
-  return 0;
-}
-
-string Session::get(unsigned int bytes)
-{
-  string ret;
-  if(wroffset - rdoffset >= (int)bytes) 
-  {
-    ret = string(rdbuf + rdoffset, bytes);
-    bytes -= ret.length();
-    rdoffset += ret.length();
-  }
-  
-  if(bytes) {
-    scoped_array<char> buffer(new char[bytes]);
-    int err = read(clisock, &buffer[0], bytes);  // XXX FIXME should be nonblocking
-    if(err < 0)
-      throw SessionException("Error reading bytes from client: "+string(strerror(errno)));
-    if(err != (int)bytes)
-      throw SessionException("Error reading bytes from client: partial read");
-    ret.append(&buffer[0], err);
-  }
-  return ret;
-}
-
-int Session::timeoutRead(int s, char *buf, size_t len)
-{
-  int err = waitForRWData(s, true, d_timeout, 0);
+  int err = waitForRWData(s, true, timeout, 0);
   
   if(!err)
     throw SessionTimeoutException("timeout reading");
@@ -163,120 +112,39 @@ int Session::timeoutRead(int s, char *buf, size_t len)
   return recv(s,buf,len,0);
 }
 
-bool 
-Session::haveLine()
+bool Session::good()
 {
-  return (wroffset!=rdoffset && (strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset)!=NULL));
+  return d_good;
 }
-        
 
-bool 
-Session::getLine(string &line)
+size_t Session::read(char* buf, size_t len)
 {
   int bytes;
-  char *p;
+  bytes = timeoutRead(d_socket, buf, len, d_timeout);
 
-  int linelength;
-  
-  // read data into a buffer
-  // find first \n, and return that as string, store how far we were
+  if(bytes<0)
+    throw SessionException("error on read from socket: "+string(strerror(errno)));
 
-  for(;;)
-    {
-      if(wroffset==rdoffset)
-        {
-          wroffset=rdoffset=0;
-        }
+  if(bytes==0)
+    d_good = false;
 
-      if(wroffset!=rdoffset && (p=strnchr(rdbuf+rdoffset,'\n',wroffset-rdoffset))) // we have a full line in store, return that 
-        {
-          // from rdbuf+rdoffset to p should become the new line
-
-          linelength=p-(rdbuf+rdoffset); 
-          
-          *p=0; // terminate
-          
-          line=rdbuf+rdoffset;
-          line+="\n";
-          
-          rdoffset+=linelength+1;
-
-          return true;
-        }
-      // we need more data before we can return a line
-
-      if(wroffset==d_bufsize) // buffer is full, flush to left
-        {
-          if(!rdoffset) // line too long!
-            {
-              // FIXME: do stuff
-              close();
-              return false;
-            }
-
-          memmove(rdbuf,rdbuf+rdoffset,wroffset-rdoffset);
-          wroffset-=rdoffset;
-          rdoffset=0;
-        }
-      bytes=timeoutRead(clisock,rdbuf+wroffset,d_bufsize-wroffset);
-
-      if(bytes<0)
-          throw SessionException("error on read from socket: "+string(strerror(errno)));
-
-      if(bytes==0)
-        throw SessionException("Remote closed connection");
-
-      wroffset+=bytes;
-    }
-  // we never get here
+  return bytes;
 }
-  
+
 int Session::getSocket()
 {
-  return clisock;
+  return d_socket;
 }
-
-string Session::getRemote ()
-{
-  ostringstream o;
-  uint32_t rint=htonl(remote.sin_addr.s_addr);
-  o<< (rint>>24 & 0xff)<<".";
-  o<< (rint>>16 & 0xff)<<".";
-  o<< (rint>>8  & 0xff)<<".";
-  o<< (rint     & 0xff);
-  o<<":"<<htons(remote.sin_port);
-
-  return o.str();
-}
-
-uint32_t Session::getRemoteAddr()
-{
-
-  return htonl(remote.sin_addr.s_addr);
-}
-
-string Session::getRemoteIP()
-{
-  ostringstream o;
-  uint32_t rint=htonl(remote.sin_addr.s_addr);
-  o<< (rint>>24 & 0xff)<<".";
-  o<< (rint>>16 & 0xff)<<".";
-  o<< (rint>>8  & 0xff)<<".";
-  o<< (rint     & 0xff);
-
-  return o.str();
-}
-  
 
 Session *Server::accept()
 {
-  struct sockaddr_in remote;
-  Utility::socklen_t len=sizeof(remote);
+  struct sockaddr_in d_remote;
+  Utility::socklen_t len=sizeof(d_remote);
 
-  int clisock=-1;
+  int d_socket=-1;
 
 
-  while((clisock=::accept(s,(struct sockaddr *)(&remote),&len))==-1) // repeat until we have a successful connect
+  while((d_socket=::accept(s,(struct sockaddr *)(&d_remote),&len))==-1) // repeat until we have a successful connect
     {
       //      L<<Logger::Error<<"accept() returned: "<<strerror(errno)<<endl;
       if(errno==EMFILE) {
@@ -285,10 +153,10 @@ Session *Server::accept()
 
     }
 
-  return new Session(clisock, remote);
+  return new Session(d_socket, d_remote);
 }
 
-Server::Server(int port, const string &localaddress)
+Server::Server(const string &localaddress, int port)
 {
   d_local = ComboAddress(localaddress.empty() ? "0.0.0.0" : localaddress, port);
   s = socket(d_local.sin4.sin_family ,SOCK_STREAM,0);

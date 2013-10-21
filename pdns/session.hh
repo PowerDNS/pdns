@@ -54,12 +54,9 @@ public:
 class Session
 {
 public:
-  bool getLine(string &); //!< Read a line from the remote
-  bool haveLine(); //!< returns true if a line is available
-  bool putLine(const string &s); //!< Write a line to the remote
-  bool sendFile(int fd); //!< Send a file out
-  int timeoutRead(int s,char *buf, size_t len);
-  string get(unsigned int bytes);
+  bool put(const string &s);
+  bool good();
+  size_t read(char* buf, size_t len);
 
   Session(int s, struct sockaddr_in r); //!< Start a session on an existing socket, and inform this class of the remotes name
 
@@ -67,39 +64,29 @@ public:
       and does a nonblocking connect to support this timeout. It should be noted that nonblocking connects 
       suffer from bad portability problems, so look here if you see weird problems on new platforms */
   Session(const string &remote, int port, int timeout=0); 
-  Session(uint32_t ip, int port, int timeout=0);
 
   Session(const Session &s); 
   
   ~Session();
   int getSocket(); //!< return the filedescriptor for layering violations
-  string getRemote();
-  uint32_t getRemoteAddr();
-  string getRemoteIP();
-  void beVerbose();
   int close(); //!< close and disconnect the connection
   void setTimeout(unsigned int seconds);
 private:
-  void doConnect(uint32_t ip, int port);
-  bool d_verbose;
-  char *rdbuf;
-  int d_bufsize;
-  int rdoffset;
-  int wroffset;
-  int clisock;
-  struct sockaddr_in remote;
+  int d_socket;
+  struct sockaddr_in d_remote;
   void init();
   int d_timeout;
-
+  bool d_good;
 };
 
 //! The server class can be used to create listening servers
 class Server
 {
 public:
-  Server(int p, const string &localaddress=""); //!< port on which to listen
+  Server(const string &localaddress, int port);
   Session* accept(); //!< Call accept() in an endless loop to accept new connections
   ComboAddress d_local;
+
 private:
   int s;
 };
