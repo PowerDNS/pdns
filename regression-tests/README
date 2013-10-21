@@ -45,7 +45,7 @@ fails otherwise, for cosmetical reasons.
 Method of operation
 -------------------
 
-Each directory contains a command that, when executed, proces the 'cleandig'
+Each directory contains a command that, when executed, process the 'cleandig'
 output for the answer the nameserver sent. This output is stored in the file
 'real_result', and compared to 'expected_result' or one of its replacement
 files.

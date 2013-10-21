@@ -10580,7 +10580,7 @@ name         IN            A        192.0.2.4
 	</table>
       </para>
       <para>
-	Daniel Drown discovered that his PowerDNS 2.9.21.1 installation crashed on receiving a HINFO CH query. In his enthousiasm, he shared
+	Daniel Drown discovered that his PowerDNS 2.9.21.1 installation crashed on receiving a HINFO CH query. In his enthusiasm, he shared
 	his discovery with the world, forcing a rapid over the weekend release cycle.
       </para>
       <para>
@@ -13539,7 +13539,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
               Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table.
               The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the <command>allow-2136-from</command> and
               <command>TSIG-2136-ALLOW</command> are processed first, so those permissions apply before the <command>forward-2136</command> is used.
-              It will try all masters that you have configured until one is succesful.
+              It will try all masters that you have configured until one is successful.
             </para>
           </listitem>
         </varlistentry>
@@ -13610,7 +13610,7 @@ sql> select id from domains where name='powerdnssec.org';
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-2136’,’’);
               </programlisting>
 
-              There is no content, the existance of the entry enables the forwarding.
+              There is no content, the existence of the entry enables the forwarding.
               This domain-specific setting is only useful when the configuration option <command>forward-2136</command> is set to 'no', as that will disable it globally.
               Using the domainmetadata setting than allows you to enable it per domain.
             </para>
@@ -13645,7 +13645,7 @@ sql> select id from domains where name='powerdnssec.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-2136’,’INCREASE’);
         </programlisting>
-        This will make the SOA Serial increase by one, for every succesful update.
+        This will make the SOA Serial increase by one, for every successful update.
       </para>
       <sect2 id="rfc2136-soa-edit-settings"><title>SOA-EDIT-2136 settings</title>
         <para>These are the settings available for <command>SOA-EDIT-2136</command>.</para>
@@ -13854,7 +13854,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
             If there are records updated and the SOA record was not modified, the SOA serial is updated. See <xref linkend="rfc2136-soa-edit"/>.
             The cache for this record is purged.
           </para></listitem>
-          <listitem><para>The transaction with the backend is commited. If this fails, ServFail is returned.</para></listitem>
+          <listitem><para>The transaction with the backend is committed. If this fails, ServFail is returned.</para></listitem>
           <listitem><para>NoError is returned.</para></listitem>
         </orderedlist>
       </para>
@@ -14019,7 +14019,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	    <listitem>
 	      <para>
 		Like <command>allow-from</command>, except reading from file. Overrides the 'allow-from' setting. 
-		To use this feature, supply one netmask per line, with optional comments preceeded by a #.
+		To use this feature, supply one netmask per line, with optional comments preceded by a #.
 		Available since version 3.1.5.
 	      </para>
 	    </listitem>

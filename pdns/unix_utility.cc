@@ -256,7 +256,7 @@ time_t Utility::timegm(struct tm *const t)
 
   /* After 2100 we have to subtract 3 leap years for every 400 years
      This is not intuitive. Most mktime implementations do not support
-     dates after 2059, anyway, so we might leave this out for it's
+     dates after 2059, anyway, so we might leave this out for its
      bloat. */
   if ((years -= 131) >= 0) {
     years /= 100;

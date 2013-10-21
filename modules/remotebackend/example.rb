@@ -130,7 +130,7 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
   ## AXFR support
   ## Do note that having AXFR here is somewhat stupid since
   ## we generate records above. But it is still included
-  ## for sake of having an example. Do not do ths in production.
+  ## for sake of having an example. Do not do this in production.
   def do_list(args)
      if args["zonename"] == "example.com"
        return [
