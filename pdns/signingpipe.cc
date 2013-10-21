@@ -52,7 +52,7 @@ struct StartHelperStruct
   int d_fd;
 };
 
-// used to launcht the new thread
+// used to launch the new thread
 void* ChunkedSigningPipe::helperWorker(void* p)
 try
 {
