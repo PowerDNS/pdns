@@ -438,7 +438,7 @@ void Bind2Backend::parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd)
   bbd->d_status="parsed into memory at "+nowTime();
 }
 
-/** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedence matching
+/** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
 void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed)

@@ -353,7 +353,7 @@ void DynListener::theListener()
     L<<Logger::Error<<"Fatal STL error: "<<e.what()<<endl;
   }
   catch(...) {
-    L<<Logger::Error<<"Fatal: unknown exception occured"<<endl;
+    L<<Logger::Error<<"Fatal: unknown exception occurred"<<endl;
   }
 }
 

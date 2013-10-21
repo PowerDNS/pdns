@@ -254,7 +254,7 @@ time_t Utility::timegm(struct tm *const t)
   /* Days since 1970 is 365 * number of years + number of leap years since 1970 */
   day  = years * 365 + (years + 1) / 4;
 
-  /* After 2100 we have to substract 3 leap years for every 400 years
+  /* After 2100 we have to subtract 3 leap years for every 400 years
      This is not intuitive. Most mktime implementations do not support
      dates after 2059, anyway, so we might leave this out for it's
      bloat. */

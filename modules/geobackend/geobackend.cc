@@ -467,7 +467,7 @@ void GeoBackend::loadDirectorMaps(const vector<GeoRecord*> &newgrs) {
         			throw PDNSException("duplicate georecord " + gr->qname + ", skipping");
         	}
         	catch(PDNSException &e) {
-        		L << Logger::Error << logprefix << "Error occured while reading director file "
+        		L << Logger::Error << logprefix << "Error occurred while reading director file "
         			<< gr->directorfile << ": " << e.reason << endl;
         		delete gr;
         	}

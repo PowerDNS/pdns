@@ -188,7 +188,7 @@ int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
   return 0;
 }
 
-/** Returns 0 if nothing was found, -1 if an error occured or 1 if the search
+/** Returns 0 if nothing was found, -1 if an error occurred or 1 if the search
     was satisfied */
 int PacketHandler::doFancyRecords(DNSPacket *p, DNSPacket *r, string &target)
 {

@@ -43,7 +43,7 @@ bool CDB::searchSuffix(const string &key) {
 	//See CDB::searchKey() 
 	d_key = strdup(key.c_str());
 
-	// We are ok wiht a search on things, but we do want to know if a record with that key exists.........
+	// We are ok with a search on things, but we do want to know if a record with that key exists.........
 	bool hasDomain = (cdb_find(&d_cdb, key.c_str(), key.size()) == 1);
 	if (hasDomain) {
 		cdb_seqinit(&d_seqPtr, &d_cdb);

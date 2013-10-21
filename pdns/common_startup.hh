@@ -34,7 +34,7 @@
 
 extern ArgvMap theArg;
 extern StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
-extern PacketCache PC; //!< This is the main PacketCache, shared accross all threads
+extern PacketCache PC; //!< This is the main PacketCache, shared across all threads
 extern DNSProxy *DP;
 extern DynListener *dl;
 extern CommunicatorClass Communicator;
