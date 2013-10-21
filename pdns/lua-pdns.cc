@@ -225,7 +225,14 @@ int logLua(lua_State *lua)
 
 PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
+
   d_lua = luaL_newstate();
+
+  lua_pushcfunction(d_lua, netmaskMatchLua);
+  lua_setglobal(d_lua, "matchnetmask");
+
+  lua_pushcfunction(d_lua, logLua);
+  lua_setglobal(d_lua, "pdnslog");
 
 #ifndef LUA_VERSION_NUM
   luaopen_base(d_lua);
@@ -239,19 +246,13 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
     throw runtime_error(string("Error loading Lua file '")+fname+"': "+ string(lua_isstring(d_lua, -1) ? lua_tostring(d_lua, -1) : "unknown error"));
 
   lua_settop(d_lua, 0);
-  
-  lua_pushcfunction(d_lua, netmaskMatchLua);
-  lua_setglobal(d_lua, "matchnetmask");
-
-  lua_pushcfunction(d_lua, logLua);
-  lua_setglobal(d_lua, "pdnslog");
 
   lua_pushcfunction(d_lua, setVariableLua);
   lua_setglobal(d_lua, "setvariable");
 
   lua_pushcfunction(d_lua, getLocalAddressLua);
   lua_setglobal(d_lua, "getlocaladdress");
-
+  
   lua_newtable(d_lua);
 
   for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
