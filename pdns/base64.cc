@@ -165,9 +165,9 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
     // may have been padding, so those padded bytes
     // are actually ignored.
 #if BYTE_ORDER == BIG_ENDIAN
-    strOutput += pBuf[1];
-    strOutput += pBuf[2];
-    strOutput += pBuf[3];
+    strOutput += pBuf[sizeof(long)-3];
+    strOutput += pBuf[sizeof(long)-2];
+    strOutput += pBuf[sizeof(long)-1];
 #else
     strOutput += pBuf[2];
     strOutput += pBuf[1];
