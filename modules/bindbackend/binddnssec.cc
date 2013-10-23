@@ -20,7 +20,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "bindbackend2.hh"
-#include "dnsrecords.hh"
+#include "pdns/dnsrecords.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
 #include "config.h"

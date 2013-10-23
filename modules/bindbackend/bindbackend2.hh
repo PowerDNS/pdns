@@ -36,10 +36,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "misc.hh"
-#include "dnsbackend.hh"
+#include "pdns/misc.hh"
+#include "pdns/dnsbackend.hh"
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 using namespace ::boost::multi_index;
 
 /** This struct is used within the Bind2Backend to store DNS information. 

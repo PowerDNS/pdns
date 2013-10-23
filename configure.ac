@@ -302,7 +302,7 @@ fi
 
 
 
-modules="gmysql geo random"
+modules="bind gmysql geo random"
 AC_ARG_WITH(modules, AS_HELP_STRING([--with-modules],[which backends to compile with]),
 [
         modules="$withval"
@@ -699,7 +699,7 @@ AC_SUBST(LIBS)
 export moduledirs moduleobjects modulelibs
 
 AC_CONFIG_FILES([Makefile modules/Makefile pdns/Makefile codedocs/Makefile \
-pdns/backends/Makefile pdns/backends/bind/Makefile pdns/pdns \
+pdns/pdns modules/bindbackend/Makefile
 modules/gmysqlbackend/Makefile modules/db2backend/Makefile \
 modules/geobackend/Makefile modules/opendbxbackend/Makefile \
 modules/pipebackend/Makefile modules/oraclebackend/Makefile \

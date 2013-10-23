@@ -12,7 +12,6 @@
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include <boost/scoped_ptr.hpp>
-#include "bindbackend2.hh"
 #include "dns_random.hh"
 
 StatBag S;
@@ -1085,21 +1084,6 @@ try
   loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
 
-  if(cmds[0] == "create-bind-db") {
-    if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
-      return 0;
-    }
-    try {
-      Bind2Backend::createDNSSECDB(cmds[1]);
-    }
-    catch (PDNSException& ae) {
-      cerr<<"Error: "<<ae.reason<<endl;
-      return 1;
-    }
-    return 0;
-  }
-  
   DNSSECKeeper dk;
 
   if (cmds[0] == "test-schema") {

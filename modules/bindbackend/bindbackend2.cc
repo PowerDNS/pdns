@@ -33,24 +33,24 @@
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
-#include "dnsseckeeper.hh"
-#include "dnssecinfra.hh"
-#include "base32.hh"
-#include "namespaces.hh"
+#include "pdns/dnsseckeeper.hh"
+#include "pdns/dnssecinfra.hh"
+#include "pdns/base32.hh"
+#include "pdns/namespaces.hh"
 
-#include "dns.hh"
-#include "dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
 #include "bindbackend2.hh"
-#include "dnspacket.hh"
-#include "zoneparser-tng.hh"
-#include "bindparserclasses.hh"
-#include "logger.hh"
-#include "arguments.hh"
-#include "qtype.hh"
-#include "misc.hh"
-#include "dynlistener.hh"
-#include "lock.hh"
-#include "namespaces.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/zoneparser-tng.hh"
+#include "pdns/bindparserclasses.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
+#include "pdns/qtype.hh"
+#include "pdns/misc.hh"
+#include "pdns/dynlistener.hh"
+#include "pdns/lock.hh"
+#include "pdns/namespaces.hh"
 
 /** new scheme of things:
     we have zone-id map

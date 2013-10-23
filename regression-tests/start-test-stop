@@ -189,8 +189,8 @@ __EOF__
 
 tosql ()
 {
-	make -C ../pdns/backends/bind zone2sql > /dev/null
-	../pdns/backends/bind/zone2sql --transactions --$1 --named-conf=./named.conf
+	make -C ../pdns zone2sql > /dev/null
+	../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
 }
 
 bindwait ()

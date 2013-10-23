@@ -18,7 +18,7 @@ before_script:
  - cd ../..
 script:
  - ./bootstrap
- - ./configure --with-modules='gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http --enable-tools
+ - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http --enable-tools
  - make dist
  - make -j 4
  - make -j 4 check
