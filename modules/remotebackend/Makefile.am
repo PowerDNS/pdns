@@ -21,7 +21,7 @@ TESTS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http te
 BUILT_SOURCES=../../pdns/dnslabeltext.cc
 
 ../../pdns/dnslabeltext.cc: ../../pdns/dnslabeltext.rl
-	make -C ../../pdns dnslabeltext.cc
+	$(MAKE) -C ../../pdns dnslabeltext.cc
 
 libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc ../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
         ../../pdns/nameserver.cc ../../pdns/misc.cc ../../pdns/arguments.hh \
