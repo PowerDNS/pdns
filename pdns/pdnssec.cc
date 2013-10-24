@@ -1106,7 +1106,7 @@ try
     }
     return 0;
 #else
-    cerr<<"bind-dnssec-db requires build PowerDNS with SQLite3"<<endl;
+    cerr<<"bind-dnssec-db requires building PowerDNS with SQLite3"<<endl;
     return 1;
 #endif
   }
