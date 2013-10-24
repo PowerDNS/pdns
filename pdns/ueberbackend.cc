@@ -216,6 +216,13 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
+bool UeberBackend::createDNSSECDB(const string& fname)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    db->createDNSSECDB(fname);
+  }
+  return true;
+}
 
 void UeberBackend::reload()
 {

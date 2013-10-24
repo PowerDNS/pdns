@@ -101,7 +101,7 @@ static int shorthand2algorithm(const string &algorithm)
   return -1;
 }
 
-void loadMainConfig(const std::string& configdir)
+void loadMainConfig(const std::string& configdir, bool launchBind)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
@@ -135,7 +135,10 @@ void loadMainConfig(const std::string& configdir)
   ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().laxFile(configname.c_str());
 
-  BackendMakers().launch(::arg()["launch"]); // vrooooom!
+  if (launchBind)
+    BackendMakers().launch("bind");
+  else
+    BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -1081,8 +1084,20 @@ try
     return 0;
   }
 
-  loadMainConfig(g_vm["config-dir"].as<string>());
+  loadMainConfig(g_vm["config-dir"].as<string>(), cmds[0] == "create-bind-db");
   reportAllTypes();
+
+  if(cmds[0] == "create-bind-db") {
+    if(cmds.size() != 2) {
+      cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
+      return 0;
+    }
+    UeberBackend B("default");
+    if (!B.createDNSSECDB(cmds[1]))
+      return 1;
+    else
+      return 0;
+  }
 
   DNSSECKeeper dk;
 

@@ -34,7 +34,7 @@ void Bind2Backend::setupDNSSEC()
 }
 
 void Bind2Backend::createDNSSECDB(const string& fname)
-{}
+{ return false; }
 
 bool Bind2Backend::doesDNSSEC()
 { return false; }
@@ -93,7 +93,7 @@ void Bind2Backend::setupDNSSEC()
   d_dnssecdb->setLog(::arg().mustDo("query-logging"));
 }
 
-void Bind2Backend::createDNSSECDB(const string& fname)
+bool Bind2Backend::createDNSSECDB(const string& fname)
 {
   try {
     SSQLite3 db(fname, true); // create=ok
@@ -105,6 +105,7 @@ void Bind2Backend::createDNSSECDB(const string& fname)
   catch(SSqlException& se) {
     throw PDNSException("Error creating database in BIND backend: "+se.txtReason());
   }
+  return true;
 }
 
 bool Bind2Backend::doesDNSSEC()

@@ -163,7 +163,7 @@ public:
   virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
   virtual bool deleteTSIGKey(const string& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
-  static void createDNSSECDB(const string& fname);
+  virtual bool createDNSSECDB(const string& fname);
   virtual bool doesDNSSEC();
   // end of DNSSEC 
 

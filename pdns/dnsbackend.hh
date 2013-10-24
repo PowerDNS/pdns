@@ -158,6 +158,8 @@ public:
   virtual bool deleteTSIGKey(const string& name) { return false; }
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys) { return false; }
 
+  virtual bool createDNSSECDB(const string& fname) { return false; }
+
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
   {
     std::cerr<<"Default beforeAndAfterAbsolute called!"<<std::endl;
