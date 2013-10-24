@@ -4,7 +4,7 @@ AM_CPPFLAGS=-I../../pdns $(BOOST_CPPFLAGS) $(POLARSSL_CFLAGS) @THREADFLAGS@
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
 
-BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h
+BUILT_SOURCES=../../pdns/bind-dnssec.schema.sqlite3.sql.h
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
@@ -12,6 +12,5 @@ libbindbackend_la_SOURCES=bindbackend2.cc bindbackend2.hh binddnssec.cc ../../pd
 
 libbindbackend_la_LDFLAGS=-module -avoid-version
 
-bind-dnssec.schema.sqlite3.sql.h: ../../pdns/bind-dnssec.schema.sqlite3.sql
+../../pdns/bind-dnssec.schema.sqlite3.sql.h: ../../pdns/bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' ../../pdns/bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
-

@@ -21,7 +21,7 @@
 */
 #include "bindbackend2.hh"
 #include "pdns/dnsrecords.hh"
-#include "bind-dnssec.schema.sqlite3.sql.h"
+#include "pdns/bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
 #include "config.h"
 #include "pdns/arguments.hh"

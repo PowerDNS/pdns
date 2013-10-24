@@ -1,11 +1,10 @@
 
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include
 
-AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
-
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
 
+AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
 if BOTAN110
 AM_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
@@ -23,7 +22,7 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 
 SUBDIRS= $(POLARSSL_SUBDIR)
 
-BUILT_SOURCES=version_generated.h
+BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
 CLEANFILES=version_generated.h
 
 noinst_SCRIPTS = pdns
@@ -51,6 +50,7 @@ dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
+bind-dnssec.schema.sqlite3.sql.h \
 bindparser.cc bindlexer.c \
 backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
@@ -319,6 +319,9 @@ TESTS=testrunner
 
 dnslabeltext.cc: dnslabeltext.rl
 	ragel dnslabeltext.rl -o dnslabeltext.cc
+
+bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
+	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
 build_host=$(shell id -u -n)@$(shell hostname -f)

@@ -15,7 +15,7 @@
 #include "dns_random.hh"
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
-#include "../modules/bindbackend/bind-dnssec.schema.sqlite3.sql.h"
+#include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
 
 StatBag S;
