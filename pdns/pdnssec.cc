@@ -13,6 +13,10 @@
 #include "signingpipe.hh"
 #include <boost/scoped_ptr.hpp>
 #include "dns_random.hh"
+#ifdef HAVE_SQLITE3
+#include "ssqlite3.hh"
+#include "../modules/bindbackend/bind-dnssec.schema.sqlite3.sql.h"
+#endif
 
 StatBag S;
 PacketCache PC;
@@ -101,7 +105,7 @@ static int shorthand2algorithm(const string &algorithm)
   return -1;
 }
 
-void loadMainConfig(const std::string& configdir, bool launchBind)
+void loadMainConfig(const std::string& configdir)
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=configdir;
   ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
@@ -135,10 +139,7 @@ void loadMainConfig(const std::string& configdir, bool launchBind)
   ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().laxFile(configname.c_str());
 
-  if (launchBind)
-    BackendMakers().launch("bind");
-  else
-    BackendMakers().launch(::arg()["launch"]); // vrooooom!
+  BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -1084,19 +1085,30 @@ try
     return 0;
   }
 
-  loadMainConfig(g_vm["config-dir"].as<string>(), cmds[0] == "create-bind-db");
+  loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
 
   if(cmds[0] == "create-bind-db") {
+#ifdef HAVE_SQLITE3
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
       return 0;
     }
-    UeberBackend B("default");
-    if (!B.createDNSSECDB(cmds[1]))
-      return 1;
-    else
-      return 0;
+    try {
+      SSQLite3 db(cmds[1], true); // create=ok
+      vector<string> statements;
+      stringtok(statements, sqlCreate, ";");
+      BOOST_FOREACH(const string& statement, statements)
+        db.doCommand(statement);
+    }
+    catch(SSqlException& se) {
+      throw PDNSException("Error creating database in BIND backend: "+se.txtReason());
+    }
+    return 0;
+#else
+    cerr<<"bind-dnssec-db requires build PowerDNS with SQLite3"<<endl;
+    return 1;
+#endif
   }
 
   DNSSECKeeper dk;

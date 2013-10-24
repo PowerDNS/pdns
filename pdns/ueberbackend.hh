@@ -140,7 +140,6 @@ public:
   bool deleteTSIGKey(const string& name);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
-  bool createDNSSECDB(const string& fname);
 
   void alsoNotifies(const string &domain, set<string> *ips); 
   void rediscover(string* status=0);
