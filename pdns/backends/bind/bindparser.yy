@@ -16,11 +16,8 @@ extern int yydebug;
 
 #define YYSTYPE char *
 
-
-#ifndef WIN32
 extern "C" 
 {
-#endif // WIN32
 	int yyparse(void);
 	int yylex(void);
 	void yyrestart(FILE *);
@@ -28,9 +25,7 @@ extern "C"
 	{
 		return 1;
 	}
-#ifndef WIN32
 }
-#endif // WIN32
 
 
 extern int yydebug;
