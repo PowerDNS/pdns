@@ -35,7 +35,7 @@ cp $INCLUDES $CFILES $DIRNAME
 cp Makefile-recursor $DIRNAME/Makefile
 cp Makefile-recursor.win32 $DIRNAME/Makefile.win32
 cp README-recursor $DIRNAME/README
-cp ../COPYING $DIRNAME/
+cp ../COPYING ../NOTICE $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
