@@ -1,5 +1,10 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information.
+
+   Additionally, the license of this program contains a special
+   exception which allows to distribute the program in binary form when
+   it is linked against OpenSSL.
+
    $Id$  */
 #ifndef SSQL_HH
 #define SSQL_HH
