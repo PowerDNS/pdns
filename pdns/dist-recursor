@@ -46,7 +46,7 @@ mkdir  $DIRNAME
 cp $INCLUDES $CFILES $DIRNAME
 cp Makefile-recursor $DIRNAME/Makefile
 cp README-recursor $DIRNAME/README
-cp ../COPYING $DIRNAME/
+cp ../COPYING ../NOTICE $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
 cat >>$DIRNAME/config.h <<EOF
 #define VERSION "$VERSION"
