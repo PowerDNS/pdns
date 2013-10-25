@@ -21372,6 +21372,12 @@ POSSIBILITY OF SUCH DAMAGES.
       </para>
   </appendix>
   <appendix id="further-copyrights"><title>Further copyright statements</title>
+    <sect1><title>OpenSSL linking exception</title>
+    <para>
+      Permission is granted to link this program with OpenSSL and to
+      (re)distribute the binaries produced as the result of such linking.
+    </para>
+    </sect1>
     <sect1><title>AES implementation by Brian Gladman</title>
     <para>
       Since version 3.1.5, PowerDNS contains AES code by Brian Gladman, to which
