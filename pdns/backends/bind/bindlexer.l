@@ -7,22 +7,7 @@
 #define YY_NO_INPUT 1
 #define YYSTYPE char *
 
-#ifdef WIN32
-#include "bindparser.tab.hh"
-
-extern "C"
-{
-  int isatty( int );
-  int yywrap()
-  {
-    return 1;
-  }
-}
-
-
-#else
 #include "bindparser.h"
-#endif // WIN32
 
 int linenumber;
 #define MAX_INCLUDE_DEPTH 10
