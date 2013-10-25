@@ -71,6 +71,7 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
   lua_gettable(lua, -2);  // replace by the first entry of our table we hope
 
   bool ret=false;
+
   if(!lua_isnil(lua, -1)) {
     value = (uint32_t)lua_tonumber(lua, -1);
     ret=true;
@@ -110,9 +111,17 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
     lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
   }
 }
-// this function takes the global lua_state from the PowerDNSLua constructor and populates it with the syslog enums values
+// override the __index metatable under loglevels to return Logger::Error to account for nil accesses to the loglevels table
+int loglevels_index(lua_State* lua) 
+{
+  lua_pushnumber(lua, Logger::Error);
+  return 1;
+}
+// push the loglevel subtable onto the stack that will eventually be the pdns table
 void pushSyslogSecurityLevelTable(lua_State* lua) 
 {
+  lua_newtable(lua);
+// this function takes the global lua_state from the PowerDNSLua constructor and populates it with the syslog enums values
   lua_pushnumber(lua, Logger::All);
   lua_setfield(lua, -2, "All");
   lua_pushnumber(lua, Logger::NTLog);
@@ -133,6 +142,10 @@ void pushSyslogSecurityLevelTable(lua_State* lua)
   lua_setfield(lua, -2, "Debug");
   lua_pushnumber(lua, Logger::None);
   lua_setfield(lua, -2, "None");
+  lua_createtable(lua, 0, 1);
+  lua_pushcfunction(lua, loglevels_index);
+  lua_setfield(lua, -2, "__index");
+  lua_setmetatable(lua, -2);
 }
 int getLuaTableLength(lua_State* lua, int depth)
 {
@@ -248,42 +261,7 @@ int logLua(lua_State *lua)
   } else if(argc >= 2) {
     string message=lua_tostring(lua, 1);
     int urgencylevel = lua_tonumber(lua, 2);
-    switch(urgencylevel)
-    {
-      case Logger::Alert: 
-        theL()<<Logger::Alert<<message<<endl;
-        break;
-      case Logger::Critical:
-        theL()<<Logger::Critical<<message<<endl;
-        break;
-      case Logger::Error:
-        theL()<<Logger::Error<<message<<endl;
-        break;
-      case Logger::Warning:
-        theL()<<Logger::Warning<<message<<endl;
-        break;
-      case Logger::Notice:
-        theL()<<Logger::Notice<<message<<endl;
-        break;
-      case Logger::Info:
-        theL()<<Logger::Info<<message<<endl;
-        break;
-      case Logger::Debug:
-        theL()<<Logger::Debug<<message<<endl;
-        break;
-      case Logger::All:
-        theL()<<Logger::All<<message<<endl;
-        break;
-      case Logger::NTLog:
-        theL()<<Logger::All<<message<<endl;
-        break;
-      case Logger::None:
-        theL()<<Logger::None<<message<<endl;
-        break;
-      default:
-        theL()<<Logger::Error<<message<<endl;
-        break;
-    }
+    theL()<<urgencylevel<<" "<<message<<endl; 
   }
   return 0;
 }
@@ -320,6 +298,7 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_setfield(d_lua, -2, "REFUSED");
   // set syslog codes used by Logger/enum Urgency
   pushSyslogSecurityLevelTable(d_lua);
+  lua_setfield(d_lua, -2, "loglevels");
 
   lua_setglobal(d_lua, "pdns");
 
