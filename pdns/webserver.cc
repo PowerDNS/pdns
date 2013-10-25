@@ -206,17 +206,20 @@ try {
 }
 catch(SessionTimeoutException &e) {
   // L<<Logger::Error<<"Timeout in webserver"<<endl;
+  return 0;
 }
 catch(PDNSException &e) {
   L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
+  return 0;
 }
 catch(std::exception &e) {
   L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
+  return 0;
 }
 catch(...) {
   L<<Logger::Error<<"Unknown exception in webserver"<<endl;
+  return 0;
 }
-
 
 WebServer::WebServer(const string &listenaddress, int port, const string &password)
 {
