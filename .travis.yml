@@ -7,14 +7,14 @@ before_script:
  - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time
  - sudo sed -i '0,/\[mysqld\]/s//[mysqld]\nskip-character-set-client-handshake/' /etc/mysql/my.cnf
  - sudo restart mysql
- - update-alternatives --set ruby /usr/bin/ruby1.9.1
- - gem install bundler --no-rdoc --no-ri --bindir /usr/local/bin
+ - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
+ - sudo gem install bundler --no-rdoc --no-ri --bindir /usr/local/bin
  - cd regression-tests
  - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
  - unzip top-1m.csv.zip
  - cd ..
  - cd modules/remotebackend
- - bundle install
+ - sudo bundle install
  - cd ../..
 script:
  - ./bootstrap
