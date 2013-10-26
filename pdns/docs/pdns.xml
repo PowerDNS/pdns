@@ -13774,7 +13774,7 @@ allow-2136-from=
 </programlisting>
          This tells PowerDNS to:
          <orderedlist>
-           <listitem><para>Enable RFC2136 support(<command>experimental-rfc21356</command>)</para></listitem>
+           <listitem><para>Enable RFC2136 support(<command>experimental-rfc2136</command>)</para></listitem>
            <listitem><para>Allow updates from NO ip-address (<command>allow-2136-from=</command>)</para></listitem>
          </orderedlist>
         </para>
