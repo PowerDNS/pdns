@@ -16,7 +16,8 @@ $domain = {
   },
   "ns2.unit.test" => {
        "A" => ["10.0.0.2"]
-  }
+  }, 
+  "empty.unit.test" => {}
 }
 
 $meta = {}
@@ -50,7 +51,7 @@ class Handler
          end
        end
      end
-     [false] unless ret.size>0
+     [false] unless ret.size>0 and args["qname"] != "empty.unit.test"
      [ret]
    end
 

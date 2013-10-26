@@ -39,6 +39,14 @@ BOOST_AUTO_TEST_CASE(test_method_lookup) {
    BOOST_CHECK_EQUAL(rr.ttl, 300);
 }
 
+BOOST_AUTO_TEST_CASE(test_method_lookup_empty) {
+   BOOST_TEST_MESSAGE("Testing lookup method with empty result");
+   DNSResourceRecord rr;
+   be->lookup(QType(QType::SOA), "empty.unit.test");
+   // then try to get()
+   BOOST_CHECK(!be->get(rr)); // and this should be FALSE
+}
+
 BOOST_AUTO_TEST_CASE(test_method_list) {
    int record_count = 0;
    DNSResourceRecord rr;
