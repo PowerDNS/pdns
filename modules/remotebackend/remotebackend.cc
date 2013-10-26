@@ -192,8 +192,8 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
       return;
    }
 
-   // OK. we have result parameters in result
-   if ((*d_result)["result"].IsArray() == false) {
+   // OK. we have result parameters in result. do not process empty result.
+   if ((*d_result)["result"].IsArray() == false || (*d_result)["result"].Size() < 1) {
       delete d_result;
       return;
    }
@@ -222,7 +222,7 @@ bool RemoteBackend::list(const std::string &target, int domain_id) {
      delete d_result;
      return false;
    }
-   if ((*d_result)["result"].IsArray() == false) {
+   if ((*d_result)["result"].IsArray() == false || (*d_result)["result"].Size() < 1) {
       delete d_result;
       return false;
    }
@@ -233,6 +233,7 @@ bool RemoteBackend::list(const std::string &target, int domain_id) {
 
 bool RemoteBackend::get(DNSResourceRecord &rr) {
    if (d_index == -1) return false;
+
    rapidjson::Value value;
 
    value = "";
