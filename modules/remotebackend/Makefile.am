@@ -4,9 +4,12 @@ AM_CPPFLAGS=@THREADFLAGS@ $(BOOST_CPPFLAGS) $(LIBCURL_CFLAGS) -I../../pdns/ext/r
 #       install .lib/libremotebackend.so.0.0.0 @libdir@
 #endif
 
-EXTRA_DIST=OBJECTFILES OBJECTLIBS
+EXTRA_DIST=OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock
 EXTRA_PROGRAMS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json
 EXTRA_LTLIBRARIES=libtestremotebackend.la
+
+clean-local:
+	rm -f $(EXTRA_PROGRAMS)
 
 lib_LTLIBRARIES = libremotebackend.la 
 
@@ -37,11 +40,11 @@ libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.c
 libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 
-test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc 
-test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc
-test_remotebackend_http_SOURCES=test-remotebackend.cc test-remotebackend-http.cc
-test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc
-test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc
+test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
+test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh
+test_remotebackend_http_SOURCES=test-remotebackend.cc test-remotebackend-http.cc test-remotebackend-keys.hh
+test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc test-remotebackend-keys.hh
+test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc test-remotebackend-keys.hh
 
 test_remotebackend_pipe_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns
 test_remotebackend_pipe_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS) -g -O0 -I../../pdns

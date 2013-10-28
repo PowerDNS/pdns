@@ -1,4 +1,4 @@
-#!/usr/bin/ruby1.9.1
+#!/usr/bin/env ruby
 
 require 'json'
 require 'thread'
