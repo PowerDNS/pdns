@@ -15058,6 +15058,25 @@ end
 	</para>
 	<para>
 	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since version 3.2.
+    pdnslog can also write out to a syslog loglevel if specified. Use <function>pdnslog(message, pdns.loglevels.LEVEL)</function> with the correct pdns.loglevels entry. Entries are listed in the following table:
+    <table>
+    <title>pdnslog() loglevels</title>
+    <tgroup cols="2">
+      <tbody>
+        <row><entry>All</entry><entry>pdns.loglevels.All</entry></row>
+        <row><entry>NTLog</entry><entry>pdns.loglevels.NTLog</entry></row>
+        <row><entry>Alert</entry><entry>pdns.loglevels.Alert</entry></row>
+        <row><entry>Critical</entry><entry>pdns.loglevels.Critical</entry></row>
+        <row><entry>Error</entry><entry>pdns.loglevels.Error</entry></row>
+        <row><entry>Warning</entry><entry>pdns.loglevels.Warning</entry></row>
+        <row><entry>Notice</entry><entry>pdns.loglevels.Notice</entry></row>
+        <row><entry>Info</entry><entry>pdns.loglevels.Info</entry></row>
+        <row><entry>Debug</entry><entry>pdns.loglevels.Debug</entry></row>
+        <row><entry>None</entry><entry>pdns.loglevels.None</entry></row>
+      </tbody>
+    </tgroup>
+  </table>
+    pdnslog(message) will write out to Info by default.
 	</para>
 	<para>
 	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since version 3.2.

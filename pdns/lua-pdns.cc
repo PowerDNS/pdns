@@ -71,6 +71,7 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
   lua_gettable(lua, -2);  // replace by the first entry of our table we hope
 
   bool ret=false;
+
   if(!lua_isnil(lua, -1)) {
     value = (uint32_t)lua_tonumber(lua, -1);
     ret=true;
@@ -110,7 +111,42 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
     lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
   }
 }
-
+// override the __index metatable under loglevels to return Logger::Error to account for nil accesses to the loglevels table
+int loglevels_index(lua_State* lua) 
+{
+  lua_pushnumber(lua, Logger::Error);
+  return 1;
+}
+// push the loglevel subtable onto the stack that will eventually be the pdns table
+void pushSyslogSecurityLevelTable(lua_State* lua) 
+{
+  lua_newtable(lua);
+// this function takes the global lua_state from the PowerDNSLua constructor and populates it with the syslog enums values
+  lua_pushnumber(lua, Logger::All);
+  lua_setfield(lua, -2, "All");
+  lua_pushnumber(lua, Logger::NTLog);
+  lua_setfield(lua, -2, "NTLog");
+  lua_pushnumber(lua, Logger::Alert);
+  lua_setfield(lua, -2, "Alert");
+  lua_pushnumber(lua, Logger::Critical);
+  lua_setfield(lua, -2, "Critical");
+  lua_pushnumber(lua, Logger::Error);
+  lua_setfield(lua, -2, "Error");
+  lua_pushnumber(lua, Logger::Warning);
+  lua_setfield(lua, -2, "Warning");
+  lua_pushnumber(lua, Logger::Notice);
+  lua_setfield(lua, -2, "Notice");
+  lua_pushnumber(lua, Logger::Info);
+  lua_setfield(lua, -2, "Info");
+  lua_pushnumber(lua, Logger::Debug);
+  lua_setfield(lua, -2, "Debug");
+  lua_pushnumber(lua, Logger::None);
+  lua_setfield(lua, -2, "None");
+  lua_createtable(lua, 0, 1);
+  lua_pushcfunction(lua, loglevels_index);
+  lua_setfield(lua, -2, "__index");
+  lua_setmetatable(lua, -2);
+}
 int getLuaTableLength(lua_State* lua, int depth)
 {
 #ifndef LUA_VERSION_NUM
@@ -215,9 +251,17 @@ int setVariableLua(lua_State* lua)
 
 int logLua(lua_State *lua)
 {
-  if(lua_gettop(lua) >= 1) {
+  // get # of arguments from the pdnslog() lua stack
+  // if it is 1, then the old pdnslog(msg) is used, which we keep for posterity and to prevent lua scripts from breaking
+  // if it is >= 2, then we process it as pdnslog(msg, urgencylevel) for more granular logging
+  int argc = lua_gettop(lua);
+  if(argc == 1) {
     string message=lua_tostring(lua, 1);
     theL()<<Logger::Error<<"From Lua script: "<<message<<endl;
+  } else if(argc >= 2) {
+    string message=lua_tostring(lua, 1);
+    int urgencylevel = lua_tonumber(lua, 2);
+    theL()<<urgencylevel<<" "<<message<<endl; 
   }
   return 0;
 }
@@ -233,6 +277,30 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
 
   lua_pushcfunction(d_lua, logLua);
   lua_setglobal(d_lua, "pdnslog");
+
+  lua_newtable(d_lua);
+
+  for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
+    lua_pushnumber(d_lua, iter->second);
+    lua_setfield(d_lua, -2, iter->first.c_str());
+  }
+  lua_pushnumber(d_lua, 0);
+  lua_setfield(d_lua, -2, "NOERROR");
+  lua_pushnumber(d_lua, 1);
+  lua_setfield(d_lua, -2, "FORMERR");
+  lua_pushnumber(d_lua, 2);
+  lua_setfield(d_lua, -2, "SERVFAIL");
+  lua_pushnumber(d_lua, 3);
+  lua_setfield(d_lua, -2, "NXDOMAIN");
+  lua_pushnumber(d_lua, 4);
+  lua_setfield(d_lua, -2, "NOTIMP");
+  lua_pushnumber(d_lua, 5);
+  lua_setfield(d_lua, -2, "REFUSED");
+  // set syslog codes used by Logger/enum Urgency
+  pushSyslogSecurityLevelTable(d_lua);
+  lua_setfield(d_lua, -2, "loglevels");
+
+  lua_setglobal(d_lua, "pdns");
 
 #ifndef LUA_VERSION_NUM
   luaopen_base(d_lua);
@@ -252,26 +320,6 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
 
   lua_pushcfunction(d_lua, getLocalAddressLua);
   lua_setglobal(d_lua, "getlocaladdress");
-  
-  lua_newtable(d_lua);
-
-  for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
-    lua_pushnumber(d_lua, iter->second);
-    lua_setfield(d_lua, -2, iter->first.c_str());
-  }
-  lua_pushnumber(d_lua, 0);
-  lua_setfield(d_lua, -2, "NOERROR");
-  lua_pushnumber(d_lua, 1);
-  lua_setfield(d_lua, -2, "FORMERR");
-  lua_pushnumber(d_lua, 2);
-  lua_setfield(d_lua, -2, "SERVFAIL");
-  lua_pushnumber(d_lua, 3);
-  lua_setfield(d_lua, -2, "NXDOMAIN");
-  lua_pushnumber(d_lua, 4);
-  lua_setfield(d_lua, -2, "NOTIMP");
-  lua_pushnumber(d_lua, 5);
-  lua_setfield(d_lua, -2, "REFUSED");
-  lua_setglobal(d_lua, "pdns");
   
   lua_pushlightuserdata(d_lua, (void*)this); 
   lua_setfield(d_lua, LUA_REGISTRYINDEX, "__PowerDNSLua");

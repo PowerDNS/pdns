@@ -1,10 +1,12 @@
+pdnslog("pdns-recursor starting!", pdns.loglevels.Info)
 function endswith(s, send)
 	 return #s >= #send and s:find(send, #s-#send+1, true) and true or false
 end
 
 function preresolve ( remoteip, domain, qtype )
+
 	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
-	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress());
+	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress(), pdns.loglevels.Info);
 
 	if endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
 	then
@@ -14,7 +16,7 @@ function preresolve ( remoteip, domain, qtype )
 
 	if domain == "www.donotcache.org."
 	then
-		print("making sure www.donotcache.org will never end up in the cache")
+		print("making sure www.donotcache.org will never end up in the cache", pdns.loglevels.Debug)
 		setvariable()
 		return -1, {}
 	end
@@ -45,8 +47,14 @@ end
 
 function nxdomain ( remoteip, domain, qtype )
 	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
-	if qtype ~= pdns.A then return -1, {} end  --  only A records
-	if not string.find(domain, "^www%.") then return -1, {} end  -- only things that start with www.
+	if qtype ~= pdns.A then 
+    pdnslog("Only A records", pdns.loglevels.Error)
+	return -1, {} 
+	end  --  only A records
+	if not string.find(domain, "^www%.") then 
+    pdnslog("Only strings that start with www.", pdns.loglevels.Error)
+	return -1, {} 
+	end  -- only things that start with www.
 	
 	setvariable()
 	if matchnetmask(remoteip, {"127.0.0.1/32", "10.1.0.0/16"}) 
@@ -88,7 +96,7 @@ end
 
 -- records contains the entire packet, ready for your modifying pleasure
 function postresolve ( remoteip, domain, qtype, records, origrcode )
-	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode)
+	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode, pdns.loglevels.Info)
 
 	for key,val in ipairs(records) 
 	do
@@ -114,15 +122,15 @@ function prequery ( dnspacket )
 	pdnslog ("q: ".. qname.." "..qtype)
 	if qtype == pdns.A and qname == "www.domain.com" 
 	then
-		pdnslog ("calling dnspacket:setRcode")
+		pdnslog ("calling dnspacket:setRcode", pdns.loglevels.Debug)
 		dnspacket:setRcode(pdns.NXDOMAIN)
-		pdnslog ("called dnspacket:setRcode")
-		pdnslog ("adding records")
+		pdnslog ("called dnspacket:setRcode", pdns.loglevels.Debug)
+		pdnslog ("adding records", pdns.loglevels.Debug)
 		ret = {}
 		ret[1] = {qname=qname, qtype=qtype, content="1.2.3.4", place=2}
 		ret[2] = {qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
 		dnspacket:addRecords(ret)
-		pdnslog ("returning true")
+		pdnslog ("returning true", pdns.loglevels.Debug)
 		return true
 	end
 	pdnslog ("returning false")
