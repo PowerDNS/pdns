@@ -94,7 +94,6 @@ try
     d_sock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
   else 
     d_sock6 = -1;
-  d_timeout=500000;
 }
 catch(...) {
   if(d_sock4>=0)
@@ -114,9 +113,10 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
                                const string& tsigkeyname, const string& tsigalgorithm, 
                                const string& tsigsecret)
 {
+  uint16_t randomid;
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, type);
-  pw.getHeader()->id = d_randomid = dns_random(0xffff);
+  pw.getHeader()->id = randomid = dns_random(0xffff);
   
   if(dnssecOK) {
     pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
@@ -132,7 +132,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(0);
     trc.d_fudge = 300;
-    trc.d_origID=ntohs(d_randomid);
+    trc.d_origID=ntohs(randomid);
     trc.d_eRcode=0;
     addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
   }
@@ -142,7 +142,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to ask query of "+remote.toStringWithPort()+": "+stringerror());
   }
-  return d_randomid;
+  return randomid;
 }
 
 static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)

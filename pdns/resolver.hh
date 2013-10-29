@@ -71,12 +71,7 @@ public:
 private:
   int d_sock4, d_sock6;
   
-  int d_type;
-  int d_timeout;
-  string d_domain;
   uint16_t d_randomid;
-  
-  ComboAddress d_remote;
 };
 
 class AXFRRetriever : public boost::noncopyable
