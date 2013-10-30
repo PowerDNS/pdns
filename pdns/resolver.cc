@@ -88,28 +88,27 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
 Resolver::Resolver()
 try
 {
-  d_sock4 = d_sock6 = 0;
-  d_sock4 = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
+  locals["default4"] = makeQuerySocket(ComboAddress(::arg()["query-local-address"]), true);
   if(!::arg()["query-local-address6"].empty())
-    d_sock6 = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
+    locals["default6"] = makeQuerySocket(ComboAddress(::arg()["query-local-address6"]), true);
   else 
-    d_sock6 = -1;
+    locals["default6"] = -1;
 }
 catch(...) {
-  if(d_sock4>=0)
-    close(d_sock4);
+  if(locals["default4"]>=0)
+    close(locals["default4"]);
   throw;
 }
 
 Resolver::~Resolver()
 {
-  if(d_sock4>=0)
-    Utility::closesocket(d_sock4);
-  if(d_sock6>=0)
-    Utility::closesocket(d_sock6);
+   for(std::map<std::string,int>::iterator iter = locals.begin(); iter != locals.end(); iter++) {
+       close(iter->second);
+   }
 }
 
-uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOK, 
+uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& local,
+                               const char *domain, int type, bool dnssecOK, 
                                const string& tsigkeyname, const string& tsigalgorithm, 
                                const string& tsigsecret)
 {
@@ -136,13 +135,41 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain, i
     trc.d_eRcode=0;
     addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
   }
-    
-  int sock = remote.sin4.sin_family == AF_INET ? d_sock4 : d_sock6;
+  
+  int sock;
+
+  // choose socket based on local
+  if (local.sin4.sin_family == 0) {
+     // up to us. 
+     sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+  } else {
+     std::string lstr = local.toString();
+     std::map<std::string, int>::iterator lptr;
+     // see if there is a local
+
+     if ((lptr = locals.find(lstr)) != locals.end()) {
+        sock = lptr->second;
+     } else {
+        // try to make socket
+        sock = makeQuerySocket(local, true); 
+        locals[lstr] = sock;
+     }
+  }
   
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to ask query of "+remote.toStringWithPort()+": "+stringerror());
   }
   return randomid;
+}
+
+uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain,
+                               int type, bool dnssecOK,
+                               const string& tsigkeyname, const string& tsigalgorithm,
+                               const string& tsigsecret)
+{
+   ComboAddress local;
+   local.sin4.sin_family = 0;
+   return this->sendResolve(remote, local, domain, type, dnssecOK, tsigkeyname, tsigalgorithm, tsigsecret);
 }
 
 static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
@@ -203,13 +230,34 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
 
 bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
-  Utility::setNonBlocking( d_sock4 );
-  Utility::setNonBlocking( d_sock6 );
-  
+  struct pollfd *fds = new struct pollfd[locals.size()];
+  size_t i = 0, k;
   int sock;
-  if(!waitFor2Data(d_sock4, d_sock6, 0, 250000, &sock)) // lame function, I know.. 
-    return false;
-  
+
+  for(std::map<string,int>::iterator iter=locals.begin(); iter != locals.end(); iter++, i++) {
+    fds[i].fd = iter->second;
+    fds[i].events = POLLIN;
+  }
+
+  if (poll(fds, i, 250) < 1) { // wait for 0.25s
+     delete [] fds;
+     return false;
+  }
+
+  sock = -1;
+
+  // determine who
+  for(k=0;k<i;k++) {
+    if ((fds[k].revents & POLLIN) == POLLIN) {
+      sock = fds[k].fd;
+      break;
+    }
+  }
+
+  delete [] fds;
+ 
+  if (sock < 0) return false; // false alarm
+ 
   int err;
   ComboAddress fromaddr;
   socklen_t addrlen=fromaddr.getSocklen();
@@ -218,10 +266,10 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   if(err < 0) {
     if(errno == EAGAIN)
       return false;
-    
+
     throw ResolverException("recvfrom error waiting for answer: "+stringerror());
   }
-  
+
   MOADNSParser mdp((char*)buf, err);
   *id=mdp.d_header.id;
   *domain = stripDot(mdp.d_qname);
@@ -253,13 +301,27 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   return true;
 }
 
-int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res)
+int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res, const ComboAddress &local)
 {
   try {
     ComboAddress to(ipport, 53);
 
-    int id = sendResolve(to, domain, type);
-    int sock =  to.sin4.sin_family == AF_INET ? d_sock4 : d_sock6;
+    int id = sendResolve(to, local, domain, type);
+    int sock;
+
+    // choose socket based on local
+    if (local.sin4.sin_family == 0) {
+       // up to us.
+       sock = to.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+    } else {
+       std::string lstr = local.toString();
+       std::map<std::string, int>::iterator lptr;
+       // see if there is a local
+
+       if ((lptr = locals.find(lstr)) != locals.end()) sock = lptr->second;
+       else throw ResolverException("sendResolve did not create socket for " + lstr);
+    }
+
     int err=waitForData(sock, 0, 3000000); 
   
     if(!err) {
@@ -285,7 +347,11 @@ int Resolver::resolve(const string &ipport, const char *domain, int type, Resolv
   return -1;
 }
 
-
+int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res) {
+   ComboAddress local;
+   local.sin4.sin_family = 0;
+   return resolve(ipport, domain, type, res, local);
+}
 
 void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t *serial)
 {

@@ -1,0 +1,7 @@
+function prequery ( dnspacket )
+	qname, qtype = dnspacket:getQuestion()
+        remote = dnspacket:getRemote()
+	if qname == "stest.com" and remote != "127.0.0.2":
+		return false
+	return true
+end

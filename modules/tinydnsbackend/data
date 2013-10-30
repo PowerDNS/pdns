@@ -20262,3 +20262,7 @@ Zminimal.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:8640
 Ztsig.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
 &tsig.com::ns1.example.com.:120
 &tsig.com::ns2.example.com.:120
+#2000081501 auto axfr-get
+Zstest.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:120
+&stest.com::ns1.example.com.:120
+&stest.com::ns2.example.com.:120
