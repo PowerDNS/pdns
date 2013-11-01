@@ -1,6 +1,5 @@
 #!/bin/sh
 
-cleandig delegate1.test.dyndns ANY hidesoadetails
 mysqldiff
 
 cleannsupdate <<!
@@ -14,7 +13,6 @@ send
 answer
 !
 
-cleandig delegate1.test.dyndns ANY
 mysqldiff 1 'Check delegate1 added correctly'
 
 cleannsupdate <<!
@@ -28,7 +26,6 @@ send
 answer
 !
 
-cleandig delegate2.test.dyndns ANY
 mysqldiff 2 'Check delegate2 added correctly'
 
 cleannsupdate <<!
@@ -40,12 +37,6 @@ send
 answer
 !
 
-cleandig delegate2.test.dyndns ANY hidesoadetails
-cleandig delegate1.test.dyndns ANY hidesoadetails
-cleandig ns1.delegate1.test.dyndns ANY
-cleandig ns2.delegate1.test.dyndns ANY
-cleandig ns1.delegate2.test.dyndns ANY
-cleandig ns2.delegate2.test.dyndns ANY
 mysqldiff 3 'check delegate delete'
 
 cleannsupdate <<!
@@ -59,8 +50,4 @@ send
 answer
 !
 
-cleandig ns1.delegate1.test.dyndns ANY hidesoadetails
-cleandig ns2.delegate1.test.dyndns ANY hidesoadetails
-cleandig ns1.delegate2.test.dyndns ANY hidesoadetails
-cleandig ns2.delegate2.test.dyndns ANY hidesoadetails
 mysqldiff 4 'Check if glue records are deleted and zone back to how we started'

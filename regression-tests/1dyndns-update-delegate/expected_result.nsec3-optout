@@ -1,18 +1,9 @@
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='delegate1.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	delegate1.test.dyndns.	IN	NS	3600	ns1.delegate1.test.dyndns.
-1	delegate1.test.dyndns.	IN	NS	3600	ns2.delegate1.test.dyndns.
-2	ns1.delegate1.test.dyndns.	IN	A	3600	127.0.0.1
-2	ns2.delegate1.test.dyndns.	IN	A	3600	127.0.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
-Reply to question for qname='delegate1.test.dyndns.', qtype=ANY
 Check delegate1 added correctly
 --- Start: diff start step.1 ---
 > delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600	NULL	0
@@ -27,12 +18,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	delegate2.test.dyndns.	IN	NS	3600	ns1.delegate2.test.dyndns.
-1	delegate2.test.dyndns.	IN	NS	3600	ns2.example.com.
-2	ns1.delegate2.test.dyndns.	IN	A	3600	127.0.0.1
-2	ns2.example.com.	IN	A	120	192.168.1.2
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
-Reply to question for qname='delegate2.test.dyndns.', qtype=ANY
 Check delegate2 added correctly
 --- Start: diff start step.2 ---
 > delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600	NULL	0
@@ -51,24 +36,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='delegate2.test.dyndns.', qtype=ANY
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='delegate1.test.dyndns.', qtype=ANY
-0	ns1.delegate1.test.dyndns.	IN	A	3600	127.0.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns1.delegate1.test.dyndns.', qtype=ANY
-0	ns2.delegate1.test.dyndns.	IN	A	3600	127.0.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns2.delegate1.test.dyndns.', qtype=ANY
-0	ns1.delegate2.test.dyndns.	IN	A	3600	127.0.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns1.delegate2.test.dyndns.', qtype=ANY
-0	ns2.delegate2.test.dyndns.	IN	A	3600	127.0.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns2.delegate2.test.dyndns.', qtype=ANY
 check delegate delete
 --- Start: diff start step.3 ---
 > delegate1.test.dyndns	NULL	NULL	NULL	NULL	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	1
@@ -85,18 +52,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns1.delegate1.test.dyndns.', qtype=ANY
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns2.delegate1.test.dyndns.', qtype=ANY
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns1.delegate2.test.dyndns.', qtype=ANY
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='ns2.delegate2.test.dyndns.', qtype=ANY
 Check if glue records are deleted and zone back to how we started
 --- Start: diff start step.4 ---
 no difference
