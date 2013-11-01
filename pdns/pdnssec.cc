@@ -1049,7 +1049,7 @@ try
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
     cerr<<"generate-zone-key zsk|ksk [algorithm] [bits]"<<endl;
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits"<<endl;
-    cerr<<"get-meta ZONE [KIND]               Get zone metadata. If no KIND given, lists all"<<endl;
+    cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
@@ -1062,8 +1062,8 @@ try
     cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs"<<endl;
     cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
-    cerr<<"set-meta ZONE KIND value [value ..]"<<endl;
-    cerr<<"                                   Set zone metadata, optionally providing more than one value"<<endl;
+    cerr<<"set-meta ZONE KIND [value value ..]"<<endl;
+    cerr<<"                                   Set zone metadata, optionally providing a value. Empty clears meta."<<endl;
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs"<<endl;
