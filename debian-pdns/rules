@@ -53,7 +53,7 @@ build-static stamp-build-static:
 		--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
 		--with-modules="gmysql gpgsql pipe gsqlite3 lua geo tinydns mydns opendbx remote" \
 		--with-dynmodules="" \
-		--enable-botan1.10 --enable-cryptopp \
+		--enable-botan1.10 \
 		--enable-static-binaries \
 		--enable-tools
 	make -j4
