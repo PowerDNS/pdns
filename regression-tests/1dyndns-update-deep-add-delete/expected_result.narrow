@@ -1,63 +1,9 @@
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd EPFP6242BI1891C397KJDHSD0H04OTMT
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd OTDRJSDLB78JMSU0IC15A7U25QUQPHHT
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd U36F0TJOOQV1KSPATTO6QNS0VAP731V3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd EPFP6242BI1891C397KJDHSD0H04OTMT
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd OTDRJSDLB78JMSU0IC15A7U25QUQPHHT
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd U36F0TJOOQV1KSPATTO6QNS0VAP731V3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd EPFP6242BI1891C397KJDHSD0H04OTMT
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd OTDRJSDLB78JMSU0IC15A7U25QUQPHHT
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd U36F0TJOOQV1KSPATTO6QNS0VAP731V3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
 ;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-0	a.b.c.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
-0	a.b.c.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 8 3600 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
-0	a.b.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
-0	a.b.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 7 3600 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	ib3ld1s8c6dfqb62bfcodug02vbaoub2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd IB3LD1S8C6DFQB62BFCODUG02VBAOUB3
-1	ib3ld1s8c6dfqb62bfcodug02vbaoub2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	q9ck1e2e54o9cjvh84jfksvi69umn4v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd Q9CK1E2E54O9CJVH84JFKSVI69UMN4V4
-1	q9ck1e2e54o9cjvh84jfksvi69umn4v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	qm2m8qa1ea4hu5plgu310cpnj5g7bie6.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd QM2M8QA1EA4HU5PLGU310CPNJ5G7BIE8
-1	qm2m8qa1ea4hu5plgu310cpnj5g7bie6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
 Check if records are added
 --- Start: diff start step.1 ---
 > a.b.c.d.e.f.test.dyndns	A	0	127.0.0.1	3600	NULL	1
@@ -76,33 +22,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	6dll36pp2pvi784nttvqc1oevi57p2k2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 6DLL36PP2PVI784NTTVQC1OEVI57P2K4
-1	6dll36pp2pvi784nttvqc1oevi57p2k2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	ib3ld1s8c6dfqb62bfcodug02vbaoub2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd IB3LD1S8C6DFQB62BFCODUG02VBAOUB3
-1	ib3ld1s8c6dfqb62bfcodug02vbaoub2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	qm2m8qa1ea4hu5plgu310cpnj5g7bie6.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd QM2M8QA1EA4HU5PLGU310CPNJ5G7BIE8
-1	qm2m8qa1ea4hu5plgu310cpnj5g7bie6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
-0	a.b.d.e.f.test.dyndns.	IN	A	3600	127.0.0.1
-0	a.b.d.e.f.test.dyndns.	IN	RRSIG	3600	A 8 7 3600 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	ib3ld1s8c6dfqb62bfcodug02vbaoub2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd IB3LD1S8C6DFQB62BFCODUG02VBAOUB3
-1	ib3ld1s8c6dfqb62bfcodug02vbaoub2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	q9ck1e2e54o9cjvh84jfksvi69umn4v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd Q9CK1E2E54O9CJVH84JFKSVI69UMN4V4
-1	q9ck1e2e54o9cjvh84jfksvi69umn4v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	qm2m8qa1ea4hu5plgu310cpnj5g7bie6.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd QM2M8QA1EA4HU5PLGU310CPNJ5G7BIE8
-1	qm2m8qa1ea4hu5plgu310cpnj5g7bie6.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
 Check if a.b.c.d.e.f is removed correctly
 --- Start: diff start step.2 ---
 > a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600	NULL	1
@@ -118,39 +37,6 @@ Answer:
 ;; ZONE SECTION:
 ;test.dyndns.			IN	SOA
 
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd EPFP6242BI1891C397KJDHSD0H04OTMT
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd OTDRJSDLB78JMSU0IC15A7U25QUQPHHT
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd U36F0TJOOQV1KSPATTO6QNS0VAP731V3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.c.d.e.f.test.dyndns.', qtype=A
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd EPFP6242BI1891C397KJDHSD0H04OTMT
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd OTDRJSDLB78JMSU0IC15A7U25QUQPHHT
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd U36F0TJOOQV1KSPATTO6QNS0VAP731V3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='a.b.d.e.f.test.dyndns.', qtype=A
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd EPFP6242BI1891C397KJDHSD0H04OTMT
-1	epfp6242bi1891c397kjdhsd0h04otmr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd OTDRJSDLB78JMSU0IC15A7U25QUQPHHT
-1	otdrjsdlb78jmsu0ic15a7u25quqphhr.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
-1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd U36F0TJOOQV1KSPATTO6QNS0VAP731V3 NS SOA MX RRSIG DNSKEY NSEC3PARAM
-1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
-2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='x.d.e.f.test.dyndns.', qtype=A
 Check if everything is removed correctly
 --- Start: diff start step.3 ---
 no difference

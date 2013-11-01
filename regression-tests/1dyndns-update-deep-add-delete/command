@@ -1,9 +1,5 @@
 #!/bin/sh
 
-cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
-
 mysqldiff
 
 cleannsupdate <<!
@@ -15,9 +11,6 @@ send
 answer
 !
 
-cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
 mysqldiff 1 "Check if records are added"
 
 
@@ -29,9 +22,6 @@ send
 answer
 !
 
-cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
 mysqldiff 2 "Check if a.b.c.d.e.f is removed correctly"
 
 cleannsupdate <<!
@@ -42,7 +32,4 @@ send
 answer
 !
 
-cleandig a.b.c.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig a.b.d.e.f.test.dyndns A hidesoadetails dnssec
-cleandig x.d.e.f.test.dyndns A hidesoadetails dnssec
 mysqldiff 3 "Check if everything is removed correctly"
