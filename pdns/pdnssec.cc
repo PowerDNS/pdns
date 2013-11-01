@@ -1728,12 +1728,11 @@ try
     if (cmds.size() > 2) {
        keys.assign(cmds.begin() + 2, cmds.end());
     } else {
-       keys = boost::assign::list_of("ALLOW-AXFR-FROM")
-			("ALLOW-2136-FROM")("TSIG-ALLOW-2136")("TSIG-ALLOW-2136")
-			("SOA-EDIT-2136")("ALSO-NOTIFY")("AXFR-MASTER-TSIG")
-			("LUA-AXFR-SCRIPT")("NSEC3NARROW")("NSEC3PARAM")
-			("PRESIGNED")("SOA-EDIT")("TSIG-ALLOW-AXFR"); // NOTE: Add new metas here
-
+       keys = boost::assign::list_of("ALLOW-2136-FROM")
+			("ALLOW-AXFR-FROM")("ALSO-NOTIFY")("AXFR-MASTER-TSIG")
+                        ("AXFR-SOURCE")("LUA-AXFR-SCRIPT")("NSEC3NARROW")
+                        ("NSEC3PARAM")("PRESIGNED")("SOA-EDIT")
+                        ("TSIG-ALLOW-2136")("TSIG-ALLOW-AXFR"); // NOTE: Add new metas here
     }
     std::cout << "Metadata for '" << zone << "'" << endl;
     BOOST_FOREACH(const string kind, keys) {
