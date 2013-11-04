@@ -763,16 +763,17 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
   if(!d_dnssecQueries)
     return false;
 
-  if(!meta.empty())
-    snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
-      sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(toLower(name)).c_str());
-
   string clearQuery = (boost::format(d_ClearDomainMetadataQuery) % sqlEscape(toLower(name)) % sqlEscape(kind)).str();
 
   try {
     d_db->doCommand(clearQuery);
-    if(!meta.empty())
-      d_db->doCommand(output);
+    if(!meta.empty()) {
+      BOOST_FOREACH(const std::string & value, meta) {
+         snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
+            sqlEscape(kind).c_str(), sqlEscape(value).c_str(), sqlEscape(toLower(name)).c_str());
+         d_db->doCommand(output);
+      }
+    }
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to store metadata key: "+e.txtReason());

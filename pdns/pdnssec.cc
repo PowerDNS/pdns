@@ -5,6 +5,7 @@
 #include "base64.hh"
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
+#include <boost/assign/list_of.hpp>
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "arguments.hh"
@@ -656,11 +657,11 @@ void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int c
         ;
   }
   cerr<<"Flushing the pipe, "<<csp.d_signed<<" signed, "<<csp.d_queued<<" queued, "<<csp.d_outstanding<<" outstanding"<< endl;
-  cerr<<"Net speed: "<<csp.d_signed/ (dt.udiffNoReset()/1000000.0) << " sigs/s\n";
+  cerr<<"Net speed: "<<csp.d_signed/ (dt.udiffNoReset()/1000000.0) << " sigs/s"<<endl;
   while(signatures = csp.getChunk(true), !signatures.empty())
       ;
   cerr<<"Done, "<<csp.d_signed<<" signed, "<<csp.d_queued<<" queued, "<<csp.d_outstanding<<" outstanding"<< endl;
-  cerr<<"Net speed: "<<csp.d_signed/ (dt.udiff()/1000000.0) << " sigs/s\n";
+  cerr<<"Net speed: "<<csp.d_signed/ (dt.udiff()/1000000.0) << " sigs/s"<<endl;
 }
 
 void verifyCrypto(const string& zone)
@@ -720,7 +721,7 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const string& zone)
   }
 
   if(!dk.isSecuredZone(zone)) {
-    cerr<<"Zone is not secured\n";
+    cerr<<"Zone is not secured"<<endl;
     return false;
   }
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
@@ -750,7 +751,7 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
   }
 
   if(!dk.isSecuredZone(zone)) {
-    cerr<<"Zone is not actively secured\n";
+    cerr<<"Zone is not actively secured"<<endl;
   }
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
@@ -766,7 +767,7 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
      cerr << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
   }
   
-  cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned\n";
+  cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned"<<endl;
 
   if(keyset.empty())  {
     cerr << "No keys for zone '"<<zone<<"'."<<endl;
@@ -863,19 +864,19 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
 
   // run secure-zone with first default algorith, then add keys
   if(!dk.secureZone(zone, shorthand2algorithm(k_algos[0]), k_size)) {
-    cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC\n";
-    cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled.\n";
-    cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or\n";
-    cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!\n";
+    cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
+    cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
+    cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
+    cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!"<<endl;
     return false;
   }
 
   if(!dk.isSecuredZone(zone)) {
-    cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set \n";
-    cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first.\n";
-    cerr<<"If you run with the BIND backend, make sure you have configured\n";
-    cerr<<"it to use DNSSEC with 'bind-dnssec-db=/path/fname' and\n";
-    cerr<<"'pdnssec create-bind-db /path/fname'!\n";
+    cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set "<<endl;
+    cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first."<<endl;
+    cerr<<"If you run with the BIND backend, make sure you have configured"<<endl;
+    cerr<<"it to use DNSSEC with 'bind-dnssec-db=/path/fname' and"<<endl;
+    cerr<<"'pdnssec create-bind-db /path/fname'!"<<endl;
     return false;
   }
 
@@ -1027,43 +1028,46 @@ try
   g_verbose = g_vm.count("verbose");
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] <command> [params ..]\n\n";
-    cerr<<"Commands:\n";
-    cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE\n";
-    cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]\n";
-    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]\n";
-    cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits\n";
-    cerr<<"check-zone ZONE                    Check a zone for correctness\n";
-    cerr<<"check-all-zones                    Check all zones for correctness\n";
-    cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)\n"; 
-    cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE\n";
-    cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE\n";
-    cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described\n";
-    cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described\n";
-    cerr<<"generate-zone-key zsk|ksk [algorithm] [bits]\n";
-    cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits\n";
-    cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE\n";
-    cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT\n";
-    cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK\n";            
-    cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active\n";
-    cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)\n";
-    cerr<<"rectify-all-zones                  Rectify all zones.\n";
-    cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE\n";
-    cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs\n";
-    cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow\n";
-    cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage\n";
-    cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone\n";
-    cerr<<"unset-nsec3 ZONE                   Switch back to NSEC\n";
-    cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs\n";
-    cerr<<"test-schema ZONE                   Test DB schema - will create ZONE\n";
-    cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key\n";
-    cerr<<"create-tsig-key NAME ALGORITHM     Generate new TSIG key\n";
-    cerr<<"list-tsig-keys                     List all TSIG keys\n";
-    cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)\n";
-    cerr<<"enable-tsig-key ZONE NAME [master|slave]\n";
-    cerr<<"                                   Enable TSIG key for a zone\n";
-    cerr<<"disable-tsig-key ZONE NAME [master|slave]\n";
-    cerr<<"                                   Disable TSIG key for a zone\n";
+    cerr<<"Usage: \npdnssec [options] <command> [params ..]\n"<<endl;
+    cerr<<"Commands:"<<endl;
+    cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
+    cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
+    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+    cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
+    cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
+    cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
+    cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl; 
+    cerr<<"create-tsig-key NAME ALGORITHM     Generate new TSIG key"<<endl;
+    cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
+    cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
+    cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
+    cerr<<"disable-tsig-key ZONE NAME [master|slave]"<<endl;
+    cerr<<"                                   Disable TSIG key for a zone"<<endl;
+    cerr<<"enable-tsig-key ZONE NAME [master|slave]"<<endl;
+    cerr<<"                                   Enable TSIG key for a zone"<<endl;
+    cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
+    cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
+    cerr<<"generate-zone-key zsk|ksk [algorithm] [bits]"<<endl;
+    cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits"<<endl;
+    cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
+    cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
+    cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
+    cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
+    cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;            
+    cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
+    cerr<<"list-tsig-keys                     List all TSIG keys"<<endl;
+    cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
+    cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
+    cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
+    cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs"<<endl;
+    cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow"<<endl;
+    cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
+    cerr<<"set-meta ZONE KIND [value value ..]"<<endl;
+    cerr<<"                                   Set zone metadata, optionally providing a value. Empty clears meta."<<endl;
+    cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
+    cerr<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
+    cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs"<<endl;
+    cerr<<"test-schema ZONE                   Test DB schema - will create ZONE"<<endl;
     cerr<<desc<<endl;
     return 0;
   }
@@ -1437,7 +1441,7 @@ try
       else if(pdns_iequals(cmds[4], "KSK"))
         dpk.d_flags = 257;
       else {
-        cerr<<"Unknown key flag '"<<cmds[4]<<"'\n";
+        cerr<<"Unknown key flag '"<<cmds[4]<<"'"<<endl;
         exit(1);
       }
     }
@@ -1479,7 +1483,7 @@ try
       else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive"))
 	active = 0;
       else { 
-	cerr<<"Unknown key flag '"<<cmds[n]<<"'\n";
+	cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;
 	exit(1);
       }	  
     }
@@ -1706,8 +1710,55 @@ try
        return 1;
      }
      return 0;
-  }
-  else {
+  } else if (cmds[0]=="get-meta") {
+    UeberBackend B("default");
+    if (cmds.size() < 2) {
+       cerr << "Syntax: " << cmds[0] << " zone [kind kind ..]" << endl;
+       return 1;
+    }
+    string zone = cmds[1];
+    vector<string> keys;
+    DomainInfo di;
+
+    if (!B.getDomainInfo(zone, di)) {
+       cerr << "Invalid zone '" << zone << "'" << endl;
+       return 1;
+    }
+
+    if (cmds.size() > 2) {
+       keys.assign(cmds.begin() + 2, cmds.end());
+    } else {
+       keys = boost::assign::list_of("ALLOW-2136-FROM")
+			("ALLOW-AXFR-FROM")("ALSO-NOTIFY")("AXFR-MASTER-TSIG")
+                        ("AXFR-SOURCE")("LUA-AXFR-SCRIPT")("NSEC3NARROW")
+                        ("NSEC3PARAM")("PRESIGNED")("SOA-EDIT")
+                        ("TSIG-ALLOW-2136")("TSIG-ALLOW-AXFR"); // NOTE: Add new metas here
+    }
+    std::cout << "Metadata for '" << zone << "'" << endl;
+    BOOST_FOREACH(const string kind, keys) {
+      vector<string> meta;
+      meta.clear();
+      if (B.getDomainMetadata(zone, kind, meta)) {
+         cout << kind << " = " << boost::join(meta, ", ") << endl;
+      }
+    }
+  } else if (cmds[0]=="set-meta") {
+    UeberBackend B("default");
+    if (cmds.size() < 3) {
+       cerr << "Syntax: " << cmds[0] << " zone kind [value value ..]" << endl;
+       return 1;
+    }
+    string zone = cmds[1];
+    string kind = cmds[2];
+    vector<string> meta(cmds.begin() + 3, cmds.end());
+
+    if (!B.setDomainMetadata(zone, kind, meta)) {
+      cerr << "Unable to set meta for '" << zone << "'" << endl;
+      return 1;
+    } else {
+      cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
+    }
+  } else {
     cerr<<"Unknown command '"<<cmds[0] << endl;
     return 1;
   }
