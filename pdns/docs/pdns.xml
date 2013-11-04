@@ -12894,6 +12894,22 @@ $ pdnssec rectify-zone powerdnssec.org
               </para>
             </listitem>
         </varlistentry>
+        <varlistentry>
+            <term>get-meta ZONE [kind kind..]</term>
+            <listitem>
+              <para>
+                Gets one or more meta items for domain ZONE. If no meta keys defined, it retrieves well known meta keys. 
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>set-meta ZONE kind [value value ..]</term>
+            <listitem>
+              <para>
+               Clears or sets meta for domain ZONE. You can provide one or more value(s). 
+              </para>
+            </listitem>
+        </varlistentry>
       </variablelist>
     </para>
   </section>
