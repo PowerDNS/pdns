@@ -12855,7 +12855,7 @@ $ pdnssec rectify-zone powerdnssec.org
             </listitem>
         </varlistentry>
         <varlistentry>
-            <term>create-tsig-key name algorithm</term>
+            <term>generate-tsig-key name algorithm</term>
             <listitem>
               <para>
                  Creates and stores a named tsig key.
@@ -12879,18 +12879,18 @@ $ pdnssec rectify-zone powerdnssec.org
             </listitem>
         </varlistentry>
         <varlistentry>
-            <term>enable-tsig-key zone name [master|slave]</term>
+            <term>activate-tsig-key zone name [master|slave]</term>
             <listitem>
               <para>
-                 Enables TSIG key for a zone. Use master on master server, slave on slave server.
+                 activate TSIG key for a zone. Use master on master server, slave on slave server.
               </para>
             </listitem>
         </varlistentry>
         <varlistentry>
-            <term>disable-tsig-key zone name [master|slave]</term>
+            <term>deactivate-tsig-key zone name [master|slave]</term>
             <listitem>
               <para>
-                 Disabled TSIG key for a zone. Use master on master server, slave on slave server.
+                 Deactivate TSIG key for a zone. Use master on master server, slave on slave server.
               </para>
             </listitem>
         </varlistentry>
