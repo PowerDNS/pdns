@@ -66,6 +66,9 @@ public:
   /** Should the packet have grown too big for the writer's liking, rollback removes the record currently being written */
   void rollback();
 
+  /** Discard all content except the question section */
+  void truncate();
+
   void xfr48BitInt(uint64_t val);
   void xfr32BitInt(uint32_t val);
   void xfr16BitInt(uint16_t val);
@@ -121,6 +124,7 @@ private:
   uint16_t d_stuff;
   uint16_t d_sor;
   uint16_t d_rollbackmarker; // start of last complete packet, for rollback
+  uint16_t d_truncatemarker; // end of header, for truncate
   Place d_recordplace;
   bool d_canonic, d_lowerCase;
 };

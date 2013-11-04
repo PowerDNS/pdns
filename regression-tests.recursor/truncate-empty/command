@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig big.arthur.example.net txt | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'

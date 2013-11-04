@@ -601,7 +601,10 @@ void startDoResolve(void *p)
           if(pw.size() > maxanswersize) {
             pw.rollback();
             if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
+            {
               pw.getHeader()->tc=1;
+              pw.truncate();
+            }
             goto sendit; // need to jump over pw.commit
           }
         }
