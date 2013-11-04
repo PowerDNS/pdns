@@ -1569,7 +1569,7 @@ try
     // print key to stdout 
     cout << "Flags: " << dspk.d_flags << endl << 
              dspk.getKey()->convertToISC() << endl; 
-  } else if (cmds[0]=="create-tsig-key") {
+  } else if (cmds[0]=="generate-tsig-key") {
      if (cmds.size() < 3) {
         cerr << "Syntax: " << cmds[0] << " name (hmac-md5|hmac-sha1|hmac-sha224|hmac-sha256|hmac-sha384|hmac-sha512)" << endl;
         return 0;
@@ -1654,7 +1654,7 @@ try
         }
      }
      return 0;
-  } else if (cmds[0]=="enable-tsig-key") {
+  } else if (cmds[0]=="activate-tsig-key") {
      string metaKey;
      if (cmds.size() < 4) {
         cerr << "Syntax: " << cmds[0] << " zone name [master|slave]" << endl;
@@ -1688,7 +1688,7 @@ try
        return 1;
      }
      return 0;
-  } else if (cmds[0]=="disable-tsig-key") {
+  } else if (cmds[0]=="deactivate-tsig-key") {
      string metaKey;
      if (cmds.size() < 4) {
         cerr << "Syntax: " << cmds[0] << " zone name [master|slave]" << endl;
