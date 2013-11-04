@@ -1,25 +1,4 @@
-#include "dnsseckeeper.hh"
-#include "dnssecinfra.hh"
-#include "statbag.hh"
-#include "base32.hh"
-#include "base64.hh"
-#include <boost/foreach.hpp>
-#include <boost/program_options.hpp>
-#include <boost/assign/list_of.hpp>
-#include "dnsbackend.hh"
-#include "ueberbackend.hh"
-#include "arguments.hh"
-#include "packetcache.hh"
-#include "zoneparser-tng.hh"
-#include "signingpipe.hh"
-#include <boost/scoped_ptr.hpp>
-#include "dns_random.hh"
-#ifdef HAVE_SQLITE3
-#include "ssqlite3.hh"
-#include "bind-dnssec.schema.sqlite3.sql.h"
-#endif
-
-#include <pdns/pdnsutil.hh>
+#include "pdnsutil.hh"
 
 PdnsUtilNamespace *PdnsUtilNamespace::instance = NULL;
 
@@ -44,13 +23,19 @@ ArgvMap &arg()
 
 int PdnsUtilNamespace::execute(const std::string &prefix, std::vector<std::string> args) {
      PdnsUtilNamespaceHandler *handler = get(prefix);
-     if (handler == NULL) return -1;
+     if (handler == NULL) {
+        std::cerr << "Invalid namespace '" << prefix << "' given. Try help. " << std::endl;
+        return -1;
+     }
      return handler->execute(prefix, args);
   }
 
 int PdnsUtilNamespace::help(const std::string &prefix, std::vector<std::string> args) {
      PdnsUtilNamespaceHandler *handler = get(prefix);
-     if (handler == NULL) return -1;
+     if (handler == NULL) {
+	std::cerr << "Invalid namespace '" << prefix << "' given. Try help. " << std::endl;
+        return -1;
+     }
      return handler->help(prefix, args);
 }
 
@@ -149,6 +134,13 @@ int main(int argc, const char *argv[]) {
 
   std::string prefix = cmds[0];  
   std::vector<std::string> args(cmds.begin()+1, cmds.end()); // it should be reduced by one
+
+  try {
+    PdnsUtilNamespace::getInstance()->B = new UeberBackend("default");
+  } catch (PDNSException ex) {
+    std::cerr << "Unable to initialize backends: " << ex.reason << std::endl;
+    return 1;
+  }
 
   return PdnsUtilNamespace::getInstance()->execute(prefix, args);
 }

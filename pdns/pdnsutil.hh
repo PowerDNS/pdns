@@ -1,3 +1,25 @@
+#ifndef _PDNS_PDNSUTIL_HH
+#define _PDNS_PDNSUTIL_HH 1 
+#include "dnsseckeeper.hh"
+#include "dnssecinfra.hh"
+#include "statbag.hh"
+#include "base32.hh"
+#include "base64.hh"
+#include <boost/foreach.hpp>
+#include <boost/program_options.hpp>
+#include <boost/assign/list_of.hpp>
+#include "dnsbackend.hh"
+#include "ueberbackend.hh"
+#include "arguments.hh"
+#include "packetcache.hh"
+#include "zoneparser-tng.hh"
+#include "signingpipe.hh"
+#include <boost/scoped_ptr.hpp>
+#include "dns_random.hh"
+#ifdef HAVE_SQLITE3
+#include "ssqlite3.hh"
+#include "bind-dnssec.schema.sqlite3.sql.h"
+#endif
 #include <vector>
 #include <map>
 #include "pdnsexception.hh"
@@ -43,6 +65,8 @@ public:
 
   int execute(const std::string &prefix, std::vector<std::string> args);
   int help(const std::string &prefix, std::vector<std::string> args);
+
+  UeberBackend *B;
 };
 
 class PdnsUtilNamespaceHandler {
@@ -56,7 +80,13 @@ protected:
         iss << boost::format("%s %-20s - %s") % prefix % cmd % helpText;
         return iss.str();
      };
+     
+     UeberBackend *B() {
+         return PdnsUtilNamespace::getInstance()->B;
+     }
 public:
-     virtual int help(const std::string &prefix, const std::vector<std::string> args) { return -1; };
-     virtual int execute(const std::string &prefix, const std::vector<std::string> args) { return -1; };
+     virtual int help(const std::string &prefix, const std::vector<std::string>& args) = 0;
+     virtual int execute(const std::string &prefix, const std::vector<std::string>& args) = 0;
 };
+
+#endif
