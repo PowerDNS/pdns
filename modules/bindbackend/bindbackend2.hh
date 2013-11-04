@@ -36,10 +36,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "misc.hh"
-#include "dnsbackend.hh"
+#include "pdns/misc.hh"
+#include "pdns/dnsbackend.hh"
 
-#include "namespaces.hh"
+#include "pdns/namespaces.hh"
 using namespace ::boost::multi_index;
 
 /** This struct is used within the Bind2Backend to store DNS information. 
@@ -163,7 +163,6 @@ public:
   virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
   virtual bool deleteTSIGKey(const string& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
-  static void createDNSSECDB(const string& fname);
   virtual bool doesDNSSEC();
   // end of DNSSEC 
 

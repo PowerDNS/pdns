@@ -1,7 +1,10 @@
 
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" -Ibackends/bind @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include
 
-AM_CPPFLAGS=-Ibackends/bind $(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
+AM_LFLAGS = -s -i
+AM_YFLAGS = -d --verbose --debug
+
+AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
 if BOTAN110
 AM_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
@@ -17,7 +20,7 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 	no-dnssec.schema.mysql.sql no-dnssec.schema.pgsql.sql no-dnssec.schema.sqlite3.sql \
 	bind-dnssec.schema.sqlite3.sql
 
-SUBDIRS= $(POLARSSL_SUBDIR) backends
+SUBDIRS= $(POLARSSL_SUBDIR)
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
 CLEANFILES=version_generated.h
@@ -26,7 +29,7 @@ noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
 sbin_PROGRAMS = pdns_server 
-bin_PROGRAMS = pdns_control pdnssec
+bin_PROGRAMS = pdns_control pdnssec zone2sql zone2ldap zone2json
 
 if TOOLS
   bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy dnsdist nsec3dig
@@ -47,8 +50,8 @@ dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh unix_utility.cc common_startup.cc \
 utility.hh iputils.hh common_startup.hh unix_semaphore.cc \
-backends/bind/bindbackend2.cc  backends/bind/binddnssec.cc bind-dnssec.schema.sqlite3.sql.h \
-backends/bind/bindparser.cc backends/bind/bindlexer.c \
+bind-dnssec.schema.sqlite3.sql.h \
+bindparser.cc bindlexer.c \
 backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
 base64.cc sillyrecords.cc \
@@ -93,8 +96,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
         misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
         base32.cc  ueberbackend.cc dnsbackend.cc arguments.cc packetcache.cc dnspacket.cc  \
-        backends/bind/bindbackend2.cc backends/bind/binddnssec.cc  bind-dnssec.schema.sqlite3.sql.h\
-	backends/bind/bindparser.cc backends/bind/bindlexer.c \
+	bindparser.cc bindlexer.c \
 	backends/gsql/gsqlbackend.cc \
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
 	dynlistener.cc dns.cc dnssecsigner.cc polarrsakeyinfra.cc \
@@ -106,6 +108,38 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
 pdnssec_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS)
+
+zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
+	arguments.cc logger.cc zone2sql.cc statbag.cc misc.cc \
+	unix_utility.cc qtype.cc dns.cc \
+	zoneparser-tng.cc dnsrecords.cc sillyrecords.cc \
+	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc \
+	nsecrecords.cc dnssecinfra.cc base32.cc bindparserclasses.hh \
+	aes/dns_random.cc aes/aescpp.h aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
+	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h  # dbdnsseckeeper.cc
+
+zone2sql_LDFLAGS=@THREADFLAGS@
+zone2sql_LDADD= $(POLARSSL_LIBS)
+
+zone2json_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
+	arguments.cc logger.cc zone2json.cc statbag.cc misc.cc \
+	unix_utility.cc qtype.cc zoneparser-tng.cc dnsrecords.cc \
+	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc sillyrecords.cc \
+	nsecrecords.cc dnssecinfra.cc base32.cc bindparserclasses.hh
+
+zone2json_LDFLAGS=@THREADFLAGS@
+zone2json_LDADD= $(POLARSSL_LIBS)
+
+zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
+	arguments.cc logger.cc zone2ldap.cc statbag.cc misc.cc \
+	unix_utility.cc qtype.cc zoneparser-tng.cc dnsrecords.cc \
+	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc sillyrecords.cc \
+	nsecrecords.cc dnssecinfra.cc base32.cc bindparserclasses.hh \
+	aes/dns_random.cc aes/aescpp.h aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
+	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h # dbdnsseckeeper.cc
+
+zone2ldap_LDFLAGS=@THREADFLAGS@
+zone2ldap_LDADD= $(POLARSSL_LIBS)
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
@@ -288,13 +322,6 @@ dnslabeltext.cc: dnslabeltext.rl
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
-
-backends/bind/bindlexer.c:
-	cd backends/bind && $(MAKE) bindlexer.c
-
-backends/bind/bindparser.cc:
-	cd backends/bind && $(MAKE) bindparser.cc
-
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
 build_host=$(shell id -u -n)@$(shell hostname -f)

@@ -13,8 +13,11 @@
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include <boost/scoped_ptr.hpp>
-#include "bindbackend2.hh"
 #include "dns_random.hh"
+#ifdef HAVE_SQLITE3
+#include "ssqlite3.hh"
+#include "bind-dnssec.schema.sqlite3.sql.h"
+#endif
 
 StatBag S;
 PacketCache PC;
@@ -1090,20 +1093,28 @@ try
   reportAllTypes();
 
   if(cmds[0] == "create-bind-db") {
+#ifdef HAVE_SQLITE3
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
       return 0;
     }
     try {
-      Bind2Backend::createDNSSECDB(cmds[1]);
+      SSQLite3 db(cmds[1], true); // create=ok
+      vector<string> statements;
+      stringtok(statements, sqlCreate, ";");
+      BOOST_FOREACH(const string& statement, statements)
+        db.doCommand(statement);
     }
-    catch (PDNSException& ae) {
-      cerr<<"Error: "<<ae.reason<<endl;
-      return 1;
+    catch(SSqlException& se) {
+      throw PDNSException("Error creating database in BIND backend: "+se.txtReason());
     }
     return 0;
+#else
+    cerr<<"bind-dnssec-db requires building PowerDNS with SQLite3"<<endl;
+    return 1;
+#endif
   }
-  
+
   DNSSECKeeper dk;
 
   if (cmds[0] == "test-schema") {

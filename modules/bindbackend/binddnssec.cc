@@ -20,8 +20,8 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "bindbackend2.hh"
-#include "dnsrecords.hh"
-#include "bind-dnssec.schema.sqlite3.sql.h"
+#include "pdns/dnsrecords.hh"
+#include "pdns/bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
 #include "config.h"
 #include "pdns/arguments.hh"
@@ -32,9 +32,6 @@ void Bind2Backend::setupDNSSEC()
   if(!getArg("dnssec-db").empty())
     throw runtime_error("bind-dnssec-db requires building PowerDNS with SQLite3");
 }
-
-void Bind2Backend::createDNSSECDB(const string& fname)
-{}
 
 bool Bind2Backend::doesDNSSEC()
 { return false; }
@@ -91,20 +88,6 @@ void Bind2Backend::setupDNSSEC()
   }
 
   d_dnssecdb->setLog(::arg().mustDo("query-logging"));
-}
-
-void Bind2Backend::createDNSSECDB(const string& fname)
-{
-  try {
-    SSQLite3 db(fname, true); // create=ok
-    vector<string> statements;
-    stringtok(statements, sqlCreate, ";");
-    BOOST_FOREACH(const string& statement, statements)
-      db.doCommand(statement);
-  }
-  catch(SSqlException& se) {
-    throw PDNSException("Error creating database in BIND backend: "+se.txtReason());
-  }
 }
 
 bool Bind2Backend::doesDNSSEC()
