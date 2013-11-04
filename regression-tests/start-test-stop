@@ -470,7 +470,7 @@ case $context in
 			fi
 
 			../pdns/pdnssec --config-dir=. import-tsig-key test $ALGORITHM $KEY
-			../pdns/pdnssec --config-dir=. enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. activate-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=bind --bind-config=./named.conf \
@@ -597,7 +597,7 @@ __EOF__
 			done
 
 			../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test $ALGORITHM $KEY
-			../pdns/pdnssec --config-dir=. --config-name=gmysql enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gmysql activate-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch --launch+=random --launch+=gmysql --launch+=random --gmysql-dnssec \
@@ -653,7 +653,7 @@ __EOF__
 			done
 
 			../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test $ALGORITHM $KEY
-			../pdns/pdnssec --config-dir=. --config-name=gpgsql enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gpgsql activate-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gpgsql --gpgsql-dnssec \
@@ -773,7 +773,7 @@ __EOF__
 			done
 
 			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test $ALGORITHM $KEY
-			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 enable-tsig-key tsig.com test master
+			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 activate-tsig-key tsig.com test master
 
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
