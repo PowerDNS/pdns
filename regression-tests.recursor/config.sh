@@ -83,6 +83,7 @@ mkdir $PREFIX.11
 cp $PREFIX.10/example.net.zone $PREFIX.11/
 
 ### plain delegated zone, no surprises
+### also serves as intentionally NON-authoritative for ford
 mkdir $PREFIX.12
 cat > $PREFIX.12/arthur.example.net.zone <<EOF
 arthur.example.net.      3600 IN SOA $SOA
