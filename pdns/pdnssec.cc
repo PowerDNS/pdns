@@ -1033,6 +1033,8 @@ try
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] <command> [params ..]\n"<<endl;
     cerr<<"Commands:"<<endl;
+    cerr<<"activate-tsig-key ZONE NAME [master|slave]"<<endl;
+    cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
@@ -1040,16 +1042,14 @@ try
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl; 
-    cerr<<"create-tsig-key NAME ALGORITHM     Generate new TSIG key"<<endl;
+    cerr<<"deactive-tsig-key ZONE NAME [master|slave]"<<endl;
+    cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
-    cerr<<"disable-tsig-key ZONE NAME [master|slave]"<<endl;
-    cerr<<"                                   Disable TSIG key for a zone"<<endl;
-    cerr<<"enable-tsig-key ZONE NAME [master|slave]"<<endl;
-    cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
+    cerr<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key"<<endl;
     cerr<<"generate-zone-key zsk|ksk [algorithm] [bits]"<<endl;
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits"<<endl;
     cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
