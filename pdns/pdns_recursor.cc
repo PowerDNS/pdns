@@ -77,6 +77,7 @@ unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
 bool g_anyToTcp;
+uint16_t g_udpTruncationThreshold;
 __thread shared_ptr<RecursorLua>* t_pdl;
 __thread RemoteKeeper* t_remotes;
 __thread shared_ptr<Regex>* t_traceRegex;
@@ -499,7 +500,7 @@ void startDoResolve(void *p)
     uint32_t maxanswersize= dc->d_tcp ? 65535 : 512;
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo)) {
-      maxanswersize = min(edo.d_packetsize, (uint16_t) (dc->d_tcp ? 65535 : 1680));
+      maxanswersize = min(edo.d_packetsize, (uint16_t) (dc->d_tcp ? 65535 : g_udpTruncationThreshold));
     }
     
     vector<DNSResourceRecord> ret;
@@ -1799,7 +1800,8 @@ int serviceMain(int argc, char*argv[])
   g_logCommonErrors=::arg().mustDo("log-common-errors");
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
-  
+  g_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
+
   makeUDPServerSockets();
   makeTCPServerSockets();
 
@@ -2107,6 +2109,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
+    ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string ("VERSION")");
