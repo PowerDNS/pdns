@@ -18,11 +18,11 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 	docs/dnsreplay.8 docs/dnsscope.8 docs/dnswasher.8 docs/pdnssec.8 docs/zone2ldap.8 \
 	dnssec.schema.mysql.sql dnssec.schema.pgsql.sql dnssec.schema.sqlite3.sql \
 	no-dnssec.schema.mysql.sql no-dnssec.schema.pgsql.sql no-dnssec.schema.sqlite3.sql \
-	bind-dnssec.schema.sqlite3.sql
+	bind-dnssec.schema.sqlite3.sql bindparser.h
 
 SUBDIRS= $(POLARSSL_SUBDIR)
 
-BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h
+BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h bindparser.h
 CLEANFILES=version_generated.h
 
 noinst_SCRIPTS = pdns
@@ -322,6 +322,10 @@ dnslabeltext.cc: dnslabeltext.rl
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
+
+# for bindparser.h/hh
+.h.hh:
+	cp $< $@
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
 build_host=$(shell id -u -n)@$(shell hostname -f)
