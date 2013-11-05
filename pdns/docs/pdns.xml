@@ -14434,6 +14434,16 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+    <varlistentry>
+      <term>udp-truncation-threshold=...</term>
+      <listitem>
+        <para>
+    EDNS0 allows for large UDP response datagrams, which can potentially raise performance. Large responses however
+    also have downsides in terms of reflection attacks. This setting limits the
+    accepted size. Maximum value is 65535, but values above 4096 should probably not be attempted. Default is 1680.
+        </para>
+      </listitem>
+    </varlistentry>
 	  <varlistentry>
 	    <term>version</term>
 	    <listitem>
