@@ -76,6 +76,7 @@ __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
 bool g_logCommonErrors;
+bool g_anyToTcp;
 __thread shared_ptr<RecursorLua>* t_pdl;
 __thread RemoteKeeper* t_remotes;
 __thread shared_ptr<Regex>* t_traceRegex;
@@ -513,8 +514,17 @@ void startDoResolve(void *p)
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
 
+    uint32_t minTTL=std::numeric_limits<uint32_t>::max();
+
     SyncRes sr(dc->d_now);
     bool tracedQuery=false; // we could consider letting Lua know about this too
+    bool variableAnswer = false;
+
+    if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
+      pw.getHeader()->tc=1;
+      goto sendit;
+    }
+
     if(t_traceRegex->get() && (*t_traceRegex)->match(dc->d_mdp.d_qname)) {
       sr.setLogMode(SyncRes::Store);
       tracedQuery=true;
@@ -530,7 +540,6 @@ void startDoResolve(void *p)
 
     int res;
 
-    bool variableAnswer = false;
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
@@ -551,7 +560,6 @@ void startDoResolve(void *p)
       }
     }
     
-    uint32_t minTTL=std::numeric_limits<uint32_t>::max();
       
     if(tracedQuery || res < 0 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
@@ -1789,6 +1797,8 @@ int serviceMain(int argc, char*argv[])
  
     
   g_logCommonErrors=::arg().mustDo("log-common-errors");
+
+  g_anyToTcp = ::arg().mustDo("any-to-tcp");
   
   makeUDPServerSockets();
   makeTCPServerSockets();
@@ -2096,7 +2106,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "disable-edns", "Disable EDNS" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
-    
+    ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string ("VERSION")");
