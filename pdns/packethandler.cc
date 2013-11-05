@@ -764,7 +764,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     return RCode::ServFail;
   }
   Communicator.addSuckRequest(p->qdomain, p->getRemote());  
-  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<p->getRemote()<<", queued axfr"<<endl;
+  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<p->getRemote()<<", queued AXFR"<<endl;
   return RCode::NoError;
 }
 

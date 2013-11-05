@@ -449,7 +449,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 }
 
 #if 0
-// for testing purpoises
+// for testing purposes
 static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 {
   return !(a.sin4.sin_family < a.sin4.sin_family);

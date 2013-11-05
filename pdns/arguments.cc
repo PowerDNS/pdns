@@ -350,7 +350,7 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
       }
     }
     else if(!lax)
-      throw ArgException("Trying to set unexisting parameter '"+var+"'");
+      throw ArgException("Trying to set unknown parameter '"+var+"'");
   }
 }
 
