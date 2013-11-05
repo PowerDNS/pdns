@@ -76,6 +76,8 @@ private:
 };
 
 class WebServer;
+class HttpRequest;
+class HttpResponse;
 
 class StatWebServer
 {
@@ -83,12 +85,14 @@ public:
   StatWebServer();
   void go();
   static string makePercentage(const double& val);
+
 private:
   static void *threadHelper(void *);
   static void *statThreadHelper(void *p);
-  static string indexfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom);
-  static string cssfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom);
-  static string jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom);
+  void indexfunction(HttpRequest* req, HttpResponse* resp);
+  void cssfunction(HttpRequest* req, HttpResponse* resp);
+  void jsonstat(HttpRequest* req, HttpResponse* resp);
+  void registerApiHandler(const string& url, boost::function<void(HttpRequest*, HttpResponse*)> handler);
   void printvars(ostringstream &ret);
   void printargs(ostringstream &ret);
   void launch();

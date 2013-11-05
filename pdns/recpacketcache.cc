@@ -20,15 +20,15 @@ int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
     const struct dnsheader* packet = reinterpret_cast<const struct dnsheader*>((*iter).d_packet.c_str());
     if (packet->qdcount > 0) 
     {
-	// find out type
-	const struct dnsrecordheader *header = reinterpret_cast<const struct dnsrecordheader*>((*iter).d_packet.c_str()+sizeof(struct dnsheader));
-	uint16_t type = header->d_type;
-	std::string domain=questionExpand((*iter).d_packet.c_str(), (*iter).d_packet.size(), type); 	
-	if (pdns_iequals(name,domain)) 
-	{ 
-  	  iter = d_packetCache.erase(iter);
-	  count++;
-	} else iter++;
+        // find out type
+        const struct dnsrecordheader *header = reinterpret_cast<const struct dnsrecordheader*>((*iter).d_packet.c_str()+sizeof(struct dnsheader));
+        uint16_t type = header->d_type;
+        std::string domain=questionExpand((*iter).d_packet.c_str(), (*iter).d_packet.size(), type);         
+        if (pdns_iequals(name,domain)) 
+        { 
+            iter = d_packetCache.erase(iter);
+          count++;
+        } else iter++;
     }
   }
   return count;

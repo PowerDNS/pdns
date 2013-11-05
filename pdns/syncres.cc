@@ -71,9 +71,9 @@ bool SyncRes::s_doAdditionalProcessing;
 bool SyncRes::s_doAAAAAdditionalProcessing;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-        					 d_now(now),
-        					 d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
-        					 
+                                                 d_now(now),
+                                                 d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
+                                                 
 { 
   if(!t_sstorage) {
     t_sstorage = new StaticStorage();
@@ -322,7 +322,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     if(mode== EDNSStatus::CONFIRMEDPINGER) {  // confirmed pinger!
       if(!res->d_pingCorrect) {
         L<<Logger::Error<<"Confirmed EDNS-PING enabled host "<<ip.toString()<<" did not send back correct ping"<<endl;
-        //	perhaps lower some kind of count here, don't want to punnish a downgrader too long!
+        //        perhaps lower some kind of count here, don't want to punnish a downgrader too long!
         ret = 0;
         res->d_rcode = RCode::ServFail;
         g_stats.ednsPingMismatches++;
@@ -334,12 +334,12 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode == EDNSStatus::EDNSIGNORANT ) {
       if(res->d_rcode == RCode::FormErr)  {
-        //	cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl);
+        //        cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl);
         mode = EDNSStatus::EDNSNOPING;
         continue;
       }
       else if(mode==EDNSStatus::UNKNOWN && (res->d_rcode == RCode::Refused || res->d_rcode == RCode::NotImp) ) { // this "fixes" F5
-        //	cerr<<"Downgrading an unknown status to EDNSNOPING because of RCODE="<<res->d_rcode<<endl;
+        //        cerr<<"Downgrading an unknown status to EDNSNOPING because of RCODE="<<res->d_rcode<<endl;
         mode = EDNSStatus::EDNSNOPING;
         continue;
       }
@@ -353,13 +353,13 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
       else if(!res->d_haveEDNS) {
         if(mode != EDNSStatus::EDNSIGNORANT) {
           mode = EDNSStatus::EDNSIGNORANT;
-          //	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer, moving to mode 3"<<endl);
+          //          cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer, moving to mode 3"<<endl);
         }
       }
     }
     else if(mode==EDNSStatus::EDNSNOPING) {
       if(res->d_rcode == RCode::FormErr) {
-        //		cerr<<"Downgrading to mode 4, FORMERR!"<<endl);
+        //                cerr<<"Downgrading to mode 4, FORMERR!"<<endl);
         mode = EDNSStatus::NOEDNS;
         continue;
       }
@@ -539,7 +539,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
           DNSResourceRecord rr=*k;
           rr.content=k->content;
           if(!dottedEndsOn(rr.content, subdomain) || t_RC->get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
-        						    doLog() ? &aset : 0) > 5) {
+                                                            doLog() ? &aset : 0) > 5) {
             bestns.insert(rr);
             LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl);
             LOG(prefix<<qname<<": within bailiwick: "<<dottedEndsOn(rr.content, subdomain));
@@ -820,8 +820,8 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
 
 /** returns -1 in case of no results, rcode otherwise */
 int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, 
-        		 vector<DNSResourceRecord>&ret, 
-        		 int depth, set<GetBestNSAnswer>&beenthere)
+                         vector<DNSResourceRecord>&ret, 
+                         int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
   if(doLog()) {
@@ -926,31 +926,31 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             }
             
             resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
-        				   doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
+                                           doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
             if(resolveret != 1) {
               if(resolveret==0) {
-        	LOG(prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl);
-        	d_timeouts++;
-        	s_outgoingtimeouts++;
+                LOG(prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl);
+                d_timeouts++;
+                s_outgoingtimeouts++;
               }
               else if(resolveret==-2) {
-        	LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
-        	g_stats.resourceLimits++;
+                LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
+                g_stats.resourceLimits++;
               }
               else {
-        	s_unreachables++; d_unreachables++;
-        	LOG(prefix<<qname<<": error resolving"<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
+                s_unreachables++; d_unreachables++;
+                LOG(prefix<<qname<<": error resolving"<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
               }
               
               if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-        	{
-        	  
-        	  t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
-        	}
-        	if(resolveret==-1)
-        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
-        	else
-        	  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
+                {
+                  
+                  t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+                }
+                if(resolveret==-1)
+                  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
+                else
+                  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
               }
               continue;
             }
@@ -987,7 +987,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         if(remoteIP->sin4.sin_family==AF_INET6)
           lwr.d_usec/=3;
         */
-        //	cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
+        //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
         t_sstorage->nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
       }
@@ -1028,7 +1028,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             
             tcache[make_pair(i->qname,i->qtype)].insert(rr);
           }
-        }	  
+        }          
         else
           LOG("NO!"<<endl);
       }
@@ -1066,7 +1066,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           ne.d_qname=i->qname;
           
           ne.d_ttd=d_now.tv_sec + i->ttl;
-	  
+          
           ne.d_name=qname;
           ne.d_qtype=QType(0); // this encodes 'whole record'
           
@@ -1080,9 +1080,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
         // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
         else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
-        	(
-        	 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) ) || sendRDQuery
-        	) 
+                (
+                 i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) ) || sendRDQuery
+                ) 
                )   
           {
           

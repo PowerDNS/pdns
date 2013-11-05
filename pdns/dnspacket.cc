@@ -215,7 +215,7 @@ vector<DNSResourceRecord*> DNSPacket::getAnswerRecords()
       ++i)
     {
       if(i->d_place!=DNSResourceRecord::ADDITIONAL) 
-	arrs.push_back(&*i);
+        arrs.push_back(&*i);
     }
   return arrs;
 }

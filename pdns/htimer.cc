@@ -37,7 +37,7 @@ HTimer::timers_t HTimer::s_timers;
 
 #define RDTSC(qp) \
 do { \
-  unsigned long lowPart, highPart;        				\
+  unsigned long lowPart, highPart;                                        \
   __asm__ __volatile__("rdtsc" : "=a" (lowPart), "=d" (highPart)); \
     qp = (((unsigned long long) highPart) << 32) | lowPart; \
 } while (0)

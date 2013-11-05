@@ -328,36 +328,36 @@ void* tcpClientThread(void* p)
     uint16_t qlen, rlen;
     try {
       for(;;) {      
-	if(!getMsgLen(ci.fd, &qlen))
-	  break;
-	
-	ds->queries++;
-	ds->outstanding++;
-	char query[qlen];
-	readn2(ci.fd, query, qlen);
-	// FIXME: drop AXFR queries here, they confuse us
+        if(!getMsgLen(ci.fd, &qlen))
+          break;
+        
+        ds->queries++;
+        ds->outstanding++;
+        char query[qlen];
+        readn2(ci.fd, query, qlen);
+        // FIXME: drop AXFR queries here, they confuse us
       retry:; 
-	if(!putMsgLen(dsock, qlen)) {
-	  infolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
-	  close(dsock);
-	  dsock=getTCPDownstream(&ds);
-	  goto retry;
-	}
+        if(!putMsgLen(dsock, qlen)) {
+          infolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
+          close(dsock);
+          dsock=getTCPDownstream(&ds);
+          goto retry;
+        }
       
-	writen2(dsock, query, qlen);
+        writen2(dsock, query, qlen);
       
-	if(!getMsgLen(dsock, &rlen)) {
-	  infolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
-	  close(dsock);
-	  dsock=getTCPDownstream(&ds);
-	  goto retry;
-	}
+        if(!getMsgLen(dsock, &rlen)) {
+          infolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
+          close(dsock);
+          dsock=getTCPDownstream(&ds);
+          goto retry;
+        }
 
-	char answerbuffer[rlen];
-	readn2(dsock, answerbuffer, rlen);
+        char answerbuffer[rlen];
+        readn2(dsock, answerbuffer, rlen);
       
-	putMsgLen(ci.fd, rlen);
-	writen2(ci.fd, answerbuffer, rlen);
+        putMsgLen(ci.fd, rlen);
+        writen2(ci.fd, answerbuffer, rlen);
       }
     }
     catch(...){}
@@ -423,13 +423,13 @@ void* statThread(void*)
       prev[n].queries = dss.queries;
       numQueries += dss.queries;
       for(unsigned int i=0 ; i < g_maxOutstanding; ++i) {
-	IDState& ids = dss.idStates[i];
-	if(ids.origFD >=0 && ids.age++ > 2) {
-	  ids.age = AtomicCounter();
-	  ids.origFD = -1;
-	  dss.reuseds++;
-	  --dss.outstanding;
-	}	  
+        IDState& ids = dss.idStates[i];
+        if(ids.origFD >=0 && ids.age++ > 2) {
+          ids.age = AtomicCounter();
+          ids.origFD = -1;
+          dss.reuseds++;
+          --dss.outstanding;
+        }          
       }
     }
 

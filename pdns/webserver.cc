@@ -30,195 +30,222 @@
 #include "base64.hh"
 #include "json.hh"
 
-
-map<string,WebServer::HandlerFunction *>WebServer::d_functions;
-void *WebServer::d_that;
-string WebServer::d_password;
+struct connectionThreadData {
+  WebServer* webServer;
+  Session* client;
+};
 
 int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 {
   return ::B64Decode(strInput, strOutput);
 }
 
-void WebServer::registerHandler(const string&s, HandlerFunction *ptr)
+// url is supposed to start with a slash.
+// url can contain variable names, marked as <variable>; such variables
+// are parsed out during routing and are put into the "pathArgs" map.
+// route() makes no assumptions about the contents of variables except
+// that the following URL segment can't be part of the variable.
+//
+// Examples:
+//   registerHandler("/", &index);
+//   registerHandler("/foo", &foo);
+//   registerHandler("/foo/<bar>/<baz>", &foobarbaz);
+void WebServer::registerHandler(const string& url, HandlerFunction handler)
 {
-  d_functions[s]=ptr;
+  std::size_t pos = 0, lastpos = 0;
+
+  HandlerRegistration reg;
+  while ((pos = url.find('<', lastpos)) != std::string::npos) {
+    std::string part = url.substr(lastpos, pos-lastpos);
+    lastpos = pos;
+    pos = url.find('>', pos);
+
+    if (pos == std::string::npos) {
+      throw std::logic_error("invalid url given");
+    }
+
+    std::string paramName = url.substr(lastpos+1, pos-lastpos-1);
+    lastpos = pos+1;
+
+    reg.urlParts.push_back(part);
+    reg.paramNames.push_back(paramName);
+  }
+  std::string remainder = url.substr(lastpos);
+  if (!remainder.empty()) {
+    reg.urlParts.push_back(remainder);
+    reg.paramNames.push_back("");
+  }
+  reg.handler = handler;
+  d_handlers.push_back(reg);
 }
 
-void WebServer::setCaller(void *that)
+bool WebServer::route(const std::string& url, std::map<std::string, std::string>& pathArgs, HandlerFunction** handler)
 {
-  d_that=that;
+  for (std::list<HandlerRegistration>::iterator reg=d_handlers.begin(); reg != d_handlers.end(); ++reg) {
+    bool matches = true;
+    size_t lastpos = 0, pos = 0;
+    string lastParam;
+    pathArgs.clear();
+    for (std::list<string>::iterator urlPart = reg->urlParts.begin(), param = reg->paramNames.begin();
+         urlPart != reg->urlParts.end() && param != reg->paramNames.end();
+         urlPart++, param++) {
+      if (!urlPart->empty()) {
+        pos = url.find(*urlPart, lastpos);
+        if (pos == std::string::npos) {
+          matches = false;
+          break;
+        }
+        if (!lastParam.empty()) {
+          // store
+          pathArgs[lastParam] = url.substr(lastpos, pos-lastpos);
+        }
+        lastpos = pos + urlPart->size();
+        lastParam = *param;
+      }
+    }
+    if (matches) {
+      if (!lastParam.empty()) {
+        // store trailing parameter
+        pathArgs[lastParam] = url.substr(lastpos, pos-lastpos);
+      } else if (lastpos != url.size()) {
+        matches = false;
+        continue;
+      }
+
+      *handler = &reg->handler;
+      return true;
+    }
+  }
+  return false;
 }
 
-void *WebServer::serveConnection(void *p)
-try {
+static void *WebServerConnectionThreadStart(void *p) {
+  connectionThreadData* data = static_cast<connectionThreadData*>(p);
   pthread_detach(pthread_self());
-  Session *client=static_cast<Session *>(p);
-  bool want_html=false;
-  bool want_json=false;
+  data->webServer->serveConnection(data->client);
+
+  data->client->close();
+  delete data->client;
+
+  delete data;
+
+  return NULL;
+}
+
+HttpResponse WebServer::handleRequest(HttpRequest req)
+{
+  HttpResponse resp(req);
+  // set default headers
+  resp.headers["Content-Type"] = "text/html; charset=utf-8";
 
   try {
-    string line;
-    client->setTimeout(5);
-    client->getLine(line);
-    stripLine(line);
-    if(line.empty())
-      throw HttpBadRequestException();
-    //    L<<"page: "<<line<<endl;
+    YaHTTP::strstr_map_t::iterator header;
 
-    vector<string> parts;
-    stringtok(parts,line);
-    
-    string method, uri;
-    if(parts.size()>1) {
-      method=parts[0];
-      uri=parts[1];
+    if ((header = req.headers.find("accept")) != req.headers.end()) {
+      // json wins over html
+      if (header->second.find("application/json") != std::string::npos) {
+        req.accept_json = true;
+      } else if (header->second.find("text/html") != std::string::npos) {
+        req.accept_html = true;
+      }
     }
 
-    vector<string>variables;
+    if (!d_password.empty()) {
+      // validate password
+      header = req.headers.find("authorization");
+      bool auth_ok = false;
+      if (header != req.headers.end() && toLower(header->second).find("basic ") == 0) {
+        string cookie = header->second.substr(6);
 
-    parts.clear();
-    stringtok(parts,uri,"?");
-
-    //    L<<"baseUrl: '"<<parts[0]<<"'"<<endl;
-    
-    vector<string>urlParts;
-    stringtok(urlParts,parts[0],"/");
-    string baseUrl;
-    if(urlParts.empty())
-      baseUrl="";
-    else
-      baseUrl=urlParts[0];
-
-    //    L<<"baseUrl real: '"<<baseUrl<<"'"<<endl;
-
-    if(parts.size()>1) {
-      stringtok(variables,parts[1],"&");
-    }
-
-    map<string,string>varmap;
-
-    for(vector<string>::const_iterator i=variables.begin();
-        i!=variables.end();++i) {
-
-      parts.clear();
-      stringtok(parts,*i,"=");
-      if(parts.size()>1)
-        varmap[parts[0]]=parts[1];
-      else
-        varmap[parts[0]]="";
-
-    }
-
-    bool authOK=0;
-    int postlen = 0;
-    // read & ignore other lines
-    do {
-      client->getLine(line);
-      stripLine(line);
-
-      if(line.empty())
-	break;
-
-      size_t colon = line.find(":");
-      if(colon==std::string::npos)
-	throw HttpBadRequestException();
-
-      string header = toLower(line.substr(0, colon));
-      string value = line.substr(line.find_first_not_of(' ', colon+1));
-
-      if(header == "authorization" && toLower(value).find("basic ") == 0) {
-        string cookie=value.substr(6);
         string plain;
+        B64Decode(cookie, plain);
 
-        B64Decode(cookie,plain);
-        vector<string>cparts;
-        stringtok(cparts,plain,":");
-        // L<<Logger::Error<<"Entered password: '"<<cparts[1].c_str()<<"', should be '"<<d_password.c_str()<<"'"<<endl;
-        if(cparts.size()==2 && !strcmp(cparts[1].c_str(),d_password.c_str())) { // this gets rid of terminating zeros
-          authOK=1;
-        }
+        vector<string> cparts;
+        stringtok(cparts, plain, ":");
+
+        // this gets rid of terminating zeros
+        auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), d_password.c_str())));
       }
-      else if(header == "content-length" && method=="POST") {
-	postlen = atoi(value.c_str());
-//	cout<<"Got a post: "<<postlen<<" bytes"<<endl;
+      if (!auth_ok) {
+        throw HttpUnauthorizedException();
       }
-      else if(header == "accept") {
-	// json wins over html
-	if(value.find("application/json")!=std::string::npos) {
-	  want_json=true;
-	} else if(value.find("text/html")!=std::string::npos) {
-	  want_html=true;
-	}
-      }
-      else
-	; // cerr<<"Ignoring line: "<<line<<endl;
-      
-    } while(true);
-
-    string post;
-    if(postlen) 
-      post = client->get(postlen);
-  
- //   cout<<"Post: '"<<post<<"'"<<endl;
-
-    if(!d_password.empty() && !authOK)
-      throw HttpUnauthorizedException();
-
-    HandlerFunction *fptr;
-    if(d_functions.count(baseUrl) && (fptr=d_functions[baseUrl])) {
-      bool custom=false;
-      string ret=(*fptr)(method, post, varmap, d_that, &custom);
-
-      if(!custom) {
-        client->putLine("HTTP/1.1 200 OK\n");
-        client->putLine("Connection: close\n");
-        client->putLine("Content-Type: text/html; charset=utf-8\n\n");
-      }
-      client->putLine(ret);
     }
-    else {
+
+    HandlerFunction *handler;
+    if (!route(req.url.path, req.path_parameters, &handler)) {
       throw HttpNotFoundException();
     }
 
+    (*handler)(&req, &resp);
   }
   catch(HttpException &e) {
-    client->putLine(e.statusLine());
-    client->putLine("Connection: close\n");
-    client->putLine(e.headers());
-    if(want_html) {
-      client->putLine("Content-Type: text/html; charset=utf-8\n\n");
-      client->putLine("<!html><title>" + e.what() + "</title><h1>" + e.what() + "</h1>");
-    } else if (want_json) {
-      client->putLine("Content-Type: application/json\n\n");
-      client->putLine(returnJSONError(e.what()));
+    resp = e.response();
+    string what = YaHTTP::Utility::status2text(resp.status);
+    if(req.accept_html) {
+      resp.headers["Content-Type"] = "text/html; charset=utf-8";
+      resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
+    } else if (req.accept_json) {
+      resp.headers["Content-Type"] = "application/json";
+      resp.body = returnJSONError(what);
     } else {
-      client->putLine("Content-Type: text/plain; charset=utf-8\n\n");
-      client->putLine(e.what());
+      resp.headers["Content-Type"] = "text/plain; charset=utf-8";
+      resp.body = what;
     }
   }
 
-  client->close();
-  delete client;
-  client=0;
+  // always set these headers
+  resp.headers["Server"] = "PowerDNS/"VERSION;
+  resp.headers["Connection"] = "close";
 
-  return 0;
+  return resp;
+}
+
+void WebServer::serveConnection(Session* client)
+try {
+  HttpRequest req;
+  YaHTTP::AsyncRequestLoader yarl(&req);
+
+  client->setTimeout(5);
+
+  bool complete = false;
+  try {
+    while(client->good()) {
+      int bytes;
+      char buf[1024];
+      bytes = client->read(buf, sizeof(buf));
+      if (bytes) {
+        string data = string(buf, bytes);
+        if (yarl.feed(data)) {
+          complete = true;
+          break;
+        }
+      }
+    }
+  } catch (YaHTTP::ParseError &e) {
+    complete = false;
+  }
+
+  if (!complete) {
+    client->put("HTTP/1.0 400 Bad Request\r\nConnection: close\r\n\r\nYour Browser sent a request that this server failed to understand.\r\n");
+    return;
+  }
+
+  HttpResponse resp = WebServer::handleRequest(req);
+  ostringstream ss;
+  resp.write(ss);
+  client->put(ss.str());
 }
 catch(SessionTimeoutException &e) {
   // L<<Logger::Error<<"Timeout in webserver"<<endl;
-  return 0;
 }
 catch(PDNSException &e) {
   L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
-  return 0;
 }
 catch(std::exception &e) {
   L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
-  return 0;
 }
 catch(...) {
   L<<Logger::Error<<"Unknown exception in webserver"<<endl;
-  return 0;
 }
 
 WebServer::WebServer(const string &listenaddress, int port, const string &password)
@@ -226,9 +253,8 @@ WebServer::WebServer(const string &listenaddress, int port, const string &passwo
   d_listenaddress=listenaddress;
   d_port=port;
   d_password=password;
-  d_server = 0; // on exception, this class becomes a NOOP later on
   try {
-    d_server = new Server(d_port, d_listenaddress);
+    d_server = new Server(d_listenaddress, d_port);
   }
   catch(SessionException &e) {
     L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
@@ -246,7 +272,11 @@ void WebServer::go()
     L<<Logger::Error<<"Launched webserver on " << d_server->d_local.toStringWithPort() <<endl;
 
     while((client=d_server->accept())) {
-      pthread_create(&tid, 0 , &serveConnection, (void *)client);
+      // will be freed by thread
+      connectionThreadData *data = new connectionThreadData;
+      data->webServer = this;
+      data->client = client;
+      pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
     }
   }
   catch(SessionTimeoutException &e) {

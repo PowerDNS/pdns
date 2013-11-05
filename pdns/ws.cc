@@ -37,7 +37,6 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "version.hh"
-#include "session.hh"
 
 using namespace rapidjson;
 
@@ -186,19 +185,19 @@ string StatWebServer::makePercentage(const double& val)
   return (boost::format("%.01f%%") % val).str();
 }
 
-string StatWebServer::indexfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
+void StatWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
-  StatWebServer *sws=static_cast<StatWebServer *>(ptr);
-  map<string,string>rvarmap=varmap;
-  if(!rvarmap["resetring"].empty()){
-    *custom=true;
-    S.resetRing(rvarmap["resetring"]);
-    return "HTTP/1.1 301 Moved Permanently\nLocation: /\nConnection: close\n\n";
+  if(!req->parameters["resetring"].empty()){
+    S.resetRing(req->parameters["resetring"]);
+    resp->status = 301;
+    resp->headers["Location"] = "/";
+    return;
   }
-  if(!rvarmap["resizering"].empty()){
-    *custom=true;
-    S.resizeRing(rvarmap["resizering"], atoi(rvarmap["size"].c_str()));
-    return "HTTP/1.1 301 Moved Permanently\nLocation: /\nConnection: close\n\n";
+  if(!req->parameters["resizering"].empty()){
+    S.resizeRing(req->parameters["resizering"], atoi(req->parameters["size"].c_str()));
+    resp->status = 301;
+    resp->headers["Location"] = "/";
+    return;
   }
 
   ostringstream ret;
@@ -226,49 +225,49 @@ string StatWebServer::indexfunction(const string& method, const string& post, co
     "<br>"<<endl;
 
   ret<<"Queries/second, 1, 5, 10 minute averages:  "<<std::setprecision(3)<<
-    sws->d_queries.get1()<<", "<<
-    sws->d_queries.get5()<<", "<<
-    sws->d_queries.get10()<<". Max queries/second: "<<sws->d_queries.getMax()<<
+    d_queries.get1()<<", "<<
+    d_queries.get5()<<", "<<
+    d_queries.get10()<<". Max queries/second: "<<d_queries.getMax()<<
     "<br>"<<endl;
   
-  if(sws->d_cachemisses.get10()+sws->d_cachehits.get10()>0)
+  if(d_cachemisses.get10()+d_cachehits.get10()>0)
     ret<<"Cache hitrate, 1, 5, 10 minute averages: "<<
-      makePercentage((sws->d_cachehits.get1()*100.0)/((sws->d_cachehits.get1())+(sws->d_cachemisses.get1())))<<", "<<
-      makePercentage((sws->d_cachehits.get5()*100.0)/((sws->d_cachehits.get5())+(sws->d_cachemisses.get5())))<<", "<<
-      makePercentage((sws->d_cachehits.get10()*100.0)/((sws->d_cachehits.get10())+(sws->d_cachemisses.get10())))<<
+      makePercentage((d_cachehits.get1()*100.0)/((d_cachehits.get1())+(d_cachemisses.get1())))<<", "<<
+      makePercentage((d_cachehits.get5()*100.0)/((d_cachehits.get5())+(d_cachemisses.get5())))<<", "<<
+      makePercentage((d_cachehits.get10()*100.0)/((d_cachehits.get10())+(d_cachemisses.get10())))<<
       "<br>"<<endl;
 
-  if(sws->d_qcachemisses.get10()+sws->d_qcachehits.get10()>0)
+  if(d_qcachemisses.get10()+d_qcachehits.get10()>0)
     ret<<"Backend query cache hitrate, 1, 5, 10 minute averages: "<<std::setprecision(2)<<
-      makePercentage((sws->d_qcachehits.get1()*100.0)/((sws->d_qcachehits.get1())+(sws->d_qcachemisses.get1())))<<", "<<
-      makePercentage((sws->d_qcachehits.get5()*100.0)/((sws->d_qcachehits.get5())+(sws->d_qcachemisses.get5())))<<", "<<
-      makePercentage((sws->d_qcachehits.get10()*100.0)/((sws->d_qcachehits.get10())+(sws->d_qcachemisses.get10())))<<
+      makePercentage((d_qcachehits.get1()*100.0)/((d_qcachehits.get1())+(d_qcachemisses.get1())))<<", "<<
+      makePercentage((d_qcachehits.get5()*100.0)/((d_qcachehits.get5())+(d_qcachemisses.get5())))<<", "<<
+      makePercentage((d_qcachehits.get10()*100.0)/((d_qcachehits.get10())+(d_qcachemisses.get10())))<<
       "<br>"<<endl;
 
   ret<<"Backend query load, 1, 5, 10 minute averages: "<<std::setprecision(3)<<
-    sws->d_qcachemisses.get1()<<", "<<
-    sws->d_qcachemisses.get5()<<", "<<
-    sws->d_qcachemisses.get10()<<". Max queries/second: "<<sws->d_qcachemisses.getMax()<<
+    d_qcachemisses.get1()<<", "<<
+    d_qcachemisses.get5()<<", "<<
+    d_qcachemisses.get10()<<". Max queries/second: "<<d_qcachemisses.getMax()<<
     "<br>"<<endl;
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
-  if(rvarmap["ring"].empty()) {
+  if(req->parameters["ring"].empty()) {
     vector<string>entries=S.listRings();
     for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
       printtable(ret,*i,S.getRingTitle(*i));
 
-    sws->printvars(ret);
+    printvars(ret);
     if(arg().mustDo("webserver-print-arguments"))
-      sws->printargs(ret);
+      printargs(ret);
   }
   else
-    printtable(ret,rvarmap["ring"],S.getRingTitle(rvarmap["ring"]),100);
+    printtable(ret,req->parameters["ring"],S.getRingTitle(req->parameters["ring"]),100);
 
   ret<<"</div></div>"<<endl;
   ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
-  return ret.str();
+  resp->body = ret.str();
 }
 
 static int intFromJson(const Value& val) {
@@ -368,22 +367,96 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
   return getZone(zonename);
 }
 
-static string jsonDispatch(const string& method, const string& post, varmap_t& varmap, const string& command) {
+static void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  vector<string> items = ::arg().list();
+  Document doc;
+  doc.SetArray();
+  BOOST_FOREACH(const string& var, items) {
+    Value kv, key, value;
+    kv.SetArray();
+    key.SetString(var.c_str(), var.length());
+    kv.PushBack(key, doc.GetAllocator());
+
+    if(var.find("password") != string::npos)
+      value="*****";
+    else
+      value.SetString(::arg()[var].c_str(), ::arg()[var].length(), doc.GetAllocator());
+
+    kv.PushBack(value, doc.GetAllocator());
+    doc.PushBack(kv, doc.GetAllocator());
+  }
+  resp->body = makeStringFromDocument(doc);
+}
+
+static void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  resp->body = makeLogGrepJSON(req->parameters["q"], ::arg()["experimental-logfile"], " pdns[");
+}
+
+static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  UeberBackend B;
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains);
+
+  Document doc;
+  doc.SetObject();
+
+  Value jdomains;
+  jdomains.SetArray();
+
+  BOOST_FOREACH(const DomainInfo& di, domains) {
+    Value jdi;
+    jdi.SetObject();
+    jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
+    jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
+    Value masters;
+    masters.SetArray();
+    BOOST_FOREACH(const string& master, di.masters) {
+      Value value(master.c_str(), doc.GetAllocator());
+      masters.PushBack(value, doc.GetAllocator());
+    }
+    jdi.AddMember("masters", masters, doc.GetAllocator());
+    jdi.AddMember("serial", di.serial, doc.GetAllocator());
+    jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
+    jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
+    jdomains.PushBack(jdi, doc.GetAllocator());
+  }
+  doc.AddMember("domains", jdomains, doc.GetAllocator());
+  resp->body = makeStringFromDocument(doc);
+}
+
+void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
+{
+  string command;
+
+  if(req->parameters.count("command")) {
+    command = req->parameters["command"];
+    req->parameters.erase("command");
+  }
+
   if(command=="get") {
-    if(varmap.empty()) {
+    if(req->parameters.empty()) {
       vector<string> entries = S.getEntries();
       BOOST_FOREACH(string& ent, entries) {
-        varmap[ent];
+        req->parameters[ent];
       }
-      varmap["version"];
-      varmap["uptime"];
+      req->parameters["version"];
+      req->parameters["uptime"];
     }
 
     string variable, value;
     
     Document doc;
     doc.SetObject();
-    for(varmap_t::const_iterator iter = varmap.begin(); iter != varmap.end() ; ++iter) {
+    for(varmap_t::const_iterator iter = req->parameters.begin(); iter != req->parameters.end() ; ++iter) {
       variable = iter->first;
       if(variable == "version") {
         value = VERSION;
@@ -397,48 +470,37 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
       jval.SetString(value.c_str(), value.length(), doc.GetAllocator());
       doc.AddMember(variable.c_str(), jval, doc.GetAllocator());
     }
-    return makeStringFromDocument(doc);
+    resp->body = makeStringFromDocument(doc);
+    return;
   }
   else if(command=="config") {
-    vector<string> items = ::arg().list();
-    Document doc;
-    doc.SetArray();
-    BOOST_FOREACH(const string& var, items) {
-      Value kv, key, value;
-      kv.SetArray();
-      key.SetString(var.c_str(), var.length());
-      kv.PushBack(key, doc.GetAllocator());
-      
-      if(var.find("password") != string::npos)
-        value="*****";
-      else 
-        value.SetString(::arg()[var].c_str(), ::arg()[var].length(), doc.GetAllocator());
-      
-      kv.PushBack(value, doc.GetAllocator());
-      doc.PushBack(kv, doc.GetAllocator());
-    }
-    return makeStringFromDocument(doc);
+    apiServerConfig(req, resp);
+    return;
   }
   else if(command == "flush-cache") {
     extern PacketCache PC;
     int number; 
-    if(varmap["domain"].empty())
+    if(req->parameters["domain"].empty())
       number = PC.purge();
     else
-      number = PC.purge(varmap["domain"]);
+      number = PC.purge(req->parameters["domain"]);
       
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
-    //cerr<<"Flushed cache for '"<<varmap["domain"]<<"', cleaned "<<number<<" records"<<endl;
-    return returnJSONObject(object);
+    //cerr<<"Flushed cache for '"<<parameters["domain"]<<"', cleaned "<<number<<" records"<<endl;
+    resp->body = returnJSONObject(object);
+    return;
   }
   else if(command == "pdns-control") {
-    if(method!="POST")
+    if(req->method!="POST")
       throw HttpMethodNotAllowedException();
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
-    if(document.Parse<0>(post.c_str()).HasParseError())
-      return returnJSONError("Unable to parse JSON");
+    if(document.Parse<0>(req->body.c_str()).HasParseError()) {
+      resp->status = 400;
+      resp->body = returnJSONError("Unable to parse JSON");
+      return;
+    }
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
     stringtok(parameters, document["parameters"].GetString(), " \t");
@@ -451,20 +513,28 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     if(ptr) {
       m["result"] = (*ptr)(parameters, 0);
     } else {
+      resp->status = 404;
       m["error"]="No such function "+toUpper(parameters[0]);
     }
-    return returnJSONObject(m);
+    resp->body = returnJSONObject(m);
+    return;
   }
   else if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
     vector<string> parts;
-    stringtok(parts, varmap["rest"], "/");
-    if(parts.size() != 3) 
-      return returnJSONError("Could not parse rest parameter");
+    stringtok(parts, req->parameters["rest"], "/");
+    if(parts.size() != 3) {
+      resp->status = 400;
+      resp->body = returnJSONError("Could not parse rest parameter");
+      return;
+    }
     UeberBackend B;
     SOAData sd;
     sd.db = (DNSBackend*)-1;
-    if(!B.getSOA(parts[0], sd) || !sd.db)
-      return returnJSONError("Could not find domain '"+parts[0]+"'");
+    if(!B.getSOA(parts[0], sd) || !sd.db) {
+      resp->status = 404;
+      resp->body = returnJSONError("Could not find domain '"+parts[0]+"'");
+      return;
+    }
     
     QType qtype;
     qtype=parts[2];
@@ -473,7 +543,7 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
     PC.purge(qname);
     // cerr<<"domain id: "<<sd.domain_id<<", lookup name: '"<<parts[1]<<"', for type: '"<<qtype.getName()<<"'"<<endl;
     
-    if(method == "GET" ) {
+    if(req->method == "GET") {
       B.lookup(qtype, parts[1], 0, sd.domain_id);
       
       DNSResourceRecord rr;
@@ -493,16 +563,20 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
         ret+=returnJSONObject(object);
       }
       ret+="]}";
-      return ret;
+      resp->body = ret;
+      return;
     }
-    else if(method=="DELETE") {
+    else if(req->method=="DELETE") {
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
       
     }
-    else if(method=="POST") {
+    else if(req->method=="POST") {
       rapidjson::Document document;
-      if(document.Parse<0>(post.c_str()).HasParseError())
-        return returnJSONError("Unable to parse JSON");
+      if(document.Parse<0>(req->body.c_str()).HasParseError()) {
+        resp->status = 400;
+        resp->body = returnJSONError("Unable to parse JSON");
+        return;
+      }
       
       DNSResourceRecord rr;
       vector<DNSResourceRecord> rrset;
@@ -528,129 +602,101 @@ static string jsonDispatch(const string& method, const string& post, varmap_t& v
         }
         catch(std::exception& e) 
         {
-	  return returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
+          resp->body = returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
+          return;
         }
       }
       // but now what
       sd.db->startTransaction(qname);
       sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
       sd.db->commitTransaction();
-      return post;
+      resp->body = req->body;
+      return;
     }  
   }
   else if(command == "zone") {
-    string zonename = varmap["zone"];
-    if (zonename.empty())
-      return returnJSONError("Must give zone parameter");
+    string zonename = req->parameters["zone"];
+    if (zonename.empty()) {
+      resp->status = 400;
+      resp->body = returnJSONError("Must give zone parameter");
+    }
 
-    if(method == "GET") {
+    if(req->method == "GET") {
       // get current zone
-      return getZone(zonename);
-    } else if (method == "POST") {
+      resp->body = getZone(zonename);
+      return;
+    } else if (req->method == "POST") {
       // create
-      return createOrUpdateZone(zonename, true, varmap);
-    } else if (method == "PUT") {
+      resp->body = createOrUpdateZone(zonename, true, req->parameters);
+      return;
+    } else if (req->method == "PUT") {
       // update or create
-      return createOrUpdateZone(zonename, false, varmap);
-    } else if (method == "DELETE") {
+      resp->body = createOrUpdateZone(zonename, false, req->parameters);
+      return;
+    } else if (req->method == "DELETE") {
       // delete
       UeberBackend B;
       DomainInfo di;
-      if(!B.getDomainInfo(zonename, di))
-	return returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
-      if(!di.backend->deleteDomain(zonename))
-	return returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
+      if(!B.getDomainInfo(zonename, di)) {
+        resp->body = returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
+        return;
+      }
+      if(!di.backend->deleteDomain(zonename)) {
+        resp->body = returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
+        return;
+      }
       map<string, string> success; // empty success object
-      return returnJSONObject(success);
+      resp->body = returnJSONObject(success);
+      return;
     } else {
       throw HttpMethodNotAllowedException();
     }
   }
   else if(command=="log-grep") {
-    return makeLogGrepJSON(varmap, ::arg()["experimental-logfile"], " pdns[");
+    resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns[");
+    return;
   }
   else if(command=="domains") {
-    UeberBackend B;
-    vector<DomainInfo> domains;
-    B.getAllDomains(&domains);
-    
-    Document doc;
-    doc.SetObject();
-    
-    Value jdomains;
-    jdomains.SetArray();
-    
-    BOOST_FOREACH(const DomainInfo& di, domains) {
-      Value jdi;
-      jdi.SetObject();
-      jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
-      jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
-      Value masters;
-      masters.SetArray();
-      BOOST_FOREACH(const string& master, di.masters) {
-        Value value(master.c_str(), doc.GetAllocator());
-        masters.PushBack(value, doc.GetAllocator());
-      }
-      jdi.AddMember("masters", masters, doc.GetAllocator());
-      jdi.AddMember("serial", di.serial, doc.GetAllocator());
-      jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
-      jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
-      jdomains.PushBack(jdi, doc.GetAllocator());
-    }
-    doc.AddMember("domains", jdomains, doc.GetAllocator());
-    return makeStringFromDocument(doc);
+    apiServerZones(req, resp);
+    return;
   }
 
-  return returnJSONError("No or unknown command given");
+  resp->body = returnJSONError("No or unknown command given");
+  resp->status = 404;
+  return;
 }
 
-string StatWebServer::jsonstat(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
-{
-  *custom=1; // indicates we build the response
-  string ret="HTTP/1.1 200 OK\r\n"
-  "Server: PowerDNS/"VERSION"\r\n"
-  "Connection: close\r\n"
-  "Access-Control-Allow-Origin: *\r\n"
-  "Content-Type: application/json\r\n"
-  "\r\n" ;
+static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler, HttpRequest* req, HttpResponse* resp) {
+  resp->headers["Access-Control-Allow-Origin"] = "*";
+  resp->headers["Content-Type"] = "application/json";
 
-  varmap_t ourvarmap=varmap;
   string callback;
-  string command;
 
-  if(ourvarmap.count("callback")) {
-    callback=ourvarmap["callback"];
-    ourvarmap.erase("callback");
+  if(req->parameters.count("callback")) {
+    callback=req->parameters["callback"];
+    req->parameters.erase("callback");
   }
   
-  if(ourvarmap.count("command")) {
-    command=ourvarmap["command"];
-    ourvarmap.erase("command");
-  }
+  req->parameters.erase("_"); // jQuery cache buster
 
-  ourvarmap.erase("_");
-  if(!callback.empty())
-      ret += callback+"(";
-
-  ret += jsonDispatch(method, post, ourvarmap, command);
+  handler(req, resp);
 
   if(!callback.empty()) {
-    ret += ");";
+    resp->body = callback + "(" + resp->body + ");";
   }
-  return ret;
 }
 
-string StatWebServer::cssfunction(const string& method, const string& post, const map<string,string> &varmap, void *ptr, bool *custom)
-{
-  *custom=1; // indicates we build the response
-  ostringstream ret;
-  ret<<"HTTP/1.1 200 OK\r\n"
-  "Server: PowerDNS/"VERSION"\r\n"
-  "Connection: close\r\n"
-  "Cache-Control: max-age=86400\r\n"
-  "Content-Type: text/css\r\n"
-  "\r\n";
+void StatWebServer::registerApiHandler(const string& url, boost::function<void(HttpRequest*,HttpResponse*)> handler) {
+  WebServer::HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
+  d_ws->registerHandler(url, f);
+}
 
+void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
+{
+  resp->headers["Cache-Control"] = "max-age=86400";
+  resp->headers["Content-Type"] = "text/css";
+
+  ostringstream ret;
   ret<<"* { box-sizing: border-box; margin: 0; padding: 0; }"<<endl;
   ret<<"body { color: black; background: white; margin-top: 1em; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; position: relative; }"<<endl;
   ret<<"a { color: #0959c2; }"<<endl;
@@ -677,17 +723,21 @@ string StatWebServer::cssfunction(const string& method, const string& post, cons
   ret<<".resetring i { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAA/klEQVQY01XPP04UUBgE8N/33vd2XZUWEuzYuMZEG4KFCQn2NhA4AIewAOMBPIG2xhNYeAcKGqkNCdmYlVBZGBIT4FHsbuE0U8xk/kAbqm9TOfI/nicfhmwgDNhvylUT58kxCp4l31L8SfH9IetJ2ev6PwyIwyZWsdb11/gbTK55Co+r8rmJaRPTFJcpZil+pTit7C5awMpA+Zpi1sRFE9MqflYOloYCjY2uP8EdYiGU4CVGUBubxKfOOLjrtOBmzvEilbVb/aQWvhRl0unBZVXe4XdnK+bprwqnhoyTsyZ+JG8Wk0apfExxlcp7PFruXH8gdxamWB4cyW2sIO4BG3czIp78jUIAAAAASUVORK5CYII=); width: 10px; height: 10px; margin-right: 2px; display: inline-block; background-repeat: no-repeat; }"<<endl;
   ret<<".resetring:hover i { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAA2ElEQVQY013PMUoDcRDF4c+kEzxCsNNCrBQvIGhnlcYm11EkBxAraw8gglgIoiJpAoKIYlBcgrgopsma3c3fwt1k9cHA480M8xvQp/nMjorOWY5ov7IAYlpjQk7aYxcuWBpwFQgJnUcaYk7GhEDIGL5w+MVpKLIRyR2b4JOjvGhUKzHTv2W7iuSN479Dvu9plf1awbQ6y3x1sU5tjpVJcMbakF6Ycoas8Dl5xEHJ160wRdfqzXfa6XQ4PLDlicWUjxHxZfndL/N+RhiwNzl/Q6PDhn/qsl76H7prcApk2B1aAAAAAElFTkSuQmCC);}"<<endl;
   ret<<".resizering {float: right;}"<<endl;
-  return ret.str();
+  resp->body = ret.str();
 }
 
 void StatWebServer::launch()
 {
   try {
-    d_ws->setCaller(this);
-    d_ws->registerHandler("",&indexfunction);
-    d_ws->registerHandler("style.css",&cssfunction);
-    if(::arg().mustDo("experimental-json-interface"))
-      d_ws->registerHandler("jsonstat", &jsonstat);
+    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
+    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
+    if(::arg().mustDo("experimental-json-interface")) {
+      registerApiHandler("/servers/localhost/config", &apiServerConfig);
+      registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+      registerApiHandler("/servers/localhost/zones", &apiServerZones);
+      // legacy dispatch
+      registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
+    }
     d_ws->go();
   }
   catch(...) {

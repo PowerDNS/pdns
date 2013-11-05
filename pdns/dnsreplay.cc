@@ -164,7 +164,7 @@ typedef multi_index_container<
              ordered_unique<tag<AssignedIDTag>,  BOOST_MULTI_INDEX_MEMBER(QuestionData, int, d_assignedID) >
             >
 > qids_t;
-        				 
+                                         
 qids_t qids;
 
 
@@ -518,7 +518,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
         qids_t::const_iterator i=qids.find(qi);
         QuestionData qd=*i;
 
-        //	  cout<<"Matched answer "<<qi<<endl;
+        //          cout<<"Matched answer "<<qi<<endl;
         qd.d_origAnswers=mdp.d_answers;
         qd.d_origRcode=mdp.d_header.rcode;
         
@@ -529,7 +529,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
         qids.replace(i, qd);
 
         if(qd.d_newRcode!=-1) {
-          //	    cout<<"Removing entry "<<qi<<", is done [in main loop]"<<endl;
+          //            cout<<"Removing entry "<<qi<<", is done [in main loop]"<<endl;
 
           measureResultAndClean(qi);
         }
@@ -612,7 +612,7 @@ try
   s_socket->setNonBlocking();
   
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
-        	    g_vm["target-port"].as<uint16_t>());
+                    g_vm["target-port"].as<uint16_t>());
 
   cerr<<"Replaying packets to: '"<<g_vm["target-ip"].as<string>()<<"', port "<<g_vm["target-port"].as<uint16_t>()<<endl;
 

@@ -96,22 +96,22 @@ try
         ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
         pr.d_len > 12) {
       try {
-	if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
-	  continue;
+        if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
+          continue;
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-	if(haveRDFilter && mdp.d_header.rd != rdFilter)
-	  continue;
+        if(haveRDFilter && mdp.d_header.rd != rdFilter)
+          continue;
 
-	if(pr.d_ip->ip_v == 4) 
-	  ++ipv4Packets;
-	else
-	  ++ipv6Packets;
-	
-	if(!mdp.d_header.qr) {
-	  if(!mdp.d_header.rd)
-	    nonRDQueries++;
-	  queries++;
-	}
+        if(pr.d_ip->ip_v == 4) 
+          ++ipv4Packets;
+        else
+          ++ipv6Packets;
+        
+        if(!mdp.d_header.qr) {
+          if(!mdp.d_header.rd)
+            nonRDQueries++;
+          queries++;
+        }
 
         lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
         highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
@@ -121,7 +121,7 @@ try
         QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
         if(!mdp.d_header.qr) {
-          //	  cout<<"Question for '"<< name <<"'\n";
+          //          cout<<"Question for '"<< name <<"'\n";
 
           QuestionData& qd=statmap[qi];
           
@@ -136,11 +136,11 @@ try
             untracked++;
 
           qd.d_answercount++;
-          //	  cout<<"Answer to '"<< name <<"': RCODE="<<(int)mdp.d_rcode<<", "<<mdp.d_answers.size()<<" answers\n";
+          //          cout<<"Answer to '"<< name <<"': RCODE="<<(int)mdp.d_rcode<<", "<<mdp.d_answers.size()<<" answers\n";
           if(qd.d_qcount) {
             uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
                             (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
-            //	    cout<<"Took: "<<usecs<<"usec\n";
+            //            cout<<"Took: "<<usecs<<"usec\n";
             if(usecs<2049000)
               cumul[usecs]++;
             else
@@ -158,7 +158,7 @@ try
         rcodes[mdp.d_header.rcode]++;
       }
       catch(MOADNSException& mde) {
-        //	cerr<<"error parsing packet: "<<mde.what()<<endl;
+        //        cerr<<"error parsing packet: "<<mde.what()<<endl;
         if(pw)
           pw->write();
         dnserrors++;

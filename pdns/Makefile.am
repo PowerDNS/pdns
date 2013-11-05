@@ -1,5 +1,5 @@
 
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include -Iext/yahttp
 
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
@@ -20,7 +20,7 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 	no-dnssec.schema.mysql.sql no-dnssec.schema.pgsql.sql no-dnssec.schema.sqlite3.sql \
 	bind-dnssec.schema.sqlite3.sql bindparser.h
 
-SUBDIRS= $(POLARSSL_SUBDIR)
+SUBDIRS= $(POLARSSL_SUBDIR) ext/yahttp
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h bindparser.h
 CLEANFILES=version_generated.h
@@ -67,7 +67,7 @@ version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh
 
 #
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
-pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS)
+pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS) -Lext/yahttp/yahttp -lyahttp
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc

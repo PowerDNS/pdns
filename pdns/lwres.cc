@@ -102,14 +102,14 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       g_stats.ipv6queries++;
 
     if((ret=asendto((const char*)&*vpacket.begin(), (int)vpacket.size(), 0, ip, pw.getHeader()->id, 
-        	    domain, type, &queryfd)) < 0) {
+                    domain, type, &queryfd)) < 0) {
       return ret; // passes back the -2 EMFILE
     }
   
     // sleep until we see an answer to this, interface to mtasker
     
     ret=arecvfrom(reinterpret_cast<char *>(buf.get()), bufsize-1,0, ip, &len, pw.getHeader()->id, 
-        	  domain, type, queryfd, now);
+                  domain, type, queryfd, now);
   }
   else {
     try {

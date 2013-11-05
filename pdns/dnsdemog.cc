@@ -53,7 +53,7 @@ try
           entry.port = pr.d_udp->uh_sport;
           entry.id=dh->id;
 
-          //	  ecount[entry]++;
+          //          ecount[entry]++;
           string::size_type pos = 0;
           for(pos = 0; pos < mdp.d_qname.size() ; ++pos ) {
             char c=mdp.d_qname[pos] ;
@@ -68,7 +68,7 @@ try
 
         }
         catch(MOADNSException& mde) {
-          //	cerr<<"error parsing packet: "<<mde.what()<<endl;
+          //        cerr<<"error parsing packet: "<<mde.what()<<endl;
           continue;
         }
         catch(std::exception& e) {

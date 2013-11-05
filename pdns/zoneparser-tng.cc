@@ -34,8 +34,8 @@
 #include <boost/lexical_cast.hpp>
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
-        										       d_zonename(zname), d_defaultttl(3600), 
-        										       d_havedollarttl(false)
+                                                                                               d_zonename(zname), d_defaultttl(3600), 
+                                                                                               d_havedollarttl(false)
 {
   d_zonename = toCanonic("", d_zonename);
   stackFile(fname);
@@ -340,8 +340,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr)
     }
     catch(...) {
       throw runtime_error("Parsing zone content "+getLineOfFile()+
-        		  ": '"+nextpart+
-        		  "' doesn't look like a qtype, stopping loop");
+                          ": '"+nextpart+
+                          "' doesn't look like a qtype, stopping loop");
     }
   }
   if(!haveQTYPE) 

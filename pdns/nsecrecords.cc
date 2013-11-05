@@ -266,8 +266,8 @@ NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const st
 void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw) 
 {
   pw.xfr8BitInt(d_algorithm); 
-	pw.xfr8BitInt(d_flags); 
-	pw.xfr16BitInt(d_iterations); 
+        pw.xfr8BitInt(d_flags); 
+        pw.xfr16BitInt(d_iterations); 
   pw.xfr8BitInt(d_salt.length());
   // cerr<<"salt: '"<<makeHexDump(d_salt)<<"', "<<d_salt.length()<<endl;
   pw.xfrBlob(d_salt);
@@ -277,8 +277,8 @@ NSEC3PARAMRecordContent::DNSRecordContent* NSEC3PARAMRecordContent::make(const D
 {
   NSEC3PARAMRecordContent* ret=new NSEC3PARAMRecordContent();
   pr.xfr8BitInt(ret->d_algorithm); 
-	pr.xfr8BitInt(ret->d_flags); 
-	pr.xfr16BitInt(ret->d_iterations); 
+        pr.xfr8BitInt(ret->d_flags); 
+        pr.xfr16BitInt(ret->d_iterations); 
   pr.xfr8BitInt(ret->d_saltlength);
   pr.xfrHexBlob(ret->d_salt);
  
@@ -290,8 +290,8 @@ string NSEC3PARAMRecordContent::getZoneRepresentation() const
   string ret;
   RecordTextWriter rtw(ret);
   rtw.xfr8BitInt(d_algorithm); 
-	rtw.xfr8BitInt(d_flags); 
-	rtw.xfr16BitInt(d_iterations); 
+        rtw.xfr8BitInt(d_flags); 
+        rtw.xfr16BitInt(d_iterations); 
   rtw.xfrHexBlob(d_salt);
   return ret;
 }

@@ -17,8 +17,8 @@ using namespace boost::accumulators;
 typedef accumulator_set<
   double
   , stats<boost::accumulators::tag::median(with_p_square_quantile),
-	  boost::accumulators::tag::mean(immediate)
-	  >
+          boost::accumulators::tag::mean(immediate)
+          >
   > acc_t;
 
 

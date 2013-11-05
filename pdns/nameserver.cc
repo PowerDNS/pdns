@@ -158,11 +158,11 @@ bool AddressIsUs(const ComboAddress& remote)
     if(IsAnyAddress(us)) {
       int s = socket(remote.sin4.sin_family, SOCK_DGRAM, 0);
       if(s < 0) 
-	continue;
+        continue;
 
       if(connect(s, (struct sockaddr*)&remote, remote.getSocklen()) < 0) {
-	close(s);
-	continue;
+        close(s);
+        continue;
       }
     
       ComboAddress actualLocal;
@@ -170,13 +170,13 @@ bool AddressIsUs(const ComboAddress& remote)
       socklen_t socklen = actualLocal.getSocklen();
 
       if(getsockname(s, (struct sockaddr*) &actualLocal, &socklen) < 0) {
-	close(s);
-	continue;
+        close(s);
+        continue;
       }
       close(s);
       actualLocal.sin4.sin_port = us.sin4.sin_port;
       if(actualLocal == remote)
-	return true;
+        return true;
     }
   }
   return false;
@@ -414,9 +414,9 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     if(pfd.revents & POLLIN) {
       sock=pfd.fd;        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {
-	if(errno != EAGAIN)
-	  L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
-	return 0;
+        if(errno != EAGAIN)
+          L<<Logger::Error<<"recvfrom gave error, ignoring: "<<strerror(errno)<<endl;
+        return 0;
       }
       break;
     }
@@ -440,7 +440,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   if(HarvestDestinationAddress(&msgh, &dest)) {
 //    cerr<<"Setting d_anyLocal to '"<<dest.toString()<<"'"<<endl;
     packet->d_anyLocal = dest;
-  }  	  
+  }            
 
   if(packet->parse(mesg, len)<0) {
     S.inc("corrupt-packets");

@@ -86,7 +86,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
 {  
   // nobody reads what we output, but it appears to be the magic that shuts some nameservers up
   static const char*ips[]={"198.41.0.4", "192.228.79.201", "192.33.4.12", "199.7.91.13", "192.203.230.10", "192.5.5.241", "192.112.36.4", "128.63.2.53", 
-        	     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
+                     "192.36.148.17","192.58.128.30", "193.0.14.129", "198.32.64.12", "202.12.27.33"};
   static char templ[40];
   strncpy(templ,"a.root-servers.net", sizeof(templ) - 1);
 
@@ -387,7 +387,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
     for(vector<DNSResourceRecord>::const_iterator i=crrs.begin(); i!=crrs.end(); ++i) {
       if(r->d.aa && !i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer, except for root referral
         r->setA(false);
-        //	i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
+        //        i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
 
       string content = stripDot(i->content);
@@ -1361,7 +1361,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       
       goto sendit;
     }
-        			       
+                                       
     if(weRedirected) {
       BOOST_FOREACH(rr, rrset) {
         if(rr.qtype.getCode() == QType::CNAME) {

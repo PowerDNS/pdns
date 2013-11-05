@@ -42,7 +42,7 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
         uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)serial.at(frompos++) - sizeof(dnsheader)-5;
 
         simpleExpandTo(encoded, offset, rr.content);
-        //	cerr<<"Oops, fallback, content so far: '"<<rr.content<<"', offset: "<<offset<<", '"<<qname<<"', "<<qt.getName()<<"\n";
+        //        cerr<<"Oops, fallback, content so far: '"<<rr.content<<"', offset: "<<offset<<", '"<<qname<<"', "<<qt.getName()<<"\n";
         break;
       }
       rr.content.append(serial.c_str()+frompos, labellen);
