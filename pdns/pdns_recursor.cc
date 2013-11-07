@@ -497,10 +497,10 @@ void startDoResolve(void *p)
   try {
     loginfo=" (while setting loginfo)";
     loginfo=" ("+dc->d_mdp.d_qname+"/"+lexical_cast<string>(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
-    uint32_t maxanswersize= dc->d_tcp ? 65535 : g_udpTruncationThreshold;
+    uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo) && !dc->d_tcp) {
-      maxanswersize = min(edo.d_packetsize, (uint16_t) g_udpTruncationThreshold);
+      maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
     }
     
     vector<DNSResourceRecord> ret;
