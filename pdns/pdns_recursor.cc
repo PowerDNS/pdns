@@ -497,10 +497,10 @@ void startDoResolve(void *p)
   try {
     loginfo=" (while setting loginfo)";
     loginfo=" ("+dc->d_mdp.d_qname+"/"+lexical_cast<string>(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
-    uint32_t maxanswersize= dc->d_tcp ? 65535 : 512;
+    uint32_t maxanswersize= dc->d_tcp ? 65535 : g_udpTruncationThreshold;
     EDNSOpts edo;
-    if(getEDNSOpts(dc->d_mdp, &edo)) {
-      maxanswersize = min(edo.d_packetsize, (uint16_t) (dc->d_tcp ? 65535 : g_udpTruncationThreshold));
+    if(getEDNSOpts(dc->d_mdp, &edo) && !dc->d_tcp) {
+      maxanswersize = min(edo.d_packetsize, (uint16_t) g_udpTruncationThreshold);
     }
     
     vector<DNSResourceRecord> ret;
@@ -521,8 +521,12 @@ void startDoResolve(void *p)
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
 
+    int res;
+
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
-      pw.getHeader()->tc=1;
+      pw.getHeader()->tc = 1;
+      res = 0;
+      variableAnswer = true;
       goto sendit;
     }
 
@@ -539,7 +543,6 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    int res;
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
