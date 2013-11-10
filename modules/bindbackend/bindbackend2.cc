@@ -217,28 +217,6 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
-bool Bind2Backend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
-{
-  #if 0
-  const shared_ptr<State> state = getState();
-  BB2DomainInfo& bbd = state->id_zone_map[domain_id];
-
-  string sqname;
-
-  if(bbd.d_name.empty())
-    sqname=qname;
-  else if(strcasecmp(qname.c_str(), bbd.d_name.c_str()))
-    sqname=qname.substr(0,qname.size() - bbd.d_name.length()-1); // strip domain name
-
-  sqname = labelReverse(sqname);
-  
-  if(!auth)
-    d_authDelayed[sqname] = auth;
-  
-  #endif
-  return false;
-}
-
 bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
   string qname=r.qname;
