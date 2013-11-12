@@ -1208,7 +1208,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
 
-    if(p->qclass==255) // any class query 
+    if(p->qclass==QClass::ANY) // any class query
       r->setA(false);
     else if(p->qclass != QClass::IN) // we only know about IN, so we don't find anything
       goto sendit;

@@ -21,7 +21,7 @@
     Calling convention:
 
     vector<uint8_t> content;
-    DNSPacketWriter dpw(content, const string& qname, uint16_t qtype, uint16_t qclass=1);  // sets the question
+    DNSPacketWriter dpw(content, const string& qname, uint16_t qtype, uint16_t qclass=QClass:IN);  // sets the question
     dpw.startrecord("this.is.an.ip.address.", ns_t_a);    // does nothing, except store qname and qtype
     dpw.xfr32BitInt(0x01020304);                         // adds 4 bytes (0x01020304) to the record buffer
     dpw.startrecord("this.is.an.ip.address.", ns_t_a);    // aha! writes out dnsrecord header containing qname and qtype and length 4, plus the recordbuffer, which gets emptied
@@ -41,11 +41,11 @@ public:
   enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
-  DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass=1, uint8_t opcode=0);
+  DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
   
   /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order - 
       ANSWER, AUTHORITY, ADDITIONAL */
-  void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=1, Place place=ANSWER, bool compress=true);
+  void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, Place place=ANSWER, bool compress=true);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   typedef vector<pair<uint16_t,std::string> > optvect_t;
