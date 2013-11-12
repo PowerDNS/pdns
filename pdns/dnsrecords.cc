@@ -484,7 +484,7 @@ void reportBasicTypes()
   SOARecordContent::report();
   SRVRecordContent::report();
   PTRRecordContent::report();
-  //DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
   DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
 }
