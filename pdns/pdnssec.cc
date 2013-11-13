@@ -470,23 +470,20 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       continue;
     }
 
-    if(rr.qtype.getCode() == QType::DNSKEY)
+    if(!presigned && rr.qtype.getCode() == QType::DNSKEY)
     {
-      if(presigned)
+      if(::arg().mustDo("experimental-direct-dnskey"))
       {
-        if(::arg().mustDo("experimental-direct-dnskey"))
+        if(rr.ttl != sd.default_ttl)
         {
-          if(rr.ttl != sd.default_ttl)
-          {
-            cout<<"[Warning] DNSKEY TTL of "<<rr.ttl<<" at '"<<rr.qname<<"' differs from SOA minimum of "<<sd.default_ttl<<endl;
-            numwarnings++;
-          }
-        }
-        else
-        {
-          cout<<"[Warning] DNSKEY at '"<<rr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
+          cout<<"[Warning] DNSKEY TTL of "<<rr.ttl<<" at '"<<rr.qname<<"' differs from SOA minimum of "<<sd.default_ttl<<endl;
           numwarnings++;
         }
+      }
+      else
+      {
+        cout<<"[Warning] DNSKEY at '"<<rr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
+        numwarnings++;
       }
     }
 
