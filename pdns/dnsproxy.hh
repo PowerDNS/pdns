@@ -80,6 +80,7 @@ private:
     time_t created;
     string qname;
     uint16_t qtype;
+    boost::optional<ComboAddress> anyLocal;
   };
 
   typedef map<int,ConntrackEntry> map_t;
