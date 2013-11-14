@@ -148,7 +148,6 @@ public:
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
   bool commitTransaction();
   bool abortTransaction();
-  bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
   void alsoNotifies(const string &domain, set<string> *ips);
 
 // the DNSSEC related (getDomainMetadata has broader uses too)

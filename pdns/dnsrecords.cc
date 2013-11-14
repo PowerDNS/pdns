@@ -484,9 +484,9 @@ void reportBasicTypes()
   SOARecordContent::report();
   SRVRecordContent::report();
   PTRRecordContent::report();
-  DNSRecordContent::regist(3, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  DNSRecordContent::regist(QClass::CHAOS, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
-  DNSRecordContent::regist(1, QType::ANY, 0, 0, "ANY");
+  DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
 }
 
 void reportOtherTypes()
@@ -509,7 +509,7 @@ void reportOtherTypes()
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
    DLVRecordContent::report();
-   DNSRecordContent::regist(0xff, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    //TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();

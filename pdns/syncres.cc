@@ -94,7 +94,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     DNSResourceRecord rr;
     rr.qname=qname;
     rr.qtype=qtype;
-    rr.qclass=1;
+    rr.qclass=QClass::IN;
     rr.ttl=86400;
     if(qtype.getCode()==QType::PTR)
       rr.content="localhost.";
@@ -104,7 +104,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     return 0;
   }
 
-  if(qclass==3 && qtype.getCode()==QType::TXT && 
+  if(qclass==QClass::CHAOS && qtype.getCode()==QType::TXT &&
         (pdns_iequals(qname, "version.bind.") || pdns_iequals(qname, "id.server.") || pdns_iequals(qname, "version.pdns.") ) 
      ) {
     ret.clear();
@@ -121,9 +121,9 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     return 0;
   }
   
-  if(qclass==0xff)
-    qclass=1;
-  else if(qclass!=1)
+  if(qclass==QClass::ANY)
+    qclass=QClass::IN;
+  else if(qclass!=QClass::IN)
     return -1;
   
   set<GetBestNSAnswer> beenthere;

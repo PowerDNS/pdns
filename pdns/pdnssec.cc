@@ -624,7 +624,7 @@ void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int c
   rr.qtype=QType::A;
   rr.ttl=3600;
   rr.auth=1;
-  rr.qclass = 1;
+  rr.qclass = QClass::IN;
   rr.d_place=DNSResourceRecord::ANSWER;
   rr.priority=0;
   

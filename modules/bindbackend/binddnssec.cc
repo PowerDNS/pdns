@@ -185,9 +185,9 @@ bool Bind2Backend::removeDomainKey(const string& name, unsigned int id)
 {
   if(!d_dnssecdb)
     return false;
-  
-  cerr<<"Asked to remove key "<<id<<" in zone '"<<name<<"'\n";
-  
+
+  // cerr<<"Asked to remove key "<<id<<" in zone '"<<name<<"'\n";
+
   boost::format fmt("delete from cryptokeys where domain='%s' and id=%d");
   try {
     d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % id).str());

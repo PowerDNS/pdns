@@ -1,5 +1,0 @@
-Edit the Makefile so it can find the main PowerDNS sources. This is the
-first line of the Makefile. 
-
-You may want to change other things so it can find your PostgreSQL and MySQL
-sources.
