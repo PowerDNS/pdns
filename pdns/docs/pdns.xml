@@ -962,7 +962,7 @@
           </listitem>          
           <listitem>
             <para>
-              A new setting, export-etc-hosts-suffix, adds a configurable suffix to names imported from /etc/hosts. 
+              A new setting, export-etc-hosts-search-suffix, adds a configurable suffix to names imported from /etc/hosts. 
               Code in c2544, c2545.
             </para>
           </listitem>                            
@@ -14148,14 +14148,14 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>export-etc-hosts-suffix</term>
+	    <term>export-etc-hosts-search-suffix</term>
 	    <listitem>
 	      <para>
 		If set, all hostnames in the export-etc-hosts file are
 		loaded in canonical form, based on this suffix, unless the
 		name contain a '.', in which case the name is unchanged. 
 		So an entry called 'pc' with
-		export-etc-hosts-suffix='home.com' will lead to the
+		export-etc-hosts-search-suffix='home.com' will lead to the
 		generation of 'pc.home.com' within the recursor.  An entry
 		called 'server1.home' will be stored as 'server1.home',
 		regardless of the export-etc-hosts setting. Available
