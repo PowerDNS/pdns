@@ -929,7 +929,7 @@ EOF
 esac
 
 if [ "$skiplua" == "1" ]; then
-  skipreasons="$skipreaasons nolua"
+  skipreasons="$skipreasons nolua"
 fi
 
 check_process
