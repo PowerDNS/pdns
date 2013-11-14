@@ -492,7 +492,7 @@ case $context in
 				|| echo ignoring mysqladmin drop failure
 			mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
 			mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-				"$GMYSQLDB" < ../pdns/no-dnssec.schema.mysql.sql
+				"$GMYSQLDB" < ../modules/gmysqlbackend/no-dnssec.schema.mysql.sql
 
 			tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 				"$GMYSQLDB"
@@ -565,9 +565,9 @@ __EOF__
 				|| echo ignoring mysqladmin drop failure
 			mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
 			mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-				"$GMYSQLDB" < ../pdns/no-dnssec.schema.mysql.sql
+				"$GMYSQLDB" < ../modules/gmysqlbackend/no-dnssec.schema.mysql.sql
 			mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-				"$GMYSQLDB" < ../pdns/dnssec.schema.mysql.sql
+				"$GMYSQLDB" < ../modules/gmysqlbackend/dnssec.schema.mysql.sql
 
 			tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 				"$GMYSQLDB"
@@ -631,8 +631,8 @@ __EOF__
 
 			dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring dropdb failure
 			createdb --user="$GPGSQLUSER" "$GPGSQLDB" || echo ignoring createdb failure # FIXME
-			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/no-dnssec.schema.pgsql.sql
-			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/dnssec.schema.pgsql.sql
+			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/no-dnssec.schema.pgsql.sql
+			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/dnssec.schema.pgsql.sql
 
 			tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
 
@@ -683,7 +683,7 @@ __EOF__
 
 			dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
 			createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
-			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../pdns/no-dnssec.schema.pgsql.sql
+			psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/no-dnssec.schema.pgsql.sql
 
 			tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
 
@@ -711,7 +711,7 @@ __EOF__
 
 		gsqlite3-nodnssec)
 			rm -f pdns.sqlite3
-			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
+			sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
 			tosql gsqlite | sqlite3 pdns.sqlite3
 			echo ANALYZE\; | sqlite3 pdns.sqlite3
 
@@ -735,7 +735,7 @@ __EOF__
 			;;
 		opendbx-sqlite3)
 			rm -f pdns-opendbx.sqlite3
-			sqlite3 pdns-opendbx.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
+			sqlite3 pdns-opendbx.sqlite3 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
 			tosql gsqlite | sqlite3 pdns-opendbx.sqlite3
 			sqlite3 pdns-opendbx.sqlite3 "ALTER TABLE domains ADD status CHARACTER(1) NOT NULL DEFAULT 'A'; \
 				ALTER TABLE domains ADD auto_serial INTEGER DEFAULT 0;"
@@ -752,8 +752,8 @@ __EOF__
 			;;
 		gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
 			rm -f pdns.sqlite3
-			sqlite3 pdns.sqlite3 < ../pdns/no-dnssec.schema.sqlite3.sql
-			sqlite3 pdns.sqlite3 < ../pdns/dnssec.schema.sqlite3.sql
+			sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
+			sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/dnssec.schema.sqlite3.sql
 			tosql gsqlite | sqlite3 pdns.sqlite3
 			echo ANALYZE\; | sqlite3 pdns.sqlite3
 
@@ -936,9 +936,9 @@ startslave ()
 			|| echo ignoring mysqladmin drop failure
 		mysqladmin --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" create "$GMYSQL2DB"
 		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-			"$GMYSQL2DB" < ../pdns/no-dnssec.schema.mysql.sql
+			"$GMYSQL2DB" < ../modules/gmysqlbackend/no-dnssec.schema.mysql.sql
 		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-			"$GMYSQL2DB" < ../pdns/dnssec.schema.mysql.sql
+			"$GMYSQL2DB" < ../modules/gmysqlbackend/dnssec.schema.mysql.sql
 
 		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
 		do
@@ -989,8 +989,8 @@ startslave ()
 	then
 		context=${context}-presigned
 		rm -f pdns.sqlite31
-		sqlite3 pdns.sqlite31 < ../pdns/no-dnssec.schema.sqlite3.sql
-		sqlite3 pdns.sqlite31 < ../pdns/dnssec.schema.sqlite3.sql
+		sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
+		sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/dnssec.schema.sqlite3.sql
 
 		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
 		do

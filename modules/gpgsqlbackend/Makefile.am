@@ -1,10 +1,11 @@
 AM_CPPFLAGS=-I@PGSQL_incdir@ @THREADFLAGS@
 lib_LTLIBRARIES = libgpgsqlbackend.la
 
-EXTRA_DIST=OBJECTFILES OBJECTLIBS
+EXTRA_DIST=OBJECTFILES OBJECTLIBS \
+	dnssec.schema.pgsql.sql no-dnssec.schema.pgsql.sql
 
 libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
-		spgsql.hh spgsql.cc
+	spgsql.hh spgsql.cc
 
 ## Filter out known build breakers for Mac OS X
 ## Don't remove the empty lines between if and endif or tabs will screw up your makefile
@@ -17,4 +18,3 @@ libgpgsqlbackend_la_LDFLAGS=-module -avoid-version @PGSQL_lib@ -Wl,-Bstatic -lpq
 endif
 
 libgpgsqlbackend_la_LIBADD=-lssl @LIBCRYPT@ -lcrypto
-
