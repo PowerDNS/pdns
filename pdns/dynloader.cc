@@ -157,6 +157,10 @@ int main(int argc, char **argv)
     
     cout<<resp<<endl;
   }
+  catch(TimeoutException &ae) {
+    cerr<<"Timeout error: "<<ae.reason<<endl;
+    return 2;
+  }
   catch(PDNSException &ae) {
     cerr<<"Fatal error: "<<ae.reason<<endl;
     return 1;

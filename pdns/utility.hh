@@ -94,6 +94,17 @@ public:
   //! Closes a socket.
   static int closesocket( sock_t socket );
 
+  //! Connect with timeout
+  // Returns:
+  //    > 0 on success
+  //    -1 on error
+  //    0 on timeout
+  static int timed_connect(sock_t sock,
+    const sockaddr *addr,
+    socklen_t sockaddr_size,
+    int timeout_sec,
+    int timeout_usec);
+
   //! Returns the process id of the current process.
   static pid_t getpid( void );
 

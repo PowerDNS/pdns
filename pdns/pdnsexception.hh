@@ -38,6 +38,10 @@ public:
 };
 
 class TimeoutException : public PDNSException
-{};
+{
+public:
+  TimeoutException() : PDNSException() {}
+  TimeoutException(string r) : PDNSException(r) {}
+};
 
 #endif

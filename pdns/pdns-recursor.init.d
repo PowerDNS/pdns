@@ -57,7 +57,7 @@ case "$1" in
 
 	force-stop)
 		echo -n "Stopping PowerDNS recursing nameserver: "
-		killall -v -9 pdns_server
+		killall -v -g -9 pdns_server
 		echo "killed"
 	;;
 

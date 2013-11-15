@@ -28,7 +28,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-DynMessenger::DynMessenger(const string &localdir, const string &fname)
+DynMessenger::DynMessenger(const string &localdir,
+    const string &fname,
+    int timeout_sec,
+    int timeout_usec)
 {
   d_s=socket(AF_UNIX,SOCK_STREAM,0);
   Utility::setCloseOnExec(d_s);
@@ -59,7 +62,21 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
     if(makeUNsockaddr(fname, &d_remote))
       throw PDNSException("Unable to connect to remote '"+fname+"': Path is not a valid UNIX socket path.");
 
-    if(connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote))<0)
+    struct timeval timeout;
+    timeout.tv_sec = timeout_sec;
+    timeout.tv_usec = timeout_usec;
+
+    if (setsockopt (d_s, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+      throw PDNSException("Unable to set SO_RCVTIMEO option on socket: " + stringerror());
+
+    if (setsockopt (d_s, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+      throw PDNSException("Unable to set SO_SNDTIMEO option on socket: " + stringerror());
+
+    int ret = Utility::timed_connect(d_s,(sockaddr*)&d_remote,sizeof(d_remote), timeout_sec, timeout_usec);
+
+    if (ret == 0)
+      throw TimeoutException("Unable to connect to remote '"+fname+"': "+stringerror());
+    else if (ret < 0)
       throw PDNSException("Unable to connect to remote '"+fname+"': "+stringerror());
 
   } catch(...) {
@@ -70,7 +87,10 @@ DynMessenger::DynMessenger(const string &localdir, const string &fname)
   }
 }
 
-DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
+DynMessenger::DynMessenger(const ComboAddress& remote,
+    const string &secret,
+    int timeout_sec,
+    int timeout_usec)
 {
   *d_local.sun_path=0;
   d_s=socket(AF_INET, SOCK_STREAM,0);
@@ -79,15 +99,32 @@ DynMessenger::DynMessenger(const ComboAddress& remote, const string &secret)
   if(d_s<0) {
     throw PDNSException(string("socket")+strerror(errno));
   }
-  
-  if(connect(d_s, (sockaddr*)&remote, remote.getSocklen())<0) {
+
+  try {
+    struct timeval timeout;
+    timeout.tv_sec = timeout_sec;
+    timeout.tv_usec = timeout_usec;
+
+    if (setsockopt (d_s, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+      throw PDNSException("Unable to set SO_RCVTIMEO option on socket: " + stringerror());
+
+    if (setsockopt (d_s, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+      throw PDNSException("Unable to set SO_SNDTIMEO option on socket: " + stringerror());
+
+    int ret = Utility::timed_connect(d_s, (sockaddr*)&remote, remote.getSocklen(), timeout_sec, timeout_usec);
+
+    if (ret == 0)
+      throw TimeoutException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+    else if (ret < 0)
+      throw PDNSException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+
+    string login=secret+"\n";
+    writen2(d_s, login);
+  } catch(...) {
     close(d_s);
     d_s=-1;
-    throw PDNSException("Unable to connect to remote '"+remote.toStringWithPort()+"': "+string(strerror(errno)));
+    throw;
   }
-
-  string login=secret+"\n";
-  writen2(d_s, login);
 }
 
 DynMessenger::~DynMessenger()
@@ -100,11 +137,18 @@ DynMessenger::~DynMessenger()
 
 int DynMessenger::send(const string &msg) const
 {
-  if(writen2(d_s, msg+"\n") < 0) { // sue me
-    perror("sendto");
-    return -1;
+  try {
+    if(writen2(d_s, msg+"\n") < 0) { // sue me
+      perror("sendto");
+      return -1;
+    }
+    return 0;
+  } catch(std::runtime_error& e) {
+    if (errno == EAGAIN)
+      throw TimeoutException("Error from remote in send(): " + string(e.what()));
+    else
+      throw PDNSException("Error from remote in send(): " + string(e.what()));
   }
-  return 0;
 }
 
 string DynMessenger::receive() const 
@@ -115,8 +159,12 @@ string DynMessenger::receive() const
   string answer;
   for(;;) {
     retlen=recv(d_s,buffer,sizeof(buffer),0);
-    if(retlen<0)
-      throw PDNSException("Error from remote: "+string(strerror(errno)));
+    if(retlen<0) {
+      if (errno == EAGAIN)
+        throw TimeoutException("Error from remote in receive(): " + string(strerror(errno)));
+      else
+        throw PDNSException("Error from remote in receive(): " + string(strerror(errno)));
+    }
 
     answer.append(buffer,retlen);
     if (retlen == 0)

@@ -31,6 +31,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
+#include <sys/select.h>
 
 #ifdef NEED_INET_NTOP_PROTO
 extern "C" {
@@ -49,6 +50,36 @@ int Utility::closesocket( Utility::sock_t socket )
     return 0;
   if(ret < 0) 
     throw PDNSException("Error closing socket: "+stringerror());
+  return ret;
+}
+
+// Connects to socket with timeout
+int Utility::timed_connect( Utility::sock_t sock,
+    const sockaddr *addr,
+    Utility::socklen_t sockaddr_size,
+    int timeout_sec,
+    int timeout_usec )
+{
+  fd_set set;
+  struct timeval timeout;
+  int ret;
+
+  timeout.tv_sec = timeout_sec;
+  timeout.tv_usec = timeout_usec;
+
+  FD_ZERO(&set);
+  FD_SET(sock, &set);
+
+  setNonBlocking(sock);
+
+  if ((ret = connect (sock, addr, sockaddr_size)) < 0) {
+    if (errno != EINPROGRESS)
+      return ret;
+  }
+
+  ret = select(sock + 1, NULL, &set, NULL, &timeout);
+  setBlocking(sock);
+
   return ret;
 }
 
