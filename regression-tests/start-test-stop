@@ -368,7 +368,6 @@ then
 	optout=1
 fi
 
-set +e
 # check for lua
 if grep -q "^#define HAVE_LUA 1" ../config.h
 then
@@ -378,7 +377,6 @@ else
   lua_prequery=""
   skiplua=1
 fi
-set -e
 
 case $context in
 		ext-nsd | ext-nsd-nsec | ext-nsd-nsec3 | ext-nsd-nsec3-optout)
