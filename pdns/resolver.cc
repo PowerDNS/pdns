@@ -104,7 +104,7 @@ Resolver::~Resolver()
 {
   for(std::map<std::string,int>::iterator iter = locals.begin(); iter != locals.end(); iter++) {
     if (iter->second >= 0)
-     close(iter->second);
+      close(iter->second);
   }
 }
 
@@ -169,9 +169,9 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain,
                                const string& tsigkeyname, const string& tsigalgorithm,
                                const string& tsigsecret)
 {
-   ComboAddress local;
-   local.sin4.sin_family = 0;
-   return this->sendResolve(remote, local, domain, type, dnssecOK, tsigkeyname, tsigalgorithm, tsigsecret);
+  ComboAddress local;
+  local.sin4.sin_family = 0;
+  return this->sendResolve(remote, local, domain, type, dnssecOK, tsigkeyname, tsigalgorithm, tsigsecret);
 }
 
 static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
@@ -350,9 +350,9 @@ int Resolver::resolve(const string &ipport, const char *domain, int type, Resolv
 }
 
 int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res) {
-   ComboAddress local;
-   local.sin4.sin_family = 0;
-   return resolve(ipport, domain, type, res, local);
+  ComboAddress local;
+  local.sin4.sin_family = 0;
+  return resolve(ipport, domain, type, res, local);
 }
 
 void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t *serial)
@@ -384,14 +384,14 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
 {
   ComboAddress local;
   if (laddr != NULL) {
-          local = (ComboAddress) (*laddr);
+    local = (ComboAddress) (*laddr);
   } else {
-          if(remote.sin4.sin_family == AF_INET)
-            local=ComboAddress(::arg()["query-local-address"]);
-          else if(!::arg()["query-local-address6"].empty())
-            local=ComboAddress(::arg()["query-local-address6"]);
-          else
-            local=ComboAddress("::");
+    if(remote.sin4.sin_family == AF_INET)
+      local=ComboAddress(::arg()["query-local-address"]);
+    else if(!::arg()["query-local-address6"].empty())
+      local=ComboAddress(::arg()["query-local-address6"]);
+    else
+      local=ComboAddress("::");
   }
   d_sock = -1;
   try {
