@@ -314,7 +314,7 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
 
 # for bindparser.h/hh
-.h.hh:
+.hh.h:
 	cp $< $@
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
