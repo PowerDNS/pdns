@@ -236,7 +236,6 @@ securezone ()
 		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
 		keyid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
 		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
-		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
 		../pdns/pdnssec --config-dir=. $configname rectify-zone $zone 2>&1
 	else
 		../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1

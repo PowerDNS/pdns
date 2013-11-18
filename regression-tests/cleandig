@@ -3,13 +3,19 @@ if [ ! -e ${testsdir}/${testname}/use.drill ]
 then
 	../pdns/sdig $nameserver $port "$1" $2 $3 $4 $5 | LC_ALL=C sort
 fi
+../pdns/nsec3dig $nameserver $port "$1" $2 > ${testsdir}/${testname}/nsec3dig.out 2>&1
 if [ ! -e ${testsdir}/${testname}/skip-drill ]
 then
-	../pdns/nsec3dig $nameserver $port "$1" $2 > ${testsdir}/${testname}/nsec3dig.out 2>&1
-	drill -a -p $port -o rd -D -S -k trustedkeys "$1" $2 @$nameserver > ${testsdir}/${testname}/drillchase.out 2>&1
-	echo RETVAL: $? >> ${testsdir}/${testname}/drillchase.out
-	drill -a -p $port -o rd -D -k trustedkeys "$1" $2 @$nameserver > ${testsdir}/${testname}/drill.out 2>&1
-	echo RETVAL: $? >> ${testsdir}/${testname}/drill.out
+	if [ ! -s trustedkeys ]
+	then
+		drill -a -p $port -o rd -D "$1" $2 @$nameserver > ${testsdir}/${testname}/drill.out 2>&1
+		echo RETVAL: $? >> ${testsdir}/${testname}/drill.out
+	else
+		drill -a -p $port -o rd -D -S -k trustedkeys "$1" $2 @$nameserver > ${testsdir}/${testname}/drillchase.out 2>&1
+		echo RETVAL: $? >> ${testsdir}/${testname}/drillchase.out
+		drill -a -p $port -o rd -D -k trustedkeys "$1" $2 @$nameserver > ${testsdir}/${testname}/drill.out 2>&1
+		echo RETVAL: $? >> ${testsdir}/${testname}/drill.out
+	fi
 fi
 if [ ! -e ${testsdir}/${testname}/skip-q ]
 then
