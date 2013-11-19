@@ -110,7 +110,7 @@ root_commands:
 	root_commands root_command SEMICOLON
   	;
 
-root_command: command | acl_command | zone_command | options_command
+root_command: command | acl_command | global_zone_command | global_options_command
 	;
 
 commands:
@@ -122,7 +122,7 @@ command:
 	terms 
 	;
 
-zone_command:
+global_zone_command:
 	ZONETOK quotedname zone_block
 	{
 		s_di.name=stripDot($2);
@@ -141,7 +141,7 @@ zone_command:
 	;
 
 
-options_command:
+global_options_command:
 	OPTIONSTOK OBRACE options_commands EBRACE
 	|
 	LOGGINGTOK OBRACE options_commands EBRACE
@@ -169,7 +169,10 @@ options_commands:
 	options_command SEMICOLON options_commands
 	;
 
-options_command: command | options_directory_command | also_notify_command
+options_command: command | global_options_command
+	;
+
+global_options_command: options_directory_command | also_notify_command
 	;
 
 options_directory_command: DIRECTORYTOK quotedname
@@ -208,12 +211,19 @@ zone_block:
 	OBRACE zone_commands EBRACE
 	;
 
-zone_commands:	
+zone_commands:
 	|
 	zone_commands zone_command SEMICOLON
 	;
 
-zone_command: command | zone_file_command | zone_type_command | zone_masters_command | zone_also_notify_command
+/* commands in zone
+ *   in global scope also_notify_command is used instead of zone_also_notify_command
+ */
+zone_command: command | global_zone_command | zone_also_notify_command
+	;
+
+/* zone commands that also are available at global scope */
+global_zone_command: zone_file_command | zone_type_command | zone_masters_command
 	;
 
 zone_masters_command: MASTERTOK OBRACE masters EBRACE
