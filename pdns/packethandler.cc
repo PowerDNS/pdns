@@ -211,6 +211,7 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   DNSResourceRecord rr;
   bool haveOne=false;
   DNSSECPrivateKey dpk;
+  bool kskOffline = d_dk.isKskOffline(p->qdomain);
 
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
   BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
@@ -223,10 +224,11 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
     haveOne=true;
   }
 
-  if(::arg().mustDo("experimental-direct-dnskey")) {
+  if(kskOffline || ::arg().mustDo("experimental-direct-dnskey")) {
     B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
     while(B.get(rr)) {
-      rr.ttl=sd.default_ttl;
+      // set fixed TTL; pdnssec check-zone will warn if it doesn't match
+      rr.ttl = sd.default_ttl;
       r->addRecord(rr);
       haveOne=true;
     }

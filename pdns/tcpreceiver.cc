@@ -505,6 +505,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   dk.clearCaches(target);
   bool securedZone = dk.isSecuredZone(target);
   bool presignedZone = dk.isPresigned(target);
+  bool kskOffline = dk.isKskOffline(target);
 
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
@@ -604,7 +605,14 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   // this is where the DNSKEYs go  in
   
   DNSSECKeeper::keyset_t keys = dk.getKeys(target);
-  
+  /* if DNSKEY records get generated, pull DNSKEY records from backend (if wanted at all) immediately afterwards;
+   * ChunkedSigningPipe needs the records grouped by type and name to generate RRSIG records
+   */
+  bool prefetch_dnskeys = !keys.empty();
+  /* same as PacketHandler::addDNSKEY(): only fetch DNSKEYs from backend if we have no private keys, zone has KSK offline or "experimental-direct-dnskey" is enabled
+   * (if PacketHandler::addDNSKEY() returns 0 PacketHandler::questionOrRecurse() will fetch them from db) */
+  bool fetch_dnskeys = !prefetch_dnskeys || kskOffline || ::arg().mustDo("experimental-direct-dnskey");
+
   DNSResourceRecord rr;
   
   rr.qname = target;
@@ -621,10 +629,13 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     ne.d_ttl = sd.default_ttl;
     csp.submit(rr);
   }
-  
-  if(::arg().mustDo("experimental-direct-dnskey")) {
+
+  // only include the DNSKEYs from backend here if KSK is offline or (experimental) direct-dnskey is enabled,
+  // to avoid changing behaviour when it is not enabled.
+  if(prefetch_dnskeys && fetch_dnskeys) {
     sd.db->lookup(QType(QType::DNSKEY), target, NULL, sd.domain_id);
     while(sd.db->get(rr)) {
+      // set fixed TTL; pdnssec check-zone will warn if it doesn't match
       rr.ttl = sd.default_ttl;
       csp.submit(rr);
     }
@@ -669,9 +680,8 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       continue;
     }
 
-    // only skip the DNSKEY if direct-dnskey is enabled, to avoid changing behaviour
-    // when it is not enabled.
-    if(::arg().mustDo("experimental-direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY)
+    // skip DNSSEC if included before (see above)
+    if((prefetch_dnskeys || !fetch_dnskeys) && rr.qtype.getCode() == QType::DNSKEY)
       continue;
 
     records++;

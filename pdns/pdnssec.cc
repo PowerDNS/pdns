@@ -343,6 +343,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     return -1;
   }
   bool presigned=dk.isPresigned(zone);
+  bool kskOffline=dk.isKskOffline(zone);
+  bool dnskey_rrsig=false,dnskey_ksk=false;
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
@@ -461,7 +463,18 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       }
     } else {
       if (rr.qtype.getCode() == QType::RRSIG) {
-        if(presigned) {
+        if(kskOffline) {
+          RRSIGRecordContent rrc(rr.content);
+          if (rrc.d_type != QType::DNSKEY) {
+            cout<<"[Error] RRSIG (not for DNSKEY) found at '"<<rr.qname<<"' in offline KSK zone. These do not belong in the database."<<endl;
+            numerrors++;
+            continue;
+          } else {
+            dnskey_rrsig = true;
+          }
+        }
+        else if (!presigned)
+        {
           cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
           numerrors++;
           continue;
@@ -479,7 +492,18 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     if(!presigned && rr.qtype.getCode() == QType::DNSKEY)
     {
-      if(::arg().mustDo("experimental-direct-dnskey"))
+      if (kskOffline) {
+        DNSKEYRecordContent drc(rr.content);
+        if(rr.ttl != sd.default_ttl)
+        {
+          cout<<"[Error] DNSKEY TTL of "<<rr.ttl<<" at '"<<rr.qname<<"' differs from SOA default of "<<sd.default_ttl<<endl;
+          numerrors++;
+        }
+        if (drc.d_flags == 257) {
+          dnskey_ksk = true;
+        }
+      }
+      else if(::arg().mustDo("experimental-direct-dnskey"))
       {
         if(rr.ttl != sd.default_ttl)
         {
@@ -516,6 +540,15 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
     }
+  }
+
+  if (kskOffline && !dnskey_rrsig) {
+    cout<<"[Error] Zone is supposed to have RRSIG DNSKEY (offline KSK signing)\n";
+    numerrors++;
+  }
+  if (kskOffline && !dnskey_ksk) {
+    cout<<"[Error] Zone is supposed to have KSK DNSKEY (offline KSK signing)\n";
+    numerrors++;
   }
 
   for(set<string>::const_iterator i = cnames.begin(); i != cnames.end(); i++) {
@@ -768,6 +801,9 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
   }
   
   cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned"<<endl;
+  if (dk.isKskOffline(zone)) {
+    cout<<"No active KSK: DNSKEYs in zone are supposed to be presigned with a KSK"<<endl;
+  }
 
   if(keyset.empty())  {
     cerr << "No keys for zone '"<<zone<<"'."<<endl;
@@ -784,7 +820,7 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
       algorithm2name(value.first.d_algorithm, algname);
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< " ( " + algname + " ) "<<endl;
-      if(value.second.keyOrZone || ::arg().mustDo("experimental-direct-dnskey"))
+      if(value.second.keyOrZone || dk.isKskOffline(zone) || ::arg().mustDo("experimental-direct-dnskey"))
         cout<<(value.second.keyOrZone ? "KSK" : "ZSK")<<" DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
       if(value.second.keyOrZone) {
         cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;

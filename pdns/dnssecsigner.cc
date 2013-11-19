@@ -92,6 +92,10 @@ void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, c
     //cerr<<"Doing presignatures"<<endl;
     dk.getPreRRSIGs(db, signer, signQName, wildcardname, QType(signQType), signPlace, outsigned, origTTL); // does it all
   }
+  else if (signQType == QType::DNSKEY && dk.isKskOffline(signer)) {
+    //cerr<<"Doing offline KSK presignatures for RRSIG DNSKEY"<<endl;
+    dk.getPreRRSIGs(db, signer, signQName, wildcardname, QType(signQType), signPlace, outsigned, origTTL); // does it all
+  }
   else {
     if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0)  {
       // cerr<<"Error signing a record!"<<endl;

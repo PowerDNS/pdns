@@ -13046,6 +13046,30 @@ $ pdnssec rectify-zone powerdnssec.org
       that all DNSSEC-related fields are set correctly.
     </para>
   </section>
+  <section id="dnssec-ksk-offline"><title>PowerDNSSEC KSK Pre-signed records</title>
+    <para>
+      In this mode the DNSKEY records (KSK and ZSK) are pre-signed offline with the KSK key(s); the KSK private key(s)
+      must not be available in PowerDNS. The ZSK private key(s) must be available to sign all other records live.
+      This means the zone records must include the DNSKEY KSK record(s) and the RRSIG record(s) for all DNSKEY
+      records (KSK and ZSK) signed with the KSK(s).
+    </para>
+    <para>
+      This mode is activated automatically if an active ZSK is present but no active KSK; it will operate similar to
+      the simplest mode described above, but it will use RRSIG from the zone instead of signing the DNSKEY RRset live.
+    </para>
+    <para>
+      This allows you to store the KSK in a more secure environment than the ZSK. If you loose the ZSK, it can only
+      be abused as long as the offline signature with the KSK is valid and the delegation to the KSK is valid.
+    </para>
+    <para>
+      If the offline signature isn't valid for a long time you can replace a lost ZSK without replacing the KSK
+      and therefore without updating the delegation.
+    </para>
+    <para>
+      Similar to pre-signed records you need a system in place that ensures the offline signature is updated
+      regularly.
+    </para>
+  </section>
   <section id="dnssec-bind"><title>PowerDNSSEC BIND-mode operation</title>
   <para>
   	Starting with PowerDNS 3.1, the bindbackend can manage keys in an SQLite3 database without launching
