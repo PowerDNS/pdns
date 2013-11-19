@@ -368,6 +368,15 @@ then
 	optout=1
 fi
 
+# check for lua
+if grep -q "^#define HAVE_LUA 1" ../config.h
+then
+  lua_prequery="--lua-prequery-script=./check_stest_source"
+  skiplua=0
+else
+  lua_prequery=""
+  skiplua=1
+fi
 
 case $context in
 		ext-nsd | ext-nsd-nsec | ext-nsd-nsec3 | ext-nsd-nsec3-optout)
@@ -477,7 +486,7 @@ case $context in
 				--send-root-referral \
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
-				--bind-ignore-broken-records=yes &
+				--bind-ignore-broken-records=yes $lua_prequery &
 			bindwait
 			;;
 
@@ -606,7 +615,7 @@ __EOF__
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
 				--gmysql-host="$GMYSQLHOST" \
-				--gmysql-password="$GMYSQLPASSWD" &
+				--gmysql-password="$GMYSQLPASSWD" $lua_prequery &
 			if [ $context = gmysql-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
@@ -660,7 +669,7 @@ __EOF__
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gpgsql-dbname="$GPGSQLDB" \
-				--gpgsql-user="$GPGSQLUSER" &
+				--gpgsql-user="$GPGSQLUSER" $lua_prequery &
 			if [ $context = gpgsql-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
@@ -779,7 +788,7 @@ __EOF__
 				--send-root-referral \
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--cache-ttl=$cachettl --no-config \
-				--gsqlite3-database=pdns.sqlite3 &
+				--gsqlite3-database=pdns.sqlite3 $lua_prequery &
 			if [ $context = gsqlite3-nsec3 ]
 			then
 				extracontexts="dnssec nsec3"
@@ -918,6 +927,10 @@ EOF
 			exit 1
 esac
 
+if [ "$skiplua" == "1" ]; then
+  skipreasons="$skipreasons nolua"
+fi
+
 check_process
 
 startslave ()
@@ -953,6 +966,11 @@ startslave ()
 			-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
 			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
 			-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+                	echo $skipreasons | grep -q nolua
+	                if [ $? -ne 0 ]; then
+				mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+                	        -e "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
+			fi
 		fi
 		set -e
 
@@ -1001,6 +1019,10 @@ startslave ()
 		if [ $? -ne 0 ]; then
 			sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','$ALGORITHM', '$KEY')"
 			sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+                  	echo $skipreasons | grep -q nolua
+	                if [ $? -ne 0 ]; then
+                        	sqlite3 pdns.sqlite31  "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
+	                fi
 		fi
 		set -e
 
@@ -1052,6 +1074,10 @@ startslave ()
 		if [ $? -ne 0 ]; then
 			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
 			sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
+                	echo $skipreasons | grep -q nolua
+	                if [ $? -ne 0 ]; then
+        	                 sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain,kind,content) SELECT 'stest.com','AXFR-SOURCE','127.0.0.2'"
+                	fi
 		fi
 		set -e
 

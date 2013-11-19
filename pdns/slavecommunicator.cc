@@ -393,6 +393,7 @@ struct DomainNotificationInfo
 {
   DomainInfo di;
   bool dnssecOk;
+  ComboAddress localaddr;
   string tsigkeyname, tsigalgname, tsigsecret;
 };
 }
@@ -423,12 +424,21 @@ struct SlaveSenderReceiver
     random_shuffle(dni.di.masters.begin(), dni.di.masters.end());
     try {
       ComboAddress remote(*dni.di.masters.begin());
-      return make_pair(dni.di.zone, 
-        d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), 
-          dni.di.zone.c_str(), 
-          QType::SOA, 
-          dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-      );
+      if (dni.localaddr.sin4.sin_family == 0) {
+        return make_pair(dni.di.zone, 
+          d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), 
+            dni.di.zone.c_str(), 
+            QType::SOA, 
+            dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+        );
+      } else {
+        return make_pair(dni.di.zone,
+          d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
+            dni.di.zone.c_str(),
+            QType::SOA,
+            dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
+        );
+      }
     }
     catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone+"': "+e.reason);
@@ -504,6 +514,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
 
     BOOST_FOREACH(DomainInfo& di, rdomains) {
+      std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
       if(di.masters.empty()) // slave domains w/o masters are ignored
@@ -522,6 +533,22 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         B->getTSIGKey(dni.tsigkeyname, &dni.tsigalgname, &secret64);
         B64Decode(secret64, dni.tsigsecret);
       }
+
+      localaddr.clear();
+      // check for AXFR-SOURCE
+      if(B->getDomainMetadata(di.zone, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
+        try {
+          dni.localaddr = ComboAddress(localaddr[0]);
+          L<<Logger::Info<<"Freshness check source (AXFR-SOURCE) for domain '"<<di.zone<<"' set to "<<localaddr[0]<<endl;
+        }
+        catch(std::exception& e) {
+          L<<Logger::Error<<"Failed to load freshness check source '"<<localaddr[0]<<"' for '"<<di.zone<<"': "<<e.what()<<endl;
+          return;
+        }
+      } else {
+        dni.localaddr.sin4.sin_family = 0;
+      }
+
       sdomains.push_back(dni);
     }
   }

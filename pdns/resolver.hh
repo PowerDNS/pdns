@@ -56,12 +56,17 @@ public:
 
   typedef vector<DNSResourceRecord> res_t;
   //! synchronously resolve domain|type at IP, store result in result, rcode in ret
+  int resolve(const string &ip, const char *domain, int type, res_t* result, const ComboAddress& local);
+
   int resolve(const string &ip, const char *domain, int type, res_t* result);
-  
+
   //! only send out a resolution request
+  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const char *domain, int type, bool dnssecOk=false,
+    const string& tsigkeyname="", const string& tsigalgorithm="", const string& tsigsecret="");
+
   uint16_t sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOk=false,
     const string& tsigkeyname="", const string& tsigalgorithm="", const string& tsigsecret="");
-  
+
   //! see if we got a SOA response from our sendResolve
   bool tryGetSOASerial(string* theirDomain, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
   
@@ -69,8 +74,8 @@ public:
   void getSoaSerial(const string &, const string &, uint32_t *);
   
 private:
-  int d_sock4, d_sock6;
-  
+  std::map<std::string, int> locals;
+ 
   uint16_t d_randomid;
 };
 

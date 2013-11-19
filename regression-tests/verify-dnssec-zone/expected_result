@@ -121,3 +121,18 @@ zone tsig.com/IN: loaded serial 2000081501 (DNSSEC signed)
 OK
 RETVAL: 0
 
+--- ldns-verify-zone -V2 stest.com
+RETVAL: 0
+
+--- validns stest.com
+RETVAL: 0
+
+--- jdnssec-verifyzone stest.com
+zone verified.
+RETVAL: 0
+
+--- named-checkzone stest.com
+zone stest.com/IN: loaded serial 2000081501 (DNSSEC signed)
+OK
+RETVAL: 0
+
