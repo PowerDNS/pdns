@@ -1197,7 +1197,10 @@ dotests () {
 			echo -e "\n\n$t"
 			cat $t/diff
 		done
-		eval "$1=1"
+		if [ "${!1}" -eq 0 ]
+		then
+			eval "$1=1"
+		fi
 	fi
 }
 
@@ -1213,6 +1216,7 @@ export skipreasons
 export testsdir
 export optout
 
+sleep 2
 
 if [ $presigned = no ] || [ $both = yes ]
 then
