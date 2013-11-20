@@ -302,4 +302,7 @@ vector<string>StatBag::listRings()
   return ret;
 }
 
-
+bool StatBag::ringExists(const string &name)
+{
+  return d_rings.count(name);
+}
