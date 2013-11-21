@@ -502,6 +502,9 @@ void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOADa
 */
 void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const string& target, const string& wildcard, const string& auth, int mode)
 {
+  if(!p->d_dnssecOk && mode != 5)
+    return;
+
   NSEC3PARAMRecordContent ns3rc;
   // cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"', "<<p->qdomain<<"|"<<p->qtype.getName()<<": ";
   bool narrow;
@@ -648,9 +651,6 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
 void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, const string& wildcard, const string& auth, int mode)
 {
-  if(!p->d_dnssecOk)
-    return;
-  
   DLOG(L<<"Should add NSEC covering '"<<target<<"' from zone '"<<auth<<"', mode = "<<mode<<endl);
   SOAData sd;
 
@@ -977,8 +977,8 @@ void PacketHandler::makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& 
   rr.auth = 1;
   rr.scopeMask = sd.scopeMask;
   r->addRecord(rr);
-  
-  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))
+
+  if(d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, wildcard, sd.qname, 4);
   
   r->setRcode(RCode::NXDomain);  
@@ -999,7 +999,7 @@ void PacketHandler::makeNOError(DNSPacket* p, DNSPacket* r, const std::string& t
   rr.auth = 1;
   r->addRecord(rr);
 
-  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname))
+  if(d_dk.isSecuredZone(sd.qname))
     addNSECX(p, r, target, wildcard, sd.qname, mode);
 
   S.ringAccount("noerror-queries",p->qdomain+"/"+p->qtype.getName());
@@ -1034,7 +1034,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
   }
   r->setA(false);
 
-  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->qname))
+  if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->qname))
     addNSECX(p, r, rrset.begin()->qname, "", sd.qname, 1);
   
   return true;
@@ -1044,11 +1044,11 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
 {
   if(!p->d_dnssecOk)
     return; // Don't send dnssec info to non validating resolvers.
-  
+
   if(!d_dk.isSecuredZone(sd.qname))
     return;
     
-  addNSECX(p, r, target, "", sd.qname, 5); 
+  addNSECX(p, r, target, "", sd.qname, 5);
   if(pdns_iequals(sd.qname, p->qdomain)) {
     addDNSKEY(p, r, sd);
     addNSEC3PARAM(p, r, sd);
@@ -1084,7 +1084,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &
       r->addRecord(rr);
     }
   }
-  if(p->d_dnssecOk && d_dk.isSecuredZone(sd.qname) && !nodata) {
+  if(d_dk.isSecuredZone(sd.qname) && !nodata) {
     addNSECX(p, r, bestmatch, wildcard, sd.qname, 3);
   }
   return true;
@@ -1240,7 +1240,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     if(p->qtype.getCode() == QType::SOA && pdns_iequals(sd.qname, p->qdomain)) {
-     	rr.qname=sd.qname;
+      rr.qname=sd.qname;
       rr.qtype=QType::SOA;
       rr.content=serializeSOAData(sd);
       rr.ttl=sd.ttl;
@@ -1252,15 +1252,15 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     // this TRUMPS a cname!
-    if(p->qtype.getCode() == QType::NSEC && p->d_dnssecOk && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
-      addNSECX(p, r, target, "", sd.qname, 5);
+    if(p->qtype.getCode() == QType::NSEC && d_dk.isSecuredZone(sd.qname) && !d_dk.getNSEC3PARAM(sd.qname, 0)) {
+      addNSEC(p, r, target, "", sd.qname, 5);
       goto sendit;
     }
 
     // this TRUMPS a cname!
     if(p->qtype.getCode() == QType::RRSIG && d_dk.isSecuredZone(sd.qname)) {
       synthesiseRRSIGs(p, r);
-      goto sendit;  
+      goto sendit;
     }
 
     DLOG(L<<"Checking for referrals first, unless this is a DS query"<<endl);
