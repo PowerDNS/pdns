@@ -550,7 +550,7 @@ static void decrementHash(std::string& raw) // I wonder if this is correct, cmou
 }
 
 
-bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after)
+bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after, int mode)
 {
   bool ret;
   if(narrow) { // nsec3-narrow
@@ -564,7 +564,7 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
     incrementHash(after);
   }
   else {
-    if (decrement)
+    if (decrement || mode ==1)
       before.clear();
     else
       before=' ';
@@ -586,8 +586,8 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     // cerr<<"Could not get SOA for domain in NSEC3\n";
     return;
   }
-  // cerr<<"salt in ph: '"<<makeHexDump(ns3rc.d_salt)<<"', narrow="<<narrow<<endl;
-  
+
+  bool doNextcloser = false;
   string unhashed, hashed, before, after;
   string closest;
   
@@ -596,34 +596,42 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     chopOff(closest);
   } else
     closest=target;
-  
-  if (mode == 1) {
-    DNSResourceRecord rr;
-    while( chopOff( closest ) && (closest != sd.qname))  { // stop at SOA
-      B.lookup(QType(QType::ANY), closest, p, sd.domain_id);
-      if (B.get(rr)) {
-        while(B.get(rr));
-        break;
-      }
-    }
-  }
-  
+
   // add matching NSEC3 RR
   // we used to skip this one for mode 3, but old BIND needs it
   // see https://github.com/PowerDNS/pdns/issues/814
   if (mode != 3 || g_addSuperfluousNSEC3) {
-    unhashed=(mode == 0 || mode == 5) ? target : closest;
-
+    unhashed=(mode == 0 || mode == 1 || mode == 5) ? target : closest;
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
-  
-    getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
+
+    getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after, mode);
+
+    if (mode == 1 && (hashed != before)) {
+      DLOG(L<<"No matching NSEC3 for DS, do closest (provable) encloser"<<endl);
+
+      DNSResourceRecord rr;
+      while( chopOff( closest ) && (closest != sd.qname))  { // stop at SOA
+        B.lookup(QType(QType::ANY), closest, p, sd.domain_id);
+        if (B.get(rr)) {
+          while(B.get(rr));
+          break;
+        }
+      }
+      doNextcloser = true;
+      unhashed=closest;
+      hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
+      DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
+
+      getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
+    }
+
     DLOG(L<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
     emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
   }
 
   // add covering NSEC3 RR
-  if (mode != 0 && mode != 5) {
+  if ((mode >= 2 && mode <= 4) || doNextcloser) {
     string next(target);
     do {
       unhashed=next;
