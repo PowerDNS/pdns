@@ -93,27 +93,124 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-3"><title>PowerDNS Authoritative Server version 3.3 RC</title>
+      <sect2 id="changelog-recursor-3.5.3"><title>PowerDNS Recursor version 3.5.3</title>
       <note>
         <para>
-          3.3-RC1 released on May 28th 2013
+          Released September 17th, 2013
         </para>
         <para>
           Downloads:
           <itemizedlist>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-3.3-rc1.tar.gz">source</ulink>
+                <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
               </para>
             </listitem>
             <listitem>
               <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/">semi-static packages (rpm, deb, i386, amd64)</ulink>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </note>
+      <para>
+        This is a bugfix and performance update to 3.5.2. It brings serious performance improvements for dual stack users.
+      </para>
+      <para>
+        Changes since 3.5.2:
+        <itemizedlist>
+          <listitem>
+            <para>
+              3.5 replaced our ANY query with A+AAAA for users with IPv6 enabled. Extensive measurements by Darren Gamble
+              showed that this change had a non-trivial performance impact. We now do the ANY query like before, but fall
+              back to the individual A+AAAA queries when necessary. Change in g1147a8b.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The IPv6 address for d.root-servers.net was added in g66cf384, thanks Ralf van der Enden.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We now drop packets with a non-zero opcode (i.e. special packets like DNS UPDATE) earlier on. If the experimental pdns-distributes-queries flag is enabled, this fix avoids a crash. Normal setups were never susceptible to this crash. Code in g35bc40d, closes t945.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              TXT handling was somewhat improved in g4b57460, closing t795.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      </sect2>
+      <sect2 id="changelog-recursor-3.5.2"><title>PowerDNS Recursor version 3.5.2</title>
+      <note>
+        <para>
+          Released June 7th, 2013
+        </para>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
               </para>
             </listitem>
             <listitem>
               <para>
-                <ulink url="https://www.monshouwer.eu/download/3rd_party/pdns-server/rc1/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </note>
+      <para>
+        This is a stability and bugfix update to 3.5.1. It contains important fixes that improve operation for certain domains.
+      </para>
+      <para>
+        Changes since 3.5.1:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Responses without the QR bit set now get matched up to an outstanding query, so that resolution can be
+              aborted early instead of waiting for a timeout. Code in gee90f02.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The depth limiter changes in 3.5.1 broke some legal domains with lots of indirection. Improved in gd393c2d.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Slightly improved logging to aid debugging. Code in g437824d and g182005e.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      </sect2>
+      <sect2 id="changelog-auth-3-3"><title>PowerDNS Authoritative Server version 3.3</title>
+      <warning><para>Version 3.3 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0, 3.1 or 3.2.
+  Please refer to <xref linkend="from2.9to3.0"/>, <xref linkend="from3.0to3.1"/>, <xref linkend="from3.1to3.2"/> and <xref linkend="from3.2to3.3"/> for important information on 
+  correct and stable operation, as well as notes on performance and memory use.</para>
+      </warning>
+      <note>
+        <para>
+          Released on July 5th 2013
+        </para>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                <ulink url="http://www.powerdns.com/content/downloads.html">Official download page</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
@@ -124,7 +221,162 @@
         either through bugfixes or by catering to their needs beyond the specifications.
       </para>
       <para>
-        New features and important changes since 3.2:
+        Changes between RC2 and final:
+        <itemizedlist>
+          <listitem>
+            <para>
+              pdnssec rectify-zone now refuses to operate on presigned zones, as rectification already happens
+              during incoming transfer. Patch by Kees Monshouwer in g9bd211e.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We now handle zones with a mix of NSEC3 opt-out and non-opt-out ranges correctly during inbound and outbound AXFR. Many thanks to Kees Monshouwer. Code in g5aa7003 and gd3e7b17.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              More remotebackend fixes (g32d4f44, g44c2ee8, g1fcc7b7, g0b1a3b2, g9a319b1), thanks Aki Tuomi.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Some compiler warnings were squashed (ged554db), thanks Morten Stevens.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Fix broken memory access in LOC parser (g4eec51b, gbea513c), thanks Aki Tuomi.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              DNSSEC: DS queries at the apex of a zone for which we are not hosting the parent, would wrongly
+              get an 'unauth NOERROR'. Fixed by Kees Monshouwer in g34479a6.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        Changes between RC1 and RC2:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Added dnstcpbench tool, by popular demand.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We always shipped a static tools RPM; we now have a similar Debian package. All packages have been cleaned up a bit, and the binary collections are now consistent between RPM and Deb. New: pass
+              --enable-tools to configure to have the tools included in 'make all' and 'make install'.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g4d2e3f5: add selinux policy files
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We would sometimes send a single NULL byte, or nothing at all, instead of an OPT record. 
+              Fixed in gbf7f822, g063076b, g90d361d.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2ee9ba2: expand any-to-tcp to direct RRSIG queries
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5fff084, ge38ef51: drop no-op flag strict-rfc-axfrs, thanks Jelte Jansen.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf3d8902, g7c0b859, g5eea730: Implement MINFO qtype for better interaction when slaving zones
+              from NSD (that contain MINFO). Thanks to Jelte Jansen.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g8655a42, gbf79c6a, g38c941b: SRV record can have a '.' as final field, from which we would dutifully strip the trailing ., leaving void, confusing everything. We now remove the trailing . in the right place, and not if we are trying to server '.'. Again thanks to Jelte &amp; SIDN for catching this.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g70d5a66: improve error message in ill formed unknown record type, thanks Jelte Jansen for reporting.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3640473: Built in webserver can now listen on IPv6, fixes t843. Also silences some useless messages about timeouts.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7db735c, gd72166c: CHANGES BEHAVIOUR: before we launch, check if we can connect to the controlsocket we are about to obliterate. If it works, abort. Fixes t841 and changes standing behaviour. There might be circumstances where PowerDNS now refuses to start, where it previously would. However, starting and making our previous instance mute wasn't good.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g9130f9e: correctly refuse out-of-zone data in bindbackend, closes t845
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3363ef7: initialise server-id after all parsing is done, instead of half way through. Fixes situations where server-id was emptied explicitly. Reported by Wouter de Jong
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gcd4f253: bump boost requirement, thanks Wouter de Jong
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g58cad74: Update pdns auth init script so it works on wheezy
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g8714c9c: clang fixes by Aki Tuomi, thanks!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g146601d: stretch supermasters.ip for IPv6, thanks Dennis Krul
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g1a5c5f9: various remotebackend improvements by Aki Tuomi
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g6ab1a11: make sure systemd starts PowerDNS after relevant databases have been started, thanks Morten Stevens.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g606018f, gee5e175, gc76f6f4: check scopeMask of answer packet, not of query packet!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2b18bcf: Added warning if trailing dot is used, thanks Aki Tuomi.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g16cf913: make superfluous 'bind' NSEC3 record optional
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        New features and important changes since 3.2 (these changes are in RC1 and up):
         <itemizedlist>
           <listitem>
             <para>
@@ -325,11 +577,6 @@
           <listitem>
             <para>
               g61a7fac: enable AM_SILENT_RULES, closing t647
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              gcc6bf4c: Merge branch 'nodnssecany' of github.com:mind04/pdns into mind04-nodnssecany
             </para>
           </listitem>
           <listitem>
@@ -675,7 +922,7 @@
           <listitem>
             <para>
               While Recursor 3.3 was not vulnerable to the specific attack noted in
-              <ulink url="https://www.isc.org/files/imce/ghostdomain_camera.pdf">'Ghost Domain Names: Revoked Yet Still Resolvable'</ulink>,
+              'Ghost Domain Names: Revoked Yet Still Resolvable' (more information at <ulink url="http://resources.infosecinstitute.com/ghost-domain-names/">A New DNS Exploitation Technique: Ghost Domain Names</ulink>),
               further investigation showed that a variant of the attack could work. This was fixed in c3085. This should
               also close the slightly bogus
               <ulink url="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193">CVE-2012-1193</ulink>. Closes t668.
@@ -698,7 +945,7 @@
       <itemizedlist>
           <listitem>
             <para>
-              The local zone server now understands wilcards, code in c2062.
+              The local zone server now understands wildcards, code in c2062.
             </para>
           </listitem>
          <listitem>
@@ -6327,7 +6574,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	    <listitem>
 	      <para>
 		zone2sql can now accept <filename>-</filename> as a file name which causes it to read stdin. This allows the following 
-		to work: <command>dig axfr ds9a.nl | zone2sql --gmysql --zone=- | mysql pdns</command>, which is a nice way to 
+		to work: <command>dig axfr example.org | zone2sql --gmysql --zone=- | mysql pdns</command>, which is a nice way to 
 		import a zone.
 	      </para>
 	    </listitem>
@@ -7345,29 +7592,29 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	  Bind configuration. Observe.
 	</para>
 	<para>
-	  After the SOA of ds9a.nl was raised:
+	  After the SOA of example.org was raised:
 	  <screen>
 pdns[17495]: All slave domains are fresh
 pdns[17495]: 1 domain for which we are master needs notifications
-pdns[17495]: Queued notification of domain 'ds9a.nl' to 195.193.163.3
-pdns[17495]: Queued notification of domain 'ds9a.nl' to 213.156.2.1
-pdns[17520]: AXFR of domain 'ds9a.nl' initiated by 195.193.163.3
-pdns[17520]: AXFR of domain 'ds9a.nl' to 195.193.163.3 finished
-pdns[17521]: AXFR of domain 'ds9a.nl' initiated by 213.156.2.1
-pdns[17521]: AXFR of domain 'ds9a.nl' to 213.156.2.1 finished
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 195.193.163.3 (was acknowledged)
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 213.156.2.1 (was acknowledged)
+pdns[17495]: Queued notification of domain 'example.org' to 195.193.163.3
+pdns[17495]: Queued notification of domain 'example.org' to 213.156.2.1
+pdns[17520]: AXFR of domain 'example.org' initiated by 195.193.163.3
+pdns[17520]: AXFR of domain 'example.org' to 195.193.163.3 finished
+pdns[17521]: AXFR of domain 'example.org' initiated by 213.156.2.1
+pdns[17521]: AXFR of domain 'example.org' to 213.156.2.1 finished
+pdns[17495]: Removed from notification list: 'example.org' to 195.193.163.3 (was acknowledged)
+pdns[17495]: Removed from notification list: 'example.org' to 213.156.2.1 (was acknowledged)
 pdns[17495]: No master domains need notifications
 	  </screen>
 	  If however our slaves would ignore us, as some are prone to do, we can send some additional notifications:
 	  <screen>
-$ sudo pdns_control notify ds9a.nl         
+$ sudo pdns_control notify example.org         
 Added to queue
-pdns[17492]: Notification request for domain 'ds9a.nl' received
-pdns[17492]: Queued notification of domain 'ds9a.nl' to 195.193.163.3
-pdns[17492]: Queued notification of domain 'ds9a.nl' to 213.156.2.1
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 195.193.163.3 (was acknowledged)
-pdns[17495]: Removed from notification list: 'ds9a.nl' to 213.156.2.1 (was acknowledged)
+pdns[17492]: Notification request for domain 'example.org' received
+pdns[17492]: Queued notification of domain 'example.org' to 195.193.163.3
+pdns[17492]: Queued notification of domain 'example.org' to 213.156.2.1
+pdns[17495]: Removed from notification list: 'example.org' to 195.193.163.3 (was acknowledged)
+pdns[17495]: Removed from notification list: 'example.org' to 213.156.2.1 (was acknowledged)
 	    </screen>
 	  Conversely, if PowerDNS needs to be reminded to retrieve a zone from a master, a command is provided:
            <screen>
@@ -7869,7 +8116,7 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	    </listitem>
 	    <listitem>
 	      <para>
-		The <command>allow-axfr-ips</command> setting did not accept IP ranges (1.2.3.0/24) which the 
+		The <command>allow-axfr-ips</command> setting did not accept IP ranges (192.0.2.0/24) which the 
 		documentation claimed it did (thanks to Florus Both of Ascio technologies for being sufficiently persistent in reporting this).
 	      </para>
 	    </listitem>
@@ -8897,12 +9144,6 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	    </listitem>
 	    <listitem>
 	      <para>
-		Ability to disable those annoying Windows DNS Dynamic Update messages from appearing in the log. See <function>log-failed-updates</function>
-		in <xref linkend="all-settings"/>.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>
 		Ability to run on IPv6 transport only
 	      </para>
 	    </listitem>
@@ -9700,8 +9941,8 @@ doing. Stability is expected to return with 2.9.1, as are the binary builds.
 	    has problems with a zone in the following format:
 	    
 	    <programlisting>
-name         IN            A        1.2.3.4
-             IN            A        1.2.3.5
+name         IN            A        192.0.2.4
+             IN            A        192.0.2.5
 	    </programlisting>
 
 	    To fix, add 'name' to the second line.
@@ -10339,7 +10580,7 @@ name         IN            A        1.2.3.4
 	</table>
       </para>
       <para>
-	Daniel Drown discovered that his PowerDNS 2.9.21.1 installation crashed on receiving a HINFO CH query. In his enthousiasm, he shared
+	Daniel Drown discovered that his PowerDNS 2.9.21.1 installation crashed on receiving a HINFO CH query. In his enthusiasm, he shared
 	his discovery with the world, forcing a rapid over the weekend release cycle.
       </para>
       <para>
@@ -10764,7 +11005,7 @@ name         IN            A        1.2.3.4
 	<screen>
 	  <command>host www.example.com 127.0.0.1</command>
 	</screen>
-	www.example.com should now have IP address 1.2.3.4. The <command>host</command> command can usually be found in the dnsutils 
+	www.example.com should now have IP address 192.0.2.4. The <command>host</command> command can usually be found in the dnsutils 
 	package of your operating system. Alternate command is: <command>dig www.example.com A @127.0.0.1</command> or even 
 	<command>nslookup www.example.com 127.0.0.1</command>, although nslookup is not advised for DNS diagnostics.
 
@@ -11115,6 +11356,7 @@ name         IN            A        1.2.3.4
 	gmysql-host=127.0.0.1
 	gmysql-user=root
 	gmysql-dbname=pdns
+	gmysql-password=mysecretpassword
       </screen>
       
       Remove any earlier <command>launch</command> statements. Also remove the <command>bind-example-zones</command>
@@ -11178,51 +11420,51 @@ GRANT ALL ON records TO pdns;
 	
 	A sample query sent to the database should now return quickly without data:
 	<screen>
-	  $ host www.test.com 127.0.0.1
-	  www.test.com A record currently not present at localhost
+	  $ host www.example.com 127.0.0.1
+	  www.example.com A record currently not present at localhost
 	</screen>
 
 	And indeed, the control console now shows:
 	<screen>
-	  Mar 12 15:41:12 We're not authoritative for 'www.test.com', sending unauth normal response
+	  Mar 12 15:41:12 We're not authoritative for 'www.example.com', sending unauth normal response
 	</screen>
 
 	Now we need to add some records to our database:
 	<screen>
 	  # mysql pdnstest
-	  mysql> INSERT INTO domains (name, type) values ('test.com', 'NATIVE');
+	  mysql> INSERT INTO domains (name, type) values ('example.com', 'NATIVE');
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio) 
-	  VALUES (1,'test.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
+	  VALUES (1,'example.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'test.com','dns-us1.powerdns.net','NS',86400,NULL);
+	  VALUES (1,'example.com','dns-us1.powerdns.net','NS',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'test.com','dns-eu1.powerdns.net','NS',86400,NULL);
+	  VALUES (1,'example.com','dns-eu1.powerdns.net','NS',86400,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'www.test.com','199.198.197.196','A',120,NULL);
+	  VALUES (1,'www.example.com','192.0.2.10','A',120,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'mail.test.com','195.194.193.192','A',120,NULL);
+	  VALUES (1,'mail.example.com','192.0.2.12','A',120,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'localhost.test.com','127.0.0.1','A',120,NULL);
+	  VALUES (1,'localhost.example.com','127.0.0.1','A',120,NULL);
 	  INSERT INTO records (domain_id, name, content, type,ttl,prio)
-	  VALUES (1,'test.com','mail.test.com','MX',120,25);
+	  VALUES (1,'example.com','mail.example.com','MX',120,25);
 	</screen>
 	<warning><para>Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present
     it will inevitably cause problems, problems that may be hard to debug.</para></warning>
-	If we now requery our database, <command>www.test.com</command> should be present:
+	If we now requery our database, <command>www.example.com</command> should be present:
 	<screen>
-	  $ host www.test.com 127.0.0.1
-	  www.test.com        	A	199.198.197.196
+	  $ host www.example.com 127.0.0.1
+	  www.example.com        	A	192.0.2.10
 	  
-	  $ host -v -t mx test.com 127.0.0.1
+	  $ host -v -t mx example.com 127.0.0.1
 	  Address: 127.0.0.1
 	  Aliases: localhost
 
-	  Query about test.com for record types MX
-	  Trying test.com ...
+	  Query about example.com for record types MX
+	  Trying example.com ...
 	  Query done, 1 answer, authoritative status: no error
-	  test.com            	120	IN	MX	25 mail.test.com
+	  example.com            	120	IN	MX	25 mail.example.com
 	  Additional information:
-	  mail.test.com       	120	IN	A	195.194.193.192
+	  mail.example.com       	120	IN	A	192.0.2.12
 	</screen>
 	
 	To confirm what happened, issue the command <command>SHOW *</command> to the control console:
@@ -11325,7 +11567,7 @@ GRANT ALL ON records TO pdns;
 	<itemizedlist>
 	  <listitem>
 	    <para>
-	      webserver.example.com A records pointing to 1.2.3.4, 1.2.3.5, 1.2.3.6
+	      webserver.example.com A records pointing to 192.0.2.4, 192.0.2.5, 192.0.2.6
 	    </para>
           </listitem>
 	  <listitem>
@@ -11365,7 +11607,7 @@ GRANT ALL ON records TO pdns;
 	lists of remote hosts sending queries, hosts sending corrupt queries etc. The webserver does not allow
 	remote management of the daemon.
 
-	The following nameserver related configuration items are available:
+	The following webserver related configuration items are available:
 	<variablelist>
 	  <varlistentry>
 	    <term>webserver</term>
@@ -11715,8 +11957,7 @@ local0.err                        /var/log/pdns.err
     </para>
     <para>
       Logging truly kills performance as answering a question from the cache is an order of magnitude less work than logging a 
-      line about it. Busy sites will prefer to turn <command>log-dns-details</command> and <command>log-failed-updates</command>
-      off.
+      line about it. Busy sites will prefer to turn <command>log-dns-details</command> off.
     </para>
     <sect2 id="packetcache"><title>Packet Cache</title>
       <para>
@@ -11791,7 +12032,7 @@ local0.err                        /var/log/pdns.err
 	keep slave zones as slaves, and not convert them to native operation. 
       </para>
       <para>
-	By default, zone2sql outputs code suitable for the mysqlbackend, but it can also generate SQL for the Generic PostgreSQL, Generic MySQL and 
+	zone2sql can generate SQL for the Generic PostgreSQL, Generic MySQL and
 	Oracle backends. 
 	The following commands are available:
       </para>
@@ -11830,14 +12071,6 @@ local0.err                        /var/log/pdns.err
 	    <listitem>
 	      <para>
 		List options.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term>--mysql</term>
-	    <listitem>
-	      <para>
-		Output in format suitable for the default configuration of the MySQL backend. Default.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -12094,6 +12327,32 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     Some configuration settings (that did not do anything, anyway) have been removed. You need to remove
     them from your configuration to start pdns_server. They are: lazy-recursion, use-logfile, logfile.
   </para>
+  </sect1>
+
+  <sect1 id="from3.2to3.3"><title>From PowerDNS Authoritative Server 3.2 to 3.3</title>
+    <note>
+      <para>
+        If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" /> and <xref linkend="from3.1to3.2" />.
+      </para>
+    </note>
+    <para>
+      The `ip' field in the supermasters table (for the various gsql backends) has been stretched to 64 characters
+      to support IPv6.
+      For MySQL:
+      <screen>
+	      alter table supermasters modify ip VARCHAR(64);
+      </screen>
+      For PostgreSQL:
+      <screen>
+	      alter table supermasters alter column ip type VARCHAR(64);
+      </screen>
+    </para>
+    <para>
+      pdnssec secure-zone now creates one KSK and one ZSK, instead of two ZSKs.
+    </para>
+    <para>
+      The `rec_name_index' index was dropped from the gmysql schema, as it was superfluous.
+    </para>
   </sect1>
 
   </chapter>
@@ -12500,6 +12759,15 @@ $ pdnssec rectify-zone powerdnssec.org
 	      </para>
 	    </listitem>
 	</varlistentry>
+        <varlistentry>
+            <term>generate-zone-key [ksk|zsk] [algorithm] [bits]</term>
+            <listitem>
+              <para>
+                 Generate and display a zone key. Can be used when you need to generate a key for some script backend.
+                 Does not store the key. 
+              </para>
+            </listitem>
+        </varlistentry>
 	<varlistentry>
 	    <term>rectify-zone ZONE [ZONE ..]</term>
 	    <listitem>
@@ -12538,11 +12806,10 @@ $ pdnssec rectify-zone powerdnssec.org
 	    <term>set-nsec3 ZONE 'parameters' [narrow]</term>
 	    <listitem>
 	      <para>
-		Sets NSEC3 parameters for this zone. A sample command line is: "pdnssec set-nsec3 powerdnssec.org '1 1 1 ab' narrow".
+		Sets NSEC3 parameters for this zone. A sample command line is: "pdnssec set-nsec3 powerdnssec.org '1 0 1 ab' narrow".
 		The NSEC3 parameters must be quoted on the command line.
 		<warning><para>If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone! </para></warning>
-		The NSEC3 fields are: 'algorithm flags iterations salt'. Both 'algorithm' and 'flags' should be 1 for PowerDNS
-		operation. The salt is hexadecimal.
+		The NSEC3 fields are: 'algorithm flags iterations salt'. For 'algorithm', currently '1' is the only supported value. Setting 'flags' to 1 enables opt-out operation. Only do this if you know you need it. The salt is hexadecimal.
 	      </para>
 	    </listitem>
 	</varlistentry>
@@ -12579,6 +12846,70 @@ $ pdnssec rectify-zone powerdnssec.org
 	      </para>
 	    </listitem>
 	</varlistentry>
+        <varlistentry>
+            <term>import-tsig-key name algorithm key</term>
+            <listitem>
+              <para>
+                 Imports a named TSIG key. Use enable/disable-tsig-key to map it to a zone.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>generate-tsig-key name algorithm</term>
+            <listitem>
+              <para>
+                 Creates and stores a named tsig key.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>delete-tsig-key name</term>
+            <listitem>
+              <para>
+                 Deletes a named TSIG key. WARNING! Does not unmap it from zones. 
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>list-tsig-keys</term>
+            <listitem>
+              <para>
+                 Shows all TSIG keys from all backends. 
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>activate-tsig-key zone name [master|slave]</term>
+            <listitem>
+              <para>
+                 activate TSIG key for a zone. Use master on master server, slave on slave server.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>deactivate-tsig-key zone name [master|slave]</term>
+            <listitem>
+              <para>
+                 Deactivate TSIG key for a zone. Use master on master server, slave on slave server.
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>get-meta ZONE [kind kind..]</term>
+            <listitem>
+              <para>
+                Gets one or more meta items for domain ZONE. If no meta keys defined, it retrieves well known meta keys. 
+              </para>
+            </listitem>
+        </varlistentry>
+        <varlistentry>
+            <term>set-meta ZONE kind [value value ..]</term>
+            <listitem>
+              <para>
+               Clears or sets meta for domain ZONE. You can provide one or more value(s). 
+              </para>
+            </listitem>
+        </varlistentry>
       </variablelist>
     </para>
   </section>
@@ -12777,10 +13108,10 @@ $ pdnssec rectify-zone powerdnssec.org
     present for this purpose. Do note that the DS record for a secure delegation should be authoritative!
   </para>
   <para>
-    The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode,
-    the ordername field is ignored and best left empty. In NSEC mode, the ordername field should be NULL for any glue but filled in
-    for delegation NS records and all authoritative records. In NSEC3 opt-out mode (the only NSEC3 mode PowerDNS currently
-    supports), any non-authoritative records (as described for the 'auth' field) should have ordername set to NULL.
+    The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. When running in NSEC3 'Narrow' mode, the
+    ordername field is ignored and best left empty. In NSEC/NSEC3 mode, the ordername field should be NULL for any glue but filled in
+    for all delegation NS records and all authoritative records. In NSEC3 opt-out mode, ordername is NULL for any glue and insecure
+    delegation NS records, but filled in for secure delegation NS records and all authoritative records.
   </para>
   <para>
     In 'NSEC' mode, it should contain the <emphasis>relative</emphasis> part of a domain name, in reverse order, with dots replaced
@@ -12869,6 +13200,9 @@ $ pdnssec rectify-zone powerdnssec.org
     <listitem><para>Brielle Bruns</para></listitem>
     <listitem><para>Evan Hunt (ISC)</para></listitem>
     <listitem><para>Ralf van der Enden</para></listitem>
+    <listitem><para>Jan-Piet Mens</para></listitem>
+    <listitem><para>Justin Clift</para></listitem>
+    <listitem><para>Kees Monshouwer</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
   </para>
@@ -13002,6 +13336,38 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	  </para>
 	</listitem>
       </varlistentry>
+        <varlistentry>
+          <term>ALLOW-2136-FROM</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-domainmetadata" />
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>TSIG-ALLOW-2136</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-domainmetadata" />
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>FORWARD-2136</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-domainmetadata" />
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>SOA-EDIT-2136</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-domainmetadata" />
+            </para>
+          </listitem>
+        </varlistentry>
       <varlistentry>
         <term>ALSO-NOTIFY</term>
         <listitem>
@@ -13039,7 +13405,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	  <listitem>
 	  <para>
 	    NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM record. If present, NSEC3 is used, if not
-	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />). Example content: "1 1 1 ab".
+	    present, zones default to NSEC (see 'set-nsec3' in <xref linkend="pdnssec" />). Example content: "1 0 1 ab".
 	  </para>
 	</listitem>
       </varlistentry>
@@ -13144,6 +13510,373 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
     </variablelist>
   </para>
   </chapter>
+  <chapter id="rfc2136"><title>RFC2136 Support (Dynamic DNS Update)</title>
+    <para>Starting with the PowerDNS Authoritative Server 3.4, RFC2136 support is available. There are a number of items NOT supported:
+      <itemizedlist>
+        <listitem><para>There is no support for GSS-TSIG and SIG (TSIG is supported);</para></listitem>
+        <listitem><para>WKS records are specifically mentioned in the RFC, we don't specifically care about WKS records;</para></listitem>
+        <listitem><para>Anything we forgot....</para></listitem>
+      </itemizedlist>
+    </para>
+    <para>The implementation requires the backend to support a number of new oparations. Currently, the following backends have been modified to support RFC2136:
+      <itemizedlist>
+        <listitem><para>gmysql</para></listitem>
+        <listitem><para>gpgsql</para></listitem>
+        <listitem><para>gsqlite3</para></listitem>
+      </itemizedlist>
+    </para>
+    <sect1 id="rfc2136-configuration"><title>Configuration options</title>
+      <para>There are two configuration parameters that can be used within the powerdns configuration file.</para>
+      <variablelist>
+        <varlistentry>
+          <term>experimental-rfc2136 [=no]</term>
+          <listitem>
+            <para>
+              A setting to enable/disable RFC2136 support completely. The default is no, which means that RFC2136 updates are ignored by PowerDNS (no message is logged about this!).
+              Change the setting to <command>experimental-rfc2136=yes</command> to enable RFC2136 support.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>allow-2136-from</term>
+          <listitem>
+            <para>
+              A list of IP ranges that are allowed to perform updates on any domain. The default is 0.0.0.0/0, which means that all ranges are accepted.
+              Multiple entries can be used on this line (<command>allow-2136-from=10.0.0.0/8 192.168.1.2/32</command>).
+              The option can be left empty to disallow everything, this then should be used in combination with the <command>allow-2136-from</command> domainmetadata
+              setting per zone.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>forward-2136 [=yes]</term>
+          <listitem>
+            <para>
+              Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table.
+              The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the <command>allow-2136-from</command> and
+              <command>TSIG-2136-ALLOW</command> are processed first, so those permissions apply before the <command>forward-2136</command> is used.
+              It will try all masters that you have configured until one is successful.
+            </para>
+          </listitem>
+        </varlistentry>
+
+      </variablelist>
+    </sect1>
+
+    <sect1 id="rfc2136-domainmetadata"><title>Per zone settings</title>
+      <para>For permissions, a number of per zone settings are available via the domain metadata (See <xref linkend="domainmetadata" />).</para>
+      <variablelist>
+        <varlistentry>
+          <term>ALLOW-2136-FROM</term>
+          <listitem>
+            <para>
+              This setting has the same function as described in the configuration options (See <xref linkend="rfc2136-configuration" />).
+              Only one item is allowed per row, but multiple rows can be added.
+              An example:
+              <programlisting>
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-2136-FROM’,’10.0.0.0/8’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-2136-FROM’,’192.168.1.2/32’);
+              </programlisting>
+
+              This will allow 10.0.0.0/8 and 192.168.1.2/32 to send RFC2136 update messages for the powerdnssec.org domain.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>TSIG-ALLOW-2136</term>
+          <listitem>
+            <para>
+              This setting allows you to set the TSIG key required to do an RFC2136 update.
+              An example:
+            </para>
+            <programlisting>
+sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-2136', 'test');
+            </programlisting>
+
+            <para>An example of how to use a TSIG key with the <command>nsupdate</command> command:</para>
+            <programlisting>
+nsupdate &lt;&lt;!
+server &lt;ip&gt; &lt;port&gt;
+zone powerdnssec.org
+update add test1.powerdnssec.org 3600 A 192.168.1.1
+key test kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
+send
+!
+            </programlisting>
+            <para>
+              If a TSIG key is set for the domain, it is required to be used for the update.
+              The TSIG is extra security on top of the <command>ALLOW-2136-FROM</command> setting.
+              If a TSIG key is set, the IP(-range) still needs to be allowed via <command>ALLOW-2136-FROM</command>.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>FORWARD-2136</term>
+          <listitem>
+            <para>
+              See <xref linkend="rfc2136-configuration" /> for what it does, but per domain.
+              <programlisting>
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-2136’,’’);
+              </programlisting>
+
+              There is no content, the existence of the entry enables the forwarding.
+              This domain-specific setting is only useful when the configuration option <command>forward-2136</command> is set to 'no', as that will disable it globally.
+              Using the domainmetadata setting than allows you to enable it per domain.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>SOA-EDIT-2136</term>
+          <listitem>
+            <para>This configures how the soa serial should be updated. See <xref linkend="rfc2136-soa-edit" />.</para>
+           </listitem>
+        </varlistentry>
+      </variablelist>
+    </sect1>
+    <sect1 id="rfc2136-soa-edit"><title>SOA Serial Updates</title>
+      <para>
+         After every update, the soa serial is updated as this is required by section 3.7 of RFC2136.
+         The behaviour is configurable via domainmetadata with the SOA-EDIT-2136 option. It has a number of
+         options listed below. If no behaviour is specified, DEFAULT is used.
+      </para>
+      <para>
+        RFC2136 (Section 3.6) defines some specific behaviour for updates of SOA records. Whenever the SOA record is updated
+        via the update message, the logic to change the SOA is not executed.
+      </para>
+      <note><para>
+         Powerdns will always use <command>SOA-EDIT</command> when serving SOA records, thus a query for the SOA record of
+         the recently update domain, might have an unexpected result due to a SOA-EDIT setting.
+      </para></note>
+      <para>
+        An example:
+        <programlisting>
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-2136’,’INCREASE’);
+        </programlisting>
+        This will make the SOA Serial increase by one, for every successful update.
+      </para>
+      <sect2 id="rfc2136-soa-edit-settings"><title>SOA-EDIT-2136 settings</title>
+        <para>These are the settings available for <command>SOA-EDIT-2136</command>.</para>
+        <variablelist>
+          <varlistentry>
+            <term>DEFAULT</term>
+            <listitem>
+              <para>
+                Generate a soa serial of YYYYMMDD01. If the current serial is lower than the generated serial,
+                use the generated serial. If the current serial is higher or equal to the generated serial, increase the
+                current serial by 1.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>INCREASE</term>
+            <listitem>
+              <para>Increase the current serial by 1.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>EPOCH</term>
+            <listitem>
+              <para>Change the serial to the number of seconds since the EPOCH, aka unixtime.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>SOA-EDIT</term>
+            <listitem>
+              <para>Change the serial to whatever SOA-EDIT would provide. See <xref linkend="domainmetadata" /></para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>SOA-EDIT-INCREASE</term>
+            <listitem>
+              <para>
+                Change the serial to whatever SOA-EDIT would provide. If what SOA-EDIT provides is lower than the current serial,
+                increase the current serial by 1.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </sect2>
+    </sect1>
+    <sect1 id="rfc2136-howto"><title>RFC2136 How-to: Setup dyndns/rfc2136 with dhcpd</title>
+      <para>
+        RFC2136 is often used with DHCP to automatically provide a hostname whenever a new IP-address is assigned by the DHCP server.
+        This section describes how you can setup PowerDNS to receive RFC2136 updates from ISC's dhcpd (version 4.1.1-P1).
+      </para>
+      <sect2 id="rfc2136-howto-dhcpd"><title>Setting up dhcpd</title>
+        <para>
+          We're going to use a TSIG key for security. We're going to generate a key using the following command:
+<programlisting>
+dnssec-keygen -a hmac-md5 -b 128 -n USER dhcpdupdate
+</programlisting>
+          This generates two files (Kdhcpdupdate.*.key and Kdhcpdupdate.*.private). You're interested in the .key file:
+<programlisting>
+# ls -l Kdhcp*
+-rw------- 1 root root  53 Aug 26 19:29 Kdhcpdupdate.+157+20493.key
+-rw------- 1 root root 165 Aug 26 19:29 Kdhcpdupdate.+157+20493.private
+
+# cat Kdhcpdupdate.+157+20493.key
+dhcpdupdate. IN KEY 0 3 157 FYhvwsW1ZtFZqWzsMpqhbg==
+</programlisting>
+          The important bits are the name of the key (<command>dhcpdupdate</command>) and the hash of the key (<command>FYhvwsW1ZtFZqWzsMpqhbg==</command>
+        </para>
+        <para>
+        Using the details from the key you've just generated. Add the following to your dhcpd.conf:
+<programlisting>
+key "dhcpdupdate" {
+        algorithm hmac-md5;
+        secret "FYhvwsW1ZtFZqWzsMpqhbg==";
+};
+</programlisting>
+        </para>
+        <para>
+          You must also tell dhcpd that you want dynamic dns to work, add the following section:
+<programlisting>
+ddns-updates on;
+ddns-update-style interim;
+update-static-leases on;
+</programlisting>
+          This tells dhcpd to:
+          <orderedlist>
+            <listitem><para>Enable Dynamic DNS</para></listitem>
+            <listitem><para>Which style it must use (interim)</para></listitem>
+            <listitem><para>Update static leases as well</para></listitem>
+          </orderedlist>
+          For more information on this, consult the dhcpd.conf manual.
+        </para>
+        <para>
+          Per subnet, you also have to tell <command>dhcpd</command> which (reverse-)domain it should update and
+          on which master domain server it is running.
+<programlisting>
+ddns-domainname "powerdnssec.org";
+ddns-rev-domainname "in-addr.arpa.";
+
+zone powerdnssec.org {
+	primary 127.0.0.1;
+	key dhcpdupdate;
+}
+
+zone 1.168.192.in-addr.arpa. {
+	primary 127.0.0.1;
+	key dhcpdupdate;
+}
+</programlisting>
+         This tells <command>dhcpd</command> a number of things:
+         <orderedlist>
+           <listitem><para>Which domain to use (<command>ddns-domainname "powerdnssec.org";</command>)</para></listitem>
+           <listitem><para>Which reverse-domain to use (<command>dnssec-rev-domainname "in-addr.arpa.";</command>)</para></listitem>
+           <listitem><para>For the zones, where the primary master is located (<command>primary 127.0.0.1;</command>)</para></listitem>
+           <listitem><para>Which TSIG key to use (<command>key dhcpdupdate;</command>). We defined the key earlier.</para></listitem>
+         </orderedlist>
+        </para>
+        <para>This concludes the changes that are needed to the <command>dhcpd</command> configuration file.</para>
+      </sect2>
+      <sect2 id="rfc2136-howto-powerdns"><title>Setting up PowerDNS</title>
+        <para>A number of small changes are needed to powerdns to make it accept dynamic updates from <command>dhcpd</command>.</para>
+        <para>
+         Enabled RFC2136 (dynamic update) support functionality in PowerDNS by adding the following to the
+         PowerDNS configuration file (pdns.conf).
+<programlisting>
+experimental-rfc2136=yes
+allow-2136-from=
+</programlisting>
+         This tells PowerDNS to:
+         <orderedlist>
+           <listitem><para>Enable RFC2136 support(<command>experimental-rfc2136</command>)</para></listitem>
+           <listitem><para>Allow updates from NO ip-address (<command>allow-2136-from=</command>)</para></listitem>
+         </orderedlist>
+        </para>
+        <para>
+          We just told powerdns (via the configuration file) that we accept updates from nobody via the
+          <command>allow-2136-from</command> parameter. That's not very useful, so we're going to give permissions
+          per zone, via the domainmetadata table.
+<programlisting>
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-2136-FROM’,’127.0.0.1’);
+</programlisting>
+          This gives the ip '127.0.0.1' access to send update messages. Make sure you use the ip address of the machine that
+          runs <command>dhcpd</command>.
+        </para>
+        <para>
+          Another thing we want to do, is add TSIG security. This can only be done via the domainmetadata table:
+<programlisting>
+sql> insert into tsigkeys (name, algorithm, secret) values ('dhcpdupdate', 'hmac-md5', 'FYhvwsW1ZtFZqWzsMpqhbg==');
+sql> select id from domains where name='powerdnssec.org';
+5
+sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-2136', 'dhcpdupdate');
+sql> select id from domains where name='1.168.192.in-addr.arpa';
+6
+sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLOW-2136', 'dhcpdupdate');
+</programlisting>
+          This will:
+          <orderedlist>
+            <listitem><para>Add the 'dhcpdupdate' key to our PowerDNSinstallation</para></listitem>
+            <listitem><para>Associate the domains with the given TSIG key</para></listitem>
+          </orderedlist>
+        </para>
+        <para>Restart PowerDNS and you should be ready to go!</para>
+      </sect2>
+    </sect1>
+
+    <sect1 id="rfc2136-how-it-works"><title>How it works</title>
+      <para>This is a short description of how RFC2136 (update) messages are processed by PowerDNS.</para>
+      <para>
+        <orderedlist>
+          <listitem><para>
+            The RFC2136 message is received. If it is TSIG signed, the TSIG is validated against the tsigkeys table.
+            If it is not valid, Refused is returned to the requestor.
+          </para></listitem>
+          <listitem><para>A check is performed on the zone to see if it is a valid zone. ServFail is returned when not valid.</para></listitem>
+          <listitem><para>The <command>experimental-rfc2136</command> setting is checked. Refused is returned when the setting is 'no'.</para></listitem>
+          <listitem><para>
+            If the <command>ALLOW-2136-FROM</command> has a value (from both domainmetadata and the configuration file), a check on the value is performed.
+            If the requestor (sender of the update message) does not match the values in <command>ALLOW-2136-FROM</command>, Refused is returned.
+          </para></listitem>
+          <listitem><para>
+            If the message is TSIG signed, the TSIG keyname is compared with the TSIG keyname in domainmetadata. If they do not match, a Refused is send.
+            The TSIG-ALLOW-2136 domainmetadata setting is used to find which key belongs to the domain.
+          </para></listitem>
+          <listitem><para>The backends are queried to find the backend for the given domain.</para></listitem>
+          <listitem><para>
+            If the domain is a slave domain, the <command>forward-2136</command> option and domainmetadata settings are checked.
+            If forwarding to a master is enabled, the message is forward to the master. If that fails, the next master is tried until all masters are tried.
+            If all masters fail, ServFail is returned. If a master succeeds, the result from that master is returned.
+          </para></listitem>
+          <listitem><para>
+            A check is performed to make sure all updates/prerequisites are for the given zone. NotZone is returned if this is not the case.
+          </para></listitem>
+          <listitem><para>The transaction with the backend is started.</para></listitem>
+          <listitem><para>
+            The prerequisite checks are performed (section 3.2 of RFC2136).
+            If a check fails, the corresponding RCode is returned. No further processing will happen.
+          </para></listitem>
+          <listitem><para>
+            Per record in the update message, a the prescan checks are performed. If the prescan fails, the corresponding RCode is returned.
+            If the prescan for the record is correct, the actual update/delete/modify of the record is performed.
+            If the update fails (for whatever reason), ServFail is returned.
+            After changes to the records have been applied, the ordername and auth flag are set to make sure DNSSEC remains working.
+            The cache for that record is purged.
+          </para></listitem>
+          <listitem><para>
+            If there are records updated and the SOA record was not modified, the SOA serial is updated. See <xref linkend="rfc2136-soa-edit"/>.
+            The cache for this record is purged.
+          </para></listitem>
+          <listitem><para>The transaction with the backend is committed. If this fails, ServFail is returned.</para></listitem>
+          <listitem><para>NoError is returned.</para></listitem>
+        </orderedlist>
+      </para>
+    </sect1>
+  </chapter>
+
   <chapter id="recursion"><title>Recursion</title>
     <para>(only available from 1.99.8 and onwards, recursing component available since 2.9.5)</para>
     <para>
@@ -13168,7 +13901,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
     </para>
     <para>
       By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
-      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
+      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
     </para>
     <sect1 id="recursion-details"><title>Details</title>
       <para>
@@ -13181,7 +13914,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
       </para>
       <para>
 	It is also possible to use a resolver living on a different port. To do so, specify a recursor like this: 
-	<command>recursor=130.161.180.1:5300</command>.
+	<command>recursor=192.0.2.1:5300</command>.
       </para>
       <para>
 	If the backend does not answer a question within a large amount of time, this is logged as 'Recursive query for remote 10.96.0.2 with internal id 0 
@@ -13268,7 +14001,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
       <para>
 	At startup, the recursing nameserver reads the file <filename>recursor.conf</filename> from the configuration directory,
 	often <filename>/etc/powerdns</filename> or <filename>/usr/local/etc</filename>. Each setting below can appear on the command line,
-	prefixed by '--', or in the configuration file. The command line overrides the configuration file.
+	prefixed by '--', or in the configuration file. The command line overrides the configuration file. 
       </para>
       <para>
 	A switch can be set to on simply by passing it, like '--daemon', and turned off explicitly by '--daemon=off' or '--daemon=no'.
@@ -13302,7 +14035,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Like <command>allow-from</command>, except reading from file. Overrides the 'allow-from' setting. 
-		To use this feature, supply one netmask per line, with optional comments preceeded by a #.
+		To use this feature, supply one netmask per line, with optional comments preceded by a #.
 		Available since version 3.1.5.
 	      </para>
 	    </listitem>
@@ -13324,7 +14057,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Comma separated list of 'zonename=filename' pairs. Zones read from these files (in BIND format) are served authoritatively. Example:
-		<command>auth-zones= ds9a.nl=/var/zones/ds9a.nl, powerdns.com=/var/zones/powerdns.com</command>. Available since version 3.1.
+		<command>auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com</command>. Available since version 3.1.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -13437,12 +14170,12 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed.
-		<command>forward-zones= ds9a.nl=213.244.168.210, powerdns.com=127.0.0.1</command>. Available since version 3.1.
+		<command>forward-zones=example.org=203.0.113.210, powerdns.com=127.0.0.1</command>. Available since version 3.1.
 	      </para>
 	      <para>
 		Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured.
-		Sample syntax: <command>forward-zones=ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530</command>,
-		or on the command line: <command>--forward-zones="ds9a.nl=213.244.168.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"</command>,
+		Sample syntax: <command>forward-zones=example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;198.51.100.10:530</command>,
+		or on the command line: <command>--forward-zones="example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"</command>,
 	      </para>
 	      <para>
 		Forwarded queries have the 'recursion desired' bit set to 0, meaning that this setting is intended to forward queries to authoritative servers.
@@ -13454,7 +14187,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Same as <command>forward-zones</command>, parsed from a file. Only 1 zone is allowed per line, specified as follows:
-		<command>ds9a.nl=213.244.168.210, 1.2.3.4:5300</command>. No comments are allowed. Available since version 3.1.5.
+		<command>example.org=203.0.113.210, 192.0.2.4:5300</command>. No comments are allowed. Available since version 3.1.5.
 	      </para>
 	      <para>
 		Since version 3.2, zones prefixed with a '+' are forwarded with the recursion-desired bit set to one, for which see 'forward-zones-recurse'. Default behaviour without '+'
@@ -13485,7 +14218,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	    <listitem>
 	      <para>
 		Local IPv4 or IPv6 addresses to bind to, comma separated. Defaults to only loopback. Addresses can also contain port numbers,
-		for IPv4 specify like this: <command>1.2.3.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
+		for IPv4 specify like this: <command>192.0.2.4:5300</command>, for IPv6: <command>[::1]:5300</command>. Port specifications are available since
 		version 3.1.2.
 	      </para>
 	      <para><warning><para>When binding to wildcard addresses, UNIX semantics mean that answers may not be sent
@@ -14249,8 +14982,8 @@ function nxdomain ( ip, domain, qtype )
   if qtype ~= pdns.A then return -1, ret end  --  only A records
   if not string.find(domain, "^www%.") then return -1, ret end  -- only things that start with www.
   if not matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16")  then return -1, ret end -- only interfere with local queries
-  ret[1]={qtype=pdns.A, content="127.1.2.3"}    -- add IN A 127.1.2.3
-  ret[2]={qtype=pdns.A, content="127.3.2.1"}    -- add IN A 127.3.2.1
+  ret[1]={qtype=pdns.A, content="192.0.2.13"}    -- add IN A 192.0.2.13
+  ret[2]={qtype=pdns.A, content="192.0.2.21"}    -- add IN A 192.0.2.21
   setvariable()
   return 0, ret                 -- return no error, plus records
 end
@@ -14269,8 +15002,8 @@ end
 	</para>
 	<para>
 	  The answer content format is (nearly) identical to the storage in the PowerDNS Authoritative Server database, or as in zone files. 
-	  The exception is that, unlike in the database, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.mailserver.com' would be encoded as
-	  '25 smtp.mailserver.com.'.
+	  The exception is that, unlike in the database, there is no 'prio' field, which means that an MX record with priority 25 pointing to 'smtp.example.net' would be encoded as
+	  '25 smtp.example.net.'.
 	</para>
 	<para>
 	  Useful return 'rcodes' include 0 for "no error" and <function>pdns.NXDOMAIN</function> for "NXDOMAIN".
@@ -14330,7 +15063,7 @@ end
 	    <para>
 	      The result table must have indexes that start at 1! Otherwise the first or confusingly the last entry of the table will
 	      be ignored. A useful technique is to return data using: 
-	      <literal>return 0, {{qtype=1, content="1.2.3.4"}, {qtype=1, content="4.3.2.1"}}</literal> as this will get the numbering
+	      <literal>return 0, {{qtype=1, content="192.0.2.4"}, {qtype=1, content="4.3.2.1"}}</literal> as this will get the numbering
 	      right automatically.
 	    </para>
 	  </warning>
@@ -14341,6 +15074,25 @@ end
 	</para>
 	<para>
 	  To log messages with the main PowerDNS Recursor process, use <function>pdnslog(message)</function>. Available since version 3.2.
+    pdnslog can also write out to a syslog loglevel if specified. Use <function>pdnslog(message, pdns.loglevels.LEVEL)</function> with the correct pdns.loglevels entry. Entries are listed in the following table:
+    <table>
+    <title>pdnslog() loglevels</title>
+    <tgroup cols="2">
+      <tbody>
+        <row><entry>All</entry><entry>pdns.loglevels.All</entry></row>
+        <row><entry>NTLog</entry><entry>pdns.loglevels.NTLog</entry></row>
+        <row><entry>Alert</entry><entry>pdns.loglevels.Alert</entry></row>
+        <row><entry>Critical</entry><entry>pdns.loglevels.Critical</entry></row>
+        <row><entry>Error</entry><entry>pdns.loglevels.Error</entry></row>
+        <row><entry>Warning</entry><entry>pdns.loglevels.Warning</entry></row>
+        <row><entry>Notice</entry><entry>pdns.loglevels.Notice</entry></row>
+        <row><entry>Info</entry><entry>pdns.loglevels.Info</entry></row>
+        <row><entry>Debug</entry><entry>pdns.loglevels.Debug</entry></row>
+        <row><entry>None</entry><entry>pdns.loglevels.None</entry></row>
+      </tbody>
+    </tgroup>
+  </table>
+    pdnslog(message) will write out to Info by default.
 	</para>
 	<para>
 	  To retrieve the IP address on which a query was received, use <function>getlocaladdress()</function>. Available since version 3.2.
@@ -14507,12 +15259,12 @@ end
 	
 	<para>For example, storing the following:</para>
 	
-	<literallayout class="monospaced">www.ds9a.nl  3600 IN   CNAME  outpost.ds9a.nl.</literallayout>
-	<para>Would duplicate a lot of data. So, what is actually stored is a partial DNS packet. To store the CNAMEDNSRecordContent that corresponds to the above, we generate a DNS packet that has <command>www.ds9a.nl IN CNAME</command> as its question. Then we add <command>3600 IN CNAME outpost.ds9a.nl</command>. as its answer. Then we chop off the question part, and store the rest in the <command>www.ds9a.nl IN CNAME</command> key in our cache.</para>
+	<literallayout class="monospaced">www.example.org  3600 IN   CNAME  outpost.example.org.</literallayout>
+	<para>Would duplicate a lot of data. So, what is actually stored is a partial DNS packet. To store the CNAMEDNSRecordContent that corresponds to the above, we generate a DNS packet that has <command>www.example.org IN CNAME</command> as its question. Then we add <command>3600 IN CNAME outpost.example.org</command>. as its answer. Then we chop off the question part, and store the rest in the <command>www.example.org IN CNAME</command> key in our cache.</para>
 	
-	<para>When we need to retrieve <command>www.ds9a.nl IN CNAME</command>, the inverse happens. We find the proper partial packet, prefix it with a question for <command>www.ds9a.nl IN CNAME</command>, and expand the resulting packet into the answer <command>3600 IN CNAME outpost.ds9a.nl.</command>.</para>
+	<para>When we need to retrieve <command>www.example.org IN CNAME</command>, the inverse happens. We find the proper partial packet, prefix it with a question for <command>www.example.org IN CNAME</command>, and expand the resulting packet into the answer <command>3600 IN CNAME outpost.example.org.</command>.</para>
 	
-	<para>Why do we go through all these motions? Because of DNS compression, which allows us to omit the whole <command>.ds9a.nl.</command> part, saving us 9 bytes. This is amplified when storing multiple MX records which all look more or less alike. This optimization is not performed yet though.</para>
+	<para>Why do we go through all these motions? Because of DNS compression, which allows us to omit the whole <command>.example.org.</command> part, saving us 9 bytes. This is amplified when storing multiple MX records which all look more or less alike. This optimization is not performed yet though.</para>
 	
 	<para>Even without compression, it makes sense as all records are automatically stored very compactly.</para>
 	
@@ -14746,6 +15498,12 @@ end
 	    </para></listitem>
 	  </itemizedlist>
 	</para>
+	<warning>
+	  <para>
+	    If you use another PowerDNS server as master and have DNSSEC enabled on that server please don't forget to rectify the domains after every change.
+		If you don't do this there is no SOA record available and one requirement will fail.
+	  </para>
+	</warning>	
 	<para>
 	  So, to benefit from this feature, a backend needs to know about the IP address of the supermaster, and how PDNS will be listed in the set of
 	  NS records remotely, and the 'account' name of your supermaster. There is no need to fill the account name out but it does help keep track of
@@ -14948,7 +15706,8 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
   </chapter>
   <chapter id="all-settings"><title>Index of all Authoritative Server settings</title>
     <para>
-      All PDNS Authoritative Server settings are listed here, excluding those that originate from backends, which are documented in the relevant chapters.
+      All PDNS Authoritative Server settings are listed here, excluding those that originate from backends, which are documented in the relevant chapters. You can use += syntax to set some
+      variables incrementally, but this requires you to have at least one non-incremental setting for the variable to act as base setting. This is mostly useful for include-dir directive. 
       <variablelist>
 	<varlistentry>
 	  <term><anchor id="allow-axfr-ips"/>allow-axfr-ips=...</term>
@@ -14963,13 +15722,13 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <listitem>
 	    <para>
 	      By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
-	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 1.2.3.4</command>.
+	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
 	    </para>
 	  </listitem></varlistentry>
 	  <varlistentry><term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
 	    <listitem><para>
-		Answer questions for the ANY type on UDP with a truncated packet that refers the 
-		remote server to TCP. Useful for mitigating ANY reflection attacks. Defaults to off. Available since 3.3.
+		Answer questions for the ANY and RRSIG types on UDP with a truncated packet that refers the
+		remote server to TCP. Useful for mitigating reflection attacks. Defaults to off. Available since 3.3.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>cache-ttl=...</term>
 	    <listitem><para>
@@ -15043,6 +15802,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Provide a helpful message
 	      </para></listitem></varlistentry>
+          <varlistentry><term>include-dir</term>
+            <listitem><para>
+                Directory to scan for additional config files. All files that end with .conf are loaded in order. 
+              </para></listitem></varlistentry>
 	  <varlistentry><term>launch=...</term>
 	    <listitem><para>
 		Which backends to launch and order to query them in. See <xref linkend="modules"/>.
@@ -15068,10 +15831,6 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <varlistentry><term>local-port=...</term>
 	    <listitem><para>
 		The port on which we listen. Only one port possible.
-	      </para></listitem></varlistentry>
-	  <varlistentry><term><anchor id="log-failed-updates"/>log-failed-updates=...</term>
-	    <listitem><para>
-	      If set to 'no', failed Windows Dynamic Updates will not be logged.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term><anchor id="log-dns-details"/>log-dns-details=...</term>
 	    <listitem><para>
@@ -15312,6 +16071,13 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	    <listitem><para>
 			IP address of incoming notification proxy
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>udp-truncation-threshold=...</term>
+	    <listitem><para>
+		EDNS0 allows for large UDP response datagrams, which can potentially raise performance. Large responses however
+		also have downsides in terms of reflection attacks. Up till PowerDNS Authoritative Server 3.3, the truncation limit
+		was set at 1680 bytes, regardless of EDNS0 buffer size indications from the client. Beyond 3.3, this setting makes
+		our truncation limit configurable. Maximum value is 65535, but values above 4096 should probably not be attempted.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>urlredirector=...</term>
 	    <listitem><para>
 		Where we send hosts to that need to be url redirected. See <xref linkend="fancy-records"/>.
@@ -15516,7 +16282,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem>
 	    <para>
 	      The A record contains an IP address. It is stored as a decimal dotted quad string,
-	      for example: '213.244.168.210'.
+	      for example: '203.0.113.210'.
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -15524,7 +16290,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>AAAA</term>
 	  <listitem>
 	    <para>
-	      The AAAA record contains an IPv6 address. An example: '3ffe:8114:2000:bf0::1'. 
+	      The AAAA record contains an IPv6 address. An example: '2001:DB8:2000:bf0::1'. 
 	    </para>
 	  </listitem>      
 	</varlistentry>
@@ -15839,7 +16605,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
       <para>
 	<variablelist>
 	  <varlistentry>
-	    <term>Q: I get this entry a lot of times in my log file: Authoritative empty NO ERROR to 1.2.3.4 for 'powerdns.nl' (AAAA)..</term>
+	    <term>Q: I get this entry a lot of times in my log file: Authoritative empty NO ERROR to 192.0.2.4 for 'powerdns.nl' (AAAA)..</term>
 	    <listitem>
 	      <para>
 		As the name implies, this is not an error. It tells you there are questions for a domain which exists in your database, but for
@@ -16081,14 +16847,6 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>Q: What is this 'AhuException' I keep reading about?</term>
-	  <listitem>
-	    <para>
-	      A: This name has historical reasons and has <ulink url="http://ds9a.nl">no significance</ulink>. 
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
 	  <term>Q: I need a backend but I can't write it, can you help?</term>
 	  <listitem>
 	    <para>
@@ -16268,12 +17026,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
   <chapter id="analysis"><title>Tools to analyse DNS traffic</title>
     <para>
       DNS is highly mission critical, it is therefore necessary to be able to study and compare DNS traffic. Since version 2.9.18, PowerDNS comes
-      with three tools to aid in analysis:
-      <warning>
-	<para>
-	  As of 2.9.18 these tools are somewhat rough - they have no help messages for example. They do work though.
-	</para>
-      </warning>
+      with various tools to aid in analysis. These tools are best documented by their manpages, and their --help output.
       <variablelist>
 	<varlistentry>
 	  <term>dnsreplay pcapfile [ipaddress] [port number]</term>
@@ -16297,7 +17050,32 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <term>dnsscope pcapfile</term>
 	  <listitem>
 	    <para>
-	      Calculates statistics without replaying traffic
+	      Calculates statistics without replaying traffic. 
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dnsbulktest</term>
+	  <listitem>
+	    <para>
+	      Send out thousands of queries in parallel from Alexa top list to stress out resolvers.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>dnsdist</term>
+	  <listitem>
+	    <para>
+	      Simple but high performance UDP and TCP DNS load balancer/distributor.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>dnstcpbench</term>
+	  <listitem>
+	    <para>
+	      Stress out DNS servers with TCP based queries, as read from a file. 
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -16549,33 +17327,33 @@ DATA	qname		qclass	qtype	ttl	id	content
 A sample dialogue may look like this (note that in reality,
 almost all queries will actually be for the ANY qtype):
 <screen>
-Q	www.ds9a.nl	IN	CNAME	-1	213.244.168.210
-DATA	www.ds9a.nl	IN	CNAME	3600	1 ws1.ds9a.nl
+Q	www.example.org	IN	CNAME	-1	203.0.113.210
+DATA	www.example.org	IN	CNAME	3600	1 ws1.example.org
 END
-Q	ws1.ds9a.nl	IN	CNAME	-1	213.244.168.210
+Q	ws1.example.org	IN	CNAME	-1	203.0.113.210
 END
-Q	wd1.ds9a.nl	IN	A	-1	213.244.168.210
-DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.4
-DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.5
-DATA	ws1.ds9a.nl	IN	A	3600	1	1.2.3.6
+Q	wd1.example.org	IN	A	-1	203.0.113.210
+DATA	ws1.example.org	IN	A	3600	1	192.0.2.4
+DATA	ws1.example.org	IN	A	3600	1	192.0.2.5
+DATA	ws1.example.org	IN	A	3600	1	192.0.2.6
 END
 </screen>
 
-This would correspond to a remote webserver 213.244.168.210 wanting to
-resolve the IP address of www.ds9a.nl, and PowerDNS traversing the CNAMEs to
-find the IP addresses of ws1.ds9a.nl
+This would correspond to a remote webserver 203.0.113.210 wanting to
+resolve the IP address of www.example.org, and PowerDNS traversing the CNAMEs to
+find the IP addresses of ws1.example.org
 
 Another dialogue might be:
 <screen>
-Q	ds9a.nl		IN	SOA	-1	213.244.168.210
-DATA	ds9a.nl		IN	SOA	86400	1 ahu.ds9a.nl ...
+Q	example.org		IN	SOA	-1	203.0.113.210
+DATA	example.org		IN	SOA	86400	1 ahu.example.org ...
 END
 AXFR	1
-DATA	ds9a.nl		IN	SOA	86400	1 ahu.ds9a.nl ...
-DATA	ds9a.nl		IN	NS	86400	1 ns1.ds9a.nl
-DATA	ds9a.nl		IN	NS	86400	1 ns2.ds9a.nl
-DATA	ns1.ds9a.nl	IN	A	86400	1 213.244.168.210
-DATA	ns2.ds9a.nl	IN	A	86400	1 63.123.33.135
+DATA	example.org		IN	SOA	86400	1 ahu.example.org ...
+DATA	example.org		IN	NS	86400	1 ns1.example.org
+DATA	example.org		IN	NS	86400	1 ns2.example.org
+DATA	ns1.example.org	IN	A	86400	1 203.0.113.210
+DATA	ns2.example.org	IN	A	86400	1 63.123.33.135
 .
 .
 END
@@ -16593,66 +17371,17 @@ scopebits indicates how many bits from the subnet provided in the question
 (originally from edns-subnet) were used in determining this answer. This can
 aid caching (although PowerDNS does not currently use this value). The auth
 field indicates whether this response is authoritative; this is for DNSSEC.
+In the auth field, use 0 for non-authoritative or 1 for authoritative.
+</para>
+<para>
+For api-versions 1 and 2, the two new fields fall back to default values.
+The default value for scopebits is 0. The default for auth is 1 (meaning
+authoritative).
 </para>
 	</sect3>
 	<sect3>
 	<title>Sample perl backend</title>
-	<para>
-	<screen>
-#!/usr/bin/perl -w
-# sample PowerDNS Coprocess backend
-#
-
-use strict;
-
-
-$|=1;					# no buffering
-
-my $line=&lt;&gt;;
-chomp($line);
-
-unless($line eq "HELO\t1") {
-	print "FAIL\n";
-	print STDERR "Received '$line'\n";
-	&lt;&gt;;
-	exit;
-}
-print "OK	Sample backend firing up\n";	# print our banner
-
-while(&lt;&gt;)
-{
-	print STDERR "$$ Received: $_";
-	chomp();
-	my @arr=split(/\t/);
-	if(@arr&lt;6) {
-		print "LOG	PowerDNS sent unparseable line\n";
-		print "FAIL\n";
-		next;
-	}
-
-	my ($type,$qname,$qclass,$qtype,$id,$ip)=split(/\t/);
-
-	if(($qtype eq "A" || $qtype eq "ANY") &amp;&amp; $qname eq "webserver.example.com") {
-		print STDERR "$$ Sent A records\n";
-		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.4\n";
-		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.5\n";
-		print "DATA	$qname	$qclass	A	3600	-1	1.2.3.6\n";
-	}
-	elsif(($qtype eq "CNAME" || $qtype eq "ANY") &amp;&amp; $qname eq "www.example.com") {
-		print STDERR "$$ Sent CNAME records\n";
-		print "DATA	$qname	$qclass	CNAME	3600	-1	webserver.example.com\n";
-	}
-	elsif($qtype eq "MBOXFW") {
-		print STDERR "$$ Sent MBOXFW records\n";
-		print "DATA	$qname	$qclass	MBOXFW	3600	-1	powerdns\@example.com\n";
-	}
-
-
-	print STDERR "$$ End of data\n";
-	print "END\n";
-}
-	  </screen>
-	</para>
+<programlisting><xi:include  href="../../modules/pipebackend/backend.pl"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 	</sect3>
       </sect2>
       <sect2><title id="implement-the-any-query">Notes</title>
@@ -16798,6 +17527,11 @@ while(&lt;&gt;)
 CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains`
 (`id`) ON DELETE CASCADE
 </programlisting>
+    Or, if you have already created the tables, execute:
+<programlisting>
+ALTER TABLE `records` ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`)
+REFERENCES `domains` (`id`) ON DELETE CASCADE;
+</programlisting>
 	</para>
 	<para>
 	  This automates deletion of records on deletion of a domain from the domains table.
@@ -16881,7 +17615,7 @@ create table supermasters (
 	<para>
 	  Inserting records is a bit different compared to MySQL and PostgreSQL, you should use:
 <screen>
-insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherlabs.nl','NATIVE');
+insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.net','NATIVE');
 	    </screen>
 	  </para>
 	  <para>
@@ -17223,7 +17957,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
 	  Do not wrap statements in quotes as this will not work.
 	  Besides the query related settings, the following configuration
 	  options are available, where one should substitute 'gmysql',
-	  'gpgsql', 'godbc' or 'goracle' for the prefix 'backend'. So
+	  'gpgsql', or 'goracle' for the prefix 'backend'. So
 	  'backend-dbname' can stand for 'gpgsql-dbname' or 'gmysql-dbname'
 	  etc.
 	</para>
@@ -17291,8 +18025,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
       </sect2>
       <sect2><title>Native operation</title>
 	<para>
-	  For native operation, either drop the FOREIGN KEY on the domain_id field, or (recommended), make sure
-	  the <command>domains</command> table is filled properly. To add a domain, issue the following:
+    To add a domain, issue the following:
 	  <programlisting>
 	    insert into domains (name,type) values ('powerdns.com','NATIVE');
 	  </programlisting>
@@ -17563,8 +18296,8 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'netherla
           </para>
           <para>
             Host entries can be IPv4 or IPv6 addresses, in string representation. If you need to specify
-            a port, use <userinput>1.2.3.4:5300</userinput> notation for IPv4 and brackets for IPv6:
-            <userinput>[abcd::1234]:5300</userinput>.
+            a port, use <userinput>192.0.2.4:5300</userinput> notation for IPv4 and brackets for IPv6:
+            <userinput>[2001:db8::1234]:5300</userinput>.
           </para>
         </sect3>
 
@@ -18383,6 +19116,7 @@ VALUES (:zoneid, :ip)
     </sect1>
     
     <sect1 id="db2"><title>DB2 backend</title>
+      <note><para>This backend is unsupported.</para></note>
       <para>
 	<table>
 	  <title>DB2 backend capabilities</title>
@@ -18556,6 +19290,14 @@ VALUES (:zoneid, :ip)
       <sect2 id="bind-control-commands"><title>Pdns_control commands</title>
 	<para>
 	  <variablelist>
+	    <varlistentry>
+	      <term>bind-add-zone <userinput>domain</userinput> <userinput>filename</userinput></term>
+	      <listitem>
+		<para>
+		  Add zone &lt;domain&gt; from &lt;filename&gt; to PDNS's bind backend. Zone will be loaded at first request.
+		</para>
+	      </listitem>
+	    </varlistentry>
 	    <varlistentry>
 	      <term>bind-domain-status <userinput>domain</userinput> [<userinput>domain</userinput>]</term>
 	      <listitem>
@@ -19031,7 +19773,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       <para>
         <warning>
 	        <para>
-            The Remote Backend is available since PowerDNS Authoritative Server 3.2. This backend is marked as experimental!
+            The Remote Backend is available since PowerDNS Authoritative Server 3.2. This backend is stable on version 3.3, not before.
 	        </para>
 	      </warning>
       </para>
@@ -19050,10 +19792,10 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
      	  </tgroup>
      	</table>
       <para>
-        * If provided by the underlying backend.
+        * If provided by the responder (your script).
       </para>
       <para>
-        This backend provides unix socket / pipe / http remoting for powerdns.
+        This backend provides unix socket / pipe / http remoting for powerdns. You should think this as normal RPC thin client, which converts native C++ calls into JSON/RPC and passes them to you via connector. 
       </para>
      <sect2 id="remotebackend-notices"><title>Important notices</title>
       <para>Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.</para>
@@ -19066,7 +19808,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       </sect2>
       <sect2 id="remotebackend-usage"><title>Usage</title>
         <para>
-          The only configuration optionss for backend are remote-connection-string and remote-dnssec.
+          The only configuration options for backend are remote-connection-string and remote-dnssec.
         </para>
         <para>
           <programlisting>
@@ -19074,12 +19816,12 @@ remote-connection-string=&lt;type&gt;:&lt;param&gt;=&lt;value&gt;,&lt;param&gt;=
 </programlisting>
         </para>
         <para>
-          You can pass as many parameters as you want. For unix and pipe backends, these
+          You can pass as many parameters as you want. For unix and pipe connectors, these
           are passed along to the remote end as initialization. See <xref linkend="remotebackend-api" />.
-          Initialize is not called for http backend. 
+          Initialize is not called for http connector. 
         </para>
 
-      <sect3 id="remotebackend-unix"><title>Unix backend</title>
+      <sect3 id="remotebackend-unix"><title>Unix connector</title>
         <para>
           parameters: path, timeout (default 2000ms)
         </para>
@@ -19090,7 +19832,7 @@ remote-connection-string=unix:path=/path/to/socket
         </para>
       </sect3>
 
-            <sect3 id="remotebackend-pipe"><title>Pipe backend</title>
+            <sect3 id="remotebackend-pipe"><title>Pipe connector</title>
         <para>
           parameters: command,timeout (default 2000ms)
         </para>
@@ -19102,7 +19844,7 @@ remote-connection-string=unix:command=/path/to/executable,timeout=2000
       </sect3>
 
 
-      <sect3 id="remotebackend-http"><title>HTTP backend</title>
+      <sect3 id="remotebackend-http"><title>HTTP connector</title>
         <para>
           parameters: url, url-suffix, post, post_json, cafile, capath, timeout (default 2000)
         </para>
@@ -19112,7 +19854,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
 </programlisting>
         </para>
         <para>
-          HTTP backend tries to do RESTful requests to your server. See examples. You can also
+          HTTP connector tries to do RESTful requests to your server. See examples. You can also
           use post to change behaviour so that it will send POST request to url/method + url_suffix
           with parameters=json-formatted-parameters. If you use post and post_json, it will POST
           url with text/javascript containing JSON formatted RPC request, just like for pipe and unix. 
@@ -19122,7 +19864,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
           URL should not end with /, and url-suffix is optional, but if you define it, it's
           up to you to write the ".php" or ".json". Lack of dot causes lack of dot in
           URL. Timeout is divided by 1000 because libcurl only supports seconds, but this is
-          given in milliseconds for consistency with other backends. 
+          given in milliseconds for consistency with other connectors. 
         </para>
         <para>
           You can use HTTPS requests. If cafile and capath is left empty, remote SSL certificate is not checked. 
@@ -19134,19 +19876,19 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
       <sect2 id="remotebackend-api"><title>API</title>
         <sect3 id="remotebackend-api-queries"><title>Queries</title>
           <para>
-            Unix and Pipe backend sends JSON formatted string to the remote end. Each 
+            Unix and Pipe connector sends JSON formatted string to the remote end. Each 
             JSON query has two sections, 'method' and 'parameters'. 
           </para>
           <para>
-            HTTP backend calls methods based on URL and has parameters in the query string.
-            Most calls are GET; see the methods listing for details.
+            HTTP connector calls methods based on URL and has parameters in the query string.
+            Most calls are GET; see the methods listing for details. You can change this with post and post_json attributes. 
           </para>
         </sect3>
         <sect3 id="remotebackend-api-replies"><title>Replies</title>
           <para>
             You *must* always reply with JSON hash with at least one key, 'result'. This 
             must be boolean false if the query failed. Otherwise it must conform to the expected
-            result. For HTTP backend, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
+            result. For HTTP connector, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
           </para>
           <para>
             You can optionally add 'log' array, each line in this array will be logged in
@@ -19159,7 +19901,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
 <variablelist>
  <varlistentry>
    <term>Mandatory:</term>
-   <listitem><para>Yes (except HTTP backend)</para></listitem>
+   <listitem><para>Yes (except HTTP connector)</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Parameters:</term>
@@ -19171,7 +19913,7 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
  </varlistentry>
  <varlistentry>
   <term>Description</term>
-  <listitem><para>Called to initialize the backend. This is not called for HTTP backend. You should
+  <listitem><para>Called to initialize the backend. This is not called for HTTP connector. You should
 do your initializations here.</para></listitem>
  </varlistentry>
  <varlistentry>
@@ -20712,7 +21454,7 @@ Content-Type: text/javascript; charset=utf-8
 
 <sect2 id="remotebackend-examples"><title>Examples</title>
 <para>
-  Scenario: SOA lookup via pipe or unix
+  Scenario: SOA lookup via pipe or unix connector
 </para>
 <para>
 Query:
@@ -20745,7 +21487,7 @@ Reply:
 </programlisting>
 </para>
 <para>
-Scenario: SOA lookup via HTTP backend
+Scenario: SOA lookup with HTTP connector
 </para>
 <para>
 Query:
@@ -20803,6 +21545,19 @@ Reply:
 	      </listitem>
 	    </varlistentry>
 		<varlistentry>
+			<term>current-config</term>
+			<listitem>
+				<para>
+					Retrieves the current configuration settings from the PDNS instance. This can be useful to generate a
+					from a running instance.
+				</para>
+				<para>
+					The output has the same format as <command>pdns_server --config</command>. You'll notice that all the
+					are uncommented. This is because PDNS simply has values, and the default isn't known at runtime.
+				</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
 			<term>cycle</term>
 			<listitem>
 				<para>
@@ -20826,8 +21581,8 @@ Reply:
 		  Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
 		</para>
 	      </listitem>
-	    </varlistentry>
-		<varlistentry>
+    </varlistentry>
+    <varlistentry>
 			<term>ping</term>
 			<listitem>
 			<para>
@@ -20867,14 +21622,14 @@ Reply:
 		</para>
 	      </listitem>
 	    </varlistentry>
-            <varlistentry>
+		<varlistentry>
 			<term>rping</term>
 			<listitem>
 				<para>
 					'PING' the powerdns-instance. Will return 'PONG' when it is available.
 				</para>
 			</listitem>
-	    </varlistentry>
+		</varlistentry>
  	    <varlistentry>
 	      <term>rediscover</term>
 	      <listitem>
@@ -21016,12 +21771,13 @@ Reply:
 	unauthoritative response.
       </para>
       <para>
-	Simplified, without CNAME processing and wildcards, the algorithm is like this:
+	Simplified, without CNAME processing, wildcards, referrals and DNSSEC, the algorithm is like this:
       </para>
       <para>
-	When a query for a <command>qname</command>/<command>qtype</command> tuple comes in, it is requested directly from the backend. 
-	If present, PDNS adds the contents of the reply to the list of records to return. A question tuple may generate multiple answer 
-	records.
+	When a query for a <command>qname</command>/<command>qtype</command> tuple comes in, PDNS queries backends to find the closest matching
+  SOA, thus figuring out what backend owns this zone. When the right backend has been found, PDNS issues a 
+  <command>qname</command>/<command>ANY</command> query to the backend. If the response is empty, NXDOMAIN is concluded. If the response is
+  not empty, any contents matching the original qtype are added to the list of records to return, and NOERROR is sset.
       </para>
       <para>
 	Each of these records is now investigated to see if it needs 'additional processing'. This holds for example for MX records which may
@@ -21036,16 +21792,10 @@ Reply:
 	<command>domain_id</command>. This is why all records in a domain need to have the same domain_id.
       </para>
       <para>
-	When a query comes in for a specific qname, PDNS starts looking for SOA records of all subdomains of the qname, so 
-	no.such.powerdns.com turns into a SOA query for no.such.powerdns.com, such.powerdns.com, powerdns.com, com, ''. When a SOA is found,
-	that zone is consulted for relevant NS instructions which lead to a referral. If nothing is found within the zone, an authoritative 
-	NXDOMAIN is sent out.
-      </para>
-      <para>
 	If no SOA was found, an unauthoritative no-error is returned.
       </para>
       <para>
-	PDNS breaks strict RFC compatibility by not always checking for the presence of a SOA record first. This is unlikely to lead to 
+	PDNS (before 3.0) broke strict RFC compatibility by not always checking for the presence of a SOA record first. This was unlikely to lead to 
 	problems though.
       </para>
   </sect1>
@@ -21413,7 +22163,7 @@ static RandomLoader randomloader;
 		<function>get()</function> method.
 		</para>
 		<para>
-		  Should throw an AhuException if an error occurred accessing the database. Returning otherwise indicates that the query 
+		  Should throw an PDNSException if an error occurred accessing the database. Returning otherwise indicates that the query 
 		  was started successfully. If it is known that no data is available, no exception should be thrown! An exception indicates
 		  that the backend considers itself broken - not that no answers are available for a question.
 		</para>
@@ -21432,7 +22182,7 @@ static RandomLoader randomloader;
 	      </para>
 	      <para>
 		Should return false if the backend does not consider itself authoritative for this zone.
-		Should throw an AhuException if an error occurred accessing the database. Returning true indicates that data is or should be available.
+		Should throw an PDNSException if an error occurred accessing the database. Returning true indicates that data is or should be available.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -21452,7 +22202,7 @@ static RandomLoader randomloader;
 		  should contain 'CaSe.yourdomain.com'!
 		</para>
 	      <para>
-		Should throw an AhuException in case a database error occurred.
+		Should throw an PDNSException in case a database error occurred.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -21463,7 +22213,7 @@ static RandomLoader randomloader;
 	      <para>
 		If the backend considers itself authoritative over domain <function>name</function>, this method should fill out
 		the passed <command>SOAData</command> structure and return a positive number. If the backend is functioning correctly, but
-		does not consider itself authoritative, it should return 0. In case of errors, an AhuException should be thrown.
+		does not consider itself authoritative, it should return 0. In case of errors, an PDNSException should be thrown.
 	      </para>
 	    </listitem>
 	    </varlistentry>
@@ -21581,7 +22331,7 @@ static RandomLoader randomloader;
 	  parameters.
 	  <programlisting>
   if(mustDo("example-zones")) {
-    insert(0,"www.example.com","A","1.2.3.4");
+    insert(0,"www.example.com","A","192.0.2.4");
     /* ... */
   }
   
@@ -21638,7 +22388,7 @@ static RandomLoader randomloader;
 	   virtual bool abortTransaction();
 	   virtual bool feedRecord(const DNSResourceRecord &amp;rr);
 	   virtual void getUnfreshSlaveInfos(vector&lt;DomainInfo&gt;* domains);
-	   virtual void setFresh(int id);
+	   virtual void setFresh(uint32_t id);
            /* ... */
 	 }
 	</programlisting>
@@ -21852,6 +22602,87 @@ static RandomLoader randomloader;
       </para>
     </sect1>
 
+    <sect1 id="rfc2136-backend"><title>RFC2136 support</title>
+      <para>
+        To make your backend RFC2136 compatible, it needs to implement a number of new functions and functions already used for slave-operation.
+        The new functions are not RFC2136 specific and might be used for other update/remove functionality at a later stage.
+        <programlisting>
+class DNSBackend {
+public:
+  /* ... */
+  virtual bool startTransaction(const string &amp;qname, int id);
+  virtual bool commitTransaction();
+  virtual bool abortTransaction();
+  virtual bool feedRecord(const DNSResourceRecord &amp;rr);
+  virtual bool replaceRRSet(uint32_t domain_id, const string&amp; qname, const QType&amp; qt, const vector&lt;DNSResourceRecord&gt;&amp; rrset)
+  virtual bool listSubZone(const string &amp;zone, int domain_id);
+  /* ... */
+}
+        </programlisting>
+      </para>
+      <para>
+
+      </para>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term>virtual bool startTransaction(const string &amp;qname, int id);</term>
+	    <listitem>
+	      <para>
+		See <xref linkend="rw-backends" />. Please note that this function now receives a negative number (-1), which indicates that
+                the current zone data should NOT be deleted.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>virtual bool commitTransaction();</term>
+	    <listitem>
+	      <para>See <xref linkend="rw-backends" />.</para>
+	    </listitem>
+	  </varlistentry>
+          <varlistentry>
+	    <term>virtual bool abortTransaction();</term>
+	    <listitem>
+	      <para>See <xref linkend="rw-backends" />. Method is called when an exception is received.</para>
+	    </listitem>
+	  </varlistentry>
+          <varlistentry>
+	    <term>virtual bool feedRecord(const DNSResourceRecord &amp;rr);</term>
+	    <listitem>
+	      <para>See <xref linkend="rw-backends" />. Please keep in mind that the zone is not empty because <function>startTransaction()</function> was called different.</para>
+	    </listitem>
+	  </varlistentry>
+      <varlistentry>
+        <term>virtual bool listSubZone(const string &amp;name, int domain_id);</term>
+	    <listitem>
+	      <para>
+            This method is needed for rectification of a zone after NS-records have been added. For DNSSEC, we need to know which records
+            are below the currently added record.
+            <function>listSubZone()</function> is used like <function>list()</function> which means PowerDNS will call <function>get()</function>
+            after this method.
+            The default SQL query looks something like this:
+            <programlisting>
+// First %s is 'sub.zone.com', second %s is '*.sub.zone.com'
+select content,ttl,prio,type,domain_id,name from records where (name='%s' OR name like '%s') and domain_id=%d
+            </programlisting>
+            The method is not only used when adding records, but also to correct ENT-records in powerdns. Make sure it returns every record in the tree
+            below the given record.
+          </para>
+	    </listitem>
+	  </varlistentry>
+      <varlistentry>
+	    <term>virtual bool replaceRRSet(uint32_t domain_id, const string&amp; qname, const QType&amp; qt, const vector&lt;DNSResourceRecord&gt;&amp; rrset);</term>
+	    <listitem>
+	      <para>
+		This method should remove all the records with <function>qname</function> of type <function>qt</function>. <function>qt</function>
+		might also be ANY, which means all the records with that <function>qname</function> need to be removed.
+		After removal, the records in <function>rrset</function> must be added to the zone. <function>rrset</function> can be empty in which case the method is used to remove a RRset.
+          </para>
+	    </listitem>
+	  </varlistentry>
+        </variablelist>
+      </para>
+    </sect1>
   </appendix>
   <appendix id="compiling-powerdns"><title>Compiling PowerDNS</title>
     <sect1 id="on-unix"><title>Compiling PowerDNS on Unix</title>
@@ -22638,6 +23469,12 @@ POSSIBILITY OF SUCH DAMAGES.
       </para>
   </appendix>
   <appendix id="further-copyrights"><title>Further copyright statements</title>
+    <sect1><title>OpenSSL linking exception</title>
+    <para>
+      Permission is granted to link this program with OpenSSL and to
+      (re)distribute the binaries produced as the result of such linking.
+    </para>
+    </sect1>
     <sect1><title>AES implementation by Brian Gladman</title>
     <para>
       Since version 3.1.5, PowerDNS contains AES code by Brian Gladman, to which

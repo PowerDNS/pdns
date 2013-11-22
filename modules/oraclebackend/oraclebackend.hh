@@ -69,7 +69,7 @@ public:
   void setNotified(uint32_t zoneId, uint32_t serial); // ditto
   bool list(const string &domain, int zoneId);
   bool startTransaction(const string &domain, int zoneId);
-  bool feedRecord(const DNSResourceRecord &rr);
+  bool feedRecord(const DNSResourceRecord &rr, string* ordername);
   bool commitTransaction();
   bool abortTransaction();
   bool superMasterBackend(const string &ip, const string &domain,
