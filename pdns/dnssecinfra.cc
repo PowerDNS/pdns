@@ -529,7 +529,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
 
   trc->d_mac = calculateMD5HMAC(tsigsecret, toSign);
   //  d_trc->d_mac[0]++; // sabotage
-  pw.startRecord(tsigkeyname, QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL); 
+  pw.startRecord(tsigkeyname, QType::TSIG, 0, 0xff, DNSPacketWriter::ADDITIONAL, false);
   trc->toPacket(pw);
   pw.commit();
 }

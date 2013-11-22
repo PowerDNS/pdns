@@ -50,7 +50,7 @@ public:
   
   /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order - 
       ANSWER, AUTHORITY, ADDITIONAL */
-  void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=1, Place place=ANSWER);
+  void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=1, Place place=ANSWER, bool compress=true);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   typedef vector<pair<uint16_t,std::string> > optvect_t;

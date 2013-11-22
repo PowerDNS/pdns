@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig second.first.something.wtest.com TXT dnssec

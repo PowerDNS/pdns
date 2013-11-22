@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig sub.host.sub.example.com a dnssec

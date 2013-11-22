@@ -53,7 +53,7 @@ dnsheader* DNSPacketWriter::getHeader()
   return (dnsheader*)&*d_content.begin();
 }
 
-void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place)
+void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place, bool compress)
 {
   if(!d_record.empty()) 
     commit();
@@ -64,19 +64,19 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_recordttl=ttl;
   d_recordplace=place;
 
-  d_stuff = 0; 
+  d_stuff = 0;
   d_rollbackmarker=d_content.size();
 
-  if(pdns_iequals(d_qname, d_recordqname)) {  // don't do the whole label compression thing if we *know* we can get away with "see question"
+  if(compress && pdns_iequals(d_qname, d_recordqname)) {  // don't do the whole label compression thing if we *know* we can get away with "see question"
     static unsigned char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
   else {
-    xfrLabel(d_recordqname, true);
+    xfrLabel(d_recordqname, compress);
     d_content.insert(d_content.end(), d_record.begin(), d_record.end());
     d_record.clear();
   }
-      
+
   d_stuff = sizeof(dnsrecordheader); // this is needed to get compressed label offsets right, the dnsrecordheader will be interspersed
   d_sor=d_content.size() + d_stuff; // start of real record 
 }
