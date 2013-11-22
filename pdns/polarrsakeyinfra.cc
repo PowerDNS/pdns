@@ -2,6 +2,7 @@
 #include <polarssl/base64.h>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
+#include <polarssl/version.h>
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
   #include <polarssl/sha1.h>
   #include <polarssl/sha256.h>
