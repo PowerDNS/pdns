@@ -86,6 +86,7 @@ public:
   }
 
   vector<string>listRings();
+  bool ringExists(const string &name);
   void resetRing(const string &name);
   void resizeRing(const string &name, unsigned int newsize);
   unsigned int getRingSize(const string &name);

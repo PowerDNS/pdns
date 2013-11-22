@@ -155,7 +155,7 @@ namespace YaHTTP {
           if (nextpos == std::string::npos) {
             value = parameters.substr(delim+1);
           } else {
-            value = parameters.substr(delim+1, nextpos-delim);
+            value = parameters.substr(delim+1, nextpos-delim-1);
           }
         }
         if (key.empty()) {
@@ -165,8 +165,12 @@ namespace YaHTTP {
         key = decodeURL(key);
         value = decodeURL(value);
         parameter_map[key] = value;
+        if (nextpos == std::string::npos) {
+          // no more parameters left
+          break;
+        }
 
-        pos = nextpos;
+        pos = nextpos+1;
       }
       return parameter_map;
     };

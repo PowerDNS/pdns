@@ -187,14 +187,17 @@ string StatWebServer::makePercentage(const double& val)
 
 void StatWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
-  if(!req->parameters["resetring"].empty()){
-    S.resetRing(req->parameters["resetring"]);
+  if(!req->parameters["resetring"].empty()) {
+    if (S.ringExists(req->parameters["resetring"]))
+      S.resetRing(req->parameters["resetring"]);
     resp->status = 301;
     resp->headers["Location"] = "/";
     return;
   }
   if(!req->parameters["resizering"].empty()){
-    S.resizeRing(req->parameters["resizering"], atoi(req->parameters["size"].c_str()));
+    int size=atoi(req->parameters["size"].c_str());
+    if (S.ringExists(req->parameters["resizering"]) && size > 0 && size <= 500000)
+      S.resizeRing(req->parameters["resizering"], atoi(req->parameters["size"].c_str()));
     resp->status = 301;
     resp->headers["Location"] = "/";
     return;
