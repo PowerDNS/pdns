@@ -928,7 +928,7 @@ EOF
 esac
 
 if [ "$skiplua" == "1" ]; then
-  skipreasons="$skipreasons nolua"
+	skipreasons="$skipreasons nolua"
 fi
 
 check_process
@@ -966,10 +966,10 @@ startslave ()
 			-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
 			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
 			-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
-                	echo $skipreasons | grep -q nolua
-	                if [ $? -ne 0 ]; then
+			echo $skipreasons | grep -q nolua
+			if [ $? -ne 0 ]; then
 				mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
-                	        -e "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
+				-e "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
 			fi
 		fi
 		set -e
@@ -1019,10 +1019,10 @@ startslave ()
 		if [ $? -ne 0 ]; then
 			sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','$ALGORITHM', '$KEY')"
 			sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
-                  	echo $skipreasons | grep -q nolua
-	                if [ $? -ne 0 ]; then
-                        	sqlite3 pdns.sqlite31  "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
-	                fi
+			echo $skipreasons | grep -q nolua
+			if [ $? -ne 0 ]; then
+				sqlite3 pdns.sqlite31  "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
+			fi
 		fi
 		set -e
 
@@ -1074,10 +1074,10 @@ startslave ()
 		if [ $? -ne 0 ]; then
 			sqlite3 dnssec-slave.sqlite3 "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
 			sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain, kind, content) SELECT 'tsig.com', 'AXFR-MASTER-TSIG', 'test'"
-                	echo $skipreasons | grep -q nolua
-	                if [ $? -ne 0 ]; then
-        	                 sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain,kind,content) SELECT 'stest.com','AXFR-SOURCE','127.0.0.2'"
-                	fi
+			echo $skipreasons | grep -q nolua
+			if [ $? -ne 0 ]; then
+				sqlite3 dnssec-slave.sqlite3 "INSERT INTO domainmetadata (domain,kind,content) SELECT 'stest.com','AXFR-SOURCE','127.0.0.2'"
+			fi
 		fi
 		set -e
 
@@ -1197,7 +1197,10 @@ dotests () {
 			echo -e "\n\n$t"
 			cat $t/diff
 		done
-		eval "$1=1"
+		if [ "${!1}" -eq 0 ]
+		then
+			eval "$1=1"
+		fi
 	fi
 }
 
@@ -1213,6 +1216,7 @@ export skipreasons
 export testsdir
 export optout
 
+sleep 2
 
 if [ $presigned = no ] || [ $both = yes ]
 then
