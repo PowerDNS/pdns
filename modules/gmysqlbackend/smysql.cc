@@ -22,16 +22,20 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   mysql_init(&d_db);
   do {
 
-  #if MYSQL_VERSION_ID >= 50013
+#if MYSQL_VERSION_ID >= 50013
     my_bool reconnect = 1;
     mysql_options(&d_db, MYSQL_OPT_RECONNECT, &reconnect);
-  #endif
+#endif
 
-  #if MYSQL_VERSION_ID > 51000
+#if MYSQL_VERSION_ID >= 50100
     unsigned int timeout = 10;
     mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &timeout);
     mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
-  #endif
+#endif
+
+#if MYSQL_VERSION_ID >= 50500
+    mysql_options(&d_db, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
+#endif
 
     if (setIsolation && (retry == 1))
       mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
