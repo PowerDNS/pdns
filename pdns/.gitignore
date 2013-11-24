@@ -42,3 +42,6 @@ version_generated.h
 /bindparser.hh
 /bindparser.output
 /dnslabeltext.cc
+/test-suite.log
+/testrunner.log
+/testrunner.trs
