@@ -5,7 +5,7 @@ use Net::DNS;
 use Net::DNS::Update;
 
 my $update = Net::DNS::Update->new('test.dyndns');
-$update->push(update => rr_add('host-invalid.test.dyndns.'));
+$update->push(update => rr_add('host-invalid.test.dyndns. ANY'));
 
 my $res = Net::DNS::Resolver->new;
 $res->nameservers($ARGV[0]);
