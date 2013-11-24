@@ -45,6 +45,7 @@
 #include "utility.hh"
 #include <boost/algorithm/string.hpp>
 #include "logger.hh"
+#include "iputils.hh"
 
 bool g_singleThreaded;
 
@@ -760,4 +761,58 @@ Regex::Regex(const string &expr)
 {
   if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
     throw PDNSException("Regular expression did not compile");
+}
+
+void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source)
+{
+  struct cmsghdr *cmsg;
+
+  if(source->sin4.sin_family == AF_INET6) {
+    struct in6_pktinfo *pkt;
+
+    msgh->msg_control = cmsgbuf;
+    msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
+
+    cmsg = CMSG_FIRSTHDR(msgh);
+    cmsg->cmsg_level = IPPROTO_IPV6;
+    cmsg->cmsg_type = IPV6_PKTINFO;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
+
+    pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+    memset(pkt, 0, sizeof(*pkt));
+    pkt->ipi6_addr = source->sin6.sin6_addr;
+    msgh->msg_controllen = cmsg->cmsg_len; // makes valgrind happy and is slightly better style
+  }
+  else {
+#ifdef IP_PKTINFO
+    struct in_pktinfo *pkt;
+
+    msgh->msg_control = cmsgbuf;
+    msgh->msg_controllen = CMSG_SPACE(sizeof(*pkt));
+
+    cmsg = CMSG_FIRSTHDR(msgh);
+    cmsg->cmsg_level = IPPROTO_IP;
+    cmsg->cmsg_type = IP_PKTINFO;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
+
+    pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
+    memset(pkt, 0, sizeof(*pkt));
+    pkt->ipi_spec_dst = source->sin4.sin_addr;
+#endif
+#ifdef IP_SENDSRCADDR
+    struct in_addr *in;
+
+    msgh->msg_control = cmsgbuf;
+    msgh->msg_controllen = CMSG_SPACE(sizeof(*in));
+
+    cmsg = CMSG_FIRSTHDR(msgh);
+    cmsg->cmsg_level = IPPROTO_IP;
+    cmsg->cmsg_type = IP_SENDSRCADDR;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
+
+    in = (struct in_addr *) CMSG_DATA(cmsg);
+    *in = source->sin4.sin_addr;
+#endif
+    msgh->msg_controllen = cmsg->cmsg_len;
+  }
 }

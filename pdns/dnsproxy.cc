@@ -151,6 +151,10 @@ void DNSProxy::mainloop(void)
     char buffer[1500];
     int len;
 
+    struct msghdr msgh;
+    struct iovec iov;
+    char cbuf[256];
+
     for(;;) {
       len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
       if(len<12) {
@@ -195,72 +199,20 @@ void DNSProxy::mainloop(void)
             ", qname or qtype mismatch"<<endl;
           continue;
         }
-        {
-          struct msghdr msgh;
-          struct cmsghdr *cmsg;
-          struct iovec iov;
-          char cbuf[256];
 
-          /* Set up iov and msgh structures. */
-          memset(&msgh, 0, sizeof(struct msghdr));
-          iov.iov_base = buffer;
-          iov.iov_len = len;
-          msgh.msg_iov = &iov;
-          msgh.msg_iovlen = 1;
-          msgh.msg_name = (struct sockaddr*)&i->second.remote;
-          msgh.msg_namelen = i->second.remote.getSocklen();
+        /* Set up iov and msgh structures. */
+        memset(&msgh, 0, sizeof(struct msghdr));
+        iov.iov_base = buffer;
+        iov.iov_len = len;
+        msgh.msg_iov = &iov;
+        msgh.msg_iovlen = 1;
+        msgh.msg_name = (struct sockaddr*)&i->second.remote;
+        msgh.msg_namelen = i->second.remote.getSocklen();
 
-          if(i->second.anyLocal) {
-            if(i->second.anyLocal->sin4.sin_family == AF_INET6) {
-              struct in6_pktinfo *pkt;
-
-              msgh.msg_control = cbuf;
-              msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
-
-              cmsg = CMSG_FIRSTHDR(&msgh);
-              cmsg->cmsg_level = IPPROTO_IPV6;
-              cmsg->cmsg_type = IPV6_PKTINFO;
-              cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
-
-              pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-              memset(pkt, 0, sizeof(*pkt));
-              pkt->ipi6_addr = i->second.anyLocal->sin6.sin6_addr;
-              msgh.msg_controllen = cmsg->cmsg_len; // makes valgrind happy and is slightly better style
-            }
-            else {
-#ifdef IP_PKTINFO
-              struct in_pktinfo *pkt;
-              msgh.msg_control = cbuf;
-              msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
-
-              cmsg = CMSG_FIRSTHDR(&msgh);
-              cmsg->cmsg_level = IPPROTO_IP;
-              cmsg->cmsg_type = IP_PKTINFO;
-              cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
-
-              pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
-              memset(pkt, 0, sizeof(*pkt));
-              pkt->ipi_spec_dst = i->second.anyLocal->sin4.sin_addr;
-#endif
-#ifdef IP_SENDSRCADDR
-              struct in_addr *in;
-
-              msgh.msg_control = cbuf;
-              msgh.msg_controllen = CMSG_SPACE(sizeof(*in));
-
-              cmsg = CMSG_FIRSTHDR(&msgh);
-              cmsg->cmsg_level = IPPROTO_IP;
-              cmsg->cmsg_type = IP_SENDSRCADDR;
-              cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
-
-              in = (struct in_addr *) CMSG_DATA(cmsg);
-              *in = i->second.anyLocal->sin4.sin_addr;
-#endif
-              msgh.msg_controllen = cmsg->cmsg_len;
-            }
-          }
-          sendmsg(i->second.outsock, &msgh, 0);
+        if(i->second.anyLocal) {
+          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr());
         }
+        sendmsg(i->second.outsock, &msgh, 0);
         
         PC.insert(&q, &p);
         i->second.created=0;
