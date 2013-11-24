@@ -5,7 +5,7 @@
 /zone2json
 /bindlexer.c
 /bindparser.cc
-/bindparser.h
+/bindparser.h*
 /bindparser.output
 /dnslabeltext.cc
 /bind-dnssec.schema.sqlite3.sql.h

@@ -32,4 +32,8 @@
 /toysdig
 /tsig-tests
 /tcpbench
-version_generated.h
+/version_generated.h
+/precursor
+/test-suite.log
+/testrunner.log
+/testrunner.trs
