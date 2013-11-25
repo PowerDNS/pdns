@@ -11274,7 +11274,7 @@ name         IN            A        192.0.2.4
   </para>
 
   <para>    
-    Then press <filename>Select...</filename> to select the database (ie. <filename>C:\Program Files\PowerDNS\powerdns.mdb</filename>).
+    Then press <filename>Select...</filename> to select the database (ie. <filename>C:/Program Files/PowerDNS/powerdns.mdb</filename>).
   </para>
 
   <para>
@@ -11290,7 +11290,7 @@ name         IN            A        192.0.2.4
 
     <para>
       You can specify program parameters in the <filename>pdns.conf</filename> file
-      which should be located in pdns directory (ie. <filename>C:\Program Files\PowerDNS\</filename>).
+      which should be located in pdns directory (ie. <filename>C:/Program Files/PowerDNS/</filename>).
     </para>
 
     <para>
@@ -23003,7 +23003,7 @@ select content,ttl,prio,type,domain_id,name from records where (name='%s' OR nam
 
           <listitem>
             <para>
-              Go to <filename>HKEY_CURRENT_USER\Software\Microsoft\DevStudio\6.0\Build System\Components\Platforms\Win32 (x86)\Tools\32-bit C/C++ Compiler for 80x86</filename>. And
+              Go to <filename>HKEY_CURRENT_USER/Software/Microsoft/DevStudio/6.0/Build System/Components/Platforms/Win32 (x86)/Tools/32-bit C/C++ Compiler for 80x86</filename>. And
               add <quote>;*.cc</quote> to the <filename>Input_Spec</filename> value (so that it becomes <quote>*.c;*.cpp;*.cxx;*.cc</quote>).
             </para>
 
@@ -23016,14 +23016,14 @@ select content,ttl,prio,type,domain_id,name from records where (name='%s' OR nam
 
           <listitem>
             <para>
-              Go to <filename>HKEY_CURRENT_USER\Software\Microsoft\DevStudio\6.0\Search</filename>. And
+              Go to <filename>HKEY_CURRENT_USER/Software/Microsoft/DevStudio/6.0/Search</filename>. And
               add <quote>;*.cc;*.hh</quote> to the <filename>FIF_Filter</filename> value (so that it becomes <quote>*.c;*.cpp;*.cxx;*.tli;*.h;*.tlh;*.inl;*.rc;*.cc;*.hh</quote>).
             </para>
           </listitem>
 
           <listitem>
             <para>
-              Finally change <filename>HKEY_CURRENT_USER\Software\Microsoft\DevStudio\6.0\Text Editor\Tabs/Language Settings\C/C++</filename>. And
+              Finally change <filename>HKEY_CURRENT_USER/Software/Microsoft/DevStudio/6.0/Text Editor/Tabs/Language Settings/C/C++</filename>. And
               add <quote>;cc;hh</quote> to the <filename>FileExtensions</filename> value (so that it becomes <quote>cpp;cxx;c;h;hxx;hpp;inl;tlh;tli;rc;rc2;hh;cc</quote>).
             </para>
           </listitem>
@@ -23065,12 +23065,12 @@ select content,ttl,prio,type,domain_id,name from records where (name='%s' OR nam
 	  <para>
 	    First add the include directory, to do this you have to select <guilabel>Include files</guilabel>
 	    from the <guilabel>Show directories for:</guilabel> combobox. Then press the <guibutton>New</guibutton>
-	    button and browse to the <command>include</command> directory of pthreads (ie. <filename>C:\pthreads\include</filename>).
+	    button and browse to the <command>include</command> directory of pthreads (ie. <filename>C:/pthreads/include</filename>).
 	  </para>
 	  
 	  <para>
 	    Then switch to <guilabel>Library files</guilabel> and add the <command>library</command> directory
-	    (ie. <filename>C:\pthreads\lib</filename>) using the same method as above.
+	    (ie. <filename>C:/pthreads/lib</filename>) using the same method as above.
 	  </para>        
 	</sect4>
 	
@@ -23079,7 +23079,7 @@ select content,ttl,prio,type,domain_id,name from records where (name='%s' OR nam
 	  
 	  <para>
 	    While still being in the directory dialog, switch to <guilabel>Executable files</guilabel>
-	    and add the Nullsoft Installer directory (ie. <filename>C:\Program Files\NSIS</filename>) to the list.
+	    and add the Nullsoft Installer directory (ie. <filename>C:/Program Files/NSIS</filename>) to the list.
 	  </para>
 	</sect4>
 	
