@@ -11213,6 +11213,16 @@ name         IN            A        192.0.2.4
 
   </sect1>
 </chapter>
+<chapter id="windows">
+  <title>Installing on Microsoft Windows</title>
+  <para>
+    <warning>
+      <para>
+        Starting with version 3.0, Windows is no longer supportd.
+      </para>
+    </warning>
+  </para>
+</chapter>
 
   <chapter id="configuring-db-connection">
     <title>Basic setup: configuring database connectivity</title>
