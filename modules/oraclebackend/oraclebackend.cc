@@ -1039,7 +1039,7 @@ OracleBackend::startTransaction (const string &domain, int zoneId)
 }
 
 bool
-OracleBackend::feedRecord (const DNSResourceRecord &rr)
+OracleBackend::feedRecord (const DNSResourceRecord &rr, string *ordername)
 {
   sword rc;
   OCIStmt *stmt;

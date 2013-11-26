@@ -22,6 +22,7 @@ vector<string> segmentDNSText(const string& input )
 %%{
         machine dnstext;
         write data;
+        alphtype unsigned char;
 }%%
 	(void)dnstext_error;  // silence warnings
 	(void)dnstext_en_main;

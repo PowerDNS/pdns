@@ -451,7 +451,7 @@ void RecordTextWriter::xfrTime(const uint32_t& val)
   struct tm tm;
   time_t time=val; // Y2038 bug!
 #ifndef WIN32
-  gmtime_r(&time, &tm);
+  Utility::gmtime_r(&time, &tm);
 #else
   struct tm* tmptr;
   tmptr=gmtime(&time);

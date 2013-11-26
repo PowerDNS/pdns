@@ -9,6 +9,7 @@ real_result
 /trustedkeys
 /test-results
 /pdns.pid
+/pdns-bind-slave.pid
 /passed_tests
 /failed_tests
 /powerdns.sqlite3
