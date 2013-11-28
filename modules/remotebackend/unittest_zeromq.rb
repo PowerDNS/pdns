@@ -3,14 +3,23 @@
 require 'rubygems'
 require 'bundler/setup'
 require 'json'
+require 'zero_mq'
 require './unittest'
 
 h = Handler.new()
 f = File.open "/tmp/tmp.txt","a"
 
-STDOUT.sync = true
 begin
-  STDIN.each_line do |line|
+  context = ZeroMQ::Context.new
+  socket = context.socket ZMQ::REP
+  socket.setsockopt(ZMQ::HWM, 1000)
+  socket.bind("tcp://127.0.0.1:43622")
+ 
+  print "[#{Time.now.to_s}] ZeroMQ unit test responder running\n"
+
+  while(true) do
+    line = ""
+    rc = socket.recv_string line
     f.puts line
     # expect json
     input = {}
@@ -28,12 +37,14 @@ begin
       else
          res, log = h.send(method)
       end
-      puts ({:result => res, :log => log}).to_json
+      socket.send_string ({:result => res, :log => log}).to_json, 0
       f.puts({:result => res, :log => log}).to_json
     rescue JSON::ParserError
-      puts ({:result => false, :log => "Cannot parse input #{line}"}).to_json
+      socket.send_string ({:result => false, :log => "Cannot parse input #{line}"}).to_json
       next
     end
   end
 rescue SystemExit, Interrupt
 end
+
+print "[#{Time.now.to_s}] ZeroMQ unit test responder ended\n"

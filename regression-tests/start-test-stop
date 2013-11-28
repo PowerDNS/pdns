@@ -306,8 +306,8 @@ gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
 tinydns
 mydns
-remotebackend-pipe remotebackend-unix remotebackend-http 
-remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
+remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
+remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
@@ -841,6 +841,11 @@ __EOF__
 				done
 				set -e
 				;;
+                        zeromq)
+                                connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
+                                $testsdir/zeromq-backend.rb &
+                                echo $! > pdns-remotebackend.pid
+                                ;;
 			unix)
 				connstr="unix:path=/tmp/remote.socket"
 				socat unix-listen:/tmp/remote.socket,fork exec:$testsdir/unix-backend.rb &

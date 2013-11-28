@@ -1,16 +1,25 @@
-#!/usr/bin/env ruby
+#!/usr/bin/ruby1.9.1
 
-require 'rubygems'
+#!/usr/bin/env ruby
+require "rubygems"
 require 'bundler/setup'
 require 'json'
-require './unittest'
+require 'zero_mq'
+require '../modules/remotebackend/regression-tests/backend'
 
-h = Handler.new()
+h = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
+
 f = File.open "/tmp/tmp.txt","a"
 
-STDOUT.sync = true
 begin
-  STDIN.each_line do |line|
+  context = ZeroMQ::Context.new
+  socket = context.socket ZMQ::REP
+  socket.setsockopt(ZMQ::HWM, 1000)
+  socket.bind("ipc:///tmp/pdns.0")
+
+  while(true) do
+    line = ""
+    rc = socket.recv_string line
     f.puts line
     # expect json
     input = {}
@@ -28,10 +37,10 @@ begin
       else
          res, log = h.send(method)
       end
-      puts ({:result => res, :log => log}).to_json
+      socket.send_string ({:result => res, :log => log}).to_json, 0
       f.puts({:result => res, :log => log}).to_json
     rescue JSON::ParserError
-      puts ({:result => false, :log => "Cannot parse input #{line}"}).to_json
+      socket.send_string ({:result => false, :log => "Cannot parse input #{line}"}).to_json
       next
     end
   end
