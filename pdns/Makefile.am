@@ -4,7 +4,7 @@ AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=
 AM_LFLAGS = -s -i
 AM_YFLAGS = -d --verbose --debug
 
-AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(LIBCURL_CFLAGS)
+AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@
 if BOTAN110
 AM_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
@@ -65,7 +65,7 @@ version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh
 
 
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
-pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS) -Lext/yahttp/yahttp -lyahttp
+pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) -Lext/yahttp/yahttp -lyahttp
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
@@ -105,7 +105,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	serialtweaker.cc randomhelper.cc
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
-pdnssec_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS)
+pdnssec_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS)
 
 zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	arguments.cc logger.cc zone2sql.cc statbag.cc misc.cc \
