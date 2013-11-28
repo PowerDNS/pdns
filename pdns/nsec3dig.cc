@@ -77,6 +77,7 @@ try
   if(recurse)
   {
     pw.getHeader()->rd=true;
+    pw.getHeader()->cd=true;
   }
 
   pw.addOpt(2800, 0, EDNSOpts::DNSSECOK);
