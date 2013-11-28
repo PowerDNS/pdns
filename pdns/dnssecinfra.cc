@@ -9,11 +9,11 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
+#include <polarssl/md5.h>
 #include <polarssl/sha1.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
-#include "md5.hh"
 #include "sha.hh"
 #include "namespaces.hh"
 using namespace boost::assign;
@@ -421,35 +421,15 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   }  
 }
 
-string calculateMD5HMAC(const std::string& key_, const std::string& text)
+string calculateMD5HMAC(const std::string& key, const std::string& text)
 {
-  unsigned char key[64] = {0};
-  key_.copy((char*)key,64); 
-  unsigned char keyIpad[64];
-  unsigned char keyOpad[64];
+  std::string res;
+  unsigned char hash[16];
 
-  //~ cerr<<"Key: "<<makeHexDump(key_)<<endl;
-  //~ cerr<<"txt: "<<makeHexDump(text)<<endl;
+  md5_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
+  res.assign(reinterpret_cast<const char*>(hash), 16);
 
-  for(unsigned int n=0; n < 64; ++n) {
-    if(n < key_.length()) {
-      keyIpad[n] = (unsigned char)(key[n] ^ 0x36);
-      keyOpad[n] = (unsigned char)(key[n] ^ 0x5c);
-    }
-    else  {
-      keyIpad[n]=0x36;
-      keyOpad[n]=0x5c;
-    }
-  }
-
-  MD5Summer md5_1, md5_2;
-  md5_1.feed((const char*)keyIpad, 64);
-  md5_1.feed(text);
-
-  md5_2.feed((const char*)keyOpad, 64);
-  md5_2.feed(md5_1.get());
-
-  return md5_2.get();
+  return res;
 }
 
 string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
@@ -460,46 +440,31 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
   switch(hasher) {
   case TSIG_SHA1:
   {
-      sha1_context ctx;
-      sha1_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size());
-      sha1_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
-      sha1_hmac_finish(&ctx, hash);
+      sha1_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
       res.assign(reinterpret_cast<const char*>(hash), 20);
       break;
   };
   case TSIG_SHA224:
   {
-      sha2_context ctx;
-      sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
-      sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
-      sha2_hmac_finish(&ctx, hash);
+      sha2_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
       res.assign(reinterpret_cast<const char*>(hash), 28);
       break;
   };
   case TSIG_SHA256:
   {
-      sha2_context ctx;
-      sha2_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 0);
-      sha2_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
-      sha2_hmac_finish(&ctx, hash);
+      sha2_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
       res.assign(reinterpret_cast<const char*>(hash), 32);
       break;
   };
   case TSIG_SHA384:
   {
-      sha4_context ctx;
-      sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 1);
-      sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
-      sha4_hmac_finish(&ctx, hash);
+      sha4_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
       res.assign(reinterpret_cast<const char*>(hash), 48);
       break;
   };
   case TSIG_SHA512:
   {
-      sha4_context ctx;
-      sha4_hmac_starts(&ctx, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), 0);
-      sha4_hmac_update(&ctx, reinterpret_cast<const unsigned char*>(text.c_str()), text.size());
-      sha4_hmac_finish(&ctx, hash);
+      sha4_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
       res.assign(reinterpret_cast<const char*>(hash), 64);
       break;
   };
@@ -510,12 +475,12 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
   return res;
 }
 
-string calculateHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash) {
-  if (hash == TSIG_MD5) return calculateMD5HMAC(key_, text);
-  
+string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash) {
+  if (hash == TSIG_MD5) return calculateMD5HMAC(key, text);
+
   // add other algorithms here
 
-  return calculateSHAHMAC(key_, text, hash);
+  return calculateSHAHMAC(key, text, hash);
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)

@@ -839,10 +839,8 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   }
 
   d_qname=qname;
-
-  d_qtype=qtype;
-  d_count=0;
 }
+
 bool GSQLBackend::list(const string &target, int domain_id )
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
@@ -857,7 +855,6 @@ bool GSQLBackend::list(const string &target, int domain_id )
   }
 
   d_qname="";
-  d_count=0;
   return true;
 }
 
@@ -874,7 +871,6 @@ bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
     throw PDNSException("GSQLBackend listSubZone query: "+e.txtReason());
   }
   d_qname="";
-  d_count=0;
   return true;
 }
 

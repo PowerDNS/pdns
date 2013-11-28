@@ -130,9 +130,9 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const std::set<string, CIString
 
 typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512 } TSIGHashEnum;
 
-string calculateMD5HMAC(const std::string& key_, const std::string& text);
-string calculateSHAHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash);
-string calculateHMAC(const std::string& key_, const std::string& text, TSIGHashEnum hash);
+string calculateMD5HMAC(const std::string& key, const std::string& text);
+string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
+string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
 bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum);

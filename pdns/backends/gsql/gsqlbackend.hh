@@ -77,8 +77,6 @@ public:
 
 private:
   string d_qname;
-  QType d_qtype;
-  int d_count;
   SSql *d_db;
   SSql::result_t d_result;
 
@@ -92,7 +90,7 @@ private:
   string d_wildCardANYIDQuery;
   string d_listQuery;
   string d_logprefix;
-  
+
   string d_MasterOfDomainsZoneQuery;
   string d_InfoOfDomainsZoneQuery;
   string d_InfoOfAllSlaveDomainsQuery;
@@ -112,7 +110,7 @@ private:
   string d_DeleteZoneQuery;
   string d_DeleteRRSet;
   string d_ZoneLastChangeQuery;
-  
+
   string d_firstOrderQuery;
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
@@ -137,7 +135,7 @@ private:
   string d_ActivateDomainKeyQuery;
   string d_DeactivateDomainKeyQuery;
   string d_ClearDomainAllKeysQuery;
-  
+
   string d_getTSIGKeyQuery;
   string d_setTSIGKeyQuery;
   string d_deleteTSIGKeyQuery;
@@ -145,6 +143,6 @@ private:
 
   string d_getAllDomainsQuery;
 
-protected:  
+protected:
   bool d_dnssecQueries;
 };
