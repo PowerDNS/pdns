@@ -11,12 +11,14 @@
   typedef sha256_context sha2_context;
   typedef sha512_context sha4_context;
   #define sha2_finish sha256_finish
+  #define sha2_hmac sha256_hmac
   #define sha2_hmac_finish sha256_hmac_finish
   #define sha2_hmac_starts sha256_hmac_starts
   #define sha2_hmac_update sha256_hmac_update
   #define sha2_starts sha256_starts
   #define sha2_update sha256_update
   #define sha4_finish sha512_finish
+  #define sha4_hmac sha512_hmac
   #define sha4_hmac_finish sha512_hmac_finish
   #define sha4_hmac_starts sha512_hmac_starts
   #define sha4_hmac_update sha512_hmac_update
