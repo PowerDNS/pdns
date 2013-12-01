@@ -1,0 +1,5 @@
+Initial version of the GeoIP Backend using SQL Database as respository for both geolocation data and zone information.
+More to follow soon!
+
+Author: Shin Sterneck
+Email: shin dot sterneck at asia
