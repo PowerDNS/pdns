@@ -173,7 +173,7 @@ bool GeoSqlBackend::getSqlData(OpenDBX::Conn *&conn, string &sqlStatement, std::
             odbxres stat;
             ostringstream os1;
 
-            while (stat = result.getResult()) {
+            while ((stat = result.getResult())) {
                 switch (stat) {                    
                     case ODBX_RES_TIMEOUT:
                         logEntry("ODBX_RES_TIMEOUT");
