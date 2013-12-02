@@ -662,7 +662,8 @@ fi
 if test "$needlmdb"
 then
        #PKG_CHECK_MODULES(LMDB, lmdb, HAVE_LMDB=yes, AC_MSG_ERROR([+Could not find lmdb]))
-        #AC_SUBST(LMDB_LIBS)
+        AC_SUBST(LMDB_LIBS)
+        AC_SUBST(LMDB_CFLAGS)
         LMDB_LIBS=-L/usr/local/lib
         LMDB_CFLAGS=-llmdb
 fi
