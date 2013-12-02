@@ -1,10 +1,11 @@
 #!/bin/bash
 PATH=.:$PATH
+MAKE=${MAKE:-make}
 
 spectest=$1
 [ -z $spectest ] && spectest=""
 
-make -C ../pdns sdig nsec3dig || exit 1
+${MAKE} -C ../pdns sdig nsec3dig || exit 1
 
 rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out ${testsdir}/*/start ${testsdir}/*/step.*
 

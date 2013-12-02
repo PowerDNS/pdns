@@ -6,6 +6,8 @@ PDNS2=${PDNS2:-../pdns/pdns_server}
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
 
+MAKE=${MAKE:-make}
+
 export ALGORITHM
 export KEY
 
@@ -189,7 +191,7 @@ __EOF__
 
 tosql ()
 {
-	make -C ../pdns zone2sql > /dev/null
+	${MAKE} -C ../pdns zone2sql > /dev/null
 	../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
 }
 
@@ -326,7 +328,7 @@ __EOF__
 	exit 1
 fi
 
-make -C ../pdns sdig nsec3dig || exit 1
+${MAKE} -C ../pdns sdig nsec3dig || exit 1
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
