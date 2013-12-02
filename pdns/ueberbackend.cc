@@ -256,6 +256,82 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
+bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
+{
+  size_t best_match_len = 0;
+  bool from_cache = false;  // Was this result fetched from the cache?
+
+  check_op_requests();
+
+  // If not special case, first find the best match from the cache
+  if( sd->db != (DNSBackend *)-1 && d_cache_ttl ) {
+      string subdomain(target);
+      int cstat, loops = 0;
+      do {
+        d_question.qtype = QType::SOA;
+        d_question.qname = subdomain;
+        d_question.zoneId = -1;
+
+        cstat = cacheHas(d_question,d_answers);
+
+        if(cstat==1 && !d_answers.empty()) {
+          fillSOAData(d_answers[0].content,*sd);
+          sd->domain_id = d_answers[0].domain_id;
+          sd->ttl = d_answers[0].ttl;
+          sd->db = 0;
+          sd->qname = subdomain;
+          //L<<Logger::Error<<"Best cache match: " << sd->qname << " itteration " << loops <<endl;
+
+          // Found first time round this must be the best match
+          if( loops == 0 )
+            return true;
+
+          from_cache = true;
+          best_match_len = sd->qname.length();
+
+          break;
+        }
+        loops++;
+      }
+      while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
+  }
+
+  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
+    if((*i)->getAuth(p, sd, target, zoneId, best_match_len)) {
+        best_match_len = sd->qname.length();
+        from_cache = false;
+
+        // Shortcut for the case that we got a direct hit - no need to go
+        // through the other backends then.
+        if( best_match_len == target.length() )
+            goto auth_found;
+    }
+
+  if( best_match_len == 0 )
+      return false;
+
+auth_found:
+    // Insert into cache
+    if( d_cache_ttl && ! from_cache ) {
+        //L<<Logger::Error<<"Saving auth cache for " << sd->qname <<endl;
+        d_question.qtype = QType::SOA;
+        d_question.qname = sd->qname;
+        d_question.zoneId = -1;
+
+        DNSResourceRecord rr;
+        rr.qname = sd->qname;
+        rr.qtype = QType::SOA;
+        rr.content = serializeSOAData(*sd);
+        rr.ttl = sd->ttl;
+        rr.domain_id = sd->domain_id;
+        vector<DNSResourceRecord> rrs;
+        rrs.push_back(rr);
+        addCache(d_question, rrs);
+    }
+
+    return true;
+}
+
 /** special trick - if sd.db is set to -1, the cache is ignored */
 bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
