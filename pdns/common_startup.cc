@@ -211,7 +211,7 @@ int isGuarded(char **argv)
   return !!p;
 }
 
-void sendout(const DNSDistributor::AnswerData &AD)
+void sendout(const AnswerData<DNSPacket> &AD)
 {
   if(!AD.A)
     return;
@@ -228,7 +228,7 @@ void sendout(const DNSDistributor::AnswerData &AD)
 void *qthread(void *number)
 {
   DNSPacket *P;
-  DNSDistributor *distributor = new DNSDistributor(::arg().asNum("distributor-threads")); // the big dispatcher!
+  DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads")); // the big dispatcher!
   DNSPacket question;
   DNSPacket cached;
 
