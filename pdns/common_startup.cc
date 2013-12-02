@@ -54,6 +54,7 @@ void declareArguments()
   ::arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0";
   ::arg().set("local-ipv6","Local IP address to which we bind")="";
+  ::arg().setSwitch("reuseport","Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket")="no";
   ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
   ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
@@ -243,6 +244,15 @@ void *qthread(void *number)
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   bool skipfirst=true;
   unsigned int maintcount = 0;
+  UDPNameserver *NS = N;
+
+  // If we have SO_REUSEPORT then create a new port for all receiver threads
+  // other than the first one.
+  if( number > 0 && NS->canReusePort() ) {
+    L<<Logger::Notice<<"Starting new listen thread on the same IPs/ports using SO_REUSEPORT"<<endl;
+    NS = new UDPNameserver( true );
+  }
+
   for(;;) {
     if (skipfirst)
       skipfirst=false;
@@ -258,7 +268,8 @@ void *qthread(void *number)
       }
     }
 
-    if(!(P=N->receive(&question))) { // receive a packet         inline
+
+    if(!(P=NS->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
 
@@ -297,7 +308,7 @@ void *qthread(void *number)
       cached.d.id=P->d.id;
       cached.commitD(); // commit d to the packet                        inlined
 
-      N->send(&cached);   // answer it then                              inlined
+      NS->send(&cached);   // answer it then                              inlined
       diff=P->d_dt.udiff();                                                    
       avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
       
