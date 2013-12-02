@@ -89,7 +89,6 @@ struct TSIGKey {
 
 class DNSPacket;
 
-
 //! This virtual base class defines the interface for backends for the ahudns. 
 /** To create a backend, inherit from this class and implement functions for all virtual methods.
     Methods should not throw an exception if they are sure they did not find the requested data. However,
@@ -107,7 +106,6 @@ public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
-
 
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
@@ -139,6 +137,9 @@ public:
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
 
   virtual void getAllDomains(vector<DomainInfo> *domains) { }
+
+  /** Determines if we are authoritative for a zone, and at what level */
+  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const size_t best_match_len);
 
   struct KeyData {
     unsigned int id;
@@ -328,6 +329,37 @@ protected:
 
 private:
   string d_prefix;
+};
+
+class DNSReversedBackend : public DNSBackend {
+    public:
+        /* Given rev_zone (the reversed name of the zone we are looking for the
+         * SOA record for), return the equivelent of
+         *     SELECT name
+         *     FROM soa_records
+         *     WHERE name <= rev_zone
+         *     ORDER BY name DESC
+         *
+         * ie we want either an exact hit on the record, or the immediately
+         * preceeding record when sorted lexographically.
+         *
+         * Return true if something has been found, false if not
+         */
+        virtual bool getAuthZone( string &rev_zone ) { return false; };  // Must be overridden
+
+        /* Once the record has been found, this will be called to get the data
+         * associated with the record so the backend can set up soa and zoneId
+         * respectively.  soa->qname does not need to be set. Return false if
+         * there is a problem getting the data.
+         * */
+        virtual bool getAuthData( SOAData &soa, DNSPacket *p=0) { return false; };  // Must be overridden
+
+        bool getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const size_t best_match_len);
+        inline int _getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const size_t best_match_len);
+
+        /* Only called for stuff like signing or AXFR transfers */
+        bool _getSOA(const string &rev_zone, SOAData &soa, DNSPacket *p);
+        virtual bool getSOA(const string &inZone, SOAData &soa, DNSPacket *p);
 };
 
 class BackendFactory

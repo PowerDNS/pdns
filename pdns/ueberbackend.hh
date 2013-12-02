@@ -115,6 +115,7 @@ public:
 
   void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
+  bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
   bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
