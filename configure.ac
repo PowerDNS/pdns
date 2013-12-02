@@ -366,6 +366,9 @@ do
 		gmysql )
 			needmysql=yes
 		;;
+		lmdb )
+			needlmdb=yes
+		;;
 		mydns )
 			needmysql=yes
 		;;
@@ -656,6 +659,14 @@ then
         AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
 fi
 
+if test "$needlmdb"
+then
+       #PKG_CHECK_MODULES(LMDB, lmdb, HAVE_LMDB=yes, AC_MSG_ERROR([+Could not find lmdb]))
+        #AC_SUBST(LMDB_LIBS)
+        LMDB_LIBS=-L/usr/local/lib
+        LMDB_CFLAGS=-llmdb
+fi
+
 if test "$needcdb"
 then
 	PKG_CHECK_MODULES(CDB, libcdb, HAVE_CDB=yes, AC_MSG_ERROR([+Could not find libcdb/tinycdb]))
@@ -707,6 +718,6 @@ modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
 modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
-modules/remotebackend/Makefile \
+modules/remotebackend/Makefile modules/lmdbbackend/Makefile \
 modules/randombackend/Makefile])
 AC_OUTPUT
