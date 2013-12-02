@@ -71,14 +71,30 @@
 
 */
 
+#ifdef __linux__
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT 15
+#endif
+#endif
+
 class UDPNameserver
 {
 public:
   UDPNameserver();  //!< Opens the socket
   DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
-  static void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
+  void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
+  inline bool canReusePort() {
+#ifdef SO_REUSEPORT
+    return d_can_reuseport;
+#else
+    return false;
+#endif
+  };
   
 private:
+#ifdef SO_REUSEPORT
+  bool d_can_reuseport;
+#endif
   vector<int> d_sockets;
   void bindIPv4();
   void bindIPv6();

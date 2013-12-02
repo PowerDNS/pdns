@@ -243,6 +243,13 @@ void *qthread(void *number)
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   bool skipfirst=true;
   unsigned int maintcount = 0;
+  UDPNameserver *NS = N;
+
+  // If we have SO_REUSEPORT then create a new port for all receiver threads
+  // other than the first one.
+  if( number > 0 && NS->canReusePort() )
+    NS = new UDPNameserver();
+
   for(;;) {
     if (skipfirst)
       skipfirst=false;
@@ -258,7 +265,8 @@ void *qthread(void *number)
       }
     }
 
-    if(!(P=N->receive(&question))) { // receive a packet         inline
+
+    if(!(P=NS->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
 
@@ -297,7 +305,7 @@ void *qthread(void *number)
       cached.d.id=P->d.id;
       cached.commitD(); // commit d to the packet                        inlined
 
-      N->send(&cached);   // answer it then                              inlined
+      NS->send(&cached);   // answer it then                              inlined
       diff=P->d_dt.udiff();                                                    
       avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
       
