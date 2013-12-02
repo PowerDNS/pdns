@@ -89,7 +89,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
 
     uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk, p->hasEDNS());
+    string revqdomain = getRevQName( p->qdomain );
+    haveSomething=getEntryLocked(revqdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk, p->hasEDNS());
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -151,7 +152,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
   CacheEntry val;
   val.ttd=time(0)+ttl;
-  val.qname=qname;
+  val.qname= getRevQName( qname );
   val.qtype=qtype.getCode();
   val.value=value;
   val.ctype=cet;
@@ -270,22 +271,24 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     cleanup();
   }
 
+  string revqname = getRevQName( qname );
+
   TryReadLock l(&d_mut); // take a readlock here
   if(!l.gotIt()) {
     S.inc( "deferred-cache-lookup");
     return false;
   }
 
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS);
+  return getEntryLocked(revqname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS);
 }
 
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+bool PacketCache::getEntryLocked(const string &revqname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
   unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS)
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS));
+  cmap_t::const_iterator i=d_map.find(tie(revqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret)
