@@ -71,7 +71,7 @@ void declareArguments()
   
   ::arg().set("version-string","PowerDNS version in packets - full, anonymous, powerdns or custom")="full"; 
   ::arg().set("control-console","Debugging switch - don't use")="no"; // but I know you will!
-  ::arg().set("fancy-records","Process URL and MBOXFW records")="no";
+  ::arg().set("fancy-records","Process URL and MBOXFW records " DEPRECATED(3.0))="no";
   ::arg().set("wildcard-url","Process URL and MBOXFW records")="no";
   ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
   ::arg().set("default-soa-name","name to insert in the SOA record if none set in the backend")="a.misconfigured.powerdns.server";

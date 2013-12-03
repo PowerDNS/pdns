@@ -53,4 +53,6 @@ extern int isGuarded( char ** );
 extern bool g_anyToTcp;
 extern bool g_addSuperfluousNSEC3;
 
+#define DEPRECATED(since) "\r\n# OPTION DEPRECATED ON " #since
+
 #endif // COMMON_STARTUP_HH
