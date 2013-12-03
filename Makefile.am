@@ -3,7 +3,8 @@ DIST_SUBDIRS=modules codedocs pdns pdns/ext/rapidjson
 EXTRA_DIST=TODO README HACKING INSTALL NOTICE ChangeLog debian-pdns/* pdns.spec  \
 codedocs/Makefile codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
-bootstrap build-scripts/semistaticg++
+bootstrap build-scripts/semistaticg++ \
+build-scripts/redhat/pdns-server-test.spec
 
 ACLOCAL_AMFLAGS = -I.
 

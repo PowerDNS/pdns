@@ -4,5 +4,7 @@ DEB_VERSION=$2
 RPM_VERSION=$3
 [ -z "$VERSION" -o -z "$DEB_VERSION" -o -z "$RPM_VERSION" ] && exit 1
 
-ssed -r "s/^VERSION=(.*)/VERSION=$VERSION/" -i pdns/dist-recursor
-ssed -r "s/Version: (.*)/Version: $RPM_VERSION/" -i pdns/pdns-recursor.spec
+sed -r "s/^VERSION=(.*)/VERSION=$VERSION/" -i pdns/dist-recursor
+sed -r "s/Version: (.*)/Version: $RPM_VERSION/" -i pdns/pdns-recursor.spec
+
+sed -r "s/#VERSION#/$VERSION/" -i build-scripts/redhat/pdns-recursor-test.spec
