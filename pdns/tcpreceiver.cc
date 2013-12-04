@@ -884,7 +884,7 @@ TCPNameserver::TCPNameserver()
         continue;
       } else {
         L<<Logger::Error<<"binding to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
-        throw AhuException("Unable to bind to TCP socket");
+        throw PDNSException("Unable to bind to TCP socket");
       }
     }
     
@@ -924,7 +924,7 @@ TCPNameserver::TCPNameserver()
         continue;
       } else {
         L<<Logger::Error<<"binding to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
-        throw AhuException("Unable to bind to TCPv6 socket");
+        throw PDNSException("Unable to bind to TCPv6 socket");
       }
     }
     

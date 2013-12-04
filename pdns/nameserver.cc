@@ -225,7 +225,7 @@ void UDPNameserver::bindIPv6()
         continue;
       } else {
         L<<Logger::Error<<"binding to UDP ipv6 socket "<< localname <<": "<<strerror(errno)<<endl;
-        throw AhuException("Unable to bind to UDP ipv6 socket");
+        throw PDNSException("Unable to bind to UDP ipv6 socket");
       }
     }
     d_sockets.push_back(s);
