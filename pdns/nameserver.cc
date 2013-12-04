@@ -89,6 +89,7 @@ extern StatBag S;
 #endif
 
 vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this
+pthread_mutex_t localaddresses_lock=PTHREAD_MUTEX_INITIALIZER;
 
 void UDPNameserver::bindIPv4()
 {
@@ -129,7 +130,10 @@ void UDPNameserver::bindIPv4()
     if(locala.sin4.sin_family != AF_INET) 
       throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
 
+    pthread_mutex_lock(&localaddresses_lock);
     g_localaddresses.push_back(locala);
+    pthread_mutex_unlock(&localaddresses_lock);
+
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
       L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+": "<<strerror(errno)<<endl;
       throw PDNSException("Unable to bind to UDP socket");
