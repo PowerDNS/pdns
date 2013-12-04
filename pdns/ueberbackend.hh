@@ -78,6 +78,8 @@ public:
       instructions to load new modules */
   static void *DynListener(void *);
   static void go(void);
+  static void reload_all();
+  static void rediscover_all();
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
@@ -169,6 +171,14 @@ private:
   static bool d_go;
   static int s_s;
   static string s_status; 
+
+  // Operational requests for the backends
+  enum backend_op_requests {
+    NONE = 0,
+    RELOAD,
+    REDISCOVER
+  } cur_op_request;
+  void check_op_requests();
 
   int d_ancount;
   
