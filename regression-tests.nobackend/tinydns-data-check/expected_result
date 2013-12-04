@@ -4,9 +4,9 @@
 21213b4e8cd56e4184696a1bafd987d7  ../regression-tests/wtest.com
 42b442de632686e94bde75acf66cf524  ../regression-tests/nztest.com
 6e4ac6e3a6cd717df107a7bc2e466ac7  ../regression-tests/dnssec-parent.com
-42dd3a56c7d268e75836371878819ec4  ../regression-tests/delegated.dnssec-parent.com
+6510bf48aa3ca3501b73a1f510852a34  ../regression-tests/delegated.dnssec-parent.com
 a63dc120391d9df0003f2ec4f461a6af  ../regression-tests/secure-delegated.dnssec-parent.com
 24514dc104b22206daeb973ff9303545  ../regression-tests/minimal.com
 0b20d7a0250576451135483b863750bf  ../regression-tests/tsig.com
 b1f775045fa2cf0a3b91aa834af06e49  ../regression-tests/stest.com
-2e24a38e3e23ce40da06f41417f91c42  ../modules/tinydnsbackend/data.cdb
+80927ffb754402270483d06c0ebeaaad  ../modules/tinydnsbackend/data.cdb

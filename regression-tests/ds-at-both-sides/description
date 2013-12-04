@@ -1,0 +1,2 @@
+Make sure we return the parent DS if there is a DS at both sides
+of the zone-cut.
