@@ -16,7 +16,7 @@
 #include <pdns/dnsbackend.hh>
 #include <pdns/dns.hh>
 #include <pdns/dnspacket.hh>
-#include <pdns/ahuexception.hh>
+#include <pdns/pdnsexception.hh>
 #include <pdns/logger.hh>
 #include <signal.h>
 #include "lmdbbackend.hh"
@@ -43,34 +43,34 @@ void LMDBBackend::open_db() {
 
     string verstring( mdb_version( &major, &minor, &patch ) );
     if( MDB_VERINT( major, minor, patch ) < MDB_VERINT( 0, 9, 8 ) )
-        throw AhuException( "LMDB Library version too old (" + verstring + "). Needs to be 0.9.8 or greater" );
+        throw PDNSException( "LMDB Library version too old (" + verstring + "). Needs to be 0.9.8 or greater" );
 
     if( rc = mdb_env_create(&env) )
-        throw AhuException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
 
     if( rc = mdb_env_set_maxdbs( env, 3 ) )
-        throw AhuException("Couldn't open LMDB database " + path + ": mdb_env_set_maxdbs() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_set_maxdbs() returned " + mdb_strerror(rc));
 
     if( rc = mdb_env_open(env, path.c_str(), MDB_RDONLY, 0) )
-        throw AhuException("Couldn't open LMDB database " + path + ": mdb_env_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_open() returned " + mdb_strerror(rc));
 
     if( rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn) )
-        throw AhuException("Couldn't start LMDB txn " + path + ": mdb_txn_begin() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't start LMDB txn " + path + ": mdb_txn_begin() returned " + mdb_strerror(rc));
 
     if( rc = mdb_dbi_open(txn, "zone", 0, &zone_db) )
-        throw AhuException("Couldn't open LMDB zone database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open LMDB zone database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
     if( rc = mdb_cursor_open(txn, zone_db, &zone_cursor) )
-        throw AhuException("Couldn't open cursor on LMDB zone database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open cursor on LMDB zone database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
     if( rc = mdb_dbi_open(txn, "data", MDB_DUPSORT, &data_db) )
-        throw AhuException("Couldn't open LMDB data database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open LMDB data database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
     if( rc = mdb_cursor_open(txn, data_db, &data_cursor) )
-        throw AhuException("Couldn't open cursor on LMDB data database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open cursor on LMDB data database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
     if( rc = mdb_dbi_open(txn, "extended_data", 0, &data_extended_db) )
-        throw AhuException("Couldn't open LMDB extended_data database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open LMDB extended_data database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
     if( rc = mdb_cursor_open(txn, data_extended_db, &data_extended_cursor) )
-        throw AhuException("Couldn't open cursor on LMDB data_extended database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+        throw PDNSException("Couldn't open cursor on LMDB data_extended database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
 }
 
@@ -155,7 +155,7 @@ bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
     stringtok(parts,data,"\t");
 
     if(parts.size() != 3 )
-        throw AhuException("Invalid record in zone table: " + data );
+        throw PDNSException("Invalid record in zone table: " + data );
 
     fillSOAData( parts[2], soa );
 
@@ -266,7 +266,7 @@ next_record:
         extended_key.mv_size = valparts[1].length();
 
         if( int rc = mdb_cursor_get( data_extended_cursor, &extended_key, &extended_val, MDB_SET_KEY ) )
-            throw AhuException("Record " + cur_key + " references extended record " + cur_value + " but this doesn't exist: " + mdb_strerror( rc ));
+            throw PDNSException("Record " + cur_key + " references extended record " + cur_value + " but this doesn't exist: " + mdb_strerror( rc ));
 
         cur_value.assign((const char *)extended_val.mv_data, extended_val.mv_size);
         valparts.clear();
@@ -274,7 +274,7 @@ next_record:
     }
 
     if( keyparts.size() != 2 || valparts.size() != 3 )
-        throw AhuException("Invalid record in record table: key: '" + cur_key + "'; value: "+ cur_value);
+        throw PDNSException("Invalid record in record table: key: '" + cur_key + "'; value: "+ cur_value);
 
     string compare_string = cur_key.substr(0, d_searchkey.length());
     DEBUGLOG( "searchkey: " << d_searchkey << "; compare: " << compare_string << ";" << endl);
