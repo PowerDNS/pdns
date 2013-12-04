@@ -367,6 +367,12 @@ do
 			needmysql=yes
 		;;
 		lmdb )
+			AC_CHECK_HEADERS([lmdb.h], , [AC_MSG_ERROR([lmdb header (lmdb.h) not found])])
+			AC_SUBST([LIBLMDB])
+			AC_CHECK_LIB(
+				[lmdb], [mdb_env_create],
+				[AC_DEFINE([HAVE_LIBLMDB], 1, [Have -llmdb]) LIBLMDB="lmdb"]
+			)
 			needlmdb=yes
 		;;
 		mydns )
@@ -657,15 +663,6 @@ then
         AC_SUBST(SQLITE3_LIBS)
         AC_SUBST(SQLITE3_CFLAGS)
         AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
-fi
-
-if test "$needlmdb"
-then
-       #PKG_CHECK_MODULES(LMDB, lmdb, HAVE_LMDB=yes, AC_MSG_ERROR([+Could not find lmdb]))
-        AC_SUBST(LMDB_LIBS)
-        AC_SUBST(LMDB_CFLAGS)
-        LMDB_LIBS=-L/usr/local/lib
-        LMDB_CFLAGS=-llmdb
 fi
 
 if test "$needcdb"
