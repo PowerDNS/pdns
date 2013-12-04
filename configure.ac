@@ -366,6 +366,15 @@ do
 		gmysql )
 			needmysql=yes
 		;;
+		lmdb )
+			AC_CHECK_HEADERS([lmdb.h], , [AC_MSG_ERROR([lmdb header (lmdb.h) not found])])
+			AC_SUBST([LIBLMDB])
+			AC_CHECK_LIB(
+				[lmdb], [mdb_env_create],
+				[AC_DEFINE([HAVE_LIBLMDB], 1, [Have -llmdb]) LIBLMDB="lmdb"]
+			)
+			needlmdb=yes
+		;;
 		mydns )
 			needmysql=yes
 		;;
@@ -707,6 +716,6 @@ modules/gpgsqlbackend/Makefile modules/ldapbackend/Makefile \
 modules/gsqlite3backend/Makefile \
 modules/goraclebackend/Makefile modules/mydnsbackend/Makefile \
 modules/luabackend/Makefile modules/tinydnsbackend/Makefile \
-modules/remotebackend/Makefile \
+modules/remotebackend/Makefile modules/lmdbbackend/Makefile \
 modules/randombackend/Makefile])
 AC_OUTPUT

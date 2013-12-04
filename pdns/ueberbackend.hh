@@ -78,6 +78,8 @@ public:
       instructions to load new modules */
   static void *DynListener(void *);
   static void go(void);
+  static void reload_all();
+  static void rediscover_all();
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
@@ -113,6 +115,7 @@ public:
 
   void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
+  bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
   bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
@@ -144,6 +147,8 @@ public:
   void rediscover(string* status=0);
   void reload();
 private:
+  unsigned int d_cache_ttl, d_negcache_ttl;
+
   DNSResourceRecord lastrr;
   pthread_t tid;
   handle d_handle;
@@ -168,6 +173,15 @@ private:
   static bool d_go;
   static int s_s;
   static string s_status; 
+
+  // Operational requests for the backends
+  enum backend_op_requests {
+    NONE = 0,
+    RELOAD,
+    REDISCOVER
+  } cur_op_request;
+  void check_op_requests();
+
   int d_ancount;
   
   bool stale;

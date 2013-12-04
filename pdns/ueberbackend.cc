@@ -100,6 +100,7 @@ void UeberBackend::go(void)
 
 bool UeberBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
+  check_op_requests();
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getDomainInfo(domain, di))
       return true;
@@ -119,6 +120,7 @@ bool UeberBackend::createDomain(const string &domain)
 int UeberBackend::addDomainKey(const string& name, const KeyData& key)
 {
   int ret;
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if((ret = db->addDomainKey(name, key)) >= 0)
       return ret;
@@ -127,6 +129,7 @@ int UeberBackend::addDomainKey(const string& name, const KeyData& key)
 }
 bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDomainKeys(name, kind, keys))
       return true;
@@ -136,6 +139,7 @@ bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vec
 
 bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDomainMetadata(name, kind, meta))
       return true;
@@ -145,6 +149,7 @@ bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind
 
 bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->setDomainMetadata(name, kind, meta))
       return true;
@@ -154,6 +159,7 @@ bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind
 
 bool UeberBackend::activateDomainKey(const string& name, unsigned int id)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->activateDomainKey(name, id))
       return true;
@@ -163,6 +169,7 @@ bool UeberBackend::activateDomainKey(const string& name, unsigned int id)
 
 bool UeberBackend::deactivateDomainKey(const string& name, unsigned int id)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->deactivateDomainKey(name, id))
       return true;
@@ -172,6 +179,7 @@ bool UeberBackend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool UeberBackend::removeDomainKey(const string& name, unsigned int id)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->removeDomainKey(name, id))
       return true;
@@ -182,6 +190,7 @@ bool UeberBackend::removeDomainKey(const string& name, unsigned int id)
 
 bool UeberBackend::getTSIGKey(const string& name, string* algorithm, string* content)
 {
+  check_op_requests();
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getTSIGKey(name, algorithm, content))
       return true;
@@ -216,7 +225,21 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
+/* Called from anywhere to signal a reload of all backend databases */
+void UeberBackend::reload_all()
+{
+  BOOST_FOREACH(UeberBackend* b, instances) {
+    b->cur_op_request = RELOAD;
+  }
+}
+void UeberBackend::rediscover_all()
+{
+  BOOST_FOREACH(UeberBackend* b, instances) {
+    b->cur_op_request = REDISCOVER;
+  }
+}
 
+/* OPS */
 void UeberBackend::reload()
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
@@ -232,14 +255,13 @@ void UeberBackend::rediscover(string *status)
   {
     string tmpstr;
     ( *i )->rediscover(&tmpstr);
-    if(status) 
-      *status+=tmpstr + (i!=backends.begin() ? "\n" : "");
   }
 }
 
 
 void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
+  check_op_requests();
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     ( *i )->getUnfreshSlaveInfos( domains );
@@ -250,10 +272,108 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 
 void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 {
+  check_op_requests();
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     ( *i )->getUpdatedMasters( domains );
   }
+}
+
+bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
+{
+  size_t best_match_len = 0;
+  bool from_cache = false;  // Was this result fetched from the cache?
+
+  check_op_requests();
+
+  // If not special case, first find the best match from the cache
+  if( sd->db != (DNSBackend *)-1 && d_cache_ttl ) {
+      string subdomain(target);
+      int cstat, loops = 0;
+      do {
+        d_question.qtype = QType::SOA;
+        d_question.qname = subdomain;
+        d_question.zoneId = -1;
+
+        cstat = cacheHas(d_question,d_answers);
+
+        if(cstat==1 && !d_answers.empty()) {
+          fillSOAData(d_answers[0].content,*sd);
+          sd->domain_id = d_answers[0].domain_id;
+          sd->ttl = d_answers[0].ttl;
+          sd->db = 0;
+          sd->qname = subdomain;
+          //L<<Logger::Error<<"Best cache match: " << sd->qname << " itteration " << loops <<endl;
+
+          // Found first time round this must be the best match
+          if( loops == 0 )
+            return true;
+
+          from_cache = true;
+          best_match_len = sd->qname.length();
+
+          break;
+        }
+        loops++;
+      }
+      while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
+  }
+
+  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
+    if((*i)->getAuth(p, sd, target, zoneId, best_match_len)) {
+        best_match_len = sd->qname.length();
+        from_cache = false;
+
+        // Shortcut for the case that we got a direct hit - no need to go
+        // through the other backends then.
+        if( best_match_len == target.length() )
+            goto auth_found;
+    }
+
+  if( best_match_len == 0 )
+      return false;
+
+auth_found:
+    // Insert into cache
+    if( d_cache_ttl && ! from_cache ) {
+        //L<<Logger::Error<<"Saving auth cache for " << sd->qname <<endl;
+        d_question.qtype = QType::SOA;
+        d_question.qname = sd->qname;
+        d_question.zoneId = -1;
+
+        DNSResourceRecord rr;
+        rr.qname = sd->qname;
+        rr.qtype = QType::SOA;
+        rr.content = serializeSOAData(*sd);
+        rr.ttl = sd->ttl;
+        rr.domain_id = sd->domain_id;
+        vector<DNSResourceRecord> rrs;
+        rrs.push_back(rr);
+        addCache(d_question, rrs);
+    }
+
+    return true;
+}
+
+void UeberBackend::check_op_requests()
+{
+    if( !cur_op_request )
+        return;
+
+    switch(cur_op_request) {
+
+        case RELOAD:
+            reload();
+            break;
+
+        case REDISCOVER:
+            rediscover();
+            break;
+
+        default:
+            break;
+    }
+    cur_op_request = NONE;
 }
 
 /** special trick - if sd.db is set to -1, the cache is ignored */
@@ -277,17 +397,20 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     }
   }
     
+  check_op_requests();
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
-      DNSResourceRecord rr;
-      rr.qname=domain;
-      rr.qtype=QType::SOA;
-      rr.content=serializeSOAData(sd);
-      rr.ttl=sd.ttl;
-      rr.domain_id=sd.domain_id;
-      vector<DNSResourceRecord> rrs;
-      rrs.push_back(rr);
-      addCache(d_question, rrs);
+      if( d_cache_ttl ) {
+        DNSResourceRecord rr;
+        rr.qname=domain;
+        rr.qtype=QType::SOA;
+        rr.content=serializeSOAData(sd);
+        rr.ttl=sd.ttl;
+        rr.domain_id=sd.domain_id;
+        vector<DNSResourceRecord> rrs;
+        rrs.push_back(rr);
+        addCache(d_question, rrs);
+      }
       return true;
     }
 
@@ -297,6 +420,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 
 bool UeberBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
 {
+  check_op_requests();
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->superMasterBackend(ip,domain,nsset,account, db))
       return true;
@@ -315,6 +439,9 @@ UeberBackend::UeberBackend(const string &pname)
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
 
+  d_cache_ttl = ::arg().asNum("query-cache-ttl");
+  d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
+
   tid=pthread_self(); 
   stale=false;
 
@@ -332,6 +459,12 @@ void del(DNSBackend* d)
   delete d;
 }
 
+void cleanup_backends(UeberBackend *b)
+{
+  for_each(b->backends.begin(),b->backends.end(),del);
+  b->backends.clear();
+}
+
 void UeberBackend::cleanup()
 {
   pthread_mutex_lock(&instances_lock);
@@ -341,7 +474,7 @@ void UeberBackend::cleanup()
 
   pthread_mutex_unlock(&instances_lock);
 
-  for_each(backends.begin(),backends.end(),del);
+  cleanup_backends(this);
 }
 
 // silly Solaris fix
@@ -354,10 +487,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
   static unsigned int *qcachehit=S.getPointer("query-cache-hit");
   static unsigned int *qcachemiss=S.getPointer("query-cache-miss");
 
-  static int negqueryttl=::arg().asNum("negquery-cache-ttl");
-  static int queryttl=::arg().asNum("query-cache-ttl");
-
-  if(!negqueryttl && !queryttl) {
+  if(!d_cache_ttl && ! d_negcache_ttl) {
     (*qcachemiss)++;
     return -1;
   }
@@ -384,40 +514,39 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
 void UeberBackend::addNegCache(const Question &q)
 {
   extern PacketCache PC;
-  static int negqueryttl=::arg().asNum("negquery-cache-ttl");
-  if(!negqueryttl)
+  if(!d_negcache_ttl)
     return;
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", d_negcache_ttl, q.zoneId);
 }
 
 void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
 {
   extern PacketCache PC;
-  static unsigned int queryttl=::arg().asNum("query-cache-ttl");
-  unsigned int cachettl;
 
-  if(!queryttl)
+  if(!d_cache_ttl)
     return;
-  
+
+  unsigned int store_ttl = d_cache_ttl;
+
   //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
   std::ostringstream ostr;
   boost::archive::binary_oarchive boa(ostr, boost::archive::no_header);
 
-  cachettl = queryttl;
   BOOST_FOREACH(DNSResourceRecord rr, rrs) {
-    if (rr.ttl < queryttl)
-      cachettl = rr.ttl;
+    if (rr.ttl < d_cache_ttl)
+      store_ttl = rr.ttl;
     if (rr.scopeMask)
       return;
   }
 
   boa << rrs;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), cachettl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), store_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
 {
+  check_op_requests();
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
     (*i)->alsoNotifies(domain,ips);
 }
@@ -460,32 +589,34 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
     stale=true; // please recycle us! 
     throw PDNSException("We are stale, please recycle");
   }
+
+  check_op_requests();
+
+  d_question.qtype=qtype;
+  d_question.qname=qname;
+  d_question.zoneId=zoneId;
+  int cstat=cacheHas(d_question, d_answers);
+  if(cstat<0) { // nothing
+    d_negcached=d_cached=false;
+    d_answers.clear(); 
+    (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
+  } 
+  else if(cstat==0) {
+    d_negcached=true;
+    d_cached=false;
+    d_answers.clear();
+  }
   else {
-    d_question.qtype=qtype;
-    d_question.qname=qname;
-    d_question.zoneId=zoneId;
-    int cstat=cacheHas(d_question, d_answers);
-    if(cstat<0) { // nothing
-      d_negcached=d_cached=false;
-      d_answers.clear(); 
-      (d_handle.d_hinterBackend=backends[d_handle.i++])->lookup(qtype, qname,pkt_p,zoneId);
-    } 
-    else if(cstat==0) {
-      d_negcached=true;
-      d_cached=false;
-      d_answers.clear();
-    }
-    else {
-      d_negcached=false;
-      d_cached=true;
-      d_cachehandleiter = d_answers.begin();
-    }
+    d_negcached=false;
+    d_cached=true;
+    d_cachehandleiter = d_answers.begin();
   }
 
   d_handle.parent=this;
 }
 
 void UeberBackend::getAllDomains(vector<DomainInfo> *domains) {
+  check_op_requests();
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
   {
     (*i)->getAllDomains(domains);
@@ -505,6 +636,8 @@ bool UeberBackend::get(DNSResourceRecord &rr)
     }
     return false;
   }
+
+  /* Don't check_op_requests - don't reload a backend in the middle of a zone fetch operation */
   if(!d_handle.get(rr)) {
     if(!d_ancount && !d_handle.qname.empty()) // don't cache axfr
       addNegCache(d_question);

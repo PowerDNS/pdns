@@ -76,7 +76,6 @@ private:
   int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
   bool addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd);
-  bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
