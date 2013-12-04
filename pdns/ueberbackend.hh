@@ -147,6 +147,8 @@ public:
   void rediscover(string* status=0);
   void reload();
 private:
+  unsigned int d_cache_ttl, d_negcache_ttl;
+
   DNSResourceRecord lastrr;
   pthread_t tid;
   handle d_handle;

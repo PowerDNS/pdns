@@ -400,15 +400,17 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   check_op_requests();
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
-      DNSResourceRecord rr;
-      rr.qname=domain;
-      rr.qtype=QType::SOA;
-      rr.content=serializeSOAData(sd);
-      rr.ttl=sd.ttl;
-      rr.domain_id=sd.domain_id;
-      vector<DNSResourceRecord> rrs;
-      rrs.push_back(rr);
-      addCache(d_question, rrs);
+      if( d_cache_ttl ) {
+        DNSResourceRecord rr;
+        rr.qname=domain;
+        rr.qtype=QType::SOA;
+        rr.content=serializeSOAData(sd);
+        rr.ttl=sd.ttl;
+        rr.domain_id=sd.domain_id;
+        vector<DNSResourceRecord> rrs;
+        rrs.push_back(rr);
+        addCache(d_question, rrs);
+      }
       return true;
     }
 
@@ -436,6 +438,9 @@ UeberBackend::UeberBackend(const string &pname)
   pthread_mutex_lock(&instances_lock);
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
+
+  d_cache_ttl = ::arg().asNum("query-cache-ttl");
+  d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
   tid=pthread_self(); 
   stale=false;
@@ -482,10 +487,7 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
   static unsigned int *qcachehit=S.getPointer("query-cache-hit");
   static unsigned int *qcachemiss=S.getPointer("query-cache-miss");
 
-  static int negqueryttl=::arg().asNum("negquery-cache-ttl");
-  static int queryttl=::arg().asNum("query-cache-ttl");
-
-  if(!negqueryttl && !queryttl) {
+  if(!d_cache_ttl && ! d_negcache_ttl) {
     (*qcachemiss)++;
     return -1;
   }
@@ -512,36 +514,34 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
 void UeberBackend::addNegCache(const Question &q)
 {
   extern PacketCache PC;
-  static int negqueryttl=::arg().asNum("negquery-cache-ttl");
-  if(!negqueryttl)
+  if(!d_negcache_ttl)
     return;
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", negqueryttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", d_negcache_ttl, q.zoneId);
 }
 
 void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
 {
   extern PacketCache PC;
-  static unsigned int queryttl=::arg().asNum("query-cache-ttl");
-  unsigned int cachettl;
 
-  if(!queryttl)
+  if(!d_cache_ttl)
     return;
-  
+
+  unsigned int store_ttl = d_cache_ttl;
+
   //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
   std::ostringstream ostr;
   boost::archive::binary_oarchive boa(ostr, boost::archive::no_header);
 
-  cachettl = queryttl;
   BOOST_FOREACH(DNSResourceRecord rr, rrs) {
-    if (rr.ttl < queryttl)
-      cachettl = rr.ttl;
+    if (rr.ttl < d_cache_ttl)
+      store_ttl = rr.ttl;
     if (rr.scopeMask)
       return;
   }
 
   boa << rrs;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), cachettl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), store_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
