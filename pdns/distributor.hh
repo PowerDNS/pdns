@@ -274,7 +274,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
   try {
     a=b->question(q); // a can be NULL!
   }
-  catch(const AhuException &e) {
+  catch(const PDNSException &e) {
     L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
     delete b;
     b=new Backend;
