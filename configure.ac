@@ -31,6 +31,9 @@ dnl Check for lua
 AC_MSG_CHECKING(if with lua)
 AC_ARG_WITH(lua, AS_HELP_STRING([--with-lua],[use Lua]), [WITH_LUA=$withval],[WITH_LUA=yes])
 
+# detect pkg-config explicitly
+PKG_PROG_PKG_CONFIG
+
 AC_MSG_RESULT($WITH_LUA)
 if test "$WITH_LUA" != "no"; then
  # try pkgconfig
@@ -70,10 +73,6 @@ if test x"$enable_unit_tests" = "xyes"; then
    BOOST_TEST([mt])
 fi
 #BOOST_SYSTEM([mt])
-
-# detect pkg-config explicitly
-PKG_PROG_PKG_CONFIG
-
 
 dnl Allow user to require SQLite3
 AC_MSG_CHECKING(whether user requires sqlite3)
