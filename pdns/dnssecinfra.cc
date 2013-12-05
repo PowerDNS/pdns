@@ -422,7 +422,11 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
 
 string calculateMD5HMAC(const std::string& key_, const std::string& text)
 {
-  const unsigned char* key=(const unsigned char*)key_.c_str();
+  string key__ = key_;
+  if (key__.size() > 64)
+    key__ = pdns_md5sum(key_);
+
+  const unsigned char* key=(const unsigned char*)key__.c_str();
   unsigned char keyIpad[64];
   unsigned char keyOpad[64];
 
