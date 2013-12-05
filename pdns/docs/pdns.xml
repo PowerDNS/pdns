@@ -93,6 +93,371 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-3-3-1"><title>PowerDNS Authoritative Server version 3.3.1 (UNRELEASED)</title>
+      <note>
+        <para>
+          Released xx, 2013
+        </para>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                ...
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </note>
+      <para>
+        This is a bugfix update to 3.3.
+      </para>
+      <para>
+        Changes since 3.3:
+        <itemizedlist>
+          <listitem>
+            <para>
+              g9897963: drop unused vars, thanks Morten Stevens
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gd3f6432: presumably fix building on os x 10.9, thanks @mactijn
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gbef3000: Use LUA_CFLAGS and LUA_LIBS instead of hardcoded paths.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2bdd03b: make luabackend respect LUA_LIBS instead of forcing -llua5.1
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g88d9e99: fix lua 5.2 version check in luabackend
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gb95852c: update .gitignore files
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g665586e: add SPF record to test.com and make recent named-checkzone happy
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfa1f845: autodetect MySQL 5.5+ connection charset
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf9f79b3: correct overloading of feedRecord
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ge4faf74: do right timezones right
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g82f6907: update loop breakout test
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gdfd1b82: send empty SERVFAIL on exeeded retargetcount and log failures
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5584bca: s/dnswasher/dnsreplay in dnsreplay manpage
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc669f7c: force ragel alphtype to unsigned char, fixing non-ASCII TXT parsing on signed char platforms like s390x
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g07b904e: fix base64 decoding for big endian archs on which long is not 32 bits (like s390x)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gafdc59a: Removed debugging
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfc54ce5: Fixed argument handling
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g95428ce: Implement sort properly with POSIX locale
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g705633d: Now sorts includes, fixes t913
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gff07f01: allow empty parent
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g98dd325: Support for += syntax for options, candidate for ticket t502
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5e1bf3d: make sure we have a parrent option
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g0c1fe2a: Support for += syntax for options, candidate for ticket t502
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf8f29f4: nproxy: Add missing chdir("/") after chroot()
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfd76ab1: Unit test for empty lookup/list result
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3d8c97f: Fix handling of empty lookup/list result
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g4c8736c: Merge pull request t1114 from mind04/auth-3.3.1
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gebb64c7: actually grab polarssl version number, thanks Morten Stevens
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2e6e9ad: fix for "missing" libmysqlclient on RHEL/CentOS based systems
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gbb4cae6: add unbound-host to travis builds
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc6edd2f: fix for "missing" libmysqlclient on RHEL/CentOS based systems
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5205892: pdnssec check-zone, fix DNSKEY checks
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gedb255f: pdnssec check-zone, more tolerant IPv6 format check
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g0dde9d0: pdnssec check-zone, fix record counting and improve out of zone check
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g07ee700: pdnssec check-zone, improve duplicate checks
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g79a3091: pdnssec check-zone, improve SOA content check
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g08f3452: pdnssec check-zone, check for missing NS at apex and records in unlikely places
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gbcf9daf: pdnssec check-zone, warn if parsed and original content are not equal
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3191709: fix NSEC3s for DS no data (mode 1)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf75293f: fix NSEC wildcard denial
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc9a3dd7: make pdnssec check-all-zones case independent (Issue t684)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g6ebfd08: pdnssec check-all-zones now detect ttl differnce within a rrset
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfd53bd0: check for duplicate records with pdnssec check-all-zones (Issue t607)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7eaa83a: pdnssec check-all-zones now detect RRSIG records in non-presigned zones
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ge319467: detect duplicate cnames with pdnssec check-all-zones (Issue t545)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3dfb45f:  fix ringbuffer size decrease
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g74baf86: fix NSEC for asterisk ents and add test
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gcd30e94: Fix closest encloser proof for wildcard nodata answers. Add some tests to make sure I won't break this again...
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g213ec4a: add constraints for name to pg schema
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf104427: make domainmetadata queries case insensitive
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g1fa8b2b: answer direct NSEC queries without DO bit
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g78fc378: no label compression for name in TSIG records
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g15d6ffb: output ZSK DNSKEY records if experimental-direct-dnskey support is enabled
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gad67d0e: drop cryptopp from static build as libcryptopp.a is broken on Debian 7, which is what we build on
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g4fe4177: Remove unused mysql dependency from pdns_server and pdnssec.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7632dd8: support polarssl 1.3
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc60ca6d: Enable subdir-objects for automake-1.14
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g80411f1: Replace PolarSSL-conditionals in Makefile.am and trust the include dirs
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g044707e: Now uses send/recv wrapper to handle exceptions and connector rebuild
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ga9da3c0: update gitignore
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc271ff3: add unit test to check if we detected byte order correctly
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2fefd1a: our OPT testing appears to have been little-endian only, this might improve things
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2400764: for ages... we messed up base64 decoding on big endian platforms. The shame.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ge655f11: Fix truncating bug
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g82def39: SOA-EDIT: fix INCEPTION-INCREMENT handling
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ga3a546c: add innodb-read-committed option
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g14a4f1e: unbreak auth osx compilation, closes t902
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g9c56e16: actually notice timeout during AXFR retrieve, thanks hkraal
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-recursor-3.5.3"><title>PowerDNS Recursor version 3.5.3</title>
       <note>
         <para>
