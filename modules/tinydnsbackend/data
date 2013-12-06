@@ -20244,6 +20244,7 @@ Zdelegated.dnssec-parent.com:ns1.delegated.dnssec-parent.com.:ahu.example.com.:2
 +delegated.dnssec-parent.com:9.9.9.9:3600
 &delegated.dnssec-parent.com::ns1.delegated.dnssec-parent.com.:3600
 &delegated.dnssec-parent.com::ns2.delegated.dnssec-parent.com.:3600
+:delegated.dnssec-parent.com:43:\253\376\010\002\324\303\325U\053\206y\372\356\2741\176\137\004\213aK.\137\140\175\305\177\025S\030-I\253\041y\367:3600
 +ns1.delegated.dnssec-parent.com:4.5.6.7:3600
 +ns2.delegated.dnssec-parent.com:5.6.7.8:3600
 Cwww.delegated.dnssec-parent.com:delegated.dnssec-parent.com.:3600
