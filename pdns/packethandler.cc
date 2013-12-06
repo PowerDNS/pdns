@@ -1200,27 +1200,36 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
 
-    // please don't query fancy records directly!
-    if(d_doFancyRecords && (p->qtype.getCode()==QType::URL || p->qtype.getCode()==QType::CURL || p->qtype.getCode()==QType::MBOXFW)) {
-      r->setRcode(RCode::ServFail);
-      return r;
-    }
-    
+
     string target=p->qdomain;
-    
-    if(doVersionRequest(p,r,target)) // catch version.bind requests
+
+    // catch version.bind requests
+    if(doVersionRequest(p,r,target))
       goto sendit;
 
+    // we only know about qclass IN (and ANY), send NotImp for everthing else.
+    if(p->qclass != QClass::IN && p->qclass!=QClass::ANY) {
+      r->setRcode(RCode::NotImp);
+      return r;
+    }
+
+    // send TC for udp ANY query if any-to-tcp is enabled.
     if((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG) && !p->d_tcp && g_anyToTcp) {
       r->d.tc = 1;
       r->commitD();
       return r;
     }
 
-    if(p->qclass==QClass::ANY) // any class query
+    // please don't query fancy records directly!
+    if(d_doFancyRecords && (p->qtype.getCode()==QType::URL || p->qtype.getCode()==QType::CURL || p->qtype.getCode()==QType::MBOXFW)) {
+      r->setRcode(RCode::ServFail);
+      return r;
+    }
+
+    // for qclass ANY the response should never be authoritative unless the server can guarantee that the response covers all classes.
+    if(p->qclass==QClass::ANY)
       r->setA(false);
-    else if(p->qclass != QClass::IN) // we only know about IN, so we don't find anything
-      goto sendit;
+
 
   retargeted:;
     if(retargetcount > 10) {    // XXX FIXME, retargetcount++?
