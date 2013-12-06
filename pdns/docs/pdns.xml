@@ -17644,6 +17644,12 @@ The default value for scopebits is 0. The default for auth is 1 (meaning
 authoritative).
 </para>
 	</sect3>
+        <sect3>
+        <title>Ruby and python support</title>
+        <para>
+          For ruby and python, there are libraries to ease your work. Please consider using these, for example <ulink url="https://pypi.python.org/pypi/Pdns_Remotebackend/">https://pypi.python.org/pypi/Pdns_Remotebackend/</ulink> and <ulink url="http://rubygems.org/gems/pdns-remotebackend">http://rubygems.org/gems/pdns-remotebackend</ulink>.
+        </para>
+        </sect3>
 	<sect3>
 	<title>Sample perl backend</title>
 <programlisting><xi:include  href="../../modules/pipebackend/backend.pl"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
