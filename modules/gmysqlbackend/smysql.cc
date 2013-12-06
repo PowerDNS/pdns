@@ -16,8 +16,6 @@ pthread_mutex_t SMySQL::s_myinitlock = PTHREAD_MUTEX_INITIALIZER;
 SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const string &msocket, const string &user,
                const string &password, const string &group, unsigned int timeout, bool setIsolation)
 {
-  int retry=1;
-
   Lock l(&s_myinitlock);
   mysql_init(&d_db);
 
@@ -29,6 +27,7 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   d_password = password;
   d_group = group;
   d_timeout = timeout;
+  d_setIsolation = setIsolation;
 
   d_connected=false;
   
@@ -41,6 +40,8 @@ void SMySQL::ensureConnect()
 {
   if(d_connected)
     return;
+
+  int retry = 1;
 
   do {
     Lock l(&s_myinitlock);
@@ -65,10 +66,10 @@ void SMySQL::ensureConnect()
     mysql_options(&d_db, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
 #endif
 
-    if (setIsolation && (retry == 1))
+    if (d_setIsolation && (retry == 1))
       mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
 
-    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, group.c_str());
+    mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, d_group.c_str());
 
     if (!mysql_real_connect(&d_db, d_host.empty() ? NULL : d_host.c_str(),
               d_user.empty() ? NULL : d_user.c_str(),

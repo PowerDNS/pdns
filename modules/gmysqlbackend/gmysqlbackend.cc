@@ -22,7 +22,7 @@ gMySQLBackend::gMySQLBackend(const string &mode, const string &suffix)  : GSQLBa
                      getArg("user"),
                      getArg("password"),
                      getArg("group"),
-                     getArgAsNum("timeout")));
+                     getArgAsNum("timeout"),
                      mustDo("innodb-read-committed")));
   }
 

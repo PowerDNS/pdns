@@ -68,12 +68,12 @@ int UeberBackend::s_s=-1; // ?
 #endif
 
 // Helper function for contexts that conditionally want to rethrow AhuExceptions
-static void maybeThrowAhu(AhuException &ae, bool dothrow)
+static void maybeThrowPDNS(PDNSException &pe, bool dothrow)
 {
   if(dothrow)
     throw;
   else
-    L<<Logger::Warning<<"Ignoring exception from consistent backend: "<<ae.reason<<endl;
+    L<<Logger::Warning<<"Ignoring exception from consistent backend: "<<pe.reason<<endl;
 }
 
 //! Loads a module and reports it to all UeberBackend threads
@@ -254,8 +254,8 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
     try {
       ( *i )->getUnfreshSlaveInfos( domains );
     }
-    catch (AhuException &ae) {
-      maybeThrowAhu(ae, !::arg().mustDo("experimental-consistent-backends"));
+    catch (PDNSException &pe) {
+      maybeThrowPDNS(pe, !::arg().mustDo("experimental-consistent-backends"));
     }
   }  
 }
@@ -269,8 +269,8 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
     try {
       ( *i )->getUpdatedMasters( domains );
     }
-    catch (AhuException &ae) {
-      maybeThrowAhu(ae, !::arg().mustDo("experimental-consistent-backends"));
+    catch (PDNSException &pe) {
+      maybeThrowPDNS(pe, !::arg().mustDo("experimental-consistent-backends"));
     }
   }
 }

@@ -78,6 +78,8 @@ public:
 
 private:
   string d_qname;
+  QType d_qtype;
+  int d_count;
   SSql *d_db;
   bool d_lookupSuccess;
   time_t d_silentuntil;

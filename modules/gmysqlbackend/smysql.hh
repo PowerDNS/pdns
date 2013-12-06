@@ -38,6 +38,7 @@ private:
   string d_password;
   string d_group;
   unsigned int d_timeout;
+  bool d_setIsolation;
   bool d_connected;
 
   static bool s_dolog;
