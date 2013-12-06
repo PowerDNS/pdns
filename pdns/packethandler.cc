@@ -261,20 +261,39 @@ int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
   
-  if(p->qclass == QClass::CHAOS && p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
+  if(p->qclass == QClass::CHAOS && p->qtype.getCode()==QType::TXT && 
+    (target == "version.bind") || (target == "id.server") || (target == "version.pdns") ) {// TXT
     // modes: anonymous, powerdns only, full, spoofed
-    const static string mode=::arg()["version-string"];
-  
-    if(mode.empty() || mode=="full") 
-      rr.content=fullVersionString();
-    else if(mode=="anonymous") {
-      r->setRcode(RCode::ServFail);
-      return 1;
+
+    static string mode;
+    if (target == "id.server") {
+      mode=::arg()["server-id"];
+
+      if (mode == "anonymous") {
+        r->setRcode(RCode::ServFail);
+        return 1;
+      }
+      else if (mode == "disabled") {
+        return 0;
+      }
+      else
+        rr.content=mode;
+    } // We were asked for a version, not RFC 4892 id.server
+    else {
+      mode=::arg()["version-string"];
+    
+      if(mode.empty() || mode=="full") 
+        rr.content=fullVersionString();
+      else if(mode=="anonymous") {
+        r->setRcode(RCode::ServFail);
+        return 1;
+      }
+      else if(mode=="powerdns") {
+        rr.content="Served by PowerDNS - http://www.powerdns.com";
+      }
+      else 
+        rr.content=mode;
     }
-    else if(mode=="powerdns")
-      rr.content="Served by PowerDNS - http://www.powerdns.com";
-    else 
-      rr.content=mode;
 
     rr.ttl=5;
     rr.qname=target;
@@ -1199,7 +1218,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     
     string target=p->qdomain;
     
-    if(doVersionRequest(p,r,target)) // catch version.bind requests
+    if( (p->qclass == QClass::CHAOS) && (doVersionRequest(p,r,target)) ) // catch version.bind or id.server requests
       goto sendit;
 
     if((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG) && !p->d_tcp && g_anyToTcp) {
