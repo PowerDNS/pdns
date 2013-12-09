@@ -125,6 +125,11 @@
 # entropy-source=/dev/urandom
 
 #################################
+# experimental-consistent-backends	Assume that all backends have identical data, tolerate individual backend failure
+#
+# experimental-consistent-backends=no
+
+#################################
 # experimental-direct-dnskey	EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis
 #
 # experimental-direct-dnskey=no
