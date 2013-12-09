@@ -241,8 +241,8 @@ ArgvMap &arg()
 
 
 int main(int argc, char **argv)
+try
 {
-  try {
     reportAllTypes();
     reportFancyTypes();
 #if __GNUC__ >= 3
@@ -379,26 +379,23 @@ int main(int argc, char **argv)
     }
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<g_numRecords<<" records\n";
     
-  }
-  catch(AhuException &ae) {
-    cerr<<"\nFatal error: "<<ae.reason<<endl;
-    return 0;
-  }
-  catch(std::exception &e) {
-    cerr<<"died because of STL error: "<<e.what()<<endl;
-    exit(0);
-  }
-  catch(...) {
-    cerr<<"died because of unknown exception"<<endl;
-    exit(0);
-  }
-  
   if(::arg().mustDo("transactions") && g_intransaction) {
     if(g_mode != SQLITE)
       cout<<"COMMIT WORK;"<<endl;
     else
       cout<<"COMMIT;"<<endl;
   }
+  return 0;
+}
+catch(AhuException &ae) {
+  cerr<<"\nFatal error: "<<ae.reason<<endl;
   return 1;
-
+}
+catch(std::exception &e) {
+  cerr<<"\ndied because of STL error: "<<e.what()<<endl;
+  return 1;
+}
+catch(...) {
+  cerr<<"\ndied because of unknown exception"<<endl;
+  return 1;
 }

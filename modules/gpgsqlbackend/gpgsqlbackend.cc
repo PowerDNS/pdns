@@ -66,17 +66,17 @@ public:
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
   
     // and now with auth
-    declare(suffix,"basic-query-auth","Basic query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where type='%s' and name=E'%s'");
-    declare(suffix,"id-query-auth","Basic with ID query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where type='%s' and name=E'%s' and domain_id=%d");
-    declare(suffix,"wildcard-query-auth","Wildcard query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where type='%s' and name like E'%s'");
-    declare(suffix,"wildcard-id-query-auth","Wildcard with ID query","select content,ttl,prio,type,domain_id,name, case when auth true then 1 else 0 end as auth from records where type='%s' and name like E'%s' and domain_id='%d'");
+    declare(suffix,"basic-query-auth","Basic query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name=E'%s'");
+    declare(suffix,"id-query-auth","Basic with ID query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name=E'%s' and domain_id=%d");
+    declare(suffix,"wildcard-query-auth","Wildcard query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name like E'%s'");
+    declare(suffix,"wildcard-id-query-auth","Wildcard with ID query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name like E'%s' and domain_id='%d'");
 
-    declare(suffix,"any-query-auth","Any query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where name=E'%s'");
-    declare(suffix,"any-id-query-auth","Any with ID query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where name=E'%s' and domain_id=%d");
-    declare(suffix,"wildcard-any-query-auth","Wildcard ANY query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where name like E'%s'");
-    declare(suffix,"wildcard-any-id-query-auth","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where name like E'%s' and domain_id='%d'");
+    declare(suffix,"any-query-auth","Any query","select content,ttl,prio,type,domain_id,name, auth::int from records where name=E'%s'");
+    declare(suffix,"any-id-query-auth","Any with ID query","select content,ttl,prio,type,domain_id,name, auth::int from records where name=E'%s' and domain_id=%d");
+    declare(suffix,"wildcard-any-query-auth","Wildcard ANY query","select content,ttl,prio,type,domain_id,name, auth::int from records where name like E'%s'");
+    declare(suffix,"wildcard-any-id-query-auth","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name, auth::int from records where name like E'%s' and domain_id='%d'");
 
-    declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, case when auth then 1 else 0 end as auth from records where domain_id='%d' order by name, type");
+    declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, auth::int from records where domain_id='%d' order by name, type");
 
     declare(suffix,"insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,auth) values ('%d','%s',null,true)");
     
@@ -99,10 +99,10 @@ public:
     declare(suffix,"get-order-before-query","DNSSEC Ordering Query, before", "select ordername, name from records where ordername ~<=~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
     declare(suffix,"get-order-after-query","DNSSEC Ordering Query, after", "select ordername from records where ordername ~>~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix,"get-order-last-query","DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
-    declare(suffix,"set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=E'%s',auth=(%d = 1) where name=E'%s' and domain_id='%d'");
+    declare(suffix,"set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=E'%s',auth=%d::bool where name=E'%s' and domain_id='%d'");
     declare(suffix,"set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=true where domain_id='%d' and name='%s' and type='DS'");
 
-    declare(suffix,"nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=(%d = 1) where domain_id='%d' and name='%s'");
+    declare(suffix,"nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=%d::bool where domain_id='%d' and name='%s'");
     declare(suffix,"nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=false where name=E'%s' and type=E'%s' and domain_id='%d'");
     
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
