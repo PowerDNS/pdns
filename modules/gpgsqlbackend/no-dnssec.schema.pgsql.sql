@@ -32,7 +32,8 @@ CREATE INDEX domain_id ON records(domain_id);
 create table supermasters (
           ip INET NOT NULL,
           nameserver VARCHAR(255) NOT NULL,
-          account VARCHAR(40) DEFAULT NULL
+          account VARCHAR(40) DEFAULT NULL,
+          PRIMARY KEY (ip, nameserver)
 );
 
 -- GRANT SELECT ON supermasters TO pdns;
