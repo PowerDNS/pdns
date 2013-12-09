@@ -922,20 +922,23 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
 
   char output[1024];
   try {
+    // figure out if there is a supermaster record for the IP address
     format = d_GetSuperMasterName;
     snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(ip).c_str()); 
     d_db->doQuery(output, d_result);
     if (!d_result.empty()) {
+      // there is, now figure out all IP addresses for the master
       name = d_result[0][0];
       format = d_GetSuperMasterIPs;
       snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(name).c_str()); 
       d_db->doQuery(output, d_result);
       if (!d_result.empty()) {
+        // collect all IP addresses
         vector<string> tmp;
         BOOST_FOREACH(SSql::row_t& row, d_result) {
           tmp.push_back(row[0]);
         }
-        // set as masters
+        // set them as domain's masters, comma separated
         masters = boost::join(tmp, ",");
       }
     } 
