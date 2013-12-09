@@ -18,7 +18,7 @@ libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc h
 libremotebackend_la_LDFLAGS=-module -avoid-version
 libremotebackend_la_LIBADD=$(LIBCURL_LIBS) $(LIBZMQ_LIBS)
 
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_HTTP=$(REMOTEBACKEND_HTTP) REMOTEBACKEND_ZEROMQ==$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh 
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_HTTP=$(REMOTEBACKEND_HTTP) REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh 
 TESTS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
 
 BUILT_SOURCES=../../pdns/dnslabeltext.cc
