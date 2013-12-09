@@ -294,6 +294,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
+  d_GetSuperMasterName=getArg("supermaster-ip-to-name");
+  d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query"+authswitch);
@@ -915,10 +917,30 @@ bool GSQLBackend::createDomain(const string &domain)
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
   string format;
+  string name;
+  string masters=ip;
+
   char output[1024];
-  format = d_InsertSlaveZoneQuery;
-  snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(domain).c_str(),sqlEscape(ip).c_str(),sqlEscape(account).c_str());
   try {
+    format = d_GetSuperMasterName;
+    snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(ip).c_str()); 
+    d_db->doQuery(output, d_result);
+    if (!d_result.empty()) {
+      name = d_result[0][0];
+      format = d_GetSuperMasterIPs;
+      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(name).c_str()); 
+      d_db->doQuery(output, d_result);
+      if (!d_result.empty()) {
+        vector<string> tmp;
+        BOOST_FOREACH(SSql::row_t& row, d_result) {
+          tmp.push_back(row[0]);
+        }
+        // set as masters
+        masters = boost::join(tmp, ",");
+      }
+    } 
+    format = d_InsertSlaveZoneQuery;
+    snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(domain).c_str(),sqlEscape(masters).c_str(),sqlEscape(account).c_str());
     d_db->doCommand(output);
   }
   catch(SSqlException &e) {
