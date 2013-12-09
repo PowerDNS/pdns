@@ -287,7 +287,7 @@ void DNSPacket::wrapup()
   DNSPacketWriter::optvect_t opts;
   if(d_wantsnsid) {
     const static string mode_server_id=::arg()["server-id"];
-    if(mode_server_id != "anonymous" && mode_server_id != "disabled") {
+    if(mode_server_id != "disabled") {
       opts.push_back(make_pair(3, mode_server_id));
     }
   }

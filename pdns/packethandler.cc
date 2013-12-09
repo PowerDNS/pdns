@@ -256,55 +256,54 @@ bool PacketHandler::addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 }
 
 
-/** This catches version requests. Returns 1 if it was handled, 0 if it wasn't */
-int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
+// This is our chaos class requests handler. Return 1 if content was added, 0 if it wasn't
+int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
-  
-  if(p->qclass == QClass::CHAOS && p->qtype.getCode()==QType::TXT && 
-    (target == "version.bind") || (target == "id.server") || (target == "version.pdns") ) {// TXT
-    // modes: anonymous, powerdns only, full, spoofed
 
-    static string mode;
-    if (target == "id.server") {
-      mode=::arg()["server-id"];
+  if(p->qtype.getCode()==QType::TXT) {
+    if (pdns_iequals(target, "version.pdns") || pdns_iequals(target, "version.bind")) {
+      // modes: full, powerdns only, anonymous or custom
+      const static string mode=::arg()["version-string"];
 
-      if (mode == "anonymous") {
+      if(mode.empty() || mode=="full")
+        rr.content=fullVersionString();
+      else if(mode=="powerdns")
+        rr.content="Served by PowerDNS - https://www.powerdns.com/";
+      else if(mode=="anonymous") {
         r->setRcode(RCode::ServFail);
-        return 1;
-      }
-      else if (mode == "disabled") {
         return 0;
       }
       else
         rr.content=mode;
-    } // We were asked for a version, not RFC 4892 id.server
+    }
+    else if (pdns_iequals(target, "id.server")) {
+      // modes: disabled, hostname or custom
+      const static string id=::arg()["server-id"];
+
+      if (id == "disabled") {
+        r->setRcode(RCode::Refused);
+        return 0;
+      }
+      rr.content=id;
+    }
     else {
-      mode=::arg()["version-string"];
-    
-      if(mode.empty() || mode=="full") 
-        rr.content=fullVersionString();
-      else if(mode=="anonymous") {
-        r->setRcode(RCode::ServFail);
-        return 1;
-      }
-      else if(mode=="powerdns") {
-        rr.content="Served by PowerDNS - http://www.powerdns.com";
-      }
-      else 
-        rr.content=mode;
+      r->setRcode(RCode::Refused);
+      return 0;
     }
 
     rr.ttl=5;
     rr.qname=target;
-    rr.qtype=QType::TXT; 
-    rr.qclass=QClass::CHAOS; 
+    rr.qtype=QType::TXT;
+    rr.qclass=QClass::CHAOS;
     r->addRecord(rr);
-    
     return 1;
   }
+
+  r->setRcode(RCode::NotImp);
   return 0;
 }
+
 
 /** Determines if we are authoritative for a zone, and at what level */
 bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
@@ -1222,9 +1221,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     string target=p->qdomain;
 
-    // catch version.bind requests
-    if(doVersionRequest(p,r,target))
-      goto sendit;
+    // catch chaos qclass requests
+    if(p->qclass == QClass::CHAOS) {
+      if (doChaosRequest(p,r,target))
+        goto sendit;
+      else
+        return r;
+    }
 
     // we only know about qclass IN (and ANY), send NotImp for everthing else.
     if(p->qclass != QClass::IN && p->qclass!=QClass::ANY) {
@@ -1232,8 +1235,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
 
-    // send TC for udp ANY query if any-to-tcp is enabled.
-    if((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG) && !p->d_tcp && g_anyToTcp) {
+    // send TC for udp ANY or RRSIG query if any-to-tcp is enabled.
+    if(g_anyToTcp && !p->d_tcp && ((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG))) {
       r->d.tc = 1;
       r->commitD();
       return r;
@@ -1245,7 +1248,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
 
-    // for qclass ANY the response should never be authoritative unless the server can guarantee that the response covers all classes.
+    // for qclass ANY the response should never be authoritative unless the response covers all classes.
     if(p->qclass==QClass::ANY)
       r->setA(false);
 

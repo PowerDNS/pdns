@@ -73,7 +73,7 @@ private:
   int findMboxFW(DNSPacket *p, DNSPacket *r, string &target);
   int findUrl(DNSPacket *p, DNSPacket *r, string &target);
   int doFancyRecords(DNSPacket *p, DNSPacket *r, string &target);
-  int doVersionRequest(DNSPacket *p, DNSPacket *r, string &target);
+  int doChaosRequest(DNSPacket *p, DNSPacket *r, string &target);
   bool addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
