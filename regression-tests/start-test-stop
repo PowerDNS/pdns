@@ -1247,6 +1247,26 @@ then
 	read l
 fi
 
-kill $(cat pdns*.pid)
+pids=$(cat pdns*.pid)
+
+kill $pids
+# make sure they die.
+set +e
+loopcount=0
+done=0
+while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+do
+  done=1
+  for pid in $pids
+  do
+    kill -0 $pid > /dev/null 2>&1
+    if [ $? -eq 0 ]; then 
+      done=0
+    fi
+  done
+  let loopcount=loopcount+1
+  sleep 1
+done
+
 rm pdns*.pid || true
 exit $RETVAL
