@@ -14,7 +14,6 @@ f = File.open "/tmp/tmp.txt","a"
 begin
   context = ZeroMQ::Context.new
   socket = context.socket ZMQ::REP
-  socket.setsockopt(ZMQ::HWM, 1000)
   socket.bind("ipc:///tmp/pdns.0")
 
   while(true) do

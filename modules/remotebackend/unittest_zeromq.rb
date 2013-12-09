@@ -12,7 +12,6 @@ f = File.open "/tmp/tmp.txt","a"
 begin
   context = ZeroMQ::Context.new
   socket = context.socket ZMQ::REP
-  socket.setsockopt(ZMQ::HWM, 1000)
   socket.bind("tcp://127.0.0.1:43622")
  
   print "[#{Time.now.to_s}] ZeroMQ unit test responder running\n"
