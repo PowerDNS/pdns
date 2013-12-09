@@ -24,10 +24,23 @@
 #include "arguments.hh"
 #include "ueberbackend.hh"
 #include "logger.hh"
+#include "packetcache.hh"
+#include "dnsseckeeper.hh"
 
 #include <sys/types.h>
 #include "dnspacket.hh"
 #include "dns.hh"
+
+void DNSBackend::clearUpstreamCaches(void)
+{
+  extern PacketCache PC;
+  DNSSECKeeper dk;
+
+  int ret=PC.purge();
+  dk.clearAllCaches();
+
+  L<<Logger::Error<<"Purged DNSSEC cache and PacketCache ("<<ret<<" items) on backend request"<<endl;
+}
 
 string DNSBackend::getRemote(DNSPacket *p)
 {
@@ -309,4 +322,9 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
     serial=newest; // +arg().asNum("soa-serial-offset");
 
     return true;
+}
+
+bool DNSBackend::lookupfailed(void)
+{
+  return false;
 }

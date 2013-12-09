@@ -106,6 +106,7 @@ class DNSBackend
 public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
+  virtual bool lookupfailed(void);
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
 
 
@@ -325,8 +326,9 @@ protected:
   int getArgAsNum(const string &key);
   string getRemote(DNSPacket *p);
   bool getRemote(DNSPacket *p, struct sockaddr *in, Utility::socklen_t *len);
+  void clearUpstreamCaches(void);
 
-private:
+public: // for logging inside gsql, FIXME
   string d_prefix;
 };
 

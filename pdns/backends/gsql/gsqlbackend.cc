@@ -44,6 +44,9 @@
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 {
+  if(d_readonly)
+    throw PDNSException("called setNotified("+itoa(domain_id)+","+itoa(serial)+") on readonly GSQLBackend");
+
   char output[1024];
   snprintf(output,sizeof(output)-1,
 	   d_UpdateSerialOfZoneQuery.c_str(),
@@ -59,6 +62,8 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
 
 void GSQLBackend::setFresh(uint32_t domain_id)
 {
+  if(d_readonly)
+    throw PDNSException("called setFresh("+itoa(domain_id)+") on readonly GSQLBackend");
   char output[1024];
   snprintf(output,sizeof(output)-1,d_UpdateLastCheckofZoneQuery.c_str(),
 	   time(0),
@@ -74,6 +79,11 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 
 bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
+  if(d_readonly) {
+    DLOG(L<<"called isMaster("<<domain<<","<<ip<<") on readonly GSQLBackend, returning false"<<endl);
+    return false;
+  }
+
   char output[1024];
   snprintf(output,sizeof(output)-1,
 	   d_MasterOfDomainsZoneQuery.c_str(),
@@ -82,7 +92,7 @@ bool GSQLBackend::isMaster(const string &domain, const string &ip)
     d_db->doQuery(output, d_result);
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to check master status of domain "+domain+": "+e.txtReason());
   }
 
   if(d_result.empty())
@@ -135,6 +145,12 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type */
+  // do NOT remove this readonly check lightly! without it, ueberbackend will consider
+  // readonly backends to be eligible for storing slaved zones
+  if(d_readonly)
+    return false;
+
+  /* returns information about given zone */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
 	   sqlEscape(domain).c_str());
@@ -156,26 +172,28 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.notified_serial = atol(d_result[0][4].c_str());
   string type=d_result[0][5];
   di.backend=this;
-
-  di.serial = 0;
-  try {
-    SOAData sd;
-    if(!getSOA(domain,sd))
-      L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
-    else
-      di.serial = sd.serial;
-  }
+  
+    di.serial=0;
+    try {
+      SOAData sd;
+      if(!getSOA(domain,sd)) 
+        L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      else
+        di.serial=sd.serial;
+    }
   catch(PDNSException &ae){
-    L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
-  }
-
+      L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
+    }
+    
   di.kind = DomainInfo::stringToKind(type);
-
+  
   return true;
 }
 
 void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
+  if(d_readonly)
+    return;
   /* list all domains that need refreshing for which we are slave, and insert into SlaveDomain:
      id,name,master IP,serial */
   try {
@@ -212,6 +230,9 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
 void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
 {
+  if(d_readonly)
+    return;
+
   /* list all domains that need notifications for which we are master, and insert into updatedDomains
      id,name,master IP,serial */
   try {
@@ -266,6 +287,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
   setArgPrefix(mode+suffix);
   d_db=0;
+  d_silentuntil=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
 	
   try
@@ -275,6 +297,15 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   catch (ArgException e)
   {
     d_dnssecQueries = false;
+  }
+
+  try
+  {
+    d_readonly = mustDo("readonly");
+  }
+  catch (ArgException e)
+  {
+    d_readonly = false;
   }
 
   string authswitch = d_dnssecQueries ? "-auth" : "";	  
@@ -350,6 +381,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
 {
+  if(d_readonly)
+    throw PDNSException("called updateDNSSECOrderAndAuth("+itoa(domain_id)+","+zonename+","+qname+","+itoa(auth)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   string ins=toLower(labelReverse(makeRelative(qname, zonename)));
@@ -358,6 +391,9 @@ bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string
 
 bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
 {
+  if(d_readonly)
+    throw PDNSException("called updateDNSSECOrderAndAuthAbsolute("+itoa(domain_id)+","+qname+","+ordername+","+itoa(auth)+") on readonly GSQLBackend");
+
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -374,6 +410,8 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
 
 bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth)
 {
+  if(d_readonly)
+    throw PDNSException("called nullifyDNSSECOrderNameAndUpdateAuth("+itoa(domain_id)+","+qname+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -390,6 +428,8 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const 
 
 bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
 {
+  if(d_readonly)
+    throw PDNSException("called nullifyDNSSECOrderNameAndAuth("+itoa(domain_id)+","+qname+","+type+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -406,6 +446,9 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
 
 bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname)
 {
+  if(d_readonly)
+    throw PDNSException("called setDNSSECAuthOnDsRecord("+itoa(domain_id)+","+qname+") on readonly GSQLBackend");
+
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -422,6 +465,8 @@ bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string&
 
 bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert, set<string>& erase, bool remove)
 {
+  if(d_readonly)
+    throw PDNSException("called updateEmptyNonTerminals("+itoa(domain_id)+","+zonename+", ...) on readonly GSQLBackend");
   char output[1024];
 
   if(remove) {
@@ -544,6 +589,8 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string&
 
 int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 {
+  if(d_readonly)
+    throw PDNSException("called addDomainKey("+name+",.. keymaterial ..) on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return -1;
   char output[16384];  
@@ -561,6 +608,8 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
 
 bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 {
+  if(d_readonly)
+    throw PDNSException("called activateDomainKey("+name+","+itoa(id)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -577,6 +626,8 @@ bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 {
+  if(d_readonly)
+    throw PDNSException("called deactivateDomainKey("+name+","+itoa(id)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -593,6 +644,8 @@ bool GSQLBackend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 {
+  if(d_readonly)
+    throw PDNSException("called removeDomainKey("+name+","+itoa(id)+") on readonly GSQLBackend");
   if(!d_dnssecQueries)
     return false;
   char output[1024];
@@ -759,6 +812,8 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 
 bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
+  if(d_readonly)
+    throw PDNSException("called setDomainMetadata("+name+","+kind+",<vector>) on readonly GSQLBackend");
   char output[16384];  
   if(!d_dnssecQueries)
     return false;
@@ -771,8 +826,8 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
       BOOST_FOREACH(const std::string & value, meta) {
          snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
             sqlEscape(kind).c_str(), sqlEscape(value).c_str(), sqlEscape(toLower(name)).c_str());
-         d_db->doCommand(output);
-      }
+      d_db->doCommand(output);
+  }
     }
   }
   catch (SSqlException &e) {
@@ -786,6 +841,19 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
 {
   string format;
   char output[1024];
+
+  if(d_silentuntil >= time(0))
+  {
+    DLOG(L<<"GSQLBackend "<<d_prefix<<" dropping query during gracetime ("<<(d_silentuntil-time(0))<<" seconds left)"<<endl);
+    d_lookupSuccess = false;
+
+    d_qname=qname;
+
+    d_qtype=qtype;
+    d_count=0;
+
+    return;
+  }
 
   d_db->setLog(::arg().mustDo("query-logging"));
 
@@ -833,12 +901,27 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
 
   try {
     d_db->doQuery(output);
+    d_lookupSuccess=true;
   }
   catch(SSqlException &e) {
-    throw PDNSException(e.txtReason());
+    DLOG(L<<"would have thrown "<<e.txtReason()<<endl);
+    d_silentuntil = time(0)+getArgAsNum("gracetime");
+    d_lookupSuccess=false;
+  }
+
+  if(d_silentuntil && d_lookupSuccess) {
+    // we just came out of gracetime and stuff appears to be up again
+    // flush some caches
+    clearUpstreamCaches();
+    d_silentuntil = 0;
   }
 
   d_qname=qname;
+}
+
+bool GSQLBackend::lookupfailed(void)
+{
+  return !d_lookupSuccess;
 }
 
 bool GSQLBackend::list(const string &target, int domain_id )
@@ -878,6 +961,10 @@ bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
 
 bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb)
 {
+  if(d_readonly) {
+    DLOG(L<<"called superMasterBackend("<<ip<<","<<domain<<", ...) on readonly GSQLBackend, returning false"<<endl);
+    return false;
+  }
   string format;
   char output[1024];
   format = d_SuperMasterInfoQuery;
@@ -914,6 +1001,8 @@ bool GSQLBackend::createDomain(const string &domain)
 
 bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
 {
+  if(d_readonly)
+    throw PDNSException("called superMasterBackend("+ip+","+domain+","+account+") on readonly GSQLBackend");
   string format;
   char output[1024];
   format = d_InsertSlaveZoneQuery;
@@ -1007,7 +1096,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 {
   // L << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
   SSql::row_t row;
-  if(d_db->getRow(row)) {
+  if(d_lookupSuccess && d_db->getRow(row)) {
     r.content=row[0];
     if (row[1].empty())
         r.ttl = ::arg().asNum( "default-ttl" );
@@ -1035,6 +1124,8 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
+  if(d_readonly)
+    throw PDNSException("called replaceRRset(RR for "+qname+","+qt.getName()+") on readonly GSQLBackend");
   string deleteQuery;
   string deleteRRSet;
   if (qt != QType::ANY) {
@@ -1054,6 +1145,9 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
+  if(d_readonly)
+    throw PDNSException("called feedRecord(RR for "+r.qname+") on readonly GSQLBackend");
+
   string output;
   if(d_dnssecQueries) {
     if(ordername)
@@ -1115,6 +1209,8 @@ bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &no
 
 bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 {
+  if(d_readonly)
+    throw PDNSException("called startTransaction("+domain+","+itoa(domain_id)+") on readonly GSQLBackend");
   char output[1024];
   if(domain_id >= 0) 
    snprintf(output,sizeof(output)-1,d_DeleteZoneQuery.c_str(),domain_id);
@@ -1132,6 +1228,8 @@ bool GSQLBackend::startTransaction(const string &domain, int domain_id)
 
 bool GSQLBackend::commitTransaction()
 {
+  if(d_readonly)
+    throw PDNSException("called commitTransaction() on readonly GSQLBackend");
   try {
     d_db->doCommand("commit");
   }
@@ -1143,6 +1241,8 @@ bool GSQLBackend::commitTransaction()
 
 bool GSQLBackend::abortTransaction()
 {
+  if(d_readonly)
+    throw PDNSException("called abortTransaction() on readonly GSQLBackend");
   try {
     d_db->doCommand("rollback");
   }

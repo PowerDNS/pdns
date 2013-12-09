@@ -153,6 +153,8 @@ void declareArguments()
   ::arg().set("default-zsk-size","Default KSK size (0 means default)")="0";
 
   ::arg().set("include-dir","Include *.conf files from this directory");
+
+  ::arg().setSwitch("experimental-consistent-backends","Assume that all backends have identical data, tolerate individual backend failure")="no";
 }
 
 void declareStats(void)

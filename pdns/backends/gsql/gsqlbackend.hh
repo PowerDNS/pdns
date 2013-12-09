@@ -24,6 +24,7 @@ public:
   
   virtual string sqlEscape(const string &name);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
+  bool lookupfailed(void);
   bool list(const string &target, int domain_id);
   bool get(DNSResourceRecord &r);
   void getAllDomains(vector<DomainInfo> *domains);
@@ -77,7 +78,11 @@ public:
 
 private:
   string d_qname;
+  QType d_qtype;
+  int d_count;
   SSql *d_db;
+  bool d_lookupSuccess;
+  time_t d_silentuntil;
   SSql::result_t d_result;
 
   string d_wildCardNoIDQuery;
@@ -145,4 +150,5 @@ private:
 
 protected:
   bool d_dnssecQueries;
+  bool d_readonly;
 };

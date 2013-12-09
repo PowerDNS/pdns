@@ -315,6 +315,7 @@ vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData
   DNSResourceRecord rr;
   string subdomain(target);
   do {
+    cerr<<"getBestReferralNS trying "<<subdomain<<endl;
     if(subdomain == sd.qname) // stop at SOA
       break;
     B.lookup(QType(QType::NS), subdomain, p, sd.domain_id);

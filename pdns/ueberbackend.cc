@@ -67,6 +67,15 @@ int UeberBackend::s_s=-1; // ?
 #define RTLD_NOW RTLD_LAZY
 #endif
 
+// Helper function for contexts that conditionally want to rethrow AhuExceptions
+static void maybeThrowPDNS(PDNSException &pe, bool dothrow)
+{
+  if(dothrow)
+    throw;
+  else
+    L<<Logger::Warning<<"Ignoring exception from consistent backend: "<<pe.reason<<endl;
+}
+
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string &name)
 {
@@ -242,7 +251,12 @@ void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
-    ( *i )->getUnfreshSlaveInfos( domains );
+    try {
+      ( *i )->getUnfreshSlaveInfos( domains );
+    }
+    catch (PDNSException &pe) {
+      maybeThrowPDNS(pe, !::arg().mustDo("experimental-consistent-backends"));
+    }
   }  
 }
 
@@ -252,7 +266,12 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
   {
-    ( *i )->getUpdatedMasters( domains );
+    try {
+      ( *i )->getUpdatedMasters( domains );
+    }
+    catch (PDNSException &pe) {
+      maybeThrowPDNS(pe, !::arg().mustDo("experimental-consistent-backends"));
+    }
   }
 }
 
@@ -262,6 +281,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
   d_question.zoneId=-1;
+  bool totalfailure=true;
     
   if(sd.db!=(DNSBackend *)-1) {
     int cstat=cacheHas(d_question,d_answers);
@@ -277,7 +297,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
     }
   }
     
-  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
+  for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i) {
     if((*i)->getSOA(domain, sd, p)) {
       if( d_cache_ttl ) {
         DNSResourceRecord rr;
@@ -292,6 +312,17 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       }
       return true;
     }
+    if(::arg().mustDo("experimental-consistent-backends") && !(*i)->lookupfailed())
+    {
+      totalfailure=false;
+      break;
+    }
+  }
+
+  if(::arg().mustDo("experimental-consistent-backends") && totalfailure)
+  {
+    throw DBException("all backends down, getSOA failed");
+  }
 
   addNegCache(d_question); 
   return false;
@@ -450,6 +481,7 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   domain_id=zoneId;
 
   d_handle.i=0;
+  d_handle.totalfailure=true;
   d_handle.qtype=qtype;
   d_handle.qname=qname;
   d_handle.pkt_p=pkt_p;
@@ -544,6 +576,13 @@ bool UeberBackend::handle::get(DNSResourceRecord &r)
   DLOG(L << "Ueber get() was called for a "<<qtype.getName()<<" record" << endl);
   bool isMore=false;
   while(d_hinterBackend && !(isMore=d_hinterBackend->get(r))) { // this backend out of answers
+    // FIXME only for consistent-backends
+    if(::arg().mustDo("experimental-consistent-backends") && !d_hinterBackend->lookupfailed()) {
+      totalfailure=false;
+      isMore=false;
+      break;
+    }
+
     if(i<parent->backends.size()) {
       DLOG(L<<"Backend #"<<i<<" of "<<parent->backends.size()
            <<" out of answers, taking next"<<endl);
@@ -559,10 +598,12 @@ bool UeberBackend::handle::get(DNSResourceRecord &r)
 
   if(!isMore && i==parent->backends.size()) {
     DLOG(L<<"UeberBackend reached end of backends"<<endl);
+    if(::arg().mustDo("experimental-consistent-backends") && totalfailure)
+      throw DBException("all backends down, lookup/get failed");
     return false;
   }
 
   DLOG(L<<"Found an answering backend - will not try another one"<<endl);
   i=parent->backends.size(); // don't go on to the next backend
-  return true;
+  return isMore;
 }

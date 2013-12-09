@@ -35,6 +35,7 @@ libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.c
         ../../pdns/aes/aescpp.h ../../pdns/dns.hh ../../pdns/dns.cc ../../pdns/json.hh ../../pdns/json.cc \
         ../../pdns/aes/aescrypt.c ../../pdns/aes/aes.h ../../pdns/aes/aeskey.c ../../pdns/aes/aes_modes.c ../../pdns/aes/aesopt.h \
         ../../pdns/aes/aestab.c ../../pdns/aes/aestab.h ../../pdns/aes/brg_endian.h ../../pdns/aes/brg_types.h \
+        ../../pdns/dbdnsseckeeper.cc \
         remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc
 
 libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) -g -O0 -I../../pdns

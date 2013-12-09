@@ -14,6 +14,7 @@ public:
   SMySQL(const string &database, const string &host="", uint16_t port=0,
          const string &msocket="",const string &user="",
          const string &password="", const string &group="",
+         unsigned int timeout=10,
          bool setIsolation=false);
 
   ~SMySQL();
@@ -26,8 +27,20 @@ public:
   string escape(const string &str);
   void setLog(bool state);
 private:
+  void ensureConnect();
   MYSQL d_db;
   MYSQL_RES *d_rres;
+  string d_database;
+  string d_host;
+  uint16_t d_port;
+  string d_msocket;
+  string d_user;
+  string d_password;
+  string d_group;
+  unsigned int d_timeout;
+  bool d_setIsolation;
+  bool d_connected;
+
   static bool s_dolog;
   static pthread_mutex_t s_myinitlock;
 };
