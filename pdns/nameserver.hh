@@ -80,7 +80,7 @@
 class UDPNameserver
 {
 public:
-  UDPNameserver();  //!< Opens the socket
+  UDPNameserver( bool additional_socket = false );  //!< Opens the socket
   DNSPacket *receive(DNSPacket *prefilled=0); //!< call this in a while or for(;;) loop to get packets
   void send(DNSPacket *); //!< send a DNSPacket. Will call DNSPacket::truncate() if over 512 bytes
   inline bool canReusePort() {
@@ -92,6 +92,7 @@ public:
   };
   
 private:
+  bool d_additional_socket;
 #ifdef SO_REUSEPORT
   bool d_can_reuseport;
 #endif
