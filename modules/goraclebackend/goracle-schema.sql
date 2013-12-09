@@ -33,7 +33,7 @@ create table supermasters (
 	  ip VARCHAR(64) NOT NULL, 
 	  nameserver VARCHAR(255) NOT NULL, 
 	  account VARCHAR(40) DEFAULT NULL,
-          PRIMARY KEY(ip, nameserver)
+	  PRIMARY KEY(ip, nameserver)
 );
 
 create table domainmetadata (
