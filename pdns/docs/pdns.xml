@@ -17393,6 +17393,14 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	      <para>
 		Number of milliseconds to wait for an answer from the backend. If this time is ever exceeded, the backend
 		is declared dead and a new process is spawned. Available since version 2.7.
+
+	      </para>
+	      <para>
+          Note that if you are running pipes over many (8+) cores, if you use
+          the pipe-timeout option you will hit a scaleability bottleneck above
+          about 2000 queries per second. If you set pipe-timeout to 0 this
+          bottleneck will go away and scaling will be linear to number of
+          cores.
 	      </para>
 	    </listitem>
 	  </varlistentry>
