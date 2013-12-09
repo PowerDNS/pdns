@@ -106,8 +106,10 @@ void UDPNameserver::bindIPv4()
 
     s=socket(AF_INET,SOCK_DGRAM,0);
 
-    if(s<0)
+    if(s<0) {
+      L<<Logger::Error<<"Unable to acquire a UDP socket: "+string(strerror(errno)) << endl;
       throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
+    }
   
     Utility::setCloseOnExec(s);
   
@@ -203,8 +205,10 @@ void UDPNameserver::bindIPv6()
     string localname(*i);
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
-    if(s<0)
+    if(s<0) {
+      L<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(strerror(errno)) << endl;
       throw PDNSException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
+    }
 
     Utility::setCloseOnExec(s);
     if(!Utility::setNonBlocking(s))

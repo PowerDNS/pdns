@@ -52,7 +52,8 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
     Utility::setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
-    setbuf(d_fp,0); // no buffering please, confuses select
+    if( d_timeout)
+      setbuf(d_fp,0); // no buffering please, confuses select
   }
   else if(!d_pid) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
