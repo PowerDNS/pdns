@@ -95,6 +95,9 @@ private:
   string d_InfoOfDomainsZoneQuery;
   string d_InfoOfAllSlaveDomainsQuery;
   string d_SuperMasterInfoQuery;
+  string d_GetSuperMasterName;
+  string d_GetSuperMasterIPs;
+
   string d_InsertZoneQuery;
   string d_InsertSlaveZoneQuery;
   string d_InsertRecordQuery;
