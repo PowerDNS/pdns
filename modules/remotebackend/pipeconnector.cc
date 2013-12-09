@@ -64,7 +64,8 @@ void PipeConnector::launch() {
     Utility::setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
-    setbuf(d_fp,0); // no buffering please, confuses select
+    if (d_timeout) 
+      setbuf(d_fp,0); // no buffering please, confuses select
   }
   else if(!d_pid) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
@@ -144,8 +145,12 @@ int PipeConnector::recv_message(rapidjson::Document &output)
      receive.clear();
      if(d_timeout) {
        struct timeval tv;
-       tv.tv_sec = d_timeout/1000;
-       tv.tv_usec = (d_timeout % 1000) * 1000;
+       if (d_timeout) {
+         tv.tv_sec = d_timeout/1000;
+         tv.tv_usec = (d_timeout % 1000) * 1000;
+       } else {
+         memset(&tv,0,sizeof tv); // ensure
+       }
        fd_set rds;
        FD_ZERO(&rds);
        FD_SET(fileno(d_fp),&rds);
