@@ -258,6 +258,7 @@ WebServer::WebServer(const string &listenaddress, int port, const string &passwo
   }
   catch(SessionException &e) {
     L<<Logger::Error<<"Fatal error in webserver: "<<e.reason<<endl;
+    d_server = NULL;
   }
 }
 
