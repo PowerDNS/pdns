@@ -17845,52 +17845,12 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
       <para>
 	  Generic Oracle support is only available since version 2.9.18.
 	The default setup conforms to the following schema, which you should add to an Oracle database. You may need or want to add 'namespace' statements.
-	<programlisting>
-
-create table domains (
- id		 NUMBER,
- name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(128) DEFAULT NULL,
- last_check	 INT DEFAULT NULL,
- type		 VARCHAR(6) NOT NULL,
- notified_serial INT DEFAULT NULL, 
- account         VARCHAR(40) DEFAULT NULL,
- primary key (id)
-);
-create sequence DOMAINS_ID_SEQUENCE; 
-create index DOMAINS$NAME on Domains (NAME);
-
- 
-CREATE TABLE records (
-        id              number(11) not NULL,
-        domain_id       INT DEFAULT NULL REFERENCES Domains(ID) ON DELETE CASCADE,
-        name            VARCHAR(255) DEFAULT NULL,
-        type            VARCHAR(10) DEFAULT NULL,
-        content         VARCHAR2(4000) DEFAULT NULL,
-        ttl             INT DEFAULT NULL,
-        prio            INT DEFAULT NULL,
-        change_date     INT DEFAULT NULL, 
-	primary key (id)
-);
-
-create index RECORDS$NAME on RECORDS (NAME);
-create sequence RECORDS_ID_SEQUENCE;
-
-create table supermasters (
-	  ip VARCHAR(25) NOT NULL, 
-	  nameserver VARCHAR(255) NOT NULL, 
-	  account VARCHAR(40) DEFAULT NULL
-);
-
-	</programlisting>
-      </para>
+        <programlisting><xi:include  href="../../modules/goraclebackend/goracle-schema.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+</para>
       <para>
 	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used,  'GRANT' statements
 	can be trimmed to make sure PDNS cannot subvert the contents of your database.
       </para>
-	<para>
-	  Zone2sql with the --gpgsql flag also assumes this layout is in place.
-	</para>
 	<para>
 	  Inserting records is a bit different compared to MySQL and PostgreSQL, you should use:
 <screen>
