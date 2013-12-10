@@ -20152,7 +20152,7 @@ remote-connection-string=zmq:endpoint=ipc:///tmp/tmp.sock
 </programlisting>
         </para>
         <para>
-           0MQ connector implements a REQ/REP RPC model. Please seee <ulink url="http://zeromq.org/">http://zeromq.org/</ulink> for more information. 
+           0MQ connector implements a REQ/REP RPC model. Please see <ulink url="http://zeromq.org/">http://zeromq.org/</ulink> for more information. 
         </para>
       </sect3>
 
