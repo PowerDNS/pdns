@@ -17393,14 +17393,6 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	      <para>
 		Number of milliseconds to wait for an answer from the backend. If this time is ever exceeded, the backend
 		is declared dead and a new process is spawned. Available since version 2.7.
-
-	      </para>
-	      <para>
-          Note that if you are running pipes over many (8+) cores, if you use
-          the pipe-timeout option you will hit a scaleability bottleneck above
-          about 2000 queries per second. If you set pipe-timeout to 0 this
-          bottleneck will go away and scaling will be linear to number of
-          cores.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -17652,12 +17644,6 @@ The default value for scopebits is 0. The default for auth is 1 (meaning
 authoritative).
 </para>
 	</sect3>
-        <sect3>
-        <title>Ruby and python support</title>
-        <para>
-          For ruby and python, there are libraries to ease your work. Please consider using these, for example <ulink url="https://pypi.python.org/pypi/Pdns_Remotebackend/">https://pypi.python.org/pypi/Pdns_Remotebackend/</ulink> and <ulink url="http://rubygems.org/gems/pdns-remotebackend">http://rubygems.org/gems/pdns-remotebackend</ulink>.
-        </para>
-        </sect3>
 	<sect3>
 	<title>Sample perl backend</title>
 <programlisting><xi:include  href="../../modules/pipebackend/backend.pl"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
@@ -20080,9 +20066,14 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       <para>Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.</para>
      </sect2>
      <sect2 id="remotebackend-compiling"><title>Compiling</title>
-        <para>
-        To compile this backend, you need to configure --with-modules="remote pipe", for
-        now. If you want to use http connector, you need libcurl and use --enable-remotebackend-http. 
+      <para>
+        To compile this backend, you need to configure --with-modules="remote". 
+      </para>
+      <para>
+        If you want to use http connector, you need libcurl and use --enable-remotebackend-http.
+      </para>
+      <para>
+        If you want to use ZeroMQ connector, you need libzmq-dev or libzmq3-dev and use --enable-remotebackend-zeromq. 
       </para>
       </sect2>
       <sect2 id="remotebackend-usage"><title>Usage</title>
@@ -20111,7 +20102,7 @@ remote-connection-string=unix:path=/path/to/socket
         </para>
       </sect3>
 
-            <sect3 id="remotebackend-pipe"><title>Pipe connector</title>
+      <sect3 id="remotebackend-pipe"><title>Pipe connector</title>
         <para>
           parameters: command,timeout (default 2000ms)
         </para>
@@ -20150,6 +20141,21 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
           HTTP Authentication is not supported. SSL support requires that your cURL is compiled with it. 
         </para>
       </sect3>
+
+      <sect3 id="remotebackend-zmq"><title>ZeroMQ connector</title>
+        <para>
+          parameters: endpoint, timeout (default 2000ms)
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=zmq:endpoint=ipc:///tmp/tmp.sock
+</programlisting>
+        </para>
+        <para>
+           0MQ connector implements a REQ/REP RPC model. Please seee <ulink url="http://zeromq.org/">http://zeromq.org/</ulink> for more information. 
+        </para>
+      </sect3>
+
       </sect2>
 
       <sect2 id="remotebackend-api"><title>API</title>
