@@ -2,7 +2,6 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE unit
 
-#include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -39,6 +38,7 @@ class RemoteLoader
 DNSBackend *be;
 
 #ifdef REMOTEBACKEND_ZEROMQ
+#include <boost/test/unit_test.hpp>
 
 struct RemotebackendSetup {
     RemotebackendSetup()  {
