@@ -1268,5 +1268,7 @@ do
   sleep 1
 done
 
+kill -9 $pids
+
 rm pdns*.pid || true
 exit $RETVAL
