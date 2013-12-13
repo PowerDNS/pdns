@@ -209,7 +209,7 @@ AS_IF([test "x$with_system_polarssl" != "xno"],
       [have_system_polarssl=no]
 )
 
-POLARSSL_SUBDIR=ext/polarssl-1.1.2
+POLARSSL_SUBDIR=ext/polarssl-1.3.2
 POLARSSL_CFLAGS=-I\$\(top_srcdir\)/pdns/$POLARSSL_SUBDIR/include/
 POLARSSL_LIBS=\$\(top_builddir\)/pdns/$POLARSSL_SUBDIR/library/libpolarssl.a
 
