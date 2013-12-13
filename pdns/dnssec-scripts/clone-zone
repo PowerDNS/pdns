@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 TIMERANGE=$(drill -D @127.0.0.1 -p 5300 powerdnssec.org -t soa | grep RRSIG | head -1 | 
 	awk '{printf "-e %s -i %s", $9, $10}')

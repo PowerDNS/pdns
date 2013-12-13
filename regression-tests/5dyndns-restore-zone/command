@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 [ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
 [ -z "$GMYSQLUSER" ] && GMYSQLUSER=root

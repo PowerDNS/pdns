@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 VERSION=$1
 DEB_VERSION=$2
 RPM_VERSION=$3
