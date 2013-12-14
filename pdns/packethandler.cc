@@ -735,6 +735,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
 
 int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
 {
+  DomainInfo di;
   Resolver::res_t nsset;
   try {
     Resolver resolver;
@@ -745,6 +746,14 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   catch(ResolverException &re) {
     L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< p->getRemote() <<": "<<re.reason<<endl;
     return RCode::ServFail;
+  }
+
+  if (B.getDomainInfo(p->qdomain, di)) {
+    // maybe it is listed as master already
+    BOOST_FOREACH(string& master, di.masters) {
+      if (master == p->getRemote())
+        return RCode::NoError; // is already a master for this zone
+    }
   }
 
   string account;
@@ -1310,15 +1319,23 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
         weRedirected=1;
-        
-      if(rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, sd.qname)) { // fix up possible SOA adjustments for this zone
-        rr.content=serializeSOAData(sd);
-        rr.ttl=sd.ttl;
-        rr.domain_id=sd.domain_id;
-        rr.auth = true;
-      }
-      
+
+      // Filter out all SOA's and add them in later
+      if(rr.qtype.getCode() == QType::SOA)
+        continue;
+
       rrset.push_back(rr);
+    }
+
+    /* Add in SOA if required */
+    if( pdns_iequals( target, sd.qname ) ) {
+        rr.qtype = QType::SOA;
+        rr.content = serializeSOAData(sd);
+        rr.qname = sd.qname;
+        rr.ttl = sd.ttl;
+        rr.domain_id = sd.domain_id;
+        rr.auth = true;
+        rrset.push_back(rr);
     }
 
     DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);

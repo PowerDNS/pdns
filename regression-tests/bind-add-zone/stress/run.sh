@@ -1,4 +1,6 @@
-#!/bin/bash -ex
+#!/usr/bin/env bash
+set -e
+set -x
 
 PDNS=../pdns/pdns_server
 AMOUNT=${1:-1000}

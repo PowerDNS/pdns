@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 for zone in `cat ../regression-tests/named.conf | grep zone | cut -f 2 -d \"`
 do

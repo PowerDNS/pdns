@@ -18,7 +18,9 @@
 #ifdef REMOTEBACKEND_HTTP
 #include <curl/curl.h>
 #endif
-
+#ifdef REMOTEBACKEND_ZEROMQ
+#include <zmq.hpp>
+#endif
 #define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
 #define JSON_ADD_MEMBER(obj, name, val, alloc) { rapidjson::Value __xval; __xval = val; obj.AddMember(name, __xval, alloc); }
 
@@ -76,6 +78,24 @@ class HTTPConnector: public Connector {
     void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
     void post_requestbuilder(const rapidjson::Document &input, struct curl_slist **slist);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
+};
+#endif
+
+#ifdef REMOTEBACKEND_ZEROMQ
+class ZeroMQConnector: public Connector {
+   public:
+    ZeroMQConnector(std::map<std::string,std::string> options);
+    virtual ~ZeroMQConnector();
+    virtual int send_message(const rapidjson::Document &input);
+    virtual int recv_message(rapidjson::Document &output);
+   private:
+    void connect();
+    std::string d_endpoint;
+    int d_timeout;
+    int d_timespent;
+    std::map<std::string,std::string> d_options;
+    zmq::context_t d_ctx;
+    zmq::socket_t d_sock;
 };
 #endif
 

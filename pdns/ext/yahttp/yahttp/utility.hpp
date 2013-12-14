@@ -45,7 +45,7 @@ namespace YaHTTP {
         if (*iter != '+' && !(encodeSlash == false || *iter == '/') && !std::isalnum(*iter)) {
           // replace with different thing
           pos = std::distance(result.begin(), iter);
-          std::snprintf(repl,3,"%02x", *iter);
+          ::snprintf(repl,3,"%02x", *iter);
           result = result.replace(pos, 1, "%", 1).insert(pos+1, repl, 2);
           iter = result.begin() + pos + 2;
         }

@@ -1,10 +1,14 @@
-#!/bin/bash -ex
+#!/usr/bin/env bash
+set -e
+set -x
 
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
 
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
+
+MAKE=${MAKE:-make}
 
 export ALGORITHM
 export KEY
@@ -189,7 +193,7 @@ __EOF__
 
 tosql ()
 {
-	make -C ../pdns zone2sql > /dev/null
+	${MAKE} -C ../pdns zone2sql > /dev/null
 	../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
 }
 
@@ -304,8 +308,8 @@ gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
 tinydns
 mydns
-remotebackend-pipe remotebackend-unix remotebackend-http 
-remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
+remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
+remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
@@ -326,7 +330,7 @@ __EOF__
 	exit 1
 fi
 
-make -C ../pdns sdig nsec3dig || exit 1
+${MAKE} -C ../pdns sdig nsec3dig || exit 1
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
@@ -839,6 +843,11 @@ __EOF__
 				done
 				set -e
 				;;
+                        zeromq)
+                                connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
+                                $testsdir/zeromq-backend.rb &
+                                echo $! > pdns-remotebackend.pid
+                                ;;
 			unix)
 				connstr="unix:path=/tmp/remote.socket"
 				socat unix-listen:/tmp/remote.socket,fork exec:$testsdir/unix-backend.rb &
@@ -1240,6 +1249,28 @@ then
 	read l
 fi
 
-kill $(cat pdns*.pid)
+pids=$(cat pdns*.pid)
+
+kill $pids
+# make sure they die.
+set +e
+loopcount=0
+done=0
+while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+do
+  done=1
+  for pid in $pids
+  do
+    kill -0 $pid > /dev/null 2>&1
+    if [ $? -eq 0 ]; then 
+      done=0
+    fi
+  done
+  let loopcount=loopcount+1
+  sleep 1
+done
+
+kill -9 $pids
+
 rm pdns*.pid || true
 exit $RETVAL

@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig secure-delegated.dnssec-parent.com DS dnssec showflags
+

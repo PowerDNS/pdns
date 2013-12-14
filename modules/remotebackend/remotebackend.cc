@@ -144,6 +144,12 @@ int RemoteBackend::build() {
 #else
 	throw PDNSException("Invalid connection string: http connector support not enabled. Recompile with --enable-remotebackend-http");
 #endif
+      } else if (type == "zeromq") {
+#ifdef REMOTEBACKEND_ZEROMQ
+        this->connector = new ZeroMQConnector(options);
+#else
+        throw PDNSException("Invalid connection string: zeromq connector support not enabled. Recompile with --enable-remotebackend-zeromq");
+#endif
       } else if (type == "pipe") {
         this->connector = new PipeConnector(options);
       } else {

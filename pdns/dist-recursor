@@ -64,6 +64,8 @@ cp configure-recursor $DIRNAME/configure
 cp powerdns-example-script.lua $DIRNAME
 mkdir -p $DIRNAME/contrib
 cp ../contrib/systemd-pdns-recursor.service $DIRNAME/contrib
+mkdir -p $DIRNAME/build-scripts/redhat
+cp ../build-scripts/redhat/pdns-recursor-test.spec $DIRNAME/build-scripts/redhat
 
 mkdir -p $DIRNAME/sysdeps
 rm -f sysdeps-recursor/*~
