@@ -55,7 +55,6 @@ extern StatBag S;
 template<class Answer>struct AnswerData
 {
   Answer *A;
-  time_t created;
 };
 
 template<class Answer, class Question, class Backend> class Distributor
@@ -252,7 +251,6 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 
       AnswerData<Answer> AD;
       AD.A=a;
-      AD.created=time(0);
 
       QD.callback(AD);
     }
@@ -288,7 +286,6 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
   }
   AnswerData<Answer> AD;
   AD.A=a;
-  AD.created=time(0);
   callback(AD);
   return 0;
 }
