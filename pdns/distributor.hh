@@ -61,7 +61,6 @@ public:
   struct AnswerData
   {
     Answer *A;
-    time_t created;
   };  
   int question(Question *, void (*)(const AnswerData &)=0); //!< Submit a question to the Distributor
   Answer *answer(void); //!< Wait for any answer from the Distributor
@@ -206,7 +205,6 @@ template<class Answer, class Question, class Backend>void *Distributor<Answer,Qu
 
       AnswerData AD;
       AD.A=a;
-      AD.created=time(0);
       tuple_t tuple(QD,AD);
 
       if(QD.callback) {
@@ -267,7 +265,6 @@ template<class Answer, class Question, class Backend>int Distributor<Answer,Ques
 
     AnswerData AD;
     AD.A=a;
-    AD.created=time(0);
     callback(AD); 
     return 0;
   }
