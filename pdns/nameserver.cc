@@ -383,9 +383,14 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     pfd.revents = 0;
   }
     
+  retry:;
+  
   err = poll(&rfds[0], rfds.size(), -1);
-  if(err < 0)
+  if(err < 0) {
+    if(errno==EINTR)
+      goto retry;
     unixDie("Unable to poll for new UDP events");
+  }
     
   BOOST_FOREACH(struct pollfd &pfd, rfds) {
     if(pfd.revents & POLLIN) {
