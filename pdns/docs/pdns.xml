@@ -117,6 +117,101 @@
         <itemizedlist>
           <listitem>
             <para>
+              g705ddc9: Merge pull request t1171 from mind04/auth-3.3.1
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g9dd2661: update debian pdns.conf
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ge4b36a4: remove experimental status from direct-dnskey
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5dde2c6: ok, so it turns out that poll, select and a few other system calls can return EINTR when we receive and interrupt, and we need to manually restart. man 7 signal makes for good reading on this case, as does http://blog.reverberate.org/2011/04/eintr-and-pc-loser-ing-is-better-case.html
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc63bc74: Merge pull request t1159 from mind04/auth-3.3.1
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7538e56: Fix zone2{sql,json} exit codes
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7593c40: geobackend: fix possible nullptr deref
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3506cc6: gpsqlbackend: don't append empty dbname=/user= values to connect string
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g9a6e39c: Update gpgsql queries
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ga7aa9be: Replace hardcoded make with variable
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7c31fcf: Merge pull request t1154 from mind04/auth-3.3.1
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ge4fe901: make sure to run PKG_PROG_PKG_CONFIG before the first PKG_* usage
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g29bf169: fix hmac-md5 TSIG key lookup
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc4e348b: fix 64+ character TSIG keys
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g00a7b25: Fix comparison between signed and unsigned by using uint32_t for inception on INCEPTION-EPOCH
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gd1e2482: Merge pull request t1143 from mind04/auth-3.3.1
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf389b12: move spec files to redhat directory
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gd04960a: testbuild spec files for rawhide
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g76100dc: use sed in buildscripts
+            </para>
+          </listitem>
+          <listitem>
+            <para>
               g9897963: drop unused vars, thanks Morten Stevens
             </para>
           </listitem>
