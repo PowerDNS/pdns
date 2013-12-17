@@ -488,7 +488,7 @@ case $context in
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
 				--bind-ignore-broken-records=yes $lua_prequery &
 			bindwait
@@ -525,7 +525,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--master --send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -614,7 +614,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch --launch+=random --launch+=gmysql --launch+=random --gmysql-dnssec \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
