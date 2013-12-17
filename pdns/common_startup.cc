@@ -138,7 +138,7 @@ void declareArguments()
   ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
-  ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().setSwitch("add-superfluous-nsec3-for-old-bind","Add superfluous NSEC3 record to positive wildcard response")="yes";
   ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
