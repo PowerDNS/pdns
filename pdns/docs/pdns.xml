@@ -93,17 +93,22 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-auth-3-3-1"><title>PowerDNS Authoritative Server version 3.3.1 (UNRELEASED)</title>
+      <sect2 id="changelog-auth-3-3-1"><title>PowerDNS Authoritative Server version 3.3.1</title>
       <note>
         <para>
-          Released xx, 2013
+          Released December 17th, 2013
         </para>
         <para>
           Downloads:
           <itemizedlist>
             <listitem>
               <para>
-                ...
+                <ulink url="http://www.powerdns.com/content/downloads.html">Official download page</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
