@@ -94,6 +94,10 @@
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
       <sect2 id="changelog-auth-3-3-1"><title>PowerDNS Authoritative Server version 3.3.1</title>
+       <warning><para>Version 3.3.1 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0, 3.1 or 3.2.
+  Please refer to <xref linkend="from2.9to3.0"/>, <xref linkend="from3.0to3.1"/>, <xref linkend="from3.1to3.2"/>, <xref linkend="from3.2to3.3"/> and <xref linkend="from3.3to3.3.1"/> for important information on 
+  correct and stable operation, as well as notes on performance and memory use.</para>
+      </warning>
       <note>
         <para>
           Released December 17th, 2013
@@ -12432,6 +12436,21 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     </para>
     <para>
       The `rec_name_index' index was dropped from the gmysql schema, as it was superfluous.
+    </para>
+  </sect1>
+
+  <sect1 id="from3.3to3.3.1"><title>From PowerDNS Authoritative Server 3.3 to 3.3.1</title>
+    <note>
+      <para>
+        If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" />, <xref linkend="from3.1to3.2" /> and <xref linkend="from3.2to3.3" />.
+      </para>
+    </note>
+    <para>
+      Constraints were added to the PostgreSQL schema:
+      <screen>
+        alter table domains add constraint c_lowercase_name CHECK (((name)::text = lower((name)::text)));
+        alter table tsigkeys add constraint c_lowercase_name check (((name)::text = lower((name)::text)));
+      </screen>
     </para>
   </sect1>
 
