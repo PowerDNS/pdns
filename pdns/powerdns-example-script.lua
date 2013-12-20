@@ -14,6 +14,12 @@ function preresolve ( remoteip, domain, qtype )
 		return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
 	end
 
+	if domain == "www.donotanswer.org."
+	then
+		print("we won't answer a query for donotanswer.org")
+		return -2, {}
+	end
+
 	if domain == "www.donotcache.org."
 	then
 		print("making sure www.donotcache.org will never end up in the cache", pdns.loglevels.Debug)
