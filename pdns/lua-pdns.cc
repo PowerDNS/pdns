@@ -299,6 +299,10 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   // set syslog codes used by Logger/enum Urgency
   pushSyslogSecurityLevelTable(d_lua);
   lua_setfield(d_lua, -2, "loglevels");
+  lua_pushnumber(d_lua, -1);
+  lua_setfield(d_lua, -2, "PASS");
+  lua_pushnumber(d_lua, -2);
+  lua_setfield(d_lua, -2, "DROP");
 
   lua_setglobal(d_lua, "pdns");
 
