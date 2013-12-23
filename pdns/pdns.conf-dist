@@ -325,7 +325,7 @@
 # send-root-referral=no
 
 #################################
-# server-id	Returned when queried for 'server.id' TXT or NSID, defaults to hostname
+# server-id	Returned when queried for 'server.id' TXT or NSID, defaults to hostname - disabled or custom
 #
 # server-id=
 
