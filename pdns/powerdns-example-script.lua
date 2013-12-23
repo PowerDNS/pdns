@@ -14,11 +14,17 @@ function preresolve ( remoteip, domain, qtype )
 		return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
 	end
 
+	if domain == "www.donotanswer.org."
+	then
+		print("we won't answer a query for donotanswer.org")
+		return pdns.DROP, {}
+	end
+
 	if domain == "www.donotcache.org."
 	then
 		print("making sure www.donotcache.org will never end up in the cache", pdns.loglevels.Debug)
 		setvariable()
-		return -1, {}
+		return pdns.PASS, {}
 	end
 
 	if domain == "www.powerdns.org." 
@@ -41,7 +47,7 @@ function preresolve ( remoteip, domain, qtype )
 		return 0, {{qtype=pdns.AAAA, content=remoteip}}
 	else
 		print "not dealing!"
-		return -1, {}
+		return pdns.PASS, {}
 	end
 end
 
@@ -49,11 +55,11 @@ function nxdomain ( remoteip, domain, qtype )
 	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
 	if qtype ~= pdns.A then 
     pdnslog("Only A records", pdns.loglevels.Error)
-	return -1, {} 
+	return pdns.PASS, {} 
 	end  --  only A records
 	if not string.find(domain, "^www%.") then 
     pdnslog("Only strings that start with www.", pdns.loglevels.Error)
-	return -1, {} 
+	return pdns.PASS, {} 
 	end  -- only things that start with www.
 	
 	setvariable()
@@ -68,7 +74,7 @@ function nxdomain ( remoteip, domain, qtype )
 		return 0, ret
 	else
 		print "not dealing"
-		return -1, ret
+		return pdns.PASS, ret
 	end
 end
 
@@ -76,7 +82,7 @@ function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
 	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
 	then
 		ret = {}
-		return -1, ret
+		return pdns.PASS, ret
 	end
 
 	print "got soa!"
@@ -88,7 +94,7 @@ end
 
 function nodata ( remoteip, domain, qtype, records )
 	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
-	if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
+	if qtype ~= pdns.AAAA then return pdns.PASS, {} end  --  only AAAA records
 
 	setvariable()
     	return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"

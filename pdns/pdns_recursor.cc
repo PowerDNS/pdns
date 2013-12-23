@@ -563,7 +563,11 @@ void startDoResolve(void *p)
       }
     }
     
-      
+    if(res == -2) {
+      delete dc;
+      dc=0;
+      return;
+    }  
     if(tracedQuery || res < 0 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
