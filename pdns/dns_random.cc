@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <limits>
+#include <stdint.h>
 #include "dns_random.hh"
 
 using namespace std;
