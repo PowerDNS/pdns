@@ -822,6 +822,12 @@ __EOF__
 			# cleanup unbound-host.conf to avoid failures
 			rm -f unbound-host.conf
 
+			echo "Setting up test database..."
+			# setup test database
+			rm -f $testsdir/remote.sqlite3
+			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
+			chmod 0666 $testsdir/remote.sqlite3
+
 			case $remotetype in
 			http)
 				connstr="http:url=http://localhost:62434/dns"
@@ -843,11 +849,11 @@ __EOF__
 				done
 				set -e
 				;;
-                        zeromq)
-                                connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
-                                $testsdir/zeromq-backend.rb &
-                                echo $! > pdns-remotebackend.pid
-                                ;;
+			zeromq)
+				connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
+				$testsdir/zeromq-backend.rb &
+				echo $! > pdns-remotebackend.pid
+				;;
 			unix)
 				connstr="unix:path=/tmp/remote.socket"
 				socat unix-listen:/tmp/remote.socket,fork exec:$testsdir/unix-backend.rb &
@@ -885,24 +891,12 @@ __EOF__
 				skipreasons="nonsec3 nonarrow nodyndns"
 			fi
 
+
 			# generate pdns.conf for pdnssec
 			cat > pdns-remote.conf <<EOF
 launch=remote
 remote-connection-string=$connstr
 EOF
-
-			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
-				--no-shuffle --launch=remote \
-				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
-				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-				--remote-connection-string="$connstr" $remote_add_param &
-
-			echo "Setting up test database..."
-			# setup test database
-			rm -f $testsdir/remote.sqlite3
-			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
-			chmod 0666 $testsdir/remote.sqlite3
 
 			if [ "$remotedosec" = "yes" ]
 			then
@@ -927,6 +921,14 @@ EOF
 					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
 				fi
 			fi
+
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+				--no-shuffle --launch=remote \
+				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--remote-connection-string="$connstr" $remote_add_param &
+
 			;;
 		*)
 			echo unknown context $context
@@ -1258,16 +1260,16 @@ loopcount=0
 done=0
 while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
 do
-  done=1
-  for pid in $pids
-  do
-    kill -0 $pid > /dev/null 2>&1
-    if [ $? -eq 0 ]; then 
-      done=0
-    fi
-  done
-  let loopcount=loopcount+1
-  sleep 1
+	done=1
+	for pid in $pids
+	do
+		kill -0 $pid > /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			done=0
+		fi
+	done
+	let loopcount=loopcount+1
+	sleep 1
 done
 
 kill -9 $pids
