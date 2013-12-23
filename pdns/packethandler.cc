@@ -52,6 +52,12 @@
 AtomicCounter PacketHandler::s_count;
 extern string s_programname;
 
+enum root_referral {
+    NO_ROOT_REFERRAL,
+    LEAN_ROOT_REFERRAL,
+    FULL_ROOT_REFERRAL
+};
+
 PacketHandler::PacketHandler():B(s_programname)
 {
   ++s_count;
@@ -59,6 +65,9 @@ PacketHandler::PacketHandler():B(s_programname)
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
+  d_sendRootReferral = ::arg().mustDo("send-root-referral")
+                            ? ( pdns_iequals(::arg()["send-root-referral"], "lean") ? LEAN_ROOT_REFERRAL : FULL_ROOT_REFERRAL )
+                            : NO_ROOT_REFERRAL;
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
@@ -102,7 +111,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
     r->addRecord(rr);
   }
 
-  if(pdns_iequals(::arg()["send-root-referral"], "lean"))
+  if( d_sendRootReferral == LEAN_ROOT_REFERRAL )
      return;
 
   // add the additional stuff
@@ -1242,7 +1251,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       
       if(!retargetcount)
         r->setA(false); // drop AA if we never had a SOA in the first place
-      if(::arg().mustDo("send-root-referral")) {
+      if( d_sendRootReferral != NO_ROOT_REFERRAL ) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
         addRootReferral(r);
       }
