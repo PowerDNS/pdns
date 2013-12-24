@@ -183,7 +183,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   }
   
   int newres = (int)lua_tonumber(d_lua, 1); // new rcode
-  if(newres < 0) {
+  if(newres == -1) {
     //    cerr << "handler did not handle"<<endl;
     lua_pop(d_lua, 3);
     return false;
