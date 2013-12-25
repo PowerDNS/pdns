@@ -44,41 +44,47 @@
 void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 {
   bool hasQueuedItem=false;
-  set<string> ips;
-  FindNS fns;
-  
+  set<string> nsset, ips;
   DNSResourceRecord rr;
-  set<string> nsset;
+  FindNS fns;
+
   B->lookup(QType(QType::NS),domain);
-  while(B->get(rr)) 
+  while(B->get(rr))
     nsset.insert(rr.content);
-  
+
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
     vector<string> nsips=fns.lookup(*j, B);
     if(nsips.empty())
       L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-    for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k)
-      ips.insert(*k);
+    else
+      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+        const ComboAddress caIp(*k, 53);
+        if(!d_preventSelfNotification || !AddressIsUs(caIp))
+          ips.insert(caIp.toStringWithPort());
+      }
   }
-  
-  // make calls to d_nq.add(domain, ip);
+
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
     L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
     hasQueuedItem=true;
   }
+
   set<string>alsoNotify;
   B->alsoNotifies(domain, &alsoNotify);
-  
+
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
-    L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<*j<<endl;
-    d_nq.add(domain,*j);
+    const ComboAddress caIp(*j, 53);
+    L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
+    if (!ips.count(caIp.toStringWithPort()))
+      d_nq.add(domain, caIp.toStringWithPort());
     hasQueuedItem=true;
   }
+
   if (!hasQueuedItem)
     L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
-
 }
+
 
 bool CommunicatorClass::notifyDomain(const string &domain)
 {
