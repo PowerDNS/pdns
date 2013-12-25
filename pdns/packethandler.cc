@@ -453,20 +453,22 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 
 void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode)
 {
-  // <<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
+  // cerr<<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
-  if(pdns_iequals(sd.qname, begin))
+  if(pdns_iequals(sd.qname, begin)) {
+    nrc.d_set.insert(QType::SOA);
     nrc.d_set.insert(QType::DNSKEY);
+  }
 
   DNSResourceRecord rr;
   B.lookup(QType(QType::ANY), begin, NULL, sd.domain_id);
   while(B.get(rr)) {
     if(rr.qtype.getCode() == QType::NS || rr.auth)
-      nrc.d_set.insert(rr.qtype.getCode());    
+      nrc.d_set.insert(rr.qtype.getCode());
   }
-  
+
   nrc.d_next=end;
 
   rr.qname=begin;
@@ -475,13 +477,13 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   rr.content=nrc.getZoneRepresentation();
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
-  
+
   r->addRecord(rr);
 }
 
 void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
-//  cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
+  // cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
   n3rc.d_salt=ns3prc.d_salt;
   n3rc.d_flags = ns3prc.d_flags;
@@ -496,7 +498,8 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
         n3rc.d_set.insert(rr.qtype.getCode());
     }
 
-    if(toLower(unhashed) == toLower(sd.qname)) {
+    if (pdns_iequals(sd.qname, unhashed)) {
+      n3rc.d_set.insert(QType::SOA);
       n3rc.d_set.insert(QType::NSEC3PARAM);
       n3rc.d_set.insert(QType::DNSKEY);
     }
@@ -504,7 +507,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
 
   if (n3rc.d_set.size() && !(n3rc.d_set.size() == 1 && n3rc.d_set.count(QType::NS)))
     n3rc.d_set.insert(QType::RRSIG);
-  
+
   n3rc.d_nexthash=end;
 
   rr.qname=dotConcat(toBase32Hex(begin), sd.qname);
@@ -513,7 +516,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
   rr.content=n3rc.getZoneRepresentation();
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
-  
+
   r->addRecord(rr);
 }
 
