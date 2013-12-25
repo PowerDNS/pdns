@@ -68,26 +68,26 @@ class NotificationQueue
 public:
   void add(const string &domain, const string &ip)
   {
+    const ComboAddress caIp(ip);
+
     NotificationRequest nr;
     nr.domain   = domain;
-    nr.ip       = ip;
+    nr.ip       = caIp.toStringWithPort();
     nr.attempts = 0;
     nr.id       = Utility::random()%0xffff;
     nr.next     = time(0);
 
     d_nqueue.push_back(nr);
   }
-  
+
   bool removeIf(const string &remote, uint16_t id, const string &domain)
   {
+    ServiceTuple stRemote, stQueued;
+    parseService(remote, stRemote);
+
     for(d_nqueue_t::iterator i=d_nqueue.begin(); i!=d_nqueue.end(); ++i) {
-      //      cout<<i->id<<" "<<id<<endl;
-      //cout<<i->ip<<" "<<remote<<endl;
-      //cout<<i->domain<<" "<<domain<<endl;
-      string remoteIP, ourIP, port;
-      tie(remoteIP, port)=splitField(remote, ':');
-      tie(ourIP, port)=splitField(i->ip, ':');
-      if(i->id==id && ourIP == remoteIP && i->domain==domain) {
+      parseService(i->ip, stQueued);
+      if(i->id==id && stQueued.host == stRemote.host && i->domain==domain) {
         d_nqueue.erase(i);
         return true;
       }
@@ -114,7 +114,7 @@ public:
       }
     return false;
   }
-  
+
   time_t earliest()
   {
     time_t early=std::numeric_limits<time_t>::max() - 1; 
@@ -122,7 +122,9 @@ public:
       early=min(early,i->next);
     return early-time(0);
   }
+
   void dump();
+
 private:
   struct NotificationRequest
   {
