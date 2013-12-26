@@ -144,12 +144,13 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
 time_t CommunicatorClass::doNotifications()
 {
   ComboAddress from;
-  Utility::socklen_t fromlen=sizeof(from);
+  Utility::socklen_t fromlen;
   char buffer[1500];
   int size, sock;
 
   // receive incoming notifications on the nonblocking socket and take them off the list
   while(waitFor2Data(d_nsock4, d_nsock6, 0, 0, &sock) > 0) {
+    fromlen=sizeof(from);
     size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
     if(size < 0)
       break;
@@ -164,7 +165,7 @@ time_t CommunicatorClass::doNotifications()
 
     if(p.d.rcode)
       L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<from.toStringWithPort()<<", rcode: "<<p.d.rcode<<endl;      
-    
+
     if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
       L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      
     else {
