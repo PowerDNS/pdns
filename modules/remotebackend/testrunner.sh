@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+new_api=0
+mode=$1
+
+# we could be ran with new API
+while [ "$1" != "" ]
+do
+ if [ "$1" == "--" ]; then
+   new_api=1
+   mode=$2
+   break
+ fi
+ shift
+done
+
 webrick_pid=""
 socat_pid=""
 zeromq_pid=""
@@ -87,45 +101,57 @@ function stop_unix() {
  fi
 }
 
-mode=`basename "$1"`
+function run_test() {
+ if [ $new_api -eq 0 ]; then
+   $mode
+ else
+   $mode >> $mode.log
+   rv=$?
+   if [ $rv -eq 0 ]; then
+     echo ":test-result: PASS $1" >> $mode.trs
+   else
+     echo ":test-result: FAIL $1" >> $mode.trs
+   fi
+   echo ":recheck: no" >> $mode.trs
+ fi
+}
+
+mode=`basename "$mode"`
+
+echo $mode
 
 case "$mode" in
   test_remotebackend_pipe)
-    ./test_remotebackend_pipe
-    rv=$?
+    run_test
   ;;
   test_remotebackend_unix)
     start_unix
-    ./test_remotebackend_unix
-    rv=$?
+    run_test
     stop_unix
   ;;
   test_remotebackend_http)
     start_web "http"
-    ./test_remotebackend_http
-    rv=$?
+    run_test
     stop_web
   ;;
   test_remotebackend_post)
     start_web "post"
-    ./test_remotebackend_post
-    rv=$?
+    run_test
     stop_web
   ;;
   test_remotebackend_json)
     start_web "json"
-    ./test_remotebackend_json
-    rv=$?
+    run_test
     stop_web
   ;;
   test_remotebackend_zeromq)
     start_zeromq 
-    ./test_remotebackend_zeromq
-    rv=$?
+    run_test
     stop_zeromq
   ;;
   *)
      echo "Usage: $0 test_remotebackend_(pipe|http|post|json)"
+     exit 1
   ;;
 esac
 
