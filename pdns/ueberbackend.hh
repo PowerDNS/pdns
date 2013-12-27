@@ -59,7 +59,7 @@ public:
   ~UeberBackend();
   typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
   /** contains BackendReporter objects, which contain maker functions and information about
       weather a module has already been reported to existing instances of the UeberBackend

@@ -614,7 +614,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    }
 }
 
-bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb) 
+bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb) 
 {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
@@ -657,7 +657,7 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    return true;
 }
 
-bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, const string &account) {
+bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    query.SetObject();

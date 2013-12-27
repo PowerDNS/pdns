@@ -786,9 +786,9 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     }
   }
 
-  string account;
+  string nameserver, account;
   DNSBackend *db;
-  if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &account, &db)) {
+  if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
     L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". "<<nsset.size()<<" remote nameservers: "<<endl;
     BOOST_FOREACH(class DNSResourceRecord& rr, nsset) {
       L<<Logger::Error<<rr.content<<endl;
@@ -796,7 +796,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     return RCode::Refused;
   }
   try {
-    db->createSlaveDomain(p->getRemote(),p->qdomain,account);
+    db->createSlaveDomain(p->getRemote(), p->qdomain, nameserver, account);
   }
   catch(PDNSException& ae) {
     L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<": "<<ae.reason<<endl;

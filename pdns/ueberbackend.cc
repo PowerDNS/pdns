@@ -297,13 +297,12 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   return false;
 }
 
-bool UeberBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
+bool UeberBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
-    if((*i)->superMasterBackend(ip,domain,nsset,account, db))
+    if((*i)->superMasterBackend(ip, domain, nsset, nameserver, account, db))
       return true;
   return false;
-
 }
 
 void UeberBackend::setStatus(const string &st)
