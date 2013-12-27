@@ -765,7 +765,6 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
 
 int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
 {
-  DomainInfo di;
   Resolver::res_t nsset;
   try {
     Resolver resolver;
@@ -776,14 +775,6 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   catch(ResolverException &re) {
     L<<Logger::Error<<"Error resolving SOA or NS for "<<p->qdomain<<" at: "<< p->getRemote() <<": "<<re.reason<<endl;
     return RCode::ServFail;
-  }
-
-  if (B.getDomainInfo(p->qdomain, di)) {
-    // maybe it is listed as master already
-    BOOST_FOREACH(string& master, di.masters) {
-      if (master == p->getRemote())
-        return RCode::NoError; // is already a master for this zone
-    }
   }
 
   string nameserver, account;
