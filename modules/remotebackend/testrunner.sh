@@ -3,6 +3,9 @@
 new_api=0
 mode=$1
 
+# keep the original arguments for new test harness api
+orig="$*"
+
 # we could be ran with new API
 while [ "$1" != "" ]
 do
@@ -21,7 +24,7 @@ socat=$(which socat)
 
 function start_web() {
   if [ x"$REMOTEBACKEND_HTTP" == "xyes" ]; then
-   ./unittest_$1.rb &
+   ./unittest_$1.rb >> $mode.log 2>&1 & 
    webrick_pid=$!
    loopcount=0
    while [ $loopcount -lt 20 ]; do
@@ -49,7 +52,7 @@ function stop_web() {
 
 function start_zeromq() {
   if [ x"$REMOTEBACKEND_ZEROMQ" == "xyes" ]; then
-   ./unittest_zeromq.rb &
+   ./unittest_zeromq.rb >> $mode.log 2>&1 &
    zeromq_pid=$!
    # need to wait a moment
    sleep 5
@@ -58,7 +61,7 @@ function start_zeromq() {
 
 function stop_zeromq() {
  if [ ! -z "$zeromq_pid" ]; then
-   kill -TERM $zeromq_pid
+   kill -TERM $zeromq_pid 
    # wait a moment for it to die
    i=0
    while [ $i -lt 5 ]; do
@@ -105,20 +108,11 @@ function run_test() {
  if [ $new_api -eq 0 ]; then
    ./$mode
  else
-   ./$mode >> $mode.log
-   rv=$?
-   if [ $rv -eq 0 ]; then
-     echo ":test-result: PASS $1" >> $mode.trs
-   else
-     echo ":test-result: FAIL $1" >> $mode.trs
-   fi
-   echo ":recheck: no" >> $mode.trs
+    $orig
  fi
 }
 
 mode=`basename "$mode"`
-
-echo $mode
 
 case "$mode" in
   test_remotebackend_pipe)
