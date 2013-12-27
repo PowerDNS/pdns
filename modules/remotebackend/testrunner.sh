@@ -103,9 +103,9 @@ function stop_unix() {
 
 function run_test() {
  if [ $new_api -eq 0 ]; then
-   $mode
+   ./$mode
  else
-   $mode >> $mode.log
+   ./$mode >> $mode.log
    rv=$?
    if [ $rv -eq 0 ]; then
      echo ":test-result: PASS $1" >> $mode.trs
