@@ -63,12 +63,27 @@ void CommunicatorClass::go()
     pthread_create(&tid, 0, &retrieveLaunchhelper, this); // Starts CommunicatorClass::retrievalLoopThread()
 
   d_preventSelfNotification = ::arg().mustDo("prevent-self-notification");
-  d_onlyNotify.toMasks(::arg()["only-notify"]);
+
+  try {
+    d_onlyNotify.toMasks(::arg()["only-notify"]);
+  }
+  catch(PDNSException &e) {
+    L<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
+    exit(0);
+  }
 
   vector<string> parts;
   stringtok(parts, ::arg()["also-notify"], ", \t");
-  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter)
-    d_alsoNotify.insert(*iter);
+  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
+    try {
+      ComboAddress caIp(*iter, 53);
+      d_alsoNotify.insert(caIp.toStringWithPort());
+    }
+    catch(PDNSException &e) {
+      L<<Logger::Error<<"Unparseable IP in also-notify. Error: "<<e.reason<<endl;
+      exit(0);
+    }
+  }
 }
 
 void CommunicatorClass::mainloop(void)

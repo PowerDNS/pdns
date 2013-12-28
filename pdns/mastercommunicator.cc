@@ -78,17 +78,22 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   B->alsoNotifies(domain, &alsoNotify);
 
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
-    const ComboAddress caIp(*j, 53);
-    L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
-    if (!ips.count(caIp.toStringWithPort())) {
-      ips.insert(caIp.toStringWithPort());
-      d_nq.add(domain, caIp.toStringWithPort());
+    try {
+      const ComboAddress caIp(*j, 53);
+      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
+      if (!ips.count(caIp.toStringWithPort())) {
+        ips.insert(caIp.toStringWithPort());
+        d_nq.add(domain, caIp.toStringWithPort());
+      }
+      hasQueuedItem=true;
     }
-    hasQueuedItem=true;
+    catch(PDNSException &e) {
+      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
+    }
   }
 
   if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
 
 
