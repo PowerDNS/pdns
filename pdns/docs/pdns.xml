@@ -15852,7 +15852,16 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
 	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
 	    </para>
-	  </listitem></varlistentry>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>also-notify=...</term>
+	  <listitem>
+	    <para>
+	      When notifying a domain, also notify these nameservers. Example: <command>also-notify=192.168.0.1, 10.0.0.1</command>.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	  <varlistentry><term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
 	    <listitem><para>
 		Answer questions for the ANY and RRSIG types on UDP with a truncated packet that refers the

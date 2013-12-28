@@ -74,14 +74,16 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     hasQueuedItem=true;
   }
 
-  set<string>alsoNotify;
+  set<string> alsoNotify(d_alsoNotify);
   B->alsoNotifies(domain, &alsoNotify);
 
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
     const ComboAddress caIp(*j, 53);
     L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
-    if (!ips.count(caIp.toStringWithPort()))
+    if (!ips.count(caIp.toStringWithPort())) {
+      ips.insert(caIp.toStringWithPort());
       d_nq.add(domain, caIp.toStringWithPort());
+    }
     hasQueuedItem=true;
   }
 

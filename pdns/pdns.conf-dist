@@ -20,6 +20,11 @@
 # allow-recursion=0.0.0.0/0
 
 #################################
+# also-notify	When notifying a domain, also notify these nameservers
+#
+# also-notify=
+
+#################################
 # any-to-tcp	Answer ANY queries with tc=1, shunting to TCP
 #
 # any-to-tcp=no

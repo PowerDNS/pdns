@@ -64,6 +64,11 @@ void CommunicatorClass::go()
 
   d_preventSelfNotification = ::arg().mustDo("prevent-self-notification");
   d_onlyNotify.toMasks(::arg()["only-notify"]);
+
+  vector<string> parts;
+  stringtok(parts, ::arg()["also-notify"], ", \t");
+  for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter)
+    d_alsoNotify.insert(*iter);
 }
 
 void CommunicatorClass::mainloop(void)
