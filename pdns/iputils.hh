@@ -337,7 +337,12 @@ public:
   {
     d_masks.push_back(Netmask(ip));
   }
-  
+
+  void clear()
+  {
+    d_masks.clear();
+  }
+
   bool empty()
   {
     return d_masks.empty();
@@ -359,9 +364,18 @@ public:
     return str.str();
   }
 
+  void toMasks(const string &ips)
+  {
+    vector<string> parts;
+    stringtok(parts, ips, ", \t");
+
+    for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter)
+      addMask(*iter);
+  }
+
 private:
   typedef vector<Netmask> container_t;
-  container_t d_masks;  
+  container_t d_masks;
 };
 
 

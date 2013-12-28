@@ -854,11 +854,7 @@ TCPNameserver::TCPNameserver()
   if(locals.empty() && locals6.empty())
     throw PDNSException("No local address specified");
 
-  vector<string> parts;
-  stringtok( parts, ::arg()["allow-axfr-ips"], ", \t" ); // is this IP on the guestlist?
-  for( vector<string>::const_iterator i = parts.begin(); i != parts.end(); ++i ) {
-    d_ng.addMask( *i );
-  }
+  d_ng.toMasks(::arg()["allow-axfr-ips"] );
 
   signal(SIGPIPE,SIG_IGN);
 

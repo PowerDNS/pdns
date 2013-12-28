@@ -151,16 +151,8 @@ void DynListener::listenOnTCP(const ComboAddress& local)
   d_nonlocal=true;
 
   if(!::arg()["tcp-control-range"].empty()) {
-    vector<string> ips;
-    stringtok(ips, ::arg()["tcp-control-range"], ", ");
-    L<<Logger::Warning<<"Only allowing TCP control from: ";
-    for(vector<string>::const_iterator i = ips.begin(); i!= ips.end(); ++i) {
-      d_tcprange.addMask(*i);
-      if(i!=ips.begin())
-        L<<Logger::Warning<<", ";
-      L<<Logger::Warning<<*i;
-    }
-    L<<Logger::Warning<<endl;
+    d_tcprange.toMasks(::arg()["tcp-control-range"]);
+    L<<Logger::Warning<<"Only allowing TCP control from: "<<d_tcprange.toString()<<endl;
   }
 }
 
