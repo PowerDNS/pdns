@@ -255,6 +255,11 @@
 # no-shuffle=off
 
 #################################
+# only-notify	Only send AXFR NOTIFY to these IP addresses or netmasks
+#
+# only-notify=0.0.0.0/0,::/0
+
+#################################
 # out-of-zone-additional-processing	Do out of zone additional processing
 #
 # out-of-zone-additional-processing=yes

@@ -16055,7 +16055,15 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	      </para>
 	    </listitem>
 	  </varlistentry>
-
+	  <varlistentry>
+	    <term>only-notify=...</term>
+	    <listitem>
+	      <para>
+		Only send AXFR NOTIFY to these IP addresses or netmasks. The default is to notify the world. The IP addresses or netmasks in <command>
+		also-notify</command> or ALSO-NOTIFY metadata always receive AXFR NOTIFY. Example (and default): <command>only-notify=0.0.0.0/0, ::/0</command>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	  <varlistentry><term>out-of-zone-additional-processing | --out-of-zone-additional-processing=yes | --out-of-zone-additional-processing=no</term>
 	    <listitem><para>
 	      Do out of zone additional processing. This means that if a malicious user adds a '.com' zone to your server, it is not used for 

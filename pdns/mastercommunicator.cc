@@ -59,8 +59,12 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
     else
       for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
         const ComboAddress caIp(*k, 53);
-        if(!d_preventSelfNotification || !AddressIsUs(caIp))
-          ips.insert(caIp.toStringWithPort());
+        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+          if(!d_onlyNotify.match(&caIp))
+            L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+          else
+            ips.insert(caIp.toStringWithPort());
+        }
       }
   }
 
