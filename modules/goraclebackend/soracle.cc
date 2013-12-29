@@ -118,7 +118,7 @@ int SOracle::doCommand(const string &query)
 int getNumFields(const string& query)
 {
   string lquery=toLower(query);
-  char* delim[]={" from ", "\tfrom\t", "\tfrom ", " from\t", 0};
+  const char* delim[]={" from ", "\tfrom\t", "\tfrom ", " from\t", 0};
   int n=0;
   string::size_type pos;
   for(n=0; delim[n] && (pos=lquery.find(delim[n]))==string::npos; ++n)
