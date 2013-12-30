@@ -563,12 +563,12 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == -2) {
+    if(res == RecursorBehavior::DROP) {
       delete dc;
       dc=0;
       return;
     }  
-    if(tracedQuery || res < 0 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == RecursorBehavior::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -581,7 +581,7 @@ void startDoResolve(void *p)
       }
     }
 
-    if(res < 0) {
+    if(res == RecursorBehavior::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
