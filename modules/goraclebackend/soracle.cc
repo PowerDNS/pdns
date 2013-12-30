@@ -112,7 +112,13 @@ SSqlException SOracle::sPerrorException(const string &reason)
 
 int SOracle::doCommand(const string &query)
 {
-  return doQuery(query);
+  int retval = doQuery(query);
+  if (d_handle) {
+    OCIHandleFree(d_handle, OCI_HTYPE_STMT);
+    d_handle=0;
+  }
+
+  return retval;
 }
 
 int getNumFields(const string& query)
