@@ -147,6 +147,9 @@ int SOracle::doQuery(const string &query)
   if(query=="begin") // oracle does this implicitly
     return 0;
 
+  if(s_dolog)
+    L<<Logger::Warning<<"Query: "<<query<<endl;
+
   int err = OCIHandleAlloc(d_environmentHandle, (dvoid **) &d_handle, OCI_HTYPE_STMT, 0, NULL);
          
   if (err) {
