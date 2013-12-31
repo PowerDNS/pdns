@@ -25,11 +25,12 @@ CREATE TABLE records (
 	ordername       VARCHAR(255) DEFAULT NULL,
 	auth            INT DEFAULT NULL,
 	primary key (id)
-);
+) pctfree 40;
 
-create index RECORDS$NAME on RECORDS (NAME);
-create index records$domainidordername on records (domain_id, ordername);
-create sequence RECORDS_ID_SEQUENCE;
+create index records$nametype on records (name, type);
+create index records$domain_id on records (domain_id);
+create index records$recordorder on records (domain_id, ordername);
+create sequence records_id_sequence;
 
 
 create table supermasters (
