@@ -247,8 +247,8 @@ string SOracle::escape(const string &name)
   string a;
 
   for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='\'')
-      a+='\'';
+    if(*i=='\\' || *i=='\'')
+      a+='\\';
     a+=*i;
   }
   return a;

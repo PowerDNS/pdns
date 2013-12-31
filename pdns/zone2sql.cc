@@ -68,7 +68,7 @@ static string stripDotContent(const string& content)
 
 static string sqlstr(const string &name)
 {
-  if(g_mode == SQLITE)
+  if(g_mode == SQLITE || g_mode==ORACLE)
     return "'"+boost::replace_all_copy(name, "'", "''")+"'";
   
   string a;
