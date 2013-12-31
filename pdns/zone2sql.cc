@@ -93,7 +93,7 @@ static void startNewTransaction()
     return;
    
   if(g_intransaction) { 
-    if(g_mode==POSTGRES || g_mode==ORACLE) {
+    if(g_mode==POSTGRES) {
       cout<<"COMMIT WORK;"<<endl;
     }
     else if(g_mode == MYSQL || g_mode == SQLITE || g_mode == MYDNS) {
@@ -104,7 +104,7 @@ static void startNewTransaction()
   
   if(g_mode == MYSQL || g_mode == MYDNS)
     cout<<"BEGIN;"<<endl;
-  else
+  else if (g_mode!=ORACLE)
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
