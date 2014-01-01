@@ -45,6 +45,7 @@ SOracle::SOracle(const string &database,
    d_environmentHandle = NULL;
    d_errorHandle = NULL;
    d_serviceContextHandle = NULL;
+   d_handle = NULL;
    
    int err = OCIInitialize(OCI_THREADED, 0,  NULL, NULL, NULL);
    if (err) {
