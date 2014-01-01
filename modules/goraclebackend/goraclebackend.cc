@@ -20,14 +20,14 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
     setenv("ORACLE_HOME", getArg("home").c_str(), 1);
     setenv("ORACLE_SID", getArg("sid").c_str(), 1);
     setenv("NLS_LANG", getArg("nls-lang").c_str(), 1);
- 
+
     setDB(new SOracle(getArg("tnsname"),
-        	     getArg("user"),
-        	     getArg("password")));
-    
+                      getArg("user"),
+                      getArg("password")));
+
   }
 
-  catch(SSqlException &e) {
+  catch (SSqlException &e) {
     L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
     throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
   }
@@ -39,8 +39,7 @@ class gOracleFactory : public BackendFactory
 public:
   gOracleFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
 
-  void declareArguments(const string &suffix="")
-  {
+  void declareArguments(const string &suffix="") {
     declare(suffix,"home", "Oracle home path", "");
     declare(suffix,"sid", "Oracle sid", "XE");
     declare(suffix,"nls-lang", "Oracle language", "AMERICAN_AMERICA.AL32UTF8");
@@ -138,8 +137,7 @@ public:
     declare(suffix,"get-all-domains-query", "Retrieve all domains", "select records.domain_id, records.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from records, domains where records.domain_id=domains.id and records.type='SOA'");
   }
 
-  DNSBackend *make(const string &suffix="")
-  {
+  DNSBackend* make(const string &suffix="") {
     return new gOracleBackend(d_mode,suffix);
   }
 private:
@@ -152,8 +150,7 @@ class gOracleLoader
 {
 public:
   //! This reports us to the main UeberBackend class
-  gOracleLoader()
-  {
+  gOracleLoader() {
     BackendMakers().report(new gOracleFactory("goracle"));
     L<<Logger::Warning<<"This is module goraclebackend.so reporting"<<endl;
   }
