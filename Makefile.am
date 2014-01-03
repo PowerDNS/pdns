@@ -4,6 +4,7 @@ EXTRA_DIST=README HACKING INSTALL NOTICE debian-pdns/* pdns.spec  \
 codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1 \
+build-scripts/redhat/pdns-server-test.spec \
 pdns/ext/rapidjson/Makefile
 
 ACLOCAL_AMFLAGS = -I m4

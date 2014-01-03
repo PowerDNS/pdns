@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 WWWPREFIX=. 
 WSIZE=800
 HSIZE=250

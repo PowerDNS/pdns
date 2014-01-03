@@ -1,4 +1,5 @@
 require 'rubygems'
+require 'bundler/setup'
 require 'json'
 
 # define a simple $domain

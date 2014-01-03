@@ -1,10 +1,14 @@
-#!/bin/bash -ex
+#!/usr/bin/env bash
+set -e
+set -x
 
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
 
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
+
+MAKE=${MAKE:-make}
 
 export ALGORITHM
 export KEY
@@ -189,7 +193,7 @@ __EOF__
 
 tosql ()
 {
-	make -C ../pdns zone2sql > /dev/null
+	${MAKE} -C ../pdns zone2sql > /dev/null
 	../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
 }
 
@@ -304,8 +308,8 @@ gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3
 opendbx-sqlite3
 tinydns
 mydns
-remotebackend-pipe remotebackend-unix remotebackend-http 
-remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec
+remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
+remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
 
@@ -326,7 +330,7 @@ __EOF__
 	exit 1
 fi
 
-make -C ../pdns sdig nsec3dig || exit 1
+${MAKE} -C ../pdns sdig nsec3dig || exit 1
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
@@ -484,7 +488,7 @@ case $context in
 				--no-shuffle --launch=bind --bind-config=./named.conf \
 				--bind-dnssec-db=./dnssec.sqlite3 \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
 				--bind-ignore-broken-records=yes $lua_prequery &
 			bindwait
@@ -521,7 +525,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch=gmysql \
 				--master --send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -610,7 +614,7 @@ __EOF__
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 				--no-shuffle --launch --launch+=random --launch+=gmysql --launch+=random --gmysql-dnssec \
 				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --experimental-direct-dnskey=yes \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 				--cache-ttl=$cachettl --no-config \
 				--gmysql-dbname="$GMYSQLDB" \
 				--gmysql-user="$GMYSQLUSER" \
@@ -818,6 +822,12 @@ __EOF__
 			# cleanup unbound-host.conf to avoid failures
 			rm -f unbound-host.conf
 
+			echo "Setting up test database..."
+			# setup test database
+			rm -f $testsdir/remote.sqlite3
+			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
+			chmod 0666 $testsdir/remote.sqlite3
+
 			case $remotetype in
 			http)
 				connstr="http:url=http://localhost:62434/dns"
@@ -838,6 +848,11 @@ __EOF__
 					let loopcount=loopcount+1
 				done
 				set -e
+				;;
+			zeromq)
+				connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
+				$testsdir/zeromq-backend.rb &
+				echo $! > pdns-remotebackend.pid
 				;;
 			unix)
 				connstr="unix:path=/tmp/remote.socket"
@@ -876,24 +891,12 @@ __EOF__
 				skipreasons="nonsec3 nonarrow nodyndns"
 			fi
 
+
 			# generate pdns.conf for pdnssec
 			cat > pdns-remote.conf <<EOF
 launch=remote
 remote-connection-string=$connstr
 EOF
-
-			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
-				--no-shuffle --launch=remote \
-				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
-				--send-root-referral \
-				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-				--remote-connection-string="$connstr" $remote_add_param &
-
-			echo "Setting up test database..."
-			# setup test database
-			rm -f $testsdir/remote.sqlite3
-			sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
-			chmod 0666 $testsdir/remote.sqlite3
 
 			if [ "$remotedosec" = "yes" ]
 			then
@@ -918,6 +921,14 @@ EOF
 					../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
 				fi
 			fi
+
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+				--no-shuffle --launch=remote \
+				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--remote-connection-string="$connstr" $remote_add_param &
+
 			;;
 		*)
 			echo unknown context $context
@@ -1240,6 +1251,28 @@ then
 	read l
 fi
 
-kill $(cat pdns*.pid)
+pids=$(cat pdns*.pid)
+
+kill $pids
+# make sure they die.
+set +e
+loopcount=0
+done=0
+while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+do
+	done=1
+	for pid in $pids
+	do
+		kill -0 $pid > /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			done=0
+		fi
+	done
+	let loopcount=loopcount+1
+	sleep 1
+done
+
+kill -9 $pids
+
 rm pdns*.pid || true
 exit $RETVAL

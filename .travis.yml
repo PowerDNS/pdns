@@ -3,20 +3,21 @@ compiler:
   - gcc
   - clang
 before_script:
+ - sudo rm /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update
- - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time
+ - sudo apt-get install libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto dblatex links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
- - sudo gem install bundler --no-rdoc --no-ri --bindir /usr/local/bin
+ - gem install bundler --no-rdoc --no-ri 
  - cd regression-tests
  - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
  - unzip top-1m.csv.zip
  - cd ..
  - cd modules/remotebackend
- - sudo bundle install
+ - ruby -S bundle install
  - cd ../..
 script:
  - ./bootstrap
- - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http --enable-tools
+ - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random' --enable-unit-tests --enable-remotebackend-http --enable-tools --enable-remotebackend-zeromq
  - make dist
  - make -j 4
  - make -j 4 check
@@ -49,6 +50,10 @@ script:
  - ./start-test-stop 5300 remotebackend-pipe-dnssec
  - ./start-test-stop 5300 remotebackend-unix
  - ./start-test-stop 5300 remotebackend-unix-dnssec
+ - ./start-test-stop 5300 remotebackend-http
+ - ./start-test-stop 5300 remotebackend-http-dnssec
+ - ./start-test-stop 5300 remotebackend-zeromq
+ - ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - THRESHOLD=90 TRACE=no ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests

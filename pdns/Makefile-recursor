@@ -4,8 +4,8 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
-CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl-1.3.2/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl-1.3.2/include -pthread
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread
 
 LINKCC=$(CXX)
@@ -19,7 +19,7 @@ PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
-dns_random.o aescrypt.o aeskey.o aes_modes.o aestab.o dnslabeltext.o \
+dns_random.o ext/polarssl-1.3.2/library/aes.o ext/polarssl-1.3.2/library/padlock.o dnslabeltext.o \
 lua-pdns.o lua-recursor.o randomhelper.o recpacketcache.o dns.o \
 reczones.o base32.o nsecrecords.o json.o json_ws.o version.o
 
@@ -105,10 +105,10 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp
+	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o
 
 dep:
-	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.c *.hh > $@
+	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@
 
 -include dep
 

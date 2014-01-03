@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 for zone in $(grep zone named.conf  | cut -f2 -d\" | grep -v '^\(example.com\|nztest.com\)$')
 do
 	TFILE=$(mktemp)

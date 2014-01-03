@@ -1,6 +1,6 @@
-#!/usr/bin/ruby1.9.1
+#!/usr/bin/env ruby
 require "rubygems"
-#require "bundler/setup"
+require 'bundler/setup'
 require "webrick"
 require "../modules/remotebackend/regression-tests/dnsbackend"
 require "../modules/remotebackend/regression-tests/backend"
