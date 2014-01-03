@@ -16,7 +16,7 @@ DROP TABLE ZoneMetadata;
 DROP TABLE Supermasters;
 DROP SEQUENCE supermasters_id_seq;
 DROP TABLE Zonemasters;
-DROP TABLE ZoneAlsoNotifyHosts;
+DROP TABLE ZoneAlsoNotify;
 DROP TABLE Zones;
 DROP SEQUENCE zones_id_seq;
 
