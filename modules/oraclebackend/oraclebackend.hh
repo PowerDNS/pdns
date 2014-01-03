@@ -82,6 +82,10 @@ public:
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
 
   bool getTSIGKey(const string& name, string* algorithm, string* content);
+  bool delTSIGKey(const string& name);
+  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
+  bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+
   bool getDomainKeys(const string& name, unsigned int kind, vector<KeyData>& keys);
   bool removeDomainKey(const string& name, unsigned int id);
   int addDomainKey(const string& name, const KeyData& key);
@@ -127,6 +131,10 @@ private:
   string setZoneMetadataQuerySQL;
 
   string getTSIGKeyQuerySQL;
+  string delTSIGKeyQuerySQL;
+  string setTSIGKeyQuerySQL;
+  string getTSIGKeysQuerySQL;
+
   string getZoneKeysQuerySQL;
   string delZoneKeyQuerySQL;
   string addZoneKeyQuerySQL;
