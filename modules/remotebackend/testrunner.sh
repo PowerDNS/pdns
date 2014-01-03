@@ -3,7 +3,7 @@
 webrick_pid=""
 socat_pid=""
 zeromq_pid=""
-socat=socat
+socat=$(which socat)
 
 function start_web() {
   if [ x"$REMOTEBACKEND_HTTP" == "xyes" ]; then

@@ -74,34 +74,30 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 
 bool GSQLBackend::isMaster(const string &domain, const string &ip)
 {
-  char output[1024];
-  snprintf(output,sizeof(output)-1,
-	   d_MasterOfDomainsZoneQuery.c_str(),
-	   sqlEscape(domain).c_str());
+  string query = (boost::format(d_MasterOfDomainsZoneQuery) % sqlEscape(domain)).str();
+
   try {
-    d_db->doQuery(output, d_result);
+    d_db->doQuery(query, d_result);
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to retrieve list of master domains: "+e.txtReason());
   }
 
-  if(d_result.empty())
-    return 0;
+  if(!d_result.empty()) {
 
-  // we can have multiple masters separated by commas
-  vector<string> masters;
-  stringtok(masters, d_result[0][0], " ,\t");
-  for(vector<string>::const_iterator iter=masters.begin(); iter != masters.end(); ++iter) {
-     // we can also have masters with a port specified (which we ignore here)
-     ServiceTuple st;
-     parseService(*iter, st);
-     if (!strcmp(ip.c_str(), st.host.c_str())) {
-         return 1;
-     }
+    // we can have multiple masters separated by commas
+    vector<string> masters;
+    stringtok(masters, d_result[0][0], " ,\t");
+
+    BOOST_FOREACH(const string master, masters) {
+      const ComboAddress caMaster(master);
+      if(ip == caMaster.toString())
+        return true;
+    }
   }
 
- // if no masters matched then this is not a master
-  return 0;  
+  // no matching master
+  return false;
 }
 
 bool GSQLBackend::setMaster(const string &domain, const string &ip)

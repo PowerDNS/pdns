@@ -1,55 +1,37 @@
-#include "aescpp.h"
+#include <polarssl/aes.h>
 #include <iostream>
+#include <cstdlib>
 #include <cstring>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <limits>
+#include <stdint.h>
 #include "dns_random.hh"
 
 using namespace std;
 
-static aes_encrypt_ctx g_cx;
-static unsigned char g_counter[16];
+static aes_context g_ctx;
+static unsigned char g_counter[16], g_stream[16];
 static uint32_t g_in;
+static size_t g_offset;
 
 static bool g_initialized;
 
 void dns_random_init(const char data[16])
 {
-  aes_init();
+  g_offset = 0;
+  aes_setkey_enc(&g_ctx, (const unsigned char*)data, 128);
 
-  aes_encrypt_key128((const unsigned char*)data, &g_cx);
   struct timeval now;
   gettimeofday(&now, 0);
 
   memcpy(g_counter, &now.tv_usec, sizeof(now.tv_usec));
   memcpy(g_counter+sizeof(now.tv_usec), &now.tv_sec, sizeof(now.tv_sec));
   g_in = getpid() | (getppid()<<16);
-  
+
   g_initialized = true;
   srandom(dns_random(numeric_limits<uint32_t>::max()));
-}
-
-static void counterIncrement(unsigned char* counter)
-{
-  if(!++counter[0])
-    if(!++counter[1])
-      if(!++counter[2])
-        if(!++counter[3])
-          if(!++counter[4])
-            if(!++counter[5])
-              if(!++counter[6])
-        	if(!++counter[7])
-        	  if(!++counter[8])
-        	    if(!++counter[9])
-        	      if(!++counter[10])
-        		if(!++counter[11])
-        		  if(!++counter[12])
-        		    if(!++counter[13])
-        		      if(!++counter[14])
-        			++counter[15];
-  
 }
 
 unsigned int dns_random(unsigned int n)
@@ -57,7 +39,7 @@ unsigned int dns_random(unsigned int n)
   if(!g_initialized)
     abort();
   uint32_t out;
-  aes_ctr_encrypt((unsigned char*) &g_in, (unsigned char*)& out, sizeof(g_in), g_counter, counterIncrement, &g_cx);
+  aes_crypt_ctr(&g_ctx, sizeof(g_in), &g_offset, g_counter, (unsigned char*) &g_stream, (unsigned char*) &g_in, (unsigned char*) &out);
   return out % n;
 }
 

@@ -52,6 +52,12 @@
 AtomicCounter PacketHandler::s_count;
 extern string s_programname;
 
+enum root_referral {
+    NO_ROOT_REFERRAL,
+    LEAN_ROOT_REFERRAL,
+    FULL_ROOT_REFERRAL
+};
+
 PacketHandler::PacketHandler():B(s_programname)
 {
   ++s_count;
@@ -59,6 +65,9 @@ PacketHandler::PacketHandler():B(s_programname)
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");
+  d_sendRootReferral = ::arg().mustDo("send-root-referral")
+                            ? ( pdns_iequals(::arg()["send-root-referral"], "lean") ? LEAN_ROOT_REFERRAL : FULL_ROOT_REFERRAL )
+                            : NO_ROOT_REFERRAL;
   string fname= ::arg()["lua-prequery-script"];
   if(fname.empty())
   {
@@ -102,7 +111,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
     r->addRecord(rr);
   }
 
-  if(pdns_iequals(::arg()["send-root-referral"], "lean"))
+  if( d_sendRootReferral == LEAN_ROOT_REFERRAL )
      return;
 
   // add the additional stuff
@@ -223,7 +232,7 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
     haveOne=true;
   }
 
-  if(::arg().mustDo("experimental-direct-dnskey")) {
+  if(::arg().mustDo("direct-dnskey")) {
     B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
     while(B.get(rr)) {
       rr.ttl=sd.default_ttl;
@@ -256,36 +265,54 @@ bool PacketHandler::addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 }
 
 
-/** This catches version requests. Returns 1 if it was handled, 0 if it wasn't */
-int PacketHandler::doVersionRequest(DNSPacket *p, DNSPacket *r, string &target)
+// This is our chaos class requests handler. Return 1 if content was added, 0 if it wasn't
+int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, string &target)
 {
   DNSResourceRecord rr;
-  
-  if(p->qclass == QClass::CHAOS && p->qtype.getCode()==QType::TXT && target=="version.bind") {// TXT
-    // modes: anonymous, powerdns only, full, spoofed
-    const static string mode=::arg()["version-string"];
-  
-    if(mode.empty() || mode=="full") 
-      rr.content=fullVersionString();
-    else if(mode=="anonymous") {
-      r->setRcode(RCode::ServFail);
-      return 1;
+
+  if(p->qtype.getCode()==QType::TXT) {
+    if (pdns_iequals(target, "version.pdns") || pdns_iequals(target, "version.bind")) {
+      // modes: full, powerdns only, anonymous or custom
+      const static string mode=::arg()["version-string"];
+
+      if(mode.empty() || mode=="full")
+        rr.content=fullVersionString();
+      else if(mode=="powerdns")
+        rr.content="Served by PowerDNS - https://www.powerdns.com/";
+      else if(mode=="anonymous") {
+        r->setRcode(RCode::ServFail);
+        return 0;
+      }
+      else
+        rr.content=mode;
     }
-    else if(mode=="powerdns")
-      rr.content="Served by PowerDNS - http://www.powerdns.com";
-    else 
-      rr.content=mode;
+    else if (pdns_iequals(target, "id.server")) {
+      // modes: disabled, hostname or custom
+      const static string id=::arg()["server-id"];
+
+      if (id == "disabled") {
+        r->setRcode(RCode::Refused);
+        return 0;
+      }
+      rr.content=id;
+    }
+    else {
+      r->setRcode(RCode::Refused);
+      return 0;
+    }
 
     rr.ttl=5;
     rr.qname=target;
-    rr.qtype=QType::TXT; 
-    rr.qclass=QClass::CHAOS; 
+    rr.qtype=QType::TXT;
+    rr.qclass=QClass::CHAOS;
     r->addRecord(rr);
-    
     return 1;
   }
+
+  r->setRcode(RCode::NotImp);
   return 0;
 }
+
 
 /** Determines if we are authoritative for a zone, and at what level */
 bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
@@ -426,20 +453,22 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 
 void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, const std::string& toNSEC, const SOAData& sd, DNSPacket *r, int mode)
 {
-  // <<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
+  // cerr<<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
   NSECRecordContent nrc;
   nrc.d_set.insert(QType::RRSIG);
   nrc.d_set.insert(QType::NSEC);
-  if(pdns_iequals(sd.qname, begin))
+  if(pdns_iequals(sd.qname, begin)) {
+    nrc.d_set.insert(QType::SOA);
     nrc.d_set.insert(QType::DNSKEY);
+  }
 
   DNSResourceRecord rr;
   B.lookup(QType(QType::ANY), begin, NULL, sd.domain_id);
   while(B.get(rr)) {
     if(rr.qtype.getCode() == QType::NS || rr.auth)
-      nrc.d_set.insert(rr.qtype.getCode());    
+      nrc.d_set.insert(rr.qtype.getCode());
   }
-  
+
   nrc.d_next=end;
 
   rr.qname=begin;
@@ -448,13 +477,13 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   rr.content=nrc.getZoneRepresentation();
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
-  
+
   r->addRecord(rr);
 }
 
 void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
-//  cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
+  // cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
   n3rc.d_salt=ns3prc.d_salt;
   n3rc.d_flags = ns3prc.d_flags;
@@ -469,7 +498,8 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
         n3rc.d_set.insert(rr.qtype.getCode());
     }
 
-    if(toLower(unhashed) == toLower(sd.qname)) {
+    if (pdns_iequals(sd.qname, unhashed)) {
+      n3rc.d_set.insert(QType::SOA);
       n3rc.d_set.insert(QType::NSEC3PARAM);
       n3rc.d_set.insert(QType::DNSKEY);
     }
@@ -477,7 +507,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
 
   if (n3rc.d_set.size() && !(n3rc.d_set.size() == 1 && n3rc.d_set.count(QType::NS)))
     n3rc.d_set.insert(QType::RRSIG);
-  
+
   n3rc.d_nexthash=end;
 
   rr.qname=dotConcat(toBase32Hex(begin), sd.qname);
@@ -486,7 +516,7 @@ void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOADa
   rr.content=n3rc.getZoneRepresentation();
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
-  
+
   r->addRecord(rr);
 }
 
@@ -890,7 +920,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
     }
     
     // fix direct DNSKEY ttl
-    if(::arg().mustDo("experimental-direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY) {
+    if(::arg().mustDo("direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY) {
       rr.ttl = sd.default_ttl;
     }
 
@@ -1200,27 +1230,40 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
 
-    // please don't query fancy records directly!
-    if(d_doFancyRecords && (p->qtype.getCode()==QType::URL || p->qtype.getCode()==QType::CURL || p->qtype.getCode()==QType::MBOXFW)) {
-      r->setRcode(RCode::ServFail);
+
+    string target=p->qdomain;
+
+    // catch chaos qclass requests
+    if(p->qclass == QClass::CHAOS) {
+      if (doChaosRequest(p,r,target))
+        goto sendit;
+      else
+        return r;
+    }
+
+    // we only know about qclass IN (and ANY), send NotImp for everthing else.
+    if(p->qclass != QClass::IN && p->qclass!=QClass::ANY) {
+      r->setRcode(RCode::NotImp);
       return r;
     }
-    
-    string target=p->qdomain;
-    
-    if(doVersionRequest(p,r,target)) // catch version.bind requests
-      goto sendit;
 
-    if((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG) && !p->d_tcp && g_anyToTcp) {
+    // send TC for udp ANY or RRSIG query if any-to-tcp is enabled.
+    if(g_anyToTcp && !p->d_tcp && ((p->qtype.getCode() == QType::ANY || p->qtype.getCode() == QType::RRSIG))) {
       r->d.tc = 1;
       r->commitD();
       return r;
     }
 
-    if(p->qclass==QClass::ANY) // any class query
+    // please don't query fancy records directly!
+    if(d_doFancyRecords && (p->qtype.getCode()==QType::URL || p->qtype.getCode()==QType::CURL || p->qtype.getCode()==QType::MBOXFW)) {
+      r->setRcode(RCode::ServFail);
+      return r;
+    }
+
+    // for qclass ANY the response should never be authoritative unless the response covers all classes.
+    if(p->qclass==QClass::ANY)
       r->setA(false);
-    else if(p->qclass != QClass::IN) // we only know about IN, so we don't find anything
-      goto sendit;
+
 
   retargeted:;
     if(retargetcount > 10) {    // XXX FIXME, retargetcount++?
@@ -1242,7 +1285,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       
       if(!retargetcount)
         r->setA(false); // drop AA if we never had a SOA in the first place
-      if(::arg().mustDo("send-root-referral")) {
+      if( d_sendRootReferral != NO_ROOT_REFERRAL ) {
         DLOG(L<<Logger::Warning<<"Adding root-referral"<<endl);
         addRootReferral(r);
       }

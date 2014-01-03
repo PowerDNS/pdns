@@ -31,10 +31,8 @@ libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.c
         ../../pdns/unix_utility.cc ../../pdns/logger.cc ../../pdns/statbag.cc ../../pdns/arguments.hh ../../pdns/arguments.cc ../../pdns/qtype.cc ../../pdns/dnspacket.cc \
         ../../pdns/dnswriter.cc ../../pdns/base64.cc ../../pdns/base32.cc ../../pdns/dnsrecords.cc ../../pdns/dnslabeltext.cc ../../pdns/dnsparser.cc \
         ../../pdns/rcpgenerator.cc ../../pdns/ednssubnet.cc ../../pdns/nsecrecords.cc ../../pdns/sillyrecords.cc ../../pdns/dnssecinfra.cc \
-        ../../pdns/aes/dns_random.cc ../../pdns/packetcache.hh ../../pdns/packetcache.cc \
-        ../../pdns/aes/aescpp.h ../../pdns/dns.hh ../../pdns/dns.cc ../../pdns/json.hh ../../pdns/json.cc \
-        ../../pdns/aes/aescrypt.c ../../pdns/aes/aes.h ../../pdns/aes/aeskey.c ../../pdns/aes/aes_modes.c ../../pdns/aes/aesopt.h \
-        ../../pdns/aes/aestab.c ../../pdns/aes/aestab.h ../../pdns/aes/brg_endian.h ../../pdns/aes/brg_types.h \
+        ../../pdns/dns_random.cc ../../pdns/packetcache.hh ../../pdns/packetcache.cc \
+        ../../pdns/dns.hh ../../pdns/dns.cc ../../pdns/json.hh ../../pdns/json.cc \
         remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
 libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) $(LIBZMQ_CFLAGS) -g -O0 -I../../pdns

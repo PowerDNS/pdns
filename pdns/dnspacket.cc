@@ -286,7 +286,10 @@ void DNSPacket::wrapup()
   
   DNSPacketWriter::optvect_t opts;
   if(d_wantsnsid) {
-    opts.push_back(make_pair(3, ::arg()["server-id"]));
+    const static string mode_server_id=::arg()["server-id"];
+    if(mode_server_id != "disabled") {
+      opts.push_back(make_pair(3, mode_server_id));
+    }
   }
 
   if(!d_ednsping.empty()) {

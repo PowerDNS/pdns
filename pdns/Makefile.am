@@ -54,9 +54,7 @@ backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
 base64.cc sillyrecords.cc \
 base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
-rcpgenerator.cc	dnsparser.cc dns_random.hh aes/aescpp.h \
-aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
+rcpgenerator.cc	dnsparser.cc dns_random.hh dns_random.cc\
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc \
 sha.hh md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc lua-auth.hh serialtweaker.cc \
@@ -99,9 +97,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
 	dynlistener.cc dns.cc dnssecsigner.cc polarrsakeyinfra.cc \
 	signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh \
-	aes/aescpp.h \
-	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc json.cc \
+	dns_random.cc json.cc \
 	serialtweaker.cc randomhelper.cc
 
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
@@ -113,8 +109,7 @@ zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	zoneparser-tng.cc dnsrecords.cc sillyrecords.cc \
 	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc \
 	nsecrecords.cc dnssecinfra.cc base32.cc bindparserclasses.hh \
-	aes/dns_random.cc aes/aescpp.h aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h  # dbdnsseckeeper.cc
+	dns_random.cc
 
 zone2sql_LDFLAGS=@THREADFLAGS@
 zone2sql_LDADD= $(POLARSSL_LIBS)
@@ -133,8 +128,7 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	unix_utility.cc qtype.cc zoneparser-tng.cc dnsrecords.cc \
 	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc sillyrecords.cc \
 	nsecrecords.cc dnssecinfra.cc base32.cc bindparserclasses.hh \
-	aes/dns_random.cc aes/aescpp.h aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h # dbdnsseckeeper.cc
+	dns_random.cc
 
 zone2ldap_LDFLAGS=@THREADFLAGS@
 zone2ldap_LDADD= $(POLARSSL_LIBS)
@@ -190,18 +184,14 @@ nsec3dig_LDADD= $(POLARSSL_LIBS)
 toysdig_SOURCES=toysdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc \
-	ednssubnet.cc ednssubnet.hh aes/aescpp.h \
-	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
-	randomhelper.cc 
+	ednssubnet.cc ednssubnet.hh dns_random.cc randomhelper.cc 
+toysdig_LDADD= $(POLARSSL_LIBS)
 
 
 tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc \
-	dnssecinfra.cc resolver.cc arguments.cc dns_random.hh aes/aescpp.h \
-	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc \
+	dnssecinfra.cc resolver.cc arguments.cc dns_random.hh dns_random.cc \
 	randomhelper.cc dns.cc
 tsig_tests_LDADD= $(POLARSSL_LIBS)
 
@@ -276,11 +266,8 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	unix_utility.cc logger.cc statbag.cc arguments.cc qtype.cc dnspacket.cc \
 	dnswriter.cc base64.cc base32.cc dnsrecords.cc dnslabeltext.cc dnsparser.cc \
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
-	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc aes/dns_random.cc \
-	aes/aescpp.h \
-	aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
-	aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h test-rcpgenerator_cc.cc \
-	responsestats.cc
+	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc dns_random.cc \
+	test-rcpgenerator_cc.cc responsestats.cc
 
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
@@ -291,13 +278,13 @@ mtasker.hh syncres.hh recursor_cache.cc recursor_cache.hh dnsparser.cc \
 dnswriter.cc dnslabeltext.cc dnswriter.hh dnsrecords.cc dnsrecords.hh rcpgenerator.cc rcpgenerator.hh \
 base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_channel.hh \
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
-aes/dns_random.cc aes/aescrypt.c aes/aeskey.c aes/aestab.c aes/aes_modes.c \
+dns_random.cc \
 lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh json_ws.cc json_ws.hh \
 json.cc json.hh version.hh version.cc
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
-pdns_recursor_LDADD=
+pdns_recursor_LDADD= $(POLARSSL_LIBS)
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
 misc.cc unix_utility.cc qtype.cc

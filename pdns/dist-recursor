@@ -34,7 +34,7 @@ base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
-dnslabeltext.cc json.cc json_ws.cc json_ws.hh version.cc"
+dnslabeltext.cc json.cc json_ws.cc json_ws.hh version.cc dns_random.cc"
 
 cd docs
 make pdns_recursor.1 rec_control.1
@@ -55,9 +55,12 @@ EOF
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
 cp -a ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
+mkdir -p $DIRNAME/ext/polarssl-1.3.2/include/polarssl
+cp -a ext/polarssl-1.3.2/include/polarssl/config.h ext/polarssl-1.3.2/include/polarssl/aes.h ext/polarssl-1.3.2/include/polarssl/padlock.h $DIRNAME/ext/polarssl-1.3.2/include/polarssl
+mkdir -p $DIRNAME/ext/polarssl-1.3.2/library
+cp -a ext/polarssl-1.3.2/library/aes.c ext/polarssl-1.3.2/library/padlock.c $DIRNAME/ext/polarssl-1.3.2/library
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
-cp aes/*.{c,cc,h} $DIRNAME
 cp pdns-recursor.init.d $DIRNAME
 cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 cp configure-recursor $DIRNAME/configure
