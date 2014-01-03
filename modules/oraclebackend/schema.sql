@@ -84,9 +84,12 @@ CREATE INDEX zonednskeys_zone_ind ON ZoneDNSKeys (zone_id);
 
 
 CREATE TABLE TSIGKeys (
-  name VARCHAR2(255) CONSTRAINT pkey_tsigkeys PRIMARY KEY,
-  algorithm VARCHAR2(63) NOT NULL,
-  secret VARCHAR2(2047) NOT NULL
+  name VARCHAR2(256),
+  algorithm VARCHAR2(64) NOT NULL,
+  secret VARCHAR2(2048) NOT NULL,
+  CONSTRAINT chk_tsigkeys_name CHECK (name = lower(name)),
+  CONSTRAINT chk_tsigkeys_algorithm CHECK (algorithm = lower(algorithm)),
+  CONSTRAINT unq_tsigkeys_nav UNIQUE (name, algorithm, secret)
 );
 
 
