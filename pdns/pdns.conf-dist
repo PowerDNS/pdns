@@ -180,9 +180,19 @@
 # local-address=0.0.0.0
 
 #################################
+# local-address-nonexist-fail	Fail to start if one or more of the local-address's do not exist on this server
+#
+# local-address-nonexist-fail=yes
+
+#################################
 # local-ipv6	Local IP address to which we bind
 #
 # local-ipv6=
+
+#################################
+# local-ipv6-nonexist-fail	Fail to start if one or more of the local-ipv6 addresses do not exist on this server
+#
+# local-ipv6-nonexist-fail=yes
 
 #################################
 # local-port	The port on which we listen
