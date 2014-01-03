@@ -54,7 +54,7 @@ void declareArguments()
   ::arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
   ::arg().set("local-address","Local IP addresses to which we bind")="0.0.0.0";
   ::arg().set("local-ipv6","Local IP address to which we bind")="";
-  ::arg().setSwitch("reuseport","Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket")="";
+  ::arg().setSwitch("reuseport","Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket")="no";
   ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
   ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
