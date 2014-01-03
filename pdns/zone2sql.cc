@@ -68,7 +68,7 @@ static string stripDotContent(const string& content)
 
 static string sqlstr(const string &name)
 {
-  if(g_mode == SQLITE)
+  if(g_mode == SQLITE || g_mode==ORACLE)
     return "'"+boost::replace_all_copy(name, "'", "''")+"'";
   
   string a;
@@ -93,7 +93,7 @@ static void startNewTransaction()
     return;
    
   if(g_intransaction) { 
-    if(g_mode==POSTGRES || g_mode==ORACLE) {
+    if(g_mode==POSTGRES) {
       cout<<"COMMIT WORK;"<<endl;
     }
     else if(g_mode == MYSQL || g_mode == SQLITE || g_mode == MYDNS) {
@@ -104,7 +104,7 @@ static void startNewTransaction()
   
   if(g_mode == MYSQL || g_mode == MYDNS)
     cout<<"BEGIN;"<<endl;
-  else
+  else if (g_mode!=ORACLE)
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
@@ -196,7 +196,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
     }
   }
   else if(g_mode==ORACLE) {
-    cout<<"insert into Records (id,ZoneId, name,type,content,TimeToLive,Priority) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
+    cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       sqlstr(qtype)<<", "<<
       sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
@@ -233,7 +233,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
 
 
 /* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN) 
-   2 further modes: --mysql or --oracle 
+   2 further modes: --mysql or --goracle 
 */
 
 ArgvMap &arg()
@@ -255,7 +255,7 @@ try
     ::arg().setSwitch("gpgsql","Output in format suitable for default gpgsqlbackend")="no";
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
     ::arg().setSwitch("mydns","Output in format suitable for default mydnsbackend")="no";
-    ::arg().setSwitch("oracle","Output in format suitable for the oraclebackend")="no";
+    ::arg().setSwitch("goracle","Output in format suitable for the goraclebackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
     ::arg().setSwitch("dnssec","Add DNSSEC related data")="no";
@@ -292,7 +292,7 @@ try
       g_mode=POSTGRES;
     else if(::arg().mustDo("gsqlite"))
       g_mode=SQLITE;
-    else if(::arg().mustDo("oracle")) {
+    else if(::arg().mustDo("goracle")) {
       g_mode=ORACLE;
       if(!::arg().mustDo("transactions"))
         cout<<"set autocommit on;"<<endl;

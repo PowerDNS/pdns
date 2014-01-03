@@ -312,6 +312,7 @@ remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
 remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
+goracle-nodnssec goracle goracle-nsec3 goracle-nsec3-optout
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
   to test presigned operation.
@@ -804,6 +805,71 @@ __EOF__
 			fi
 			skipreasons="nodyndns"
 			;;
+
+
+		goracle-nodnssec | goracle | goracle-nsec3 | goracle-nsec3-optout)
+
+			echo "DROP USER pdns CASCADE;" | sqlplus -S powerdns/powerdns > oracle.log || true
+			echo "CREATE USER pdns IDENTIFIED BY pdns;" | sqlplus -S powerdns/powerdns >> oracle.log
+			echo "GRANT CONNECT, RESOURCE TO pdns;" | sqlplus -S powerdns/powerdns >> oracle.log
+			sqlplus -S pdns/pdns@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle.log
+			tosql goracle | sqlplus -S pdns/pdns@xe >> oracle.log
+
+			cat > pdns-goracle.conf << __EOF__
+launch=goracle
+goracle-home=$ORACLE_HOME
+goracle-sid=$ORACLE_SID
+goracle-nls-lang=$NLS_LANG
+
+goracle-tnsname=xe
+goracle-user=pdns
+goracle-password=pdns
+__EOF__
+
+			if [ $context != goracle-nodnssec ]
+			then
+				echo "goracle-dnssec" >> pdns-goracle.conf
+				../pdns/pdnssec --config-dir=. --config-name=goracle import-tsig-key test $ALGORITHM $KEY
+				../pdns/pdnssec --config-dir=. --config-name=goracle activate-tsig-key tsig.com test master
+			fi
+
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				if [ $context != goracle-nodnssec ]
+				then
+					securezone $zone goracle
+					if [ $context = goracle-nsec3 ] || [ $context = goracle-nsec3-optout ]
+					then
+						../pdns/pdnssec --config-dir=. --config-name=goracle set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+						../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+					fi
+				else
+					../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+				fi
+			done
+
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+				--config-name=goracle --socket-dir=./ --no-shuffle \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl $lua_prequery &
+
+			skipreasons="nodyndns"
+			if [ $context = goracle-nsec3 ]
+			then
+				extracontexts="dnssec nsec3"
+			elif [ $context = goracle-nsec3-optout ]
+			then
+				extracontexts="dnssec nsec3 nsec3-optout"
+			elif [ $context = goracle-nodnssec ]
+			then
+				skipreasons="nodnssec nodyndns"
+			else
+				extracontexts="dnssec"
+			fi
+			;;
+
+
 		tinydns)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=tinydns \
