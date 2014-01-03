@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [ "${context:0:4}" != "bind" ]; then
     exit 0

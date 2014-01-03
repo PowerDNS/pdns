@@ -209,7 +209,7 @@ AS_IF([test "x$with_system_polarssl" != "xno"],
       [have_system_polarssl=no]
 )
 
-POLARSSL_SUBDIR=ext/polarssl-1.1.2
+POLARSSL_SUBDIR=ext/polarssl-1.3.2
 POLARSSL_CFLAGS=-I\$\(top_srcdir\)/pdns/$POLARSSL_SUBDIR/include/
 POLARSSL_LIBS=\$\(top_builddir\)/pdns/$POLARSSL_SUBDIR/library/libpolarssl.a
 
@@ -280,6 +280,21 @@ then
         AC_DEFINE(HAVE_LIBCURL,1,[If we have libcurl])
 	AC_DEFINE(REMOTEBACKEND_HTTP,1,[If we want HTTP connector])
         AC_SUBST(REMOTEBACKEND_HTTP)
+fi
+
+AC_ARG_ENABLE(remotebackend_zeromq, AS_HELP_STRING([--enable-remotebackend-zeromq],[enable ZeroMQ connector for remotebackend]),[enable_remotebackend_zeromq=yes], [enable_remotebackend_zeromq=no])
+AC_MSG_CHECKING(whether to enable ZeroMQ connector in remotebackend)
+AC_MSG_RESULT($enable_remotebackend_zeromq)
+AM_CONDITIONAL(REMOTEBACKEND_HTTP,test x"$enable_remotebackend_zeromq" = "xyes")
+if test "x$enable_remotebackend_zeromq" = "xyes"
+then
+        PKG_CHECK_MODULES(LIBZMQ, libzmq, HAVE_LIBZMQ=yes, AC_MSG_ERROR([Could not find libzmq]))
+        REMOTEBACKEND_ZEROMQ=yes
+        AC_SUBST(LIBZMQ_LIBS)
+        AC_SUBST(LIBZMQ_CFLAGS)
+        AC_DEFINE(HAVE_LIBZMQ,1,[If we have libzmq])
+        AC_DEFINE(REMOTEBACKEND_ZEROMQ,1,[If we want ZeroMQ connector])
+        AC_SUBST(REMOTEBACKEND_ZEROMQ)
 fi
 
 AC_MSG_CHECKING(whether we should build static binaries)

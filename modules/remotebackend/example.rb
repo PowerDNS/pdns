@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'rubygems'
+require 'bundler/setup'
 require 'json'
 
 ## this is an example stub for remote backend

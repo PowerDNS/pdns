@@ -32,7 +32,8 @@ create sequence RECORDS_ID_SEQUENCE;
 create table supermasters (
 	  ip VARCHAR(64) NOT NULL, 
 	  nameserver VARCHAR(255) NOT NULL, 
-	  account VARCHAR(40) DEFAULT NULL
+	  account VARCHAR(40) DEFAULT NULL,
+	  PRIMARY KEY(ip, nameserver)
 );
 
 create table domainmetadata (

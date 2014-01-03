@@ -123,7 +123,7 @@ void declareArguments()
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
   ::arg().set("query-cache-ttl","Seconds to store query results in the QueryCache")="20";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";
-  ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
+  ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname - disabled or custom")="";
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
@@ -146,7 +146,7 @@ void declareArguments()
   ::arg().set("lua-prequery-script", "Lua script with prequery handler")="";
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
-  ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().setSwitch("add-superfluous-nsec3-for-old-bind","Add superfluous NSEC3 record to positive wildcard response")="yes";
   ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
