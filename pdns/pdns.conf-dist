@@ -320,6 +320,11 @@
 # retrieval-threads=2
 
 #################################
+# reuseport	Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket
+#
+# reuseport=no
+
+#################################
 # send-root-referral	Send out old-fashioned root-referral instead of ServFail in case of no authority
 #
 # send-root-referral=no
