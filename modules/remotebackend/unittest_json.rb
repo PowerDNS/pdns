@@ -1,10 +1,11 @@
 #!/usr/bin/env ruby
 
+require 'rubygems'
+require 'bundler/setup'
 require 'json'
 require 'thread'
-require "rubygems"
-require "webrick"
-require "./unittest"
+require 'webrick'
+require './unittest'
 
 class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def initialize(server, dnsbackend)

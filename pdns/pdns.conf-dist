@@ -90,6 +90,11 @@
 # default-zsk-size=0
 
 #################################
+# direct-dnskey	Fetch DNSKEY RRs from backend during DNSKEY synthesis
+#
+# direct-dnskey=no
+
+#################################
 # disable-axfr	Disable zonetransfers but do allow TCP queries
 #
 # disable-axfr=no
@@ -123,11 +128,6 @@
 # entropy-source	If set, read entropy from this file
 #
 # entropy-source=/dev/urandom
-
-#################################
-# experimental-direct-dnskey	EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis
-#
-# experimental-direct-dnskey=no
 
 #################################
 # experimental-json-interface	If the webserver should serve JSON data
@@ -325,7 +325,7 @@
 # send-root-referral=no
 
 #################################
-# server-id	Returned when queried for 'server.id' TXT or NSID, defaults to hostname
+# server-id	Returned when queried for 'server.id' TXT or NSID, defaults to hostname - disabled or custom
 #
 # server-id=
 

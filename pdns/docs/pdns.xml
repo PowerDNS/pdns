@@ -93,6 +93,209 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-3-3-1"><title>PowerDNS Authoritative Server version 3.3.1</title>
+       <warning><para>Version 3.3.1 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0, 3.1 or 3.2.
+  Please refer to <xref linkend="from2.9to3.0"/>, <xref linkend="from3.0to3.1"/>, <xref linkend="from3.1to3.2"/>, <xref linkend="from3.2to3.3"/> and <xref linkend="from3.3to3.3.1"/> for important information on 
+  correct and stable operation, as well as notes on performance and memory use.</para>
+      </warning>
+      <note>
+        <para>
+          Released December 17th, 2013
+        </para>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                <ulink url="http://www.powerdns.com/content/downloads.html">Official download page</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </note>
+      <para>
+        This is a bugfix update to 3.3.
+      </para>
+      <para>
+        Changes since 3.3:
+        <itemizedlist>
+          <listitem>
+            <para>
+              direct-dnskey is no longer experimental, thanks Kees Monshouwer &amp; co for extensive testing (ge4b36a4).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Handle signals during poll (g5dde2c6).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7538e56: Fix zone2{sql,json} exit codes
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7593c40: geobackend: fix possible nullptr deref
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g3506cc6: gpsqlbackend: don't append empty dbname=/user= values to connect string
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gpgsql queries were simplified through the use of casting (g9a6e39c).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ga7aa9be: Replace hardcoded make with variable
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ge4fe901: make sure to run PKG_PROG_PKG_CONFIG before the first PKG_* usage
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g29bf169: fix hmac-md5 TSIG key lookup
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gc4e348b: fix 64+ character TSIG keys
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g00a7b25: Fix comparison between signed and unsigned by using uint32_t for inception on INCEPTION-EPOCH
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gd3f6432: fix building on os x 10.9, thanks Martijn Bakker.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              We now allow building against Lua 5.2 (gbef3000, g2bdd03b, g88d9e99).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gfa1f845: autodetect MySQL 5.5+ connection charset
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              When misconfigured using 'right' timezones, a bug in (g)libc gmtime breaks our signatures. Fixed in ge4faf74 by Kees Monshouwer by implementing our
+              own gmtime_r.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              When sending SERVFAIL due to a CNAME loop, don't uselessly include the CNAMEs (gdfd1b82).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Build fixes for platforms with 'weird' types (like s390/s390x):
+              gc669f7c (<ulink url="http://blog.powerdns.com/2013/10/28/on-ragel-and-char-types/">details</ulink>), g07b904e and g2400764.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Support for += syntax for options, g98dd325 and others.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf8f29f4: nproxy: Add missing chdir("/") after chroot()
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g2e6e9ad: fix for "missing" libmysqlclient on RHEL/CentOS based systems
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              pdnssec check-zone improvements in g5205892, gedb255f, g0dde9d0, g07ee700,
+              g79a3091, g08f3452, gbcf9daf, gc9a3dd7, g6ebfd08, gfd53bd0, g7eaa83a,
+              ge319467, , 
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              NSEC/NSEC3 fixes in g3191709, gf75293f, gcd30e94, g74baf86, g1fa8b2b
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The webserver could crash when the ring buffers were resized, fixed in g3dfb45f.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g213ec4a: add constraints for name to pg schema
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gf104427: make domainmetadata queries case insensitive
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g78fc378: no label compression for name in TSIG records
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g15d6ffb: pdnssec now outputs ZSK DNSKEY records if experimental-direct-dnskey support is enabled (renamed to direct-dnskey before release!)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gad67d0e: drop cryptopp from static build as libcryptopp.a is broken on Debian 7, which is what we build on
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g7632dd8: support polarssl 1.3 externally.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Remotebackend was fully updated in various commits.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g82def39: SOA-EDIT: fix INCEPTION-INCREMENT handling
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              ga3a546c: add innodb-read-committed option to gmysql settings.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g9c56e16: actually notice timeout during AXFR retrieve, thanks hkraal
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      </sect2>
       <sect2 id="changelog-recursor-3.5.3"><title>PowerDNS Recursor version 3.5.3</title>
       <note>
         <para>
@@ -12236,6 +12439,21 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     </para>
   </sect1>
 
+  <sect1 id="from3.3to3.3.1"><title>From PowerDNS Authoritative Server 3.3 to 3.3.1</title>
+    <note>
+      <para>
+        If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" />, <xref linkend="from3.1to3.2" /> and <xref linkend="from3.2to3.3" />.
+      </para>
+    </note>
+    <para>
+      Constraints were added to the PostgreSQL schema:
+      <screen>
+        alter table domains add constraint c_lowercase_name CHECK (((name)::text = lower((name)::text)));
+        alter table tsigkeys add constraint c_lowercase_name check (((name)::text = lower((name)::text)));
+      </screen>
+    </para>
+  </sect1>
+
   </chapter>
   <chapter id="powerdnssec-auth">
   <title>Serving authoritative DNSSEC data</title>
@@ -13019,6 +13237,14 @@ $ pdnssec rectify-zone powerdnssec.org
   </para>
   </section>
 </section>
+  <section id="dnssec-transfers"><title>Secure transfers</title>
+  <para>
+    From 3.3.1. and up, PowerDNS support secure DNSSEC transfers as described in <ulink
+    url="https://ietf.org/doc/draft-koch-dnsop-dnssec-operator-change/">draft-koch-dnsop-dnssec-operator-change-05</ulink>.
+    If the direct-dnskey option is enabled the foreign DNSKEY records stored in the database are added to the keyset and signed
+    with the KSK. Without the direct-dnskey option DNSKEY records in the database are silently ignored.
+  </para>
+  </section>
   <section id="dnssec-security"><title>Security</title>
   <para>
     During typical PowerDNSSEC operation, the private part of the signing keys are 'online', which can be compared
@@ -14840,7 +15066,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	</para>
 	<para>
 	  <function>preresolve ( remoteip, domain, qtype )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
-	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
+	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason. 
 	</para>
 	<para>
 	  <function>postresolve ( remoteip, domain, qtype, records, origrcode )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since version 3.4.
@@ -14879,9 +15105,9 @@ function nxdomain ( ip, domain, qtype )
   print ("nxhandler called for: ", ip, domain, qtype)
 
   ret={}
-  if qtype ~= pdns.A then return -1, ret end  --  only A records
-  if not string.find(domain, "^www%.") then return -1, ret end  -- only things that start with www.
-  if not matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16")  then return -1, ret end -- only interfere with local queries
+  if qtype ~= pdns.A then return pdns.PASS, ret end  --  only A records
+  if not string.find(domain, "^www%.") then return pdns.PASS, ret end  -- only things that start with www.
+  if not matchnetmask(ip, "10.0.0.0/8", "192.168.0.0/16")  then return pdns.PASS, ret end -- only interfere with local queries
   ret[1]={qtype=pdns.A, content="192.0.2.13"}    -- add IN A 192.0.2.13
   ret[2]={qtype=pdns.A, content="192.0.2.21"}    -- add IN A 192.0.2.21
   setvariable()
@@ -15029,7 +15255,7 @@ end
 	To setup DNS64, create the following Lua script and save it to a file called dns64.lua:
 	<programlisting>
 	function nodata ( remoteip, domain, qtype, records )
-             if qtype ~= pdns.AAAA then return -1, {} end  --  only AAAA records
+             if qtype ~= pdns.AAAA then return pdns.PASS, {} end  --  only AAAA records
              setvariable()
              return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
         end     
@@ -15054,11 +15280,12 @@ end
              then
                 return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
              end
-	     return -1, {}
+	     return pdns.PASS, {}
 	  end
 	</programlisting>
 	Where the "ip6.arpa" string is the reversed form of your Pref64 address.
       </para>
+      
     </sect1>
     <sect1 id="recursor-design-and-engineering">
       <title>Design and Engineering of the PowerDNS Recursor</title>
@@ -15441,8 +15668,9 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
       <para>
 	If your function decides to handle a resource record it must return a result code of 0 together with a Lua table 
 	containing one or more replacement records to be stored in the back-end database. If, on the other hand, your 
-	function decides not to modify a record, it must return -1 and an empty table indicating that PowerDNS should 
-	handle the incoming record as normal.
+	function decides not to modify a record, it must return pdns.PASS and an empty table indicating that PowerDNS should 
+	handle the incoming record as normal. If your function decides to drop a query and not respond whatsoever, it must return
+  pdns.DROP and an empty table indicating that the recursor does not want to process the packet in Lua nor in the core recursor logic.
       </para>
       <para>
 	Consider the following simple example:
@@ -15473,7 +15701,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	   end
 
 	   resp = {}
-	   return -1, resp
+	   return pdns.PASS, resp
 	end
 
 	function string.starts(s, start)
@@ -15661,6 +15889,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <varlistentry><term>default-ttl=...</term>
 	    <listitem><para>
 		TTL to use when none is provided.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>direct-dnskey=...</term>
+	    <listitem><para>
+		Read additional ZSKs from the records table/your BIND zonefile
 	      </para></listitem></varlistentry>
    	  <varlistentry><term>disable-axfr=...</term>
 	    <listitem><para>
@@ -17466,52 +17698,12 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
       <para>
 	  Generic Oracle support is only available since version 2.9.18.
 	The default setup conforms to the following schema, which you should add to an Oracle database. You may need or want to add 'namespace' statements.
-	<programlisting>
-
-create table domains (
- id		 NUMBER,
- name		 VARCHAR(255) NOT NULL,
- master		 VARCHAR(128) DEFAULT NULL,
- last_check	 INT DEFAULT NULL,
- type		 VARCHAR(6) NOT NULL,
- notified_serial INT DEFAULT NULL, 
- account         VARCHAR(40) DEFAULT NULL,
- primary key (id)
-);
-create sequence DOMAINS_ID_SEQUENCE; 
-create index DOMAINS$NAME on Domains (NAME);
-
- 
-CREATE TABLE records (
-        id              number(11) not NULL,
-        domain_id       INT DEFAULT NULL REFERENCES Domains(ID) ON DELETE CASCADE,
-        name            VARCHAR(255) DEFAULT NULL,
-        type            VARCHAR(10) DEFAULT NULL,
-        content         VARCHAR2(4000) DEFAULT NULL,
-        ttl             INT DEFAULT NULL,
-        prio            INT DEFAULT NULL,
-        change_date     INT DEFAULT NULL, 
-	primary key (id)
-);
-
-create index RECORDS$NAME on RECORDS (NAME);
-create sequence RECORDS_ID_SEQUENCE;
-
-create table supermasters (
-	  ip VARCHAR(25) NOT NULL, 
-	  nameserver VARCHAR(255) NOT NULL, 
-	  account VARCHAR(40) DEFAULT NULL
-);
-
-	</programlisting>
-      </para>
+        <programlisting><xi:include  href="../../modules/goraclebackend/goracle-schema.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+</para>
       <para>
 	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used,  'GRANT' statements
 	can be trimmed to make sure PDNS cannot subvert the contents of your database.
       </para>
-	<para>
-	  Zone2sql with the --gpgsql flag also assumes this layout is in place.
-	</para>
 	<para>
 	  Inserting records is a bit different compared to MySQL and PostgreSQL, you should use:
 <screen>
@@ -19701,9 +19893,14 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
       <para>Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.</para>
      </sect2>
      <sect2 id="remotebackend-compiling"><title>Compiling</title>
-        <para>
-        To compile this backend, you need to configure --with-modules="remote pipe", for
-        now. If you want to use http connector, you need libcurl and use --enable-remotebackend-http. 
+      <para>
+        To compile this backend, you need to configure --with-modules="remote". 
+      </para>
+      <para>
+        If you want to use http connector, you need libcurl and use --enable-remotebackend-http.
+      </para>
+      <para>
+        If you want to use ZeroMQ connector, you need libzmq-dev or libzmq3-dev and use --enable-remotebackend-zeromq. 
       </para>
       </sect2>
       <sect2 id="remotebackend-usage"><title>Usage</title>
@@ -19732,7 +19929,7 @@ remote-connection-string=unix:path=/path/to/socket
         </para>
       </sect3>
 
-            <sect3 id="remotebackend-pipe"><title>Pipe connector</title>
+      <sect3 id="remotebackend-pipe"><title>Pipe connector</title>
         <para>
           parameters: command,timeout (default 2000ms)
         </para>
@@ -19771,6 +19968,21 @@ remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
           HTTP Authentication is not supported. SSL support requires that your cURL is compiled with it. 
         </para>
       </sect3>
+
+      <sect3 id="remotebackend-zmq"><title>ZeroMQ connector</title>
+        <para>
+          parameters: endpoint, timeout (default 2000ms)
+        </para>
+        <para>
+          <programlisting>
+remote-connection-string=zmq:endpoint=ipc:///tmp/tmp.sock
+</programlisting>
+        </para>
+        <para>
+           0MQ connector implements a REQ/REP RPC model. Please see <ulink url="http://zeromq.org/">http://zeromq.org/</ulink> for more information. 
+        </para>
+      </sect3>
+
       </sect2>
 
       <sect2 id="remotebackend-api"><title>API</title>
