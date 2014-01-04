@@ -808,11 +808,14 @@ __EOF__
 
 
 		goracle-nodnssec | goracle | goracle-nsec3 | goracle-nsec3-optout)
-			echo "DROP USER pdns CASCADE;" | sqlplus -S powerdns/powerdns > oracle.log || true
-			echo "CREATE USER pdns IDENTIFIED BY pdns;" | sqlplus -S powerdns/powerdns >> oracle.log
-			echo "GRANT CONNECT, RESOURCE TO pdns;" | sqlplus -S powerdns/powerdns >> oracle.log
-			sqlplus -S pdns/pdns@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle.log
-			tosql goracle | sqlplus -S pdns/pdns@xe >> oracle.log
+			[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
+			[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
+
+			echo "DROP USER $GORACLEUSER CASCADE;" | sqlplus -S powerdns/powerdns > oracle.log || true
+			echo "CREATE USER $GORACLEUSER IDENTIFIED BY $GORACLEPASSWD;" | sqlplus -S powerdns/powerdns >> oracle.log
+			echo "GRANT CONNECT, RESOURCE TO $GORACLEUSER;" | sqlplus -S powerdns/powerdns >> oracle.log
+			sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle.log
+			tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> oracle.log
 
 			cat > pdns-goracle.conf << __EOF__
 launch=goracle
@@ -821,8 +824,8 @@ goracle-sid=$ORACLE_SID
 goracle-nls-lang=$NLS_LANG
 
 goracle-tnsname=xe
-goracle-user=pdns
-goracle-password=pdns
+goracle-user=$GORACLEUSER
+goracle-password=$GORACLEPASSWD
 __EOF__
 
 			if [ $context != goracle-nodnssec ]
@@ -1134,10 +1137,13 @@ startslave ()
 	elif [ ${presignedcontext:0:7} = goracle ]
 	then
 		context=${context}-presigned
-		echo "DROP USER pdns2 CASCADE;" | sqlplus -S powerdns/powerdns > oracle2.log || true
-		echo "CREATE USER pdns2 IDENTIFIED BY pdns;" | sqlplus -S powerdns/powerdns >> oracle2.log
-		echo "GRANT CONNECT, RESOURCE TO pdns2;" | sqlplus -S powerdns/powerdns >> oracle2.log
-		sqlplus -S pdns2/pdns@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle2.log
+		[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
+		[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
+
+		echo "DROP USER $GORACLE2USER CASCADE;" | sqlplus -S powerdns/powerdns > oracle2.log || true
+		echo "CREATE USER $GORACLE2USER IDENTIFIED BY $GORACLE2PASSWD;" | sqlplus -S powerdns/powerdns >> oracle2.log
+		echo "GRANT CONNECT, RESOURCE TO $GORACLE2USER;" | sqlplus -S powerdns/powerdns >> oracle2.log
+		sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle2.log
 
 			cat > pdns-goracle2.conf << __EOF__
 launch=goracle
@@ -1146,14 +1152,14 @@ goracle-sid=$ORACLE_SID
 goracle-nls-lang=$NLS_LANG
 
 goracle-tnsname=xe
-goracle-user=pdns2
-goracle-password=pdns
+goracle-user=$GORACLE2USER
+goracle-password=$GORACLE2PASSWD
 goracle-dnssec
 __EOF__
 
 		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
 		do
-			echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S pdns2/pdns@xe >> oracle2.log
+			echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> oracle2.log
 		done
 
 		set +e
@@ -1180,7 +1186,7 @@ __EOF__
 		while [ $loopcount -lt 40 ]
 		do
 			sleep 5
-			todo=$(sqlplus -S pdns2/pdns@xe << __EOF__
+			todo=$(sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe << __EOF__
 set pagesize 0 feedback off verify off heading off echo off;
 SELECT COUNT(id) FROM domains WHERE last_check IS NULL;
 exit;
