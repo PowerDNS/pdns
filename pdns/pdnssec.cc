@@ -137,7 +137,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("module-dir","Default directory for modules")=LIBDIR;
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
 
-  ::arg().setSwitch("experimental-direct-dnskey","EXPERIMENTAL: fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().laxFile(configname.c_str());
 
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
@@ -479,7 +479,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     if(!presigned && rr.qtype.getCode() == QType::DNSKEY)
     {
-      if(::arg().mustDo("experimental-direct-dnskey"))
+      if(::arg().mustDo("direct-dnskey"))
       {
         if(rr.ttl != sd.default_ttl)
         {
@@ -784,7 +784,7 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
       algorithm2name(value.first.d_algorithm, algname);
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< " ( " + algname + " ) "<<endl;
-      if(value.second.keyOrZone || ::arg().mustDo("experimental-direct-dnskey"))
+      if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey"))
         cout<<(value.second.keyOrZone ? "KSK" : "ZSK")<<" DNSKEY = "<<zone<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
       if(value.second.keyOrZone) {
         cout<<"DS = "<<zone<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;

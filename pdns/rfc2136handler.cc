@@ -97,7 +97,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     return 0;
   }
 
-  if (!isPresigned && ((!::arg().mustDo("experimental-direct-dnskey") && rrType == QType::DNSKEY) || rrType == QType::RRSIG)) {
+  if (!isPresigned && ((!::arg().mustDo("direct-dnskey") && rrType == QType::DNSKEY) || rrType == QType::RRSIG)) {
     L<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rrLabel<<"|"<<rrType.getName()<<" in non-presigned zone, ignoring!"<<endl;
     return 0;
   }

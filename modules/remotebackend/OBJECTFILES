@@ -1,1 +1,1 @@
-remotebackend.lo unixconnector.lo httpconnector.lo pipeconnector.lo
+remotebackend.lo unixconnector.lo httpconnector.lo pipeconnector.lo zmqconnector.lo

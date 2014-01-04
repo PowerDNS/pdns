@@ -30,3 +30,5 @@ create table supermasters (
   nameserver  VARCHAR(255) NOT NULL COLLATE NOCASE, 
   account     VARCHAR(40) DEFAULT NULL
 );
+
+CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
