@@ -13,10 +13,10 @@
 #include "soracle.hh"
 #include <sstream>
 
-gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)
+gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQLBackend(mode, suffix)
 {
   try {
-    // set some envionment variables
+    // set Oracle envionment variables
     setenv("ORACLE_HOME", getArg("home").c_str(), 1);
     setenv("ORACLE_SID", getArg("sid").c_str(), 1);
     setenv("NLS_LANG", getArg("nls-lang").c_str(), 1);
@@ -28,16 +28,23 @@ gOracleBackend::gOracleBackend(const string &mode, const string &suffix)  : GSQL
   }
 
   catch (SSqlException &e) {
-    L<<Logger::Error<<mode<<" Connection failed: "<<e.txtReason()<<endl;
-    throw PDNSException("Unable to launch "+mode+" connection: "+e.txtReason());
+    L<<Logger::Error << mode << " Connection failed: " << e.txtReason() << endl;
+    throw PDNSException("Unable to launch " + mode + " connection: " + e.txtReason());
   }
-  L<<Logger::Info<<mode<<" Connection successful"<<endl;
+  L<<Logger::Info << mode << " Connection successful" << endl;
 }
+
+
+string gOracleBackend::sqlEscape(const string &name)
+{
+  return boost::replace_all_copy(name, "'", "''");
+}
+
 
 class gOracleFactory : public BackendFactory
 {
 public:
-  gOracleFactory(const string &mode) : BackendFactory(mode),d_mode(mode) {}
+  gOracleFactory(const string &mode) : BackendFactory(mode), d_mode(mode) {}
 
   void declareArguments(const string &suffix="") {
     declare(suffix,"home", "Oracle home path", "");
@@ -140,6 +147,7 @@ public:
   DNSBackend* make(const string &suffix="") {
     return new gOracleBackend(d_mode,suffix);
   }
+
 private:
   const string d_mode;
 };
@@ -152,7 +160,9 @@ public:
   //! This reports us to the main UeberBackend class
   gOracleLoader() {
     BackendMakers().report(new gOracleFactory("goracle"));
-    L<<Logger::Warning<<"This is module goraclebackend.so reporting"<<endl;
+    L<<Logger::Warning<<"This is module goraclebackend reporting"<<endl;
   }
 };
+
+//! Reports the backendloader to the UeberBackend.
 static gOracleLoader goracleloader;
