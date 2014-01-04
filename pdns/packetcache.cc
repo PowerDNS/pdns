@@ -27,6 +27,8 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 
+using boost::istarts_with;
+
 extern StatBag S;
 
 PacketCache::PacketCache()
@@ -235,16 +237,19 @@ int PacketCache::purge(const string &match)
      'www.userpowerdns.com'
 
   */
-  if(ends_with(match, "$")) {
-    string suffix(match);
+  string suffix(match);
+  if(ends_with(match, "$"))
     suffix.resize(suffix.size()-1);
 
-    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
-    cmap_t::const_iterator start=iter;
-    string dotsuffix = "."+suffix;
+  suffix = getRevQName( suffix );
+
+  if(ends_with(match, "$")) {
+    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix)),
+        start = iter;
+    string dotsuffix = suffix + ".";
 
     for(; iter != d_map.end(); ++iter) {
-      if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
+      if(!pdns_iequals(iter->qname, suffix) && !istarts_with(iter->qname, dotsuffix)) {
         //        cerr<<"Stopping!"<<endl;
         break;
       }
@@ -253,8 +258,8 @@ int PacketCache::purge(const string &match)
     d_map.erase(start, iter);
   }
   else {
-    delcount=d_map.count(tie(match));
-    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
+    delcount=d_map.count(tie(suffix));
+    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(suffix));
     d_map.erase(range.first, range.second);
   }
   *d_statnumentries=d_map.size();
