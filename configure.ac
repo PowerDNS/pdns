@@ -144,14 +144,7 @@ AC_SUBST(THREADFLAGS)
 
 AC_SUBST(DYNLINKFLAGS)
 
-AC_MSG_CHECKING(whether we will be doing verbose logging)
-AC_ARG_ENABLE(verbose-logging,
- AS_HELP_STRING([--enable-verbose-logging],[do verbose logging]), [enable_verbose_logging=yes], [enable_verbose_logging=no])
-
-if test $enable_verbose_logging = yes; then AC_DEFINE(VERBOSELOG, 1, [If verbose logging should be enabled])
-fi
-AC_MSG_RESULT($enable_verbose_logging)
-
+PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_WITH_CRYPTOPP
