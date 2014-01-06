@@ -560,7 +560,7 @@ void OdbxBackend::getUpdatedMasters( vector<DomainInfo>* updated )
 
 
 
-bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& set, string* account, DNSBackend** ddb )
+bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& set, string *nameserver, string* account, DNSBackend** ddb )
 {
         try
         {
@@ -604,7 +604,7 @@ bool OdbxBackend::superMasterBackend( const string& ip, const string& domain, co
 
 
 
-bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, const string& account )
+bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account )
 {
         try
         {

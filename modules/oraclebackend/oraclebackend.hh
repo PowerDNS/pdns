@@ -74,9 +74,10 @@ public:
   bool abortTransaction();
   bool superMasterBackend(const string &ip, const string &domain,
                           const vector<DNSResourceRecord> &nsset,
-                          string *account, DNSBackend **backend);
+                          string *account, string *nameserver,
+                          DNSBackend **backend);
   bool createSlaveDomain(const string &ip, const string &domain,
-                         const string &account);
+                         const string &nameserver, const string &account);
 
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);

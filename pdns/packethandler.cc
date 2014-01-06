@@ -765,7 +765,6 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
 
 int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
 {
-  DomainInfo di;
   Resolver::res_t nsset;
   try {
     Resolver resolver;
@@ -778,17 +777,9 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     return RCode::ServFail;
   }
 
-  if (B.getDomainInfo(p->qdomain, di)) {
-    // maybe it is listed as master already
-    BOOST_FOREACH(string& master, di.masters) {
-      if (master == p->getRemote())
-        return RCode::NoError; // is already a master for this zone
-    }
-  }
-
-  string account;
+  string nameserver, account;
   DNSBackend *db;
-  if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &account, &db)) {
+  if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
     L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". "<<nsset.size()<<" remote nameservers: "<<endl;
     BOOST_FOREACH(class DNSResourceRecord& rr, nsset) {
       L<<Logger::Error<<rr.content<<endl;
@@ -796,14 +787,13 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     return RCode::Refused;
   }
   try {
-    db->createSlaveDomain(p->getRemote(),p->qdomain,account);
+    db->createSlaveDomain(p->getRemote(), p->qdomain, nameserver, account);
   }
   catch(PDNSException& ae) {
     L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<": "<<ae.reason<<endl;
     return RCode::ServFail;
   }
-  Communicator.addSuckRequest(p->qdomain, p->getRemote());  
-  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<p->getRemote()<<", queued AXFR"<<endl;
+  L<<Logger::Warning<<"Created new slave zone '"<<p->qdomain<<"' from supermaster "<<p->getRemote()<<endl;
   return RCode::NoError;
 }
 

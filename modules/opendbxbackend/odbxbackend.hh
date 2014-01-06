@@ -87,8 +87,8 @@ public:
         bool isMaster( const string& domain, const string& ip );
         bool getDomainInfo( const string& domain, DomainInfo& di );
         bool feedRecord( const DNSResourceRecord& rr, string *ordername=0 );
-        bool createSlaveDomain( const string& ip, const string& domain, const string& account );
-        bool superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& nsset, string* account, DNSBackend** ddb );
+        bool createSlaveDomain( const string& ip, const string& domain, const string &nameserver, const string& account );
+        bool superMasterBackend( const string& ip, const string& domain, const vector<DNSResourceRecord>& nsset, string *nameserver, string* account, DNSBackend** ddb );
 
         void getUpdatedMasters( vector<DomainInfo>* updated );
         void getUnfreshSlaveInfos( vector<DomainInfo>* unfresh );

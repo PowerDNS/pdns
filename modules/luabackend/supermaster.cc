@@ -23,14 +23,14 @@
 
 /* 
  //! determine if ip is a supermaster or a domain
-  virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
+  virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 
   //! called by PowerDNS to create a slave record for a superMaster
-  virtual bool createSlaveDomain(const string &ip, const string &domain, const string &account)
+  virtual bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account)
 
 */
 
-bool LUABackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db) {
+bool LUABackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) {
 	
     if (f_lua_supermasterbackend == 0)
         return false;
@@ -96,7 +96,7 @@ bool LUABackend::superMasterBackend(const string &ip, const string &domain, cons
     return ok;
 }
 
-bool LUABackend::createSlaveDomain(const string &ip, const string &domain, const string &account) {
+bool LUABackend::createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account) {
 	
     if (f_lua_createslavedomain == 0)
         return false;

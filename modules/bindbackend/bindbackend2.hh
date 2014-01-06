@@ -182,9 +182,9 @@ public:
   bool isMaster(const string &name, const string &ip);
 
   // for supermaster support
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
   static pthread_mutex_t s_supermaster_config_lock;
-  bool createSlaveDomain(const string &ip, const string &domain, const string &account);
+  bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
 
 
 private:

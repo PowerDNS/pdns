@@ -61,8 +61,8 @@ public:
 
 //  SUPERMASTER BACKEND
 
-    bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
-    bool createSlaveDomain(const string &ip, const string &domain, const string &account);
+    bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+    bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
 
 
 //  DNSSEC BACKEND

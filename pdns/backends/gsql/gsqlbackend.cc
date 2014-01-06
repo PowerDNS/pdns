@@ -290,7 +290,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
   d_SuperMasterInfoQuery=getArg("supermaster-query");
-  d_GetSuperMasterName=getArg("supermaster-ip-to-name");
   d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
@@ -874,7 +873,7 @@ bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
 
 
 
-bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **ddb)
+bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)
 {
   string format;
   char output[1024];
@@ -890,6 +889,7 @@ bool GSQLBackend::superMasterBackend(const string &ip, const string &domain, con
     }
 
     if(!d_result.empty()) {
+      *nameserver=i->content;
       *account=d_result[0][0];
       *ddb=this;
       return true;
@@ -910,23 +910,18 @@ bool GSQLBackend::createDomain(const string &domain)
   return true;
 }
 
-bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &account)
+bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account)
 {
   string format;
   string name;
-  string masters=ip;
+  string masters(ip);
 
   char output[1024];
   try {
-    // figure out if there is a supermaster record for the IP address
-    format = d_GetSuperMasterName;
-    snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(ip).c_str()); 
-    d_db->doQuery(output, d_result);
-    if (!d_result.empty()) {
-      // there is, now figure out all IP addresses for the master
-      name = d_result[0][0];
+    if (!nameserver.empty()) {
+      // figure out all IP addresses for the master
       format = d_GetSuperMasterIPs;
-      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(name).c_str()); 
+      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(nameserver).c_str()); 
       d_db->doQuery(output, d_result);
       if (!d_result.empty()) {
         // collect all IP addresses
@@ -935,9 +930,9 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
           tmp.push_back(row[0]);
         }
         // set them as domain's masters, comma separated
-        masters = boost::join(tmp, ",");
+        masters = boost::join(tmp, ", ");
       }
-    } 
+    }
     format = d_InsertSlaveZoneQuery;
     snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(domain).c_str(),sqlEscape(masters).c_str(),sqlEscape(account).c_str());
     d_db->doCommand(output);

@@ -1146,7 +1146,8 @@ OracleBackend::abortTransaction ()
 bool
 OracleBackend::superMasterBackend (const string &ip, const string &domain,
                                    const vector<DNSResourceRecord> &nsset,
-                                   string *account, DNSBackend **backend)
+                                   string *nameserver, string *account,
+                                   DNSBackend **backend)
 {
   sword rc;
   OCIStmt *stmt;
@@ -1189,7 +1190,7 @@ OracleBackend::superMasterBackend (const string &ip, const string &domain,
 
 bool
 OracleBackend::createSlaveDomain(const string &ip, const string &domain,
-                                 const string &account)
+                                 const string &nameserver, const string &account)
 {
   sword rc;
   OCIStmt *insertSlaveQueryHandle;
