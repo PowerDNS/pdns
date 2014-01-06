@@ -79,12 +79,7 @@ void DNSProxy::go()
 
 void DNSProxy::onlyFrom(const string &ips)
 {
-  vector<string>parts;
-  stringtok(parts,ips,", \t");
-  for(vector<string>::const_iterator i=parts.begin();
-      i!=parts.end();++i)
-    d_ng.addMask(*i);
-  
+  d_ng.toMasks(ips);
 }
 
 bool DNSProxy::recurseFor(DNSPacket* p)

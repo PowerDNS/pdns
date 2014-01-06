@@ -44,41 +44,58 @@
 void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 {
   bool hasQueuedItem=false;
-  set<string> ips;
-  FindNS fns;
-  
+  set<string> nsset, ips;
   DNSResourceRecord rr;
-  set<string> nsset;
+  FindNS fns;
+
   B->lookup(QType(QType::NS),domain);
-  while(B->get(rr)) 
+  while(B->get(rr))
     nsset.insert(rr.content);
-  
+
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
     vector<string> nsips=fns.lookup(*j, B);
     if(nsips.empty())
       L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-    for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k)
-      ips.insert(*k);
+    else
+      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+        const ComboAddress caIp(*k, 53);
+        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+          if(!d_onlyNotify.match(&caIp))
+            L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+          else
+            ips.insert(caIp.toStringWithPort());
+        }
+      }
   }
-  
-  // make calls to d_nq.add(domain, ip);
+
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
     L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
     hasQueuedItem=true;
   }
-  set<string>alsoNotify;
-  B->alsoNotifies(domain, &alsoNotify);
-  
-  for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
-    L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<*j<<endl;
-    d_nq.add(domain,*j);
-    hasQueuedItem=true;
-  }
-  if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 
+  set<string> alsoNotify(d_alsoNotify);
+  B->alsoNotifies(domain, &alsoNotify);
+
+  for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
+    try {
+      const ComboAddress caIp(*j, 53);
+      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
+      if (!ips.count(caIp.toStringWithPort())) {
+        ips.insert(caIp.toStringWithPort());
+        d_nq.add(domain, caIp.toStringWithPort());
+      }
+      hasQueuedItem=true;
+    }
+    catch(PDNSException &e) {
+      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
+    }
+  }
+
+  if (!hasQueuedItem)
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
+
 
 bool CommunicatorClass::notifyDomain(const string &domain)
 {
@@ -138,12 +155,13 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
 time_t CommunicatorClass::doNotifications()
 {
   ComboAddress from;
-  Utility::socklen_t fromlen=sizeof(from);
+  Utility::socklen_t fromlen;
   char buffer[1500];
   int size, sock;
 
   // receive incoming notifications on the nonblocking socket and take them off the list
   while(waitFor2Data(d_nsock4, d_nsock6, 0, 0, &sock) > 0) {
+    fromlen=sizeof(from);
     size=recvfrom(sock,buffer,sizeof(buffer),0,(struct sockaddr *)&from,&fromlen);
     if(size < 0)
       break;
@@ -158,7 +176,7 @@ time_t CommunicatorClass::doNotifications()
 
     if(p.d.rcode)
       L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<from.toStringWithPort()<<", rcode: "<<p.d.rcode<<endl;      
-    
+
     if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
       L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<< (p.d.rcode ? "" : " (was acknowledged)")<<endl;      
     else {

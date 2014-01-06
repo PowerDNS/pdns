@@ -20,6 +20,11 @@
 # allow-recursion=0.0.0.0/0
 
 #################################
+# also-notify	When notifying a domain, also notify these nameservers
+#
+# also-notify=
+
+#################################
 # any-to-tcp	Answer ANY queries with tc=1, shunting to TCP
 #
 # any-to-tcp=no
@@ -263,6 +268,11 @@
 # no-shuffle	Set this to prevent random shuffling of answers - for regression testing
 #
 # no-shuffle=off
+
+#################################
+# only-notify	Only send AXFR NOTIFY to these IP addresses or netmasks
+#
+# only-notify=0.0.0.0/0,::/0
 
 #################################
 # out-of-zone-additional-processing	Do out of zone additional processing
