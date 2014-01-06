@@ -22,7 +22,7 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
     AS_HELP_STRING([--with-pgsql-includes=<path>],
       [directory path of PgSQL header installation]
     ),
-    [PGSQL_inc_check="$withval/include/pgsql $withval/pgsql $withval"]i
+    [PGSQL_inc_check="$withval/include/pgsql $withval/pgsql $withval"]
   )
 
   AC_MSG_CHECKING([for PgSQL library directory])
