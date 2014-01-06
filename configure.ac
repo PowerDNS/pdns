@@ -307,9 +307,8 @@ AC_CONFIG_FILES([
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
-  pdns/backends/Makefile
-  pdns/backends/bind/Makefile
   pdns/pdns
+  modules/bindbackend/Makefile
   modules/db2backend/Makefile
   modules/geobackend/Makefile
   modules/gmysqlbackend/Makefile
