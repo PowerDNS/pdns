@@ -35,7 +35,6 @@ LT_INIT
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
-
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG([0.22])
 
@@ -157,21 +156,7 @@ PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_REMOTEBACKEND_HTTP
-
-AC_ARG_ENABLE(remotebackend_zeromq, AS_HELP_STRING([--enable-remotebackend-zeromq],[enable ZeroMQ connector for remotebackend]),[enable_remotebackend_zeromq=yes], [enable_remotebackend_zeromq=no])
-AC_MSG_CHECKING(whether to enable ZeroMQ connector in remotebackend)
-AC_MSG_RESULT($enable_remotebackend_zeromq)
-AM_CONDITIONAL(REMOTEBACKEND_HTTP,test x"$enable_remotebackend_zeromq" = "xyes")
-if test "x$enable_remotebackend_zeromq" = "xyes"
-then
-        PKG_CHECK_MODULES(LIBZMQ, libzmq, HAVE_LIBZMQ=yes, AC_MSG_ERROR([Could not find libzmq]))
-        REMOTEBACKEND_ZEROMQ=yes
-        AC_SUBST(LIBZMQ_LIBS)
-        AC_SUBST(LIBZMQ_CFLAGS)
-        AC_DEFINE(HAVE_LIBZMQ,1,[If we have libzmq])
-        AC_DEFINE(REMOTEBACKEND_ZEROMQ,1,[If we want ZeroMQ connector])
-        AC_SUBST(REMOTEBACKEND_ZEROMQ)
-fi
+PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
 AC_MSG_CHECKING([whether we should build static binaries])
 
