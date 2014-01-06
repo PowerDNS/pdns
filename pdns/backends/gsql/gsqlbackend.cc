@@ -263,17 +263,26 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   setArgPrefix(mode+suffix);
   d_db=0;
   d_logprefix="["+mode+"Backend"+suffix+"] ";
-	
-  try
-  {
+
+  try {
     d_dnssecQueries = mustDo("dnssec");
   }
-  catch (ArgException e)
-  {
+  catch (ArgException e)  {
     d_dnssecQueries = false;
   }
 
-  string authswitch = d_dnssecQueries ? "-auth" : "";	  
+  if (!d_dnssecQueries) {
+    try {
+      d_extendedQueries = mustDo("extended");
+    }
+    catch (ArgException e)  {
+      d_extendedQueries = false;
+    }
+  } else {
+    d_extendedQueries = true;
+  }
+
+  string authswitch = d_dnssecQueries ? "-auth" : "";
   d_noWildCardNoIDQuery=getArg("basic-query"+authswitch);
   d_noWildCardIDQuery=getArg("id-query"+authswitch);
   d_wildCardNoIDQuery=getArg("wildcard-query"+authswitch);
@@ -309,9 +318,20 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
   d_insertEmptyNonTerminalQuery = getArg("insert-empty-non-terminal-query"+authswitch);
   d_deleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
-  
-  if (d_dnssecQueries)
-  {
+
+  if (d_extendedQueries)  {
+    d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
+    d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
+    d_ClearDomainAllMetadataQuery = getArg("clear-domain-all-metadata-query");
+    d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
+
+    d_getTSIGKeyQuery = getArg("get-tsig-key-query");
+    d_setTSIGKeyQuery = getArg("set-tsig-key-query");
+    d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
+    d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
+  }
+
+  if (d_dnssecQueries) {
     d_InsertRecordOrderQuery=getArg("insert-record-order-query-auth");
     d_InsertEntOrderQuery=getArg("insert-ent-order-query-auth");
 
@@ -323,26 +343,20 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_nullifyOrderNameAndUpdateAuthQuery = getArg("nullify-ordername-and-update-auth-query");
     d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
     d_setAuthOnDsRecordQuery = getArg("set-auth-on-ds-record-query");
-    
+
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
     d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
-    
-    d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
-    d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
-    d_ClearDomainAllMetadataQuery = getArg("clear-domain-all-metadata-query");
-    d_SetDomainMetadataQuery = getArg("set-domain-metadata-query");
-    
+
     d_ActivateDomainKeyQuery = getArg("activate-domain-key-query");
     d_DeactivateDomainKeyQuery = getArg("deactivate-domain-key-query");
     d_RemoveDomainKeyQuery = getArg("remove-domain-key-query");
     d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
-    
-    d_getTSIGKeyQuery = getArg("get-tsig-key-query");
-    d_setTSIGKeyQuery = getArg("set-tsig-key-query");
-    d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
-    d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
   }
+}
+
+bool isDnssecDomainMetadata (const string& name) {
+  return (name == "PRESIGNED" || name == "NSEC3PARAM" || name == "NSEC3NARROW");
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
@@ -606,7 +620,7 @@ bool GSQLBackend::removeDomainKey(const string& name, unsigned int id)
 
 bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* content)
 {
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries)
     return false;
     
   char output[1024];  
@@ -632,7 +646,7 @@ bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* cont
 
 bool GSQLBackend::setTSIGKey(const string& name, const string& algorithm, const string& content)
 {
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries)
     return false;
 
   char output[1024];
@@ -648,7 +662,7 @@ bool GSQLBackend::setTSIGKey(const string& name, const string& algorithm, const 
 
 bool GSQLBackend::deleteTSIGKey(const string& name)
 {
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries)
     return false;
 
   char output[1024];
@@ -664,7 +678,7 @@ bool GSQLBackend::deleteTSIGKey(const string& name)
 
 bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 {
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries)
     return false;
 
   char output[1024];
@@ -723,7 +737,7 @@ bool GSQLBackend::getDomainKeys(const string& name, unsigned int kind, std::vect
 
 void GSQLBackend::alsoNotifies(const string &domain, set<string> *ips)
 {
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries)
     return;
   vector<string> meta;
   getDomainMetadata(domain, "ALSO-NOTIFY", meta);
@@ -734,9 +748,10 @@ void GSQLBackend::alsoNotifies(const string &domain, set<string> *ips)
 
 bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries || (!d_dnssecQueries && isDnssecDomainMetadata(name)))
     return false;
-  char output[1024];  
+
+  char output[1024];
   snprintf(output,sizeof(output)-1,d_GetDomainMetadataQuery.c_str(), sqlEscape(toLower(name)).c_str(), sqlEscape(kind).c_str());
 
   try {
@@ -756,9 +771,13 @@ bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind,
 
 bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  char output[16384];  
-  if(!d_dnssecQueries)
+  if(!d_extendedQueries || (!d_dnssecQueries && isDnssecDomainMetadata(name)))
     return false;
+
+  char output[16384];
+  if(!meta.empty())
+    snprintf(output,sizeof(output)-1,d_SetDomainMetadataQuery.c_str(),
+      sqlEscape(kind).c_str(), sqlEscape(*meta.begin()).c_str(), sqlEscape(toLower(name)).c_str());
 
   string clearQuery = (boost::format(d_ClearDomainMetadataQuery) % sqlEscape(toLower(name)) % sqlEscape(kind)).str();
 
@@ -957,16 +976,18 @@ bool GSQLBackend::deleteDomain(const string &domain)
   string keysQuery;
   string domainQuery = (boost::format(d_DeleteDomainQuery) % sqlDomain).str();
 
-  if (d_dnssecQueries) {
+  if(d_extendedQueries) {
     metadataQuery = (boost::format(d_ClearDomainAllMetadataQuery) % sqlDomain).str();
-    keysQuery = (boost::format(d_ClearDomainAllKeysQuery) % sqlDomain).str();
+    if (d_dnssecQueries)
+      keysQuery = (boost::format(d_ClearDomainAllKeysQuery) % sqlDomain).str();
   }
 
   try {
     d_db->doCommand(recordsQuery);
-    if (d_dnssecQueries) {
+    if (d_extendedQueries) {
       d_db->doCommand(metadataQuery);
-      d_db->doCommand(keysQuery);
+      if (d_dnssecQueries)
+        d_db->doCommand(keysQuery);
     }
     d_db->doCommand(domainQuery);
   }

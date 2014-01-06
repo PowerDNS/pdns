@@ -2,7 +2,7 @@ AM_CPPFLAGS=-I@PGSQL_incdir@ @THREADFLAGS@
 lib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS \
-	dnssec.schema.pgsql.sql no-dnssec.schema.pgsql.sql
+	dnssec.schema.pgsql.sql extended.schema.pgsql.sql no-dnssec.schema.pgsql.sql
 
 libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
 	spgsql.hh spgsql.cc
