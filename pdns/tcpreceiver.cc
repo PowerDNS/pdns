@@ -879,8 +879,13 @@ TCPNameserver::TCPNameserver()
     }
     
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
-      L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
-      throw PDNSException("Unable to bind to TCP socket");
+      if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
+        L<<Logger::Error<<"IPv4 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
+        continue;
+      } else {
+        L<<Logger::Error<<"binding to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
+        throw PDNSException("Unable to bind to TCP socket");
+      }
     }
     
     listen(s,128);
@@ -914,8 +919,13 @@ TCPNameserver::TCPNameserver()
       L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
     }
     if(bind(s, (const sockaddr*)&local, local.getSocklen())<0) {
-      L<<Logger::Error<<"binding to TCP socket: "<<strerror(errno)<<endl;
-      throw PDNSException("Unable to bind to TCPv6 socket");
+      if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
+        L<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
+        continue;
+      } else {
+        L<<Logger::Error<<"binding to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
+        throw PDNSException("Unable to bind to TCPv6 socket");
+      }
     }
     
     listen(s,128);
