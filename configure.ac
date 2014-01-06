@@ -295,11 +295,8 @@ then
         AC_DEFINE(HAVE_SQLITE3,1,[If we have sqlite3])
 fi
 
-if test "$needcdb"
-then
-	PKG_CHECK_MODULES(CDB, libcdb, HAVE_CDB=yes, AC_MSG_ERROR([+Could not find libcdb/tinycdb]))
-        AC_SUBST(CDB_LIBS)
-        AC_SUBST(CDB_CFLAGS)
+if test "$needcdb"; then
+	PDNS_CHECK_CDB
 fi
 
 for a in $modules
