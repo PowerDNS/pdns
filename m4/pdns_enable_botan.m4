@@ -1,9 +1,7 @@
 AC_DEFUN([PDNS_ENABLE_BOTAN],[
   AC_MSG_CHECKING([whether we will be linking in Botan 1.10])
-  AC_ARG_ENABLE([botan1.10], [
-    AS_HELP_STRING([--enable-botan1.10],
-      [use Botan 1.10]
-    )],
+  AC_ARG_ENABLE([botan1.10],
+    [AS_HELP_STRING([--enable-botan1.10],[use Botan 1.10 @<:@default=no@:>@])],
     [enable_botan110=yes],
     [enable_botan110=no]
   )
@@ -11,10 +9,8 @@ AC_DEFUN([PDNS_ENABLE_BOTAN],[
   AM_CONDITIONAL(BOTAN110, [test "x$enable_botan110" = "xyes"])
 
   AC_MSG_CHECKING([whether we will be linking in Botan 1.8])
-  AC_ARG_ENABLE([botan1.8], [
-    AS_HELP_STRING([--enable-botan1.8],
-      [use Botan 1.8]
-    )],
+  AC_ARG_ENABLE([botan1.8],
+    [AS_HELP_STRING([--enable-botan1.8],[use Botan 1.8 @<:@default=no@:>@])],
     [enable_botan18=yes],
     [enable_botan18=no]
   )
