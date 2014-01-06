@@ -160,11 +160,7 @@ AC_MSG_RESULT($enable_verbose_logging)
 
 PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
-
-if test "x$enable_cryptopp" = "xyes"
-then
-        AC_DEFINE(HAVE_CRYPTOPP,1,[If we have cryptopp])
-fi
+PDNS_WITH_CRYPTOPP
 
 AC_ARG_ENABLE(remotebackend_http, AS_HELP_STRING([--enable-remotebackend-http],[enable HTTP connector for remotebackend]),[enable_remotebackend_http=yes], [enable_remotebackend_http=no])
 AC_MSG_CHECKING(whether to enable http connector in remotebackend)
