@@ -313,28 +313,6 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, string &target)
   return 0;
 }
 
-/** Determines if we are authoritative for a zone, and at what level */
-bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
-{
-  bool found=false;
-  string subdomain(target);
-  do {
-    if( B.getSOA( subdomain, *sd, p ) ) {
-      sd->qname = subdomain;
-      if(zoneId)
-        *zoneId = sd->domain_id;
-
-      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
-        // Found authoritative zone but look for parent zone with 'DS' record.
-        found=true;
-      } else
-        return true;
-    }
-  }
-  while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
-  return found;
-}
-
 vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target)
 {
   vector<DNSResourceRecord> ret;
