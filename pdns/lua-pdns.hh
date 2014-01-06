@@ -30,8 +30,8 @@ protected: // FIXME?
   bool d_variable;  
   ComboAddress d_local;
 };
-// this enum creates constants to track the pdns_recursor behavior when returned from the Lua call 
-namespace RecursorBehavior { enum returnTypes{PASS=-1,DROP=-2}; };
+// this enum creates constants to track the pdns_recursor behaviour when returned from the Lua call 
+namespace RecursorBehaviour { enum returnTypes { PASS=-1, DROP=-2 }; };
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records);
 void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret);
 void pushSyslogSecurityLevelTable(lua_State *lua);
