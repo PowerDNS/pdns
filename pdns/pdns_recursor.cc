@@ -563,7 +563,7 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::DROP) {
+    if(res == RecursorBehavior::DROP) {
       delete dc;
       dc=0;
       return;
