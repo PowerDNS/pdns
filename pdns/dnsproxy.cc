@@ -110,6 +110,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
     ce.created  = time( NULL );
     ce.qtype = p->qtype.getCode();
     ce.qname = p->qdomain;
+    ce.anyLocal = p->d_anyLocal;
     d_conntrack[id]=ce;
   }
   p->d.id=id^d_xor;
@@ -149,6 +150,10 @@ void DNSProxy::mainloop(void)
   try {
     char buffer[1500];
     int len;
+
+    struct msghdr msgh;
+    struct iovec iov;
+    char cbuf[256];
 
     for(;;) {
       len=recv(d_sock, buffer, sizeof(buffer),0); // answer from our backend
@@ -194,7 +199,20 @@ void DNSProxy::mainloop(void)
             ", qname or qtype mismatch"<<endl;
           continue;
         }
-        sendto(i->second.outsock, buffer, len, 0, (struct sockaddr*)&i->second.remote, i->second.remote.getSocklen());
+
+        /* Set up iov and msgh structures. */
+        memset(&msgh, 0, sizeof(struct msghdr));
+        iov.iov_base = buffer;
+        iov.iov_len = len;
+        msgh.msg_iov = &iov;
+        msgh.msg_iovlen = 1;
+        msgh.msg_name = (struct sockaddr*)&i->second.remote;
+        msgh.msg_namelen = i->second.remote.getSocklen();
+
+        if(i->second.anyLocal) {
+          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr());
+        }
+        sendmsg(i->second.outsock, &msgh, 0);
         
         PC.insert(&q, &p);
         i->second.created=0;
