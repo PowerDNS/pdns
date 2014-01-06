@@ -8,6 +8,10 @@ require './unittest'
 
 h = Handler.new()
 f = File.open "/tmp/tmp.txt","a"
+runcond=true
+
+trap('INT') { runcond = false }
+trap('TERM') { runcond = false }
 
 begin
   context = ZeroMQ::Context.new
@@ -16,7 +20,7 @@ begin
  
   print "[#{Time.now.to_s}] ZeroMQ unit test responder running\n"
 
-  while(true) do
+  while(runcond) do
     line = ""
     rc = socket.recv_string line
     f.puts line
@@ -43,7 +47,7 @@ begin
       next
     end
   end
-rescue SystemExit, Interrupt
+rescue SystemExit, Interrupt, Errno::EINTR
 end
 
 print "[#{Time.now.to_s}] ZeroMQ unit test responder ended\n"

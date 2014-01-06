@@ -439,6 +439,7 @@ UeberBackend::UeberBackend(const string &pname)
   pthread_mutex_lock(&instances_lock);
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
+  cur_op_request = NONE;
 
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
