@@ -370,6 +370,40 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
   return getZone(zonename);
 }
 
+static void fillServerDetail(Value& out, Value::AllocatorType& allocator) {
+  out.SetObject();
+  out.AddMember("type", "Server", allocator);
+  out.AddMember("id", "localhost", allocator);
+  out.AddMember("url", "/servers/localhost", allocator);
+  out.AddMember("daemon_type", "authoritative", allocator);
+  out.AddMember("version", VERSION, allocator);
+  out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
+  out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
+}
+
+static void apiServer(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  vector<string> items = ::arg().list();
+  Document doc;
+  doc.SetArray();
+  Value server;
+  fillServerDetail(server, doc.GetAllocator());
+  doc.PushBack(server, doc.GetAllocator());
+  resp->body = makeStringFromDocument(doc);
+}
+
+static void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  vector<string> items = ::arg().list();
+  Document doc;
+  fillServerDetail(doc, doc.GetAllocator());
+  resp->body = makeStringFromDocument(doc);
+}
+
 static void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
@@ -735,6 +769,8 @@ void StatWebServer::launch()
     d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
     d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
     if(::arg().mustDo("experimental-json-interface")) {
+      registerApiHandler("/servers", &apiServer);
+      registerApiHandler("/servers/localhost", &apiServerDetail);
       registerApiHandler("/servers/localhost/config", &apiServerConfig);
       registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       registerApiHandler("/servers/localhost/zones", &apiServerZones);
