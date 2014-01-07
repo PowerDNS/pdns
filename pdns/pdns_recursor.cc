@@ -1830,6 +1830,8 @@ int serviceMain(int argc, char*argv[])
   if(!::arg()["setuid"].empty())
     newuid=Utility::makeUidNumeric(::arg()["setuid"]);
 
+  Utility::dropGroupPrivs(newuid, newgid);
+
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
@@ -1837,7 +1839,7 @@ int serviceMain(int argc, char*argv[])
     }
   }
 
-  Utility::dropPrivs(newuid, newgid);
+  Utility::dropUserPrivs(newuid);
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   
   makeThreadPipes();
