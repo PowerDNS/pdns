@@ -286,9 +286,15 @@ void *TCPNameserver::doConnection(void *data)
       if(packet->parse(mesg, pktlen)<0)
         break;
       
-      if(packet->qtype.getCode()==QType::AXFR || packet->qtype.getCode()==QType::IXFR ) {
-        if(doAXFR(packet->qdomain, packet, fd)) 
-          S.inc("tcp-answers");  
+      if(packet->qtype.getCode()==QType::AXFR) {
+        if(doAXFR(packet->qdomain, packet, fd))
+          S.inc("tcp-answers");
+        continue;
+      }
+
+      if(packet->qtype.getCode()==QType::IXFR) {
+        if(doIXFR(packet, fd))
+          S.inc("tcp-answers");
         continue;
       }
 
@@ -832,6 +838,130 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
   return 1;
+}
+
+int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
+{
+  shared_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
+  if(q->d_dnssecOk)
+    outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
+
+  DNSSECKeeper dk;
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow;
+  bool NSEC3Zone=false;
+
+  dk.clearCaches(q->qdomain);
+  bool securedZone = dk.isSecuredZone(q->qdomain);
+  if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
+    NSEC3Zone=true;
+    if(narrow) {
+      L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone.."<<endl;
+      L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
+      outpacket->setRcode(RCode::Refused);
+      sendPacket(outpacket,outsock);
+      return 0;
+    }
+  }
+
+  uint32_t serial = 0;
+  MOADNSParser mdp(q->getString());
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
+    const DNSRecord *rr = &i->first;
+    if (rr->d_type == QType::SOA && rr->d_place == DNSRecord::Nameserver) {
+      vector<string>parts;
+      stringtok(parts, rr->d_content->getZoneRepresentation());
+      if (parts.size() >= 3) {
+        serial=atoi(parts[2].c_str());
+      } else {
+        L<<Logger::Error<<"No serial in IXFR query"<<endl;
+        outpacket->setRcode(RCode::FormErr);
+        sendPacket(outpacket,outsock);
+        return 0;
+      }
+    } else {
+      L<<Logger::Error<<"Additional records in IXFR query"<<endl;
+      outpacket->setRcode(RCode::FormErr);
+      sendPacket(outpacket,outsock);
+      return 0;
+    }
+  }
+
+  L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
+
+  SOAData sd;
+  sd.db=(DNSBackend *)-1; // force uncached answer
+  {
+    Lock l(&s_plock);
+    DLOG(L<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
+    if(!s_P) {
+      L<<Logger::Error<<"TCP server is without backend connections in doIXFR, launching"<<endl;
+      s_P=new PacketHandler;
+    }
+
+    if(!s_P->getBackend()->getSOA(q->qdomain, sd)) {
+      L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
+      outpacket->setRcode(9); // 'NOTAUTH'
+      sendPacket(outpacket,outsock);
+      return 0;
+    }
+  }
+
+  string target = q->qdomain;
+
+  UeberBackend db;
+  sd.db=(DNSBackend *)-1; // force uncached answer
+  if(!db.getSOA(target, sd)) {
+    L<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
+    outpacket->setRcode(9); // 'NOTAUTH'
+    sendPacket(outpacket,outsock);
+    return 0;
+  }
+
+  if(!sd.db || sd.db==(DNSBackend *)-1) {
+    L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an IXFR"<<endl;
+    outpacket->setRcode(RCode::ServFail);
+    sendPacket(outpacket,outsock);
+    return 0;
+  }
+  if (!rfc1982LessThan(serial, sd.serial)) {
+    TSIGRecordContent trc;
+    string tsigkeyname, tsigsecret;
+
+    q->getTSIGDetails(&trc, &tsigkeyname, 0);
+
+    if(!tsigkeyname.empty()) {
+      string tsig64, algorithm;
+      Lock l(&s_plock);
+      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
+      B64Decode(tsig64, tsigsecret);
+    }
+
+    UeberBackend signatureDB;
+
+    // SOA *must* go out first, our signing pipe might reorder
+    DLOG(L<<"Sending out SOA"<<endl);
+    DNSResourceRecord soa = makeDNSRRFromSOAData(sd);
+    outpacket->addRecord(soa);
+    editSOA(dk, sd.qname, outpacket.get());
+    if(securedZone) {
+      set<string, CIStringCompare> authSet;
+      authSet.insert(target);
+      addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
+    }
+
+    if(!tsigkeyname.empty())
+      outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac); // first answer is 'normal'
+
+    sendPacket(outpacket, outsock);
+
+    L<<Logger::Error<<"IXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
+
+    return 1;
+  }
+
+  L<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<target<<"' our serial "<<sd.serial<<endl;
+  return doAXFR(q->qdomain, q, outsock);
 }
 
 TCPNameserver::~TCPNameserver()
