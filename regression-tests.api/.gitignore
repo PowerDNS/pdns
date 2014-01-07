@@ -1,0 +1,7 @@
+/.venv
+/*.xml
+/*.pid
+/pdns.sqlite3
+/*.controlsocket
+/named.conf
+/*.pyc
