@@ -123,8 +123,8 @@ void Utility::usleep(unsigned long usec)
 }
 
 
-// Drops the program's privileges.
-void Utility::dropPrivs( int uid, int gid )
+// Drops the program's group privileges.
+void Utility::dropGroupPrivs( int uid, int gid )
 {
   if(gid) {
     if(setgid(gid)<0) {
@@ -148,7 +148,12 @@ void Utility::dropPrivs( int uid, int gid )
       }
     }
   }
+}
 
+
+// Drops the program's user privileges.
+void Utility::dropUserPrivs( int uid )
+{
   if(uid) {
     if(setuid(uid)<0) {
       theL()<<Logger::Critical<<"Unable to set effective user id to "<<uid<<":  "<<stringerror()<<endl;

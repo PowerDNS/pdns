@@ -347,16 +347,19 @@ void mainthread()
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
+     Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
        L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
      }   
      else
        L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
-   }  
+   } else {
+     Utility::dropGroupPrivs(newuid, newgid);
+   }
 
   StatWebServer sws;
-  Utility::dropPrivs(newuid, newgid);
+  Utility::dropUserPrivs(newuid);
 
   if(::arg().mustDo("recursor")){
     DP=new DNSProxy(::arg()["recursor"]);
