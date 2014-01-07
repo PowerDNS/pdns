@@ -849,12 +849,10 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   DNSSECKeeper dk;
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
-  bool NSEC3Zone=false;
 
   dk.clearCaches(q->qdomain);
   bool securedZone = dk.isSecuredZone(q->qdomain);
   if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
-    NSEC3Zone=true;
     if(narrow) {
       L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone.."<<endl;
       L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
