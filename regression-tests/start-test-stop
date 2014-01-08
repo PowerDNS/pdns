@@ -811,11 +811,9 @@ __EOF__
 			[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
 			[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
 
-			echo "DROP USER $GORACLEUSER CASCADE;" | sqlplus -S powerdns/powerdns > oracle.log || true
-			echo "CREATE USER $GORACLEUSER IDENTIFIED BY $GORACLEPASSWD;" | sqlplus -S powerdns/powerdns >> oracle.log
-			echo "GRANT CONNECT, RESOURCE TO $GORACLEUSER;" | sqlplus -S powerdns/powerdns >> oracle.log
-			sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle.log
-			tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> oracle.log
+			echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
+			echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+			tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
 
 			cat > pdns-goracle.conf << __EOF__
 launch=goracle
@@ -1140,10 +1138,8 @@ startslave ()
 		[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
 		[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
 
-		echo "DROP USER $GORACLE2USER CASCADE;" | sqlplus -S powerdns/powerdns > oracle2.log || true
-		echo "CREATE USER $GORACLE2USER IDENTIFIED BY $GORACLE2PASSWD;" | sqlplus -S powerdns/powerdns >> oracle2.log
-		echo "GRANT CONNECT, RESOURCE TO $GORACLE2USER;" | sqlplus -S powerdns/powerdns >> oracle2.log
-		sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe < ../modules/goraclebackend/goracle-schema.sql >> oracle2.log
+		echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe > goracle2.log
+		echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 
 			cat > pdns-goracle2.conf << __EOF__
 launch=goracle
@@ -1159,7 +1155,7 @@ __EOF__
 
 		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
 		do
-			echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> oracle2.log
+			echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 		done
 
 		set +e
