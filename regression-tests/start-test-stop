@@ -870,6 +870,72 @@ __EOF__
 			;;
 
 
+		oracle-nodnssec | oracle | oracle-nsec3 | oracle-nsec3-optout)
+			[ -z "$ORACLEUSER" ] && ORACLEUSER=pdns
+			[ -z "$ORACLEPASSWD" ] && ORACLEPASSWD=pdns
+
+			echo "START ../modules/oraclebackend/dropschema;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe > oracle.log
+			echo "START ../modules/oraclebackend/schema;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+			tosql oracle | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+
+			cat > pdns-oracle.conf << __EOF__
+launch=oracle
+oracle-home=$ORACLE_HOME
+oracle-sid=$ORACLE_SID
+oracle-nls-lang=$NLS_LANG
+
+oracle-pool-database=xe
+oracle-pool-username=$ORACLEUSER
+oracle-pool-password=$ORACLEPASSWD
+oracle-master-database=xe
+oracle-master-username=$ORACLEUSER
+oracle-master-password=$ORACLEPASSWD
+__EOF__
+
+			if [ $context != oracle-nodnssec ]
+			then
+				echo "oracle-dnssec" >> pdns-oracle.conf
+				../pdns/pdnssec --config-dir=. --config-name=oracle import-tsig-key test $ALGORITHM $KEY
+				../pdns/pdnssec --config-dir=. --config-name=oracle activate-tsig-key tsig.com test master
+			fi
+
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				if [ $context != goracle-nodnssec ]
+				then
+					securezone $zone oracle
+#					if [ $context = goracle-nsec3 ] || [ $context = goracle-nsec3-optout ]
+#					then
+#						../pdns/pdnssec --config-dir=. --config-name=goracle set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+#						../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+#					fi
+#				else
+#					../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+				fi
+			done
+
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+				--config-name=oracle --socket-dir=./ --no-shuffle \
+				--send-root-referral --query-logging \
+				--cache-ttl=$cachettl $lua_prequery &
+
+			skipreasons="nodyndns"
+			if [ $context = oracle-nsec3 ]
+			then
+				extracontexts="dnssec nsec3"
+			elif [ $context = oracle-nsec3-optout ]
+			then
+				extracontexts="dnssec nsec3 nsec3-optout"
+			elif [ $context = oracle-nodnssec ]
+			then
+				skipreasons="nodnssec nodyndns"
+			else
+				extracontexts="dnssec"
+			fi
+			skipreasons="$skipreasons noent" # TODO add ent support to oracle backend
+			;;
+
+
 		tinydns)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=tinydns \
