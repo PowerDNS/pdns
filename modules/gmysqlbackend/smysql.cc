@@ -37,8 +37,10 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
     mysql_options(&d_db, MYSQL_SET_CHARSET_NAME, MYSQL_AUTODETECT_CHARSET_NAME);
 #endif
 
-    if (setIsolation && (retry == 1))
+    if (setIsolation && (retry == 1)) {
       mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION tx_isolation='READ-COMMITTED'");
+      mysql_options(&d_db, MYSQL_INIT_COMMAND,"SET SESSION binlog_format='ROW'");
+    }
 
     mysql_options(&d_db, MYSQL_READ_DEFAULT_GROUP, group.c_str());
 
