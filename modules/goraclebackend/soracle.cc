@@ -1,4 +1,4 @@
-/* Copyright 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
+/* Copyright 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information. */
 
 #include "soracle.hh"
@@ -20,58 +20,60 @@ string SOracle::getOracleError()
   if (d_errorHandle != NULL) {
     text  msg[512];
     sb4   errcode = 0;
-    
-    memset( msg, 0, 512);
-    
-    OCIErrorGet((dvoid *) d_errorHandle,1, NULL, &errcode, msg, sizeof(msg), OCI_HTYPE_ERROR);
+
+    memset(msg, 0, 512);
+
+    OCIErrorGet((dvoid*) d_errorHandle,1, NULL, &errcode, msg, sizeof(msg), OCI_HTYPE_ERROR);
     if (errcode) {
-      char *p = (char*) msg;
+      char* p = (char*) msg;
       while (*p++ != 0x00) {
         if (*p == '\n' || *p == '\r') {
           *p = ';';
         }
       }
-      
+
       mReason = (char*) msg;
     }
   }
   return mReason;
 }
 
-SOracle::SOracle(const string &database, 
-        	 const string &user, 
-        	 const string &password)
+SOracle::SOracle(const string &database,
+                 const string &user,
+                 const string &password)
 {
-   d_environmentHandle = NULL;
-   d_errorHandle = NULL;
-   d_serviceContextHandle = NULL;
-   
-   int err = OCIInitialize(OCI_THREADED, 0,  NULL, NULL, NULL);
-   if (err) {
-     throw sPerrorException("OCIInitialize");
-   }
-   
-   err = OCIEnvInit(&d_environmentHandle, OCI_DEFAULT, 0, 0);
-   if (err) {
-     throw sPerrorException("OCIEnvInit");
-   }
-  
-   // Allocate an error handle
-   
-   err = OCIHandleAlloc(d_environmentHandle, (dvoid**) &d_errorHandle, OCI_HTYPE_ERROR, 0, NULL);
-   if (err) {
-     throw sPerrorException("OCIHandleAlloc");
-   }
-  
-   // Logon to the database
-   
-   const char *username = user.c_str();
+  d_environmentHandle = NULL;
+  d_errorHandle = NULL;
+  d_serviceContextHandle = NULL;
+  d_handle = NULL;
 
-   err = OCILogon(d_environmentHandle, d_errorHandle, &d_serviceContextHandle, (OraText*) username, strlen(username),
-        	  (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()));
-   
-   if (err) 
-     throw sPerrorException("Loging in to Oracle gave error: " + getOracleError());
+  int err = OCIInitialize(OCI_THREADED, 0,  NULL, NULL, NULL);
+  if (err) {
+    throw sPerrorException("OCIInitialize");
+  }
+
+  err = OCIEnvInit(&d_environmentHandle, OCI_DEFAULT, 0, 0);
+  if (err) {
+    throw sPerrorException("OCIEnvInit");
+  }
+
+  // Allocate an error handle
+
+  err = OCIHandleAlloc(d_environmentHandle, (dvoid**) &d_errorHandle, OCI_HTYPE_ERROR, 0, NULL);
+  if (err) {
+    throw sPerrorException("OCIHandleAlloc");
+  }
+
+  // Logon to the database
+
+  const char* username = user.c_str();
+
+  err = OCILogon(d_environmentHandle, d_errorHandle, &d_serviceContextHandle, (OraText*) username, strlen(username),
+                 (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()));
+
+  if (err) {
+    throw sPerrorException("Loging in to Oracle gave error: " + getOracleError());
+  }
 }
 
 void SOracle::setLog(bool state)
@@ -81,24 +83,24 @@ void SOracle::setLog(bool state)
 
 SOracle::~SOracle()
 {
-  if(d_handle) {
+  if (d_handle) {
     OCIHandleFree(d_handle, OCI_HTYPE_STMT);
     d_handle=0;
   }
 
   int err;
   if (d_serviceContextHandle != NULL) {
-    err=OCILogoff(d_serviceContextHandle, d_errorHandle); 
-    if(err) {
+    err=OCILogoff(d_serviceContextHandle, d_errorHandle);
+    if (err) {
       cerr<<"Problems logging out: "+getOracleError()<<endl;
     }
   }
-   
+
   if (d_errorHandle != NULL) {
     OCIHandleFree(d_errorHandle, OCI_HTYPE_ERROR);
     d_errorHandle = NULL;
   }
-  
+
   if (d_environmentHandle != NULL) {
     OCIHandleFree(d_environmentHandle, OCI_HTYPE_ENV);
     d_environmentHandle = NULL;
@@ -112,52 +114,65 @@ SSqlException SOracle::sPerrorException(const string &reason)
 
 int SOracle::doCommand(const string &query)
 {
-  return doQuery(query);
+  int retval = doQuery(query);
+  if (d_handle) {
+    OCIHandleFree(d_handle, OCI_HTYPE_STMT);
+    d_handle=0;
+  }
+
+  return retval;
 }
 
-int getNumFields(const string& query)
+int getNumFields(const string &query)
 {
   string lquery=toLower(query);
-  char* delim[]={" from ", "\tfrom\t", "\tfrom ", " from\t", 0};
+  const char* delim[]= {" from ", "\tfrom\t", "\tfrom ", " from\t", 0};
   int n=0;
   string::size_type pos;
-  for(n=0; delim[n] && (pos=lquery.find(delim[n]))==string::npos; ++n)
+  for (n=0; delim[n] && (pos=lquery.find(delim[n]))==string::npos; ++n)
     ;
 
-  if(!delim[n])
+  if (!delim[n]) {
     return -1;
+  }
 
   unsigned int num=1;
 
-  for(unsigned int n=0; n < pos; ++n)
-    if(lquery[n]==',')
+  for (unsigned int n=0; n < pos; ++n)
+    if (lquery[n]==',') {
       num++;
+    }
 
   return num;
 }
 
 int SOracle::doQuery(const string &query)
 {
-  if(query=="begin") // oracle does this implicitly
+  if (query=="begin") { // oracle does this implicitly
     return 0;
+  }
 
-  int err = OCIHandleAlloc(d_environmentHandle, (dvoid **) &d_handle, OCI_HTYPE_STMT, 0, NULL);
-         
+  if (s_dolog) {
+    L<<Logger::Warning<<"Query: "<<query<<endl;
+  }
+
+  int err = OCIHandleAlloc(d_environmentHandle, (dvoid**) &d_handle, OCI_HTYPE_STMT, 0, NULL);
+
   if (err) {
     throw sPerrorException("Allocating a query handle: "+getOracleError());
   }
 
   err = OCIStmtPrepare(d_handle, d_errorHandle, (text*) query.c_str(), strlen(query.c_str()),
-        	       OCI_NTV_SYNTAX, OCI_DEFAULT);
-  
+                       OCI_NTV_SYNTAX, OCI_DEFAULT);
+
   if (err) {
     throw sPerrorException("Preparing statement: "+getOracleError());
   }
 
   ub4 prefetch=1000;
   err=OCIAttrSet(d_handle, (ub4) OCI_HTYPE_STMT,
-             (dvoid *) &prefetch, (ub4) sizeof(ub4), 
-             (ub4) OCI_ATTR_PREFETCH_ROWS, d_errorHandle);
+                 (dvoid*) &prefetch, (ub4) sizeof(ub4),
+                 (ub4) OCI_ATTR_PREFETCH_ROWS, d_errorHandle);
 
   if (err) {
     throw sPerrorException("setting prefetch: "+getOracleError());
@@ -168,12 +183,12 @@ int SOracle::doQuery(const string &query)
 
   d_numfields=getNumFields(query);
 
-  for(int n=0; n < d_numfields ; ++n) {
+  for (int n=0; n < d_numfields ; ++n) {
     //    cerr<<"bind: "<<n<<endl;
-    OCIDefine *theDefineHandle = NULL; 
+    OCIDefine* theDefineHandle = NULL;
     err = OCIDefineByPos(d_handle, &theDefineHandle, d_errorHandle, n+1, d_fields[n].content,
-        		 sizeof(d_fields[n].content) - 1, SQLT_STR, (dvoid*) &d_fields[n].indicator, NULL, NULL, OCI_DEFAULT);
-    
+                         sizeof(d_fields[n].content) - 1, SQLT_STR, (dvoid*) &d_fields[n].indicator, NULL, NULL, OCI_DEFAULT);
+
     if (err) {
       throw sPerrorException("Error binding returns: "+getOracleError());
     }
@@ -182,8 +197,8 @@ int SOracle::doQuery(const string &query)
   //  cerr<<"Done binding fields"<<endl;
 
   d_queryResult = OCIStmtExecute(d_serviceContextHandle, d_handle, d_errorHandle, 1, 0,
-        			 (OCISnapshot *)NULL, (OCISnapshot*) NULL, OCI_DEFAULT);
-  
+                                 (OCISnapshot*)NULL, (OCISnapshot*) NULL, OCI_DEFAULT);
+
   if (d_queryResult != OCI_SUCCESS && d_queryResult != OCI_SUCCESS_WITH_INFO && d_queryResult != OCI_NO_DATA) {
     throw sPerrorException("executing oracle query: "+getOracleError());
   }
@@ -201,8 +216,9 @@ int SOracle::doQuery(const string &query, result_t &result)
   doQuery(query);
 
   row_t row;
-  while(getRow(row))
+  while (getRow(row)) {
     result.push_back(row);
+  }
 
   return result.size();
 }
@@ -215,20 +231,20 @@ bool SOracle::getRow(row_t &row)
     OCIHandleFree(d_handle, OCI_HTYPE_STMT);
     d_handle=0;
     return false;
-  }
-  else {
-    for(int n=0;n < d_numfields ;++n)
-      if(!d_fields[n].indicator)
+  } else {
+    for (int n=0; n < d_numfields ; ++n)
+      if (!d_fields[n].indicator) {
         row.push_back(d_fields[n].content);
-      else
+      } else {
         row.push_back("");
+      }
   }
 
   d_queryResult = OCIStmtFetch(d_handle, d_errorHandle, 1, 0, 0);
   if (d_queryResult != OCI_SUCCESS && d_queryResult != OCI_SUCCESS_WITH_INFO && d_queryResult != OCI_NO_DATA) {
     throw sPerrorException("fetching next row of oracle query: "+getOracleError());
   }
-  
+
 
   return true;
 }
@@ -237,9 +253,10 @@ string SOracle::escape(const string &name)
 {
   string a;
 
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='\'')
-      a+='\'';
+  for (string::const_iterator i=name.begin(); i!=name.end(); ++i) {
+    if (*i=='\\' || *i=='\'') {
+      a+='\\';
+    }
     a+=*i;
   }
   return a;
@@ -247,37 +264,37 @@ string SOracle::escape(const string &name)
 
 #if 0
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-  for(int outer=0;outer<2; ++outer) {
-  try {
-    SOracle s(argv[1],"",0,"",argv[2],argv[3]);
+  for (int outer=0; outer<2; ++outer) {
+    try {
+      SOracle s(argv[1],"",0,"",argv[2],argv[3]);
 
-    cerr<<"Ready to do queries"<<endl;
-    time_t then=time(0);
-    
-    int loops;
-    for(loops=0;loops < 6; ++loops) {
-      s.doQuery("select id, content from records");
-      
-      SSql::row_t row;
-      
-      while(s.getRow(row)) {
-        for(SSql::row_t::const_iterator j=row.begin();j!=row.end();++j)
-          cout <<"'"<< *j<<"', ";
-        cout<<"\n";
+      cerr<<"Ready to do queries"<<endl;
+      time_t then=time(0);
+
+      int loops;
+      for (loops=0; loops < 6; ++loops) {
+        s.doQuery("select id, content from records");
+
+        SSql::row_t row;
+
+        while (s.getRow(row)) {
+          for (SSql::row_t::const_iterator j=row.begin(); j!=row.end(); ++j) {
+            cout <<"'"<< *j<<"', ";
+          }
+          cout<<"\n";
+        }
       }
+      time_t spent=time(0)-then;
+      if (spent) {
+        cerr<<"Loops per second: "<< loops/spent<<endl;
+      }
+    } catch (string &e) {
+      cerr<<"fatal: "<<e<<endl;
+    } catch (SSqlException &e) {
+      cerr<<e.txtReason()<<endl;
     }
-    time_t spent=time(0)-then;
-    if(spent)
-      cerr<<"Loops per second: "<< loops/spent<<endl;
-  }
-  catch(string &e) {
-    cerr<<"fatal: "<<e<<endl;
-  }
-  catch(SSqlException &e) {
-    cerr<<e.txtReason()<<endl;
-  }
   }
 }
 

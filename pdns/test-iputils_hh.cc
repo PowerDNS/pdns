@@ -46,12 +46,14 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
 
 BOOST_AUTO_TEST_CASE(test_NetmaskGroup) {
   NetmaskGroup ng;
-  ng.addMask("127.0.0.0/8");
-  ng.addMask("10.0.0.0/24");
+  ng.addMask("10.0.1.0");
+  BOOST_CHECK(ng.match(ComboAddress("10.0.1.0")));
+  ng.toMasks("127.0.0.0/8, 10.0.0.0/24");
   BOOST_CHECK(ng.match(ComboAddress("127.0.0.1")));
   BOOST_CHECK(ng.match(ComboAddress("10.0.0.3")));
+  BOOST_CHECK(ng.match(ComboAddress("10.0.1.0")));
   BOOST_CHECK(!ng.match(ComboAddress("128.1.2.3")));
-  BOOST_CHECK(!ng.match(ComboAddress("10.0.1.0")));
+  BOOST_CHECK(!ng.match(ComboAddress("10.0.1.1")));
   BOOST_CHECK(!ng.match(ComboAddress("::1")));
   ng.addMask("::1");
   BOOST_CHECK(ng.match(ComboAddress("::1")));

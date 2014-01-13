@@ -912,7 +912,7 @@ void testSchema(DNSSECKeeper& dk, const std::string& zone)
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0];
   cout<<"Creating slave domain "<<zone<<endl;
-  db->createSlaveDomain("127.0.0.1", zone, "_testschema");
+  db->createSlaveDomain("127.0.0.1", zone, "", "_testschema");
   cout<<"Slave domain created"<<endl;
 
   DomainInfo di;

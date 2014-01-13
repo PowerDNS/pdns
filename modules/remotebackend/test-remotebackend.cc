@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend) {
    rr.content = "ns2.example.com";
    nsset.push_back(rr);
 
-   BOOST_CHECK(be->superMasterBackend("10.0.0.1", "example.com", nsset, NULL, &dbd));
+   BOOST_CHECK(be->superMasterBackend("10.0.0.1", "example.com", nsset, NULL, NULL, &dbd));
 
    // let's see what we got
    BOOST_CHECK_EQUAL(dbd, be);
@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend) {
 
 BOOST_AUTO_TEST_CASE(test_method_createSlaveDomain) {
    BOOST_TEST_MESSAGE("Testing createSlaveDomain method");
-   BOOST_CHECK(be->createSlaveDomain("10.0.0.1", "pirate.unit.test", ""));
+   BOOST_CHECK(be->createSlaveDomain("10.0.0.1", "pirate.unit.test", "", ""));
 }
 
 BOOST_AUTO_TEST_CASE(test_method_feedRecord) {

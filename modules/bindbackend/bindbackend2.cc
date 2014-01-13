@@ -1259,7 +1259,7 @@ bool Bind2Backend::isMaster(const string &name, const string &ip)
   return false;
 }
 
-bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db)
+bool Bind2Backend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
   // Check whether we have a configfile available.
   if (getArg("supermaster-config").empty())
@@ -1317,7 +1317,7 @@ BB2DomainInfo &Bind2Backend::createDomainEntry(const string &domain, const strin
   return bbd;
 }
 
-bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, const string &account)
+bool Bind2Backend::createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account)
 {
 
   string filename = getArg("supermaster-destdir")+'/'+domain;

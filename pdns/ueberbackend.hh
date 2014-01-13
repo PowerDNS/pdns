@@ -59,7 +59,7 @@ public:
   ~UeberBackend();
   typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
   /** contains BackendReporter objects, which contain maker functions and information about
       weather a module has already been reported to existing instances of the UeberBackend
@@ -78,6 +78,8 @@ public:
       instructions to load new modules */
   static void *DynListener(void *);
   static void go(void);
+  static void reload_all();
+  static void rediscover_all();
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
@@ -170,6 +172,15 @@ private:
   static bool d_go;
   static int s_s;
   static string s_status; 
+
+  // Operational requests for the backends
+  enum backend_op_requests {
+    NONE = 0,
+    RELOAD,
+    REDISCOVER
+  } cur_op_request;
+  void check_op_requests();
+
   int d_ancount;
   
   bool stale;

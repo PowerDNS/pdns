@@ -13,6 +13,8 @@ MAKE=${MAKE:-make}
 export ALGORITHM
 export KEY
 
+trap "kill_process 2" EXIT INT TERM
+
 nsdfix ()
 {
 	sed -e 's/"A very .*"/"shorter"/' < test.com > test.com.nsd
@@ -89,7 +91,7 @@ __EOF__
 				;;
 			*)
 				echo 'tonsd called with wrong param'
-				exit 1
+				exit
 		esac
 
 		echo "" >> nsd.conf
@@ -173,8 +175,8 @@ __EOF__
 				cp ${zone}.bind ${zone}.signed
 				;;
 			*)
-				echo 'tonsd called with wrong param'
-				exit 1
+				echo 'tobind called with wrong param'
+				exit
 		esac
 
 		echo "" >> bind.conf
@@ -205,7 +207,7 @@ bindwait ()
 	if [ ! -x ../pdns/pdns_control ]
 	then
 		echo "No pdns_control found"
-		exit 1
+		exit
 	fi
 	loopcount=0
 
@@ -265,19 +267,54 @@ check_process ()
 	let loopcount=loopcount+1
 	done
 	echo "PowerDNS did not start"
-	exit 1
+	exit
+}
+
+kill_process ()
+{
+	set +e
+	trap - EXIT INT TERM
+
+	pids=$(cat pdns*.pid)
+
+	if [ -n "$pids" ]
+	then
+		kill $pids
+		# make sure they die.
+		loopcount=0
+		done=0
+		while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+		do
+			done=1
+			for pid in $pids
+			do
+				kill -0 $pid > /dev/null 2>&1
+				if [ $? -eq 0 ];
+				then
+					done=0
+				fi
+			done
+			let loopcount=loopcount+1
+			sleep 1
+		done
+
+		kill -9 $pids
+	fi
+
+	rm pdns*.pid
+	exit $1
 }
 
 if [ ! -x $PDNS ]
  then
 	echo "$PDNS is not executable binary"
-	exit 1
+	exit
 fi
 
 if [ ! -x $PDNS2 ]
 then
 	echo "$PDNS2 is not executable binary"
-	exit 1
+	exit
 fi
 
 port=$1
@@ -312,6 +349,8 @@ remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
 remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
 #remotebackend-pipe-nsec3-narrow remotebackend-unix-nsec3-narrow remotebackend-http-nsec3-narrow
+goracle-nodnssec goracle goracle-nsec3 goracle-nsec3-optout
+oracle-nodnssec oracle oracle-nsec3
 
 * Add -presigned to any ext-nsd, ext-bind, bind, gmysql or gsqlite3 test (except narrow)
   to test presigned operation.
@@ -327,10 +366,10 @@ remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec re
 
 * Specifictest can be used to run only one single test.
 __EOF__
-	exit 1
+	exit
 fi
 
-${MAKE} -C ../pdns sdig nsec3dig || exit 1
+${MAKE} -C ../pdns sdig nsec3dig || exit
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep zone named.conf  | cut -f2 -d\")
 do
@@ -804,6 +843,136 @@ __EOF__
 			fi
 			skipreasons="nodyndns"
 			;;
+
+
+		goracle-nodnssec | goracle | goracle-nsec3 | goracle-nsec3-optout)
+			[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
+			[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
+
+			echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
+			echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+			tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+
+			cat > pdns-goracle.conf << __EOF__
+launch=goracle
+goracle-home=$ORACLE_HOME
+goracle-sid=$ORACLE_SID
+goracle-nls-lang=$NLS_LANG
+
+goracle-tnsname=xe
+goracle-user=$GORACLEUSER
+goracle-password=$GORACLEPASSWD
+__EOF__
+
+			if [ $context != goracle-nodnssec ]
+			then
+				echo "goracle-dnssec" >> pdns-goracle.conf
+				../pdns/pdnssec --config-dir=. --config-name=goracle import-tsig-key test $ALGORITHM $KEY
+				../pdns/pdnssec --config-dir=. --config-name=goracle activate-tsig-key tsig.com test master
+			fi
+
+			for zone in $(grep zone named.conf  | cut -f2 -d\")
+			do
+				if [ $context != goracle-nodnssec ]
+				then
+					securezone $zone goracle
+					if [ $context = goracle-nsec3 ] || [ $context = goracle-nsec3-optout ]
+					then
+						../pdns/pdnssec --config-dir=. --config-name=goracle set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+						../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+					fi
+				else
+					../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+				fi
+			done
+
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+				--config-name=goracle --socket-dir=./ --no-shuffle \
+				--send-root-referral \
+				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+				--cache-ttl=$cachettl $lua_prequery &
+
+			skipreasons="nodyndns"
+			if [ $context = goracle-nsec3 ]
+			then
+				extracontexts="dnssec nsec3"
+			elif [ $context = goracle-nsec3-optout ]
+			then
+				extracontexts="dnssec nsec3 nsec3-optout"
+			elif [ $context = goracle-nodnssec ]
+			then
+				skipreasons="nodnssec nodyndns"
+			else
+				extracontexts="dnssec"
+			fi
+			;;
+
+
+		oracle-nodnssec | oracle | oracle-nsec3)
+			[ -z "$ORACLEUSER" ] && ORACLEUSER=pdns
+			[ -z "$ORACLEPASSWD" ] && ORACLEPASSWD=pdns
+
+			echo "START ../modules/oraclebackend/dropschema;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe > oracle.log
+			echo "START ../modules/oraclebackend/schema;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+			../pdns/zone2sql --oracle | grep -v 'INSERT INTO Records' | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+			../pdns/zone2sql --oracle | grep " 'SOA', " | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+
+			cat > pdns-oracle.conf << __EOF__
+launch=oracle
+oracle-home=$ORACLE_HOME
+oracle-sid=$ORACLE_SID
+oracle-nls-lang=$NLS_LANG
+
+oracle-pool-database=xe
+oracle-pool-username=$ORACLEUSER
+oracle-pool-password=$ORACLEPASSWD
+oracle-master-database=xe
+oracle-master-username=$ORACLEUSER
+oracle-master-password=$ORACLEPASSWD
+__EOF__
+
+			if [ $context != oracle-nodnssec ]
+			then
+				echo "oracle-dnssec" >> pdns-oracle.conf
+				../pdns/pdnssec --config-dir=. --config-name=oracle import-tsig-key test $ALGORITHM $KEY
+				../pdns/pdnssec --config-dir=. --config-name=oracle activate-tsig-key tsig.com test master
+			fi
+
+			if [ $context != oracle-nodnssec ]
+			then
+				for zone in $(grep zone named.conf  | cut -f2 -d\")
+				do
+					securezone $zone oracle
+					if [ $context = oracle-nsec3 ]
+					then
+						../pdns/pdnssec --config-dir=. --config-name=oracle set-nsec3 $zone "1 0 1 abcd" 2>&1
+					fi
+				done
+			fi
+
+			echo "TRUNCATE TABLE records;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+			../pdns/zone2sql --oracle | grep -v 'INSERT INTO Zones' | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
+
+			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+				--config-name=oracle --socket-dir=./ --no-shuffle \
+				--send-root-referral --query-logging \
+				--cache-ttl=$cachettl $lua_prequery &
+
+			if [ $context = oracle-nsec3 ]
+			then
+				skipreasons="nodyndns oracle-nsec3"
+				extracontexts="dnssec nsec3"
+			elif [ $context = oracle-nodnssec ]
+			then
+				skipreasons="nodyndns nodnssec"
+			else
+				skipreasons="nodyndns oracle-nsec"
+				extracontexts="dnssec"
+			fi
+			skipreasons="$skipreasons noent" # TODO add ent support to oracle backend
+			;;
+
+
 		tinydns)
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=tinydns \
@@ -864,7 +1033,7 @@ __EOF__
 				;;
 			*)
 				echo "Invalid usage"
-				exit 1
+				exit
 				;;
 			esac
 
@@ -925,7 +1094,7 @@ EOF
 			$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 				--no-shuffle --launch=remote \
 				--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
-				--send-root-referral \
+				--send-root-referral --distributor-threads=1 \
 				--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 				--remote-connection-string="$connstr" $remote_add_param &
 
@@ -935,7 +1104,7 @@ EOF
 			: > passed_tests
 			echo 'unknown-context-'"$context" > failed_tests
 			./toxml $context
-			exit 1
+			exit
 esac
 
 if [ "$skiplua" == "1" ]; then
@@ -1066,6 +1235,72 @@ startslave ()
 		fi
 		set -e
 		sqlite3 pdns.sqlite31 ANALYZE;
+	elif [ ${presignedcontext:0:7} = goracle ]
+	then
+		context=${context}-presigned
+		[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
+		[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
+
+		echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe > goracle2.log
+		echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
+
+			cat > pdns-goracle2.conf << __EOF__
+launch=goracle
+goracle-home=$ORACLE_HOME
+goracle-sid=$ORACLE_SID
+goracle-nls-lang=$NLS_LANG
+
+goracle-tnsname=xe
+goracle-user=$GORACLE2USER
+goracle-password=$GORACLE2PASSWD
+goracle-dnssec
+__EOF__
+
+		for zone in $(grep zone named.conf  | cut -f2 -d\" | tac)
+		do
+			echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
+		done
+
+		set +e
+		echo $skipreasons | grep -q nodnssec
+		if [ $? -ne 0 ]; then
+			../pdns/pdnssec --config-dir=. --config-name=goracle2 import-tsig-key test $ALGORITHM $KEY
+			../pdns/pdnssec --config-dir=. --config-name=goracle2 activate-tsig-key tsig.com test master
+			echo $skipreasons | grep -q nolua
+			if [ $? -ne 0 ]; then
+				../pdns/pdnssec --config-dir=. --config-name=goracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+			fi
+		fi
+		set -e
+
+		port=$((port+100))
+
+		$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
+			--config-name=goracle2 --socket-dir=./ --no-shuffle \
+			--send-root-referral --slave --retrieval-threads=4 \
+			--slave-cycle-interval=300 --config-name=goracle2 &
+		echo 'waiting for zones to be slaved'
+
+		loopcount=0
+		while [ $loopcount -lt 40 ]
+		do
+			sleep 5
+			todo=$(sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe << __EOF__
+set pagesize 0 feedback off verify off heading off echo off;
+SELECT COUNT(id) FROM domains WHERE last_check IS NULL;
+exit;
+__EOF__
+)
+			if [ $todo = 0 ]
+			then
+				break
+			fi
+			let loopcount=loopcount+1
+		done
+		if [ $todo -ne 0 ]; then
+			echo "AXFR FAILED" >> failed_tests
+		fi
+
 	elif [ ${presignedcontext:0:4} = bind ]
 	then
 		context=${context}-presigned
@@ -1251,28 +1486,4 @@ then
 	read l
 fi
 
-pids=$(cat pdns*.pid)
-
-kill $pids
-# make sure they die.
-set +e
-loopcount=0
-done=0
-while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
-do
-	done=1
-	for pid in $pids
-	do
-		kill -0 $pid > /dev/null 2>&1
-		if [ $? -eq 0 ]; then
-			done=0
-		fi
-	done
-	let loopcount=loopcount+1
-	sleep 1
-done
-
-kill -9 $pids
-
-rm pdns*.pid || true
-exit $RETVAL
+trap "kill_process $RETVAL" EXIT

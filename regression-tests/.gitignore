@@ -38,3 +38,7 @@ real_result
 /dsset-*
 /bind.conf
 /bind-slave.conf
+/goracle.log
+/goracle2.log
+/oracle.log
+/oracle2.log

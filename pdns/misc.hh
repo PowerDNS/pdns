@@ -508,4 +508,6 @@ private:
   regex_t d_preg;
 };
 
+union ComboAddress;
+void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source);
 #endif

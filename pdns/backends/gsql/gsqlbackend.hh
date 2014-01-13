@@ -36,9 +36,9 @@ public:
   bool feedEnts(int domain_id, set<string>& nonterm);
   bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow);
   bool createDomain(const string &domain);
-  bool createSlaveDomain(const string &ip, const string &domain, const string &account);
+  bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
   bool deleteDomain(const string &domain);
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
   void setFresh(uint32_t domain_id);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);

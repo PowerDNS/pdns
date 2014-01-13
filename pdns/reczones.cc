@@ -95,6 +95,8 @@ void primeHints(void)
 static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const string& hostname, const string& ip)
 {
   SyncRes::AuthDomain ad;
+  ad.d_rdForward=false;
+
   DNSResourceRecord rr;
   rr.qname=toCanonic("", hostname);
   rr.d_place=DNSResourceRecord::ANSWER;
@@ -130,6 +132,8 @@ static void makeIPToNamesZone(SyncRes::domainmap_t* newMap, const vector<string>
   stringtok(ipparts, address,".");
   
   SyncRes::AuthDomain ad;
+  ad.d_rdForward=false;
+
   DNSResourceRecord rr;
   for(int n=ipparts.size()-1; n>=0 ; --n) {
     rr.qname.append(ipparts[n]);
@@ -298,6 +302,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       trim(headers.second);
       headers.first=toCanonic("", headers.first);
       if(n==0) {
+        ad.d_rdForward = false;
         L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
         ZoneParserTNG zpt(headers.second, headers.first);
         DNSResourceRecord rr;
@@ -322,14 +327,14 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         L<<Logger::Error<<"Redirecting queries for zone '"<<headers.first<<"' ";
         if(n == 2) {
           L<<"with recursion ";
-          ad.d_rdForward = 1;
+          ad.d_rdForward = true;
         }
-        else ad.d_rdForward = 0;
+        else ad.d_rdForward = false;
         L<<"to: ";
         
         convertServersForAD(headers.second, ad, ";");
         if(n == 2) {
-          ad.d_rdForward = 1;
+          ad.d_rdForward = true;
         }
       }
       
