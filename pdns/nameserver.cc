@@ -128,6 +128,7 @@ void UDPNameserver::bindIPv4()
 
     g_localaddresses.push_back(locala);
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
+      close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
         L<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
@@ -224,6 +225,7 @@ void UDPNameserver::bindIPv6()
     }
     g_localaddresses.push_back(locala);
     if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
+      close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
         L<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
