@@ -393,12 +393,13 @@ inline unsigned int compare_domains( const string &a, const string &b ) {
  * does not exist is 2 or 3 queries depending on the system, although this will
  * be reduced if the negative cache is active.
  *
- * The subclass MUST implement getAuthZone(string &reversed_zone_name) which,
- * given a reversed zone name will return false if there was some sort of error,
+ * The subclass MUST implement bool getAuthZone(string &reversed_zone_name)
+ * which, given a reversed zone name will return false if there was some sort
+ * of error (eg no record found as top of database was hit, lookup issues),
  * otherwise returns true and sets reversed_zone_name to be the exact entry
  * found, otherwise the entry directly preceeding where it would be.
  *
- * The subclass MUST implement getAuthData( const string &rev_zone_name, SOAData *soa, int *zoneId )
+ * The subclass MUST implement getAuthData( const string &rev_zone_name, SOAData *soa )
  * which is basically the same as getSOA() but is called with the reversed zone name
  */
 enum {
@@ -462,7 +463,10 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
         return GET_AUTH_NEG_DONTCACHE;
     }
 
-    // Strings totally different
+    // Strings totally different. If we want to store root records in the
+    // database (and the database supports zero-length keys) we could probably
+    // just remove this test but would need testing to ensure the rest of the
+    // functions worked correctly
     if( diff_point == 0 )
         return GET_AUTH_NEG_CACHE;
 
