@@ -2,6 +2,7 @@
 /Makefile.in
 /aclocal.m4
 /autom4te.cache
+/build-aux/
 /config.cache
 /config.guess
 /config.h

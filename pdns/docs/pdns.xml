@@ -12452,6 +12452,11 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
         alter table tsigkeys add constraint c_lowercase_name check (((name)::text = lower((name)::text)));
       </screen>
     </para>
+    <para>
+      The (gmysql-)innodb-read-committed flag was added to the gmysql backend, and enabled by default.
+      This interferes with statement replication. Please set your binlog_format to MIXED or ROW, or disable binlog.
+      Alternatively, disable (gmysql-)innodb-read-committed but be aware that this may cause deadlocks during AXFRs.
+    </para>
   </sect1>
 
   </chapter>
@@ -13239,7 +13244,7 @@ $ pdnssec rectify-zone powerdnssec.org
 </section>
   <section id="dnssec-transfers"><title>Secure transfers</title>
   <para>
-    From 3.3.1. and up, PowerDNS support secure DNSSEC transfers as described in <ulink
+    From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in <ulink
     url="https://ietf.org/doc/draft-koch-dnsop-dnssec-operator-change/">draft-koch-dnsop-dnssec-operator-change-05</ulink>.
     If the direct-dnskey option is enabled the foreign DNSKEY records stored in the database are added to the keyset and signed
     with the KSK. Without the direct-dnskey option DNSKEY records in the database are silently ignored.
@@ -15852,7 +15857,16 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      By specifying <command>allow-recursion</command>, recursion can be restricted to netmasks specified. The default is to allow
 	      recursion from everywhere. Example: <command>allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
 	    </para>
-	  </listitem></varlistentry>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>also-notify=...</term>
+	  <listitem>
+	    <para>
+	      When notifying a domain, also notify these nameservers. Example: <command>also-notify=192.168.0.1, 10.0.0.1</command>.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	  <varlistentry><term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
 	    <listitem><para>
 		Answer questions for the ANY and RRSIG types on UDP with a truncated packet that refers the
@@ -16055,7 +16069,15 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	      </para>
 	    </listitem>
 	  </varlistentry>
-
+	  <varlistentry>
+	    <term>only-notify=...</term>
+	    <listitem>
+	      <para>
+		Only send AXFR NOTIFY to these IP addresses or netmasks. The default is to notify the world. The IP addresses or netmasks in <command>
+		also-notify</command> or ALSO-NOTIFY metadata always receive AXFR NOTIFY. Example (and default): <command>only-notify=0.0.0.0/0, ::/0</command>.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	  <varlistentry><term>out-of-zone-additional-processing | --out-of-zone-additional-processing=yes | --out-of-zone-additional-processing=no</term>
 	    <listitem><para>
 	      Do out of zone additional processing. This means that if a malicious user adds a '.com' zone to your server, it is not used for 

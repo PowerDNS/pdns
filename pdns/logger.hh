@@ -44,11 +44,11 @@ public:
   enum Urgency {All=99999,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
         	Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
-  /** Log a message. 
-      \param msg Message you wish to log 
-      \param Urgency Urgency of the message you wish to log
+  /** Log a message.
+      \param msg Message you wish to log
+      \param u Urgency of the message you wish to log
   */
-  void log(const string &msg, Urgency u=Notice); 
+  void log(const string &msg, Urgency u=Notice);
 
   void setFacility(int f){d_facility=f;open();} //!< Choose logging facility
   void setFlag(int f){flags|=f;open();} //!< set a syslog flag

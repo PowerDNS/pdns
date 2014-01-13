@@ -94,6 +94,8 @@ void declareArguments()
   ::arg().set("launch","Which backends to launch and order to query them in")="";
   ::arg().setSwitch("disable-axfr","Disable zonetransfers but do allow TCP queries")="no";
   ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="0.0.0.0/0,::/0";
+  ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks")="0.0.0.0/0,::/0";
+  ::arg().set("also-notify", "When notifying a domain, also notify these nameservers")="";
   ::arg().set("slave-cycle-interval","Reschedule failed SOA serial checks once every .. seconds")="60";
 
   ::arg().set("tcp-control-address","If set, PowerDNS can be controlled over TCP on this address")="";
@@ -345,16 +347,19 @@ void mainthread()
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
+     Utility::dropGroupPrivs(newuid, newgid);
      if(chroot(::arg()["chroot"].c_str())<0 || chdir("/")<0) {
        L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror(errno)<<", exiting"<<endl; 
        exit(1);
      }   
      else
        L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;      
-   }  
+   } else {
+     Utility::dropGroupPrivs(newuid, newgid);
+   }
 
   StatWebServer sws;
-  Utility::dropPrivs(newuid, newgid);
+  Utility::dropUserPrivs(newuid);
 
   if(::arg().mustDo("recursor")){
     DP=new DNSProxy(::arg()["recursor"]);

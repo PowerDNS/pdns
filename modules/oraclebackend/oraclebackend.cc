@@ -220,12 +220,8 @@ static const char *delTSIGKeyQueryDefaultSQL =
 
 static const char *setTSIGKeyQueryKey = "PDNS_Set_TSIG_Key";
 static const char *setTSIGKeyQueryDefaultSQL =
-  "INSERT INTO TSIGKeys (name,algorithm,secret)"
-  "VALUES("
-  ":name,"
-  ":algorithm,"
-  ":secret"
-  ")";
+  "INSERT INTO TSIGKeys (name, algorithm, secret) "
+  "VALUES (:name, :algorithm, :secret)";
 
 static const char *getTSIGKeysQueryKey = "PDNS_Get_TSIG_Keys";
 static const char *getTSIGKeysQueryDefaultSQL =
@@ -1398,7 +1394,9 @@ OracleBackend::delTSIGKey(const string& name)
 
   stmt = prepare_query(masterSvcCtx, delTSIGKeyQuerySQL, delTSIGKeyQueryKey);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+
   rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
   if (rc == OCI_ERROR) {
@@ -1427,16 +1425,22 @@ OracleBackend::setTSIGKey(const string& name, const string& algorithm, const str
 
   rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
 
+  if (rc == OCI_ERROR) {
+    throw OracleException("Oracle setTSIGKey BEGIN", oraerr);
+  }
+
   stmt = prepare_query(masterSvcCtx, delTSIGKeyQuerySQL, delTSIGKeyQueryKey);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
 
   rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
   if (rc == OCI_ERROR) {
-    throw OracleException("Oracle setTSIGKey", oraerr);
+    throw OracleException("Oracle setTSIGKey DELETE", oraerr);
   }
 
-  release_query(stmt, setTSIGKeyQueryKey);
+  release_query(stmt, delTSIGKeyQueryKey);
 
   stmt = prepare_query(masterSvcCtx, setTSIGKeyQuerySQL, setTSIGKeyQueryKey);
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
@@ -1448,13 +1452,15 @@ OracleBackend::setTSIGKey(const string& name, const string& algorithm, const str
   bind_str(stmt, ":secret", mQueryContent, sizeof(mQueryContent));
 
   rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
   if (rc == OCI_ERROR) {
-    throw OracleException("Oracle setTSIGKey", oraerr);
+    throw OracleException("Oracle setTSIGKey INSERT", oraerr);
   }
 
   release_query(stmt, setTSIGKeyQueryKey);
 
   rc = OCITransCommit(masterSvcCtx, oraerr, OCI_DEFAULT);
+
   if (rc == OCI_ERROR) {
     throw OracleException("Oracle setTSIGKey COMMIT", oraerr);
   }

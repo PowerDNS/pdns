@@ -563,12 +563,12 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == -2) {
+    if(res == RecursorBehaviour::DROP) {
       delete dc;
       dc=0;
       return;
     }  
-    if(tracedQuery || res < 0 || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -581,7 +581,7 @@ void startDoResolve(void *p)
       }
     }
 
-    if(res < 0) {
+    if(res == RecursorBehaviour::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
@@ -1830,6 +1830,8 @@ int serviceMain(int argc, char*argv[])
   if(!::arg()["setuid"].empty())
     newuid=Utility::makeUidNumeric(::arg()["setuid"]);
 
+  Utility::dropGroupPrivs(newuid, newgid);
+
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
@@ -1837,7 +1839,7 @@ int serviceMain(int argc, char*argv[])
     }
   }
 
-  Utility::dropPrivs(newuid, newgid);
+  Utility::dropUserPrivs(newuid);
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   
   makeThreadPipes();

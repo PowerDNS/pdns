@@ -134,8 +134,11 @@ public:
   //! Sets the random seed.
   static void srandom( unsigned int seed );
 
-  //! Drops the program's privileges.
-  static void dropPrivs( int uid, int gid );
+  //! Drops the program's group privileges.
+  static void dropGroupPrivs( int uid, int gid );
+
+  //! Drops the program's user privileges.
+  static void dropUserPrivs( int uid );
   
   //! Sets the socket into blocking mode.
   static bool setBlocking( Utility::sock_t socket );

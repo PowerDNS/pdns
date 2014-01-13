@@ -38,8 +38,8 @@ struct KeyTag {};
 
 //! The main MTasker class    
 /** The main MTasker class. See the main page for more information.
-    \param EventKey Type of the key with which events are to be identified. Defaults to int.
-    \param EventVal Type of the content or value of an event. Defaults to int. Cannot be set to void.
+    \tparam EventKey Type of the key with which events are to be identified. Defaults to int.
+    \tparam EventVal Type of the content or value of an event. Defaults to int. Cannot be set to void.
     \note The EventKey needs to have an operator< defined because it is used as the key of an associative array
 */
 template<class EventKey=int, class EventVal=int> class MTasker

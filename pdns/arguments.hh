@@ -96,7 +96,7 @@ public:
   bool parmIsset(const string &var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
   int asNum(const string &var); //!< return a variable value as a number
-  mode_t asMode(const string &var); //<!< return value interpreted as octal number
+  mode_t asMode(const string &var); //!< return value interpreted as octal number
   uid_t asUid(const string &var); //!< return user id, resolves if necessary
   gid_t asGid(const string &var); //!< return group id, resolves if necessary
   double asDouble(const string &var); //!< return a variable value as a number
@@ -107,7 +107,7 @@ public:
   string helpstring(string prefix=""); //!< generates the --help
   string configstring(bool current=false); //!< generates the --mkconfig
   bool contains(const string &var, const string &val);
-  bool isEmpty(const string &var); //<! checks if variable has value
+  bool isEmpty(const string &var); //!< checks if variable has value
 
   vector<string>list();
   string getHelp(const string &item);
