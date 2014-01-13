@@ -135,7 +135,7 @@ int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
 
   SOAData sd;
   int zoneId;
-  if(!getAuth(p, &sd, target, &zoneId))
+  if(!B.getAuth(p, &sd, target, &zoneId))
     return false;
 
   B.lookup(QType(QType::MBOXFW),string("%@")+target,p, zoneId);
@@ -311,29 +311,6 @@ int PacketHandler::doChaosRequest(DNSPacket *p, DNSPacket *r, string &target)
 
   r->setRcode(RCode::NotImp);
   return 0;
-}
-
-
-/** Determines if we are authoritative for a zone, and at what level */
-bool PacketHandler::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
-{
-  bool found=false;
-  string subdomain(target);
-  do {
-    if( B.getSOA( subdomain, *sd, p ) ) {
-      sd->qname = subdomain;
-      if(zoneId)
-        *zoneId = sd->domain_id;
-
-      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
-        // Found authoritative zone but look for parent zone with 'DS' record.
-        found=true;
-      } else
-        return true;
-    }
-  }
-  while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
-  return found;
 }
 
 vector<DNSResourceRecord> PacketHandler::getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target)
@@ -885,7 +862,7 @@ void PacketHandler::synthesiseRRSIGs(DNSPacket* p, DNSPacket* r)
 
   SOAData sd;
   sd.db=(DNSBackend *)-1; // force uncached answer
-  getAuth(p, &sd, p->qdomain, 0);
+  B.getAuth(p, &sd, p->qdomain, 0);
 
   bool narrow;
   NSEC3PARAMRecordContent ns3pr;
@@ -1264,7 +1241,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
     
-    if(!getAuth(p, &sd, target, 0)) {
+    if(!B.getAuth(p, &sd, target, 0)) {
       DLOG(L<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(r->d.ra) {
         DLOG(L<<Logger::Error<<"Recursion is available for this remote, doing that"<<endl);

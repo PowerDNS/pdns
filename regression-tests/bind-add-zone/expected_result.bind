@@ -30,7 +30,7 @@ Reply to question for qname='ns1.addzone.com.', qtype=A
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns1.test.com.', qtype=A
 Loaded zone addzone.com from addzone.com
-1
+0
 Already loaded
 Rcode: 2, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='ns1.addzone.com.', qtype=A
