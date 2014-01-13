@@ -337,12 +337,6 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
     return true;
 }
 
-#if 0
-#define DEBUGLOG(msg) L<<Logger::Error<<msg<<endl
-#else
-#define DEBUGLOG(msg) do {} while(0)
-#endif
-
 /* String a is the query key, string b is the result from the database. Trys to
  * be intelegent and only return matching sections (ie up to the last point at
  * which there were .'s in both strings, however because the - character is
@@ -415,7 +409,7 @@ bool _add_to_negcache( const string &zone ) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
     // add the zone to the negative query cache and return false
     if(negqueryttl) {
-        DEBUGLOG("Adding to neg qcache: " << zone);
+        DLOG(L<<Logger::Error<<"Adding to neg qcache: " << zone<<endl);
         PC.insert(zone, QType(QType::SOA), PacketCache::QUERYCACHE, "", negqueryttl, 0);
     }
     return false;
@@ -424,7 +418,7 @@ bool _add_to_negcache( const string &zone ) {
 inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const size_t best_match_len) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
 
-    DEBUGLOG("SOA Query: " <<querykey);
+    DLOG(L<<Logger::Error<<"SOA Query: " <<querykey<<endl);
 
     /* Got a match from a previous backend that was longer than this - no need
      * to continue. This is something of an optimization as we would hit the
@@ -433,7 +427,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
      * interfear with future queries
      */
     if( best_match_len >= querykey.length() ) {
-        DEBUGLOG("Best match was better from a different client");
+        DLOG(L<<Logger::Error<<"Best match was better from a different client"<<endl);
         return GET_AUTH_NEG_DONTCACHE;
     }
 
@@ -443,7 +437,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
         string content;
         bool ret = PC.getEntry( inZone, QType(QType::SOA), PacketCache::QUERYCACHE, content, 0 );
         if( ret && content.empty() ) {
-            DEBUGLOG("Found in neg qcache: " << inZone << ":" << content << ":" << ret << ":");
+            DLOG(L<<Logger::Error<<"Found in neg qcache: " << inZone << ":" << content << ":" << ret << ":"<<endl);
             return GET_AUTH_NEG_DONTCACHE;
         }
     }
@@ -454,12 +448,12 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
         return GET_AUTH_NEG_CACHE;
 
     unsigned int diff_point = compare_domains( querykey, foundkey );
-    DEBUGLOG("Queried: " << querykey << " and found record: " <<foundkey << " : diff point is: " << diff_point);
+    DLOG(L<<Logger::Error<<"Queried: " << querykey << " and found record: " <<foundkey << " : diff point is: " << diff_point<<endl);
 
     // Got a match from a previous backend that was longer than this - no need
     // to continue.
     if( best_match_len && best_match_len >= diff_point ) {
-        DEBUGLOG("Best match was better from a different client");
+        DLOG(L<<Logger::Error<<"Best match was better from a different client"<<endl);
         return GET_AUTH_NEG_DONTCACHE;
     }
 
@@ -502,7 +496,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
 
         string shortzone = inZone.substr( inZone.length() - diff_point, string::npos );
         string shortquerykey = querykey.substr( 0, diff_point );
-        DEBUGLOG("Retrying for " << shortzone << " querykey: " << shortquerykey);
+        DLOG(L<<Logger::Error<<"Retrying for " << shortzone << " querykey: " << shortquerykey<<endl);
 
         int ret = _getAuth( p, soa, shortzone, zoneId, shortquerykey, best_match_len );
 
@@ -520,7 +514,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
         if(zoneId)
             *zoneId = soa->domain_id;
 
-        DEBUGLOG("Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname);
+        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
 
         return GET_AUTH_SUCCESS;
     }
@@ -555,7 +549,7 @@ bool DNSReversedBackend::_getSOA(const string &querykey, SOAData &soa, DNSPacket
     if( !getAuthZone( searchkey ) )
         return false;
 
-    DEBUGLOG("search key " << searchkey << " query key " << querykey);
+    DLOG(L<<Logger::Error<<"search key " << searchkey << " query key " << querykey<<endl);
 
     if( querykey.compare( searchkey ) != 0 )
         return false;
