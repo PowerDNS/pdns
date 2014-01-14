@@ -12010,14 +12010,28 @@ local0.err                        /var/log/pdns.err
     <sect1 id="performance-settings">
     <title>Performance related settings</title>
     <para>
+      When PowerDNS starts up it creates a number of threads to listen for
+      packets. This is configurable with the
+      <command>receiver-threads</command> setting which defines how many
+      sockets will be opened by the powerdns process. In versions of linux
+      before kernel 3.9 having too many receiver threads set up resulted in
+      decreased performance due to socket contention between multiple CPUs -
+      the typical sweet spot was 3 or 4. For optimal performance on kernel 3.9
+      and following with <command>reuseport</command> enabled you'll typically
+      want a receiver thread for each core on your box if backend
+      latency/performance is not an issue and you want top performance.
+    </para>
+    <para>
       Different backends will have different characteristics - some will want to have more parallel
       instances than others. In general, if your backend is latency bound, like most relational databases are, 
       it pays to open more backends.
     </para>
     <para>
-      This is done with the <command>distributor-threads</command> setting. Of special importance is the choice between 1
-      or more backends. In case of only 1 thread, PDNS reverts to unthreaded operation which may be a lot faster, depending
-      on your operating system and architecture.
+      This is done with the <command>distributor-threads</command> setting
+      which says how many distributors will be opened for each receiver thread.
+      Of special importance is the choice between 1 or more backends. In case
+      of only 1 thread, PDNS reverts to unthreaded operation which may be a lot
+      faster, depending on your operating system and architecture.
     </para>
     <para>
       Another very important setting <command>cache-ttl</command>. PDNS caches entire packets it sends out so as to save the
@@ -15918,7 +15932,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>distributor-threads=...</term>
 	    <listitem><para>
-		Default number of Distributor (backend) threads to start. See <xref linkend="performance"/>.
+		Number of Distributor (backend) threads to start per receiver thread. See <xref linkend="performance"/>.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>do-ipv6-additional-processing=...</term>
 	    <listitem><para>
@@ -16116,7 +16130,7 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	      </para></listitem></varlistentry>
       	  <varlistentry><term>receiver-threads=...</term>
 	    <listitem><para>
-		Number of receiver threads to start. See <xref linkend="performance"/>.
+		Number of receiver (listening) threads to start. See <xref linkend="performance"/> for tuning details.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>recursive-cache-ttl=...</term>
 	    <listitem><para>
