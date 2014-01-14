@@ -27,7 +27,6 @@ AC_DEFUN([PDNS_WITH_LUA],[
           AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
           with_lua=yes
         ],[
-          AC_DEFINE([HAVE_LUA],["x"],["x"])
           with_lua=no
         ])
       ])
