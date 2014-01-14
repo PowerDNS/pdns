@@ -302,7 +302,7 @@ void UeberBackend::check_op_requests()
 
 bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
 {
-  size_t best_match_len = 0;
+  int best_match_len = -1;
   bool from_cache = false;  // Was this result fetched from the cache?
 
   check_op_requests();
@@ -349,11 +349,11 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
 
         // Shortcut for the case that we got a direct hit - no need to go
         // through the other backends then.
-        if( best_match_len == target.length() )
+        if( best_match_len == (int)target.length() )
             goto auth_found;
     }
 
-  if( best_match_len == 0 )
+  if( best_match_len == -1 )
       return false;
 
 auth_found:

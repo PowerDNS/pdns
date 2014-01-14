@@ -44,12 +44,12 @@ bool DNSBackend::getRemote(DNSPacket *p, struct sockaddr *sa, Utility::socklen_t
   return true;
 }
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const size_t best_match_len)
+bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len)
 {
   bool found=false;
   string subdomain(target);
   do {
-    if( best_match_len >= subdomain.length() )
+    if( best_match_len >= (int)subdomain.length() )
       break;
 
     if( this->getSOA( subdomain, *sd, p ) ) {
@@ -415,7 +415,7 @@ bool _add_to_negcache( const string &zone ) {
     return false;
 }
 
-inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const size_t best_match_len) {
+inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const int best_match_len) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
 
     DLOG(L<<Logger::Error<<"SOA Query: " <<querykey<<endl);
@@ -426,7 +426,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
      * the risk of something being added to the neg-querycache that may
      * interfear with future queries
      */
-    if( best_match_len >= querykey.length() ) {
+    if( best_match_len >= (int)querykey.length() ) {
         DLOG(L<<Logger::Error<<"Best match was better from a different client"<<endl);
         return GET_AUTH_NEG_DONTCACHE;
     }
@@ -452,16 +452,14 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
 
     // Got a match from a previous backend that was longer than this - no need
     // to continue.
-    if( best_match_len && best_match_len >= diff_point ) {
+    if( best_match_len && best_match_len >= (int)diff_point ) {
         DLOG(L<<Logger::Error<<"Best match was better from a different client"<<endl);
         return GET_AUTH_NEG_DONTCACHE;
     }
 
-    // Strings totally different. If we want to store root records in the
-    // database (and the database supports zero-length keys) we could probably
-    // just remove this test but would need testing to ensure the rest of the
-    // functions worked correctly
-    if( diff_point == 0 )
+    // If diff_point is 0 then either strings are totally different OR root
+    // zone was returned.
+    if( diff_point == 0 && foundkey.length() != 0 )
         return GET_AUTH_NEG_CACHE;
 
     /* If the strings are the same (ie diff_point == querykey.length()) then we
@@ -522,7 +520,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
     return GET_AUTH_NEG_CACHE;
 }
 
-bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const size_t best_match_len) {
+bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const int best_match_len) {
     // Reverse the lowercased query string
     string zone = toLower(inZone);
     string querykey( zone.rbegin(), zone.rend() );

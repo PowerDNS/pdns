@@ -139,7 +139,7 @@ public:
   virtual void getAllDomains(vector<DomainInfo> *domains) { }
 
   /** Determines if we are authoritative for a zone, and at what level */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const size_t best_match_len);
+  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len);
 
   struct KeyData {
     unsigned int id;
@@ -354,8 +354,8 @@ class DNSReversedBackend : public DNSBackend {
          * */
         virtual bool getAuthData( SOAData &soa, DNSPacket *p=0) { return false; };  // Must be overridden
 
-        bool getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const size_t best_match_len);
-        inline int _getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const size_t best_match_len);
+        bool getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const int best_match_len);
+        inline int _getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const int best_match_len);
 
         /* Only called for stuff like signing or AXFR transfers */
         bool _getSOA(const string &rev_zone, SOAData &soa, DNSPacket *p);
