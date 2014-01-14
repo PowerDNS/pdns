@@ -1,0 +1,61 @@
+case $context in
+	bind)
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+			--no-shuffle --launch=bind --bind-config=./named.conf \
+			--send-root-referral \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--cache-ttl=$cachettl --no-config \
+			--bind-ignore-broken-records=yes &
+		skipreasons="nodnssec nodyndns"
+		bindwait
+		;;
+
+	bind-dnssec | bind-dnssec-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
+		rm -f dnssec.sqlite3
+		../pdns/pdnssec --config-dir=. create-bind-db dnssec.sqlite3
+
+		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+		do
+			securezone $zone
+			if [ $context = bind-dnssec-nsec3 ] || [ $context = bind-dnssec-nsec3-optout ]
+			then
+				../pdns/pdnssec --config-dir=. set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+			elif [ $context = bind-dnssec-nsec3-narrow ]
+			then
+				../pdns/pdnssec --config-dir=. set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+			fi
+		done
+
+		if [ $context = bind-dnssec-nsec3 ]
+		then
+			extracontexts="bind dnssec nsec3"
+			skipreasons="nsec3 nodyndns"
+		elif [ $context = bind-dnssec-nsec3-optout ]
+		then
+			extracontexts="bind dnssec nsec3 nsec3-optout"
+			skipreasons="optout nodyndns"
+		elif [ $context = bind-dnssec-nsec3-narrow ]
+		then
+			extracontexts="bind dnssec narrow"
+			skipreasons="narrow nodyndns"
+		else
+			extracontexts="bind dnssec"
+			skipreasons="nodyndns"
+		fi
+
+		../pdns/pdnssec --config-dir=. import-tsig-key test $ALGORITHM $KEY
+		../pdns/pdnssec --config-dir=. activate-tsig-key tsig.com test master
+
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+			--no-shuffle --launch=bind --bind-config=./named.conf \
+			--bind-dnssec-db=./dnssec.sqlite3 \
+			--send-root-referral \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
+			--cache-ttl=$cachettl --no-config \
+			--bind-ignore-broken-records=yes $lua_prequery &
+		bindwait
+		;;
+
+	*)
+		nocontext=yes
+esac

@@ -1,0 +1,66 @@
+case $context in
+	goracle-nodnssec | goracle | goracle-nsec3 | goracle-nsec3-optout)
+		[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
+		[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
+
+		echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
+		echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+		tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+
+		cat > pdns-goracle.conf << __EOF__
+launch=goracle
+goracle-home=$ORACLE_HOME
+goracle-sid=$ORACLE_SID
+goracle-nls-lang=$NLS_LANG
+
+goracle-tnsname=xe
+goracle-user=$GORACLEUSER
+goracle-password=$GORACLEPASSWD
+__EOF__
+
+		if [ $context != goracle-nodnssec ]
+		then
+			echo "goracle-dnssec" >> pdns-goracle.conf
+			../pdns/pdnssec --config-dir=. --config-name=goracle import-tsig-key test $ALGORITHM $KEY
+			../pdns/pdnssec --config-dir=. --config-name=goracle activate-tsig-key tsig.com test master
+		fi
+
+		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+		do
+			if [ $context != goracle-nodnssec ]
+			then
+				securezone $zone goracle
+				if [ $context = goracle-nsec3 ] || [ $context = goracle-nsec3-optout ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=goracle set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+				fi
+			else
+				../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+			fi
+		done
+
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+			--config-name=goracle --socket-dir=./ --no-shuffle \
+			--send-root-referral \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--cache-ttl=$cachettl $lua_prequery &
+
+		skipreasons="nodyndns"
+		if [ $context = goracle-nsec3 ]
+		then
+			extracontexts="dnssec nsec3"
+		elif [ $context = goracle-nsec3-optout ]
+		then
+			extracontexts="dnssec nsec3 nsec3-optout"
+		elif [ $context = goracle-nodnssec ]
+		then
+			skipreasons="nodnssec nodyndns"
+		else
+			extracontexts="dnssec"
+		fi
+		;;
+
+	*)
+		nocontext=yes
+esac

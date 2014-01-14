@@ -1,0 +1,120 @@
+bindfix ()
+{
+	sed -e 's/"A very .*"/"shorter"/' < zones/test.com > zones/test.com.bind
+	sed -e '/EUI/s/^/;/g' -e '/host\.\*\.sub/s/^/;/g' < zones/example.com > zones/example.com.bind
+	sed -e '/DS\t44030/s/^/;/g' < zones/delegated.dnssec-parent.com > zones/delegated.dnssec-parent.com.bind
+}
+
+tobind ()
+{
+	cat > bind.conf << __EOF__
+options {
+	directory "./zones";
+	dnssec-enable yes;
+	listen-on port $port { 127.0.0.1; };
+	minimal-responses yes;
+	pid-file "../pdns.pid";
+};
+
+key test {
+	algorithm $ALGORITHM;
+	secret "$KEY";
+};
+__EOF__
+
+	rm -f K*
+	rm -f zones/*.bind
+
+	bindfix
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+	do
+
+		if [ ! -f zones/$zone.bind ]
+		then
+			cp zones/$zone zones/$zone.bind
+		fi
+
+		if [ "$1" != "unsigned" ]
+		then
+			if [ ! "${zone: 0:16}" = "secure-delegated" ]
+			then
+				ksk=$(dnssec-keygen -r/dev/urandom -f KSK -a RSASHA256 -b 2048 -n ZONE $zone)
+			else
+				cp secure-delegated.dnssec-parent.com.private  Ksecure-delegated.dnssec-parent.com.+008+54319.private
+				cp secure-delegated.dnssec-parent.com.key  Ksecure-delegated.dnssec-parent.com.+008+54319.key
+				ksk="Ksecure-delegated.dnssec-parent.com.+008+54319"
+			fi
+			zsk=$(dnssec-keygen -r/dev/urandom -a RSASHA256 -b 1024 -n ZONE $zone)
+
+			echo "\$include $ksk.key ; KSK" >> zones/$zone.bind
+			echo "\$include $zsk.key ; ZSK" >> zones/$zone.bind
+		fi
+
+		case $1 in
+			nsec)
+				dnssec-signzone -o $zone -f zones/$zone.signed zones/$zone.bind
+				;;
+			nsec3)
+				dnssec-signzone -3 abcd -H 1 -o $zone -f zones/$zone.signed zones/$zone.bind
+				;;
+			nsec3-optout)
+				dnssec-signzone -3 abcd -H 1 -A -o $zone -f zones/$zone.signed zones/$zone.bind
+				if [ "$zone" = "dnssec-parent.com" ]
+				then
+					echo "insecure.dnssec-parent.com.	IN	NS	ns.insecure.dnssec-parent.com." >> zones/${zone}.signed
+				fi
+				;;
+			unsigned)
+				cp zones/${zone}.bind zones/${zone}.signed
+				;;
+			*)
+				echo 'tobind called with wrong param'
+				exit
+		esac
+
+		echo "" >> bind.conf
+		echo "zone \"${zone}\" {" >> bind.conf
+		echo "	type master;" >> bind.conf
+		if [ "${zone}" = "tsig.com" ]
+		then
+			echo "	allow-transfer { key test; none; };" >> bind.conf
+		fi
+		echo "	file \"${zone}.signed\";" >> bind.conf
+		echo "};" >> bind.conf
+	done
+}
+
+case $context in
+	ext-bind | ext-bind-nsec | ext-bind-nsec3 | ext-bind-nsec3-optout)
+		case $context in
+			ext-bind)
+				tobind unsigned
+				extracontexts="extbind"
+				skipreasons="bind nodnssec nodyndns"
+				;;
+			ext-bind-nsec)
+				tobind nsec
+				extracontexts="extbind dnssec"
+				skipreasons="bind nodyndns"
+				;;
+			ext-bind-nsec3)
+				tobind nsec3
+				extracontexts="extbind dnssec nsec3"
+				skipreasons="bind nsec3 nodyndns"
+				;;
+			ext-bind-nsec3-optout)
+				tobind nsec3-optout
+				extracontexts="extbind dnssec nsec3 nsec3-optout"
+				skipreasons="bind optout nodyndns"
+				;;
+			*)
+				nocontext=yes
+		esac
+		named -c bind.conf -g &
+		sleep 5
+		;;
+
+	*)
+		nocontext=yes
+esac

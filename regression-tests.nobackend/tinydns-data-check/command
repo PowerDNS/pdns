@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-for zone in `cat ../regression-tests/named.conf | grep zone | cut -f 2 -d \"`
+for zone in `cat ../regression-tests/named.conf | grep 'zone ' | cut -f 2 -d \"`
 do
-	md5sum ../regression-tests/$zone
+	md5sum ../regression-tests/zones/$zone
 done
 md5sum ../modules/tinydnsbackend/data.cdb

@@ -18,11 +18,11 @@ fi
 
 
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
-for zone in $(grep zone ../../regression-tests/named.conf | cut -f2 -d\")
+for zone in $(grep 'zone ' ../../regression-tests/named.conf | cut -f2 -d\")
 do
-	if [ -f ../../regression-tests/$zone.orig ]
+	if [ -f ../../regression-tests/zones/$zone.orig ]
 	then
-		cp -f ../../regression-tests/$zone.orig ../../regression-tests/$zone
+		cp -f ../../regression-tests/zones/$zone.orig ../../regression-tests/zones/$zone
 	fi
 done
 
@@ -42,7 +42,7 @@ sleep 5
 cd $startdir
 [ -e data ] && rm data
 
-for zone in $(grep zone ../../regression-tests/named.conf | cut -f2 -d\")
+for zone in $(grep 'zone ' ../../regression-tests/named.conf | cut -f2 -d\")
 do
 	$tcpclient 127.0.0.1 5300 $axfrget $zone $zone.out $zone.out.tmp
 	cat $zone.out >> data

@@ -1,0 +1,123 @@
+nsdfix ()
+{
+	sed -e 's/"A very .*"/"shorter"/' < zones/test.com > zones/test.com.nsd
+	sed '/EUI/s/^/;/g' < zones/example.com > zones/example.com.nsd
+	sed -e '/testnonzone\.com\./s/^/;/g' -e '/NZTEST\.COM\.NET\./s/^/;/g' < zones/nztest.com > zones/nztest.com.nsd
+	sed -e '/DS\t44030/s/^/;/g' < zones/delegated.dnssec-parent.com > zones/delegated.dnssec-parent.com.nsd
+}
+
+tonsd ()
+{
+	cat > nsd.conf << __EOF__
+server:
+	ip-address: 127.0.0.1@$port
+	database: ./nsd.db
+	difffile: ./ixfr.db
+	xfrdfile: ./ixfr.state
+
+	zonesdir: ./zones
+	username: ""
+
+key:
+	name: test
+	algorithm: $ALGORITHM
+	secret: "$KEY"
+__EOF__
+
+	rm -f K*
+	rm -f zones/*.nsd
+
+	nsdfix
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+	do
+
+		if [ -f zones/$zone.nsd ]
+		then
+			zonefile=zones/${zone}.nsd
+		else
+			zonefile=zones/${zone}
+		fi
+
+		if [ "$1" != "unsigned" ]
+		then
+			if [ ! "${zone: 0:16}" = "secure-delegated" ]
+			then
+				ksk=$(ldns-keygen -r /dev/urandom -a RSASHA256 -k $zone)
+			else
+				ksk="secure-delegated.dnssec-parent.com"
+			fi
+			zsk=$(ldns-keygen -r /dev/urandom -a RSASHA256 $zone)
+		fi
+
+		case $1 in
+			nsec)
+				ldns-signzone -f zones/${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			nsec3)
+				ldns-signzone -n -a 1 -s abcd -t 1 -f zones/${zone}.signed ${zonefile} $ksk $zsk
+				;;
+			nsec3-optout)
+				ldns-signzone -n -p -a 1 -s abcd -t 1 -f zones/${zone}.signed ${zonefile} $ksk $zsk
+				if [ "$zone" = "dnssec-parent.com" ]
+				then
+					echo "insecure.dnssec-parent.com.	IN	NS	ns.insecure.dnssec-parent.com." >> zones/${zone}.signed
+				fi
+				;;
+			unsigned)
+				cp ${zonefile} zones/${zone}.signed
+				;;
+			*)
+				echo 'tonsd called with wrong param'
+				exit
+		esac
+
+		echo "" >> nsd.conf
+		echo "zone:" >> nsd.conf
+		echo "	name: \"${zone}\"" >> nsd.conf
+		echo "	zonefile: \"${zone}.signed\"" >> nsd.conf
+		if [ "${zone}" = "tsig.com" ]
+		then
+			echo "	provide-xfr: 0.0.0.0/0 test" >> nsd.conf
+			echo "	provide-xfr: ::0/0 test" >> nsd.conf
+		else
+			echo "	provide-xfr: 0.0.0.0/0 NOKEY" >> nsd.conf
+			echo "	provide-xfr: ::0/0 NOKEY" >> nsd.conf
+		fi
+	done
+	nsdc -c nsd.conf rebuild
+}
+
+case $context in
+	ext-nsd | ext-nsd-nsec | ext-nsd-nsec3 | ext-nsd-nsec3-optout)
+		case $context in
+			ext-nsd)
+				tonsd unsigned
+				extracontexts="extnsd"
+				skipreasons="nsd nodnssec nodyndns"
+				;;
+			ext-nsd-nsec)
+				tonsd nsec
+				extracontexts="extnsd dnssec"
+				skipreasons="nsd nodyndns"
+				;;
+			ext-nsd-nsec3)
+				tonsd nsec3
+				extracontexts="extnsd dnssec nsec3"
+				skipreasons="nsd nsec3 nodyndns"
+				;;
+			ext-nsd-nsec3-optout)
+				tonsd nsec3-optout
+				extracontexts="extnsd dnssec nsec3 nsec3-optout"
+				skipreasons="nsd optout nodyndns"
+				;;
+			*)
+				nocontext=yes
+		esac
+		nsd -c nsd.conf -P ../pdns.pid -d &
+		sleep 5
+		;;
+
+	*)
+		nocontext=yes
+esac

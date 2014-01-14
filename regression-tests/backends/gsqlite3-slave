@@ -1,0 +1,54 @@
+	context=${context}-presigned
+	rm -f pdns.sqlite31
+	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
+	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/dnssec.schema.sqlite3.sql
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	do
+		sqlite3 pdns.sqlite31 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
+	done
+
+	set +e
+	echo $skipreasons | grep -q nodnssec
+	if [ $? -ne 0 ]
+	then
+		sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','$ALGORITHM', '$KEY')"
+		sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
+		echo $skipreasons | grep -q nolua
+		if [ $? -ne 0 ]
+		then
+			sqlite3 pdns.sqlite31  "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
+		fi
+	fi
+	set -e
+
+	port=$((port+100))
+
+	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
+		--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
+		--fancy-records --send-root-referral \
+		--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=4 \
+		--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 \
+		--config-name=gsqlite32 |& egrep -v "update records set ordername|insert into records" &
+	echo 'waiting for zones to be slaved'
+	set +e
+	loopcount=0
+	while [ $loopcount -lt 20 ]
+	do
+		sleep 5
+		todo=$(sqlite3 pdns.sqlite31 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+		if [ $todo -eq 0 ]
+		then
+			if [ $todo = 0 ]
+			then
+				break
+			fi
+		fi
+		let loopcount=loopcount+1
+	done
+	if [ $todo -ne 0 ]
+	then
+		echo "AXFR FAILED" >> failed_tests
+	fi
+	set -e
+	sqlite3 pdns.sqlite31 ANALYZE;

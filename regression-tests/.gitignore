@@ -1,6 +1,3 @@
-diff
-real_result
-*.out
 /*.xml
 /*.tar
 /K*
@@ -16,12 +13,7 @@ real_result
 /*.controlsocket
 /pdns-*.conf
 /*.sqlite3*
-/*.com-slave
-/*.dyndns-slave
 /named-slave.conf
-*/start
-*/step.*
-/test.dyndns
 /bulktest.results
 /recursor-bulktest/
 /recursor.log
@@ -30,11 +22,6 @@ real_result
 /report.json
 /nsd.*
 /nsd-slave.*
-/*.nsd
-/ixfr*.db
-/ixfr*.state
-/*.signed
-/*.bind
 /dsset-*
 /bind.conf
 /bind-slave.conf

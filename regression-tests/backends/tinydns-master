@@ -1,0 +1,14 @@
+case $context in
+	tinydns)
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+			--no-shuffle --launch=tinydns \
+		 --cache-ttl=$cachettl --no-config \
+			--send-root-referral \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
+		skipreasons="nodnssec noent nodyndns"
+		;;
+
+	*)
+		nocontext=yes
+esac
