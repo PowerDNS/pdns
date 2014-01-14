@@ -94,6 +94,7 @@ void UDPNameserver::bindIPv4()
 {
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
+  int one = 1;
 
   if(locals.empty())
     throw PDNSException("No local address specified");
@@ -118,15 +119,22 @@ void UDPNameserver::bindIPv4()
     memset(&locala,0,sizeof(locala));
     locala.sin4.sin_family=AF_INET;
 
-    if(localname=="0.0.0.0") {
-      int val=1;
-      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &val, sizeof(val));
-    }
+    if(localname=="0.0.0.0")
+      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
+
+#ifdef SO_REUSEPORT
+    if( d_can_reuseport )
+        if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
+          d_can_reuseport = false;
+#endif
+
     locala=ComboAddress(localname, ::arg().asNum("local-port"));
     if(locala.sin4.sin_family != AF_INET) 
       throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
 
-    g_localaddresses.push_back(locala);
+    if( !d_additional_socket )
+        g_localaddresses.push_back(locala);
+
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
@@ -196,6 +204,7 @@ void UDPNameserver::bindIPv6()
 #if HAVE_IPV6
   vector<string> locals;
   stringtok(locals,::arg()["local-ipv6"]," ,");
+  int one=1;
 
   if(locals.empty())
     return;
@@ -218,12 +227,19 @@ void UDPNameserver::bindIPv6()
     ComboAddress locala(localname, ::arg().asNum("local-port"));
     
     if(IsAnyAddress(locala)) {
-      int val=1;
-      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &val, sizeof(val));     // linux supports this, so why not - might fail on other systems
-      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &val, sizeof(val)); 
-      setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &val, sizeof(val));      // if this fails, we report an error in tcpreceiver too
+      setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+      setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+      setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
     }
-    g_localaddresses.push_back(locala);
+
+#ifdef SO_REUSEPORT
+    if( d_can_reuseport )
+        if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
+          d_can_reuseport = false;
+#endif
+
+    if( !d_additional_socket )
+        g_localaddresses.push_back(locala);
     if(::bind(s, (sockaddr*)&locala, sizeof(locala))<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-ipv6-nonexist-fail") ) {
@@ -246,8 +262,14 @@ void UDPNameserver::bindIPv6()
 #endif
 }
 
-UDPNameserver::UDPNameserver()
+UDPNameserver::UDPNameserver( bool additional_socket )
 {
+#ifdef SO_REUSEPORT
+  d_can_reuseport = ::arg().mustDo("reuseport");
+#endif
+  // Are we the main socket (false) or a rebinding using SO_REUSEPORT ?
+  d_additional_socket = additional_socket;
+
   if(!::arg()["local-address"].empty())
     bindIPv4();
   if(!::arg()["local-ipv6"].empty())

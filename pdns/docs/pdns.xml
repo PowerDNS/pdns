@@ -16075,6 +16075,18 @@ Tell PowerDNS to log all incoming DNS queries. This will lead to a lot of loggin
 	    <listitem><para>
 	      If this many packets are waiting for database attention, answer any new questions strictly from the packet cache.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>reuseport=[yes|no]</term>
+	    <listitem><para>
+          On Linux 3.9 and some BSD kernels the SO_REUSEPORT option allows each
+          receiver-thread to open a new socket on the same port which allows
+          for much higher performance on multi-core boxes. Setting this option
+          will enable use of SO_REUSEPORT when available and seamlessly fall
+          back to a single socket when it is not available. A side-effect is
+          that you can start multiple servers on the same IP/port combination
+          which may or may not be a good idea. You could use this to enable
+          transparent restarts, but it may also mask configuration issues and
+          for this reason it is disabled by default.
+	      </para></listitem></varlistentry>
 	  <varlistentry>
 	    <term>server-id</term>
 	    <listitem>
