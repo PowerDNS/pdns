@@ -1441,7 +1441,7 @@ dotests () {
 		for t in `cat failed_tests`
 		do
 			echo -e "\n\n$t"
-			cat $t/diff
+			cat ${testsdir}/$t/diff
 		done
 		if [ "${!1}" -eq 0 ]
 		then
