@@ -41,7 +41,7 @@ script:
  - sleep 3
  - ./clean.sh
  - cd ../regression-tests
- - touch verify-dnssec-zone/allow-missing
+ - touch tests/verify-dnssec-zone/allow-missing
  - ./start-test-stop 5300 bind-both
  - ./start-test-stop 5300 bind-dnssec-both
  - ./start-test-stop 5300 bind-dnssec-nsec3-both

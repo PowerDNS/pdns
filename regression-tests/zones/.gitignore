@@ -1,0 +1,10 @@
+/test.dyndns
+/*.com-slave
+/*.dyndns-slave
+/*.signed
+/*.nsd
+/ixfr.state
+/nsd.db
+/ixfr-slave.db
+/ixfr-slave.state
+/nsd-slave.db

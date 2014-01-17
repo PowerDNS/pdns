@@ -1,0 +1,121 @@
+case $context in
+	remotebackend-*)
+		remotetype=$(echo $context | cut -d- -f 2)
+		remotesec=$(echo $context | cut -d- -f 3)
+		narrow=$(echo $context | cut -d- -f 4)
+		testsdir=../modules/remotebackend/regression-tests/
+
+		# cleanup unbound-host.conf to avoid failures
+		rm -f unbound-host.conf
+
+		echo "Setting up test database..."
+		# setup test database
+		rm -f $testsdir/remote.sqlite3
+		sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
+		chmod 0666 $testsdir/remote.sqlite3
+
+		case $remotetype in
+		http)
+			connstr="http:url=http://localhost:62434/dns"
+			rm -f remotebackend-server.log
+			rm -f remotebackend-access.log
+			$testsdir/http-backend.rb &
+			echo $! > pdns-remotebackend.pid
+			set +e
+			# make sure it runs before continuing
+			loopcount=0
+			while [ $loopcount -lt 20 ]; do
+				res=$(curl http://localhost:62434/ping 2>/dev/null)
+				if [ "x$res" == "xpong" ]
+				then
+					break
+				fi
+				sleep 1
+				let loopcount=loopcount+1
+			done
+			set -e
+			;;
+		zeromq)
+			connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
+			$testsdir/zeromq-backend.rb &
+			echo $! > pdns-remotebackend.pid
+			;;
+		unix)
+			connstr="unix:path=/tmp/remote.socket"
+			socat unix-listen:/tmp/remote.socket,fork exec:$testsdir/unix-backend.rb &
+			echo $! > pdns-remotebackend.pid
+			;;
+		pipe)
+			connstr="pipe:command=$testsdir/pipe-backend.rb"
+			;;
+		*)
+			echo "Invalid usage"
+			exit
+			;;
+		esac
+
+		skipreasons="nodnssec nodyndns"
+
+		if [ "$remotesec" = "nsec3" ]
+		then
+			remotedosec="yes"
+			if [ "$narrow" = "narrow" ]
+			then
+				extracontexts="dnssec nsec3 narrow"
+				skipreasons="narrow nsec3 nodyndns"
+			else
+				extracontexts="dnssec nsec3"
+				skipreasons="nsec3 nodyndns"
+			fi
+			
+			remote_add_param="--remote-dnssec=yes"
+		elif [ "$remotesec" = "dnssec" ]
+		then
+			remotedosec="yes"
+			remote_add_param="--remote-dnssec=yes"
+			extracontexts="dnssec"
+			skipreasons="nonsec3 nonarrow nodyndns"
+		fi
+
+
+		# generate pdns.conf for pdnssec
+		cat > pdns-remote.conf <<EOF
+launch=remote
+remote-connection-string=$connstr
+EOF
+
+		if [ "$remotedosec" = "yes" ]
+		then
+			echo "remote-dnssec=yes" >> pdns-remote.conf
+			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
+			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
+			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
+			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
+			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
+			../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
+
+			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
+			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
+			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
+			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
+			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
+			../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+
+			if [ "$remotesec" = "nsec3" ]
+			then
+				../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 example.com
+				../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
+			fi
+		fi
+
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+			--no-shuffle --launch=remote \
+			--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
+			--send-root-referral --distributor-threads=1 \
+			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--remote-connection-string="$connstr" $remote_add_param &
+		;;
+
+	*)
+		nocontext=yes
+esac

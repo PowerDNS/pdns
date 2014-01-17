@@ -1,0 +1,108 @@
+start_master ()
+{
+	case $context in
+			bind*)
+				source ./backends/bind-master
+				;;
+
+			gmysql*)
+				source ./backends/gmysql-master
+				;;
+
+			goracle*)
+				source ./backends/goracle-master
+				;;
+
+			gpgsql*)
+				source ./backends/gpgsql-master
+				;;
+
+			gsqlite3*)
+				source ./backends/gsqlite3-master
+				;;
+
+			mydns*)
+				source ./backends/mydns-master
+				;;
+
+			opendbx*)
+				source ./backends/opendbx-master
+				;;
+
+			oracle*)
+				source ./backends/oracle-master
+				;;
+
+			remote*)
+				source ./backends/remote-master
+				;;
+
+			tinydns*)
+				source ./backends/tinydns-master
+				;;
+
+			ext-nsd*)
+				source ./ext/nsd-master
+				;;
+
+			ext-bind*)
+				source ./ext/bind-master
+				;;
+
+			*)
+				nocontext=yes
+	esac
+
+	if [ "$nocontext" == "yes" ]
+	then
+		echo unknown context $context
+		: > passed_tests
+		echo 'unknown-context-'"$context" > failed_tests
+		./toxml $context
+		exit
+	fi
+}
+
+start_slave ()
+{
+	skipreasons="$skipreasons presigned nodyndns"
+
+	case $presignedcontext in
+		bind*)
+			source ./backends/bind-slave
+			;;
+
+		gmysql*)
+			source ./backends/gmysql-slave
+			;;
+
+		goracle*)
+			source ./backends/goracle-slave
+			;;
+
+		gsqlite3*)
+			source ./backends/gsqlite3-slave
+			;;
+
+
+		ext-bind*)
+			source ./ext/bind-slave
+			;;
+
+		ext-nsd*)
+			source ./ext/nsd-slave
+			;;
+
+		*)
+			nocontext=yes
+	esac
+
+	if [ "$nocontext" == "yes" ]
+	then
+		echo unknown presigned context $presignedcontext
+		: > passed_tests
+		echo 'unknown-presigned-context-'"$presignedcontext" > failed_tests
+		./toxml $context
+		exit
+	fi
+}

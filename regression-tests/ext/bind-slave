@@ -1,0 +1,39 @@
+	skipreasons="$skipreasons bind"
+	context=$context-presigned
+	cat > bind-slave.conf << __EOF__
+options {
+	directory "./zones";
+	dnssec-enable yes;
+	listen-on port $(($port+100)) { 127.0.0.1; };
+	minimal-responses yes;
+	pid-file "../pdns-slave.pid";
+};
+
+key test {
+	algorithm $ALGORITHM;
+	secret "$KEY";
+};
+__EOF__
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+	do
+		rm -f $zone-slave
+
+		echo "" >> bind-slave.conf
+		echo "zone \"${zone}\" {" >> bind-slave.conf
+		echo "	type slave;" >> bind-slave.conf
+		echo "	file \"${zone}-slave\";" >> bind-slave.conf
+		if [ "${zone}" = "tsig.com" ]
+		then
+			echo "	masters port $port { 127.0.0.1 key test; };" >> bind-slave.conf
+			echo "	allow-transfer { key test; none; };" >> bind-slave.conf
+		else
+			echo "	masters port $port { 127.0.0.1; };" >> bind-slave.conf
+		fi
+		echo "};" >> bind-slave.conf
+	done
+
+	port=$((port+100))
+
+	named -c bind-slave.conf -g &
+	sleep 20

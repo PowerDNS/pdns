@@ -2,7 +2,7 @@
 rm -f trustedkeys
 rm -f unbound-host.conf
 
-for zone in $(grep zone named.conf  | cut -f2 -d\")
+for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 do
 	if [ "${zone: 0:16}" != "secure-delegated" ]
 	then

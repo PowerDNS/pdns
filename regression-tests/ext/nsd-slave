@@ -1,0 +1,47 @@
+	skipreasons="$skipreasons nsd"
+	context=$context-presigned
+	cat > nsd-slave.conf << __EOF__
+server:
+	ip-address: 127.0.0.1@$((port+100))
+	database: ./nsd-slave.db
+	difffile: ./ixfr-slave.db
+	xfrdfile: ./ixfr-slave.state
+	zonesdir: ./zones
+	username: ""
+
+key:
+	name: test
+	algorithm: $ALGORITHM
+	secret: "$KEY"
+__EOF__
+
+	rm -f ixfr-slave.db
+	rm -f ixfr-slave.state
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+	do
+		rm -f zones/$zone-slave
+
+		echo "" >> nsd-slave.conf
+		echo "zone:" >> nsd-slave.conf
+		echo "	name: \"${zone}\"" >> nsd-slave.conf
+		echo "	zonefile: \"${zone}-slave\"" >> nsd-slave.conf
+		if [ "${zone}" = "tsig.com" ]
+		then
+			echo "	allow-notify: 127.0.0.1 test" >> nsd-slave.conf
+			echo "	request-xfr: AXFR 127.0.0.1@$port test" >> nsd-slave.conf
+			echo "	provide-xfr: 0.0.0.0/0 test" >> nsd-slave.conf
+			echo "	provide-xfr: ::0/0 test" >> nsd-slave.conf
+		else
+			echo "	allow-notify: 127.0.0.1 NOKEY" >> nsd-slave.conf
+			echo "	request-xfr: AXFR 127.0.0.1@$port NOKEY" >> nsd-slave.conf
+			echo "	provide-xfr: 0.0.0.0/0 NOKEY" >> nsd-slave.conf
+			echo "	provide-xfr: ::0/0 NOKEY" >> nsd-slave.conf
+		fi
+	done
+
+	port=$((port+100))
+	nsdc -c nsd-slave.conf rebuild
+
+	nsd -c nsd-slave.conf -P ../pdns-slave.pid -d &
+	sleep 20
