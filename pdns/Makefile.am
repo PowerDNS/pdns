@@ -1,7 +1,7 @@
 
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include -Iext/yahttp
 
-AM_LFLAGS = -s -i
+AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
 AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@

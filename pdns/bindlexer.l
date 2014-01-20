@@ -117,7 +117,4 @@ type                    return TYPETOK;
 [ \t]*                  ;
 \/\/.*$			;
 \#.*$			;
-.                       { 
-                        fprintf(stderr,"Parsing '%s': unable to parse line %d at character '%s'\n",current_filename, linenumber, yytext);
-                        exit(1); }
 %%
