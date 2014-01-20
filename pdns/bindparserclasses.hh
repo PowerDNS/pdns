@@ -25,6 +25,7 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <stdio.h>
 
 #include "namespaces.hh"
 

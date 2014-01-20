@@ -1,0 +1,70 @@
+# this file is used by ../pdns/test-bindparser_cc.cc
+# if you change it, please make check!
+
+options {
+	directory "./zones/";
+	recursion no;
+	listen-on port 5300 {
+		127.0.0.1;
+	};
+	version "Meow!Meow!";
+	minimal-responses yes;
+};
+zone "example.com"{
+	type master;
+	file "example.com";
+};
+
+zone "test.com"{
+	type slave;
+	file "test.com";
+	masters { 1.2.3.4:5678; };
+};
+
+zone "test.dyndns" {
+	type garblewarble;
+	file "test.dyndns";
+	allow-update {
+		127.0.0.0/8;
+	};
+};
+
+zone "wtest.com"{
+	type master;
+	file "wtest.com";
+};
+
+zone "nztest.com"{
+	type master;
+	file "nztest.com";
+};
+
+zone "dnssec-parent.com"{
+	type master;
+	file "dnssec-parent.com";
+};
+
+zone "delegated.dnssec-parent.com"{
+	type master;
+	file "delegated.dnssec-parent.com";
+};
+
+zone "secure-delegated.dnssec-parent.com"{
+	type master;
+	file "secure-delegated.dnssec-parent.com";
+};
+
+zone "minimal.com"{
+	type master;
+	file "minimal.com";
+};
+
+zone "tsig.com"{
+	type master;
+	file "tsig.com";
+};
+
+zone "stest.com"{
+	type master;
+	file "stest.com";
+};
