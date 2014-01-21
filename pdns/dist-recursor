@@ -25,7 +25,8 @@ recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
 mplexer.hh \
 dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
-recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh"
+recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
+responsestats.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
@@ -34,7 +35,8 @@ base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
-dnslabeltext.cc json.cc json_ws.cc json_ws.hh version.cc dns_random.cc"
+dnslabeltext.cc json.cc json_ws.cc json_ws.hh version.cc dns_random.cc \
+responsestats.cc"
 
 cd docs
 make pdns_recursor.1 rec_control.1

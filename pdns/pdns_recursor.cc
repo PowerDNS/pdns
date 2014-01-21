@@ -64,6 +64,7 @@
 #include "config.h"
 #include "lua-recursor.hh"
 #include "version.hh"
+#include "responsestats.hh"
 
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -488,6 +489,8 @@ void updateRcodeStats(int res)
   }
 }
 
+ResponseStats g_rs;
+
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
@@ -580,7 +583,7 @@ void startDoResolve(void *p)
         }
       }
     }
-
+    
     if(res == RecursorBehaviour::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -592,7 +595,6 @@ void startDoResolve(void *p)
       
       if(ret.size()) {
         orderAndShuffle(ret);
-        
         for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
           pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place); 
           minTTL = min(minTTL, i->ttl);
@@ -619,14 +621,16 @@ void startDoResolve(void *p)
       }
     }
   sendit:;
+    g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     if(!dc->d_tcp) {
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
       if(!SyncRes::s_nopacketcache && !variableAnswer ) {
-        t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()), g_now.tv_sec, 
-                                           min(minTTL, 
-                                               (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
-                                               ) 
-                                          );
+        t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
+                                            g_now.tv_sec, 
+                                            min(minTTL, 
+                                                (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
+                                            ) 
+        );
       }
     }
     else {

@@ -20,6 +20,7 @@
 #include "arguments.hh"
 #include <sys/resource.h>
 #include <sys/time.h>
+#include "responsestats.hh"
 
 #include "namespaces.hh"
 
@@ -422,6 +423,8 @@ uint64_t doGetMallocated()
   return 0;
 }
 
+extern ResponseStats g_rs;
+
 RecursorControlParser::RecursorControlParser()
 {
   addGetStat("questions", &g_stats.qcounter);
@@ -590,6 +593,8 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "get [key1] [key2] ..             get specific statistics\n"
 "get-all                          get all statistics\n"
 "get-parameter [key1] [key2] ..   get configuration parameters\n"
+"get-qtypelist                    get QType statistics\n"
+"                                 notice: queries from cache aren't being counted yet\n"
 "help                             get this list\n"
 "ping                             check that all threads are alive\n"
 "quit                             stop the recursor daemon\n"
@@ -675,6 +680,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-zones") {
     return reloadAuthAndForwards();
+  }
+  
+  if(cmd=="get-qtypelist") {
+    return g_rs.getQTypeReport();
   }
   
   return "Unknown command '"+cmd+"', try 'help'\n";
