@@ -31,6 +31,9 @@
 #include "communicator.hh"
 #include "dnsseckeeper.hh"
 #include "nameserver.hh"
+#include "responsestats.hh"
+
+extern ResponseStats g_rs;
 
 static bool s_pleasequit;
 static string d_status;
@@ -160,14 +163,7 @@ string DLCCHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLQTypesHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  typedef map<uint16_t, uint64_t> qtypenums_t;
-  qtypenums_t qtypenums = g_rs.getQTypeResponseCounts();
-  ostringstream os;
-  boost::format fmt("%s\t%d\n");
-  BOOST_FOREACH(const qtypenums_t::value_type& val, qtypenums) {
-    os << (fmt %DNSRecordContent::NumberToType( val.first) % val.second).str();
-  }
-  return os.str();
+  return g_rs.getQTypeReport();
 }
 
 string DLRSizesHandler(const vector<string>&parts, Utility::pid_t ppid)

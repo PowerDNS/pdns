@@ -567,7 +567,6 @@ void startDoResolve(void *p)
     }
     
     if(res == RecursorBehaviour::DROP) {
-      g_rs.submitResponse(dc->d_mdp.d_qtype, 0, !dc->d_tcp);
       delete dc;
       dc=0;
       return;

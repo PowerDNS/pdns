@@ -67,7 +67,6 @@
 #include "dnsrecords.hh"
 #include "version.hh"
 
-
 time_t s_starttime;
 
 string s_programname="pdns"; // used in packethandler.cc

@@ -10,6 +10,7 @@ public:
   void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP);
   map<uint16_t, uint64_t> getQTypeResponseCounts();
   map<uint16_t, uint64_t> getSizeResponseCounts();
+  string getQTypeReport();
 
 private:
   vector<AtomicCounter> d_qtypecounters;
