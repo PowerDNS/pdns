@@ -16,7 +16,7 @@ endif
 EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  \
 	docs/pdns_server.8 docs/zone2sql.8 docs/zone2ldap.8 docs/pdnssec.8 \
 	docs/dnsreplay.8 docs/dnsscope.8 docs/dnswasher.8 docs/pdnssec.8 docs/zone2ldap.8 \
-	bind-dnssec.schema.sqlite3.sql bindparser.h
+	bind-dnssec.schema.sqlite3.sql bindparser.h named.conf.parsertest
 
 SUBDIRS= $(POLARSSL_SUBDIR) ext/yahttp
 
@@ -267,7 +267,8 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	dnswriter.cc base64.cc base32.cc dnsrecords.cc dnslabeltext.cc dnsparser.cc \
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
 	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc dns_random.cc \
-	test-rcpgenerator_cc.cc responsestats.cc
+	test-rcpgenerator_cc.cc responsestats.cc test-bindparser_cc.cc \
+	bindparser.cc bindlexer.c
 
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
