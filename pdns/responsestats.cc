@@ -1,6 +1,7 @@
 #include "responsestats.hh"
 #include <limits>
 #include "namespaces.hh"
+#include "logger.hh"
 
 ResponseStats::ResponseStats()
 {

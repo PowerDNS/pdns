@@ -281,7 +281,7 @@ rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc ht
 dns_random.cc \
 lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh json_ws.cc json_ws.hh \
-json.cc json.hh version.hh version.cc
+json.cc json.hh version.hh version.cc responsestats.cc
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
 pdns_recursor_LDADD= $(POLARSSL_LIBS)
