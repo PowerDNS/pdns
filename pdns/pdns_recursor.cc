@@ -570,7 +570,8 @@ void startDoResolve(void *p)
       delete dc;
       dc=0;
       return;
-    }  
+    }
+    
     if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
@@ -606,7 +607,7 @@ void startDoResolve(void *p)
             shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content)); 
             drc->toPacket(pw);
           }
-          if(pw.size() > maxanswersize) {
+          if(pw.size() > maxanswersize || res == RecursorBehaviour::TRUNCATE) {
             pw.rollback();
             if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
             {
@@ -614,6 +615,8 @@ void startDoResolve(void *p)
               pw.truncate();
             }
             goto sendit; // need to jump over pw.commit
+          } else if (res == RecursorBehaviour::TRUNCATED) {
+            pw.getHeader()->tc=1;
           }
         }
 

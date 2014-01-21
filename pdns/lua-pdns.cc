@@ -303,6 +303,10 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_setfield(d_lua, -2, "PASS");
   lua_pushnumber(d_lua, RecursorBehaviour::DROP);
   lua_setfield(d_lua, -2, "DROP");
+  lua_pushnumber(d_lua, RecursorBehaviour::TRUNCATE);
+  lua_setfield(d_lua, -2, "TRUNCATE");
+  lua_pushnumber(d_lua, RecursorBehaviour::TRUNCATED);
+  lua_setfield(d_lua, -2, "TRUNCATED");
 
   lua_setglobal(d_lua, "pdns");
 
