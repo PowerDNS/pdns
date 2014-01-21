@@ -100,6 +100,10 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
           "qname" => url.shift,
           "qtype" => url.shift
         }
+     when "getauth"
+        {
+          "target" => url.shift
+        }
      else
         {}
      end

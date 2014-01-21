@@ -20896,6 +20896,70 @@ content-Type: text/javascript: charset=utf-8
 </variablelist>
 </sect4>
 
+<sect4 id="remotebackend-api-method-getauth"><title>Method: getAuth</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>remote, local, real-remote, target, best_match_len</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>SOA content string, or SOAData structure members in key sd.</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+This method is used to find out whether you might have a domain whose name is shorter or equal to best_match_len. 
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"getAuth","parameters":{"remote":"0.0.0.0","local":"0.0.0.0","real-remote":"0.0.0.0/0","target":"unit.test","best_match_len":9}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":"ns.unit.test hostmaster.unit.test 1 2 3 4 5 6"}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/getAuth/example.com HTTP/1.1
+X-Remote: 1.2.3.4
+X-Local: 2.3.4.1
+X-Real-Remote: 1.2.3.4
+x-Best-Match-Len: 10
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":"ns.unit.test hostmaster.unit.test 1 2 3 4 5 6"}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
 <sect4 id="remotebackend-api-method-setnotified"><title>Method: setNotified</title>
  <variablelist>
   <varlistentry>

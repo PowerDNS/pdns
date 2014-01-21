@@ -118,6 +118,37 @@ class Handler
      return false
    end
 
+   def do_getauth(args)
+     # should return longest match first.
+     sql = "SELECT name,domain_id FROM records WHERE name LIKE :name ORDER BY name DESC"
+     parm = { :name => "%#{args["target"]}" }
+     db.execute(sql, parm) do |row|
+       if args["best_match_len"].to_i <= row[0].length 
+         # lookup SOA
+         sql = "SELECT name,domain_id,ttl,content FROM records where domain_id = :id AND type = 'SOA'"
+         parm = { :id => row[1].to_i }
+         db.execute(sql, parm) do |row2|
+           soa = row2[3].split(/ +/)
+           return [ { :sd => {
+             :qname => row2[0],
+             :nameserver => soa[0],
+             :hostmaster => soa[1],
+             :serial  => soa[2].to_i,
+             :refresh => soa[3].to_i,
+             :retry => soa[4].to_i,
+             :expire => soa[5].to_i,
+             :ttl => soa[6].to_i,
+             :default_ttl => row2[2].to_i,
+             :domain_id => row2[1].to_i,
+             :scopeMask => 0, 
+           } }, nil]
+         end
+       end
+     end
+     # in THIS case, this is fast false. 
+     return [{},nil]
+   end
+
    def do_list(args)
      target = args["zonename"]
      ret = []
