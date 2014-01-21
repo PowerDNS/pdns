@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_SUITE(bindparser_cc)
 BOOST_AUTO_TEST_CASE(test_parser) {
         BindParser BP;
         BOOST_CHECK_THROW( BP.parse("../regression-tests/named.confx"), PDNSException);
-        BP.parse("./named.conf.parsertest");
+        BP.parse("../pdns/named.conf.parsertest"); // indirect path because Jenkins runs us from ../regression-tests/
 
         vector<BindDomainInfo> domains=BP.getDomains();
         BOOST_CHECK_EQUAL(domains.size(), 11);
