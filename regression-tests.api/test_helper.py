@@ -1,7 +1,9 @@
+from datetime import datetime
+import os
 import requests
 import urlparse
 import unittest
-import os
+
 
 class ApiTestCase(unittest.TestCase):
 
@@ -17,3 +19,7 @@ class ApiTestCase(unittest.TestCase):
     def assertSuccessJson(self, result):
         result.raise_for_status()
         self.assertEquals(result.headers['Content-Type'], 'application/json')
+
+
+def unique_zone_name():
+    return 'test-' + datetime.now().strftime('%d%H%S%M%f') + '.org'

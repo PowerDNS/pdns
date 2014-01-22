@@ -44,6 +44,13 @@ extern StatBag S;
 
 typedef map<string,string> varmap_t;
 
+class ApiException : public runtime_error
+{
+public:
+  ApiException(const string& what) : runtime_error(what) {
+  }
+};
+
 StatWebServer::StatWebServer()
 {
   d_start=time(0);
@@ -273,13 +280,51 @@ void StatWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   resp->body = ret.str();
 }
 
-static int intFromJson(const Value& val) {
+static void parseJsonBody(HttpRequest* req, rapidjson::Document& document) {
+  if(document.Parse<0>(req->body.c_str()).HasParseError()) {
+    throw HttpBadRequestException();
+  }
+}
+
+static int intFromJson(const Value& container, const char* key) {
+  const Value& val = container[key];
   if (val.IsInt()) {
     return val.GetInt();
   } else if (val.IsString()) {
     return atoi(val.GetString());
   } else {
-    throw PDNSException("Value not an Integer");
+    throw ApiException("Key '" + string(key) + "' not an Integer or not present");
+  }
+}
+
+static int intFromJson(const Value& container, const char* key, const int default_value) {
+  const Value& val = container[key];
+  if (val.IsInt()) {
+    return val.GetInt();
+  } else if (val.IsString()) {
+    return atoi(val.GetString());
+  } else {
+    // TODO: check if value really isn't present
+    return default_value;
+  }
+}
+
+static string stringFromJson(const Value& container, const char* key) {
+  const Value& val = container[key];
+  if (val.IsString()) {
+    return val.GetString();
+  } else {
+    throw ApiException("Key '" + string(key) + "' not present or not a String");
+  }
+}
+
+static string stringFromJson(const Value& container, const char* key, const string default_value) {
+  const Value& val = container[key];
+  if (val.IsString()) {
+    return val.GetString();
+  } else {
+    // TODO: check if value really isn't present
+    return default_value;
   }
 }
 
@@ -292,21 +337,19 @@ static string getZone(const string& zonename) {
   Document doc;
   doc.SetObject();
 
-  Value root;
-  root.SetObject();
-  root.AddMember("name", zonename.c_str(), doc.GetAllocator());
-  root.AddMember("type", "Zone", doc.GetAllocator());
-  root.AddMember("kind", di.getKindString(), doc.GetAllocator());
+  doc.AddMember("name", zonename.c_str(), doc.GetAllocator());
+  doc.AddMember("type", "Zone", doc.GetAllocator());
+  doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
   Value masters;
   masters.SetArray();
   BOOST_FOREACH(const string& master, di.masters) {
     Value value(master.c_str(), doc.GetAllocator());
     masters.PushBack(value, doc.GetAllocator());
   }
-  root.AddMember("masters", masters, doc.GetAllocator());
-  root.AddMember("serial", di.serial, doc.GetAllocator());
-  root.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
-  root.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
+  doc.AddMember("masters", masters, doc.GetAllocator());
+  doc.AddMember("serial", di.serial, doc.GetAllocator());
+  doc.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
+  doc.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
 
   DNSResourceRecord rr;
   Value records;
@@ -328,13 +371,12 @@ static string getZone(const string& zonename) {
     object.AddMember("content", jcontent, doc.GetAllocator());
     records.PushBack(object, doc.GetAllocator());
   }
-  root.AddMember("records", records, doc.GetAllocator());
+  doc.AddMember("records", records, doc.GetAllocator());
 
-  doc.AddMember("zone", root, doc.GetAllocator());
   return makeStringFromDocument(doc);
 }
 
-static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap_t& varmap) {
+static string createOrUpdateZone(const string& zonename, bool onlyCreate, rapidjson::Value& data) {
   UeberBackend B;
   DomainInfo di;
 
@@ -364,8 +406,8 @@ static string createOrUpdateZone(const string& zonename, bool onlyCreate, varmap
     di.backend->commitTransaction();
   }
 
-  di.backend->setKind(zonename, DomainInfo::stringToKind(varmap["kind"]));
-  di.backend->setMaster(zonename, varmap["master"]);
+  di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(data, "kind")));
+  di.backend->setMaster(zonename, stringFromJson(data, "master"));
 
   return getZone(zonename);
 }
@@ -436,10 +478,74 @@ static void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B;
+  if (req->method == "POST") {
+    DomainInfo di;
+    Document document;
+    parseJsonBody(req, document);
+    string zonename = stringFromJson(document, "name");
+    // TODO: better validation of zonename
+    if(zonename.empty())
+      throw ApiException("Zone name empty");
+
+    string kind = stringFromJson(document, "kind");
+    string master = stringFromJson(document, "master", "");
+
+    bool exists = B.getDomainInfo(zonename, di);
+    if(exists)
+      throw ApiException("Domain '"+zonename+"' already exists");
+
+    const Value &nameservers = document["nameservers"];
+    if (!nameservers.IsArray() || nameservers.Size() == 0)
+      throw ApiException("Need at least one nameserver");
+
+    // no going back after this
+    if(!B.createDomain(zonename))
+      throw ApiException("Creating domain '"+zonename+"' failed");
+
+    if(!B.getDomainInfo(zonename, di))
+      throw ApiException("Creating domain '"+zonename+"' failed: lookup of domain ID failed");
+
+    vector<DNSResourceRecord> rrset;
+
+    // create SOA record so zone "really" exists
+    DNSResourceRecord rr;
+    rr.qname = zonename;
+    rr.content = (boost::format("%s hostmaster.%s %d")
+		  % nameservers[SizeType(0)].GetString()
+		  % zonename
+		  % intFromJson(document, "serial", 1)
+      ).str();
+    rr.qtype = "SOA";
+    rr.domain_id = di.id;
+    rr.auth = 0;
+    rr.ttl = ::arg().asNum( "default-ttl" );
+    rr.priority = 0;
+    rrset.push_back(rr);
+
+    for(SizeType i = 0; i < nameservers.Size(); ++i) {
+      rr.content = nameservers[i].GetString();
+      rr.qtype = "NS";
+      rrset.push_back(rr);
+    }
+
+    di.backend->startTransaction(zonename, di.id);
+    BOOST_FOREACH(rr, rrset) {
+      di.backend->feedRecord(rr);
+    }
+    di.backend->commitTransaction();
+
+    di.backend->setKind(zonename, DomainInfo::stringToKind(kind));
+    if (!master.empty())
+      di.backend->setMaster(zonename, master);
+
+    resp->body = getZone(zonename);
+    return;
+  }
+
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  UeberBackend B;
   vector<DomainInfo> domains;
   B.getAllDomains(&domains);
 
@@ -625,8 +731,8 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
         rr.qtype=record["type"].GetString();
         rr.domain_id = sd.domain_id;
         rr.auth=0;
-        rr.ttl=intFromJson(record["ttl"]);
-        rr.priority=intFromJson(record["priority"]);
+        rr.ttl=intFromJson(record, "ttl");
+        rr.priority=intFromJson(record, "priority");
         
         rrset.push_back(rr);
         
@@ -661,14 +767,6 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     if(req->method == "GET") {
       // get current zone
       resp->body = getZone(zonename);
-      return;
-    } else if (req->method == "POST") {
-      // create
-      resp->body = createOrUpdateZone(zonename, true, req->parameters);
-      return;
-    } else if (req->method == "PUT") {
-      // update or create
-      resp->body = createOrUpdateZone(zonename, false, req->parameters);
       return;
     } else if (req->method == "DELETE") {
       // delete
@@ -716,7 +814,14 @@ static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler
   
   req->parameters.erase("_"); // jQuery cache buster
 
-  handler(req, resp);
+  try {
+    handler(req, resp);
+  } catch (ApiException &e) {
+    string what = e.what();
+    resp->body = returnJSONError(what);
+    resp->status = 400;
+    return;
+  }
 
   if(!callback.empty()) {
     resp->body = callback + "(" + resp->body + ");";
