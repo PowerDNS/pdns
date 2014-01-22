@@ -595,6 +595,14 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
       updateRcodeStats(res);
       
+      if(res == RecursorBehaviour::TRUNCATED) {
+        pw.getHeader()->tc=1;
+      } else if(res == RecursorBehaviour::TRUNCATE) {
+        pw.getHeader()->tc=1;
+        pw.truncate();
+        goto sendit;
+      }
+      
       if(ret.size()) {
         orderAndShuffle(ret);
         for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
@@ -608,16 +616,15 @@ void startDoResolve(void *p)
             shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content)); 
             drc->toPacket(pw);
           }
-          if(pw.size() > maxanswersize || res == RecursorBehaviour::TRUNCATE) {
-            pw.rollback();
+          if(pw.size() > maxanswersize) {
             if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
             {
               pw.getHeader()->tc=1;
               pw.truncate();
+            } else {
+              pw.rollback();
             }
             goto sendit; // need to jump over pw.commit
-          } else if (res == RecursorBehaviour::TRUNCATED) {
-            pw.getHeader()->tc=1;
           }
         }
         
