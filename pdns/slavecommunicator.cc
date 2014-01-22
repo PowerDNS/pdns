@@ -239,6 +239,36 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     L<<Logger::Error<<"Transaction started for '"<<domain<<"'"<<endl;
     di.backend->startTransaction(domain, domain_id);
 
+    // update the presigned flag and NSEC3PARAM
+    if (gotPresigned) {
+      if (!hadDnssecZone && !hadPresigned) {
+        // zone is now presigned
+        dk.setPresigned(domain);
+      }
+
+      if (hadPresigned || !hadDnssecZone)
+      {
+        // this is a presigned zone, update NSEC3PARAM
+        if (gotNSEC3) {
+          ns3pr.d_flags = gotOptOutFlag ? 1 : 0;
+         // only update if there was a change
+          if (!hadNSEC3 || (narrow != hadNarrow) ||
+              (ns3pr.d_algorithm != hadNs3pr.d_algorithm) ||
+              (ns3pr.d_flags != hadNs3pr.d_flags) ||
+              (ns3pr.d_iterations != hadNs3pr.d_iterations) ||
+              (ns3pr.d_salt != hadNs3pr.d_salt)) {
+            dk.setNSEC3PARAM(domain, ns3pr, narrow);
+          }
+        } else if (hadNSEC3) {
+          dk.unsetNSEC3PARAM(domain);
+        }
+      }
+    } else if (hadPresigned) {
+      // zone is no longer presigned
+      dk.unsetPresigned(domain);
+      dk.unsetNSEC3PARAM(domain);
+    }
+
     bool doent=true;
     uint32_t maxent = ::arg().asNum("max-ent-entries");
     string ordername, shorter;
@@ -304,37 +334,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         di.backend->feedEnts3(domain_id, domain, nonterm, ns3pr.d_iterations, ns3pr.d_salt, narrow);
       } else
         di.backend->feedEnts(domain_id, nonterm);
-    }
-
-    // now we also need to update the presigned flag and NSEC3PARAM
-    // for the zone
-    if (gotPresigned) {
-      if (!hadDnssecZone && !hadPresigned) {
-        // zone is now presigned
-        dk.setPresigned(domain);
-      }
-
-      if (hadPresigned || !hadDnssecZone)
-      {
-        // this is a presigned zone, update NSEC3PARAM
-        if (gotNSEC3) {
-          ns3pr.d_flags = gotOptOutFlag ? 1 : 0;
-         // only update if there was a change
-          if (!hadNSEC3 || (narrow != hadNarrow) ||
-              (ns3pr.d_algorithm != hadNs3pr.d_algorithm) ||
-              (ns3pr.d_flags != hadNs3pr.d_flags) ||
-              (ns3pr.d_iterations != hadNs3pr.d_iterations) ||
-              (ns3pr.d_salt != hadNs3pr.d_salt)) {
-            dk.setNSEC3PARAM(domain, ns3pr, narrow);
-          }
-        } else if (hadNSEC3) {
-          dk.unsetNSEC3PARAM(domain);
-        }
-      }
-    } else if (hadPresigned) {
-      // zone is no longer presigned
-      dk.unsetPresigned(domain);
-      dk.unsetNSEC3PARAM(domain);
     }
 
     di.backend->commitTransaction();
