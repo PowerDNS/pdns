@@ -248,7 +248,7 @@ bool OdbxBackend::list( const string& target, int zoneid )
         		return false;
         	}
 
-        	if( len > sizeof( m_buffer ) - 1 )
+        	if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         	{
         		L.log( m_myname + " list: Unable to convert zone id to string - insufficient buffer space",  Logger::Error );
         		return false;
@@ -310,7 +310,7 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
         			throw( DBException( "Error: Libc error" ) );
         		}
 
-        		if( len > sizeof( m_buffer ) - 1 )
+        		if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         		{
         			L.log( m_myname + " lookup: Unable to convert zone id to string - insufficient buffer space",  Logger::Error );
         			throw( DBException( "Error: Libc error" ) );
@@ -420,7 +420,7 @@ void OdbxBackend::setFresh( uint32_t domain_id )
         		throw( DBException( "Error: Libc error" ) );
         	}
 
-        	if( len > sizeof( m_buffer ) - 1 )
+        	if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         	{
         		L.log( m_myname + " setFresh: Unable to insert values into statement '" + getArg( "sql-update-lastcheck" ) + "' - insufficient buffer space",  Logger::Error );
         		throw( DBException( "Error: Libc error" ) );
@@ -460,7 +460,7 @@ void OdbxBackend::setNotified( uint32_t domain_id, uint32_t serial )
         		throw( DBException( "Error: Libc error" ) );
         	}
 
-        	if( len > sizeof( m_buffer ) - 1 )
+        	if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         	{
         		L.log( m_myname + " setNotified: Unable to insert values into statement '" + getArg( "sql-update-serial" ) + "' - insufficient buffer space",  Logger::Error );
         		throw( DBException( "Error: Libc error" ) );
@@ -626,7 +626,7 @@ bool OdbxBackend::createSlaveDomain( const string& ip, const string& domain, con
         		return false;
         	}
 
-        	if( len > sizeof( m_buffer ) - 1 )
+        	if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         	{
         		L.log( m_myname + " createSlaveDomain: Unable to insert values in statement '" + getArg( "sql-insert-slave" ) + "' - insufficient buffer space",  Logger::Error );
         		return false;
@@ -668,7 +668,7 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
         		return false;
         	}
 
-        	if( len > sizeof( m_buffer ) - 1 )
+        	if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         	{
         		L.log( m_myname + " feedRecord: Unable to insert values in statement '" + getArg( "sql-insert-record" ) + "' - insufficient buffer space",  Logger::Error );
         		return false;
@@ -709,7 +709,7 @@ bool OdbxBackend::startTransaction( const string& domain, int zoneid )
         		return false;
         	}
 
-        	if( len > sizeof( m_buffer ) - 1 )
+        	if( len > static_cast<int>(sizeof( m_buffer )) - 1 )
         	{
         		L.log( m_myname + " startTransaction: Unable to convert zone id to string - insufficient buffer space",  Logger::Error );
         		return false;
