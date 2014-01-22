@@ -3,7 +3,7 @@ function endswith(s, send)
 	 return #s >= #send and s:find(send, #s-#send+1, true) and true or false
 end
 
-function preresolve ( remoteip, domain, qtype )
+function preresolve ( remoteip, protocol, domain, qtype )
 
 	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
 	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress(), pdns.loglevels.Info);
@@ -51,7 +51,7 @@ function preresolve ( remoteip, domain, qtype )
 	end
 end
 
-function nxdomain ( remoteip, domain, qtype )
+function nxdomain ( remoteip, protocol, domain, qtype )
 	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
 	if qtype ~= pdns.A then 
     pdnslog("Only A records", pdns.loglevels.Error)
@@ -78,7 +78,7 @@ function nxdomain ( remoteip, domain, qtype )
 	end
 end
 
-function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
+function axfrfilter(remoteip, protocol, zone, qname, qtype, ttl, priority, content)
 	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
 	then
 		ret = {}
@@ -92,7 +92,7 @@ function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
 	return 0, ret
 end
 
-function nodata ( remoteip, domain, qtype, records )
+function nodata ( remoteip, protocol, domain, qtype, records )
 	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
 	if qtype ~= pdns.AAAA then return pdns.PASS, {} end  --  only AAAA records
 
@@ -101,7 +101,7 @@ function nodata ( remoteip, domain, qtype, records )
 end	
 
 -- records contains the entire packet, ready for your modifying pleasure
-function postresolve ( remoteip, domain, qtype, records, origrcode )
+function postresolve ( remoteip, protocol, domain, qtype, records, origrcode )
 	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode, pdns.loglevels.Info)
 
 	for key,val in ipairs(records) 

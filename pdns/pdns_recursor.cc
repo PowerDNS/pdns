@@ -568,7 +568,7 @@ void startDoResolve(void *p)
         (*t_pdl)->postresolve(dc->d_remote, dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
-        
+    
     if(res == RecursorBehaviour::DROP) {
       delete dc;
       dc=0;
@@ -586,7 +586,7 @@ void startDoResolve(void *p)
         }
       }
     }
-        
+    
     if(res == RecursorBehaviour::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
@@ -624,6 +624,7 @@ void startDoResolve(void *p)
         pw.commit();
       } else if(res == RecursorBehaviour::TRUNCATE) {
         pw.getHeader()->tc=1;
+        pw.truncate();
       }
     }
   sendit:;
