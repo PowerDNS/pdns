@@ -73,6 +73,6 @@ __EOF__
 		skipreasons="$skipreasons oracle-nsec3"
 	elif [[ $extracontexts = *dnssec* ]]
 	then
-		skipreasons="$skipreasons oracle-nsec"
+		skipreasons="$skipreasons oracle-nsec oracle-slave-nsec"
 	fi
 	skipreasons="$skipreasons noent" # TODO add ent support to oracle backend
