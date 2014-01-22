@@ -1,5 +1,5 @@
 	context=${context}-presigned
-	[ -z "$ORACLE2USER" ] && ORACLE2USER=pdns
+	[ -z "$ORACLE2USER" ] && ORACLE2USER=pdns2
 	[ -z "$ORACLE2PASSWD" ] && ORACLE2PASSWD=pdns
 
 	echo "START ../modules/oraclebackend/dropschema;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe > oracle2.log
@@ -70,7 +70,7 @@ __EOF__
 
 	if [[ $extracontexts = *nsec3* ]]
 	then
-		skipreasons="$skipreasons oracle-nsec3"
+		skipreasons="$skipreasons oracle-nsec3 oracle-slave-nsec3"
 	elif [[ $extracontexts = *dnssec* ]]
 	then
 		skipreasons="$skipreasons oracle-nsec oracle-slave-nsec"
