@@ -5,7 +5,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def initialize(server, dnsbackend)
      @dnsbackend = dnsbackend
      @semaphore = Mutex.new
-     @f = File.open("/tmp/tmp.txt","a")
+     @f = File.open("/tmp/remotebackend.txt","a")
      @f.sync
    end
 
