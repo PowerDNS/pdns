@@ -287,9 +287,20 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   unhashed = getString(answer["result"]["unhashed"]);
-   before = getString(answer["result"]["before"]);
-   after = getString(answer["result"]["after"]);
+   if (answer["result"]["unhashed"].IsNull())
+     unhashed = "";
+    else
+     unhashed = getString(answer["result"]["unhashed"]);
+
+   if (answer["result"]["before"].IsNull())
+     before = "";
+   else 
+     before = getString(answer["result"]["before"]);
+
+   if (answer["result"]["after"].IsNull())
+     after = "";
+   else 
+     after = getString(answer["result"]["after"]);
   
    return true;
 }
