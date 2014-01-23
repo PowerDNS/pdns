@@ -8,6 +8,8 @@ require 'zero_mq'
 $:.unshift File.dirname(__FILE__)
 require "backend"
 
+h = Handler.new("#{File.dirname(__FILE__)}/remote.sqlite3")
+
 f = File.open "/tmp/tmp.txt","a"
 f.sync = true
 

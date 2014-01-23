@@ -65,6 +65,9 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         {
              "name" => url.shift
         }
+     else 
+        {
+        }
      end
 
      [method, args]
