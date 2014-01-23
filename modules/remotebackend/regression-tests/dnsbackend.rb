@@ -5,7 +5,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def initialize(server, dnsbackend)
      @dnsbackend = dnsbackend
      @semaphore = Mutex.new
-     @f = File.open("/tmp/remotebackend.txt","a")
+     @f = File.open("/tmp/remotebackend.txt.#{$$}","a")
      @f.sync
    end
 
@@ -103,21 +103,21 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
 
      args = parse_arrays args
  
-     @f.puts method
-     @f.puts args
+     @f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
 
      @semaphore.synchronize do
        if @dnsbackend.respond_to?(method.to_sym)
-          result, log = @dnsbackend.send(method.to_sym, args)
-          body = {:result => result, :log => log}
-          res.status = 200
-          res["Content-Type"] = "application/javascript; charset=utf-8"
-          res.body = body.to_json
-        else
-          res.status = 404
-          res["Content-Type"] = "application/javascript; charset=utf-8"
-          res.body = ({:result => false, :log => ["Method not found"]}).to_json
-        end
+         result, log = @dnsbackend.send(method.to_sym, args)
+         body = {:result => result, :log => log}
+         res.status = 200
+         res["Content-Type"] = "application/javascript; charset=utf-8"
+         res.body = body.to_json
+       else
+         res.status = 404
+         res["Content-Type"] = "application/javascript; charset=utf-8"
+         res.body = ({:result => false, :log => ["Method not found"]}).to_json
+       end
+       @f.puts "#{Time.now.to_f} [http]: #{res.body}" 
      end
    end
 

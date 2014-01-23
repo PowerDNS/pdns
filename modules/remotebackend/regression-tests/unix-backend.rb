@@ -7,7 +7,7 @@ require "backend"
 
 h = Handler.new("#{File.dirname(__FILE__)}/remote.sqlite3")
 
-f = File.open "/tmp/remotebackend.txt","a"
+f = File.open "/tmp/remotebackend.txt.#{$$}","a"
 f.sync = true
 
 STDOUT.sync = true
