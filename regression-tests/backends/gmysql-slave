@@ -1,4 +1,4 @@
-	context=${context}-presigned
+	context=${context}-presigned-gmysql
 	[ -z "$GMYSQL2DB" ] && GMYSQL2DB=pdnstest2
 	[ -z "$GMYSQL2USER" ] && GMYSQL2USER=root
 	[ -z "$GMYSQL2HOST" ] && GMYSQL2HOST=localhost

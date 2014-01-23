@@ -1,4 +1,4 @@
-	context=${context}-presigned
+	context=${context}-presigned-oracle
 	[ -z "$ORACLE2USER" ] && ORACLE2USER=pdns2
 	[ -z "$ORACLE2PASSWD" ] && ORACLE2PASSWD=pdns
 

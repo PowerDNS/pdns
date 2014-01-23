@@ -1,4 +1,4 @@
-	context=${context}-presigned
+	context=${context}-presigned-gsqlite3
 	rm -f pdns.sqlite31
 	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
 	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/dnssec.schema.sqlite3.sql
