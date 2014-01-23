@@ -84,6 +84,9 @@ start_slave ()
 			source ./backends/gsqlite3-slave
 			;;
 
+		oracle*)
+			source ./backends/oracle-slave
+			;;
 
 		ext-bind*)
 			source ./ext/bind-slave

@@ -422,28 +422,30 @@ BEGIN
   :NEW.revfqdn := label_reverse(LOWER(:NEW.fqdn));
 
   -- Hash the FQDN for NSEC3 ordering
-  DECLARE
-    nsec3param_string VARCHAR2(512);
-    nsec3param_pattern VARCHAR2(512) := '^(\d+) +(\d+) +(\d+) +([0-9A-Fa-f]+)';
-    hashalgo BINARY_INTEGER;
-    itcount BINARY_INTEGER;
-    salt RAW(256);
-  BEGIN
-    SELECT meta_content INTO nsec3param_string
-    FROM ZoneMetadata
-    WHERE zone_id = :NEW.zone_id
-      AND meta_type = 'NSEC3PARAM';
-    hashalgo := REGEXP_SUBSTR(nsec3param_string, nsec3param_pattern, 1, 1, '', 1);
-    IF hashalgo != 1 THEN
-      RAISE_APPLICATION_ERROR(-20000, 'NSEC3 hash is not SHA-1');
-    END IF;
-    itcount := REGEXP_SUBSTR(nsec3param_string, nsec3param_pattern, 1, 1, '', 3);
-    salt := REGEXP_SUBSTR(nsec3param_string, nsec3param_pattern, 1, 1, '', 4);
-    :NEW.fqdnhash := dnsname_to_hashname(:NEW.fqdn, salt, itcount);
-  EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      NULL;
-  END;
+  IF :NEW.type != 'RRSIG' THEN
+    DECLARE
+      nsec3param_string VARCHAR2(512);
+      nsec3param_pattern VARCHAR2(512) := '^(\d+) +(\d+) +(\d+) +([0-9A-Fa-f]+)';
+      hashalgo BINARY_INTEGER;
+      itcount BINARY_INTEGER;
+      salt RAW(256);
+    BEGIN
+      SELECT meta_content INTO nsec3param_string
+      FROM ZoneMetadata
+      WHERE zone_id = :NEW.zone_id
+        AND meta_type = 'NSEC3PARAM';
+      hashalgo := REGEXP_SUBSTR(nsec3param_string, nsec3param_pattern, 1, 1, '', 1);
+      IF hashalgo != 1 THEN
+        RAISE_APPLICATION_ERROR(-20000, 'NSEC3 hash is not SHA-1');
+      END IF;
+      itcount := REGEXP_SUBSTR(nsec3param_string, nsec3param_pattern, 1, 1, '', 3);
+      salt := REGEXP_SUBSTR(nsec3param_string, nsec3param_pattern, 1, 1, '', 4);
+      :NEW.fqdnhash := dnsname_to_hashname(:NEW.fqdn, salt, itcount);
+    EXCEPTION
+      WHEN NO_DATA_FOUND THEN
+        NULL;
+    END;
+  END IF;
 END;
 /
 
