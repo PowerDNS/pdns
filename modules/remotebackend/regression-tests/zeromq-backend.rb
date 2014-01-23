@@ -5,11 +5,11 @@ require "rubygems"
 require 'bundler/setup'
 require 'json'
 require 'zero_mq'
-require '../modules/remotebackend/regression-tests/backend'
-
-h = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
+$:.unshift File.dirname(__FILE__)
+require "backend"
 
 f = File.open "/tmp/tmp.txt","a"
+f.sync = true
 
 begin
   context = ZeroMQ::Context.new
@@ -26,6 +26,7 @@ begin
     next if line.empty?
     begin
       input = JSON.parse(line)
+      next unless input and input["method"]
       method = "do_#{input["method"].downcase}"
       args = input["parameters"] || []
 

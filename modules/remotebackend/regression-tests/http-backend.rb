@@ -2,8 +2,9 @@
 require "rubygems"
 require 'bundler/setup'
 require "webrick"
-require "../modules/remotebackend/regression-tests/dnsbackend"
-require "../modules/remotebackend/regression-tests/backend"
+$:.unshift File.dirname(__FILE__)
+require "dnsbackend"
+require "backend"
 
 server = WEBrick::HTTPServer.new(
 	:Port=>62434,
@@ -12,7 +13,7 @@ server = WEBrick::HTTPServer.new(
 	:AccessLog=>[ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ] 
 )
 
-be = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3") 
+be = Handler.new("#{File.dirname(__FILE__)}/remote.sqlite3")
 server.mount "/dns", DNSBackendHandler, be
 server.mount_proc("/ping"){ |req,resp| resp.body = "pong" }
 

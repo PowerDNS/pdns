@@ -6,6 +6,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      @dnsbackend = dnsbackend
      @semaphore = Mutex.new
      @f = File.open("/tmp/tmp.txt","a")
+     @f.sync
    end
 
    def parse_arrays(params)
@@ -81,9 +82,9 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
     
      # get more arguments
      req.each do |k,v|
-        attr = k[/X-RemoteBackend-(.*)/,1]
+        attr = k[/x-remotebackend-(.*)/i,1]
         if attr 
-          args[attr] = v
+          args[attr.downcase] = v
         end
      end
 
