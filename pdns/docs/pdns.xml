@@ -20908,12 +20908,16 @@ content-Type: text/javascript: charset=utf-8
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
-   <listitem><para>SOA content string, or SOAData structure members in key sd.</para></listitem>
+   <listitem><para>SOA content string in content, or SOAData structure members in key sd.</para></listitem>
  </varlistentry>
  <varlistentry>
   <term>Description</term>
 <listitem><para>
-This method is used to find out whether you might have a domain whose name is shorter or equal to best_match_len. 
+This method is used to find out whether you might have a record whose name is shorter or equal to best_match_len. If you do not implement this, or return false, it will fall back
+into using internal implementation of getAuth. Thus, if you DO implement this, please return empty object for false. It won't break if you don't, but it will be faster. 
+</para>
+<para>
+You must take care to return qname always, as this might be different from requested target. domain_id is optional, and will default to -1.
 </para></listitem>
  </varlistentry>
  <varlistentry>
@@ -20928,7 +20932,7 @@ This method is used to find out whether you might have a domain whose name is sh
    <para>
     Response:
 <programlisting>
-{"result":"ns.unit.test hostmaster.unit.test 1 2 3 4 5 6"}
+{"result":{"content":"ns.unit.test hostmaster.unit.test 1 2 3 4 5 6","qname":"unit.test","domain_id":-1}}
 </programlisting>
    </para>
   </listitem>
@@ -20952,7 +20956,7 @@ x-Best-Match-Len: 10
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":"ns.unit.test hostmaster.unit.test 1 2 3 4 5 6"}
+{"result":{"content":"ns.unit.test hostmaster.unit.test 1 2 3 4 5 6","qname":"unit.test","domain_id":-1}}
 </programlisting>
    </para>
   </listitem>
