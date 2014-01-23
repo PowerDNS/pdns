@@ -104,7 +104,7 @@ EOF
 			../pdns/pdnssec --config-dir=. --config-name=remote secure-zone example.com
 			../pdns/pdnssec --config-dir=. --config-name=remote secure-zone up.example.com
 
-			./feed_ds.pl up.example.com example.com "../pdns/pdnssec --config-dir=. --config-name=remote" $testsdir/remote.sqlite3
+			./gsql_feed_ds.pl up.example.com example.com "../pdns/pdnssec --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
 
 			if [ "$remotesec" = "nsec3" ]
 			then
