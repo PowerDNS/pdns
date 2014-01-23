@@ -11,23 +11,23 @@ RecursorLua::RecursorLua(const std::string &fname)
   // empty
 }
 
-bool RecursorLua::nxdomain(const ComboAddress& remote, bool protocol, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nxdomain(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::nodata(const ComboAddress& remote, bool protocol, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nodata(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::postresolve(const ComboAddress& remote, bool protocol, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::postresolve(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
 
-bool RecursorLua::preresolve(const ComboAddress& remote, bool protocol, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::preresolve(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
@@ -109,28 +109,28 @@ int getFakePTRRecords(const std::string& qname, const std::string& prefix, vecto
 
 }
 
-bool RecursorLua::nxdomain(const ComboAddress& remote, bool protocol, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nxdomain(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
-  return passthrough("nxdomain", remote, protocol, local, query, qtype, ret, res, variable);
+  return passthrough("nxdomain", remote, udpOrTcp, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::preresolve(const ComboAddress& remote, bool protocol, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::preresolve(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
-  return passthrough("preresolve", remote, protocol, local, query, qtype, ret, res, variable);
+  return passthrough("preresolve", remote, udpOrTcp, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::nodata(const ComboAddress& remote, bool protocol, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nodata(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
-  return passthrough("nodata", remote, protocol, local, query, qtype, ret, res, variable);
+  return passthrough("nodata", remote, udpOrTcp, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::postresolve(const ComboAddress& remote, bool protocol, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::postresolve(const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
-  return passthrough("postresolve", remote, protocol, local, query, qtype, ret, res, variable);
+  return passthrough("postresolve", remote, udpOrTcp, local, query, qtype, ret, res, variable);
 }
 
 
-bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, bool protocol, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
+bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, bool udpOrTcp, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
   int& res, bool* variable)
 {
   d_variable = false;
@@ -144,7 +144,6 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, bo
   d_local = local; 
   /* the first argument */
   lua_pushstring(d_lua,  remote.toString().c_str() );
-  lua_pushstring(d_lua,  protocol ? "tcp" : "udp");
   lua_pushstring(d_lua,  query.c_str() );
   lua_pushnumber(d_lua,  qtype.getCode() );
 
@@ -158,6 +157,8 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, bo
     lua_pushnumber(d_lua, res);
     extraParameter+=2;
   }
+  
+  lua_pushboolean(d_lua,  udpOrTcp);
 
   if(lua_pcall(d_lua,  4 + extraParameter, 3, 0)) { 
     string error=string("lua error in '"+func+"' while processing query for '"+query+"|"+qtype.getName()+": ")+lua_tostring(d_lua, -1);
