@@ -87,25 +87,21 @@ EOF
 		if [ "$remotedosec" = "yes" ]
 		then
 			echo "remote-dnssec=yes" >> pdns-remote.conf
-			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.ksk ksk
-			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.1 zsk
-			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key example.com $testsdir/example.com.zsk.2 zsk
-			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 1
-			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 2
-			../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 3
+			../pdns/pdnssec --config-dir=. --config-name=remote secure-zone example.com
+			../pdns/pdnssec --config-dir=. --config-name=remote secure-zone up.example.com
 
-			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
-			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
-			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
-			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
-			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
-			../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+			./gsql_feed_ds.pl up.example.com example.com "../pdns/pdnssec --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
 
 			if [ "$remotesec" = "nsec3" ]
 			then
 				../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 example.com
 				../pdns/pdnssec --config-dir=. --config-name=remote set-nsec3 up.example.com
 			fi
+
+			# add DS records into list-all-records
+                        ../pdns/pdnssec --config-dir=. --config-name=remote show-zone up.example.com | awk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
+			cat $testsdir/list-all-records/expected_dnssec_part1 $testsdir/list-all-records/expected_dnssec_part2 $testsdir/list-all-records/expected_dnssec_part3 > $testsdir/list-all-records/expected_result.dnssec 
+			cp -f $testsdir/list-all-records/expected_result.dnssec $testsdir/list-all-records/expected_result.nsec3
 		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \

@@ -1,0 +1,3 @@
+up.example.com.		120	IN	NS	ns1.example.com.
+up.example.com.		120	IN	NS	ns2.example.com.
+www.example.com.	120	IN	A	192.168.2.255

@@ -6,12 +6,13 @@ require 'json'
 require './unittest'
 
 h = Handler.new()
-f = File.open "/tmp/tmp.txt","a"
+f = File.open "/tmp/remotebackend.txt.#{$$}","a"
+f.sync
 
 STDOUT.sync = true
 begin
   STDIN.each_line do |line|
-    f.puts line
+    f.puts "#{Time.now.to_f}: [pipe] #{line}"
     # expect json
     input = {}
     line = line.strip
@@ -29,9 +30,10 @@ begin
          res, log = h.send(method)
       end
       puts ({:result => res, :log => log}).to_json
-      f.puts({:result => res, :log => log}).to_json
+      f.puts "#{Time.now.to_f} [pipe]: #{({:result => res, :log => log}).to_json}"
     rescue JSON::ParserError
       puts ({:result => false, :log => "Cannot parse input #{line}"}).to_json
+      f.puts "#{Time.now.to_f} [pipe]: #{({:result => false, :log => "Cannot parse input #{line}"}).to_json}"
       next
     end
   end

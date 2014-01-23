@@ -11,7 +11,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def initialize(server, dnsbackend)
      @dnsbackend = dnsbackend
      @semaphore = Mutex.new
-     @f = File.open("/tmp/tmp.txt","a")
+     @f = File.open("/tmp/remotebackend.txt.#{$$}","a")
    end
 
    def parse_arrays(params)
@@ -137,8 +137,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
 
      args = parse_arrays args
 
-     @f.puts method
-     @f.puts args
+     @f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
 
      @semaphore.synchronize do
        if @dnsbackend.respond_to?(method.to_sym)
@@ -152,6 +151,8 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
           res["Content-Type"] = "application/javascript; charset=utf-8"
           res.body = ({:result => false, :log => ["Method not found"]}).to_json
         end
+
+        @f.puts "#{Time.now.to_f} [http]: #{res.body}"
      end
    end
 

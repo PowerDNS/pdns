@@ -6,6 +6,3 @@ ns1.example.com.	120	IN	A	192.168.2.2
 ns2.example.com.	120	IN	A	192.168.2.3
 outpost.example.com.	120	IN	A	192.168.2.1
 outpost.example.com.	120	IN	AAAA	fe80::1
-up.example.com.		120	IN	NS	ns1.example.com.
-up.example.com.		120	IN	NS	ns2.example.com.
-www.example.com.	120	IN	A	192.168.2.255

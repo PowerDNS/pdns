@@ -1,15 +1,15 @@
-#!/usr/bin/ruby1.9.1
-
 #!/usr/bin/env ruby
 require "rubygems"
 require 'bundler/setup'
 require 'json'
 require 'zero_mq'
-require '../modules/remotebackend/regression-tests/backend'
+$:.unshift File.dirname(__FILE__)
+require "backend"
 
-h = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
+h = Handler.new("#{File.dirname(__FILE__)}/remote.sqlite3")
 
-f = File.open "/tmp/tmp.txt","a"
+f = File.open "/tmp/remotebackend.txt.#{$$}","a"
+f.sync = true
 
 begin
   context = ZeroMQ::Context.new
@@ -19,13 +19,14 @@ begin
   while(true) do
     line = ""
     rc = socket.recv_string line
-    f.puts line
     # expect json
     input = {}
     line = line.strip
+    f.puts "#{Time.now.to_f}: [zmq] #{line}"
     next if line.empty?
     begin
       input = JSON.parse(line)
+      next unless input and input["method"]
       method = "do_#{input["method"].downcase}"
       args = input["parameters"] || []
 
@@ -37,9 +38,10 @@ begin
          res, log = h.send(method)
       end
       socket.send_string ({:result => res, :log => log}).to_json, 0
-      f.puts({:result => res, :log => log}).to_json
+      f.puts "#{Time.now.to_f} [zmq]: #{({:result => res, :log => log}).to_json}"
     rescue JSON::ParserError
       socket.send_string ({:result => false, :log => "Cannot parse input #{line}"}).to_json
+      f.puts "#{Time.now.to_f} [zmq]: #{({:result => false, :log => "Cannot parse input #{line}"}).to_json}"
       next
     end
   end
