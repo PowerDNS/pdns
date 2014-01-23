@@ -97,9 +97,9 @@ EOF
 			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.ksk ksk
 			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.1 zsk
 			../pdns/pdnssec --config-dir=. --config-name=remote import-zone-key up.example.com $testsdir/up.example.com.zsk.2 zsk
-			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 4
-			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key example.com 5
-			../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key example.com 6
+			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key up.example.com 4
+			../pdns/pdnssec --config-dir=. --config-name=remote activate-zone-key up.example.com 5
+			../pdns/pdnssec --config-dir=. --config-name=remote deactivate-zone-key up.example.com 6
 
 			if [ "$remotesec" = "nsec3" ]
 			then
