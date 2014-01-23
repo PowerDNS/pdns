@@ -1,4 +1,4 @@
-	context=${context}-presigned
+	context=${context}-presigned-goracle
 	[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
 	[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
 

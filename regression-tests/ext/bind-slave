@@ -1,5 +1,5 @@
 	skipreasons="$skipreasons bind"
-	context=$context-presigned
+	context=$context-presigned-ext-bind
 	cat > bind-slave.conf << __EOF__
 options {
 	directory "./zones";
