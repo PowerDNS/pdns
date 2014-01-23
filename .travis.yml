@@ -69,6 +69,7 @@ script:
  - ./start-test-stop 5300 mydns
  - ./start-test-stop 5300 tinydns
  - ./start-test-stop 5300 opendbx-sqlite3
+ - cat /tmp/tmp.txt
  - THRESHOLD=90 TRACE=no ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests

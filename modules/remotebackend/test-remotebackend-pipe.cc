@@ -54,6 +54,10 @@ struct RemotebackendSetup {
 		SOARecordContent::report();
 		NSRecordContent::report();
                 ARecordContent::report();
+		if (be == NULL) {
+			BOOST_TEST_MESSAGE("Cannot start remotebackend: got NULL from BackendMakers");
+			exit(1);
+		}
 	} catch (PDNSException &ex) {
 		BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason );
 	};

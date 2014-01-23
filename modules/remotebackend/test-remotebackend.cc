@@ -180,6 +180,19 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainInfo) {
    BOOST_CHECK_EQUAL(di.backend, be);
 }
 
+BOOST_AUTO_TEST_CASE(test_method_getAuth) {
+   SOAData sd;
+   int zoneId;
+
+   BOOST_TEST_MESSAGE("Testing getAuth (5-arg variant) method");
+   be->getAuth(NULL, &sd, "unit.test", &zoneId, 9);
+   // make sure we got serial and name, zoneId should be -1
+   BOOST_CHECK_EQUAL(sd.qname, "unit.test");
+   BOOST_CHECK_EQUAL(sd.nameserver, "ns.unit.test");
+   BOOST_CHECK_EQUAL(sd.hostmaster, "hostmaster.unit.test");
+   BOOST_CHECK_EQUAL(sd.serial, 1);
+}
+
 BOOST_AUTO_TEST_CASE(test_method_superMasterBackend) {
    DNSResourceRecord rr;
    std::vector<DNSResourceRecord> nsset; 

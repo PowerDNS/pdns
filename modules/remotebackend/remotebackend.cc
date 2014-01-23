@@ -869,6 +869,77 @@ bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, 
    return true;
 }
 
+bool RemoteBackend::getAuth(DNSPacket *pkt_p, SOAData *sd, const string &target, int *zoneId, const int best_match_len) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "getAuth", query.GetAllocator());
+   parameters.SetObject();
+
+   string localIP="0.0.0.0";
+   string remoteIP="0.0.0.0";
+   string realRemote="0.0.0.0/0";
+   if (pkt_p) {
+     localIP=pkt_p->getLocal();
+     realRemote = pkt_p->getRealRemote().toString();
+     remoteIP = pkt_p->getRemote();
+   }
+
+   JSON_ADD_MEMBER(parameters, "remote", remoteIP.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "local", localIP.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "real-remote", realRemote.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "target", target.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "best_match_len", best_match_len, query.GetAllocator());
+   JSON_ADD_MEMBER(query, "parameters", parameters, query.GetAllocator());
+   // you are expected to give SOA record or SOAData, and zoneId as reply
+
+   if (this->send(query) == false || this->recv(answer) == false) 
+     // fall back to super
+     return DNSBackend::getAuth(pkt_p, sd, target, zoneId, best_match_len);
+
+  if (!answer["result"].IsObject()) 
+     return false;
+
+   rapidjson::Value defValue;
+
+   // see if we got result->content or result->sd
+   if (answer["result"].HasMember("content")) {
+     string soa = getString(answer["result"]["content"]);
+     sd->nameserver = "";
+     fillSOAData(soa, *sd);
+     if (sd->nameserver == "") return false;
+     // fix few values
+     rapidjson::Value targetValue;
+     targetValue = target.c_str();
+     sd->qname = getString(JSON_GET(answer["result"],"qname",targetValue));
+     defValue = -1;
+     sd->domain_id = getInt(JSON_GET(answer["result"],"domain_id",defValue));
+     if (zoneId) *zoneId = sd->domain_id;
+     return true;
+   } else if (answer["result"].HasMember("sd")) {
+     // expect to have all fields
+     sd->qname = getString(answer["result"]["sd"]["qname"]);
+     sd->nameserver = getString(answer["result"]["sd"]["nameserver"]);
+     sd->hostmaster = getString(answer["result"]["sd"]["hostmaster"]);
+     defValue = 0;
+     sd->ttl = getInt(JSON_GET(answer["result"]["sd"],"ttl", defValue));
+     sd->serial = getInt64(answer["result"]["sd"]["serial"]);
+     sd->refresh = getInt(answer["result"]["sd"]["refresh"]);
+     sd->retry = getInt(answer["result"]["sd"]["retry"]);
+     sd->expire = getInt(answer["result"]["sd"]["expire"]);
+     sd->default_ttl = getInt(JSON_GET(answer["result"]["sd"],"default_ttl", defValue));
+     defValue = -1;
+     sd->domain_id = getInt(JSON_GET(answer["result"]["sd"], "domain_id", defValue));
+     if (zoneId) *zoneId = sd->domain_id;
+     defValue = 0;
+     sd->scopeMask = getInt(JSON_GET(answer["result"]["sd"], "scopeMask", defValue));
+     return true;
+   }
+
+   return false;
+}
+
 // some rapidjson helpers 
 bool RemoteBackend::getBool(rapidjson::Value &value) {
    if (value.IsNull()) return false;

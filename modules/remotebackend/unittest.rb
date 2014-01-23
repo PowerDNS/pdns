@@ -234,6 +234,13 @@ class Handler
      [true]
    end
   
+   def do_getauth(args) 
+     if args["target"] == "unit.test" and args["best_match_len"].to_i <= "unit.test".length 
+       return [{:content=>$domain["unit.test"]["SOA"][0]}]
+     end
+     [false]
+   end
+
    def do_calculatesoaserial(args)
      return [2013060300] if args["sd"]["qname"] == "unit.test"
      [false]

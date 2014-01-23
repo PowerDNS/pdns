@@ -133,6 +133,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
     addUrlComponent(parameters, "name", ss);
     addUrlComponent(parameters, "kind", ss);
     addUrlComponent(parameters, "qtype", ss);
+    addUrlComponent(parameters, "target", ss);
 
     (*slist) = NULL;
     // set the correct type of request based on method

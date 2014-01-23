@@ -157,6 +157,7 @@ class RemoteBackend : public DNSBackend
   virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
   virtual bool deleteTSIGKey(const string& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
+  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len);
 
   static DNSBackend *maker();
 

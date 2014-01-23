@@ -1,15 +1,16 @@
-#!/usr/bin/ruby1.9.1
-
 #!/usr/bin/env ruby
+
 require "rubygems"
 require 'bundler/setup'
 require 'json'
 require 'zero_mq'
-require '../modules/remotebackend/regression-tests/backend'
+$:.unshift File.dirname(__FILE__)
+require "backend"
 
-h = Handler.new("../modules/remotebackend/regression-tests/remote.sqlite3")
+h = Handler.new("#{File.dirname(__FILE__)}/remote.sqlite3")
 
 f = File.open "/tmp/tmp.txt","a"
+f.sync = true
 
 begin
   context = ZeroMQ::Context.new
