@@ -44,7 +44,7 @@ begin
          res, log = h.send(method)
       end
       socket.send_string ({:result => res, :log => log}).to_json, 0
-      f.puts "#{Time.now.to_f} [z,q]: #{({:result => res, :log => log}).to_json}"
+      f.puts "#{Time.now.to_f} [zmq]: #{({:result => res, :log => log}).to_json}"
     rescue JSON::ParserError
       socket.send_string ({:result => false, :log => "Cannot parse input #{line}"}).to_json
       f.puts "#{Time.now.to_f} [zmq]: #{({:result => false, :log => "Cannot parse input #{line}"}).to_json}"
