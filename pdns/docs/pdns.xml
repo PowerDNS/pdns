@@ -15084,7 +15084,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  Once a script is loaded, PowerDNS looks for several functions, as detailed below. All of these functions are optional.
 	</para>
 	<para>
-	  <function>function preresolve ( remoteip, protocol, domain, qtype, isUDP )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
+	  <function>function preresolve ( remoteip, domain, qtype, isUDP )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
 	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason. 
 	</para>
 	<para>
@@ -15152,6 +15152,33 @@ end
 	</para>
 	<para>
 	  Useful return 'rcodes' include 0 for "no error" and <function>pdns.NXDOMAIN</function> for "NXDOMAIN".
+	</para>
+	<para>
+	  A lua script is able to truncate the return and set the truncated bit in two ways (pdns.TRUNCATE and pdns.TRUNCATED).
+	  
+	  For example, this lua script is the same as setting "any-to-tcp=yes" in the config:
+	  <screen>
+function preresolve ( ip, domain, qtype, isUDP )
+  if qtype == pdns.ANY and isUDP == true
+  then
+    return pdns.TRUNCATE, {}
+  end
+  return 0, {}
+end
+	  </screen>
+	  
+	  Where this lua script sets the truncated bit (if at least one record has been received from the remote server) and returns the first record:
+	  <screen>
+function postresolve ( remoteip, domain, qtype, records, origrcode, isUDP )
+  if qtype == pdns.ANY and isUDP == true and table.getn(records) ~= 0
+  then
+    return pdns.TRUNCATED, records[0]
+  end
+  return origrcode, records
+end
+	  </screen>
+	  
+	  As you can see, the first example script used "pdns.TRUNCATE" and the second one used "pdns.TRUNCATED". pdns.TRUNCATE always returns no records with the truncated bit set to the client. pdns.TRUNCATED takes the records returned by you and returns it with the truncated bit to the client.
 	</para>
 	<para>
 	  Fields that can be set in the return table include:
