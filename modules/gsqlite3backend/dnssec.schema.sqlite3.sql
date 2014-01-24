@@ -17,9 +17,9 @@ create table cryptokeys (
  flags     INT NOT NULL,
  active    BOOL,
  content   TEXT
-);       
+);
 
-create index domainidindex on cryptokeys(domain_id);           
+create index domainidindex on cryptokeys(domain_id);
 
 create table tsigkeys (
  id        INTEGER PRIMARY KEY,
