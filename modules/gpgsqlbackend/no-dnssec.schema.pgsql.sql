@@ -35,9 +35,3 @@ create table supermasters (
           account VARCHAR(40) DEFAULT NULL,
           PRIMARY KEY (ip, nameserver)
 );
-
--- GRANT SELECT ON supermasters TO pdns;
--- GRANT ALL ON domains TO pdns;
--- GRANT ALL ON domains_id_seq TO pdns;
--- GRANT ALL ON records TO pdns;
--- GRANT ALL ON records_id_seq TO pdns;
