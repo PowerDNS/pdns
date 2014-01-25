@@ -108,6 +108,9 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
     lua_pushnumber(lua, rr.d_place);
     lua_setfield(lua, -2, "place");
     
+    lua_pushnumber(lua, rr.qclass);
+    lua_setfield(lua, -2, "qclass");
+    
     lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
   }
 }
@@ -194,6 +197,12 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
       rr.d_place = (DNSResourceRecord::Place) tmpnum;
       if(rr.d_place > DNSResourceRecord::ADDITIONAL)
         rr.d_place = DNSResourceRecord::ADDITIONAL;
+    }
+
+    if(!getFromTable(lua, "qclass", tmpnum))
+      rr.qclass = QClass::IN;
+    else {
+      rr.qclass = tmpnum;
     }
 
     /* removes 'value'; keeps 'key' for next iteration */
