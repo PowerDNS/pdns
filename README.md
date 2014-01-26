@@ -1,5 +1,6 @@
-PowerDNS is copyright Ⓒ 2012-2013 by PowerDNS.COM BV & lots of
-contributors, using the GNU GPLv2 license.
+PowerDNS is copyright Ⓒ 2002-2014 by PowerDNS.COM BV & lots of
+contributors, using the GNU GPLv2 license (see NOTICE for the
+exact license and exception used).
 
 All documentation can be found on http://doc.powerdns.com/
 
