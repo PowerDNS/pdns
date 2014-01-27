@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libbindbackend.la
 AM_CPPFLAGS=-I../../pdns $(BOOST_CPPFLAGS) $(POLARSSL_CFLAGS) @THREADFLAGS@
 
-AM_LFLAGS = -s -i
+AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
 BUILT_SOURCES=../../pdns/bind-dnssec.schema.sqlite3.sql.h ../../pdns/bindparser.h
