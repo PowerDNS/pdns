@@ -547,7 +547,7 @@ void startDoResolve(void *p)
 
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
       if(t_pdl->get()) {
@@ -557,12 +557,12 @@ void startDoResolve(void *p)
                   if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
                 if(i == ret.end())
-                  (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+                  (*t_pdl)->nodata(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
               }
               else if(res == RCode::NXDomain)
-          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+          (*t_pdl)->nxdomain(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       
-      (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+      (*t_pdl)->postresolve(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
     
