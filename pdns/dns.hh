@@ -205,7 +205,7 @@ enum  {
 
 #if __FreeBSD__ || __APPLE__ || __OpenBSD__
 #include <machine/endian.h>
-#elif __linux__
+#elif __linux__ || __GNU__
 # include <endian.h>
 
 #else  // with thanks to <arpa/nameser.h> 
