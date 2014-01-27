@@ -15097,7 +15097,6 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	<para>
 	  <function>function nodata ( remoteip, domain, qtype, records )</function> is just like <function>nxdomain</function>, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since version 3.4.
 	</para>
-		
 	<para>
 	  All these functions are passed the IP address of the requester, plus the name and type being requested. In return, these functions indicate if they
 	  have taken over the request, or want to let normal proceedings take their course.
@@ -15173,7 +15172,6 @@ end
 		</para>
 	      </listitem>
 	    </varlistentry>
-
 	    <varlistentry>
 	      <term>qname</term>
 	      <listitem>
@@ -15198,6 +15196,19 @@ end
 		<para>
 		  Time to live of a record. Defaults to 3600. Be sure not to specify differing TTLs within answers with an identical qname. While this
 		  will be encoded in DNS, actual results may be undesired.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>qclass</term>
+	      <listitem>
+		<para>
+		  Query-Class of a record. Defaults to 1 (IN). Be sure to always return the correct qclass in each record! Valid query-classes are 1 (IN), 3 (CHAOS), 254 (NONE) and 255 (ANY).
+		  <warning>
+		    <para>
+		      Only the IN class (1) is fully supported!
+		    </para>
+		  </warning>
 		</para>
 	      </listitem>
 	    </varlistentry>
