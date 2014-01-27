@@ -30,6 +30,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <limits.h>
 
 const ArgvMap::param_t::const_iterator ArgvMap::begin()
 {
