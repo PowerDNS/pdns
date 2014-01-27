@@ -547,22 +547,25 @@ void startDoResolve(void *p)
 
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
-       res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
-
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+      res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+      
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
-                vector<DNSResourceRecord>::const_iterator i;
-                for(i=ret.begin(); i!=ret.end(); ++i) 
-                  if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
-                          break;
-                if(i == ret.end())
-                  (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-              }
-              else if(res == RCode::NXDomain)
-          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-      
-      (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+          vector<DNSResourceRecord>::const_iterator i;
+          for(i=ret.begin(); i!=ret.end(); ++i) 
+            if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
+              break;
+            if(i == ret.end())
+              // Call nodata script if the remote server didn't return any records
+              (*t_pdl)->nodata(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+        } else if(res == RCode::NXDomain)
+          
+          // Call nxdomain script if the remote server returned NXDomain as status
+          (*t_pdl)->nxdomain(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+        
+        // Always call postresolve
+        (*t_pdl)->postresolve(dc->d_remote, !dc->d_tcp, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
     
@@ -570,9 +573,9 @@ void startDoResolve(void *p)
       delete dc;
       dc=0;
       return;
-    }  
-    if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
-    {
+    }
+        
+    if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail) {
       string trace(sr.getTrace());
       if(!trace.empty()) {
         vector<string> lines;
@@ -588,10 +591,17 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
-    }
-    else {
+    } else {
       pw.getHeader()->rcode=res;
       updateRcodeStats(res);
+      
+      if(res == RecursorBehaviour::TRUNCATED) {
+        pw.getHeader()->tc=1;
+      } else if(res == RecursorBehaviour::TRUNCATE) {
+        pw.getHeader()->tc=1;
+        pw.truncate();
+        goto sendit;
+      }
       
       if(ret.size()) {
         orderAndShuffle(ret);
@@ -607,17 +617,21 @@ void startDoResolve(void *p)
             drc->toPacket(pw);
           }
           if(pw.size() > maxanswersize) {
-            pw.rollback();
             if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
             {
               pw.getHeader()->tc=1;
               pw.truncate();
+            } else {
+              pw.rollback();
             }
             goto sendit; // need to jump over pw.commit
           }
         }
-
-      pw.commit();
+        
+        pw.commit();
+      } else if(res == RecursorBehaviour::TRUNCATE) {
+        pw.getHeader()->tc=1;
+        pw.truncate();
       }
     }
   sendit:;
