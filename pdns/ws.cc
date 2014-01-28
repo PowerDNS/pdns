@@ -517,9 +517,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     DNSResourceRecord rr;
     rr.qname = zonename;
     rr.content = (boost::format("%s hostmaster.%s %d")
-		  % nameservers[SizeType(0)].GetString()
-		  % zonename
-		  % intFromJson(document, "serial", 1)
+                  % nameservers[SizeType(0)].GetString()
+                  % zonename
+                  % intFromJson(document, "serial", 1)
       ).str();
     rr.qtype = "SOA";
     rr.domain_id = di.id;
