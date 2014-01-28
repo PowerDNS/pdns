@@ -555,10 +555,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   B.getAllDomains(&domains);
 
   Document doc;
-  doc.SetObject();
-
-  Value jdomains;
-  jdomains.SetArray();
+  doc.SetArray();
 
   BOOST_FOREACH(const DomainInfo& di, domains) {
     Value jdi;
@@ -580,9 +577,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     jdi.AddMember("serial", di.serial, doc.GetAllocator());
     jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
     jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
-    jdomains.PushBack(jdi, doc.GetAllocator());
+    doc.PushBack(jdi, doc.GetAllocator());
   }
-  doc.AddMember("domains", jdomains, doc.GetAllocator());
   resp->body = makeStringFromDocument(doc);
 }
 
