@@ -523,7 +523,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       ).str();
     rr.qtype = "SOA";
     rr.domain_id = di.id;
-    rr.auth = 0;
+    rr.auth = 1;
     rr.ttl = ::arg().asNum( "default-ttl" );
     rr.priority = 0;
     rrset.push_back(rr);
@@ -745,7 +745,7 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
         rr.content=record["content"].GetString();
         rr.qtype=record["type"].GetString();
         rr.domain_id = sd.domain_id;
-        rr.auth=0;
+        rr.auth=1;
         rr.ttl=intFromJson(record, "ttl");
         rr.priority=intFromJson(record, "priority");
         
