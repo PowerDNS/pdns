@@ -381,42 +381,6 @@ static string getZone(const string& zonename) {
   return makeStringFromDocument(doc);
 }
 
-static string createOrUpdateZone(const string& zonename, bool onlyCreate, rapidjson::Value& data) {
-  UeberBackend B;
-  DomainInfo di;
-
-  bool exists = B.getDomainInfo(zonename, di);
-  if(exists && onlyCreate)
-    return returnJSONError("Domain '"+zonename+"' already exists");
-
-  if(!exists) {
-    if(!B.createDomain(zonename))
-      return returnJSONError("Creating domain '"+zonename+"' failed");
-
-    if(!B.getDomainInfo(zonename, di))
-      return returnJSONError("Creating domain '"+zonename+"' failed: lookup of domain ID failed");
-
-    // create SOA record so zone "really" exists
-    DNSResourceRecord soa;
-    soa.qname = zonename;
-    soa.content = "1";
-    soa.qtype = "SOA";
-    soa.domain_id = di.id;
-    soa.auth = 0;
-    soa.ttl = ::arg().asNum( "default-ttl" );
-    soa.priority = 0;
-
-    di.backend->startTransaction(zonename, di.id);
-    di.backend->feedRecord(soa);
-    di.backend->commitTransaction();
-  }
-
-  di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(data, "kind")));
-  di.backend->setMaster(zonename, stringFromJson(data, "master"));
-
-  return getZone(zonename);
-}
-
 static void fillServerDetail(Value& out, Value::AllocatorType& allocator) {
   out.SetObject();
   out.AddMember("type", "Server", allocator);
@@ -494,7 +458,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Zone name empty");
 
     string kind = stringFromJson(document, "kind");
-    string master = stringFromJson(document, "master", "");
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
@@ -503,6 +466,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     const Value &nameservers = document["nameservers"];
     if (!nameservers.IsArray() || nameservers.Size() == 0)
       throw ApiException("Need at least one nameserver");
+
+    string master;
+    const Value &masters = document["masters"];
+    if (masters.IsArray()) {
+      for (SizeType i = 0; i < masters.Size(); ++i) {
+        master += masters[i].GetString();
+        master += " ";
+      }
+    }
 
     // no going back after this
     if(!B.createDomain(zonename))
@@ -528,7 +500,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     rr.priority = 0;
     rrset.push_back(rr);
 
-    for(SizeType i = 0; i < nameservers.Size(); ++i) {
+    for (SizeType i = 0; i < nameservers.Size(); ++i) {
       rr.content = nameservers[i].GetString();
       rr.qtype = "NS";
       rrset.push_back(rr);
@@ -541,8 +513,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     di.backend->commitTransaction();
 
     di.backend->setKind(zonename, DomainInfo::stringToKind(kind));
-    if (!master.empty())
-      di.backend->setMaster(zonename, master);
+    di.backend->setMaster(zonename, master);
 
     resp->body = getZone(zonename);
     return;
@@ -584,6 +555,31 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   string zonename = req->path_parameters["id"];
+
+  if(req->method == "PUT") {
+    // update domain settings
+    UeberBackend B;
+    DomainInfo di;
+    if(!B.getDomainInfo(zonename, di))
+      throw ApiException("Could not find domain '"+zonename+"'");
+
+    Document document;
+    parseJsonBody(req, document);
+
+    string master;
+    const Value &masters = document["masters"];
+    if (masters.IsArray()) {
+      for(SizeType i = 0; i < masters.Size(); ++i) {
+        master += masters[i].GetString();
+        master += " ";
+      }
+    }
+
+    di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
+    di.backend->setMaster(zonename, master);
+    resp->body = getZone(zonename);
+    return;
+  }
 
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();

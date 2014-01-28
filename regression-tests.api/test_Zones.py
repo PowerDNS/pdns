@@ -64,3 +64,44 @@ class Servers(ApiTestCase):
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
         self.assertEquals(data['name'], 'example.com')
+
+    def test_UpdateZone(self):
+        # create
+        name = unique_zone_name()
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
+        }
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # update, set as Master
+        payload = {
+            'kind': 'Master',
+            'masters': ['192.0.2.1','192.0.2.2']
+        }
+        r = self.session.put(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        for k in payload.keys():
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
+        # update, back to Native
+        payload = {
+            'kind': 'Native'
+        }
+        r = self.session.put(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        for k in payload.keys():
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
