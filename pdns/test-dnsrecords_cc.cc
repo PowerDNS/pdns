@@ -68,6 +68,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::MX, "10 mx.rec.test.", "\x00\x0a\02mx\xc0\x11",false))
 // non-local name
      (CASE_S(QType::MX, "20 mx.example.com.", "\x00\x14\02mx\x07""example\x03""com\x00",false))
+// root label
+     (CASE_S(QType::MX, "20 .", "\x00\x14\x00",false))
 
      (CASE_S(QType::TXT, "\"short text\"", "\x0ashort text",false))
      (CASE_S(QType::TXT, "\"long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\" \"2222222222\"", "\xff""long record test 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\x0a""2222222222",false))
@@ -96,6 +98,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SRV, "10 10 5060 sip.rec.test.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x03rec\x04test\x00",false))
 // non-local name
      (CASE_S(QType::SRV, "10 10 5060 sip.example.com.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x07""example\x03""com\x00",false))
+// root name
+     (CASE_S(QType::SRV, "10 10 5060 .", "\x00\x0a\x00\x0a\x13\xc4\x00",false))
+
      (CASE_S(QType::NAPTR, "100 10 \"\" \"\" \"/urn:cid:.+@([^\\\\.]+\\\\.)(.*)$/\\\\2/i\" .", "\x00\x64\x00\x0a\x00\x00\x20/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i\x00",false))
      (CASE_S(QType::NAPTR, "100 50 \"s\" \"http+I2L+I2C+I2R\" \"\" _http._tcp.rec.test.", "\x00\x64\x00\x32\x01s\x10http+I2L+I2C+I2R\x00\x05_http\x04_tcp\x03rec\x04test\x00",false))
      (CASE_S(QType::KX, "10 mail.rec.test.", "\x00\x0a\x04mail\x03rec\x04test\x00",false))
