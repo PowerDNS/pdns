@@ -30,7 +30,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
-
+#include <ostream>
 
 #include "utility.hh"
 #include "qtype.hh"
@@ -78,7 +78,7 @@ public:
   ~DNSResourceRecord(){};
 
   void setContent(const string& content);
-  string getZoneRepresentation();
+  string getZoneRepresentation() const;
 
   // data
   
@@ -126,7 +126,10 @@ public:
       return(content < b.content);
     return false;
   }
+
+  friend std::ostream & operator<< (std::ostream &out, DNSResourceRecord const &r);
 };
+
 
 #define GCCPACKATTRIBUTE __attribute__((packed))
 

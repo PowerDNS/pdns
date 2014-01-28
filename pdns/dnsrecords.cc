@@ -48,7 +48,7 @@ void DNSResourceRecord::setContent(const string &cont) {
   }
 }
 
-string DNSResourceRecord::getZoneRepresentation() {
+string DNSResourceRecord::getZoneRepresentation() const {
   ostringstream ret;
   switch(qtype.getCode()) {
     case QType::SRV:
@@ -67,6 +67,11 @@ string DNSResourceRecord::getZoneRepresentation() {
   return ret.str();
 }
 
+ostream& operator<< (ostream &out, DNSResourceRecord const &r) {
+  out << r.qname << ".\t" << r.ttl << "\t" << r.qtype.getName() << "\t" << r.getZoneRepresentation() << endl;
+  return out;
+}
+
 bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
 {
   string lcontent=toLower(content);
@@ -79,7 +84,6 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
     tie(llabel, qtype, lcontent, ttl, priority) ==
     tie(rlabel, rhs.qtype, rcontent, rhs.ttl, rhs.priority);
 }
-
 
 
 DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
