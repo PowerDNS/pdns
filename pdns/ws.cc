@@ -882,18 +882,18 @@ void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void StatWebServer::launch()
 {
   try {
-    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
-    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
     if(::arg().mustDo("experimental-json-interface")) {
-      registerApiHandler("/servers", &apiServer);
-      registerApiHandler("/servers/localhost", &apiServerDetail);
       registerApiHandler("/servers/localhost/config", &apiServerConfig);
       registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-      registerApiHandler("/servers/localhost/zones", &apiServerZones);
       registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
+      registerApiHandler("/servers/localhost/zones", &apiServerZones);
+      registerApiHandler("/servers/localhost", &apiServerDetail);
+      registerApiHandler("/servers", &apiServer);
       // legacy dispatch
       registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
     }
+    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
+    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
     d_ws->go();
   }
   catch(...) {
