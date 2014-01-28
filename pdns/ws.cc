@@ -337,7 +337,12 @@ static string getZone(const string& zonename) {
   Document doc;
   doc.SetObject();
 
-  doc.AddMember("name", zonename.c_str(), doc.GetAllocator());
+  // id is the canonical lookup key, which doesn't actually match the name (in some cases)
+  doc.AddMember("id", di.zone.c_str(), doc.GetAllocator());
+  string url = (boost::format("/servers/localhost/zones/%s") % di.zone).str();
+  Value jurl(url.c_str(), doc.GetAllocator()); // copy
+  doc.AddMember("url", jurl, doc.GetAllocator());
+  doc.AddMember("name", di.zone.c_str(), doc.GetAllocator());
   doc.AddMember("type", "Zone", doc.GetAllocator());
   doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
   Value masters;
@@ -558,6 +563,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   BOOST_FOREACH(const DomainInfo& di, domains) {
     Value jdi;
     jdi.SetObject();
+    // id is the canonical lookup key, which doesn't actually match the name (in some cases)
+    jdi.AddMember("id", di.zone.c_str(), doc.GetAllocator());
+    string url = (boost::format("/servers/localhost/zones/%s") % di.zone).str();
+    Value jurl(url.c_str(), doc.GetAllocator()); // copy
+    jdi.AddMember("url", jurl, doc.GetAllocator());
     jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
     jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
     Value masters;
