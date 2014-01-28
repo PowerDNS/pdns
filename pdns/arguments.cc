@@ -469,7 +469,6 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
       struct stat st;
       DIR *dir;
       struct dirent *ent;
-      char namebuf[PATH_MAX] = {0};
 
       // stat
       if (stat(params["include-dir"].c_str(), &st)) {
@@ -492,19 +491,21 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
       while((ent = readdir(dir)) != NULL) {
          if (ent->d_name[0] == '.') continue; // skip any dots
          if (boost::ends_with(ent->d_name, ".conf")) {
+            // build name
+            std::ostringstream namebuf;
+            namebuf << params["include-dir"].c_str() << "/" << ent->d_name; // FIXME: Use some path separator
             // ensure it's readable file
-            snprintf(namebuf, sizeof namebuf, "%s/%s", params["include-dir"].c_str(), ent->d_name);
-            if (stat(namebuf, &st) || !S_ISREG(st.st_mode)) {
-                L << Logger::Error << namebuf << " is not a file" << std::endl;
-                throw ArgException(std::string(namebuf) + " does not exist!");
+            if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+                L << Logger::Error << namebuf.str() << " is not a file" << std::endl;
+                throw ArgException(namebuf.str() + " does not exist!");
             }
-            extraConfigs.push_back(std::string(namebuf));
+            extraConfigs.push_back(namebuf.str());
          }
       }
       std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX());
       BOOST_FOREACH(const std::string& fn, extraConfigs) {
             if (!file(fn.c_str(), lax, true)) {
-                L << Logger::Error << namebuf << " could not be parsed" << std::endl;
+                L << Logger::Error << fn << " could not be parsed" << std::endl;
                 throw ArgException(fn + " could not be parsed");
             }
       }
