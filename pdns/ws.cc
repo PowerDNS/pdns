@@ -782,42 +782,8 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
       return;
     }  
   }
-  else if(command == "zone") {
-    string zonename = req->parameters["zone"];
-    if (zonename.empty()) {
-      resp->status = 400;
-      resp->body = returnJSONError("Must give zone parameter");
-    }
-
-    if(req->method == "GET") {
-      // get current zone
-      resp->body = getZone(zonename);
-      return;
-    } else if (req->method == "DELETE") {
-      // delete
-      UeberBackend B;
-      DomainInfo di;
-      if(!B.getDomainInfo(zonename, di)) {
-        resp->body = returnJSONError("Deleting domain '"+zonename+"' failed: domain does not exist");
-        return;
-      }
-      if(!di.backend->deleteDomain(zonename)) {
-        resp->body = returnJSONError("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
-        return;
-      }
-      map<string, string> success; // empty success object
-      resp->body = returnJSONObject(success);
-      return;
-    } else {
-      throw HttpMethodNotAllowedException();
-    }
-  }
   else if(command=="log-grep") {
     resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns[");
-    return;
-  }
-  else if(command=="domains") {
-    apiServerZones(req, resp);
     return;
   }
 
