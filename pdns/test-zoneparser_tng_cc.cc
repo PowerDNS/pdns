@@ -33,7 +33,10 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
     BOOST_CHECK_EQUAL(rr.qname, host);
     BOOST_CHECK_EQUAL(rr.ttl, ttl);
     BOOST_CHECK_EQUAL(rr.qtype.getName(), type);
-    BOOST_CHECK_EQUAL(rr.getZoneRepresentation(), data);
+    if (*(rr.content.rbegin()) != '.' && *(data.rbegin()) == '.') 
+      BOOST_CHECK_EQUAL(rr.content, std::string(data.begin(),data.end()-1));
+    else
+      BOOST_CHECK_EQUAL(rr.content, data);
   } 
 
 }
