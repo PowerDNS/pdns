@@ -29,6 +29,11 @@ class Servers(ApiTestCase):
     def test_ReadConfig(self):
         r = self.session.get(self.url("/servers/localhost/config"))
         self.assertSuccessJson(r)
-        data = dict(r.json())
-        self.assertIn('version', data)
-        print data
+        data = dict([(r['name'], r['value']) for r in r.json()])
+        self.assertIn('daemon', data)
+
+    def test_ReadStatistics(self):
+        r = self.session.get(self.url("/servers/localhost/statistics"))
+        self.assertSuccessJson(r)
+        data = dict([(r['name'], r['value']) for r in r.json()])
+        self.assertIn('uptime', data)

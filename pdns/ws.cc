@@ -420,22 +420,67 @@ static void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   vector<string> items = ::arg().list();
+  string value;
   Document doc;
   doc.SetArray();
-  BOOST_FOREACH(const string& var, items) {
-    Value kv, key, value;
-    kv.SetArray();
-    key.SetString(var.c_str(), var.length());
-    kv.PushBack(key, doc.GetAllocator());
+  BOOST_FOREACH(const string& item, items) {
+    Value jitem;
+    jitem.SetObject();
+    jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
 
-    if(var.find("password") != string::npos)
-      value="*****";
+    Value jname(item.c_str(), doc.GetAllocator());
+    jitem.AddMember("name", jname, doc.GetAllocator());
+
+    if(item.find("password") != string::npos)
+      value = "***";
     else
-      value.SetString(::arg()[var].c_str(), ::arg()[var].length(), doc.GetAllocator());
+      value = ::arg()[item];
 
-    kv.PushBack(value, doc.GetAllocator());
-    doc.PushBack(kv, doc.GetAllocator());
+    Value jvalue(value.c_str(), doc.GetAllocator());
+    jitem.AddMember("value", jvalue, doc.GetAllocator());
+
+    doc.PushBack(jitem, doc.GetAllocator());
   }
+  resp->body = makeStringFromDocument(doc);
+}
+
+static void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  vector<string> items = S.getEntries();
+  string value;
+  Document doc;
+  doc.SetArray();
+  BOOST_FOREACH(const string& item, items) {
+    Value jitem;
+    jitem.SetObject();
+    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
+
+    Value jname(item.c_str(), doc.GetAllocator());
+    jitem.AddMember("name", jname, doc.GetAllocator());
+
+    value = lexical_cast<string>(S.read(item));
+
+    Value jvalue(value.c_str(), doc.GetAllocator());
+    jitem.AddMember("value", jvalue, doc.GetAllocator());
+
+    doc.PushBack(jitem, doc.GetAllocator());
+  }
+
+  // add uptime
+  // TODO: this is a hack. should we move this elsewhere?
+  {
+    Value jitem;
+    jitem.SetObject();
+    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
+    jitem.AddMember("name", "uptime", doc.GetAllocator());
+    value = lexical_cast<string>(time(0) - s_starttime);
+    Value jvalue(value.c_str(), doc.GetAllocator());
+    jitem.AddMember("value", jvalue, doc.GetAllocator());
+    doc.PushBack(jitem, doc.GetAllocator());
+  }
+
   resp->body = makeStringFromDocument(doc);
 }
 
@@ -610,42 +655,7 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     req->parameters.erase("command");
   }
 
-  if(command=="get") {
-    if(req->parameters.empty()) {
-      vector<string> entries = S.getEntries();
-      BOOST_FOREACH(string& ent, entries) {
-        req->parameters[ent];
-      }
-      req->parameters["version"];
-      req->parameters["uptime"];
-    }
-
-    string variable, value;
-    
-    Document doc;
-    doc.SetObject();
-    for(varmap_t::const_iterator iter = req->parameters.begin(); iter != req->parameters.end() ; ++iter) {
-      variable = iter->first;
-      if(variable == "version") {
-        value = VERSION;
-      }
-      else if(variable == "uptime") {
-        value = lexical_cast<string>(time(0) - s_starttime);
-      }
-      else 
-        value = lexical_cast<string>(S.read(variable));
-      Value jval;
-      jval.SetString(value.c_str(), value.length(), doc.GetAllocator());
-      doc.AddMember(variable.c_str(), jval, doc.GetAllocator());
-    }
-    resp->body = makeStringFromDocument(doc);
-    return;
-  }
-  else if(command=="config") {
-    apiServerConfig(req, resp);
-    return;
-  }
-  else if(command == "flush-cache") {
+  if(command == "flush-cache") {
     extern PacketCache PC;
     int number; 
     if(req->parameters["domain"].empty())
@@ -865,6 +875,7 @@ void StatWebServer::launch()
     if(::arg().mustDo("experimental-json-interface")) {
       registerApiHandler("/servers/localhost/config", &apiServerConfig);
       registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+      registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
       registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       registerApiHandler("/servers/localhost/zones", &apiServerZones);
       registerApiHandler("/servers/localhost", &apiServerDetail);
