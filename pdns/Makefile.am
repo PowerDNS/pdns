@@ -304,7 +304,8 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
 	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc dns_random.cc \
 	test-rcpgenerator_cc.cc responsestats.cc test-bindparser_cc.cc \
-	bindparser.cc bindlexer.c dns.cc 
+	bindparser.cc bindlexer.c test-zoneparser_tng_cc.cc zoneparser-tng.hh \
+        zoneparser-tng.cc dns.cc
 
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
