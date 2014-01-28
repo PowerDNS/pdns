@@ -830,7 +830,7 @@ static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler
   } catch (ApiException &e) {
     string what = e.what();
     resp->body = returnJSONError(what);
-    resp->status = 400;
+    resp->status = 422;
     return;
   }
 
