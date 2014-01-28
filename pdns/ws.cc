@@ -582,6 +582,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   resp->body = makeStringFromDocument(doc);
 }
 
+static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
+  string zonename = req->path_parameters["id"];
+
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  resp->body = getZone(zonename);
+}
+
 void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
@@ -885,6 +894,7 @@ void StatWebServer::launch()
       registerApiHandler("/servers/localhost/config", &apiServerConfig);
       registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       registerApiHandler("/servers/localhost/zones", &apiServerZones);
+      registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       // legacy dispatch
       registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
     }

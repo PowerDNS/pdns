@@ -32,3 +32,14 @@ class Servers(ApiTestCase):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
+
+    def test_GetZone(self):
+        r = self.session.get(self.url("/servers/localhost/zones"))
+        domains = r.json()
+        example_com = [domain for domain in domains if domain['name'] == u'example.com'][0]
+        r = self.session.get(self.url("/servers/localhost/zones/" + example_com['id']))
+        self.assertSuccessJson(r)
+        data = r.json()
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
+            self.assertIn(k, data)
+        self.assertEquals(data['name'], 'example.com')
