@@ -646,6 +646,77 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   resp->body = getZone(zonename);
 }
 
+static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "PATCH")
+    throw HttpMethodNotAllowedException();
+
+  UeberBackend B;
+  DomainInfo di;
+  string zonename = req->path_parameters["id"];
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  SOAData sd;
+  sd.db = (DNSBackend*)-1;
+  if(!B.getSOA(zonename, sd) || !sd.db)
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  Document document;
+  parseJsonBody(req, document);
+
+  string qname, changetype;
+  QType qtype;
+  qname = stringFromJson(document, "name");
+  qtype = stringFromJson(document, "type");
+  changetype = toUpper(stringFromJson(document, "changetype"));
+
+  if (changetype == "DELETE") {
+    // delete all matching qname/qtype RRs
+    sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
+  }
+  else if (changetype == "REPLACE") {
+    DNSResourceRecord rr;
+    vector<DNSResourceRecord> rrset;
+    const Value& records = document["records"];
+    for(SizeType idx = 0; idx < records.Size(); ++idx) {
+      const Value& record = records[idx];
+      rr.qname = stringFromJson(record, "name");
+      rr.content = stringFromJson(record, "content");
+      rr.qtype = stringFromJson(record, "type");
+      rr.domain_id = sd.domain_id;
+      rr.auth = 1;
+      rr.ttl = intFromJson(record, "ttl");
+      rr.priority = intFromJson(record, "priority");
+
+      rrset.push_back(rr);
+
+      if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+        rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
+      try {
+        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+        string tmp = drc->serialize(rr.qname);
+      }
+      catch(std::exception& e)
+      {
+        throw ApiException("Record "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
+      }
+    }
+    // Actually store the change.
+    sd.db->startTransaction(qname);
+    sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
+    sd.db->commitTransaction();
+  }
+  else
+    throw ApiException("Changetype not understood");
+
+  extern PacketCache PC;
+  PC.purge(qname);
+
+  // success
+  resp->body = "{}";
+}
+
 void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
@@ -696,101 +767,6 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     }
     resp->body = returnJSONObject(m);
     return;
-  }
-  else if(command == "zone-rest") { // http://jsonstat?command=zone-rest&rest=/powerdns.nl/www.powerdns.nl/a
-    vector<string> parts;
-    stringtok(parts, req->parameters["rest"], "/");
-    if(parts.size() != 3) {
-      resp->status = 400;
-      resp->body = returnJSONError("Could not parse rest parameter");
-      return;
-    }
-    UeberBackend B;
-    SOAData sd;
-    sd.db = (DNSBackend*)-1;
-    if(!B.getSOA(parts[0], sd) || !sd.db) {
-      resp->status = 404;
-      resp->body = returnJSONError("Could not find domain '"+parts[0]+"'");
-      return;
-    }
-    
-    QType qtype;
-    qtype=parts[2];
-    string qname=parts[1];
-    extern PacketCache PC;
-    PC.purge(qname);
-    // cerr<<"domain id: "<<sd.domain_id<<", lookup name: '"<<parts[1]<<"', for type: '"<<qtype.getName()<<"'"<<endl;
-    
-    if(req->method == "GET") {
-      B.lookup(qtype, parts[1], 0, sd.domain_id);
-      
-      DNSResourceRecord rr;
-      string ret = "{ \"records\": [";
-      map<string, string> object;
-      bool first=1;
-      
-      while(B.get(rr)) {
-        if(!first) ret += ", ";
-          first=false;
-        object.clear();
-        object["name"] = rr.qname;
-        object["type"] = rr.qtype.getName();
-        object["ttl"] = lexical_cast<string>(rr.ttl);
-        object["priority"] = lexical_cast<string>(rr.priority);
-        object["content"] = rr.content;
-        ret+=returnJSONObject(object);
-      }
-      ret+="]}";
-      resp->body = ret;
-      return;
-    }
-    else if(req->method=="DELETE") {
-      sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
-      
-    }
-    else if(req->method=="POST") {
-      rapidjson::Document document;
-      if(document.Parse<0>(req->body.c_str()).HasParseError()) {
-        resp->status = 400;
-        resp->body = returnJSONError("Unable to parse JSON");
-        return;
-      }
-      
-      DNSResourceRecord rr;
-      vector<DNSResourceRecord> rrset;
-      const rapidjson::Value &records= document["records"];
-      for(rapidjson::SizeType i = 0; i < records.Size(); ++i) {
-        const rapidjson::Value& record = records[i];
-        rr.qname=record["name"].GetString();
-        rr.content=record["content"].GetString();
-        rr.qtype=record["type"].GetString();
-        rr.domain_id = sd.domain_id;
-        rr.auth=1;
-        rr.ttl=intFromJson(record, "ttl");
-        rr.priority=intFromJson(record, "priority");
-        
-        rrset.push_back(rr);
-        
-        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) 
-          rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-          
-        try {
-          shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
-          string tmp=drc->serialize(rr.qname);
-        }
-        catch(std::exception& e) 
-        {
-          resp->body = returnJSONError("Following record had a problem: "+rr.qname+" IN " +rr.qtype.getName()+ " " + rr.content+": "+e.what());
-          return;
-        }
-      }
-      // but now what
-      sd.db->startTransaction(qname);
-      sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
-      sd.db->commitTransaction();
-      resp->body = req->body;
-      return;
-    }  
   }
   else if(command=="log-grep") {
     resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns[");
@@ -876,6 +852,7 @@ void StatWebServer::launch()
       registerApiHandler("/servers/localhost/config", &apiServerConfig);
       registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
       registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       registerApiHandler("/servers/localhost/zones", &apiServerZones);
       registerApiHandler("/servers/localhost", &apiServerDetail);
