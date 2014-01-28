@@ -33,6 +33,27 @@ class Servers(ApiTestCase):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
 
+    @unittest.expectedFailure
+    def test_CreateZoneWithSymbols(self):
+        payload = {
+            'name': 'foo/bar.'+unique_zone_name(),
+            'kind': 'Native',
+            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
+        }
+        expected_id = payload['name']
+        expected_id.replace('/', '\047')
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
+        self.assertEquals(data[k], expected_id)
+
     def test_GetZone(self):
         r = self.session.get(self.url("/servers/localhost/zones"))
         domains = r.json()
