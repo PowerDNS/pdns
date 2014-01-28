@@ -167,6 +167,9 @@ bool Bind2Backend::startTransaction(const string &qname, int id)
     d_transaction_id=id;
     return true;
   }
+  if(id == 0) {
+    throw DBException("domain_id 0 is invalid for this backend.");
+  }
   shared_ptr<State> state = getState(); 
 
   const BB2DomainInfo &bbd=state->id_zone_map[d_transaction_id=id];
@@ -207,7 +210,10 @@ bool Bind2Backend::commitTransaction()
 
 bool Bind2Backend::abortTransaction()
 {
-  if(d_transaction_id >= 0) {
+  // -1 = dnssec speciality
+  // 0  = invalid transact
+  // >0 = actual transaction
+  if(d_transaction_id > 0) {
     delete d_of;
     d_of=0;
     unlink(d_transaction_tmpname.c_str());
