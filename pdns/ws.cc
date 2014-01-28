@@ -580,6 +580,20 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->body = getZone(zonename);
     return;
   }
+  else if(req->method == "DELETE") {
+    // delete domain
+    UeberBackend B;
+    DomainInfo di;
+    if(!B.getDomainInfo(zonename, di))
+      throw ApiException("Could not find domain '"+zonename+"'");
+
+    if(!di.backend->deleteDomain(zonename))
+      throw ApiException("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
+
+    // empty body on success
+    resp->body = "";
+    return;
+  }
 
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
