@@ -46,10 +46,14 @@ int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 // route() makes no assumptions about the contents of variables except
 // that the following URL segment can't be part of the variable.
 //
+// Note: ORDER of registration MATTERS:
+// URLs that do a more specific match should come FIRST.
+//
 // Examples:
-//   registerHandler("/", &index);
-//   registerHandler("/foo", &foo);
 //   registerHandler("/foo/<bar>/<baz>", &foobarbaz);
+//   registerHandler("/foo/<bar>", &foobar);
+//   registerHandler("/foo", &foo);
+//   registerHandler("/", &index);
 void WebServer::registerHandler(const string& url, HandlerFunction handler)
 {
   std::size_t pos = 0, lastpos = 0;

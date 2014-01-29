@@ -174,7 +174,8 @@ namespace YaHTTP {
       }
     }
 
-    if (request->method != "POST") 
+    // skip body for GET
+    if (request->method == "GET")
       return true;
        
     // do we have content-length? 
