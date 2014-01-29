@@ -34,108 +34,33 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "webserver.hh"
 
 using namespace rapidjson;
 
-JWebserver::JWebserver(FDMultiplexer* fdm) : d_fdm(fdm)
+JWebserver::JWebserver(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
-  d_socket = socket(AF_INET6, SOCK_STREAM, 0);
-  if(d_socket<0) {
-    throw PDNSException("Making webserver socket: "+stringerror());
-  }
-  setSocketReusable(d_socket);
-  ComboAddress local("::", 8082);
-  if(bind(d_socket, (struct sockaddr*)&local, local.getSocklen())<0) {
-    throw PDNSException("Binding webserver socket: "+stringerror());
-  }
-  listen(d_socket, 5);
-  
-  d_fdm->addReadFD(d_socket, boost::bind(&JWebserver::newConnection, this));
-}
 
-void JWebserver::readRequest(int fd)
-{
-  char buffer[16384];
-  int res = read(fd, buffer, sizeof(buffer)-1);
-  if(res <= 0) {
-    d_fdm->removeReadFD(fd);
-    close(fd);
+  if(!arg().mustDo("webserver"))
     return;
-  }
-  buffer[res]=0;
 
-  // Note: this code makes it impossible to read the request body.
-  // We'll at least need to wait for two \r\n sets to arrive, parse the
-  // headers, and then read the body (using the supplied Content-Length).
-  char *p = strchr(buffer, '\r');
-  if(p) *p = 0;
+  d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"), arg()["webserver-password"]);
 
-  vector<string> parts;
-  string method, uri;
-  if(strlen(buffer) < 2048) {
-    stringtok(parts, buffer);
-    if(parts.size()>1) {
-      method=parts[0];
-      uri=parts[1];
-    }
-  }
+  // legacy dispatch
+  d_ws->registerApiHandler("/jsonstat", boost::bind(&JWebserver::jsonstat, this, _1, _2));
 
-  string content;
-
-  string status = "200 OK";
-  string headers = "Date: Wed, 30 Nov 2012 22:01:15 GMT\r\n"
-  "Server: PowerDNS Recursor/"VERSION"\r\n"
-  "Connection: keep-alive\r\n";
-
-  if (method != "GET") {
-    status = "400 Bad Request";
-    content = "Your client sent a request this server could not understand.\n";
-  } else {
-    parts.clear();
-    stringtok(parts, uri, "?");
-    map<string, string> varmap;
-    if(parts.size()>1) {
-      vector<string> variables;
-      stringtok(variables, parts[1], "&");
-      BOOST_FOREACH(const string& var, variables) {
-        varmap.insert(splitField(var, '='));
-      }
-    }
-
-    content = handleRequest(method, uri, varmap, headers);
-  }
-
-  const char *headers_append = "Content-Length: %d\r\n\r\n";
-  string reply = "HTTP/1.1 " + status + "\r\n" + headers +
-    (boost::format(headers_append) % content.length()).str() +
-    content;
-
-  Utility::setBlocking(fd);
-  writen2(fd, reply.c_str(), reply.length());
-  Utility::setNonBlocking(fd);
+  d_ws->go();
 }
 
-string JWebserver::handleRequest(const string &method, const string &uri, const map<string,string> &rovarmap, string &headers)
+void JWebserver::jsonstat(HttpRequest* req, HttpResponse *resp)
 {
-  map<string,string> varmap = rovarmap;
-  string callback;
-  if (varmap.count("callback")) {
-    callback = varmap["callback"];
-    varmap.erase("callback");
-  }
   string command;
-  if (varmap.count("command")) {
-    command = varmap["command"];
-    varmap.erase("command");
+
+  if(req->parameters.count("command")) {
+    command = req->parameters["command"];
+    req->parameters.erase("command");
   }
-
-  headers += "Access-Control-Allow-Origin: *\r\n";
-  headers += "Content-Type: application/json\r\n";
-
-  string content;
-  if(!callback.empty())
-    content=callback+"(";
 
   map<string, string> stats; 
   if(command == "domains") {
@@ -162,10 +87,12 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
 
       doc.PushBack(jzone, doc.GetAllocator());
     }
-    content += makeStringFromDocument(doc);
+    resp->body = makeStringFromDocument(doc);
+    return;
   }
   else if(command == "zone") {
-    SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(varmap["zone"]);
+    string arg_zone = req->parameters["zone"];
+    SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(arg_zone);
     if (ret != t_sstorage->domainmap->end()) {
       Document doc;
       doc.SetObject();
@@ -205,48 +132,39 @@ string JWebserver::handleRequest(const string &method, const string &uri, const 
       root.AddMember("records", records, doc.GetAllocator());
 
       doc.AddMember("zone", root, doc.GetAllocator());
-      content += makeStringFromDocument(doc);
+      resp->body = makeStringFromDocument(doc);
+      return;
     } else {
-      content += returnJSONError("Could not find domain '"+varmap["zone"]+"'");
+      resp->body = returnJSONError("Could not find domain '"+arg_zone+"'");
+      return;
     }
   }
   else if(command == "flush-cache") {
-    string canon=toCanonic("", varmap["domain"]);
+    string canon=toCanonic("", req->parameters["domain"]);
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
-    content += returnJSONObject(stats);  
+    resp->body = returnJSONObject(stats);
+    return;
   }
   else if(command == "config") {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
-    content += returnJSONObject(stats);  
+    resp->body = returnJSONObject(stats);
+    return;
   }
   else if(command == "log-grep") {
-    content += makeLogGrepJSON(varmap["needle"], ::arg()["experimental-logfile"], " pdns_recursor[");
-  }
-  else { //  if(command == "stats") {
-    stats = getAllStatsMap();
-    content += returnJSONObject(stats);  
-  } 
-
-  if(!callback.empty())
-    content += ");";
-
-  return content;
-}
-
-void JWebserver::newConnection()
-{
-  ComboAddress remote;
-  remote.sin4.sin_family=AF_INET6;
-  socklen_t remlen = remote.getSocklen();
-  int sock = accept(d_socket, (struct sockaddr*) &remote, &remlen);
-  if(sock < 0)
+    resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns_recursor[");
     return;
-    
-  Utility::setNonBlocking(sock);
-  d_fdm->addReadFD(sock, boost::bind(&JWebserver::readRequest, this, _1));
+  }
+  else if(command == "stats") {
+    stats = getAllStatsMap();
+    resp->body = returnJSONObject(stats);
+    return;
+  } else {
+    resp->status = 404;
+    resp->body = returnJSONError("Not found");
+  }
 }

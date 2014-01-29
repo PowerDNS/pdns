@@ -29,10 +29,13 @@
 #include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
+#include "mplexer.hh"
+
+const char* INVALID_REQUEST_RESPONSE = "HTTP/1.0 400 Bad Request\r\nConnection: close\r\n\r\nYour Browser sent a request that this server failed to understand.\r\n";
 
 struct connectionThreadData {
   WebServer* webServer;
-  Session* client;
+  Session client;
 };
 
 int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
@@ -83,6 +86,38 @@ void WebServer::registerHandler(const string& url, HandlerFunction handler)
   d_handlers.push_back(reg);
 }
 
+static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler, HttpRequest* req, HttpResponse* resp) {
+  resp->headers["Access-Control-Allow-Origin"] = "*";
+  resp->headers["Content-Type"] = "application/json";
+
+  string callback;
+
+  if(req->parameters.count("callback")) {
+    callback=req->parameters["callback"];
+    req->parameters.erase("callback");
+  }
+
+  req->parameters.erase("_"); // jQuery cache buster
+
+  try {
+    handler(req, resp);
+  } catch (ApiException &e) {
+    string what = e.what();
+    resp->body = returnJSONError(what);
+    resp->status = 422;
+    return;
+  }
+
+  if(!callback.empty()) {
+    resp->body = callback + "(" + resp->body + ");";
+  }
+}
+
+void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
+  HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
+  registerHandler(url, f);
+}
+
 bool WebServer::route(const std::string& url, std::map<std::string, std::string>& pathArgs, HandlerFunction** handler)
 {
   for (std::list<HandlerRegistration>::iterator reg=d_handlers.begin(); reg != d_handlers.end(); ++reg) {
@@ -128,8 +163,7 @@ static void *WebServerConnectionThreadStart(void *p) {
   pthread_detach(pthread_self());
   data->webServer->serveConnection(data->client);
 
-  data->client->close();
-  delete data->client;
+  data->client.close();
 
   delete data;
 
@@ -204,19 +238,19 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   return resp;
 }
 
-void WebServer::serveConnection(Session* client)
+void WebServer::serveConnection(Session client)
 try {
   HttpRequest req;
   YaHTTP::AsyncRequestLoader yarl(&req);
 
-  client->setTimeout(5);
+  client.setTimeout(5);
 
   bool complete = false;
   try {
-    while(client->good()) {
+    while(client.good()) {
       int bytes;
       char buf[1024];
-      bytes = client->read(buf, sizeof(buf));
+      bytes = client.read(buf, sizeof(buf));
       if (bytes) {
         string data = string(buf, bytes);
         if (yarl.feed(data)) {
@@ -230,14 +264,14 @@ try {
   }
 
   if (!complete) {
-    client->put("HTTP/1.0 400 Bad Request\r\nConnection: close\r\n\r\nYour Browser sent a request that this server failed to understand.\r\n");
+    client.put(INVALID_REQUEST_RESPONSE);
     return;
   }
 
   HttpResponse resp = WebServer::handleRequest(req);
   ostringstream ss;
   resp.write(ss);
-  client->put(ss.str());
+  client.put(ss.str());
 }
 catch(SessionTimeoutException &e) {
   // L<<Logger::Error<<"Timeout in webserver"<<endl;
@@ -271,16 +305,15 @@ void WebServer::go()
   if(!d_server)
     return;
   try {
-    Session *client;
     pthread_t tid;
     
     L<<Logger::Error<<"Launched webserver on " << d_server->d_local.toStringWithPort() <<endl;
 
-    while((client=d_server->accept())) {
+    while(true) {
       // will be freed by thread
       connectionThreadData *data = new connectionThreadData;
       data->webServer = this;
-      data->client = client;
+      data->client = d_server->accept();
       pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
     }
   }
@@ -298,4 +331,73 @@ void WebServer::go()
   }
   exit(1);
 
+}
+
+void AsyncWebServer::go()
+{
+  if (!d_server)
+    return;
+
+  d_server->asyncWaitForConnections(d_fdm, boost::bind(&AsyncWebServer::newConnection, this, _1));
+}
+
+void AsyncWebServer::newConnection(Session session)
+{
+  int fd = session.getSocket();
+  Utility::setNonBlocking(fd);
+  d_fdm->addReadFD(fd, boost::bind(&AsyncWebServer::serveConnection, this, session));
+}
+
+void AsyncWebServer::serveConnection(Session session)
+{
+  int fd = session.getSocket();
+  d_fdm->removeReadFD(fd);
+
+  try {
+    char buffer[16384];
+    int res = read(fd, buffer, sizeof(buffer)-1);
+    if (res <= 0) {
+      throw PDNSException("Reading from client failed");
+      return;
+    }
+    buffer[res]=0;
+
+    HttpRequest req;
+    YaHTTP::AsyncRequestLoader yarl(&req);
+
+    bool complete = false;
+    string reply;
+
+    try {
+      if (yarl.feed(buffer)) {
+        complete = true;
+      }
+    } catch (YaHTTP::ParseError &e) {
+      complete = false;
+    }
+
+    if (complete) {
+      HttpResponse resp = handleRequest(req);
+      ostringstream ss;
+      resp.write(ss);
+      reply = ss.str();
+    } else {
+      reply = INVALID_REQUEST_RESPONSE;
+    }
+
+    Utility::setBlocking(fd);
+    writen2(fd, reply.c_str(), reply.length());
+    Utility::setNonBlocking(fd);
+  }
+  catch(PDNSException &e) {
+    L<<Logger::Error<<"Exception in webserver: "<<e.reason<<endl;
+  }
+  catch(std::exception &e) {
+    L<<Logger::Error<<"STL Exception in webserver: "<<e.what()<<endl;
+  }
+  catch(...) {
+    L<<Logger::Error<<"Unknown exception in webserver"<<endl;
+  }
+
+  close(fd);
 }

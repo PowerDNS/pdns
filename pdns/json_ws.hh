@@ -22,17 +22,16 @@
 #include <boost/utility.hpp> 
 #include "namespaces.hh"
 #include "mplexer.hh"
+#include "webserver.hh"
 
 class JWebserver : public boost::noncopyable
 {
-  public:
-    explicit JWebserver(FDMultiplexer* fdm);
-    void newConnection();
-    void readRequest(int fd);
-    string handleRequest(const string &method, const string &uri, const map<string,string> &varmap, string &headers);
-  private:
-    FDMultiplexer* d_fdm;
-    int d_socket;
+public:
+  explicit JWebserver(FDMultiplexer* fdm);
+  void jsonstat(HttpRequest* req, HttpResponse *resp);
+
+private:
+  AsyncWebServer* d_ws;
 };
 
 string returnJSONStats(const map<string, string>& items);

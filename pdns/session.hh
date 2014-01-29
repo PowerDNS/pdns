@@ -37,6 +37,7 @@
 
 #include "iputils.hh"
 #include "pdnsexception.hh"
+#include "mplexer.hh"
 
 class SessionException: public PDNSException
 {
@@ -58,7 +59,7 @@ public:
   bool good();
   size_t read(char* buf, size_t len);
 
-  Session(int s, struct sockaddr_in r); //!< Start a session on an existing socket, and inform this class of the remotes name
+  Session(int s, ComboAddress r); //!< Start a session on an existing socket, and inform this class of the remotes name
 
   /** Create a session to a remote host and port. This function reads a timeout value from the ArgvMap class 
       and does a nonblocking connect to support this timeout. It should be noted that nonblocking connects 
@@ -66,6 +67,7 @@ public:
   Session(const string &remote, int port, int timeout=0); 
 
   Session(const Session &s); 
+  Session();
   
   ~Session();
   int getSocket(); //!< return the filedescriptor for layering violations
@@ -73,8 +75,7 @@ public:
   void setTimeout(unsigned int seconds);
 private:
   int d_socket;
-  struct sockaddr_in d_remote;
-  void init();
+  ComboAddress d_remote;
   int d_timeout;
   bool d_good;
 };
@@ -84,11 +85,17 @@ class Server
 {
 public:
   Server(const string &localaddress, int port);
-  Session* accept(); //!< Call accept() in an endless loop to accept new connections
   ComboAddress d_local;
+
+  Session accept(); //!< Call accept() in an endless loop to accept new connections
+
+  typedef boost::function< void(Session) > newconnectioncb_t;
+  void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
 
 private:
   int s;
+  void asyncNewConnection();
+  newconnectioncb_t d_asyncNewConnectionCallback;
 };
 
 #endif /* SESSION_HH */

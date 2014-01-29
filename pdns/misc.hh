@@ -462,12 +462,6 @@ inline string toCanonic(const string& zone, const string& domain)
   return ret;
 }
 
-inline void setSocketReusable(int fd)
-{
-  int tmp=1;
-  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp));
-}
-
 string stripDot(const string& dom);
 void seedRandom(const string& source);
 string makeRelative(const std::string& fqdn, const std::string& zone);

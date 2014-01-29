@@ -1,6 +1,8 @@
 
 AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include -Iext/yahttp
 
+YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
+
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
@@ -63,7 +65,7 @@ version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh
 
 
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
-pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) -Lext/yahttp/yahttp -lyahttp
+pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
@@ -282,10 +284,10 @@ rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc ht
 dns_random.cc \
 lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh json_ws.cc json_ws.hh \
-json.cc json.hh version.hh version.cc responsestats.cc
+json.cc json.hh version.hh version.cc responsestats.cc webserver.cc webserver.hh session.cc session.hh
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
-pdns_recursor_LDADD= $(POLARSSL_LIBS)
+pdns_recursor_LDADD= $(POLARSSL_LIBS) $(YAHTTP_LIBS)
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
 misc.cc unix_utility.cc qtype.cc

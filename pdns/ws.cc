@@ -44,13 +44,6 @@ extern StatBag S;
 
 typedef map<string,string> varmap_t;
 
-class ApiException : public runtime_error
-{
-public:
-  ApiException(const string& what) : runtime_error(what) {
-  }
-};
-
 StatWebServer::StatWebServer()
 {
   d_start=time(0);
@@ -778,38 +771,6 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
   return;
 }
 
-static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler, HttpRequest* req, HttpResponse* resp) {
-  resp->headers["Access-Control-Allow-Origin"] = "*";
-  resp->headers["Content-Type"] = "application/json";
-
-  string callback;
-
-  if(req->parameters.count("callback")) {
-    callback=req->parameters["callback"];
-    req->parameters.erase("callback");
-  }
-  
-  req->parameters.erase("_"); // jQuery cache buster
-
-  try {
-    handler(req, resp);
-  } catch (ApiException &e) {
-    string what = e.what();
-    resp->body = returnJSONError(what);
-    resp->status = 422;
-    return;
-  }
-
-  if(!callback.empty()) {
-    resp->body = callback + "(" + resp->body + ");";
-  }
-}
-
-void StatWebServer::registerApiHandler(const string& url, boost::function<void(HttpRequest*,HttpResponse*)> handler) {
-  WebServer::HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
-  d_ws->registerHandler(url, f);
-}
-
 void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
@@ -849,16 +810,16 @@ void StatWebServer::launch()
 {
   try {
     if(::arg().mustDo("experimental-json-interface")) {
-      registerApiHandler("/servers/localhost/config", &apiServerConfig);
-      registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-      registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-      registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
-      registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
-      registerApiHandler("/servers/localhost/zones", &apiServerZones);
-      registerApiHandler("/servers/localhost", &apiServerDetail);
-      registerApiHandler("/servers", &apiServer);
+      d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
+      d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+      d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
+      d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
+      d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
+      d_ws->registerApiHandler("/servers", &apiServer);
       // legacy dispatch
-      registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
+      d_ws->registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
     }
     d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
     d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));

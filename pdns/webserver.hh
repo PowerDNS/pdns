@@ -24,7 +24,8 @@
 #include <map>
 #include <string>
 #include <list>
-#include "yahttp/yahttp.hpp"
+#include <boost/utility.hpp>
+#include <yahttp/yahttp.hpp>
 
 #include "namespaces.hh"
 class Server;
@@ -87,14 +88,20 @@ public:
   HttpMethodNotAllowedException() : HttpException(405) { };
 };
 
+class ApiException : public runtime_error
+{
+public:
+  ApiException(const string& what) : runtime_error(what) {
+  }
+};
 
-class WebServer
+class WebServer : public boost::noncopyable
 {
 public:
   WebServer(const string &listenaddress, int port, const string &password="");
   void go();
 
-  void serveConnection(Session* client);
+  void serveConnection(Session client);
   HttpResponse handleRequest(HttpRequest request);
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
@@ -105,8 +112,9 @@ public:
   };
 
   void registerHandler(const string& url, HandlerFunction handler);
+  void registerApiHandler(const string& url, HandlerFunction handler);
 
-private:
+protected:
   static char B64Decode1(char cInChar);
   static int B64Decode(const std::string& strInput, std::string& strOutput);
   bool route(const std::string& url, std::map<std::string, std::string>& urlArgs, HandlerFunction** handler);
@@ -117,4 +125,21 @@ private:
   string d_password;
   Server* d_server;
 };
+
+class FDMultiplexer;
+
+class AsyncWebServer : public WebServer
+{
+public:
+  AsyncWebServer(FDMultiplexer* fdm, const string &listenaddress, int port, const string &password="") :
+    WebServer(listenaddress, port, password), d_fdm(fdm) { };
+  void go();
+
+private:
+  FDMultiplexer* d_fdm;
+
+  void newConnection(Session session);
+  void serveConnection(Session session);
+};
+
 #endif /* WEBSERVER_HH */
