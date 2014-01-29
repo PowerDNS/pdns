@@ -16,18 +16,25 @@ class Servers(ApiTestCase):
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, example_com)
 
-    def test_CreateZone(self):
+    def create_zone(self, name=None, nameservers=None):
+        if name is None:
+            name = unique_zone_name()
         payload = {
-            'name': unique_zone_name(),
+            'name': name,
             'kind': 'Native',
-            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
+            'nameservers': ['ns1.example.com', 'ns2.example.com']
         }
+        if nameservers is not None:
+            payload['nameservers'] = nameservers
         r = self.session.post(
             self.url("/servers/localhost/zones"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
-        data = r.json()
+        return (payload, r.json())
+
+    def test_CreateZone(self):
+        payload, data = self.create_zone()
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
             if k in payload:
@@ -35,24 +42,14 @@ class Servers(ApiTestCase):
 
     @unittest.expectedFailure
     def test_CreateZoneWithSymbols(self):
-        payload = {
-            'name': 'foo/bar.'+unique_zone_name(),
-            'kind': 'Native',
-            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
-        }
-        expected_id = payload['name']
-        expected_id.replace('/', '\047')
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
-        data = r.json()
+        payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
+        name = payload['name']
+        expected_id = name.replace('/', '\\047')
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
-        self.assertEquals(data[k], expected_id)
+        self.assertEquals(data['id'], expected_id)
 
     def test_GetZone(self):
         r = self.session.get(self.url("/servers/localhost/zones"))
@@ -66,18 +63,8 @@ class Servers(ApiTestCase):
         self.assertEquals(data['name'], 'example.com')
 
     def test_UpdateZone(self):
-        # create
-        name = unique_zone_name()
-        payload = {
-            'name': name,
-            'kind': 'Native',
-            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
+        payload, zone = self.create_zone()
+        name = payload['name']
         # update, set as Master
         payload = {
             'kind': 'Master',
@@ -107,18 +94,8 @@ class Servers(ApiTestCase):
             self.assertEquals(data[k], payload[k])
 
     def test_ZoneRRUpdate(self):
-        # create
-        name = unique_zone_name()
-        payload = {
-            'name': name,
-            'kind': 'Native',
-            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
+        payload, zone = self.create_zone()
+        name = payload['name']
         # do a replace (= update)
         payload = {
             'changetype': 'replace',
@@ -149,18 +126,8 @@ class Servers(ApiTestCase):
         self.assertEquals(recs, payload['records'])
 
     def test_ZoneRRDelete(self):
-        # create
-        name = unique_zone_name()
-        payload = {
-            'name': name,
-            'kind': 'Native',
-            'nameservers': ['ns1.foo.com', 'ns2.foo.com']
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
+        payload, zone = self.create_zone()
+        name = payload['name']
         # do a delete of all NS records (these are created with the zone)
         payload = {
             'changetype': 'delete',
