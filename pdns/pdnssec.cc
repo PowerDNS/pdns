@@ -29,7 +29,7 @@ po::variables_map g_vm;
 string s_programname="pdns";
 
 namespace {
-  bool g_verbose; // doesn't yet do anything though
+  bool g_verbose;
 }
 
 ArgvMap &arg()
