@@ -24,10 +24,15 @@
 
 #include "namespaces.hh"
 
+enum ProductType { ProductAuthoritative, ProductRecursor };
+
 string compilerVersion();
 void showProductVersion();
 void showBuildConfiguration();
 string fullVersionString();
-void versionSetProduct(string product);
+string productName();
+string productTypeApiType();
+void versionSetProduct(ProductType pt);
+ProductType versionGetProduct();
 
 #endif //!VERSION_HH

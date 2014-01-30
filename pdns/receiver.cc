@@ -405,7 +405,7 @@ static void tbhandler(int num)
 //! The main function of pdns, the pdns process
 int main(int argc, char **argv)
 {
-  versionSetProduct("Authoritative Server");
+  versionSetProduct(ProductAuthoritative);
   reportAllTypes(); // init MOADNSParser
 
   // Even if PDNS is not deamonized it must be

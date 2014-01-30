@@ -2007,7 +2007,7 @@ int main(int argc, char **argv)
   g_argc = argc;
   g_argv = argv;
   g_stats.startupTime=time(0);
-  versionSetProduct("Recursor");
+  versionSetProduct(ProductRecursor);
   reportBasicTypes();
   reportOtherTypes();
 

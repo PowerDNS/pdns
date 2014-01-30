@@ -374,11 +374,12 @@ static string getZone(const string& zonename) {
 }
 
 static void fillServerDetail(Value& out, Value::AllocatorType& allocator) {
+  Value jdaemonType(productTypeApiType().c_str(), allocator);
   out.SetObject();
   out.AddMember("type", "Server", allocator);
   out.AddMember("id", "localhost", allocator);
   out.AddMember("url", "/servers/localhost", allocator);
-  out.AddMember("daemon_type", "authoritative", allocator);
+  out.AddMember("daemon_type", jdaemonType, allocator);
   out.AddMember("version", VERSION, allocator);
   out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
   out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
