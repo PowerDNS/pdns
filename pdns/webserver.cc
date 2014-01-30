@@ -38,6 +38,13 @@ struct connectionThreadData {
   Session client;
 };
 
+void HttpRequest::json(rapidjson::Document& document)
+{
+  if(document.Parse<0>(this->body.c_str()).HasParseError()) {
+    throw HttpBadRequestException();
+  }
+}
+
 int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 {
   return ::B64Decode(strInput, strOutput);
@@ -102,8 +109,11 @@ static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler
   try {
     handler(req, resp);
   } catch (ApiException &e) {
-    string what = e.what();
-    resp->body = returnJSONError(what);
+    resp->body = returnJsonError(e.what());
+    resp->status = 422;
+    return;
+  } catch (JsonException &e) {
+    resp->body = returnJsonError(e.what());
     resp->status = 422;
     return;
   }
@@ -224,7 +234,7 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
       resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
     } else if (req.accept_json) {
       resp.headers["Content-Type"] = "application/json";
-      resp.body = returnJSONError(what);
+      resp.body = returnJsonError(what);
     } else {
       resp.headers["Content-Type"] = "text/plain; charset=utf-8";
       resp.body = what;

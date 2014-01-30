@@ -22,7 +22,10 @@
 #include <boost/utility.hpp> 
 #include "namespaces.hh"
 #include "mplexer.hh"
-#include "webserver.hh"
+
+class AsyncWebServer;
+class HttpRequest;
+class HttpResponse;
 
 class RecursorWebServer : public boost::noncopyable
 {

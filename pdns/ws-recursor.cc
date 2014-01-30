@@ -3,7 +3,7 @@
     Copyright (C) 2003 - 2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
+    it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
 
     Additionally, the license of this program contains a special
@@ -30,13 +30,19 @@
 #include "arguments.hh"
 #include "misc.hh"
 #include "syncres.hh"
-#include "config.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "webserver.hh"
+#include "ws-api.hh"
 
 using namespace rapidjson;
+
+void productServerStatisticsFetch(map<string,string>& out)
+{
+  map<string,string> stats = getAllStatsMap();
+  out.swap(stats);
+}
 
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
@@ -49,6 +55,11 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
+  d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
+  d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+  d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+  d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
+  d_ws->registerApiHandler("/servers", &apiServer);
 
   d_ws->go();
 }
@@ -135,7 +146,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       resp->body = makeStringFromDocument(doc);
       return;
     } else {
-      resp->body = returnJSONError("Could not find domain '"+arg_zone+"'");
+      resp->body = returnJsonError("Could not find domain '"+arg_zone+"'");
       return;
     }
   }
@@ -144,7 +155,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
-    resp->body = returnJSONObject(stats);
+    resp->body = returnJsonObject(stats);
     return;
   }
   else if(command == "config") {
@@ -152,19 +163,21 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     BOOST_FOREACH(const string& var, items) {
       stats[var] = ::arg()[var];
     }
-    resp->body = returnJSONObject(stats);
+    resp->body = returnJsonObject(stats);
     return;
   }
   else if(command == "log-grep") {
-    resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns_recursor[");
+    // legacy parameter name hack
+    req->parameters["q"] = req->parameters["needle"];
+    apiServerSearchLog(req, resp);
     return;
   }
   else if(command == "stats") {
     stats = getAllStatsMap();
-    resp->body = returnJSONObject(stats);
+    resp->body = returnJsonObject(stats);
     return;
   } else {
     resp->status = 404;
-    resp->body = returnJSONError("Not found");
+    resp->body = returnJsonError("Not found");
   }
 }

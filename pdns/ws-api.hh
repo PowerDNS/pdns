@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002-2012  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -19,24 +19,17 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#pragma once // it is 2012, deal with it
-
-#include <string>
 #include <map>
-#include <stdexcept>
 #include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+#include "webserver.hh"
 
-std::string returnJsonObject(const std::map<std::string, std::string>& items);
-std::string returnJsonError(const std::string& error);
-std::string makeStringFromDocument(const rapidjson::Document& doc);
-int intFromJson(const rapidjson::Value& container, const char* key);
-int intFromJson(const rapidjson::Value& container, const char* key, const int default_value);
-std::string stringFromJson(const rapidjson::Value& container, const char* key);
-std::string stringFromJson(const rapidjson::Value& container, const char* key, const std::string& default_value);
+void apiServer(HttpRequest* req, HttpResponse* resp);
+void apiServerDetail(HttpRequest* req, HttpResponse* resp);
+void apiServerConfig(HttpRequest* req, HttpResponse* resp);
+void apiServerSearchLog(HttpRequest* req, HttpResponse* resp);
+void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
-class JsonException : public std::runtime_error
-{
-public:
-  JsonException(const std::string& what) : std::runtime_error(what) {
-  }
-};
+// To be provided by product code.
+void productServerStatisticsFetch(std::map<string,string>& out);

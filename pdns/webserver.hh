@@ -26,8 +26,11 @@
 #include <list>
 #include <boost/utility.hpp>
 #include <yahttp/yahttp.hpp>
-
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "namespaces.hh"
+
 class Server;
 class Session;
 
@@ -38,6 +41,7 @@ public:
   map<string,string> path_parameters;
   bool accept_json;
   bool accept_html;
+  void json(rapidjson::Document& document);
 };
 
 class HttpResponse: public YaHTTP::Response {

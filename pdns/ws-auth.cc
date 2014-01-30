@@ -1,8 +1,8 @@
 /*
-    Copyright (C) 2002 - 2012  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
+    it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
 
     Additionally, the license of this program contains a special
@@ -36,13 +36,12 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "ws-api.hh"
 #include "version.hh"
 
 using namespace rapidjson;
 
 extern StatBag S;
-
-typedef map<string,string> varmap_t;
 
 AuthWebServer::AuthWebServer()
 {
@@ -272,59 +271,11 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   resp->body = ret.str();
 }
 
-static void parseJsonBody(HttpRequest* req, rapidjson::Document& document) {
-  if(document.Parse<0>(req->body.c_str()).HasParseError()) {
-    throw HttpBadRequestException();
-  }
-}
-
-static int intFromJson(const Value& container, const char* key) {
-  const Value& val = container[key];
-  if (val.IsInt()) {
-    return val.GetInt();
-  } else if (val.IsString()) {
-    return atoi(val.GetString());
-  } else {
-    throw ApiException("Key '" + string(key) + "' not an Integer or not present");
-  }
-}
-
-static int intFromJson(const Value& container, const char* key, const int default_value) {
-  const Value& val = container[key];
-  if (val.IsInt()) {
-    return val.GetInt();
-  } else if (val.IsString()) {
-    return atoi(val.GetString());
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
-}
-
-static string stringFromJson(const Value& container, const char* key) {
-  const Value& val = container[key];
-  if (val.IsString()) {
-    return val.GetString();
-  } else {
-    throw ApiException("Key '" + string(key) + "' not present or not a String");
-  }
-}
-
-static string stringFromJson(const Value& container, const char* key, const string default_value) {
-  const Value& val = container[key];
-  if (val.IsString()) {
-    return val.GetString();
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
-}
-
 static string getZone(const string& zonename) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    return returnJSONError("Could not find domain '"+zonename+"'");
+    return returnJsonError("Could not find domain '"+zonename+"'");
 
   Document doc;
   doc.SetObject();
@@ -373,115 +324,15 @@ static string getZone(const string& zonename) {
   return makeStringFromDocument(doc);
 }
 
-static void fillServerDetail(Value& out, Value::AllocatorType& allocator) {
-  Value jdaemonType(productTypeApiType().c_str(), allocator);
-  out.SetObject();
-  out.AddMember("type", "Server", allocator);
-  out.AddMember("id", "localhost", allocator);
-  out.AddMember("url", "/servers/localhost", allocator);
-  out.AddMember("daemon_type", jdaemonType, allocator);
-  out.AddMember("version", VERSION, allocator);
-  out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
-  out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
-}
-
-static void apiServer(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
-  Document doc;
-  doc.SetArray();
-  Value server;
-  fillServerDetail(server, doc.GetAllocator());
-  doc.PushBack(server, doc.GetAllocator());
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
-  Document doc;
-  fillServerDetail(doc, doc.GetAllocator());
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
-  string value;
-  Document doc;
-  doc.SetArray();
-  BOOST_FOREACH(const string& item, items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    if(item.find("password") != string::npos)
-      value = "***";
-    else
-      value = ::arg()[item];
-
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
-  }
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void productServerStatisticsFetch(map<string,string>& out)
+{
   vector<string> items = S.getEntries();
-  string value;
-  Document doc;
-  doc.SetArray();
   BOOST_FOREACH(const string& item, items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    value = lexical_cast<string>(S.read(item));
-
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+    out[item] = lexical_cast<string>(S.read(item));
   }
 
   // add uptime
-  // TODO: this is a hack. should we move this elsewhere?
-  {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-    jitem.AddMember("name", "uptime", doc.GetAllocator());
-    value = lexical_cast<string>(time(0) - s_starttime);
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-    doc.PushBack(jitem, doc.GetAllocator());
-  }
-
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  resp->body = makeLogGrepJSON(req->parameters["q"], ::arg()["experimental-logfile"], " pdns[");
+  out["uptime"] = lexical_cast<string>(time(0) - s_starttime);
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
@@ -489,7 +340,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   if (req->method == "POST") {
     DomainInfo di;
     Document document;
-    parseJsonBody(req, document);
+    req->json(document);
     string zonename = stringFromJson(document, "name");
     // TODO: better validation of zonename
     if(zonename.empty())
@@ -602,7 +453,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Could not find domain '"+zonename+"'");
 
     Document document;
-    parseJsonBody(req, document);
+    req->json(document);
 
     string master;
     const Value &masters = document["masters"];
@@ -655,7 +506,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Could not find domain '"+zonename+"'");
 
   Document document;
-  parseJsonBody(req, document);
+  req->json(document);
 
   string qname, changetype;
   QType qtype;
@@ -730,7 +581,7 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
     //cerr<<"Flushed cache for '"<<parameters["domain"]<<"', cleaned "<<number<<" records"<<endl;
-    resp->body = returnJSONObject(object);
+    resp->body = returnJsonObject(object);
     return;
   }
   else if(command == "pdns-control") {
@@ -738,11 +589,7 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
       throw HttpMethodNotAllowedException();
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
-    if(document.Parse<0>(req->body.c_str()).HasParseError()) {
-      resp->status = 400;
-      resp->body = returnJSONError("Unable to parse JSON");
-      return;
-    }
+    req->json(document);
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
     stringtok(parameters, document["parameters"].GetString(), " \t");
@@ -758,15 +605,17 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
       resp->status = 404;
       m["error"]="No such function "+toUpper(parameters[0]);
     }
-    resp->body = returnJSONObject(m);
+    resp->body = returnJsonObject(m);
     return;
   }
   else if(command=="log-grep") {
-    resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns[");
+    // legacy parameter name hack
+    req->parameters["q"] = req->parameters["needle"];
+    apiServerSearchLog(req, resp);
     return;
   }
 
-  resp->body = returnJSONError("No or unknown command given");
+  resp->body = returnJsonError("No or unknown command given");
   resp->status = 404;
   return;
 }
