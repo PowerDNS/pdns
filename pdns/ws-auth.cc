@@ -44,7 +44,7 @@ extern StatBag S;
 
 typedef map<string,string> varmap_t;
 
-StatWebServer::StatWebServer()
+AuthWebServer::AuthWebServer()
 {
   d_start=time(0);
   d_min10=d_min5=d_min1=0;
@@ -54,17 +54,17 @@ StatWebServer::StatWebServer()
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
 }
 
-void StatWebServer::go()
+void AuthWebServer::go()
 {
   if(arg().mustDo("webserver"))
   {
     S.doRings();
-    pthread_create(&d_tid, 0, threadHelper, this);
+    pthread_create(&d_tid, 0, webThreadHelper, this);
     pthread_create(&d_tid, 0, statThreadHelper, this);
   }
 }
 
-void StatWebServer::statThread()
+void AuthWebServer::statThread()
 {
   try {
     for(;;) {
@@ -82,18 +82,17 @@ void StatWebServer::statThread()
   }
 }
 
-void *StatWebServer::statThreadHelper(void *p)
+void *AuthWebServer::statThreadHelper(void *p)
 {
-  StatWebServer *sws=static_cast<StatWebServer *>(p);
-  sws->statThread();
+  AuthWebServer *self=static_cast<AuthWebServer *>(p);
+  self->statThread();
   return 0; // never reached
 }
 
-
-void *StatWebServer::threadHelper(void *p)
+void *AuthWebServer::webThreadHelper(void *p)
 {
-  StatWebServer *sws=static_cast<StatWebServer *>(p);
-  sws->launch();
+  AuthWebServer *self=static_cast<AuthWebServer *>(p);
+  self->webThread();
   return 0; // never reached
 }
 
@@ -147,18 +146,18 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
   int printed=0;
   int total=max(1,tot);
   for(vector<pair<string,unsigned int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
-    ret<<"<tr><td>"<<htmlescape(i->first)<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
+    ret<<"<tr><td>"<<htmlescape(i->first)<<"</td><td>"<<i->second<<"</td><td align=right>"<< AuthWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
   if(printed!=tot)
-    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< StatWebServer::makePercentage((tot-printed)*100.0/total)<<"</b></td>"<<endl;
+    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< AuthWebServer::makePercentage((tot-printed)*100.0/total)<<"</b></td>"<<endl;
 
   ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</b></td><td align=right><b>100%</b></td>";
   ret<<"</table></div>"<<endl;
 }
 
-void StatWebServer::printvars(ostringstream &ret)
+void AuthWebServer::printvars(ostringstream &ret)
 {
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
@@ -170,7 +169,7 @@ void StatWebServer::printvars(ostringstream &ret)
   ret<<"</table></div>"<<endl;
 }
 
-void StatWebServer::printargs(ostringstream &ret)
+void AuthWebServer::printargs(ostringstream &ret)
 {
   ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
 
@@ -180,12 +179,12 @@ void StatWebServer::printargs(ostringstream &ret)
   }
 }
 
-string StatWebServer::makePercentage(const double& val)
+string AuthWebServer::makePercentage(const double& val)
 {
   return (boost::format("%.01f%%") % val).str();
 }
 
-void StatWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
   if(!req->parameters["resetring"].empty()) {
     if (S.ringExists(req->parameters["resetring"]))
@@ -710,7 +709,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   resp->body = "{}";
 }
 
-void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
 
@@ -771,7 +770,7 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
   return;
 }
 
-void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
   resp->headers["Content-Type"] = "text/css";
@@ -806,7 +805,7 @@ void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
   resp->body = ret.str();
 }
 
-void StatWebServer::launch()
+void AuthWebServer::webThread()
 {
   try {
     if(::arg().mustDo("experimental-json-interface")) {
@@ -819,14 +818,14 @@ void StatWebServer::launch()
       d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
       d_ws->registerApiHandler("/servers", &apiServer);
       // legacy dispatch
-      d_ws->registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
+      d_ws->registerApiHandler("/jsonstat", boost::bind(&AuthWebServer::jsonstat, this, _1, _2));
     }
-    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
-    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
+    d_ws->registerHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
+    d_ws->registerHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
     d_ws->go();
   }
   catch(...) {
-    L<<Logger::Error<<"StatWebserver thread caught an exception, dying"<<endl;
+    L<<Logger::Error<<"AuthWebServer thread caught an exception, dying"<<endl;
     exit(1);
   }
 }

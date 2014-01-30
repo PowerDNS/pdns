@@ -369,7 +369,7 @@ void mainthread()
      Utility::dropGroupPrivs(newuid, newgid);
    }
 
-  StatWebServer sws;
+  AuthWebServer webserver;
   Utility::dropUserPrivs(newuid);
 
   if(::arg().mustDo("recursor")){
@@ -383,8 +383,8 @@ void mainthread()
   pthread_t qtid;
 
   if(::arg().mustDo("webserver"))
-    sws.go();
-  
+    webserver.go();
+
   if(::arg().mustDo("slave") || ::arg().mustDo("master"))
     Communicator.go(); 
 

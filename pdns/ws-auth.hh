@@ -79,15 +79,15 @@ class WebServer;
 class HttpRequest;
 class HttpResponse;
 
-class StatWebServer
+class AuthWebServer
 {
 public:
-  StatWebServer();
+  AuthWebServer();
   void go();
   static string makePercentage(const double& val);
 
 private:
-  static void *threadHelper(void *);
+  static void *webThreadHelper(void *);
   static void *statThreadHelper(void *p);
   void indexfunction(HttpRequest* req, HttpResponse* resp);
   void cssfunction(HttpRequest* req, HttpResponse* resp);
@@ -95,7 +95,7 @@ private:
   void registerApiHandler(const string& url, boost::function<void(HttpRequest*, HttpResponse*)> handler);
   void printvars(ostringstream &ret);
   void printargs(ostringstream &ret);
-  void launch();
+  void webThread();
   void statThread();
   pthread_t d_tid;
 
