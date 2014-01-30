@@ -20,7 +20,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "common_startup.hh"
-#include "ws.hh"
+#include "ws-auth.hh"
 
 bool g_anyToTcp;
 bool g_addSuperfluousNSEC3;

@@ -20,7 +20,7 @@
 */
 #include "utility.hh"
 #include "dynlistener.hh"
-#include "ws.hh"
+#include "ws-auth.hh"
 #include "json.hh"
 #include "webserver.hh"
 #include "logger.hh"

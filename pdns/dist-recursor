@@ -35,7 +35,7 @@ base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
-dnslabeltext.cc json.cc json_ws.cc json_ws.hh version.cc dns_random.cc \
+dnslabeltext.cc json.cc ws-recursor.cc ws-recursor.hh version.cc dns_random.cc \
 responsestats.cc webserver.cc session.cc"
 
 cd docs

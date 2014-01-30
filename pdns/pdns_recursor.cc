@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <boost/foreach.hpp>
-#include "json_ws.hh"
+#include "ws-recursor.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"
 #include "utility.hh" 

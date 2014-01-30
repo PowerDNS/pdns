@@ -44,7 +44,7 @@ qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
 packetcache.cc statbag.cc pdnsexception.hh arguments.hh distributor.hh \
 dns.hh dnsbackend.hh dnsbackend.cc dnspacket.hh dynmessenger.hh lock.hh logger.hh \
 nameserver.hh packetcache.hh packethandler.hh qtype.hh statbag.hh \
-ueberbackend.hh pdns.conf-dist ws.hh ws.cc webserver.cc webserver.hh \
+ueberbackend.hh pdns.conf-dist ws-auth.hh ws-auth.cc webserver.cc webserver.hh \
 session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.cc communicator.hh dnsproxy.cc \
@@ -283,7 +283,7 @@ base64.cc base64.hh zoneparser-tng.cc zoneparser-tng.hh rec_channel.cc rec_chann
 rec_channel_rec.cc selectmplexer.cc epollmplexer.cc sillyrecords.cc htimer.cc htimer.hh \
 dns_random.cc \
 lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
-recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh json_ws.cc json_ws.hh \
+recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh ws-recursor.cc ws-recursor.hh \
 json.cc json.hh version.hh version.cc responsestats.cc webserver.cc webserver.hh session.cc session.hh
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)

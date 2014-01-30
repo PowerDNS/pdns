@@ -56,7 +56,6 @@
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "tcpreceiver.hh"
-#include "ws.hh"
 #include "misc.hh"
 #include "dynlistener.hh"
 #include "dynhandler.hh"
