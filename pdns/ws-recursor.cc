@@ -38,7 +38,7 @@
 
 using namespace rapidjson;
 
-JWebserver::JWebserver(FDMultiplexer* fdm)
+RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
 
@@ -48,12 +48,12 @@ JWebserver::JWebserver(FDMultiplexer* fdm)
   d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"), arg()["webserver-password"]);
 
   // legacy dispatch
-  d_ws->registerApiHandler("/jsonstat", boost::bind(&JWebserver::jsonstat, this, _1, _2));
+  d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
 
   d_ws->go();
 }
 
-void JWebserver::jsonstat(HttpRequest* req, HttpResponse *resp)
+void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 {
   string command;
 

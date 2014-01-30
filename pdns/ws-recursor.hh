@@ -24,10 +24,10 @@
 #include "mplexer.hh"
 #include "webserver.hh"
 
-class JWebserver : public boost::noncopyable
+class RecursorWebServer : public boost::noncopyable
 {
 public:
-  explicit JWebserver(FDMultiplexer* fdm);
+  explicit RecursorWebServer(FDMultiplexer* fdm);
   void jsonstat(HttpRequest* req, HttpResponse *resp);
 
 private:

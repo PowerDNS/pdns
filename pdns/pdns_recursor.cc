@@ -1918,7 +1918,7 @@ try
     if(::arg().mustDo("experimental-json-interface")) {
       L<<Logger::Warning << "Enabling JSON interface" << endl;
       try {
-        new JWebserver(t_fdm);
+        new RecursorWebServer(t_fdm);
       }
       catch(PDNSException &e) {
         L<<Logger::Error<<"Exception: "<<e.reason<<endl;
