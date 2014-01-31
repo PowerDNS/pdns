@@ -1077,18 +1077,42 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
-  string output;
+  string query;
   if(d_dnssecQueries) {
     if(ordername)
-      output = (boost::format(d_InsertRecordOrderQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % sqlEscape(*ordername) % (int)r.auth).str();
+      query = (boost::format(d_InsertRecordOrderQuery)
+               % sqlEscape(r.content)
+               % r.ttl
+               % r.priority
+               % sqlEscape(r.qtype.getName())
+               % r.domain_id
+               % toLower(sqlEscape(r.qname))
+               % sqlEscape(*ordername)
+               % (int)r.auth
+        ).str();
     else
-      output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % (int)r.auth).str();
+      query = (boost::format(d_InsertRecordQuery)
+               % sqlEscape(r.content)
+               % r.ttl
+               % r.priority
+               % sqlEscape(r.qtype.getName())
+               % r.domain_id
+               % toLower(sqlEscape(r.qname))
+               % (int)r.auth
+        ).str();
   } else {
-    output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname))).str();
+    query = (boost::format(d_InsertRecordQuery)
+             % sqlEscape(r.content)
+             % r.ttl
+             % r.priority
+             % sqlEscape(r.qtype.getName())
+             % r.domain_id
+             % toLower(sqlEscape(r.qname))
+      ).str();
   }
 
   try {
-    d_db->doCommand(output.c_str());
+    d_db->doCommand(query);
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to feed record: "+e.txtReason());
