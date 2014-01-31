@@ -98,7 +98,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 
       doc.PushBack(jzone, doc.GetAllocator());
     }
-    resp->body = makeStringFromDocument(doc);
+    resp->setBody(doc);
     return;
   }
   else if(command == "zone") {
@@ -143,7 +143,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       root.AddMember("records", records, doc.GetAllocator());
 
       doc.AddMember("zone", root, doc.GetAllocator());
-      resp->body = makeStringFromDocument(doc);
+      resp->setBody(doc);
       return;
     } else {
       resp->body = returnJsonError("Could not find domain '"+arg_zone+"'");

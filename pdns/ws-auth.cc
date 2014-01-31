@@ -271,11 +271,11 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   resp->body = ret.str();
 }
 
-static string getZone(const string& zonename) {
+static void fillZone(const string& zonename, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    return returnJsonError("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename+"'");
 
   Document doc;
   doc.SetObject();
@@ -321,7 +321,7 @@ static string getZone(const string& zonename) {
   }
   doc.AddMember("records", records, doc.GetAllocator());
 
-  return makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
 void productServerStatisticsFetch(map<string,string>& out)
@@ -404,7 +404,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     di.backend->setKind(zonename, DomainInfo::stringToKind(kind));
     di.backend->setMaster(zonename, master);
 
-    resp->body = getZone(zonename);
+    fillZone(zonename, resp);
     return;
   }
 
@@ -439,7 +439,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
     doc.PushBack(jdi, doc.GetAllocator());
   }
-  resp->body = makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
@@ -466,7 +466,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
     di.backend->setMaster(zonename, master);
-    resp->body = getZone(zonename);
+    fillZone(zonename, resp);
     return;
   }
   else if(req->method == "DELETE") {
@@ -487,7 +487,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  resp->body = getZone(zonename);
+  fillZone(zonename, resp);
 }
 
 static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {

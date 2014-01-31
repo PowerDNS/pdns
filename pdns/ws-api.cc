@@ -97,7 +97,7 @@ void apiServer(HttpRequest* req, HttpResponse* resp) {
   Value server;
   fillServerDetail(server, doc.GetAllocator());
   doc.PushBack(server, doc.GetAllocator());
-  resp->body = makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
 void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
@@ -106,7 +106,7 @@ void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
 
   Document doc;
   fillServerDetail(doc, doc.GetAllocator());
-  resp->body = makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
 void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
@@ -135,7 +135,7 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
 
     doc.PushBack(jitem, doc.GetAllocator());
   }
-  resp->body = makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
 static string logGrep(const string& q, const string& fname, const string& prefix)
@@ -220,5 +220,5 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
     doc.PushBack(jitem, doc.GetAllocator());
   }
 
-  resp->body = makeStringFromDocument(doc);
+  resp->setBody(doc);
 }

@@ -45,6 +45,11 @@ void HttpRequest::json(rapidjson::Document& document)
   }
 }
 
+void HttpResponse::setBody(rapidjson::Document& document)
+{
+  this->body = makeStringFromDocument(document);
+}
+
 int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
 {
   return ::B64Decode(strInput, strOutput);

@@ -49,6 +49,8 @@ public:
   HttpResponse() : YaHTTP::Response() { };
   HttpResponse(const YaHTTP::Request &req) : YaHTTP::Response(req) { };
   HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
+
+  void setBody(rapidjson::Document& document);
 };
 
 
