@@ -34,7 +34,7 @@ public:
         ~GeoBackend();
         
         virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
-        virtual bool list(const string &target, int domain_id);
+        virtual bool list(const string &target, int domain_id, bool include_disabled=false);
         virtual bool get(DNSResourceRecord &r);
         virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
         

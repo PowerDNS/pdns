@@ -58,7 +58,7 @@ LUABackend::~LUABackend() {
     lua_close(lua);
 }
 
-bool LUABackend::list(const string &target, int domain_id) {
+bool LUABackend::list(const string &target, int domain_id, bool include_disabled) {
     if (logging)
 	L << Logger::Info << backend_name << "(list) BEGIN" << endl;
 

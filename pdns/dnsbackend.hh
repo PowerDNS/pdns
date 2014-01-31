@@ -112,7 +112,7 @@ public:
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(const string &target, int domain_id)=0;  
+  virtual bool list(const string &target, int domain_id, bool include_disabled=false)=0;
 
   virtual ~DNSBackend(){};
 
@@ -136,7 +136,7 @@ public:
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
 
-  virtual void getAllDomains(vector<DomainInfo> *domains) { }
+  virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) { }
 
   /** Determines if we are authoritative for a zone, and at what level */
   virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len);

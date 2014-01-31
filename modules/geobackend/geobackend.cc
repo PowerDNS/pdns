@@ -118,7 +118,7 @@ void GeoBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pk
         	i_answers = answers.begin();		
 }
 
-bool GeoBackend::list(const string &target, int domain_id) {
+bool GeoBackend::list(const string &target, int domain_id, bool include_disabled) {
         answers.clear();
         queueNSRecords(zoneName);
         answerLocalhostRecord("localhost."+zoneName, NULL);

@@ -48,9 +48,9 @@ public:
 	// Methods for simple operation
 	TinyDNSBackend(const string &suffix);
 	void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
-	bool list(const string &target, int domain_id);
+	bool list(const string &target, int domain_id, bool include_disabled=false);
 	bool get(DNSResourceRecord &rr);
-	void getAllDomains(vector<DomainInfo> *domains);
+	void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
 	//Master mode operation
 	void getUpdatedMasters(vector<DomainInfo>* domains);

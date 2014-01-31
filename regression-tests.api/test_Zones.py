@@ -108,7 +108,16 @@ class Servers(ApiTestCase):
                     "type": "NS",
                     "priority": 0,
                     "ttl": 3600,
-                    "content": "ns1.bar.com"
+                    "content": "ns1.bar.com",
+                    "disabled": False
+                },
+                {
+                    "name": name,
+                    "type": "NS",
+                    "priority": 0,
+                    "ttl": 1800,
+                    "content": "ns2-disabled.bar.com",
+                    "disabled": True
                 }
             ]
         }
@@ -148,3 +157,39 @@ class Servers(ApiTestCase):
         data = r.json()['records']
         recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
         self.assertEquals(recs, [])
+
+    def test_ZoneDisableReenable(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # disable zone by disabling SOA
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'SOA',
+            'records': [
+                {
+                    "name": name,
+                    "type": "SOA",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": "ns1.bar.com hostmaster.foo.org 1 1 1 1 1",
+                    "disabled": True
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # make sure it's still in zone list
+        r = self.session.get(self.url("/servers/localhost/zones"))
+        domains = r.json()
+        self.assertEquals(len([domain for domain in domains if domain['name'] == name]), 1)
+        # verify that modifying it still works
+        payload['records'][0]['disabled'] = False
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)

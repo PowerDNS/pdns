@@ -931,7 +931,7 @@ OracleBackend::setNotified (uint32_t zoneId, uint32_t serial)
 }
 
 bool
-OracleBackend::list (const string &domain, int zoneId)
+OracleBackend::list (const string &domain, int zoneId, bool include_disabled)
 {
   sword rc;
 

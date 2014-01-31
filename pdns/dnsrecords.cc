@@ -84,6 +84,7 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
 
 DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   auth=true;
+  disabled=false;
   qname = p.d_label;
   if(!qname.empty())
     boost::erase_tail(qname, 1); // strip .

@@ -290,7 +290,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   }
 }
 
-void Bind2Backend::getAllDomains(vector<DomainInfo> *domains) {
+void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
   SOAData soadata;
 
   shared_ptr<State> state = getState(); 
@@ -1215,7 +1215,7 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   return true;
 }
 
-bool Bind2Backend::list(const string &target, int id)
+bool Bind2Backend::list(const string &target, int id, bool include_disabled)
 {
   shared_ptr<State> state = s_state;
   if(!state->id_zone_map.count(id))

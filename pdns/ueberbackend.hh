@@ -122,9 +122,9 @@ public:
 
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
-  bool list(const string &target, int domain_id);
+  bool list(const string &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
-  void getAllDomains(vector<DomainInfo> *domains);
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker(const map<string,string> &);
   static void closeDynListener();

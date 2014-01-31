@@ -617,11 +617,11 @@ void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt
   d_handle.parent=this;
 }
 
-void UeberBackend::getAllDomains(vector<DomainInfo> *domains) {
+void UeberBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
   check_op_requests();
   for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i )
   {
-    (*i)->getAllDomains(domains);
+    (*i)->getAllDomains(domains, include_disabled);
   }
 }
 
@@ -653,7 +653,7 @@ bool UeberBackend::get(DNSResourceRecord &rr)
   return true;
 }
 
-bool UeberBackend::list(const string &target, int domain_id)
+bool UeberBackend::list(const string &target, int domain_id, bool include_disabled)
 {
   L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
   exit(1);

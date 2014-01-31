@@ -166,50 +166,50 @@ static void emitRecord(const string& zoneName, const string &qname, const string
 
   if(g_mode==MYSQL || g_mode==SQLITE) {
     if(!g_doDNSSEC) {
-      cout<<"insert into records (domain_id, name,type,content,ttl,prio) select id ,"<<
+      cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
-      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) select id ,"<<
+      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", "<<auth<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
   else if(g_mode==POSTGRES) {
     if(!g_doDNSSEC) {
-      cout<<"insert into records (domain_id, name,type,content,ttl,prio) select id ,"<<
+      cout<<"insert into records (domain_id, name,type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 'f'"<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
-      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio) select id ,"<<
+      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 'f'"<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
   else if(g_mode==GORACLE) {
-    cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
+    cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio, disabled) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<< 
+      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if(g_mode==ORACLE) {
-    cout<<"INSERT INTO Records (id, zone_id, fqdn, ttl, type, content) SELECT records_id_seq.nextval, id, "<<
+    cout<<"INSERT INTO Records (id, zone_id, fqdn, ttl, type, content, disabled) SELECT records_id_seq.nextval, id, "<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       ttl<<", "<<sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<
+      sqlstr(stripDotContent(content))<<", 0"<<
       " FROM Zones WHERE name="<<toLower(sqlstr(zoneName))<<";"<<endl;
   }
   else if (g_mode == MYDNS) {

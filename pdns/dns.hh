@@ -73,7 +73,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : qclass(1), priority(0), signttl(0), last_modified(0), d_place(ANSWER), auth(1), scopeMask(0) {};
+  DNSResourceRecord() : qclass(1), priority(0), signttl(0), last_modified(0), d_place(ANSWER), auth(1), disabled(0), scopeMask(0) {};
   DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
 
@@ -96,6 +96,7 @@ public:
   Place d_place; //!< This specifies where a record goes within the packet
 
   bool auth;
+  bool disabled;
   uint8_t scopeMask;
 
   template<class Archive>
@@ -112,6 +113,7 @@ public:
     ar & last_modified;
     ar & d_place;
     ar & auth;
+    ar & disabled;
   }
 
   bool operator==(const DNSResourceRecord& rhs);

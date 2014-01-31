@@ -81,7 +81,7 @@ void MyDNSBackend::Query(const string &query) {
         }
 }
 
-bool MyDNSBackend::list(const string &target, int zoneId) {
+bool MyDNSBackend::list(const string &target, int zoneId, bool include_disabled) {
         string query;
         string sname;
         SSql::row_t rrow;

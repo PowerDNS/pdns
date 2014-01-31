@@ -146,7 +146,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
    d_qname=qname;
 }
 
-bool PipeBackend::list(const string &target, int inZoneId)
+bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled)
 {
    try {
       d_disavow=false;

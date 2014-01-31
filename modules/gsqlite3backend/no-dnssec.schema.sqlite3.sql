@@ -18,7 +18,8 @@ CREATE TABLE records (
   content         VARCHAR(65535) DEFAULT NULL,
   ttl             INTEGER DEFAULT NULL,
   prio            INTEGER DEFAULT NULL,
-  change_date     INTEGER DEFAULT NULL
+  change_date     INTEGER DEFAULT NULL,
+  disabled        BOOLEAN DEFAULT NULL
 );
 
 CREATE INDEX rec_name_index ON records(name);

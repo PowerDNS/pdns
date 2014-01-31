@@ -77,7 +77,7 @@ public:
 
         void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
         bool getSOA( const string& domain, SOAData& sd, DNSPacket* p );
-        bool list( const string& target, int domain_id );
+        bool list( const string& target, int domain_id, bool include_disabled=false );
         bool get( DNSResourceRecord& rr );
 
         bool startTransaction( const string& domain, int domain_id );

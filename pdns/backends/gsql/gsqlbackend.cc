@@ -838,11 +838,12 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   d_qname=qname;
 }
 
-bool GSQLBackend::list(const string &target, int domain_id )
+bool GSQLBackend::list(const string &target, int domain_id, bool include_disabled)
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
   string query = (boost::format(d_listQuery)
+                  % (int)include_disabled
                   % domain_id
     ).str();
 
@@ -979,12 +980,13 @@ bool GSQLBackend::deleteDomain(const string &domain)
   return true;
 }
 
-void GSQLBackend::getAllDomains(vector<DomainInfo> *domains) 
+void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
 {
   DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
+  string query = (boost::format(d_getAllDomainsQuery) % (int)include_disabled).str();
 
   try {
-    d_db->doQuery(d_getAllDomainsQuery.c_str()); 
+    d_db->doQuery(query);
   }
   catch (SSqlException &e) {
     throw PDNSException("Database error trying to retrieve all domains:" + e.txtReason());
@@ -1036,15 +1038,17 @@ bool GSQLBackend::get(DNSResourceRecord &r)
     if(!d_qname.empty())
       r.qname=d_qname;
     else
-      r.qname=row[5];
+      r.qname=row[6];
     r.qtype=row[3];
     r.last_modified=0;
     
     if(d_dnssecQueries)
-      r.auth = !row[6].empty() && row[6][0]=='1';
+      r.auth = !row[7].empty() && row[7][0]=='1';
     else
       r.auth = 1; 
-    
+
+    r.disabled = !row[5].empty() && row[5][0]=='1';
+
     r.domain_id=atoi(row[4].c_str());
     return true;
   }
@@ -1086,6 +1090,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
                % r.priority
                % sqlEscape(r.qtype.getName())
                % r.domain_id
+               % (int)r.disabled
                % toLower(sqlEscape(r.qname))
                % sqlEscape(*ordername)
                % (int)r.auth
@@ -1097,6 +1102,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
                % r.priority
                % sqlEscape(r.qtype.getName())
                % r.domain_id
+               % (int)r.disabled
                % toLower(sqlEscape(r.qname))
                % (int)r.auth
         ).str();
@@ -1107,6 +1113,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
              % r.priority
              % sqlEscape(r.qtype.getName())
              % r.domain_id
+             % (int)r.disabled
              % toLower(sqlEscape(r.qname))
       ).str();
   }
