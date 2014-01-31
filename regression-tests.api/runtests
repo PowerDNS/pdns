@@ -9,4 +9,4 @@ pip install -r requirements.txt
 
 set -e
 set -x
-exec ./runtests.py
+exec ./runtests.py "$@"
