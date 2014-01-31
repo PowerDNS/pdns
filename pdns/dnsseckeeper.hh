@@ -122,20 +122,6 @@ private:
     mutable keys_t d_keys;
   };
   
-  struct METACacheEntry
-  {
-    uint32_t getTTD() const
-    {
-      return d_ttd;
-    }
-  
-    string d_domain;
-    unsigned int d_ttd;
-  
-    mutable std::string d_key, d_value;
-  };
-  
-  
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<
@@ -143,24 +129,10 @@ private:
       sequenced<>
     >
   > keycache_t;
-  typedef multi_index_container<
-    METACacheEntry,
-    indexed_by<
-      ordered_unique<
-        composite_key< 
-          METACacheEntry, 
-          member<METACacheEntry, std::string, &METACacheEntry::d_domain> ,
-          member<METACacheEntry, std::string, &METACacheEntry::d_key>
-        >, composite_key_compare<CIStringCompare, CIStringCompare> >,
-      sequenced<>
-    >
-  > metacache_t;
 
   void cleanup();
 
   static keycache_t s_keycache;
-  static metacache_t s_metacache;
-  static pthread_rwlock_t s_metacachelock;
   static pthread_rwlock_t s_keycachelock;
   static AtomicCounter s_ops;
   static time_t s_last_prune;

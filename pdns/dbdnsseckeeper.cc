@@ -43,8 +43,6 @@ using namespace boost::assign;
 
 
 DNSSECKeeper::keycache_t DNSSECKeeper::s_keycache;
-DNSSECKeeper::metacache_t DNSSECKeeper::s_metacache;
-pthread_rwlock_t DNSSECKeeper::s_metacachelock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_rwlock_t DNSSECKeeper::s_keycachelock = PTHREAD_RWLOCK_INITIALIZER;
 AtomicCounter DNSSECKeeper::s_ops;
 time_t DNSSECKeeper::s_last_prune;
@@ -116,8 +114,7 @@ void DNSSECKeeper::clearAllCaches() {
     WriteLock l(&s_keycachelock);
     s_keycache.clear();
   }
-  WriteLock l(&s_metacachelock);
-  s_metacache.clear();
+  d_keymetadb->clearMetadataCacheAllDomains();
 }
 
 void DNSSECKeeper::clearCaches(const std::string& name)
@@ -126,10 +123,7 @@ void DNSSECKeeper::clearCaches(const std::string& name)
     WriteLock l(&s_keycachelock);
     s_keycache.erase(name); 
   }
-  WriteLock l(&s_metacachelock);
-  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
-  while(range.first != range.second)
-    s_metacache.erase(range.first++);
+  d_keymetadb->clearMetadataCache(name);
 }
 
 
@@ -197,35 +191,10 @@ bool DNSSECKeeper::activateKey(const std::string& zname, unsigned int id)
 void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key, std::string& value)
 {
   value.clear();
-  unsigned int now = time(0);
-
-  if(!((++s_ops) % 100000)) {
-    cleanup();
-  }
-
-  {
-    ReadLock l(&s_metacachelock); 
-    
-    metacache_t::const_iterator iter = s_metacache.find(tie(zname, key));
-    if(iter != s_metacache.end() && iter->d_ttd > now) {
-      value = iter->d_value;
-      return;
-    }
-  }
   vector<string> meta;
   d_keymetadb->getDomainMetadata(zname, key, meta);
   if(!meta.empty())
     value=*meta.begin();
-    
-  METACacheEntry nce;
-  nce.d_domain=zname;
-  nce.d_ttd = now+60;
-  nce.d_key= key;
-  nce.d_value = value;
-  { 
-    WriteLock l(&s_metacachelock);
-    replacing_insert(s_metacache, nce);
-  }
 }
 
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
@@ -420,10 +389,6 @@ void DNSSECKeeper::cleanup()
   Utility::gettimeofday(&now, 0);
 
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
-    {
-        WriteLock l(&s_metacachelock);
-        pruneCollection(s_metacache, ::arg().asNum("max-cache-entries"));
-    }
     {
         WriteLock l(&s_keycachelock);
         pruneCollection(s_keycache, ::arg().asNum("max-cache-entries"));

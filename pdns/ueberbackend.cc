@@ -46,6 +46,7 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include <boost/serialization/vector.hpp>
+#include "cachecleaner.hh"
 
 
 extern StatBag S;
@@ -62,6 +63,11 @@ pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t UeberBackend::d_cond = PTHREAD_COND_INITIALIZER;
 
 int UeberBackend::s_s=-1; // ?
+
+UeberBackend::metacache_t UeberBackend::s_metacache;
+pthread_rwlock_t UeberBackend::s_metacachelock = PTHREAD_RWLOCK_INITIALIZER;
+time_t UeberBackend::s_metacache_last_prune;
+AtomicCounter UeberBackend::s_metacache_ops;
 
 #ifdef NEED_RTLD_NOW
 #define RTLD_NOW RTLD_LAZY
@@ -139,22 +145,85 @@ bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vec
 
 bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
+  unsigned int now = time(0);
+
+  meta.clear();
   check_op_requests();
-  BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->getDomainMetadata(name, kind, meta))
-      return true;
+
+  if(!((++s_metacache_ops) % 10000)) {
+    cleanupMetaCache();
   }
-  return false;
+
+  {
+    ReadLock l(&s_metacachelock);
+    metacache_t::const_iterator iter = s_metacache.find(tie(name, kind));
+    if(iter != s_metacache.end() && iter->d_ttd > now) {
+      meta = iter->d_values;
+      return true;
+    }
+  }
+
+  bool found = false;
+
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getDomainMetadata(name, kind, meta)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found)
+    return false;
+
+  MetaCacheEntry nce;
+  nce.d_domain = name;
+  nce.d_ttd = now+60;
+  nce.d_kind = kind;
+  nce.d_values = meta;
+  {
+    WriteLock l(&s_metacachelock);
+    replacing_insert(s_metacache, nce);
+  }
+
+  return true;
 }
 
 bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   check_op_requests();
+  clearMetadataCache(name);
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->setDomainMetadata(name, kind, meta))
       return true;
   }
   return false;
+}
+
+void UeberBackend::clearMetadataCacheAllDomains()
+{
+  WriteLock l(&s_metacachelock);
+  s_metacache.clear();
+}
+
+void UeberBackend::clearMetadataCache(const std::string& name)
+{
+  WriteLock l(&s_metacachelock);
+  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
+  while(range.first != range.second)
+    s_metacache.erase(range.first++);
+}
+
+void UeberBackend::cleanupMetaCache()
+{
+  struct timeval now;
+  Utility::gettimeofday(&now, 0);
+
+  if(now.tv_sec - s_metacache_last_prune > (time_t)(30)) {
+    {
+      WriteLock l(&s_metacachelock);
+      pruneCollection(s_metacache, ::arg().asNum("max-cache-entries"));
+    }
+    s_metacache_last_prune=time(0);
+  }
 }
 
 bool UeberBackend::activateDomainKey(const string& name, unsigned int id)
@@ -246,6 +315,7 @@ void UeberBackend::reload()
   {
     ( *i )->reload();
   }
+  clearMetadataCacheAllDomains();
 }
 
 void UeberBackend::rediscover(string *status)
@@ -256,6 +326,7 @@ void UeberBackend::rediscover(string *status)
     string tmpstr;
     ( *i )->rediscover(&tmpstr);
   }
+  clearMetadataCacheAllDomains();
 }
 
 
