@@ -285,6 +285,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_wildCardANYIDQuery=getArg("wildcard-any-id-query"+authswitch);
   
   d_listQuery=getArg("list-query"+authswitch);
+  d_listSubZoneQuery=getArg("list-subzone-query"+authswitch);
 
   d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
@@ -860,12 +861,13 @@ bool GSQLBackend::list(const string &target, int domain_id )
 
 bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
   string wildzone = "%." + zone;
-  string listSubZone = "select content,ttl,prio,type,domain_id,name from records where (name='%s' OR name like '%s') and domain_id=%d";
-  if (d_dnssecQueries)
-    listSubZone = "select content,ttl,prio,type,domain_id,name,auth from records where (name='%s' OR name like '%s') and domain_id=%d";
-  string output = (boost::format(listSubZone) % sqlEscape(zone) % sqlEscape(wildzone) % domain_id).str();
+  string query = (boost::format(d_listSubZoneQuery)
+                  % sqlEscape(zone)
+                  % sqlEscape(wildzone)
+                  % domain_id
+    ).str();
   try {
-    d_db->doQuery(output.c_str());
+    d_db->doQuery(query);
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend listSubZone query: "+e.txtReason());

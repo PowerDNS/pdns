@@ -89,6 +89,7 @@ private:
   string d_noWildCardANYIDQuery;
   string d_wildCardANYIDQuery;
   string d_listQuery;
+  string d_listSubZoneQuery;
   string d_logprefix;
 
   string d_MasterOfDomainsZoneQuery;

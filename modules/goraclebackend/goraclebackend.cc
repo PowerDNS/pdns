@@ -71,6 +71,7 @@ public:
     declare(suffix, "wildcard-any-id-query", "Wildcard ANY with ID query", record_query+" and name like '%s' and domain_id='%d'");
 
     declare(suffix, "list-query", "AXFR query",  record_query+" and domain_id='%d'");
+    declare(suffix, "list-subzone-query", "Subzone listing", record_query+" and (name='%s' OR name like '%s') and domain_id='%d'");
 
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
     declare(suffix,"insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (id,domain_id,name,type) values (records_id_sequence.nextval,'%d','%s',null)");
@@ -87,7 +88,8 @@ public:
     declare(suffix, "wildcard-any-query-auth", "Wildcard ANY query", record_auth_query+" and name like '%s'");
     declare(suffix, "wildcard-any-id-query-auth", "Wildcard ANY with ID query", record_auth_query+" and name like '%s' and domain_id='%d'");
 
-    declare(suffix, "list-query-auth", "AXFR query",  record_auth_query+" and domain_id='%d' order by name, type");
+    declare(suffix, "list-query-auth", "AXFR query", record_auth_query+" and domain_id='%d' order by name, type");
+    declare(suffix, "list-subzone-query-auth", "Subzone listing", record_auth_query+" and (name='%s' OR name like '%s') and domain_id='%d'");
 
     declare(suffix,"insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (id,domain_id,name,type,auth) values (records_id_sequence.nextval,'%d','%s',null,'1')");
 
