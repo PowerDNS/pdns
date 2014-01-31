@@ -843,10 +843,12 @@ bool GSQLBackend::list(const string &target, int domain_id )
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
-  char output[1024];
-  snprintf(output,sizeof(output)-1,d_listQuery.c_str(),domain_id);
+  string query = (boost::format(d_listQuery)
+                  % domain_id
+    ).str();
+
   try {
-    d_db->doQuery(output);
+    d_db->doQuery(query);
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend list query: "+e.txtReason());
