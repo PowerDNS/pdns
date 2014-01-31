@@ -303,7 +303,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
-  d_DeleteRRSet=getArg("delete-rrset-query");
+  d_DeleteRRSetQuery=getArg("delete-rrset-query");
+  d_DeleteNamesQuery=getArg("delete-names-query");
   d_getAllDomainsQuery=getArg("get-all-domains-query");
 
   d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
@@ -1051,16 +1052,20 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  string deleteQuery;
-  string deleteRRSet;
+  string query;
   if (qt != QType::ANY) {
-    deleteRRSet = "delete from records where domain_id = %d and name='%s' and type='%s'";
-    deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname) % sqlEscape(qt.getName())).str();
+    query = (boost::format(d_DeleteRRSetQuery)
+             % domain_id
+             % sqlEscape(qname)
+             % sqlEscape(qt.getName())
+      ).str();
   } else {
-    deleteRRSet = "delete from records where domain_id = %d and name='%s'";
-    deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname)).str();
+    query = (boost::format(d_DeleteNamesQuery)
+             % domain_id
+             % sqlEscape(qname)
+      ).str();
   }
-  d_db->doCommand(deleteQuery);
+  d_db->doCommand(query);
   BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
     feedRecord(rr);
   }

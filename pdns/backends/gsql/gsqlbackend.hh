@@ -111,7 +111,8 @@ private:
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteDomainQuery;
   string d_DeleteZoneQuery;
-  string d_DeleteRRSet;
+  string d_DeleteRRSetQuery;
+  string d_DeleteNamesQuery;
   string d_ZoneLastChangeQuery;
 
   string d_firstOrderQuery;

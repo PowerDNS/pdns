@@ -124,6 +124,7 @@ public:
     declare(suffix,"delete-domain-query","", "delete from domains where name='%s'");
     declare(suffix,"delete-zone-query","", "delete from records where domain_id=%d");
     declare(suffix,"delete-rrset-query","","delete from records where domain_id=%d and name='%s' and type='%s'");
+    declare(suffix,"delete-names-query","","delete from records where domain_id=%d and name='%s'");
 
     declare(suffix,"add-domain-key-query","", "insert into cryptokeys (id, domain_id, flags, active, content) select cryptokeys_id_sequence.nextval, id, %d, %d, '%s' from domains where name='%s'");
     declare(suffix,"list-domain-keys-query","", "select cryptokeys.id, flags, active, content from domains, cryptokeys where cryptokeys.domain_id=domains.id and name='%s'");
