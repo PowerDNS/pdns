@@ -46,34 +46,37 @@ public:
 
     declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
 
-    declare(suffix,"basic-query","Basic query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name=E'%s'");
-    declare(suffix,"id-query","Basic with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name=E'%s' and domain_id=%d");
-    declare(suffix,"wildcard-query","Wildcard query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name like E'%s'");
-    declare(suffix,"wildcard-id-query","Wildcard with ID query","select content,ttl,prio,type,domain_id,name from records where type='%s' and name like E'%s' and domain_id='%d'");
+    string record_query = "SELECT content,ttl,prio,type,domain_id,name FROM records WHERE 1";
+    string record_auth_query = "SELECT content,ttl,prio,type,domain_id,name,auth::int FROM records WHERE 1";
 
-    declare(suffix,"any-query","Any query","select content,ttl,prio,type,domain_id,name from records where name=E'%s'");
-    declare(suffix,"any-id-query","Any with ID query","select content,ttl,prio,type,domain_id,name from records where name=E'%s' and domain_id=%d");
-    declare(suffix,"wildcard-any-query","Wildcard ANY query","select content,ttl,prio,type,domain_id,name from records where name like E'%s'");
-    declare(suffix,"wildcard-any-id-query","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name from records where name like E'%s' and domain_id='%d'");
+    declare(suffix, "basic-query", "Basic query", record_query+" and type='%s' and name=E'%s'");
+    declare(suffix, "id-query", "Basic with ID query", record_query+" and type='%s' and name=E'%s' and domain_id=%d");
+    declare(suffix, "wildcard-query", "Wildcard query", record_query+" and type='%s' and name like E'%s'");
+    declare(suffix, "wildcard-id-query", "Wildcard with ID query", record_query+" and type='%s' and name like E'%s' and domain_id='%d'");
 
-    declare(suffix,"list-query","AXFR query", "select content,ttl,prio,type,domain_id,name from records where domain_id='%d'");
+    declare(suffix, "any-query", "Any query", record_query+" and name=E'%s'");
+    declare(suffix, "any-id-query", "Any with ID query", record_query+" and name=E'%s' and domain_id=%d");
+    declare(suffix, "wildcard-any-query", "Wildcard ANY query", record_query+" and name like E'%s'");
+    declare(suffix, "wildcard-any-id-query", "Wildcard ANY with ID query", record_query+" and name like E'%s' and domain_id='%d'");
+
+    declare(suffix, "list-query", "AXFR query", record_query+" and domain_id='%d'");
 
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
     declare(suffix,"insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type) values ('%d','%s',null)");
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
 
     // and now with auth
-    declare(suffix,"basic-query-auth","Basic query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name=E'%s'");
-    declare(suffix,"id-query-auth","Basic with ID query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name=E'%s' and domain_id=%d");
-    declare(suffix,"wildcard-query-auth","Wildcard query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name like E'%s'");
-    declare(suffix,"wildcard-id-query-auth","Wildcard with ID query","select content,ttl,prio,type,domain_id,name,auth::int from records where type='%s' and name like E'%s' and domain_id='%d'");
+    declare(suffix, "basic-query-auth", "Basic query", record_auth_query+" and type='%s' and name=E'%s'");
+    declare(suffix, "id-query-auth", "Basic with ID query", record_auth_query+" and type='%s' and name=E'%s' and domain_id=%d");
+    declare(suffix, "wildcard-query-auth", "Wildcard query", record_auth_query+" and type='%s' and name like E'%s'");
+    declare(suffix, "wildcard-id-query-auth", "Wildcard with ID query", record_auth_query+" and type='%s' and name like E'%s' and domain_id='%d'");
 
-    declare(suffix,"any-query-auth","Any query","select content,ttl,prio,type,domain_id,name, auth::int from records where name=E'%s'");
-    declare(suffix,"any-id-query-auth","Any with ID query","select content,ttl,prio,type,domain_id,name, auth::int from records where name=E'%s' and domain_id=%d");
-    declare(suffix,"wildcard-any-query-auth","Wildcard ANY query","select content,ttl,prio,type,domain_id,name, auth::int from records where name like E'%s'");
-    declare(suffix,"wildcard-any-id-query-auth","Wildcard ANY with ID query","select content,ttl,prio,type,domain_id,name, auth::int from records where name like E'%s' and domain_id='%d'");
+    declare(suffix, "any-query-auth", "Any query", record_auth_query+" and name=E'%s'");
+    declare(suffix, "any-id-query-auth", "Any with ID query", record_auth_query+" and name=E'%s' and domain_id=%d");
+    declare(suffix, "wildcard-any-query-auth", "Wildcard ANY query", record_auth_query+" and name like E'%s'");
+    declare(suffix, "wildcard-any-id-query-auth", "Wildcard ANY with ID query", record_auth_query+" and name like E'%s' and domain_id='%d'");
 
-    declare(suffix,"list-query-auth","AXFR query", "select content,ttl,prio,type,domain_id,name, auth::int from records where domain_id='%d' order by name, type");
+    declare(suffix, "list-query-auth", "AXFR query", record_auth_query+" and domain_id='%d' order by name, type");
 
     declare(suffix,"insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,auth) values ('%d','%s',null,true)");
 
