@@ -105,6 +105,10 @@ bool CommunicatorClass::notifyDomain(const string &domain)
     L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
+  if (di.kind == DomainInfo::Native) {
+    L<<Logger::Error<<"Domain '"<<domain<<"' is of type NATIVE, not notifying"<<endl;
+    return false;
+  }
   queueNotifyDomain(domain, P.getBackend());
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
