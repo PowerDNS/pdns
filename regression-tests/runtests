@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-PATH=.:$PATH
+PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
 
 spectest=$1
