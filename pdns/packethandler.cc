@@ -805,7 +805,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-  if (di.kind != SLAVE) {
+  if (di.kind != DomainInfo::Slave) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", but domain is not marked slave"<<endl;
     return RCode::Refused;
   }
