@@ -1,9 +1,9 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2011  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
+    it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
 
     Additionally, the license of this program contains a special
@@ -19,20 +19,17 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include <boost/utility.hpp> 
-#include "namespaces.hh"
-#include "mplexer.hh"
+#include <map>
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+#include "webserver.hh"
 
-class JWebserver : public boost::noncopyable
-{
-  public:
-    explicit JWebserver(FDMultiplexer* fdm);
-    void newConnection();
-    void readRequest(int fd);
-    string handleRequest(const string &method, const string &uri, const map<string,string> &varmap, string &headers);
-  private:
-    FDMultiplexer* d_fdm;
-    int d_socket;
-};
+void apiServer(HttpRequest* req, HttpResponse* resp);
+void apiServerDetail(HttpRequest* req, HttpResponse* resp);
+void apiServerConfig(HttpRequest* req, HttpResponse* resp);
+void apiServerSearchLog(HttpRequest* req, HttpResponse* resp);
+void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
-string returnJSONStats(const map<string, string>& items);
+// To be provided by product code.
+void productServerStatisticsFetch(std::map<string,string>& out);

@@ -1,9 +1,10 @@
 import json
 import requests
 import unittest
-from test_helper import ApiTestCase, unique_zone_name
+from test_helper import ApiTestCase, unique_zone_name, isRecursor
 
 
+@unittest.skipIf(isRecursor(), "Not implemented yet")
 class Servers(ApiTestCase):
 
     def test_ListZones(self):

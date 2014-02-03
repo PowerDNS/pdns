@@ -20,7 +20,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "common_startup.hh"
-#include "ws.hh"
+#include "ws-auth.hh"
 
 bool g_anyToTcp;
 bool g_addSuperfluousNSEC3;
@@ -369,7 +369,7 @@ void mainthread()
      Utility::dropGroupPrivs(newuid, newgid);
    }
 
-  StatWebServer sws;
+  AuthWebServer webserver;
   Utility::dropUserPrivs(newuid);
 
   if(::arg().mustDo("recursor")){
@@ -383,8 +383,8 @@ void mainthread()
   pthread_t qtid;
 
   if(::arg().mustDo("webserver"))
-    sws.go();
-  
+    webserver.go();
+
   if(::arg().mustDo("slave") || ::arg().mustDo("master"))
     Communicator.go(); 
 

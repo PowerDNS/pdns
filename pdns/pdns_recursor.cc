@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <boost/foreach.hpp>
-#include "json_ws.hh"
+#include "ws-recursor.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"
 #include "utility.hh" 
@@ -1918,7 +1918,7 @@ try
     if(::arg().mustDo("experimental-json-interface")) {
       L<<Logger::Warning << "Enabling JSON interface" << endl;
       try {
-        new JWebserver(t_fdm);
+        new RecursorWebServer(t_fdm);
       }
       catch(PDNSException &e) {
         L<<Logger::Error<<"Exception: "<<e.reason<<endl;
@@ -2007,7 +2007,7 @@ int main(int argc, char **argv)
   g_argc = argc;
   g_argv = argv;
   g_stats.startupTime=time(0);
-  versionSetProduct("Recursor");
+  versionSetProduct(ProductRecursor);
   reportBasicTypes();
   reportOtherTypes();
 
@@ -2034,6 +2034,10 @@ int main(int argc, char **argv)
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
     ::arg().set( "experimental-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log"; 
     ::arg().setSwitch( "experimental-json-interface", "If we should run a JSON webserver") = "no";
+    ::arg().setSwitch("experimental-webserver", "Start a webserver for monitoring") = "no";
+    ::arg().set("experimental-webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
+    ::arg().set("experimental-webserver-port", "Port of webserver to listen on") = "8082";
+    ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;

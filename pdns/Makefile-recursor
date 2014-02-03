@@ -4,7 +4,7 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl-1.3.2/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl-1.3.2/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl-1.3.2/include -pthread
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread
 
@@ -21,7 +21,8 @@ dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
 dns_random.o ext/polarssl-1.3.2/library/aes.o ext/polarssl-1.3.2/library/padlock.o dnslabeltext.o \
 lua-pdns.o lua-recursor.o randomhelper.o recpacketcache.o dns.o \
-reczones.o base32.o nsecrecords.o json.o json_ws.o version.o responsestats.o
+reczones.o base32.o nsecrecords.o json.o ws-recursor.o ws-api.o \
+version.o responsestats.o session.o webserver.o ext/yahttp/yahttp/reqresp.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
 	unix_utility.o logger.o qtype.o
@@ -105,7 +106,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o
+	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o ext/yahttp/yahttp/*.o
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@

@@ -24,7 +24,7 @@
 #include "version.hh"
 #include "version_generated.h"
 
-static string productName("");
+static ProductType productType;
 
 string compilerVersion()
 {
@@ -37,10 +37,30 @@ string compilerVersion()
 #endif
 }
 
+// Human-readable product name
+string productName() {
+  switch (productType) {
+  case ProductAuthoritative:
+    return "PowerDNS Authoritative Server";
+  case ProductRecursor:
+    return "PowerDNS Recursor";
+  };
+}
+
+// REST API product type
+string productTypeApiType() {
+  switch (productType) {
+  case ProductAuthoritative:
+    return "authoritative";
+  case ProductRecursor:
+    return "recursor";
+  };
+}
+
 void showProductVersion()
 {
-  theL()<<Logger::Warning<<"PowerDNS "<<productName<<" "<<PDNS_VERSION<<" ("DIST_HOST") "
-    "(C) 2001-2013 PowerDNS.COM BV" << endl;
+  theL()<<Logger::Warning<<productName()<<" "<<PDNS_VERSION<<" ("DIST_HOST") "
+    "(C) 2001-2014 PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built on "BUILD_DATE" by "BUILD_HOST", "<<compilerVersion()<<"."<<endl;
   theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
@@ -82,11 +102,16 @@ void showBuildConfiguration()
 string fullVersionString()
 {
   ostringstream s;
-  s << "PowerDNS "<<productName<<" "PDNS_VERSION" ("DIST_HOST" built "BUILD_DATE" "BUILD_HOST")";
+  s<<productName()<<" "PDNS_VERSION" ("DIST_HOST" built "BUILD_DATE" "BUILD_HOST")";
   return s.str();
 }
 
-void versionSetProduct(string product)
+void versionSetProduct(ProductType pt)
 {
-  productName = product;
+  productType = pt;
+}
+
+ProductType versionGetProduct()
+{
+  return productType;
 }

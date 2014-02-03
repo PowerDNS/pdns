@@ -1,8 +1,8 @@
 /*
-    Copyright (C) 2002 - 2012  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 
+    it under the terms of the GNU General Public License version 2
     as published by the Free Software Foundation
 
     Additionally, the license of this program contains a special
@@ -20,7 +20,7 @@
 */
 #include "utility.hh"
 #include "dynlistener.hh"
-#include "ws.hh"
+#include "ws-auth.hh"
 #include "json.hh"
 #include "webserver.hh"
 #include "logger.hh"
@@ -36,22 +36,14 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "ws-api.hh"
 #include "version.hh"
 
 using namespace rapidjson;
 
 extern StatBag S;
 
-typedef map<string,string> varmap_t;
-
-class ApiException : public runtime_error
-{
-public:
-  ApiException(const string& what) : runtime_error(what) {
-  }
-};
-
-StatWebServer::StatWebServer()
+AuthWebServer::AuthWebServer()
 {
   d_start=time(0);
   d_min10=d_min5=d_min1=0;
@@ -61,17 +53,17 @@ StatWebServer::StatWebServer()
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
 }
 
-void StatWebServer::go()
+void AuthWebServer::go()
 {
   if(arg().mustDo("webserver"))
   {
     S.doRings();
-    pthread_create(&d_tid, 0, threadHelper, this);
+    pthread_create(&d_tid, 0, webThreadHelper, this);
     pthread_create(&d_tid, 0, statThreadHelper, this);
   }
 }
 
-void StatWebServer::statThread()
+void AuthWebServer::statThread()
 {
   try {
     for(;;) {
@@ -89,18 +81,17 @@ void StatWebServer::statThread()
   }
 }
 
-void *StatWebServer::statThreadHelper(void *p)
+void *AuthWebServer::statThreadHelper(void *p)
 {
-  StatWebServer *sws=static_cast<StatWebServer *>(p);
-  sws->statThread();
+  AuthWebServer *self=static_cast<AuthWebServer *>(p);
+  self->statThread();
   return 0; // never reached
 }
 
-
-void *StatWebServer::threadHelper(void *p)
+void *AuthWebServer::webThreadHelper(void *p)
 {
-  StatWebServer *sws=static_cast<StatWebServer *>(p);
-  sws->launch();
+  AuthWebServer *self=static_cast<AuthWebServer *>(p);
+  self->webThread();
   return 0; // never reached
 }
 
@@ -154,18 +145,18 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
   int printed=0;
   int total=max(1,tot);
   for(vector<pair<string,unsigned int> >::const_iterator i=ring.begin();limit && i!=ring.end();++i,--limit) {
-    ret<<"<tr><td>"<<htmlescape(i->first)<<"</td><td>"<<i->second<<"</td><td align=right>"<< StatWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
+    ret<<"<tr><td>"<<htmlescape(i->first)<<"</td><td>"<<i->second<<"</td><td align=right>"<< AuthWebServer::makePercentage(i->second*100.0/total)<<"</td>"<<endl;
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
   if(printed!=tot)
-    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< StatWebServer::makePercentage((tot-printed)*100.0/total)<<"</b></td>"<<endl;
+    ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< AuthWebServer::makePercentage((tot-printed)*100.0/total)<<"</b></td>"<<endl;
 
   ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</b></td><td align=right><b>100%</b></td>";
   ret<<"</table></div>"<<endl;
 }
 
-void StatWebServer::printvars(ostringstream &ret)
+void AuthWebServer::printvars(ostringstream &ret)
 {
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
@@ -177,7 +168,7 @@ void StatWebServer::printvars(ostringstream &ret)
   ret<<"</table></div>"<<endl;
 }
 
-void StatWebServer::printargs(ostringstream &ret)
+void AuthWebServer::printargs(ostringstream &ret)
 {
   ret<<"<table border=1><tr><td colspan=3 bgcolor=\"#0000ff\"><font color=\"#ffffff\">Arguments</font></td>"<<endl;
 
@@ -187,12 +178,12 @@ void StatWebServer::printargs(ostringstream &ret)
   }
 }
 
-string StatWebServer::makePercentage(const double& val)
+string AuthWebServer::makePercentage(const double& val)
 {
   return (boost::format("%.01f%%") % val).str();
 }
 
-void StatWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
   if(!req->parameters["resetring"].empty()) {
     if (S.ringExists(req->parameters["resetring"]))
@@ -280,59 +271,11 @@ void StatWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   resp->body = ret.str();
 }
 
-static void parseJsonBody(HttpRequest* req, rapidjson::Document& document) {
-  if(document.Parse<0>(req->body.c_str()).HasParseError()) {
-    throw HttpBadRequestException();
-  }
-}
-
-static int intFromJson(const Value& container, const char* key) {
-  const Value& val = container[key];
-  if (val.IsInt()) {
-    return val.GetInt();
-  } else if (val.IsString()) {
-    return atoi(val.GetString());
-  } else {
-    throw ApiException("Key '" + string(key) + "' not an Integer or not present");
-  }
-}
-
-static int intFromJson(const Value& container, const char* key, const int default_value) {
-  const Value& val = container[key];
-  if (val.IsInt()) {
-    return val.GetInt();
-  } else if (val.IsString()) {
-    return atoi(val.GetString());
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
-}
-
-static string stringFromJson(const Value& container, const char* key) {
-  const Value& val = container[key];
-  if (val.IsString()) {
-    return val.GetString();
-  } else {
-    throw ApiException("Key '" + string(key) + "' not present or not a String");
-  }
-}
-
-static string stringFromJson(const Value& container, const char* key, const string default_value) {
-  const Value& val = container[key];
-  if (val.IsString()) {
-    return val.GetString();
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
-}
-
-static string getZone(const string& zonename) {
+static void fillZone(const string& zonename, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    return returnJSONError("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename+"'");
 
   Document doc;
   doc.SetObject();
@@ -378,117 +321,18 @@ static string getZone(const string& zonename) {
   }
   doc.AddMember("records", records, doc.GetAllocator());
 
-  return makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
-static void fillServerDetail(Value& out, Value::AllocatorType& allocator) {
-  out.SetObject();
-  out.AddMember("type", "Server", allocator);
-  out.AddMember("id", "localhost", allocator);
-  out.AddMember("url", "/servers/localhost", allocator);
-  out.AddMember("daemon_type", "authoritative", allocator);
-  out.AddMember("version", VERSION, allocator);
-  out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
-  out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
-}
-
-static void apiServer(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
-  Document doc;
-  doc.SetArray();
-  Value server;
-  fillServerDetail(server, doc.GetAllocator());
-  doc.PushBack(server, doc.GetAllocator());
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
-  Document doc;
-  fillServerDetail(doc, doc.GetAllocator());
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
-  string value;
-  Document doc;
-  doc.SetArray();
-  BOOST_FOREACH(const string& item, items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    if(item.find("password") != string::npos)
-      value = "***";
-    else
-      value = ::arg()[item];
-
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
-  }
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void productServerStatisticsFetch(map<string,string>& out)
+{
   vector<string> items = S.getEntries();
-  string value;
-  Document doc;
-  doc.SetArray();
   BOOST_FOREACH(const string& item, items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    value = lexical_cast<string>(S.read(item));
-
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+    out[item] = lexical_cast<string>(S.read(item));
   }
 
   // add uptime
-  // TODO: this is a hack. should we move this elsewhere?
-  {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-    jitem.AddMember("name", "uptime", doc.GetAllocator());
-    value = lexical_cast<string>(time(0) - s_starttime);
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-    doc.PushBack(jitem, doc.GetAllocator());
-  }
-
-  resp->body = makeStringFromDocument(doc);
-}
-
-static void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  resp->body = makeLogGrepJSON(req->parameters["q"], ::arg()["experimental-logfile"], " pdns[");
+  out["uptime"] = lexical_cast<string>(time(0) - s_starttime);
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
@@ -496,7 +340,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   if (req->method == "POST") {
     DomainInfo di;
     Document document;
-    parseJsonBody(req, document);
+    req->json(document);
     string zonename = stringFromJson(document, "name");
     // TODO: better validation of zonename
     if(zonename.empty())
@@ -560,7 +404,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     di.backend->setKind(zonename, DomainInfo::stringToKind(kind));
     di.backend->setMaster(zonename, master);
 
-    resp->body = getZone(zonename);
+    fillZone(zonename, resp);
     return;
   }
 
@@ -595,7 +439,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
     doc.PushBack(jdi, doc.GetAllocator());
   }
-  resp->body = makeStringFromDocument(doc);
+  resp->setBody(doc);
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
@@ -609,7 +453,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Could not find domain '"+zonename+"'");
 
     Document document;
-    parseJsonBody(req, document);
+    req->json(document);
 
     string master;
     const Value &masters = document["masters"];
@@ -622,7 +466,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
     di.backend->setMaster(zonename, master);
-    resp->body = getZone(zonename);
+    fillZone(zonename, resp);
     return;
   }
   else if(req->method == "DELETE") {
@@ -643,7 +487,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  resp->body = getZone(zonename);
+  fillZone(zonename, resp);
 }
 
 static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
@@ -662,7 +506,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("Could not find domain '"+zonename+"'");
 
   Document document;
-  parseJsonBody(req, document);
+  req->json(document);
 
   string qname, changetype;
   QType qtype;
@@ -717,7 +561,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   resp->body = "{}";
 }
 
-void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
 
@@ -737,7 +581,7 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
     //cerr<<"Flushed cache for '"<<parameters["domain"]<<"', cleaned "<<number<<" records"<<endl;
-    resp->body = returnJSONObject(object);
+    resp->body = returnJsonObject(object);
     return;
   }
   else if(command == "pdns-control") {
@@ -745,11 +589,7 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
       throw HttpMethodNotAllowedException();
     // cout<<"post: "<<post<<endl;
     rapidjson::Document document;
-    if(document.Parse<0>(req->body.c_str()).HasParseError()) {
-      resp->status = 400;
-      resp->body = returnJSONError("Unable to parse JSON");
-      return;
-    }
+    req->json(document);
     // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
     vector<string> parameters;
     stringtok(parameters, document["parameters"].GetString(), " \t");
@@ -765,52 +605,22 @@ void StatWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
       resp->status = 404;
       m["error"]="No such function "+toUpper(parameters[0]);
     }
-    resp->body = returnJSONObject(m);
+    resp->body = returnJsonObject(m);
     return;
   }
   else if(command=="log-grep") {
-    resp->body = makeLogGrepJSON(req->parameters["needle"], ::arg()["experimental-logfile"], " pdns[");
+    // legacy parameter name hack
+    req->parameters["q"] = req->parameters["needle"];
+    apiServerSearchLog(req, resp);
     return;
   }
 
-  resp->body = returnJSONError("No or unknown command given");
+  resp->body = returnJsonError("No or unknown command given");
   resp->status = 404;
   return;
 }
 
-static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler, HttpRequest* req, HttpResponse* resp) {
-  resp->headers["Access-Control-Allow-Origin"] = "*";
-  resp->headers["Content-Type"] = "application/json";
-
-  string callback;
-
-  if(req->parameters.count("callback")) {
-    callback=req->parameters["callback"];
-    req->parameters.erase("callback");
-  }
-  
-  req->parameters.erase("_"); // jQuery cache buster
-
-  try {
-    handler(req, resp);
-  } catch (ApiException &e) {
-    string what = e.what();
-    resp->body = returnJSONError(what);
-    resp->status = 422;
-    return;
-  }
-
-  if(!callback.empty()) {
-    resp->body = callback + "(" + resp->body + ");";
-  }
-}
-
-void StatWebServer::registerApiHandler(const string& url, boost::function<void(HttpRequest*,HttpResponse*)> handler) {
-  WebServer::HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
-  d_ws->registerHandler(url, f);
-}
-
-void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
   resp->headers["Content-Type"] = "text/css";
@@ -845,27 +655,27 @@ void StatWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
   resp->body = ret.str();
 }
 
-void StatWebServer::launch()
+void AuthWebServer::webThread()
 {
   try {
     if(::arg().mustDo("experimental-json-interface")) {
-      registerApiHandler("/servers/localhost/config", &apiServerConfig);
-      registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-      registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-      registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
-      registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
-      registerApiHandler("/servers/localhost/zones", &apiServerZones);
-      registerApiHandler("/servers/localhost", &apiServerDetail);
-      registerApiHandler("/servers", &apiServer);
+      d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
+      d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+      d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
+      d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
+      d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
+      d_ws->registerApiHandler("/servers", &apiServer);
       // legacy dispatch
-      registerApiHandler("/jsonstat", boost::bind(&StatWebServer::jsonstat, this, _1, _2));
+      d_ws->registerApiHandler("/jsonstat", boost::bind(&AuthWebServer::jsonstat, this, _1, _2));
     }
-    d_ws->registerHandler("/style.css", boost::bind(&StatWebServer::cssfunction, this, _1, _2));
-    d_ws->registerHandler("/", boost::bind(&StatWebServer::indexfunction, this, _1, _2));
+    d_ws->registerHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
+    d_ws->registerHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
     d_ws->go();
   }
   catch(...) {
-    L<<Logger::Error<<"StatWebserver thread caught an exception, dying"<<endl;
+    L<<Logger::Error<<"AuthWebServer thread caught an exception, dying"<<endl;
     exit(1);
   }
 }

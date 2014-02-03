@@ -31,16 +31,14 @@
 #include "misc.hh"
 #include "iputils.hh"
 
-void Session::init()
+Session::Session(int s, ComboAddress r) : d_good(true)
 {
-  d_good = true;
-}
-
-Session::Session(int s, struct sockaddr_in r)
-{
-  init();
   d_remote=r;
   d_socket=s;
+}
+
+Session::Session() : d_good(false)
+{
 }
 
 int Session::close()
@@ -65,10 +63,10 @@ Session::~Session()
 //! This function makes a deep copy of Session
 Session::Session(const Session &s)
 {
-  init();
-
   d_socket=s.d_socket;
   d_remote=s.d_remote;
+  d_good=s.d_good;
+  d_timeout=s.d_timeout;
 }
 
 void Session::setTimeout(unsigned int seconds)
@@ -76,7 +74,6 @@ void Session::setTimeout(unsigned int seconds)
   d_timeout=seconds;
 }
 
-  
 bool Session::put(const string &s)
 {
   int length=s.length();
@@ -136,15 +133,15 @@ int Session::getSocket()
   return d_socket;
 }
 
-Session *Server::accept()
+Session Server::accept()
 {
-  struct sockaddr_in d_remote;
-  Utility::socklen_t len=sizeof(d_remote);
+  ComboAddress remote;
+  remote.sin4.sin_family = AF_INET6;
+  socklen_t remlen = remote.getSocklen();
 
-  int d_socket=-1;
+  int socket=-1;
 
-
-  while((d_socket=::accept(s,(struct sockaddr *)(&d_remote),&len))==-1) // repeat until we have a successful connect
+  while((socket=::accept(s, (struct sockaddr *)&remote, &remlen))==-1) // repeat until we have a successful connect
     {
       //      L<<Logger::Error<<"accept() returned: "<<strerror(errno)<<endl;
       if(errno==EMFILE) {
@@ -153,7 +150,24 @@ Session *Server::accept()
 
     }
 
-  return new Session(d_socket, d_remote);
+  Session session(socket, remote);
+  return session;
+}
+
+void Server::asyncNewConnection()
+{
+  try {
+    d_asyncNewConnectionCallback(accept());
+  } catch (SessionException &e) {
+    // we're running in a shared process/thread, so can't just terminate/abort.
+    return;
+  }
+}
+
+void Server::asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback)
+{
+  d_asyncNewConnectionCallback = callback;
+  fdm->addReadFD(s, boost::bind(&Server::asyncNewConnection, this));
 }
 
 Server::Server(const string &localaddress, int port)
@@ -165,9 +179,9 @@ Server::Server(const string &localaddress, int port)
     throw SessionException(string("socket: ")+strerror(errno));
 
   Utility::setCloseOnExec(s);
-  
+
   int tmp=1;
-  if(setsockopt(s, SOL_SOCKET, SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
+  if(setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
     throw SessionException(string("Setsockopt failed: ")+strerror(errno));
 
   if(bind(s, (sockaddr*)&d_local, d_local.getSocklen())<0)

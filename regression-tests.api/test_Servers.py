@@ -1,6 +1,6 @@
 import unittest
 import requests
-from test_helper import ApiTestCase
+from test_helper import ApiTestCase, isAuth, isRecursor
 
 
 class Servers(ApiTestCase):
@@ -24,7 +24,11 @@ class Servers(ApiTestCase):
         self.assertEquals(data['id'], 'localhost')
         self.assertEquals(data['type'], 'Server')
         # or 'recursor' for recursors
-        self.assertEquals(data['daemon_type'], 'authoritative')
+        if isAuth():
+            daemon_type = 'authoritative'
+        elif isRecursor():
+            daemon_type = 'recursor'
+        self.assertEquals(data['daemon_type'], daemon_type)
 
     def test_ReadConfig(self):
         r = self.session.get(self.url("/servers/localhost/config"))
