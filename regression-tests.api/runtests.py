@@ -50,7 +50,7 @@ if daemon == 'authoritative':
 else:
 
     # No preparations for recursor
-    pdnscmd = ("../pdns/pdns_recursor --daemon=no --socket-dir=. --local-port=5555 --experimental-json-interface=yes --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password="+WEBPASSWORD).split()
+    pdnscmd = ("../pdns/pdns_recursor --daemon=no --socket-dir=. --local-port=5555 --experimental-json-interface=yes --experimental-webserver=yes --experimental-webserver-port="+WEBPORT+" --experimental-webserver-address=127.0.0.1 --experimental-webserver-password="+WEBPASSWORD).split()
 
 
 # Now run pdns and the tests.

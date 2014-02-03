@@ -48,10 +48,10 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
 
-  if(!arg().mustDo("webserver"))
+  if(!arg().mustDo("experimental-webserver"))
     return;
 
-  d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"), arg()["webserver-password"]);
+  d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"), arg()["experimental-webserver-password"]);
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
