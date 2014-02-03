@@ -1,6 +1,7 @@
 #include <string>
 #include <map>
 #include "ssql.hh"
+#include "pdns/arguments.hh"
 
 #include "../../namespaces.hh"
 
@@ -20,6 +21,9 @@ public:
   void setDB(SSql *db)
   {
     d_db=db;
+    if (d_db) {
+      d_db->setLog(::arg().mustDo("query-logging"));
+    }
   }
   
   virtual string sqlEscape(const string &name);

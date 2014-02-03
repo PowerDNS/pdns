@@ -786,8 +786,6 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   string format;
   char output[1024];
 
-  d_db->setLog(::arg().mustDo("query-logging"));
-
   string lcqname=toLower(qname);
   
   // lcqname=labelReverse(makeRelative(lcqname, "net"));
