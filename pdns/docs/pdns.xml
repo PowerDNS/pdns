@@ -11483,12 +11483,6 @@ name         IN            A        192.0.2.4
       <para>
 	Connect to MySQL as a user with sufficient privileges and issue the following commands:
    <programlisting><xi:include  href="../../modules/gmysqlbackend/no-dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-   	<screen>
-
-GRANT SELECT ON supermasters TO pdns;
-GRANT ALL ON domains TO pdns;
-GRANT ALL ON records TO pdns;
-	</screen>
 	
 	Now we have a database and an empty table. PDNS should now be able to launch in monitor mode and display no errors:
 
@@ -17741,8 +17735,7 @@ authoritative).
 	</para>
 	
 	<para>
-	  This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used, the 'GRANT' statements
-	  can be trimmed to make sure PDNS cannot subvert the contents of your database.
+	  This schema contains all elements needed for master, slave and superslave operation.
 	</para>
 	<para>
 	  When using the InnoDB storage engine, we suggest adding the following lines to the 'create table records' command above:
@@ -17769,8 +17762,7 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
 	Zone2sql with the --gpgsql flag also assumes this layout is in place.
 	</para>
       <para>
-	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used, the 'GRANT' statements
-	can be trimmed to make sure PDNS cannot subvert the contents of your database.
+	This schema contains all elements needed for master, slave and superslave operation.
       </para>
       <para>
       To support DNSSEC or to migrate to DNSSEC, the following statements have to be issued:
@@ -17792,8 +17784,7 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
         <programlisting><xi:include  href="../../modules/goraclebackend/goracle-schema.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 </para>
       <para>
-	This schema contains all elements needed for master, slave and superslave operation. Depending on which features will be used,  'GRANT' statements
-	can be trimmed to make sure PDNS cannot subvert the contents of your database.
+	This schema contains all elements needed for master, slave and superslave operation.
       </para>
 	<para>
 	  Inserting records is a bit different compared to MySQL and PostgreSQL, you should use:
