@@ -206,10 +206,10 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if(g_mode==ORACLE) {
-    cout<<"INSERT INTO Records (id, zone_id, fqdn, ttl, type, content, disabled) SELECT records_id_seq.nextval, id, "<<
+    cout<<"INSERT INTO Records (id, zone_id, fqdn, ttl, type, content) SELECT records_id_seq.nextval, id, "<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       ttl<<", "<<sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<", 0"<<
+      sqlstr(stripDotContent(content))<<
       " FROM Zones WHERE name="<<toLower(sqlstr(zoneName))<<";"<<endl;
   }
   else if (g_mode == MYDNS) {
