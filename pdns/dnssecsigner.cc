@@ -139,8 +139,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
       rrc.d_signature=iter->second;
       return;
     }
-    else
-      ; // cerr<<"Miss!"<<endl;
+    // else cerr<<"Miss!"<<endl;  
   }
   
   rrc.d_signature = rc->sign(msg);
