@@ -86,7 +86,7 @@ LdapBackend::~LdapBackend()
 
 
 
-bool LdapBackend::list( const string& target, int domain_id )
+bool LdapBackend::list( const string& target, int domain_id, bool include_disabled )
 {
         try
         {

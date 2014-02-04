@@ -132,7 +132,7 @@ public:
         LdapBackend( const string &suffix="" );
         ~LdapBackend();
 
-        bool list( const string& target, int domain_id );
+        bool list( const string& target, int domain_id, bool include_disabled=false );
         void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
         bool get( DNSResourceRecord& rr );
 };
