@@ -473,7 +473,6 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
         throw ArgException(fn + " could not be parsed");
       }
     }
-    closedir(dir);
   }
 
   return true;
@@ -518,4 +517,5 @@ void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
       }
     }
     std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX()); 
+    closedir(dir);
 }

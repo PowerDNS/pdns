@@ -1632,6 +1632,14 @@ void parseACLs()
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
     ::arg().preParse(g_argc, g_argv, "allow-from");
+    ::arg().preParse(g_argc, g_argv, "include-dir");
+
+    // then process includes
+    std::vector<std::string> extraConfigs;
+    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+      ::arg().preParseFile(fn.c_str(), "allow-from-file");
+      ::arg().preParseFile(fn.c_str(), "allow-from");
+    }
   }
 
   NetmaskGroup* oldAllowFrom = t_allowFrom, *allowFrom=new NetmaskGroup;
