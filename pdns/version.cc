@@ -45,6 +45,7 @@ string productName() {
   case ProductRecursor:
     return "PowerDNS Recursor";
   };
+  return "<unknown>"; // to squash warning
 }
 
 // REST API product type
@@ -55,6 +56,7 @@ string productTypeApiType() {
   case ProductRecursor:
     return "recursor";
   };
+  return "<unknown>"; // to squash warning
 }
 
 void showProductVersion()

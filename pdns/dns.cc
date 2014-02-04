@@ -36,11 +36,11 @@ public:
     {}
   
     
-  const char operator[](unsigned int offset) const
+  char operator[](unsigned int offset) const
   {
     if(offset < d_length)
       return d_ptr[offset];
-    else throw runtime_error("out of bounds: "+boost::lexical_cast<string>(offset)+" >= " + boost::lexical_cast<string>(d_length));
+    throw runtime_error("out of bounds: "+boost::lexical_cast<string>(offset)+" >= " + boost::lexical_cast<string>(d_length));
   }
 private:  
   const char* d_ptr;
