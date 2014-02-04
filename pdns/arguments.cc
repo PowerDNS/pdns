@@ -465,53 +465,57 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
 
   // handle include here (avoid re-include)
   if (!included && !params["include-dir"].empty()) {
-      // rerun parser for all files
-      struct stat st;
-      DIR *dir;
-      struct dirent *ent;
-
-      // stat
-      if (stat(params["include-dir"].c_str(), &st)) {
-         L << Logger::Error << params["include-dir"] << " does not exist!" << std::endl;
-         throw ArgException(params["include-dir"] + " does not exist!");
+    std::vector<std::string> extraConfigs;
+    gatherIncludes(extraConfigs); 
+    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+      if (!file(fn.c_str(), lax, true)) {
+        L << Logger::Error << fn << " could not be parsed" << std::endl;
+        throw ArgException(fn + " could not be parsed");
       }
-
-      // wonder if it's accessible directory
-      if (!S_ISDIR(st.st_mode)) {
-         L << Logger::Error << params["include-dir"] << " is not a directory" << std::endl;
-         throw ArgException(params["include-dir"] + " is not a directory");
-      }
-
-      if (!(dir = opendir(params["include-dir"].c_str()))) {
-         L << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
-         throw ArgException(params["include-dir"] + " is not accessible");
-      }
-      
-      std::vector<std::string> extraConfigs;
-      while((ent = readdir(dir)) != NULL) {
-         if (ent->d_name[0] == '.') continue; // skip any dots
-         if (boost::ends_with(ent->d_name, ".conf")) {
-            // build name
-            std::ostringstream namebuf;
-            namebuf << params["include-dir"].c_str() << "/" << ent->d_name; // FIXME: Use some path separator
-            // ensure it's readable file
-            if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
-                L << Logger::Error << namebuf.str() << " is not a file" << std::endl;
-                throw ArgException(namebuf.str() + " does not exist!");
-            }
-            extraConfigs.push_back(namebuf.str());
-         }
-      }
-      std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX());
-      BOOST_FOREACH(const std::string& fn, extraConfigs) {
-            if (!file(fn.c_str(), lax, true)) {
-                L << Logger::Error << fn << " could not be parsed" << std::endl;
-                throw ArgException(fn + " could not be parsed");
-            }
-      }
-
-      closedir(dir);
+    }
+    closedir(dir);
   }
 
   return true;
+}
+
+void ArgvMap::gatherIncludes(std::vector<std::string> &extraConfigs) {
+  extraConfigs.clear();
+  if (params["include-dir"].empty()) return; // nothing to do
+    struct stat st;
+    DIR *dir;
+    struct dirent *ent;
+
+    // stat
+    if (stat(params["include-dir"].c_str(), &st)) {
+       L << Logger::Error << params["include-dir"] << " does not exist!" << std::endl;
+       throw ArgException(params["include-dir"] + " does not exist!");
+    }
+
+    // wonder if it's accessible directory
+    if (!S_ISDIR(st.st_mode)) {
+       L << Logger::Error << params["include-dir"] << " is not a directory" << std::endl;
+       throw ArgException(params["include-dir"] + " is not a directory");
+    }
+
+    if (!(dir = opendir(params["include-dir"].c_str()))) {
+       L << Logger::Error << params["include-dir"] << " is not accessible" << std::endl;
+       throw ArgException(params["include-dir"] + " is not accessible");
+    }
+
+    while((ent = readdir(dir)) != NULL) {
+      if (ent->d_name[0] == '.') continue; // skip any dots
+      if (boost::ends_with(ent->d_name, ".conf")) {
+        // build name
+        std::ostringstream namebuf;
+        namebuf << params["include-dir"].c_str() << "/" << ent->d_name; // FIXME: Use some path separator
+        // ensure it's readable file
+        if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+          L << Logger::Error << namebuf.str() << " is not a file" << std::endl;
+          throw ArgException(namebuf.str() + " does not exist!");
+        }
+        extraConfigs.push_back(namebuf.str());
+      }
+    }
+    std::sort(extraConfigs.begin(), extraConfigs.end(), CIStringComparePOSIX()); 
 }
