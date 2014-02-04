@@ -126,7 +126,7 @@ void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial) {
 	s_domainInfo[d_suffix] = *domains;
 }
 
-void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains) {
+void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) {
 	d_isAxfr=true;
 	d_dnspacket = NULL;
 
@@ -152,7 +152,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains) {
 	}
 }
 
-bool TinyDNSBackend::list(const string &target, int domain_id) {
+bool TinyDNSBackend::list(const string &target, int domain_id, bool include_disabled) {
 	d_isAxfr=true;
 	string key = simpleCompress(target);
 	d_cdbReader=new CDB(getArg("dbfile"));

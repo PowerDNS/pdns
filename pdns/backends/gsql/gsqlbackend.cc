@@ -285,6 +285,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_wildCardANYIDQuery=getArg("wildcard-any-id-query"+authswitch);
   
   d_listQuery=getArg("list-query"+authswitch);
+  d_listSubZoneQuery=getArg("list-subzone-query"+authswitch);
 
   d_MasterOfDomainsZoneQuery=getArg("master-zone-query");
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
@@ -303,7 +304,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
   d_DeleteZoneQuery=getArg("delete-zone-query");
-  d_DeleteRRSet=getArg("delete-rrset-query");
+  d_DeleteRRSetQuery=getArg("delete-rrset-query");
+  d_DeleteNamesQuery=getArg("delete-names-query");
   d_getAllDomainsQuery=getArg("get-all-domains-query");
 
   d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
@@ -784,8 +786,6 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   string format;
   char output[1024];
 
-  d_db->setLog(::arg().mustDo("query-logging"));
-
   string lcqname=toLower(qname);
   
   // lcqname=labelReverse(makeRelative(lcqname, "net"));
@@ -838,14 +838,17 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   d_qname=qname;
 }
 
-bool GSQLBackend::list(const string &target, int domain_id )
+bool GSQLBackend::list(const string &target, int domain_id, bool include_disabled)
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
-  char output[1024];
-  snprintf(output,sizeof(output)-1,d_listQuery.c_str(),domain_id);
+  string query = (boost::format(d_listQuery)
+                  % (int)include_disabled
+                  % domain_id
+    ).str();
+
   try {
-    d_db->doQuery(output);
+    d_db->doQuery(query);
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend list query: "+e.txtReason());
@@ -857,12 +860,13 @@ bool GSQLBackend::list(const string &target, int domain_id )
 
 bool GSQLBackend::listSubZone(const string &zone, int domain_id) {
   string wildzone = "%." + zone;
-  string listSubZone = "select content,ttl,prio,type,domain_id,name from records where (name='%s' OR name like '%s') and domain_id=%d";
-  if (d_dnssecQueries)
-    listSubZone = "select content,ttl,prio,type,domain_id,name,auth from records where (name='%s' OR name like '%s') and domain_id=%d";
-  string output = (boost::format(listSubZone) % sqlEscape(zone) % sqlEscape(wildzone) % domain_id).str();
+  string query = (boost::format(d_listSubZoneQuery)
+                  % sqlEscape(zone)
+                  % sqlEscape(wildzone)
+                  % domain_id
+    ).str();
   try {
-    d_db->doQuery(output.c_str());
+    d_db->doQuery(query);
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend listSubZone query: "+e.txtReason());
@@ -976,12 +980,13 @@ bool GSQLBackend::deleteDomain(const string &domain)
   return true;
 }
 
-void GSQLBackend::getAllDomains(vector<DomainInfo> *domains) 
+void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled)
 {
   DLOG(L<<"GSQLBackend retrieving all domains."<<endl);
+  string query = (boost::format(d_getAllDomainsQuery) % (int)include_disabled).str();
 
   try {
-    d_db->doQuery(d_getAllDomainsQuery.c_str()); 
+    d_db->doQuery(query);
   }
   catch (SSqlException &e) {
     throw PDNSException("Database error trying to retrieve all domains:" + e.txtReason());
@@ -1033,15 +1038,17 @@ bool GSQLBackend::get(DNSResourceRecord &r)
     if(!d_qname.empty())
       r.qname=d_qname;
     else
-      r.qname=row[5];
+      r.qname=row[6];
     r.qtype=row[3];
     r.last_modified=0;
     
     if(d_dnssecQueries)
-      r.auth = !row[6].empty() && row[6][0]=='1';
+      r.auth = !row[7].empty() && row[7][0]=='1';
     else
       r.auth = 1; 
-    
+
+    r.disabled = !row[5].empty() && row[5][0]=='1';
+
     r.domain_id=atoi(row[4].c_str());
     return true;
   }
@@ -1051,16 +1058,20 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  string deleteQuery;
-  string deleteRRSet;
+  string query;
   if (qt != QType::ANY) {
-    deleteRRSet = "delete from records where domain_id = %d and name='%s' and type='%s'";
-    deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname) % sqlEscape(qt.getName())).str();
+    query = (boost::format(d_DeleteRRSetQuery)
+             % domain_id
+             % sqlEscape(qname)
+             % sqlEscape(qt.getName())
+      ).str();
   } else {
-    deleteRRSet = "delete from records where domain_id = %d and name='%s'";
-    deleteQuery = (boost::format(deleteRRSet) % domain_id % sqlEscape(qname)).str();
+    query = (boost::format(d_DeleteNamesQuery)
+             % domain_id
+             % sqlEscape(qname)
+      ).str();
   }
-  d_db->doCommand(deleteQuery);
+  d_db->doCommand(query);
   BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
     feedRecord(rr);
   }
@@ -1070,18 +1081,45 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
-  string output;
+  string query;
   if(d_dnssecQueries) {
     if(ordername)
-      output = (boost::format(d_InsertRecordOrderQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % sqlEscape(*ordername) % (int)r.auth).str();
+      query = (boost::format(d_InsertRecordOrderQuery)
+               % sqlEscape(r.content)
+               % r.ttl
+               % r.priority
+               % sqlEscape(r.qtype.getName())
+               % r.domain_id
+               % (int)r.disabled
+               % toLower(sqlEscape(r.qname))
+               % sqlEscape(*ordername)
+               % (int)r.auth
+        ).str();
     else
-      output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname)) % (int)r.auth).str();
+      query = (boost::format(d_InsertRecordQuery)
+               % sqlEscape(r.content)
+               % r.ttl
+               % r.priority
+               % sqlEscape(r.qtype.getName())
+               % r.domain_id
+               % (int)r.disabled
+               % toLower(sqlEscape(r.qname))
+               % (int)r.auth
+        ).str();
   } else {
-    output = (boost::format(d_InsertRecordQuery) % sqlEscape(r.content) % r.ttl % r.priority % sqlEscape(r.qtype.getName()) % r.domain_id % toLower(sqlEscape(r.qname))).str();
+    query = (boost::format(d_InsertRecordQuery)
+             % sqlEscape(r.content)
+             % r.ttl
+             % r.priority
+             % sqlEscape(r.qtype.getName())
+             % r.domain_id
+             % (int)r.disabled
+             % toLower(sqlEscape(r.qname))
+      ).str();
   }
 
   try {
-    d_db->doCommand(output.c_str());
+    d_db->doCommand(query);
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to feed record: "+e.txtReason());

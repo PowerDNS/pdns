@@ -134,9 +134,9 @@ public:
   // DNSSEC
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int id);
+  bool list(const string &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
-  void getAllDomains(vector<DomainInfo> *domains);
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker();
   static pthread_mutex_t s_startup_lock;

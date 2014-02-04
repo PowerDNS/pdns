@@ -1,6 +1,7 @@
 #include <string>
 #include <map>
 #include "ssql.hh"
+#include "pdns/arguments.hh"
 
 #include "../../namespaces.hh"
 
@@ -20,13 +21,16 @@ public:
   void setDB(SSql *db)
   {
     d_db=db;
+    if (d_db) {
+      d_db->setLog(::arg().mustDo("query-logging"));
+    }
   }
   
   virtual string sqlEscape(const string &name);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int domain_id);
+  bool list(const string &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
-  void getAllDomains(vector<DomainInfo> *domains);
+  void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
   bool isMaster(const string &domain, const string &ip);
   void alsoNotifies(const string &domain, set<string> *ips);
   bool startTransaction(const string &domain, int domain_id=-1);
@@ -89,6 +93,7 @@ private:
   string d_noWildCardANYIDQuery;
   string d_wildCardANYIDQuery;
   string d_listQuery;
+  string d_listSubZoneQuery;
   string d_logprefix;
 
   string d_MasterOfDomainsZoneQuery;
@@ -111,7 +116,8 @@ private:
   string d_InfoOfAllMasterDomainsQuery;
   string d_DeleteDomainQuery;
   string d_DeleteZoneQuery;
-  string d_DeleteRRSet;
+  string d_DeleteRRSetQuery;
+  string d_DeleteNamesQuery;
   string d_ZoneLastChangeQuery;
 
   string d_firstOrderQuery;

@@ -12473,6 +12473,37 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     </para>
   </sect1>
 
+  <sect1 id="from3.3.1to3.4"><title>From PowerDNS Authoritative Server 3.3.1 to 3.4</title>
+    <note>
+      <para>
+        If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" />, <xref linkend="from3.1to3.2" /> and <xref linkend="from3.2to3.3" /> and <xref linkend="from3.3to3.3.1" />.
+      </para>
+    </note>
+    <para>
+      An GSQL Backend schema change is necessary for new features.
+      For MySQL:
+      <screen>
+ALTER TABLE records ADD disabled BOOLEAN;
+UPDATE records SET disabled=0;
+</screen>
+      For PostgreSQL:
+      <screen>
+ALTER TABLE records ADD disabled BOOLEAN;
+UPDATE records SET disabled=false;
+</screen>
+      For SQLite 3:
+      <screen>
+ALTER TABLE records ADD disabled BOOLEAN;
+UPDATE records SET disabled=0;
+</screen>
+      For Oracle:
+      <screen>
+ALTER TABLE records ADD disabled INT;
+UPDATE records SET disabled=0;
+</screen>
+    </para>
+  </sect1>
+
   </chapter>
   <chapter id="powerdnssec-auth">
   <title>Serving authoritative DNSSEC data</title>
@@ -17661,6 +17692,7 @@ authoritative).
 	      <row><entry>Autoserial</entry><entry>Yes (v3.1 and up)</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Yes (set gmysql-dnssec or gpgsql-dnssec)</entry></row>
+	      <row><entry>Disabled data</entry><entry>Yes (v3.4 and up)</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
 	      <row><entry>Launch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
@@ -17830,6 +17862,14 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	      <listitem>
 		<para>
 		  Actual name of a record. Must not end in a '.' and be fully qualified - it is not relative to the name of the domain!
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>disabled</term>
+	      <listitem>
+		<para>
+		  If set to true, this record is hidden from DNS clients, but can still be modified from the REST API. See <xref linkend="gsql-disableddata" />. (Available since version 3.4.)
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -18229,6 +18269,16 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	  </programlisting>
 	  Make sure that the assigned id in the domains table matches the domain_id field in the records table!
 	</para>
+      </sect2>
+      <sect2 id="gsql-disableddata"><title>Disabled data</title>
+        <para>
+          PowerDNS understands the notion of disabled records. They are marked by setting "disabled" to 1 (for PostgreSQL: true).
+          By extension, when the SOA record for a domain is disabled, the entire domain is considered to be disabled.
+        </para>
+        <para>
+          Effects: the record (or domain, respectively) will not be visible to DNS clients. The REST API will still see the record (or domain).
+          Even if a domain is disabled, slaving still works. Slaving considers a disabled domain to have a serial of 0; this implies that a slaved domain will not stay disabled.
+        </para>
       </sect2>
     </sect1>
     
@@ -22265,6 +22315,9 @@ static RandomLoader randomloader;
 	      <row>
           	<entry>bool auth</entry><entry>Used for DNSSEC operations. See <xref linkend="powerdnssec-auth" /> and more specifically <xref linkend="dnssec-migration" />. It is also useful to check out the <function>rectifyZone()</function> in pdnssec.cc</entry>
 	      </row>
+	      <row>
+	        <entry>bool disabled</entry><entry>If set, this record is not to be served to DNS clients. Backends should not make these records available to PowerDNS unless indicated otherwise.</entry>
+	      </row>
 	    </tbody>
 	  </tgroup>
 	</table>
@@ -22345,11 +22398,12 @@ static RandomLoader randomloader;
 	    </varlistentry>
 	  
 	  <varlistentry>
-	    <term>bool list(int domain_id)</term>
+	    <term>bool list(int domain_id, bool include_disabled=false)</term>
 	    <listitem>
 	      <para>
 		Initiates a list of the indicated domain. Records should then be made available via the <function>get()</function> method. 
 		Need not include the SOA record. If it is, PDNS will not get confused.
+                If include_disabled is given as true, records that are configured but should not be served to DNS clients must also be made available.
 	      </para>
 	      <para>
 		Should return false if the backend does not consider itself authoritative for this zone.

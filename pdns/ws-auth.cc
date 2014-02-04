@@ -302,7 +302,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   DNSResourceRecord rr;
   Value records;
   records.SetArray();
-  di.backend->list(zonename, di.id);
+  di.backend->list(zonename, di.id, true); // incl. disabled
   while(di.backend->get(rr)) {
     if (!rr.qtype.getCode())
       continue; // skip empty non-terminals
@@ -315,6 +315,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
     object.AddMember("type", jtype, doc.GetAllocator());
     object.AddMember("ttl", rr.ttl, doc.GetAllocator());
     object.AddMember("priority", rr.priority, doc.GetAllocator());
+    object.AddMember("disabled", rr.disabled, doc.GetAllocator());
     Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
     object.AddMember("content", jcontent, doc.GetAllocator());
     records.PushBack(object, doc.GetAllocator());
@@ -412,7 +413,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains);
+  B.getAllDomains(&domains, true); // incl. disabled
 
   Document doc;
   doc.SetArray();
@@ -500,11 +501,6 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
-  SOAData sd;
-  sd.db = (DNSBackend*)-1;
-  if(!B.getSOA(zonename, sd) || !sd.db)
-    throw ApiException("Could not find domain '"+zonename+"'");
-
   Document document;
   req->json(document);
 
@@ -516,7 +512,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
 
   if (changetype == "DELETE") {
     // delete all matching qname/qtype RRs
-    sd.db->replaceRRSet(sd.domain_id, qname, qtype, vector<DNSResourceRecord>());
+    di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>());
   }
   else if (changetype == "REPLACE") {
     DNSResourceRecord rr;
@@ -527,10 +523,11 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
       rr.qname = stringFromJson(record, "name");
       rr.content = stringFromJson(record, "content");
       rr.qtype = stringFromJson(record, "type");
-      rr.domain_id = sd.domain_id;
+      rr.domain_id = di.id;
       rr.auth = 1;
       rr.ttl = intFromJson(record, "ttl");
       rr.priority = intFromJson(record, "priority");
+      rr.disabled = boolFromJson(record, "disabled");
 
       rrset.push_back(rr);
 
@@ -547,9 +544,9 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
       }
     }
     // Actually store the change.
-    sd.db->startTransaction(qname);
-    sd.db->replaceRRSet(sd.domain_id, qname, qtype, rrset);
-    sd.db->commitTransaction();
+    di.backend->startTransaction(qname);
+    di.backend->replaceRRSet(di.id, qname, qtype, rrset);
+    di.backend->commitTransaction();
   }
   else
     throw ApiException("Changetype not understood");

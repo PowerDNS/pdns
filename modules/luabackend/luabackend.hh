@@ -33,7 +33,7 @@ public:
 
     LUABackend(const string &suffix="");
     ~LUABackend();
-    bool list(const string &target, int domain_id);
+    bool list(const string &target, int domain_id, bool include_disabled=false);
     void lookup(const QType &qtype, const string &qname, DNSPacket *p, int domain_id);
     bool get(DNSResourceRecord &rr);
     //! fills the soadata struct with the SOA details. Returns false if there is no SOA.

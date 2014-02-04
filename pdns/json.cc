@@ -54,6 +54,16 @@ string stringFromJson(const Value& container, const char* key, const string& def
   }
 }
 
+bool boolFromJson(const rapidjson::Value& container, const char* key)
+{
+  const Value& val = container[key];
+  if (val.IsBool()) {
+    return val.GetBool();
+  } else {
+    throw JsonException("Key '" + string(key) + "' not present or not a Bool");
+  }
+}
+
 string makeStringFromDocument(const Document& doc)
 {
   StringBuffer output;

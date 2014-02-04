@@ -231,7 +231,7 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
 
 
 
-bool OdbxBackend::list( const string& target, int zoneid )
+bool OdbxBackend::list( const string& target, int zoneid, bool include_disabled )
 {
         try
         {

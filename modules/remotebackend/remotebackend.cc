@@ -207,7 +207,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    d_index = 0;
 }
 
-bool RemoteBackend::list(const std::string &target, int domain_id) {
+bool RemoteBackend::list(const std::string &target, int domain_id, bool include_disabled) {
    rapidjson::Document query;
    rapidjson::Value parameters;
 

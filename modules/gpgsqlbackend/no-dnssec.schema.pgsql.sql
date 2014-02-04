@@ -19,6 +19,7 @@ CREATE TABLE records (
         ttl             INT DEFAULT NULL,
         prio            INT DEFAULT NULL,
         change_date     INT DEFAULT NULL,
+        disabled        BOOL DEFAULT NULL,
         CONSTRAINT domain_exists
         FOREIGN KEY(domain_id) REFERENCES domains(id)
         ON DELETE CASCADE,

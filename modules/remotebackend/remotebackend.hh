@@ -130,7 +130,7 @@ class RemoteBackend : public DNSBackend
 
   void lookup(const QType &qtype, const std::string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
   bool get(DNSResourceRecord &rr);
-  bool list(const std::string &target, int domain_id);
+  bool list(const std::string &target, int domain_id, bool include_disabled=false);
 
   virtual bool getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);

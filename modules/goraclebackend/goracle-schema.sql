@@ -22,6 +22,7 @@ CREATE TABLE records (
   ttl             INT DEFAULT NULL,
   prio            INT DEFAULT NULL,
   change_date     INT DEFAULT NULL,
+  disabled        INT DEFAULT NULL,
   ordername       VARCHAR(255) DEFAULT NULL,
   auth            INT DEFAULT NULL,
   primary key (id)

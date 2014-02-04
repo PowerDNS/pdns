@@ -37,7 +37,7 @@ public:
   PipeBackend(const string &suffix="");
   ~PipeBackend();
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int domain_id);
+  bool list(const string &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   
   static DNSBackend *maker();
