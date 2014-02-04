@@ -67,7 +67,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo>* domains);
   void setFresh(uint32_t zoneId);
   void setNotified(uint32_t zoneId, uint32_t serial);
-  bool list(const string &domain, int zoneId);
+  bool list(const string &domain, int zoneId, bool include_disabled=false);
   bool startTransaction(const string &domain, int zoneId);
   bool feedRecord(const DNSResourceRecord &rr, string* ordername);
   bool commitTransaction();
