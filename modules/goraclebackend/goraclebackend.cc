@@ -57,8 +57,8 @@ public:
 
     declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
 
-    string record_query = "SELECT content,ttl,prio,type,domain_id,name FROM records WHERE";
-    string record_auth_query = "SELECT content,ttl,prio,type,domain_id,name,auth FROM records WHERE";
+    string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name FROM records WHERE";
+    string record_auth_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
 
     declare(suffix, "basic-query", "Basic query", record_query+" disabled=0 and type='%s' and name='%s'");
     declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=0 and type='%s' and name='%s' and domain_id=%d");
@@ -89,7 +89,7 @@ public:
     declare(suffix, "wildcard-any-id-query-auth", "Wildcard ANY with ID query", record_auth_query+" disabled=0 and name like '%s' and domain_id='%d'");
 
     declare(suffix, "list-query-auth", "AXFR query", record_auth_query+" (disabled=0 OR %d) and domain_id='%d' order by name, type");
-    declare(suffix, "list-subzone-query-auth", "Subzone listing", record_query+" disabled=0 and (name='%s' OR name like '%s') and domain_id='%d'");
+    declare(suffix, "list-subzone-query-auth", "Subzone listing", record_auth_query+" disabled=0 and (name='%s' OR name like '%s') and domain_id='%d'");
 
     declare(suffix, "insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (id,domain_id,name,type,disabled,auth) values (records_id_sequence.nextval,'%d','%s',null,0,'1')");
 
@@ -100,6 +100,7 @@ public:
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
     declare(suffix,"supermaster-name-to-ips", "", "select ip from supermasters where nameserver='%s'");
+
     declare(suffix,"insert-zone-query","", "insert into domains (id, type, name) values(domain_id_sequence.nextval, 'NATIVE','%s')");
     declare(suffix,"insert-slave-query","", "insert into domains (id, type,name,master,account) values(domain_id_sequence.nextval, 'SLAVE','%s','%s','%s')");
 
