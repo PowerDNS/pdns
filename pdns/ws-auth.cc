@@ -378,11 +378,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // create SOA record so zone "really" exists
     DNSResourceRecord rr;
     rr.qname = zonename;
-    rr.content = (boost::format("%s hostmaster.%s %d")
+    rr.content = (boost::format("%s hostmaster@%s %d")
                   % nameservers[SizeType(0)].GetString()
                   % zonename
                   % intFromJson(document, "serial", 1)
       ).str();
+    SOAData sd;
+    fillSOAData(rr.content, sd);
+    rr.content = serializeSOAData(sd);
     rr.qtype = "SOA";
     rr.domain_id = di.id;
     rr.auth = 1;
