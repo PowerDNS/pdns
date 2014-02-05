@@ -325,10 +325,10 @@ version.o: version_generated.h
 
 .PHONY: version_generated.h
 version_generated.h:
-	echo '#ifndef VERSION_GENERATED_H' > $@
-	echo '#define VERSION_GENERATED_H' >> $@
-	echo '#define PDNS_VERSION "$(pdns_version)"' >> $@
-	echo '#define DIST_HOST "$(dist_host)"' >> $@
-	echo '#define BUILD_DATE "$(build_date)"' >> $@
-	echo '#define BUILD_HOST "$(build_host)"' >> $@
-	echo '#endif //!VERSION_GENERATED_H' >> $@
+	@echo '#ifndef VERSION_GENERATED_H' > $@
+	@echo '#define VERSION_GENERATED_H' >> $@
+	@echo '#define PDNS_VERSION "$(pdns_version)"' >> $@
+	@echo '#define DIST_HOST "$(dist_host)"' >> $@
+	@echo '#define BUILD_DATE "$(build_date)"' >> $@
+	@echo '#define BUILD_HOST "$(build_host)"' >> $@
+	@echo '#endif //!VERSION_GENERATED_H' >> $@
