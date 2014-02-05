@@ -278,8 +278,6 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
      If '4', send bare queries
   */
 
-  return asyncresolve(ip, domain, type, doTCP, sendRDQuery, true, now, res);
-
   if(s_noEDNS) {
     g_stats.noEdnsOutQueries++;
     return asyncresolve(ip, domain, type, doTCP, sendRDQuery, 0, now, res);
