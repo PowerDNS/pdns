@@ -31,6 +31,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <iomanip>
 
 #ifndef HAVE_STRCASESTR
 
@@ -221,4 +222,62 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   }
 
   resp->setBody(doc);
+}
+
+string apiZoneIdToName(const string& id) {
+  string zonename;
+  ostringstream ss;
+
+  if(id.empty())
+    throw HttpBadRequestException();
+
+  std::size_t lastpos = 0, pos = 0;
+  while ((pos = id.find('=', lastpos)) != string::npos) {
+    ss << id.substr(lastpos, pos-lastpos);
+    if ((id[pos+1] >= '0' && id[pos+1] <= '9') &&
+        (id[pos+2] >= '0' && id[pos+2] <= '9')) {
+      char c = ((id[pos+1] - '0')*10) + (id[pos+2] - '0');
+      ss << c;
+    } else {
+      throw HttpBadRequestException();
+    }
+
+    lastpos = pos+3;
+  }
+  if (lastpos < pos) {
+    ss << id.substr(lastpos, pos-lastpos);
+  }
+
+  zonename = ss.str();
+
+  // strip trailing dot
+  if (zonename.substr(zonename.size()-1) == ".") {
+    zonename = zonename.substr(0, zonename.size()-1);
+  }
+  return zonename;
+}
+
+string apiZoneNameToId(const string& name) {
+  ostringstream ss;
+
+  for(string::const_iterator iter = name.begin(); iter != name.end(); ++iter) {
+    if ((*iter >= 'A' && *iter <= 'Z') ||
+        (*iter >= 'a' && *iter <= 'z') ||
+        (*iter >= '0' && *iter <= '9') ||
+        (*iter == '.') || (*iter == '-')) {
+      ss << *iter;
+    } else {
+      ss << "=" << std::setfill('0') << std::setw(2) << (int)(*iter);
+    }
+  }
+
+  // add trailing dot
+  string id = ss.str() + ".";
+
+  // special handling for the root zone, as a dot on it's own doesn't work
+  // everywhere.
+  if (id == ".") {
+    id = (boost::format("=%d") % (int)('.')).str();
+  }
+  return id;
 }

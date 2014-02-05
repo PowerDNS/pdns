@@ -38,6 +38,11 @@
 #include "rapidjson/writer.h"
 #include "ws-api.hh"
 #include "version.hh"
+#include <iomanip>
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif // HAVE_CONFIG_H
 
 using namespace rapidjson;
 
@@ -281,8 +286,10 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.SetObject();
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-  doc.AddMember("id", di.zone.c_str(), doc.GetAllocator());
-  string url = (boost::format("/servers/localhost/zones/%s") % di.zone).str();
+  string zoneId = apiZoneNameToId(di.zone);
+  Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+  doc.AddMember("id", jzoneId, doc.GetAllocator());
+  string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
   doc.AddMember("name", di.zone.c_str(), doc.GetAllocator());
@@ -422,8 +429,10 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     Value jdi;
     jdi.SetObject();
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-    jdi.AddMember("id", di.zone.c_str(), doc.GetAllocator());
-    string url = (boost::format("/servers/localhost/zones/%s") % di.zone).str();
+    string zoneId = apiZoneNameToId(di.zone);
+    Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+    jdi.AddMember("id", jzoneId, doc.GetAllocator());
+    string url = "/servers/localhost/zones/" + zoneId;
     Value jurl(url.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("url", jurl, doc.GetAllocator());
     jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
@@ -444,7 +453,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
-  string zonename = req->path_parameters["id"];
+  string zonename = apiZoneIdToName(req->path_parameters["id"]);
 
   if(req->method == "PUT") {
     // update domain settings
@@ -497,7 +506,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
 
   UeberBackend B;
   DomainInfo di;
-  string zonename = req->path_parameters["id"];
+  string zonename = apiZoneIdToName(req->path_parameters["id"]);
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 

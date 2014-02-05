@@ -41,16 +41,25 @@ class Servers(ApiTestCase):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
 
-    @unittest.expectedFailure
     def test_CreateZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
-        expected_id = name.replace('/', '\\047')
+        expected_id = (name.replace('/', '=47')) + '.'
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)
+
+    def test_GetZoneWithSymbols(self):
+        payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
+        name = payload['name']
+        zone_id = (name.replace('/', '=47')) + '.'
+        r = self.session.get(self.url("/servers/localhost/zones/" + zone_id))
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
 
     def test_GetZone(self):
         r = self.session.get(self.url("/servers/localhost/zones"))
