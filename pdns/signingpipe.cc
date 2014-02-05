@@ -330,8 +330,8 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
   d_chunks.pop_front();
   if(d_chunks.empty())
     d_chunks.push_back(vector<DNSResourceRecord>());
-  if(d_final && front.empty())
-    ; // cerr<<"getChunk returning empty in final"<<endl;
+/*  if(d_final && front.empty())
+      cerr<<"getChunk returning empty in final"<<endl; */
   return front;
 }
 

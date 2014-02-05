@@ -67,8 +67,6 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
       else
         return true;
     }
-    else
-      ; 
   }  
   keyset_t keys = getKeys(zone, true); // does the cache
   
@@ -382,7 +380,7 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
                         rr.ttl = signTTL;
                         rrsigs.push_back(rr);
                 }
-                else ; // cerr<<"Skipping!"<<endl;
+                // else cerr<<"Skipping!"<<endl;
         }
         return true;
 }

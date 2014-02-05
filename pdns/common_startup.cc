@@ -252,7 +252,7 @@ void *qthread(void *number)
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
-  if( number > 0 && NS->canReusePort() ) {
+  if( number != NULL && NS->canReusePort() ) {
     L<<Logger::Notice<<"Starting new listen thread on the same IPs/ports using SO_REUSEPORT"<<endl;
     NS = new UDPNameserver( true );
   }
