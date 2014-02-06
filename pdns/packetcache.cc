@@ -27,6 +27,8 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 
+using boost::istarts_with;
+
 extern StatBag S;
 
 PacketCache::PacketCache()
@@ -89,7 +91,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
 
     uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk, p->hasEDNS());
+    string revqdomain = getRevQName( p->qdomain );
+    haveSomething=getEntryLocked(revqdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk, p->hasEDNS());
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -151,7 +154,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
   CacheEntry val;
   val.ttd=time(0)+ttl;
-  val.qname=qname;
+  val.qname= getRevQName( qname );
   val.qtype=qtype.getCode();
   val.value=value;
   val.ctype=cet;
@@ -234,16 +237,19 @@ int PacketCache::purge(const string &match)
      'www.userpowerdns.com'
 
   */
-  if(ends_with(match, "$")) {
-    string suffix(match);
+  string suffix(match);
+  if(ends_with(match, "$"))
     suffix.resize(suffix.size()-1);
 
-    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
-    cmap_t::const_iterator start=iter;
-    string dotsuffix = "."+suffix;
+  suffix = getRevQName( suffix );
+
+  if(ends_with(match, "$")) {
+    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix)),
+        start = iter;
+    string dotsuffix = suffix + ".";
 
     for(; iter != d_map.end(); ++iter) {
-      if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
+      if(!pdns_iequals(iter->qname, suffix) && !istarts_with(iter->qname, dotsuffix)) {
         //        cerr<<"Stopping!"<<endl;
         break;
       }
@@ -252,8 +258,8 @@ int PacketCache::purge(const string &match)
     d_map.erase(start, iter);
   }
   else {
-    delcount=d_map.count(tie(match));
-    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
+    delcount=d_map.count(tie(suffix));
+    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(suffix));
     d_map.erase(range.first, range.second);
   }
   *d_statnumentries=d_map.size();
@@ -270,22 +276,24 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     cleanup();
   }
 
+  string revqname = getRevQName( qname );
+
   TryReadLock l(&d_mut); // take a readlock here
   if(!l.gotIt()) {
     S.inc( "deferred-cache-lookup");
     return false;
   }
 
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS);
+  return getEntryLocked(revqname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS);
 }
 
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+bool PacketCache::getEntryLocked(const string &revqname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
   unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS)
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS));
+  cmap_t::const_iterator i=d_map.find(tie(revqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret)
