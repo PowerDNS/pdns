@@ -25,14 +25,6 @@
 #include <map>
 #include <time.h>
 #include <pthread.h>
-#include <sstream>
-#include <iomanip>
-#include <unistd.h>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif // HAVE_CONFIG_H
-
 #include "misc.hh"
 #include "namespaces.hh"
 
