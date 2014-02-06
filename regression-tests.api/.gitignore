@@ -5,3 +5,4 @@
 /*.controlsocket
 /named.conf
 /*.pyc
+acl.conf

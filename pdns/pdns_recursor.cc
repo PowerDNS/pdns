@@ -106,7 +106,7 @@ bool g_quiet;
 
 bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
 
-static __thread NetmaskGroup* t_allowFrom;
+__thread NetmaskGroup* t_allowFrom;
 static NetmaskGroup* g_initialAllowFrom; // new thread needs to be setup with this
 
 NetmaskGroup* g_dontQuery;

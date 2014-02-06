@@ -35,6 +35,7 @@
 #include "rapidjson/writer.h"
 #include "webserver.hh"
 #include "ws-api.hh"
+#include "logger.hh"
 
 using namespace rapidjson;
 
@@ -60,6 +61,51 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
   ofconf.close();
 }
 
+static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
+{
+  if (req->method == "PUT") {
+    Document document;
+    req->json(document);
+
+    if (!document.IsArray()) {
+      throw ApiException("Supplied JSON must be an array");
+    }
+
+    ostringstream ss;
+
+    // Clear allow-from-file if set, so our changes take effect
+    ss << "allow-from-file=" << endl;
+
+    // Clear allow-from, and provide a "parent" value
+    ss << "allow-from=" << endl;
+    for (SizeType i = 0; i < document.Size(); ++i) {
+      ss << "allow-from+=" << document[i].GetString() << endl;
+    }
+
+    apiWriteConfigFile("allow-from", ss.str());
+
+    parseACLs();
+
+    // fall through to GET
+  } else if (req->method != "GET") {
+    throw HttpMethodNotAllowedException();
+  }
+
+  // Return currently configured ACLs
+  Document document;
+  document.SetArray();
+
+  vector<string> entries;
+  t_allowFrom->toStringVector(&entries);
+
+  BOOST_FOREACH(const string& entry, entries) {
+    Value jentry(entry.c_str(), document.GetAllocator()); // copy
+    document.PushBack(jentry, document.GetAllocator());
+  }
+
+  resp->setBody(document);
+}
+
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
@@ -73,6 +119,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
+  d_ws->registerApiHandler("/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
   d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
   d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
