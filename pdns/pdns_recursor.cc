@@ -1614,20 +1614,27 @@ static void checkLinuxIPv6Limits()
   if(readFileIfThere("/proc/sys/net/ipv6/route/max_size", &line)) {
     int lim=atoi(line.c_str());
     if(lim < 16384) {
-      L<<Logger::Error<<"If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to "<<lim<<", which is too low"<<endl;
+      L<<Logger::Error<<"If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to "<<lim<<" which is < 16384"<<endl;
     }
   }
 #endif
 }
-
-static void warnAboutFDS()
+static void checkOrFixFDS()
 {
-#if 0
-  unsigned int maxFDs, curFDs;
-  getFDLimits(curFDs, maxFDs);
-  if(curFDs < 2048) 
-    L<<Logger::Warning<<"Only "<<curFDs<<" file descriptors available (out of: "<<maxFDs<<"), may not be suitable for high performance"<<endl;
-#endif
+  unsigned int availFDs=getFilenumLimit();
+  if(g_maxMThreads * g_numThreads > availFDs) {
+    if(getFilenumLimit(true) >= g_maxMThreads * g_numThreads) {
+      setFilenumLimit(g_maxMThreads * g_numThreads);
+      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numThreads<<" to match max-mthreads and threads settings"<<endl;
+    }
+    else {
+      int newval = getFilenumLimit(true) / g_numThreads;
+      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numThreads<<"), reducing max-mthreads to "<<newval<<endl;
+      g_maxMThreads = newval;
+      setFilenumLimit(g_maxMThreads * g_numThreads);
+    }
+  }
+
 }
 
 void* recursorThread(void*);
@@ -1733,10 +1740,7 @@ int serviceMain(int argc, char*argv[])
   }
 
   showProductVersion();
-  warnAboutFDS();
-
   seedRandom(::arg()["entropy-source"]);
-
   parseACLs();
   
   if(!::arg()["dont-query"].empty()) {
@@ -1879,21 +1883,7 @@ int serviceMain(int argc, char*argv[])
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
   g_maxMThreads=::arg().asNum("max-mthreads");	
-  unsigned int availFDs=getFilenumLimit();
-  if(g_maxMThreads * g_numThreads > availFDs) {
-    if(getFilenumLimit(true) >= g_maxMThreads * g_numThreads) {
-      setFilenumLimit(g_maxMThreads * g_numThreads);
-      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numThreads<<" to match max-mthreads and threads settings"<<endl;
-    }
-    else {
-      int newval = getFilenumLimit(true) / g_numThreads;
-      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numThreads<<"), reducing max-mthreads to "<<newval<<endl;
-      g_maxMThreads = newval;
-      setFilenumLimit(g_maxMThreads * g_numThreads);
-    }
-
-    
-  }
+  checkOrFixFDS();
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
