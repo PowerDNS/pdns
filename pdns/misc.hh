@@ -484,4 +484,6 @@ private:
   regex_t d_preg;
 };
 
+unsigned int getFilenumLimit(bool hardOrSoft=0);
+void setFilenumLimit(unsigned int lim);
 #endif

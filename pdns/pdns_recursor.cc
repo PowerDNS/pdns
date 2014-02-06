@@ -1855,7 +1855,22 @@ int serviceMain(int argc, char*argv[])
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
-  g_maxMThreads=::arg().asNum("max-mthreads");
+  g_maxMThreads=::arg().asNum("max-mthreads");	
+  unsigned int availFDs=getFilenumLimit();
+  if(g_maxMThreads * g_numThreads > availFDs) {
+    if(getFilenumLimit(true) >= g_maxMThreads * g_numThreads) {
+      setFilenumLimit(g_maxMThreads * g_numThreads);
+      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numThreads<<" to match max-mthreads and threads settings"<<endl;
+    }
+    else {
+      int newval = getFilenumLimit(true) / g_numThreads;
+      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numThreads<<"), reducing max-mthreads to "<<newval<<endl;
+      g_maxMThreads = newval;
+      setFilenumLimit(g_maxMThreads * g_numThreads);
+    }
+
+    
+  }
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
