@@ -31,13 +31,13 @@
 #include "misc.hh"
 #include "iputils.hh"
 
-Session::Session(int s, ComboAddress r) : d_good(true)
+Session::Session(int s, ComboAddress r) : d_timeout(10), d_good(true)
 {
   d_remote=r;
   d_socket=s;
 }
 
-Session::Session() : d_good(false)
+Session::Session() : d_socket(-1), d_timeout(10), d_good(false)
 {
 }
 
