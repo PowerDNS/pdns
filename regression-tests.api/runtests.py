@@ -3,9 +3,11 @@
 # Shell-script style.
 
 import os
+import requests
 import subprocess
 import sys
 import tempfile
+import time
 
 SQLITE_DB = 'pdns.sqlite3'
 WEBPORT = '5556'
@@ -65,6 +67,22 @@ else:
 print "Launching pdns..."
 print ' '.join(pdnscmd)
 pdns = subprocess.Popen(pdnscmd, close_fds=True)
+
+print "Waiting for webserver port to become available..."
+available = False
+for try_number in range(0, 10):
+    try:
+        res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
+        available = True
+        break
+    except:
+        time.sleep(0.5)
+
+if not available:
+    print "Webserver port not reachable after 10 tries, giving up."
+    pdns.terminate()
+    pdns.wait()
+    sys.exit(2)
 
 print "Running tests..."
 rc = 0
