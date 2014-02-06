@@ -207,7 +207,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   Document doc;
   doc.SetArray();
   typedef map<string, string> items_t;
-   BOOST_FOREACH(const items_t::value_type& item, items) {
+  BOOST_FOREACH(const items_t::value_type& item, items) {
     Value jitem;
     jitem.SetObject();
     jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
