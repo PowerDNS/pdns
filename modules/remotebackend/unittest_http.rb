@@ -11,7 +11,8 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def initialize(server, dnsbackend)
      @dnsbackend = dnsbackend
      @semaphore = Mutex.new
-     @f = File.open("/tmp/remotebackend.txt.#{$$}","a")
+     @f = File.open("/tmp/remotebackend.txt.#{$$}","ab")
+     @f.set_encoding 'UTF-8'
    end
 
    def parse_arrays(params)
@@ -136,8 +137,11 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      end
 
      args = parse_arrays args
-
-     @f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
+     begin
+        @f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
+     rescue Encoding::UndefinedConversionError
+        # this fails with encoding error for feedEnts3
+     end
 
      @semaphore.synchronize do
        if @dnsbackend.respond_to?(method.to_sym)
