@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2010  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -24,6 +24,7 @@
 #include <netdb.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -815,4 +816,23 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source)
 #endif
     msgh->msg_controllen = cmsg->cmsg_len;
   }
+}
+
+unsigned int getFilenumLimit(bool hardOrSoft)
+{
+  struct rlimit rlim;
+  if(getrlimit(RLIMIT_NOFILE, &rlim) < 0)
+    unixDie("Requesting number of available file descriptors");
+  return hardOrSoft ? rlim.rlim_max : rlim.rlim_cur;
+}
+
+void setFilenumLimit(unsigned int lim)
+{
+  struct rlimit rlim;
+
+  if(getrlimit(RLIMIT_NOFILE, &rlim) < 0)
+    unixDie("Requesting number of available file descriptors");
+  rlim.rlim_cur=lim;
+  if(setrlimit(RLIMIT_NOFILE, &rlim) < 0)
+    unixDie("Setting number of available file descriptors");
 }
