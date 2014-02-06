@@ -242,6 +242,12 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
   else
     ; //cerr<<"\tNot nuking"<<endl;
 
+  // make sure we don't accidentally merge old and new unauth data
+  if(!auth && !ce.d_auth) {
+    ce.d_records.clear();
+    isNew=true;
+  }
+
   // cerr<<"\tHave "<<content.size()<<" records to store\n";
   for(set<DNSResourceRecord>::const_iterator i=content.begin(); i != content.end(); ++i) {
     // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
