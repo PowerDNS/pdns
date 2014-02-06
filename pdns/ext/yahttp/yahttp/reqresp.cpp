@@ -35,7 +35,7 @@ namespace YaHTTP {
   };
   Request::~Request() {};
 
-  Response::Response() {};
+  Response::Response() : status(0) {};
   Response::Response(const Request &req) {
     headers["connection"] = "close";
     method = req.method;
