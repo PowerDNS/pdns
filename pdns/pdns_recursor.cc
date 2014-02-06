@@ -1861,6 +1861,7 @@ int serviceMain(int argc, char*argv[])
       int newval = getFilenumLimit(true) / g_numThreads;
       L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numThreads<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
+      setFilenumLimit(g_maxMThreads * g_numThreads);
     }
 
     
