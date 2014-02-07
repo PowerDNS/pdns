@@ -6,3 +6,5 @@
 /named.conf
 /*.pyc
 acl.conf
+recursor.conf
+rec-conf.d

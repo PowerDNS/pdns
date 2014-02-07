@@ -1,21 +1,29 @@
 import json
 import requests
 import unittest
-from test_helper import ApiTestCase, unique_zone_name, isRecursor
+from test_helper import ApiTestCase, unique_zone_name, isAuth, isRecursor
 
 
-@unittest.skipIf(isRecursor(), "Not implemented yet")
-class Servers(ApiTestCase):
+class Zones(ApiTestCase):
 
     def test_ListZones(self):
         r = self.session.get(self.url("/servers/localhost/zones"))
         self.assertSuccessJson(r)
         domains = r.json()
-        example_com = [domain for domain in domains if domain['name'] == u'example.com']
+        example_com = [domain for domain in domains if domain['name'] in ('example.com', 'example.com.')]
         self.assertEquals(len(example_com), 1)
         example_com = example_com[0]
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
-            self.assertIn(k, example_com)
+        required_fields = ['id', 'url', 'name', 'kind']
+        if isAuth():
+            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial']
+        elif isRecursor():
+            required_fields = required_fields + ['recursion_desired', 'servers']
+        for field in required_fields:
+            self.assertIn(field, example_com)
+
+
+@unittest.skipIf(not isAuth(), "Not applicable")
+class AuthZones(ApiTestCase):
 
     def create_zone(self, name=None, nameservers=None):
         if name is None:
@@ -202,3 +210,81 @@ class Servers(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
+
+
+@unittest.skipIf(not isRecursor(), "Not applicable")
+class RecursorZones(ApiTestCase):
+
+    def test_CreateAuthZone(self):
+        payload = {
+            'name': unique_zone_name(),
+            'kind': 'Native',
+            'recursion_desired': False
+        }
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        # return values are normalized
+        payload['name'] += '.'
+        for k in payload.keys():
+            self.assertEquals(data[k], payload[k])
+
+    def test_CreateForwardedZone(self):
+        payload = {
+            'name': unique_zone_name(),
+            'kind': 'Forwarded',
+            'servers': ['8.8.8.8'],
+            'recursion_desired': False
+        }
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        # return values are normalized
+        payload['servers'][0] += ':53'
+        payload['name'] += '.'
+        for k in payload.keys():
+            self.assertEquals(data[k], payload[k])
+
+    def test_CreateForwardedRDZone(self):
+        payload = {
+            'name': 'google.com',
+            'kind': 'Forwarded',
+            'servers': ['8.8.8.8'],
+            'recursion_desired': True
+        }
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        # return values are normalized
+        payload['servers'][0] += ':53'
+        payload['name'] += '.'
+        for k in payload.keys():
+            self.assertEquals(data[k], payload[k])
+
+    def test_CreateAuthZoneWithSymbols(self):
+        payload = {
+            'name': 'foo/bar.'+unique_zone_name(),
+            'kind': 'Native',
+            'recursion_desired': False
+        }
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        # return values are normalized
+        payload['name'] += '.'
+        expected_id = (payload['name'].replace('/', '=47'))
+        for k in payload.keys():
+            self.assertEquals(data[k], payload[k])
+        self.assertEquals(data['id'], expected_id)
