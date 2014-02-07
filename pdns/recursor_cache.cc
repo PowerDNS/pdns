@@ -115,9 +115,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
     d_cachecache=d_cache.equal_range(tie(qname));
     d_cachecachevalid=true;
   }
-  else
-    //    cerr<<"had cache cache hit!"<<endl;
-    ;
+//  else cerr<<"had cache cache hit!"<<endl;
 
   if(res)
     res->clear();
@@ -239,8 +237,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     ce.d_auth = true;
     isNew=true;           // data should be sorted again
   }
-  else
-    ; //cerr<<"\tNot nuking"<<endl;
+//  else cerr<<"\tNot nuking"<<endl;
 
   // make sure we don't accidentally merge old and new unauth data
   if(!auth && !ce.d_auth) {

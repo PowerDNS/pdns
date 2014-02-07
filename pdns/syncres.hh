@@ -69,7 +69,7 @@ public:
 
     return true; // still listed, still blocked
   }
-  void throttle(time_t now, const Thing& t, unsigned int ttl=0, unsigned int tries=0) 
+  void throttle(time_t now, const Thing& t, time_t ttl=0, unsigned int tries=0) 
   {
     typename cont_t::iterator i=d_cont.find(t);
     entry e={ now+(ttl ? ttl : d_ttl), tries ? tries : d_limit};
@@ -86,13 +86,13 @@ public:
     return (unsigned int)d_cont.size();
   }
 private:
-  int d_limit;
-  int d_ttl;
+  unsigned int d_limit;
+  time_t d_ttl;
   time_t d_last_clean;
   struct entry 
   {
     time_t ttd;
-    int count;
+    unsigned int count;
   };
   typedef map<Thing,entry> cont_t;
   cont_t d_cont;
