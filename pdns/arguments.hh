@@ -116,6 +116,7 @@ public:
   const param_t::const_iterator end(); //!< iterator semantics
   const string &operator[](const string &); //!< iterator semantics
   const vector<string>&getCommands();
+  void gatherIncludes(std::vector<std::string> &extraConfigs);
 private:
   void parseOne(const string &unparsed, const string &parseOnly="", bool lax=false);
   typedef map<string,string> params_t;
