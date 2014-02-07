@@ -255,6 +255,7 @@ string reloadAuthAndForwards()
     if(!::arg().preParseFile(configname.c_str(), "forward-zones")) 
       L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
     ::arg().preParseFile(configname.c_str(), "forward-zones-file");
+    ::arg().preParseFile(configname.c_str(), "forward-zones-recurse");
     ::arg().preParseFile(configname.c_str(), "auth-zones");
     ::arg().preParseFile(configname.c_str(), "export-etc-hosts", "off");
     ::arg().preParseFile(configname.c_str(), "serve-rfc1918");
@@ -268,6 +269,7 @@ string reloadAuthAndForwards()
     BOOST_FOREACH(const std::string& fn, extraConfigs) {
       ::arg().preParseFile(fn.c_str(), "forward-zones", ::arg()["forward-zones"]);
       ::arg().preParseFile(fn.c_str(), "forward-zones-file", ::arg()["forward-zones-file"]);
+      ::arg().preParseFile(fn.c_str(), "forward-zones-recurse", ::arg()["forward-zones-recurse"]);
       ::arg().preParseFile(fn.c_str(), "auth-zones",::arg()["auth-zones"]);
       ::arg().preParseFile(fn.c_str(), "export-etc-hosts",::arg()["export-etc-hosts"]);
       ::arg().preParseFile(fn.c_str(), "serve-rfc1918",::arg()["serve-rfc1918"]);
@@ -275,6 +277,7 @@ string reloadAuthAndForwards()
 
     ::arg().preParse(g_argc, g_argv, "forward-zones");
     ::arg().preParse(g_argc, g_argv, "forward-zones-file");
+    ::arg().preParse(g_argc, g_argv, "forward-zones-recurse");
     ::arg().preParse(g_argc, g_argv, "auth-zones");
     ::arg().preParse(g_argc, g_argv, "export-etc-hosts");
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
