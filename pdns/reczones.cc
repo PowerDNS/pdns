@@ -254,15 +254,10 @@ string reloadAuthAndForwards()
     
     if(!::arg().preParseFile(configname.c_str(), "forward-zones")) 
       L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
-    ::arg().preParse(g_argc, g_argv, "forward-zones");
     ::arg().preParseFile(configname.c_str(), "forward-zones-file");
-    ::arg().preParse(g_argc, g_argv, "forward-zones-file");
     ::arg().preParseFile(configname.c_str(), "auth-zones");
-    ::arg().preParse(g_argc, g_argv, "auth-zones");
     ::arg().preParseFile(configname.c_str(), "export-etc-hosts", "off");
-    ::arg().preParse(g_argc, g_argv, "export-etc-hosts");
     ::arg().preParseFile(configname.c_str(), "serve-rfc1918");
-    ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
     ::arg().preParseFile(configname.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
 
@@ -277,6 +272,12 @@ string reloadAuthAndForwards()
       ::arg().preParseFile(fn.c_str(), "export-etc-hosts",::arg()["export-etc-hosts"]);
       ::arg().preParseFile(fn.c_str(), "serve-rfc1918",::arg()["serve-rfc1918"]);
     }
+
+    ::arg().preParse(g_argc, g_argv, "forward-zones");
+    ::arg().preParse(g_argc, g_argv, "forward-zones-file");
+    ::arg().preParse(g_argc, g_argv, "auth-zones");
+    ::arg().preParse(g_argc, g_argv, "export-etc-hosts");
+    ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
 
     SyncRes::domainmap_t* newDomainMap = parseAuthAndForwards();
     
