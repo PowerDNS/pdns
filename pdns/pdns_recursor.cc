@@ -1629,9 +1629,7 @@ void parseACLs()
     
     if(!::arg().preParseFile(configname.c_str(), "allow-from-file")) 
       L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
-    ::arg().preParse(g_argc, g_argv, "allow-from-file");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
-    ::arg().preParse(g_argc, g_argv, "allow-from");
     ::arg().preParseFile(configname.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
 
@@ -1643,6 +1641,9 @@ void parseACLs()
       ::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]);
       ::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]);
     }
+
+    ::arg().preParse(g_argc, g_argv, "allow-from-file");
+    ::arg().preParse(g_argc, g_argv, "allow-from");
   }
 
   NetmaskGroup* oldAllowFrom = t_allowFrom, *allowFrom=new NetmaskGroup;
@@ -2127,7 +2128,6 @@ int main(int argc, char **argv)
       cout<<::arg().configstring()<<endl;
       exit(0);
     }
-
 
     string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
     cleanSlashes(configname);
