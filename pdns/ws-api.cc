@@ -252,7 +252,7 @@ string apiZoneIdToName(const string& id) {
 
   // strip trailing dot
   if (zonename.substr(zonename.size()-1) == ".") {
-    zonename = zonename.substr(0, zonename.size()-1);
+    zonename.resize(zonename.size()-1);
   }
   return zonename;
 }
@@ -271,8 +271,12 @@ string apiZoneNameToId(const string& name) {
     }
   }
 
+  string id = ss.str();
+
   // add trailing dot
-  string id = ss.str() + ".";
+  if (id.substr(id.size()-1) != ".") {
+    id += ".";
+  }
 
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
