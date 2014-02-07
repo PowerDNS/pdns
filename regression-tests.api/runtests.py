@@ -26,6 +26,10 @@ ACL_LIST_TPL = """
 ::1
 """
 
+wait = ('--wait' in sys.argv)
+if wait:
+    sys.argv.remove('--wait')
+
 daemon = (len(sys.argv) == 2) and sys.argv[1] or None
 if daemon not in ('authoritative', 'recursor'):
     print "Usage: ./runtests (authoritative|recursor)"
@@ -96,6 +100,9 @@ try:
 except subprocess.CalledProcessError as ex:
     rc = ex.returncode
 finally:
+    if wait:
+        print "Waiting as requested, press ENTER to stop."
+        raw_input()
     pdns.terminate()
     pdns.wait()
 
