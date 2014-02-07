@@ -19,7 +19,11 @@ class ApiTestCase(unittest.TestCase):
         return urlparse.urljoin(self.server_url, relative_url)
 
     def assertSuccessJson(self, result):
-        result.raise_for_status()
+        try:
+            result.raise_for_status()
+        except:
+            print result.content
+            raise
         self.assertEquals(result.headers['Content-Type'], 'application/json')
 
 

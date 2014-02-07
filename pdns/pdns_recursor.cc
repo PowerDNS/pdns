@@ -106,7 +106,7 @@ bool g_quiet;
 
 bool g_weDistributeQueries; // if true, only 1 thread listens on the incoming query sockets
 
-static __thread NetmaskGroup* t_allowFrom;
+__thread NetmaskGroup* t_allowFrom;
 static NetmaskGroup* g_initialAllowFrom; // new thread needs to be setup with this
 
 NetmaskGroup* g_dontQuery;
@@ -2065,6 +2065,7 @@ int main(int argc, char **argv)
     ::arg().set("experimental-webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("experimental-webserver-port", "Port of webserver to listen on") = "8082";
     ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
+    ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;

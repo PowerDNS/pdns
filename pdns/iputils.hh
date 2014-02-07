@@ -364,6 +364,13 @@ public:
     return str.str();
   }
 
+  void toStringVector(vector<string>* vec) const
+  {
+    for(container_t::const_iterator iter = d_masks.begin(); iter != d_masks.end(); ++iter) {
+      vec->push_back(iter->toString());
+    }
+  }
+
   void toMasks(const string &ips)
   {
     vector<string> parts;

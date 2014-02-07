@@ -548,6 +548,7 @@ struct RemoteKeeper
   }
 };
 extern __thread RemoteKeeper* t_remotes;
+extern __thread NetmaskGroup* t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 void parseACLs();
