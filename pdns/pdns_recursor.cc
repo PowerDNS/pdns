@@ -1632,13 +1632,16 @@ void parseACLs()
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
     ::arg().preParse(g_argc, g_argv, "allow-from");
+    ::arg().preParseFile(configname.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
 
     // then process includes
     std::vector<std::string> extraConfigs;
+    ::arg().gatherIncludes(extraConfigs);
+
     BOOST_FOREACH(const std::string& fn, extraConfigs) {
-      ::arg().preParseFile(fn.c_str(), "allow-from-file");
-      ::arg().preParseFile(fn.c_str(), "allow-from");
+      ::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]);
+      ::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]);
     }
   }
 
