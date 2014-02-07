@@ -39,26 +39,25 @@ To compile a very clean version, use:
     $ make
     # make install
 
-This generates a PowerDNS Authoritative Server binary with no modules, except the bind backend,
-built in.
+This generates a PowerDNS Authoritative Server binary with no modules built in.
 
-When ./configure is run without --with-modules, the gmysql module is
+When `./configure` is run without `--with-modules`, the bind and gmysql module are
 built-in by default and the pipe-backend is compiled for runtime loading.
 
 To add multiple modules, try:
 
-    $ ./configure --with-modules="gmysql gpgsql"
+    $ ./configure --with-modules="bind gmysql gpgsql"
 
 See http://doc.powerdns.com/compiling-powerdns.html for more details.
 
 COMPILING THE RECURSOR
 ----------------------
-Either use ./configure --enable-recursor or explicitly do 'make pdns_recursor'. Releases
-are built by first running dist-recursor and compiling from the pdns-recursor-x.y subdirectory.
+Either use `./configure --enable-recursor` or explicitly do `make pdns_recursor`. Releases
+are built by first running `dist-recursor` and compiling from the `pdns-recursor-x.y` subdirectory.
 
 SOLARIS NOTES
 -------------
-You need gcc 3.x, preferably 3.2! The 'Sunpro' compiler is currently not
+You need gcc 3.x, preferably 3.2! The "Sunpro" compiler is currently not
 supported (patches are welcome if not too intrusive).
 
 If you encounter problems with the Solaris make, gmake is advised.
