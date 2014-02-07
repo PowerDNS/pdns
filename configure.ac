@@ -183,7 +183,7 @@ fi
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
-  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=gmysql geo random@:>@])],
+  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=bind gmysql geo random@:>@])],
   [modules="$withval"]
 )
 
