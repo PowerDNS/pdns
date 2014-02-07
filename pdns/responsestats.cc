@@ -68,3 +68,4 @@ string ResponseStats::getQTypeReport()
   }
   return os.str();
 }
+
