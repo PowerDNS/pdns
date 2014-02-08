@@ -79,6 +79,7 @@ public:
   bool createSlaveDomain(const string &ip, const string &domain,
                          const string &nameserver, const string &account);
 
+  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta); 
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
 
@@ -127,6 +128,7 @@ private:
   string prevNextNameQuerySQL;
   string prevNextHashQuerySQL;
 
+  string getAllZoneMetadataQuerySQL;
   string getZoneMetadataQuerySQL;
   string delZoneMetadataQuerySQL;
   string setZoneMetadataQuerySQL;
@@ -161,6 +163,8 @@ private:
   sb2       mResultTTLInd;
   char      mResultType[64];
   sb2       mResultTypeInd;
+  char      mResultKind[64];
+  sb2       mResultKindInd;
   char      mResultContent[4001];
   sb2       mResultContentInd;
   int       mResultZoneId;

@@ -186,6 +186,13 @@ static const char *prevNextHashQueryDefaultSQL =
   "  get_hashed_prev_next(:zoneid, :hash, :unhashed, :prev, :next);\n"
   "END;";
 
+static const char *getAllZoneMetadataQueryKey = "PDNS_Get_All_Zone_Metadata";
+static const char *getAllZoneMetadataQueryDefaultSQL =
+  "SELECT md.meta_key, md.meta_content "
+  "FROM Zones z JOIN ZoneMetadata md ON z.id = md.zone_id "
+  "WHERE z.name = lower(:name)"
+  "ORDER BY md.meta_ind";
+
 static const char *getZoneMetadataQueryKey = "PDNS_Get_Zone_Metadata";
 static const char *getZoneMetadataQueryDefaultSQL =
   "SELECT md.meta_content "
@@ -1237,6 +1244,45 @@ OracleBackend::createSlaveDomain(const string &ip, const string &domain,
     throw OracleException("Oracle createSlaveDomain COMMIT", oraerr);
   }
 
+  return true;
+}
+
+bool
+OracleBackend::getAllDomainMetadata (const string& name, std::map<string, vector<string> >& meta)
+{
+  if(!d_dnssecQueries)
+    return -1;
+
+  DomainInfo di;
+  if (getDomainInfo(name, di) == false) return false;
+
+  sword rc;
+  OCIStmt *stmt;
+
+  stmt = prepare_query(pooledSvcCtx, getAllZoneMetadataQuerySQL, getAllZoneMetadataQueryKey);
+  bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
+  bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
+  define_output_str(stmt, 1, &mResultContentInd, mResultContent, sizeof(mResultContent));
+
+  string_to_cbuf(mQueryName, name, sizeof(mQueryName));
+
+  rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
+
+  while (rc != OCI_NO_DATA) {
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle getAllDomainMetadata", oraerr);
+    }
+    check_indicator(mResultKindInd, true);
+    check_indicator(mResultContentInd, true);
+
+    string kind = mResultKind;
+    string content = mResultContent;
+    meta[kind].push_back(content);
+
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
+  }
+
+  release_query(stmt, getAllZoneMetadataQueryKey);
   return true;
 }
 
