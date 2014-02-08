@@ -137,6 +137,16 @@ bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vec
   return false;
 }
 
+bool UeberBackend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta)
+{
+  check_op_requests();
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getAllDomainMetadata(name, meta))
+      return true;
+  }
+  return false;
+}
+
 bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
   check_op_requests();
