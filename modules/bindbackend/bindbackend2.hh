@@ -151,6 +151,7 @@ public:
   void alsoNotifies(const string &domain, set<string> *ips);
 
 // the DNSSEC related (getDomainMetadata has broader uses too)
+  virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
   virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);

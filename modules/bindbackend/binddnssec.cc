@@ -39,6 +39,9 @@ bool Bind2Backend::doesDNSSEC()
 bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 { return false; }
 
+bool Bind2Backend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta)
+{ return false; }
+
 bool Bind2Backend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 { return false; }
 
@@ -111,6 +114,28 @@ bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;
     delete tmp;
+  }
+  return true;
+}
+
+bool Bind2Backend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta)
+{
+  if(!d_dnssecdb)
+    return false;
+
+  // cerr<<"Asked to get metadata for zone '"<<name<<"'|"<<kind<<"\n";
+
+  boost::format fmt("select kind, content from domainmetadata where domain='%s'");
+  try {
+    d_dnssecdb->doQuery((fmt % d_dnssecdb->escape(name)).str());
+
+    vector<string> row;
+    while(d_dnssecdb->getRow(row)) {
+      meta[row[0]].push_back(row[1]);
+    }
+  }
+  catch(SSqlException& se) {
+    throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
   }
   return true;
 }
