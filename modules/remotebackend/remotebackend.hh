@@ -132,6 +132,7 @@ class RemoteBackend : public DNSBackend
   bool get(DNSResourceRecord &rr);
   bool list(const std::string &target, int domain_id, bool include_disabled=false);
 
+  virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
   virtual bool getTSIGKey(const std::string& name, std::string* algorithm, std::string* content);
