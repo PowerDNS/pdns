@@ -9,8 +9,7 @@ Release:        1
 Epoch:          0
 License:        GPL
 Group:          System/Servers
-URL:            http://www.powerdns.com/
-Source0:        http://downloads.powerdns.com/releases/#FILENAME#
+Source:         http://downloads.powerdns.com/releases/pdns-#VERSION#.tar.gz
 
 BuildRequires:  autoconf automake
 BuildRequires:  gcc gcc-c++
@@ -30,7 +29,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 PowerDNS testbuild
 
 %prep
-%setup -q -n #SOURCE_PATH#
+%setup -q -n pdns-#VERSION#
 
 %build
 %configure \
