@@ -22,6 +22,7 @@ BuildRequires:  mysql-devel
 BuildRequires:  postgresql-devel
 BuildRequires:  openldap-devel
 BuildRequires:  tinycdb-devel
+BuildRequires:  opendbx-devel
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 
@@ -36,7 +37,7 @@ PowerDNS testbuild
     --libdir=%{_libdir} \
     --with-sqlite3 \
     --with-socketdir=/var/run/pdns-server \
-    --with-modules="bind gmysql gpgsql gsqlite3 mydns tinydns remote random pipe geo ldap" \
+    --with-modules="bind gmysql gpgsql gsqlite3 mydns tinydns remote random pipe geo ldap opendbx" \
     --with-dynmodules="" \
     --enable-unit-tests \
     --enable-tools \
