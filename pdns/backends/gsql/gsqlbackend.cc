@@ -329,7 +329,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_AddDomainKeyQuery = getArg("add-domain-key-query");
     d_ListDomainKeysQuery = getArg("list-domain-keys-query");
     d_ClearDomainAllKeysQuery = getArg("clear-domain-all-keys-query");
-    
+  
+    d_GetAllDomainMetadataQuery = getArg("get-all-domain-metadata-query");  
     d_GetDomainMetadataQuery = getArg("get-domain-metadata-query");
     d_ClearDomainMetadataQuery = getArg("clear-domain-metadata-query");
     d_ClearDomainAllMetadataQuery = getArg("clear-domain-all-metadata-query");
@@ -733,6 +734,31 @@ void GSQLBackend::alsoNotifies(const string &domain, set<string> *ips)
     ips->insert(str);
   }
 }
+
+bool GSQLBackend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta)
+{
+  if(!d_dnssecQueries)
+    return false;
+
+  char output[1024];
+  snprintf(output,sizeof(output)-1,d_GetAllDomainMetadataQuery.c_str(), sqlEscape(name).c_str());
+
+  try {
+    d_db->doQuery(output);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to list metadata: "+e.txtReason());
+  }
+
+  SSql::row_t row;
+
+  while(d_db->getRow(row)) {
+    meta[row[0]].push_back(row[1]);
+  }
+
+  return true;
+}
+
 
 bool GSQLBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
