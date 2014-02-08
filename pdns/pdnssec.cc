@@ -1734,22 +1734,25 @@ try
     }
 
     if (cmds.size() > 2) {
-       keys.assign(cmds.begin() + 2, cmds.end());
-    } else {
-       keys = boost::assign::list_of("ALLOW-2136-FROM")
-                        ("ALLOW-AXFR-FROM")("ALSO-NOTIFY")("AXFR-MASTER-TSIG")
-                        ("AXFR-SOURCE")("LUA-AXFR-SCRIPT")("NSEC3NARROW")
-                        ("NSEC3PARAM")("PRESIGNED")("SOA-EDIT")
-                        ("TSIG-ALLOW-2136")("TSIG-ALLOW-AXFR"); // NOTE: Add new metas here
-    }
-    std::cout << "Metadata for '" << zone << "'" << endl;
-    BOOST_FOREACH(const string kind, keys) {
-      vector<string> meta;
-      meta.clear();
-      if (B.getDomainMetadata(zone, kind, meta)) {
-         cout << kind << " = " << boost::join(meta, ", ") << endl;
+      keys.assign(cmds.begin() + 2, cmds.end());
+      std::cout << "Metadata for '" << zone << "'" << endl;
+      BOOST_FOREACH(const string kind, keys) {
+        vector<string> meta;
+        meta.clear();
+        if (B.getDomainMetadata(zone, kind, meta)) {
+          cout << kind << " = " << boost::join(meta, ", ") << endl;
+        }
       }
-    }
+    } else {
+      std::map<std::string, std::vector<std::string> > meta;
+      std::cout << "Metadata for '" << zone << "'" << endl;
+      B.getAllDomainMetadata(zone, meta);
+      for(std::map<std::string, std::vector<std::string> >::const_iterator each_meta = meta.begin(); each_meta != meta.end(); each_meta++) {
+        cout << each_meta->first << " = " << boost::join(each_meta->second, ", ") << endl;
+      }
+    }  
+    return 0;
+
   } else if (cmds[0]=="set-meta") {
     UeberBackend B("default");
     if (cmds.size() < 3) {
