@@ -271,6 +271,13 @@ void *TCPNameserver::doConnection(void *data)
       else
         pktlen=ntohs(pktlen);
 
+      // this check will always be false *if* no one touches
+      // the mesg array. pktlen can be maximum of 65535 as
+      // it is 2 byte unsigned variable. In getQuestion, we 
+      // write to 0 up to pktlen-1 so 65535 is just right. 
+
+      // do not remove this check as it will catch if someone
+      // decreases the mesg buffer size for some reason. 
       if(pktlen>sizeof(mesg)) {
         L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
         break;
