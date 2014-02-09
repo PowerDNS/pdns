@@ -1774,8 +1774,10 @@ try
 }
 catch(PDNSException& ae) {
   cerr<<"Error: "<<ae.reason<<endl;
+  return 1;
 }
 catch(std::exception& e) {
   cerr<<"Error: "<<e.what()<<endl;
+  return 1;
 }
 
