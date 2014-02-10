@@ -9,8 +9,7 @@ Release:        1
 Epoch:          0
 License:        GPL
 Group:          System/Servers
-URL:            http://www.powerdns.com/
-Source0:        http://downloads.powerdns.com/releases/#FILENAME#
+Source:         http://downloads.powerdns.com/releases/pdns-#VERSION#.tar.gz
 
 BuildRequires:  autoconf automake
 BuildRequires:  gcc gcc-c++
@@ -23,6 +22,7 @@ BuildRequires:  mysql-devel
 BuildRequires:  postgresql-devel
 BuildRequires:  openldap-devel
 BuildRequires:  tinycdb-devel
+BuildRequires:  opendbx-devel
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 
@@ -30,14 +30,14 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-root
 PowerDNS testbuild
 
 %prep
-%setup -q -n #SOURCE_PATH#
+%setup -q -n pdns-#VERSION#
 
 %build
 %configure \
     --libdir=%{_libdir} \
     --with-sqlite3 \
     --with-socketdir=/var/run/pdns-server \
-    --with-modules="bind gmysql gpgsql gsqlite3 mydns tinydns remote random pipe geo ldap" \
+    --with-modules="bind gmysql gpgsql gsqlite3 mydns tinydns remote random pipe geo ldap opendbx" \
     --with-dynmodules="" \
     --enable-unit-tests \
     --enable-tools \
