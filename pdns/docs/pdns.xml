@@ -14047,6 +14047,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
       to the IP address specified. An example configuration might be <command>recursor=130.161.180.1</command>, which designates 130.161.180.1 as
       the nameserver to handle recursive queries.
     </para>
+    <warning><para>Using 'recursor=' is NOT RECOMMENDED as it comes with many potentially nasty surprises.</para></warning>
     <para>
       Take care not to point <command>recursor</command> to the PowerDNS Authoritative Server itself, which leads to a very tight packet loop!
     </para>
