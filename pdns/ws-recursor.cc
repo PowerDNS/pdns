@@ -119,7 +119,8 @@ static void fillZone(const string& zonename, HttpResponse* resp)
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
   string zoneId = apiZoneNameToId(iter->first);
-  doc.AddMember("id", zoneId.c_str(), doc.GetAllocator());
+  Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
+  doc.AddMember("id", jzoneid, doc.GetAllocator());
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
@@ -271,7 +272,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     jdi.SetObject();
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
-    jdi.AddMember("id", zoneId.c_str(), doc.GetAllocator());
+    Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
+    jdi.AddMember("id", jzoneid, doc.GetAllocator());
     string url = "/servers/localhost/zones/" + zoneId;
     Value jurl(url.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("url", jurl, doc.GetAllocator());
