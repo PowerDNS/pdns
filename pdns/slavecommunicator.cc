@@ -71,7 +71,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
   DomainInfo di;
   di.backend=0;
-  bool first=true;    
+  bool transaction=false;
   try {
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
     NSEC3PARAMRecordContent ns3pr, hadNs3pr;
@@ -156,6 +156,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     unsigned int soa_serial = 0;
     vector<DNSResourceRecord> rrs;
     set<string> secured;
+    bool first=true;
     while(retriever.getChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
@@ -236,8 +237,9 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
 
 
-    L<<Logger::Error<<"Transaction started for '"<<domain<<"'"<<endl;
     di.backend->startTransaction(domain, domain_id);
+    transaction = true;
+    L<<Logger::Error<<"Transaction started for '"<<domain<<"'"<<endl;
 
     // update the presigned flag and NSEC3PARAM
     if (gotPresigned) {
@@ -337,6 +339,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     }
 
     di.backend->commitTransaction();
+    transaction = false;
     di.backend->setFresh(domain_id);
     PC.purge(domain+"$");
 
@@ -347,35 +350,35 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   }
   catch(DBException &re) {
     L<<Logger::Error<<"Unable to feed record during incoming AXFR of '"+domain+"': "<<re.reason<<endl;
-    if(di.backend && !first) {
+    if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(MOADNSException &re) {
     L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"' (MOADNSException): "<<re.what()<<endl;
-    if(di.backend && !first) {
+    if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(std::exception &re) {
     L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"' (std::exception): "<<re.what()<<endl;
-    if(di.backend && !first) {
+    if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (resolver): "<<re.reason<<endl;
-    if(di.backend && !first) {
+    if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(PDNSException &ae) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (PDNSException): "<<ae.reason<<endl;
-    if(di.backend && !first) {
+    if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
