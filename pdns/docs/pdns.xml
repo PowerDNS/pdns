@@ -20355,7 +20355,7 @@ the ordered list. Do not return nil for either one.
 </variablelist>
 </sect4>
 
-<sect4 id="remotebackend-api-method-getdomainmetadata"><title>Method: getDomainMetadata</title>
+<sect4 id="remotebackend-api-method-getalldomainmetadata"><title>Method: getAllDomainMetadata</title>
  <variablelist>
   <varlistentry>
    <term>Mandatory:</term>
