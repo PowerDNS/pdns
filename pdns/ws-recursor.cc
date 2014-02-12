@@ -66,9 +66,14 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
   if (req->method == "PUT") {
     Document document;
     req->json(document);
+    const Value &jlist = document["value"];
 
-    if (!document.IsArray()) {
-      throw ApiException("Supplied JSON must be an array");
+    if (!document.IsObject()) {
+      throw ApiException("Supplied JSON must be an object");
+    }
+
+    if (!jlist.IsArray()) {
+      throw ApiException("'value' must be an array");
     }
 
     ostringstream ss;
@@ -78,8 +83,8 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     // Clear allow-from, and provide a "parent" value
     ss << "allow-from=" << endl;
-    for (SizeType i = 0; i < document.Size(); ++i) {
-      ss << "allow-from+=" << document[i].GetString() << endl;
+    for (SizeType i = 0; i < jlist.Size(); ++i) {
+      ss << "allow-from+=" << jlist[i].GetString() << endl;
     }
 
     apiWriteConfigFile("allow-from", ss.str());
@@ -93,15 +98,21 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
   // Return currently configured ACLs
   Document document;
-  document.SetArray();
+  document.SetObject();
+
+  Value jlist;
+  jlist.SetArray();
 
   vector<string> entries;
   t_allowFrom->toStringVector(&entries);
 
   BOOST_FOREACH(const string& entry, entries) {
     Value jentry(entry.c_str(), document.GetAllocator()); // copy
-    document.PushBack(jentry, document.GetAllocator());
+    jlist.PushBack(jentry, document.GetAllocator());
   }
+
+  document.AddMember("name", "allow-from", document.GetAllocator());
+  document.AddMember("value", jlist, document.GetAllocator());
 
   resp->setBody(document);
 }
