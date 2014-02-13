@@ -6,6 +6,8 @@ dh_make -e bert.hubert@netherlabs.nl -s -f ../pdns-recursor-$1.tar.bz2 -p pdns-r
 cp pdns-recursor.init.d debian/init.d
 #[ -e debian/control ] || dh_make -e bert.hubert@netherlabs.nl -s -r cdbs  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
 perl -i -pe 's/Description: <.*>/Description: extremely powerful and versatile recursing nameserver/' debian/control
+# only to be nice to people usind the generated .dsc
+perl -i -pe 's/(Build-Depends: .*)/$1, libboost-dev, libboost-serialization-dev, liblua5.1-0-dev/' debian/control
 export LUA=1
 export STATIC=semi
 fakeroot debian/rules binary
