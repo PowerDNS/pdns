@@ -240,6 +240,9 @@ for a in $modules $dynmodules; do
       PDNS_WITH_ORACLE
       needoracle=yes
       ;;
+    lmdb)
+      PDNS_WITH_LMDB
+      ;;
     mydns|gmysql|pdns)
       PDNS_WITH_MYSQL
       ;;
@@ -328,6 +331,7 @@ AC_CONFIG_FILES([
   modules/randombackend/Makefile
   modules/remotebackend/Makefile
   modules/tinydnsbackend/Makefile
+  modules/lmdbbackend/Makefile
 ])
 AC_OUTPUT
 
