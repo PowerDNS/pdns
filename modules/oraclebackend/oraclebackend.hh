@@ -163,8 +163,6 @@ private:
   sb2       mResultTTLInd;
   char      mResultType[64];
   sb2       mResultTypeInd;
-  char      mResultKind[64];
-  sb2       mResultKindInd;
   char      mResultContent[4001];
   sb2       mResultContentInd;
   int       mResultZoneId;

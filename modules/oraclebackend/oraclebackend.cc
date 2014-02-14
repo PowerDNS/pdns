@@ -188,9 +188,9 @@ static const char *prevNextHashQueryDefaultSQL =
 
 static const char *getAllZoneMetadataQueryKey = "PDNS_Get_All_Zone_Metadata";
 static const char *getAllZoneMetadataQueryDefaultSQL =
-  "SELECT md.meta_key, md.meta_content "
+  "SELECT md.meta_type, md.meta_content "
   "FROM Zones z JOIN ZoneMetadata md ON z.id = md.zone_id "
-  "WHERE z.name = lower(:name)"
+  "WHERE z.name = lower(:name) "
   "ORDER BY md.meta_ind";
 
 static const char *getZoneMetadataQueryKey = "PDNS_Get_Zone_Metadata";
@@ -327,6 +327,7 @@ OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
   zoneSetNotifiedSerialQuerySQL = getArg("zone-set-notified-serial-query");
   prevNextNameQuerySQL = getArg("prev-next-name-query");
   prevNextHashQuerySQL = getArg("prev-next-hash-query");
+  getAllZoneMetadataQuerySQL = getArg("get-all-zone-metadata-query");
   getZoneMetadataQuerySQL = getArg("get-zone-metadata-query");
   delZoneMetadataQuerySQL = getArg("del-zone-metadata-query");
   setZoneMetadataQuerySQL = getArg("set-zone-metadata-query");
@@ -1262,7 +1263,9 @@ OracleBackend::getAllDomainMetadata (const string& name, std::map<string, vector
   stmt = prepare_query(pooledSvcCtx, getAllZoneMetadataQuerySQL, getAllZoneMetadataQueryKey);
   bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
-  define_output_str(stmt, 1, &mResultContentInd, mResultContent, sizeof(mResultContent));
+
+  define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
+  define_output_str(stmt, 2, &mResultContentInd, mResultContent, sizeof(mResultContent));
 
   string_to_cbuf(mQueryName, name, sizeof(mQueryName));
 
@@ -1272,10 +1275,10 @@ OracleBackend::getAllDomainMetadata (const string& name, std::map<string, vector
     if (rc == OCI_ERROR) {
       throw OracleException("Oracle getAllDomainMetadata", oraerr);
     }
-    check_indicator(mResultKindInd, true);
+    check_indicator(mResultTypeInd, true);
     check_indicator(mResultContentInd, true);
 
-    string kind = mResultKind;
+    string kind = mResultType;
     string content = mResultContent;
     meta[kind].push_back(content);
 
@@ -2248,6 +2251,7 @@ OracleFactory () : BackendFactory("oracle") {
     declare(suffix, "prev-next-name-query", "", prevNextNameQueryDefaultSQL);
     declare(suffix, "prev-next-hash-query", "", prevNextHashQueryDefaultSQL);
 
+    declare(suffix, "get-all-zone-metadata-query", "", getAllZoneMetadataQueryDefaultSQL);
     declare(suffix, "get-zone-metadata-query", "", getZoneMetadataQueryDefaultSQL);
     declare(suffix, "del-zone-metadata-query", "", delZoneMetadataQueryDefaultSQL);
     declare(suffix, "set-zone-metadata-query", "", setZoneMetadataQueryDefaultSQL);
