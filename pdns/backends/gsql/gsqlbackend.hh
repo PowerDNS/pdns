@@ -66,6 +66,7 @@ public:
   bool listSubZone(const string &zone, int domain_id);
   int addDomainKey(const string& name, const KeyData& key);
   bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
+  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
   bool clearDomainAllMetadata(const string& domain);
@@ -135,6 +136,7 @@ private:
 
   string d_AddDomainKeyQuery;
   string d_ListDomainKeysQuery;
+  string d_GetAllDomainMetadataQuery;
   string d_GetDomainMetadataQuery;
   string d_ClearDomainMetadataQuery;
   string d_ClearDomainAllMetadataQuery;

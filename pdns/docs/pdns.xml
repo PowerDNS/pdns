@@ -20356,6 +20356,67 @@ the ordered list. Do not return nil for either one.
 </variablelist>
 </sect4>
 
+<sect4 id="remotebackend-api-method-getalldomainmetadata"><title>Method: getAllDomainMetadata</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>hash of key to array of strings</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Returns the value(s) for variable kind for zone name. You *must* always return
+something, if there are no values, you shall return empty set or false.
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"getalldomainmetadata", "parameters":{"name":"example.com"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":{"PRESIGNED":["NO"]}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/getalldomainmetadata/example.com HTTP/1.1
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":{"PRESIGNED":["NO"]}}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
 <sect4 id="remotebackend-api-method-getdomainmetadata"><title>Method: getDomainMetadata</title>
  <variablelist>
   <varlistentry>

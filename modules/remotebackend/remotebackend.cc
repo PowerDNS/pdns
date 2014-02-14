@@ -305,6 +305,34 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    return true;
 }
 
+bool RemoteBackend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "getAllDomainMetadata", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (this->send(query) == false)
+     return false;
+
+   meta.clear();
+
+   // not mandatory to implement
+   if (this->recv(answer) == false)
+     return true;
+
+   if (answer["result"].IsObject()) {
+     for (rapidjson::Value::MemberIterator kind = answer["result"].MemberBegin(); kind != answer["result"].MemberEnd(); kind++)
+       for(rapidjson::Value::ValueIterator content = kind->value.Begin(); content != kind->value.End(); content++)
+         meta[kind->name.GetString()].push_back(getString(*content));
+   }
+
+   return true;
+}
+
 bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;

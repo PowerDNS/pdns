@@ -73,6 +73,11 @@ class Handler
      [ret]
    end 
 
+   def do_getalldomainmetadata(args)
+     return [ $meta[args["name"]] ] if $meta.has_key?(args["name"])
+     return [false]
+   end
+
    def do_getdomainmetadata(args)
      return [ $meta[args["name"]][args["kind"]] ] if $meta.has_key?(args["name"]) and $meta[args["name"]].has_key?(args["kind"])
      return [false]

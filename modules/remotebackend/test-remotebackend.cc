@@ -81,6 +81,17 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainMetadata) {
       BOOST_CHECK_EQUAL(meta[0], "VALUE");
 }
 
+BOOST_AUTO_TEST_CASE(test_method_getAllDomainMetadata) {
+   std::map<std::string, std::vector<std::string> > meta;
+   BOOST_TEST_MESSAGE("Testing getAllDomainMetadata method");
+   be->getAllDomainMetadata("unit.test", meta);
+   BOOST_CHECK_EQUAL(meta.size(), 1);
+   // in case we got more than one value, which would be unexpected
+   // but not fatal
+   if (meta.size() > 0)
+      BOOST_CHECK_EQUAL(meta["TEST"][0], "VALUE");
+}
+
 BOOST_AUTO_TEST_CASE(test_method_addDomainKey) {
    BOOST_TEST_MESSAGE("Testing addDomainKey method");
    BOOST_CHECK_EQUAL(be->addDomainKey("unit.test",k1), 1);
