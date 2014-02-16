@@ -305,14 +305,17 @@ DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const DNSCryptoKeyEngine* p
 
 int countLabels(const std::string& signQName)
 {
-  int count =1;
-  for(string::const_iterator pos = signQName.begin(); pos != signQName.end() ; ++pos) 
-    if(*pos == '.' && pos+1 != signQName.end()) 
-      count++;
+  if(!signQName.empty()) {
+    int count=1;
+    for(string::const_iterator pos = signQName.begin(); pos != signQName.end() ; ++pos)
+      if(*pos == '.' && pos+1 != signQName.end())
+        count++;
 
-  if(boost::starts_with(signQName, "*."))
-    count--;
-  return count;
+    if(boost::starts_with(signQName, "*."))
+      count--;
+    return count;
+  }
+  return 0;
 }
 
 uint32_t getStartOfWeek()
