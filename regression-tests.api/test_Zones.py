@@ -211,6 +211,98 @@ class AuthZones(ApiTestCase):
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
 
+    def test_ZoneRRUpdateQTypeMismatch(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qtype mismatch
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'records': [
+                {
+                    "name": name,
+                    "type": "NS",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": "ns1.bar.com",
+                    "disabled": False
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+
+    def test_ZoneRRUpdateQNameMismatch(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qname mismatch
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'records': [
+                {
+                    "name": 'blah.'+name,
+                    "type": "NS",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": "ns1.bar.com",
+                    "disabled": False
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+
+    def test_ZoneRRUpdateOutOfZone(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qname mismatch
+        payload = {
+            'changetype': 'replace',
+            'name': 'not-in-zone',
+            'type': 'NS',
+            'records': [
+                {
+                    "name": name,
+                    "type": "NS",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": "ns1.bar.com",
+                    "disabled": False
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('out of zone', r.json()['error'])
+
+    def test_ZoneRRDeleteOutOfZone(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qname mismatch
+        payload = {
+            'changetype': 'delete',
+            'name': 'not-in-zone',
+            'type': 'NS'
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('out of zone', r.json()['error'])
+
 
 @unittest.skipIf(not isRecursor(), "Not applicable")
 class RecursorZones(ApiTestCase):
