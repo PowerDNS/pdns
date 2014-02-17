@@ -20,3 +20,13 @@ class RecursorConfig(ApiTestCase):
         self.assertSuccessJson(r)
         data = r.json()
         self.assertEquals("127.0.0.1/32", data["value"][0])
+
+    def test_ConfigAllowFromReplaceError(self):
+        """Test the error case, should return 422."""
+        payload = {'value': ["abcdefgh"]}
+        r = self.session.put(
+            self.url("/servers/localhost/config/allow-from"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        data = r.json()
