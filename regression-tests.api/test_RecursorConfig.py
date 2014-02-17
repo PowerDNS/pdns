@@ -30,3 +30,4 @@ class RecursorConfig(ApiTestCase):
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
         data = r.json()
+        self.assertIn('Unable to convert', data['error'])
