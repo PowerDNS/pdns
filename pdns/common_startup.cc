@@ -48,7 +48,7 @@ void declareArguments()
   ::arg().setSwitch("experimental-rfc2136","Enable/Disable RFC2136 (Dynamic DNS) support. Default is no.")="no";
   ::arg().set("allow-2136-from","A global setting to allow RFC2136 from these IP ranges.")="0.0.0.0/0";
   ::arg().setSwitch("forward-2136","A global setting to allow RFC2136 packages that are for a Slave domain, to be forwarded to the master.")="yes";
-  ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="";
+  ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="no";
   ::arg().setSwitch("log-dns-queries","If PDNS should log all incoming DNS queries")="no";
   ::arg().set("urlredirector","Where we send hosts to that need to be url redirected")="127.0.0.1";
   ::arg().set("smtpredirector","Our smtpredir MX host")="a.misconfigured.powerdns.smtp.server";
