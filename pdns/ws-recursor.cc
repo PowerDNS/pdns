@@ -76,6 +76,14 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
       throw ApiException("'value' must be an array");
     }
 
+    for (SizeType i = 0; i < jlist.Size(); ++i) {
+      try {
+        Netmask(jlist[i].GetString());
+      } catch (NetmaskException &e) {
+        throw ApiException(e.reason);
+      }
+    }
+
     ostringstream ss;
 
     // Clear allow-from-file if set, so our changes take effect
@@ -320,7 +328,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     doDeleteZone(zonename);
     doCreateZone(document);
     reloadAuthAndForwards();
-    fillZone(zonename, resp);
+    fillZone(stringFromJson(document, "name"), resp);
   }
   else if(req->method == "DELETE") {
     if (!doDeleteZone(zonename)) {

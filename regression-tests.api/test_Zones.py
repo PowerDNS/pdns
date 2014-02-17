@@ -380,3 +380,30 @@ class RecursorZones(ApiTestCase):
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)
+
+    def test_RenameAuthZone(self):
+        name = unique_zone_name()+'.'
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'recursion_desired': False
+        }
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # now rename it
+        payload = {
+            'name': 'renamed-'+name,
+            'kind': 'Native',
+            'recursion_desired': False
+        }
+        r = self.session.put(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        data = r.json()
+        for k in payload.keys():
+            self.assertEquals(data[k], payload[k])
