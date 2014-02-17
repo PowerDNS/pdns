@@ -320,7 +320,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     doDeleteZone(zonename);
     doCreateZone(document);
     reloadAuthAndForwards();
-    fillZone(zonename, resp);
+    fillZone(stringFromJson(document, "name"), resp);
   }
   else if(req->method == "DELETE") {
     if (!doDeleteZone(zonename)) {
