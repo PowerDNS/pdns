@@ -10,7 +10,7 @@ AuthLua::AuthLua(const std::string &fname)
 
 DNSPacket* AuthLua::prequery(DNSPacket *p)
 {
-  return false;
+  return 0;
 }
 
 bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
