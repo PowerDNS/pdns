@@ -5,6 +5,38 @@
 #include <iostream>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/assign/list_of.hpp>
+
+std::vector<std::string> RCode::rcodes_s = boost::assign::list_of 
+  ("No Error")
+  ("Form Error")
+  ("Server Failure")
+  ("Non-Existent domain")
+  ("Not Implemented")
+  ("Query Refused")
+  ("Name Exists when it should not")
+  ("RR Set Exists when it should not")
+  ("RR Set that should exist does not")
+  ("Server Not Authoritative for zone")
+  ("Name not contained in zone")
+  ("unassigned")
+  ("unassigned")
+  ("unassigned")
+  ("unassigned")
+  ("unassigned")
+  ("Bad OPT Version")
+  ("TSIG Signature Failure")
+  ("Key not recognized")
+  ("Signature out of time window")
+  ("Bad TKEY Mode")
+  ("Duplicate key name")
+  ("Algorithm not supported");
+
+std::string RCode::to_s(unsigned short rcode) {
+  if (rcode > 21) 
+    return boost::lexical_cast<std::string>(rcode);
+  return RCode::rcodes_s[rcode];
+}
 
 static void appendEscapedLabel(string& ret, const char* begin, unsigned char labellen)
 {
@@ -187,10 +219,10 @@ string& attodot(string &str)
    return str;
 }
 
-string strrcode(unsigned char rcode)
+/*string strrcode(unsigned char rcode)
 {
   static const char* rcodes[]={"No Error", "FormErr", "SERVFAIL", "NXDOMAIN", "NotImp", "Refused", "", "", "", "Not Auth"};
   if((rcode < sizeof(rcodes) / sizeof(*rcodes)) && *rcodes[rcode])
     return rcodes[rcode];
   return "Err#"+lexical_cast<string>((int)rcode);
-}
+}*/
