@@ -544,7 +544,7 @@ try
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {
-      L << Logger::Warning << "No question section in packet from " << getRemote() <<", rcode="<<(int)d.rcode<<endl;
+      L << Logger::Warning << "No question section in packet from " << getRemote() <<", error="<<RCode::to_s(d.rcode)<<endl;
       return -1;
     }
   }

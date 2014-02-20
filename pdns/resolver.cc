@@ -277,7 +277,7 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   *domain = stripDot(mdp.d_qname);
   
   if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' produced no results (error code: "+strrcode(mdp.d_header.rcode)+")");
+    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   
   if(mdp.d_qtype != QType::SOA)
     throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' returned wrong record type");
@@ -467,7 +467,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
 
   int err = parseResult(mdp, "", 0, 0, &res);
   if(err) 
-    throw ResolverException("AXFR chunk with a non-zero rcode "+lexical_cast<string>(err));
+    throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
 
   BOOST_FOREACH(const MOADNSParser::answers_t::value_type& answer, mdp.d_answers)
     if (answer.first.d_type == QType::SOA)
