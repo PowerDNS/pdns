@@ -21,4 +21,4 @@ secure-delegated	IN	NS	ns1.secure-delegated.dnssec-parent.com.
 secure-delegated	IN	NS	ns2.secure-delegated.dnssec-parent.com.
 ns1.secure-delegated	IN	A	1.2.3.4
 ns2.secure-delegated	IN	A	5.6.7.8
-
+insecure-delegated.ent	IN	NS	ns.example.com.
