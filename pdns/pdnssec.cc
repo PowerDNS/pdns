@@ -181,22 +181,23 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   bool doTransaction=true; // but see above
   SOAData sd;
   sd.db = (DNSBackend*)-1;
-  
+
   if(!B.getSOA(zone, sd)) {
     cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
     return false;
-  } 
+  }
   sd.db->list(zone, sd.domain_id);
 
   DNSResourceRecord rr;
-  set<string> qnames, nsset, dsnames, nonterm, insnonterm, delnonterm;
+  set<string> qnames, nsset, dsnames, insnonterm, delnonterm;
+  map<string,bool> nonterm;
   bool doent=true;
-  
+
   while(sd.db->get(rr)) {
     if (rr.qtype.getCode())
     {
       qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, zone)) 
+      if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, zone))
         nsset.insert(rr.qname);
       if(rr.qtype.getCode() == QType::DS)
         dsnames.insert(rr.qname);
@@ -209,21 +210,25 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   NSEC3PARAMRecordContent ns3pr;
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
   if(sd.db->doesDNSSEC())
   {
-    if(!haveNSEC3) 
+    if(!haveNSEC3)
       cerr<<"Adding NSEC ordering information "<<endl;
-    else if(!narrow)
-      cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
-    else 
+    else if(!narrow) {
+      if(!isOptOut)
+        cerr<<"Adding NSEC3 hashed ordering information for '"<<zone<<"'"<<endl;
+      else
+        cerr<<"Adding NSEC3 opt-out hashed ordering information for '"<<zone<<"'"<<endl;
+    } else
       cerr<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
   }
   else
     cerr<<"Non DNSSEC zone, only adding empty non-terminals"<<endl;
-  
+
   if(doTransaction)
     sd.db->startTransaction("", -1);
-    
+
   bool realrr=true;
   string hashed;
 
@@ -246,14 +251,17 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
 
     if(haveNSEC3)
     {
-      if(!narrow) {
+      if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second)) {
         hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname));
         if(g_verbose)
           cerr<<"'"<<qname<<"' -> '"<< hashed <<"'"<<endl;
         sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
       }
-      else
+      else {
+        if(!realrr)
+          auth=false;
         sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, qname, auth);
+      }
     }
     else // NSEC
     {
@@ -267,13 +275,13 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
       if (dsnames.count(qname))
         sd.db->setDNSSECAuthOnDsRecord(sd.domain_id, qname);
       if (!auth || nsset.count(qname)) {
-        if(haveNSEC3 && ns3pr.d_flags)
+        if(isOptOut)
           sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "NS");
         sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
         sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
       }
 
-      if(auth && doent)
+      if(doent)
       {
         shorter=qname;
         while(!pdns_iequals(shorter, zone) && chopOff(shorter))
@@ -288,12 +296,17 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
               doent=false;
               break;
             }
-            nonterm.insert(shorter);
+
+            if (!nonterm.count(shorter)) {
+              nonterm.insert(pair<string, bool>(shorter, auth));
+              --maxent;
+            } else if (auth)
+              nonterm[shorter]=true;
+
             if (!delnonterm.count(shorter))
               insnonterm.insert(shorter);
             else
               delnonterm.erase(shorter);
-            --maxent;
           }
         }
       }
@@ -310,7 +323,11 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
     if(doent)
     {
       realrr=false;
-      qnames=nonterm;
+      qnames.clear();
+      pair<string,bool> nt;
+      BOOST_FOREACH(nt, nonterm){
+        qnames.insert(nt.first);
+      }
       goto dononterm;
     }
   }
