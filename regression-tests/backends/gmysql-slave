@@ -8,9 +8,7 @@
 		|| echo ignoring mysqladmin drop failure
 	mysqladmin --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" create "$GMYSQL2DB"
 	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-		"$GMYSQL2DB" < ../modules/gmysqlbackend/no-dnssec.schema.mysql.sql
-	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
-		"$GMYSQL2DB" < ../modules/gmysqlbackend/dnssec.schema.mysql.sql
+		"$GMYSQL2DB" < ../modules/gmysqlbackend/schema.mysql.sql
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
 	do
@@ -19,20 +17,16 @@
 		-e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
 	done
 
+	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+	-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
+	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
+	-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 	set +e
-	echo $skipreasons | grep -q nodnssec
+	echo $skipreasons | grep -q nolua
 	if [ $? -ne 0 ]
 	then
 		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
-		-e "INSERT INTO tsigkeys (name, algorithm,secret) VALUES('test', '$ALGORITHM', '$KEY')"
-		mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
-		-e "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
-		echo $skipreasons | grep -q nolua
-		if [ $? -ne 0 ]
-		then
-			mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" "$GMYSQL2DB" \
-			-e "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
-		fi
+		-e "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
 	fi
 	set -e
 

@@ -9,7 +9,7 @@ case $context in
 			|| echo ignoring mysqladmin drop failure
 		mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
 		mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-			"$GMYSQLDB" < ../modules/gmysqlbackend/no-dnssec.schema.mysql.sql
+			"$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
 
 		tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 			"$GMYSQLDB"
@@ -26,6 +26,10 @@ __EOF__
 		do
 			../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
 		done
+
+		../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test $ALGORITHM $KEY
+		../pdns/pdnssec --config-dir=. --config-name=gmysql activate-tsig-key tsig.com test master
+
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=gmysql \
@@ -49,9 +53,7 @@ __EOF__
 			|| echo ignoring mysqladmin drop failure
 		mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
 		mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-			"$GMYSQLDB" < ../modules/gmysqlbackend/no-dnssec.schema.mysql.sql
-		mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-			"$GMYSQLDB" < ../modules/gmysqlbackend/dnssec.schema.mysql.sql
+			"$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
 
 		tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 			"$GMYSQLDB"
