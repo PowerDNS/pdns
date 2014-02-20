@@ -13673,7 +13673,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	</para>
 	<para>
 	  <function>preresolve ( remoteip, domain, qtype )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
-	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
+	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason. 
 	</para>
 	<para>
 	  <function>postresolve ( remoteip, domain, qtype, records, origrcode )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since version 3.4.
@@ -14194,8 +14194,9 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
       <para>
 	If your function decides to handle a resource record it must return a result code of 0 together with a Lua table 
 	containing one or more replacement records to be stored in the back-end database. If, on the other hand, your 
-	function decides not to modify a record, it must return -1 and an empty table indicating that PowerDNS should 
-	handle the incoming record as normal.
+	function decides not to modify a record, it must return pdns.PASS and an empty table indicating that PowerDNS should 
+	handle the incoming record as normal. If your function decides to drop a query and not respond whatsoever, it must return
+  pdns.DROP and an empty table indicating that the recursor does not want to process the packet in Lua nor in the core recursor logic.
       </para>
       <para>
 	Consider the following simple example:
@@ -14226,7 +14227,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	   end
 
 	   resp = {}
-	   return -1, resp
+	   return pdns.PASS, resp
 	end
 
 	function string.starts(s, start)

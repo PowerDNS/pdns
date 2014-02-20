@@ -262,6 +262,10 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   lua_setfield(d_lua, -2, "NOTIMP");
   lua_pushnumber(d_lua, 5);
   lua_setfield(d_lua, -2, "REFUSED");
+  lua_pushnumber(d_lua, -1);
+  lua_setfield(d_lua, -2, "PASS");
+  lua_pushnumber(d_lua, -2);
+  lua_setfield(d_lua, -2, "DROP");
   lua_setglobal(d_lua, "pdns");
   
   lua_pushlightuserdata(d_lua, (void*)this); 
