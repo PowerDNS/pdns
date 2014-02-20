@@ -19,11 +19,11 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
   ("RR Set that should exist does not")
   ("Server Not Authoritative for zone")
   ("Name not contained in zone")
-  ("unassigned")
-  ("unassigned")
-  ("unassigned")
-  ("unassigned")
-  ("unassigned")
+  ("Err#11")
+  ("Err#12")
+  ("Err#13")
+  ("Err#14")
+  ("Err#15")
   ("Bad OPT Version")
   ("TSIG Signature Failure")
   ("Key not recognized")
@@ -34,7 +34,7 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
 
 std::string RCode::to_s(unsigned short rcode) {
   if (rcode > 21) 
-    return boost::lexical_cast<std::string>(rcode);
+    return std::string("Err#")+boost::lexical_cast<std::string>(rcode);
   return RCode::rcodes_s[rcode];
 }
 
