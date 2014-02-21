@@ -430,7 +430,7 @@ void Bind2Backend::parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd)
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
     This function adds a record to a domain with a certain id. 
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed)
+void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed, bool *auth)
 {
   BB2DomainInfo bb2 = stage->id_zone_map[id];
   Bind2DNSRecord bdr;
@@ -468,8 +468,8 @@ void Bind2Backend::insert(shared_ptr<State> stage, int id, const string &qnameu,
   bdr.nsec3hash = hashed;
   // cerr<<"qname '"<<bdr.qname<<"' nsec3hash '"<<hashed<<"' qtype '"<<qtype.getName()<<"'"<<endl;
   
-  if (!qtype.getCode()) // Set auth on empty non-terminals
-    bdr.auth=true;
+  if (auth) // Set auth on empty non-terminals
+    bdr.auth=*auth;
 
   if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
     prio=atoi(bdr.content.c_str());
@@ -655,19 +655,23 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
 {
   BB2DomainInfo bb2 = stage->id_zone_map[id];
 
-  bool doent=true;
-  set<string> qnames, nonterm;
-  string qname, shorter, hashed;
+  bool auth, doent=true;
+  set<string> qnames;
+  map<string, bool> nonterm;
+  string shorter, hashed;
 
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   BOOST_FOREACH(const Bind2DNSRecord& bdr, *bb2.d_records)
-    if (bdr.auth && (bdr.qtype != QType::RRSIG))
-      qnames.insert(labelReverse(bdr.qname));
+    qnames.insert(labelReverse(bdr.qname));
 
-  BOOST_FOREACH(const string& qname, qnames)
-  {
-    shorter=qname;
+  BOOST_FOREACH(const Bind2DNSRecord& bdr, *bb2.d_records) {
+    shorter=labelReverse(bdr.qname);
+
+    if (!bdr.auth && bdr.qtype == QType::NS)
+      auth=(!ns3pr.d_flags);
+    else
+      auth=bdr.auth;
 
     while(chopOff(shorter))
     {
@@ -679,8 +683,12 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
           doent=false;
           break;
         }
-        nonterm.insert(shorter);
-        --maxent;
+
+        if (!nonterm.count(shorter)) {
+          nonterm.insert(pair<string, bool>(shorter, auth));
+          --maxent;
+        } else if (auth)
+          nonterm[shorter]=true;
       }
     }
     if(!doent)
@@ -692,12 +700,13 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
   rr.content="";
   rr.ttl=0;
   rr.priority=0;
-  BOOST_FOREACH(const string& qname, nonterm)
+  pair<string, bool> nt;
+  BOOST_FOREACH(nt, nonterm)
   {
-    rr.qname=qname+"."+bb2.d_name+".";
+    rr.qname=nt.first+"."+bb2.d_name+".";
     if(nsec3zone)
       hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
+    insert(stage, id, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, &nt.second);
   }
 }
 

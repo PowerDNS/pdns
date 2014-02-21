@@ -177,7 +177,7 @@ public:
   };
 
   void parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd);
-  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string());
+  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
