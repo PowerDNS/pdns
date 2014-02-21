@@ -24,6 +24,7 @@ script:
  - make dist
  - make -j 4
  - make -j 4 check
+ - make -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$)
  - cd pdns
  - make -j 4 pdns_recursor
  - ./dist-recursor
