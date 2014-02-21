@@ -48,12 +48,16 @@ script:
  - ./start-test-stop 5300 bind-both
  - ./start-test-stop 5300 bind-dnssec-both
  - ./start-test-stop 5300 bind-dnssec-nsec3-both
+ - touch tests/verify-dnssec-zone/skip
  - ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
+ - rm -f tests/verify-dnssec-zone/skip
  - ./start-test-stop 5300 bind-dnssec-nsec3-narrow
  - ./start-test-stop 5300 gmysql-nodnssec-both
  - ./start-test-stop 5300 gmysql-both
  - ./start-test-stop 5300 gmysql-nsec3-both
+ - touch tests/verify-dnssec-zone/skip
  - ./start-test-stop 5300 gmysql-nsec3-optout-both
+ - rm -f tests/verify-dnssec-zone/skip
  - ./start-test-stop 5300 gmysql-nsec3-narrow
  - ./start-test-stop 5300 gpgsql-nodnssec
  - ./start-test-stop 5300 gpgsql
