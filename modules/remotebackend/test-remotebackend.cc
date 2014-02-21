@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE(test_method_replaceRRSet) {
 BOOST_AUTO_TEST_CASE(test_method_feedEnts) {
    BOOST_TEST_MESSAGE("Testing feedEnts method");
    be->startTransaction("example.com",2);
-   set<string> nonterm = boost::assign::list_of("_udp")("_sip._udp");
+   map<string, bool> nonterm = boost::assign::map_list_of("_udp", true)("_sip._udp", true);
    BOOST_CHECK(be->feedEnts(2, nonterm));
    be->commitTransaction();
 }
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts) {
 BOOST_AUTO_TEST_CASE(test_method_feedEnts3) {
    BOOST_TEST_MESSAGE("Testing feedEnts3 method");
    be->startTransaction("example.com",2);
-   set<string> nonterm = boost::assign::list_of("_udp")("_sip._udp");
+   map<string, bool> nonterm = boost::assign::map_list_of("_udp", true)("_sip._udp", true);
    BOOST_CHECK(be->feedEnts3(2, "example.com", nonterm, 1, "\xaa\xbb\xcc\xdd", 0));
    be->commitTransaction();
 }
