@@ -564,7 +564,7 @@ bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hash
     incrementHash(after);
   }
   else {
-    if (decrement || mode ==1)
+    if (decrement || mode <= 1)
       before.clear();
     else
       before=' ';
