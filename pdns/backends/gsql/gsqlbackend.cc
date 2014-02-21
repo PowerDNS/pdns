@@ -1153,14 +1153,27 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
   return true; // XXX FIXME this API should not return 'true' I think -ahu 
 }
 
-bool GSQLBackend::feedEnts(int domain_id, set<string>& nonterm)
+bool GSQLBackend::feedEnts(int domain_id, map<string,bool>& nonterm)
 {
-  string output;
-  BOOST_FOREACH(const string qname, nonterm) {
-    output = (boost::format(d_InsertEntQuery) % domain_id % toLower(sqlEscape(qname))).str();
+  string query;
+  pair<string,bool> nt;
+
+  BOOST_FOREACH(nt, nonterm) {
+
+    if (!d_dnssecQueries)
+      query = (boost::format(d_InsertEntQuery)
+               % domain_id
+               % toLower(sqlEscape(nt.first))
+       ).str();
+    else
+      query = (boost::format(d_InsertEntQuery)
+               % domain_id
+               % toLower(sqlEscape(nt.first))
+               % 1
+       ).str();
 
     try {
-      d_db->doCommand(output.c_str());
+      d_db->doCommand(query);
     }
     catch (SSqlException &e) {
       throw PDNSException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());
@@ -1169,22 +1182,34 @@ bool GSQLBackend::feedEnts(int domain_id, set<string>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow)
+bool GSQLBackend::feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;
 
-  string ordername, output;
-  BOOST_FOREACH(const string qname, nonterm) {
-    if(narrow) {
-      output = (boost::format(d_InsertEntQuery) % domain_id % toLower(sqlEscape(qname))).str();
+  string ordername, query;
+  pair<string,bool> nt;
+
+  BOOST_FOREACH(nt, nonterm) {
+
+    if(narrow || !nt.second) {
+      query = (boost::format(d_InsertEntQuery)
+               % domain_id
+               % toLower(sqlEscape(nt.first))
+               % nt.second
+       ).str();
     } else {
-      ordername=toBase32Hex(hashQNameWithSalt(times, salt, qname));
-      output = (boost::format(d_InsertEntOrderQuery) % domain_id % toLower(sqlEscape(qname)) % toLower(sqlEscape(ordername))).str();
+      ordername=toBase32Hex(hashQNameWithSalt(times, salt, nt.first));
+      query = (boost::format(d_InsertEntOrderQuery)
+               % domain_id
+               % toLower(sqlEscape(nt.first))
+               % toLower(sqlEscape(ordername))
+               % nt.second
+       ).str();
     }
 
     try {
-      d_db->doCommand(output.c_str());
+      d_db->doCommand(query);
     }
     catch (SSqlException &e) {
       throw PDNSException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());

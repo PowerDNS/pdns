@@ -108,8 +108,8 @@ public:
     declare(suffix, "insert-record-query-auth", "", "insert into records (id, content,ttl,prio,type,domain_id,disabled,name,auth) values (records_id_sequence.nextval, '%s',%d,%d,'%s',%d,%d,'%s','%d')");
     declare(suffix, "insert-record-order-query-auth", "", "insert into records (id, content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval, '%s',%d,%d,'%s',%d,%d,'%s','%s ','%d')");
     declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (id, type,domain_id,disabled,name) values (records_id_sequence.nextval, null,'%d',0,'%s')");
-    declare(suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (id, type,domain_id,disabled,name,auth) values (records_id_sequence.nextval, null,'%d',0,'%s','1')");
-    declare(suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (id, type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval, null,'%d',0,'%s','%s','1')");
+    declare(suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (id, type,domain_id,disabled,name,auth) values (records_id_sequence.nextval, null,'%d',0,'%s','%d')");
+    declare(suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (id, type,domain_id,disabled,name,ordername,auth) values (records_id_sequence.nextval, null,'%d',0,'%s','%s','%d')");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select trim(ordername),name from records where disabled=0 and domain_id=%d and ordername is not null and rownum=1 order by ordername asc");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select trim(ordername), name from records where disabled=0 and ordername <= '%s ' and domain_id=%d and ordername is not null and rownum=1 order by ordername desc");

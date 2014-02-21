@@ -243,11 +243,11 @@ public:
   {
     return false; // no problem!
   }
-  virtual bool feedEnts(int domain_id, set<string> &nonterm)
+  virtual bool feedEnts(int domain_id, map<string,bool> &nonterm)
   {
     return false;
   }
-  virtual bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow)
+  virtual bool feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
   {
     return false;
   }
