@@ -191,7 +191,7 @@ __EOF__
 	exit
 fi
 
-${MAKE} -C ../pdns sdig nsec3dig || exit
+${MAKE} -C ../pdns sdig saxfr nsec3dig || exit
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 do

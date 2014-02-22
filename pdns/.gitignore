@@ -11,6 +11,7 @@
 /pdns_recursor
 /pdnssec
 /sdig
+/saxfr
 /dnslabeltext.cc
 /dnsreplay
 /dnsbulktest
