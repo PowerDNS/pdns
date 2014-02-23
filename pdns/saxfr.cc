@@ -14,20 +14,20 @@ int main(int argc, char** argv)
 try
 {
   if(argc < 4) {
-    cerr<<"Syntax: saxfr IP-address port zone [showflags] [hidesoadetails] [unhash]"<<endl;;
+    cerr<<"Syntax: saxfr IP-address port zone [showdetails] [showflags] [unhash]"<<endl;;
     exit(EXIT_FAILURE);
   }
 
+  bool showdetails=false;
   bool showflags=false;
-  bool hidesoadetails=false;
   bool unhash=false;
 
   if (argc > 4) {
     for(int i=4; i<argc; i++) {
+      if (strcmp(argv[i], "showdetails") == 0)
+        showdetails=true;
       if (strcmp(argv[i], "showflags") == 0)
         showflags=true;
-      if (strcmp(argv[i], "hidesoadetails") == 0)
-        hidesoadetails=true;
       if (strcmp(argv[i], "unhash") == 0)
         unhash=true;
     }
@@ -83,7 +83,11 @@ try
 
       ostringstream o;
       o<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-      if(i->first.d_type == QType::RRSIG)
+      if(showdetails)
+      {
+        o<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation();
+      }
+      else if(i->first.d_type == QType::RRSIG)
       {
         string zoneRep = i->first.d_content->getZoneRepresentation();
         vector<string> parts;
@@ -95,7 +99,7 @@ try
         string zoneRep = i->first.d_content->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
-        o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<parts[4];
+        o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<"[next owner]";
         for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
           o<<" "<<*iter;
       }
@@ -105,13 +109,6 @@ try
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...";
-      }
-      else if (i->first.d_type == QType::SOA && hidesoadetails)
-      {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
-        vector<string> parts;
-        stringtok(parts, zoneRep);
-        o<<"\t"<<i->first.d_ttl<<"\t"<<parts[0]<<" "<<parts[1]<<" [serial] "<<parts[3]<<" "<<parts[4]<<" "<<parts[5]<<" "<<parts[6];
       }
       else
       {
