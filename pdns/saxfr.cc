@@ -94,12 +94,17 @@ try
         stringtok(parts, zoneRep);
         o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...";
       }
-      else if(!showflags && i->first.d_type == QType::NSEC3)
+      else if(i->first.d_type == QType::NSEC3)
       {
         string zoneRep = i->first.d_content->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
-        o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" [flags] "<<parts[2]<<" "<<parts[3]<<" "<<"[next owner]";
+        o<<"\t"<<i->first.d_ttl<<"\t"<<parts[0]<<" ";
+        if (showflags)
+          o<<parts[1];
+        else
+          o<<"[flags]";
+        o<<" "<<parts[2]<<" "<<parts[3]<<" "<<"[next owner]";
         for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
           o<<" "<<*iter;
       }
