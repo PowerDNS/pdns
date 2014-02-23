@@ -13,7 +13,7 @@ case $context in
 			--cache-ttl=$cachettl --no-config \
 			--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
 			--opendbx-database=pdns-opendbx.sqlite3 &
-		skipreasons="nodnssec noent nodyndns noaxfr"
+		skipreasons="nodnssec noent nodyndns"
 		;;
 
 	*)

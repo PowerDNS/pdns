@@ -183,6 +183,7 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
 
         	do
         	{
+        		sd.qname = domain;
         		sd.serial = 0;
         		sd.ttl = m_default_ttl;
 
