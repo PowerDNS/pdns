@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig dnssec-parent.com AXFR showflags unhash
