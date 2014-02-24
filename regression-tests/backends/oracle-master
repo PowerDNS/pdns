@@ -60,7 +60,7 @@ __EOF__
 			skipreasons="nodyndns oracle-nsec"
 			extracontexts="dnssec"
 		fi
-		skipreasons="$skipreasons noent" # TODO add ent support to oracle backend
+		skipreasons="$skipreasons noent noaxfr" # TODO add ent support to oracle backend
 		;;
 
 	*)

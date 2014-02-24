@@ -46,6 +46,7 @@ script:
  - ./runtests recursor
  - cd ../regression-tests
  - touch tests/verify-dnssec-zone/allow-missing
+ - touch tests/verify-dnssec-zone/skip.optout # some (travis) tools in this test are unable to handle optout zones
  - ./start-test-stop 5300 bind-both
  - ./start-test-stop 5300 bind-dnssec-both
  - ./start-test-stop 5300 bind-dnssec-nsec3-both

@@ -37,8 +37,8 @@ public:
   bool commitTransaction();
   bool abortTransaction();
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
-  bool feedEnts(int domain_id, set<string>& nonterm);
-  bool feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow);
+  bool feedEnts(int domain_id, map<string,bool>& nonterm);
+  bool feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow);
   bool createDomain(const string &domain);
   bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
   bool deleteDomain(const string &domain);

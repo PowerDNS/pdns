@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig ent.dnssec-parent.com A dnssec showflags

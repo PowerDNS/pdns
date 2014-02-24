@@ -274,7 +274,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     bool doent=true;
     uint32_t maxent = ::arg().asNum("max-ent-entries");
     string ordername, shorter;
-    set<string> nonterm, rrterm;
+    set<string> rrterm;
+    map<string,bool> nonterm;
 
     BOOST_FOREACH(DNSResourceRecord& rr, rrs) {
 
@@ -284,20 +285,32 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       rrterm.clear();
       do {
         if(doent) {
-          if (!qnames.count(shorter) && !nonterm.count(shorter) && !rrterm.count(shorter))
+          if (!qnames.count(shorter))
             rrterm.insert(shorter);
         }
-        if(nsset.count(shorter) && rr.qtype.getCode() != QType::DS) {
+        if(nsset.count(shorter) && rr.qtype.getCode() != QType::DS)
           rr.auth=false;
-          break;
-        }
+
         if (pdns_iequals(shorter, domain)) // stop at apex
           break;
       }while(chopOff(shorter));
 
-      // Insert ents for auth rrs
-      if(doent && rr.auth) {
-        nonterm.insert(rrterm.begin(), rrterm.end());
+      // Insert ents
+      if(doent && !rrterm.empty()) {
+        bool auth;
+        if (!rr.auth && rr.qtype.getCode() == QType::NS) {
+          ordername=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+          auth=(!gotOptOutFlag || secured.count(ordername));
+        } else
+          auth=rr.auth;
+
+        BOOST_FOREACH(const string nt, rrterm){
+          if (!nonterm.count(nt))
+              nonterm.insert(pair<string, bool>(nt, auth));
+            else if (auth)
+              nonterm[nt]=true;
+        }
+
         if(nonterm.size() > maxent) {
           L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
           nonterm.clear();

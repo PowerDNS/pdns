@@ -71,16 +71,18 @@ __EOF__
 		if [ $context = gpgsql-nsec3 ]
 		then
 			extracontexts="dnssec nsec3"
+			skipreasons="nsec3 nodyndns"
 		elif [ $context = gpgsql-nsec3-optout ]
 		then
 			extracontexts="dnssec nsec3 nsec3-optout"
+			skipreasons="optout nodyndns"
 		elif [ $context = gpgsql-nsec3-narrow ]
 		then
 			extracontexts="dnssec narrow"
 		else
 			extracontexts="dnssec"
+			skipreasons="nodyndns"
 		fi
-		skipreasons="nodyndns"
 		;;
 
 	*)

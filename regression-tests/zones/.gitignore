@@ -1,4 +1,5 @@
 /test.dyndns
+/*.bind
 /*.com-slave
 /*.dyndns-slave
 /*.signed

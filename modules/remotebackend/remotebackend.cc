@@ -777,7 +777,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
    return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
-bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) {
+bool RemoteBackend::feedEnts(int domain_id, map<string,bool>& nonterm) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value nts;
@@ -787,8 +787,9 @@ bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) {
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    nts.SetArray();
-   BOOST_FOREACH(const string &t, nonterm) {
-      nts.PushBack(t.c_str(), query.GetAllocator());
+   pair<string,bool> t;
+   BOOST_FOREACH(t, nonterm) {
+      nts.PushBack(t.first.c_str(), query.GetAllocator());
    }
    parameters.AddMember("nonterm", nts, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
@@ -798,7 +799,7 @@ bool RemoteBackend::feedEnts(int domain_id, set<string>& nonterm) {
    return true; 
 }
 
-bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &nonterm, unsigned int times, const string &salt, bool narrow) {
+bool RemoteBackend::feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value nts;
@@ -813,8 +814,9 @@ bool RemoteBackend::feedEnts3(int domain_id, const string &domain, set<string> &
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 
    nts.SetArray();
-   BOOST_FOREACH(const string &t, nonterm) {
-      nts.PushBack(t.c_str(), query.GetAllocator());
+   pair<string,bool> t;
+   BOOST_FOREACH(t, nonterm) {
+      nts.PushBack(t.first.c_str(), query.GetAllocator());
    }
    parameters.AddMember("nonterm", nts, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());

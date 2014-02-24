@@ -6,7 +6,7 @@ case $context in
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
-		skipreasons="nodnssec noent nodyndns"
+		skipreasons="nodnssec noent nodyndns noaxfr"
 		;;
 
 	*)

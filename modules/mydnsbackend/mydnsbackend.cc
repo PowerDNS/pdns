@@ -146,6 +146,7 @@ bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
         	return false;
         }
 
+        soadata.qname = name;
         soadata.domain_id = atol(rrow[0].c_str());
         soadata.hostmaster = rrow[1];
         soadata.serial = atol(rrow[2].c_str());

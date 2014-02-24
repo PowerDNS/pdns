@@ -101,8 +101,8 @@ public:
     declare(suffix, "insert-record-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values ('%s',%d,%d,'%s',%d,%d,'%s','%d')");
     declare(suffix, "insert-record-order-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values ('%s',%d,%d,'%s',%d,%d,'%s','%s','%d')");
     declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name) values (null,'%d',0,'%s')");
-    declare(suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,'%d',0,'%s','1')");
-    declare(suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,'%d',0,'%s','%s','1')");
+    declare(suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,'%d',0,'%s','%d')");
+    declare(suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,'%d',0,'%s','%s','%d')");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername, name from records where domain_id=%d and disabled=0 and ordername is not null order by 1 asc limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= '%s' and domain_id=%d and disabled=0 and ordername is not null order by 1 desc limit 1");
