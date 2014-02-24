@@ -64,6 +64,7 @@ These are the tools
 "/usr/bin/dnswasher"
 "/usr/bin/nproxy"
 "/usr/bin/nsec3dig"
+"/usr/bin/saxfr"
 "/usr/man/man8/dnsreplay.8"
 "/usr/man/man8/dnsscope.8"
 "/usr/man/man8/dnswasher.8"
