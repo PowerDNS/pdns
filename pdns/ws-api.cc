@@ -33,6 +33,8 @@
 #include <sys/types.h>
 #include <iomanip>
 
+extern string s_programname;
+
 #ifndef HAVE_STRCASESTR
 
 /*
@@ -185,15 +187,7 @@ void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  string prefix;
-  switch (versionGetProduct()) {
-  case ProductAuthoritative:
-    prefix = " pdns[";
-    break;
-  case ProductRecursor:
-    prefix = " pdns_recursor[";
-    break;
-  }
+  string prefix = " " + s_programname + "[";
   resp->body = logGrep(req->parameters["q"], ::arg()["experimental-logfile"], prefix);
 }
 

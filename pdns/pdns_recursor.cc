@@ -110,7 +110,7 @@ __thread NetmaskGroup* t_allowFrom;
 static NetmaskGroup* g_initialAllowFrom; // new thread needs to be setup with this
 
 NetmaskGroup* g_dontQuery;
-string s_programname="recursor";
+string s_programname="pdns_recursor";
 
 typedef vector<int> tcpListenSockets_t;
 tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
@@ -716,7 +716,7 @@ void startDoResolve(void *p)
 
 void makeControlChannelSocket(int processNum=-1)
 {
-  string sockname=::arg()["socket-dir"]+"/pdns_"+s_programname;
+  string sockname=::arg()["socket-dir"]+"/"+s_programname;
   if(processNum >= 0)
     sockname += "."+lexical_cast<string>(processNum);
   sockname+=".controlsocket";
@@ -1824,7 +1824,7 @@ int serviceMain(int argc, char*argv[])
       break;
   }
   
-  s_pidfname=::arg()["socket-dir"]+"/pdns_"+s_programname+".pid";
+  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file 
   
@@ -2121,17 +2121,17 @@ int main(int argc, char **argv)
     L.toConsole(Logger::Info);
     ::arg().laxParse(argc,argv); // do a lax parse
 
-    if(::arg()["config-name"]!="") 
+    string configname=::arg()["config-dir"]+"/recursor.conf";
+    if(::arg()["config-name"]!="") {
+      configname=::arg()["config-dir"]+"/recursor-"+::arg()["config-name"]+".conf";
       s_programname+="-"+::arg()["config-name"];
-
+    }
+    cleanSlashes(configname);
 
     if(::arg().mustDo("config")) {
       cout<<::arg().configstring()<<endl;
       exit(0);
     }
-
-    string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
-    cleanSlashes(configname);
 
     if(!::arg().file(configname.c_str())) 
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
