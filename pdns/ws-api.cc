@@ -145,7 +145,7 @@ static string logGrep(const string& q, const string& fname, const string& prefix
 {
   FILE* ptr = fopen(fname.c_str(), "r");
   if(!ptr) {
-    return "[]";
+    throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
   }
   boost::shared_ptr<FILE> fp(ptr, fclose);
 
