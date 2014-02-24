@@ -19,7 +19,7 @@ CREATE TABLE records (
   ttl             INTEGER DEFAULT NULL,
   prio            INTEGER DEFAULT NULL,
   change_date     INTEGER DEFAULT NULL,
-  disabled        BOOLEAN DEFAULT NULL
+  disabled        BOOLEAN DEFAULT 0
 );
 
 CREATE INDEX rec_name_index ON records(name);

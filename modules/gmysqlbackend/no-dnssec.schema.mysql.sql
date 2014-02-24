@@ -20,7 +20,7 @@ CREATE TABLE records (
   ttl             INT DEFAULT NULL,
   prio            INT DEFAULT NULL,
   change_date     INT DEFAULT NULL,
-  disabled        INT DEFAULT NULL,
+  disabled        BOOLEAN DEFAULT 0,
   primary key(id)
 ) Engine=InnoDB;
 
