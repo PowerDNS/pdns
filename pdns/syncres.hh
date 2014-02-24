@@ -173,6 +173,59 @@ private:
   bool d_needinit;
 };
 
+template<class Thing> class Counters : public boost::noncopyable
+{
+public:
+  Counters()
+  {
+  }
+  unsigned long value(const Thing& t)
+  {
+    typename cont_t::iterator i=d_cont.find(t);
+
+    if(i==d_cont.end()) {
+      return 0;
+    }
+    return (unsigned long)i->second;
+  }
+  unsigned long incr(const Thing& t)
+  {
+    typename cont_t::iterator i=d_cont.find(t);
+
+    if(i==d_cont.end()) {
+      d_cont[t]=1;
+      return 1;
+    }
+    else {
+      if (i->second < std::numeric_limits<unsigned long>::max())
+        i->second++;
+      return (unsigned long)i->second;
+   }
+  }
+  unsigned long decr(const Thing& t)
+  {
+    typename cont_t::iterator i=d_cont.find(t);
+
+    if(i!=d_cont.end() && --i->second == 0) {
+      d_cont.erase(i);
+      return 0;
+    } else
+      return (unsigned long)i->second;
+  }
+  void clear(const Thing& t)
+  {
+    typename cont_t::iterator i=d_cont.find(t);
+
+    if(i!=d_cont.end()) {
+      d_cont.erase(i);
+    }
+  }
+
+private:
+  typedef map<Thing,unsigned long> cont_t;
+  cont_t d_cont;
+};
+
 
 class SyncRes : public boost::noncopyable
 {
@@ -348,12 +401,16 @@ public:
   
 
   typedef Throttle<tuple<ComboAddress,string,uint16_t> > throttle_t;
+
+  typedef Counters<ComboAddress> fails_t;
   
   struct timeval d_now;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
   static unsigned int s_packetcachettl;
   static unsigned int s_packetcacheservfailttl;
+  static unsigned int s_serverdownmaxfails;
+  static unsigned int s_serverdownthrottletime;
   static bool s_nopacketcache;
   static string s_serverID;
   
@@ -363,6 +420,7 @@ public:
     nsspeeds_t nsSpeeds;
     ednsstatus_t ednsstatus;
     throttle_t throttle;
+    fails_t fails;
     domainmap_t* domainmap;
   };
 
