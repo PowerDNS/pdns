@@ -12477,23 +12477,19 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
       An GSQL Backend schema change is necessary for new features.
       For MySQL:
       <screen>
-ALTER TABLE records ADD disabled BOOLEAN;
-UPDATE records SET disabled=0;
+ALTER TABLE records ADD disabled BOOLEAN DEFAULT 0;
 </screen>
       For PostgreSQL:
       <screen>
-ALTER TABLE records ADD disabled BOOLEAN;
-UPDATE records SET disabled=false;
+ALTER TABLE records ADD disabled BOOLEAN DEFAULT 'f';
 </screen>
       For SQLite 3:
       <screen>
-ALTER TABLE records ADD disabled BOOLEAN;
-UPDATE records SET disabled=0;
+ALTER TABLE records ADD disabled BOOLEAN DEFAULT 0;
 </screen>
       For Oracle:
       <screen>
-ALTER TABLE records ADD disabled INT;
-UPDATE records SET disabled=0;
+ALTER TABLE records ADD disabled INT DEFAULT 0;
 </screen>
     </para>
   </sect1>
