@@ -46,18 +46,20 @@ __EOF__
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 			--cache-ttl=$cachettl $lua_prequery &
 
-		skipreasons="nodyndns"
 		if [ $context = goracle-nsec3 ]
 		then
 			extracontexts="dnssec nsec3"
+			skipreasons="nsec3 nodyndns"
 		elif [ $context = goracle-nsec3-optout ]
 		then
 			extracontexts="dnssec nsec3 nsec3-optout"
+			skipreasons="optout nodyndns"
 		elif [ $context = goracle-nodnssec ]
 		then
 			skipreasons="nodnssec nodyndns"
 		else
 			extracontexts="dnssec"
+			skipreasons="nodyndns"
 		fi
 		;;
 
