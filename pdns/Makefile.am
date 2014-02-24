@@ -238,7 +238,7 @@ nproxy_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	sillyrecords.cc selectmplexer.cc nsecrecords.cc base32.cc misc.cc unix_utility.cc \
-	logger.cc qtype.cc statbag.cc
+	logger.cc qtype.cc statbag.cc dns.cc arguments.cc
 
 notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 notify_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
