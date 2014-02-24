@@ -35,8 +35,13 @@ libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.c
         ../../pdns/dns.hh ../../pdns/dns.cc ../../pdns/json.hh ../../pdns/json.cc \
         remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
-libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) $(LIBZMQ_CFLAGS) -g -O0 -I../../pdns
-libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) $(LIBZMQ_CFLAGS) -g -O0 -I../../pdns
+if PKCS11
+libtestremotebackend_la_SOURCES += ../../pdns/pkcs11signers.hh ../../pdns/pkcs11signers.cc
+libtestremotebackend_la_LIBADD=$(P11KIT1_LIBS)
+endif
+
+libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS) -g -O0 -I../../pdns
+libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@ $(POLARSSL_CFLAGS) $(LIBCURL_CFLAGS) $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS) -g -O0 -I../../pdns
 
 test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
 test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh

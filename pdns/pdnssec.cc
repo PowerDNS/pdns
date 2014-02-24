@@ -5,6 +5,7 @@
 #include "base64.hh"
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
+#include <boost/assign/std/vector.hpp>
 #include <boost/assign/list_of.hpp>
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
@@ -1116,6 +1117,8 @@ try
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits"<<endl;
     cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
+    cerr<<"hsm assign zone module slot pin    Assign a hardware signing module to a ZONE"<<endl;
+    cerr<<"hsm create-key zone                Create a key using hardware signing module for ZONE (assign first)"<<endl;
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
@@ -1844,6 +1847,84 @@ try
       return 1;
     } else {
       cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
+    }
+  } else if (cmds[0]=="hsm") {
+    UeberBackend B("default");
+    if (cmds[1] == "assign") {
+      DNSCryptoKeyEngine::storvector_t storvect;
+      DomainInfo di;
+      string zone = cmds[2];
+ 
+      // verify zone
+      if (!B.getDomainInfo(zone, di)) {
+        cerr << "Unable to assign module to unknown zone '" << zone << "'" << std::endl;
+        return 1;
+      }
+
+      int algorithm = shorthand2algorithm(cmds[3]);
+      bool keyOrZone = (cmds[4] == "ksk" ? true : false);
+      string module = cmds[5];
+      string slot = cmds[6];
+      string pin = cmds[7];
+      string label = cmds[8];
+
+      std::ostringstream iscString;
+      iscString << "Private-key-format: v1.2" << std::endl << 
+        "Algorithm: " << algorithm << std::endl << 
+        "Engine: " << module << std::endl <<
+        "Slot: " << slot << std::endl <<
+        "PIN: " << pin << std::endl << 
+        "Label: " << label << std::endl;
+
+     DNSKEYRecordContent drc; 
+     DNSSECPrivateKey dpk;
+     dpk.d_flags = (keyOrZone ? 257 : 256);
+     dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
+
+     if (!dk.addKey(zone, dpk)) {
+       cerr << "Unable to assign module slot to zone" << std::endl;
+       return 1;
+     }
+
+     cerr << "Module " << module << " slot " << slot << " assigned to " << zone << endl;
+     return 0;
+    } else if (cmds[1] == "create-key") {
+      DomainInfo di;
+      string zone = cmds[2];
+      unsigned int id;
+
+      // verify zone
+      if (!B.getDomainInfo(zone, di)) {
+        cerr << "Unable to create key for unknown zone '" << zone << "'" << std::endl;
+        return 1;
+      }
+ 
+      id = boost::lexical_cast<unsigned int>(cmds[3]);
+      std::vector<DNSBackend::KeyData> keys; 
+      if (!B.getDomainKeys(zone, 0, keys)) {
+        cerr << "No keys found for zone " << zone << std::endl;
+        return 1;
+      } 
+
+      DNSCryptoKeyEngine *dke = NULL;
+      // lookup correct key      
+      BOOST_FOREACH(DNSBackend::KeyData &kd, keys) {
+        if (kd.id == id) {
+          // found our key. 
+          DNSKEYRecordContent dkrc;
+          dke = DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content);
+        }
+      }
+
+      if (!dke) {
+        cerr << "Could not find key with ID " << id << endl;
+        return 1;
+      }
+
+      dke->create(2048);
+
+      cerr << "Created key i think" << std::endl;
+      return 0;
     }
   } else {
     cerr<<"Unknown command '"<<cmds[0] <<"'"<< endl;

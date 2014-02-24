@@ -1,5 +1,6 @@
 #ifndef PDNS_DNSSECINFRA_HH
 #define PDNS_DNSSECINFRA_HH
+
 #include "dnsrecords.hh"
 #include <boost/shared_ptr.hpp>
 #include <string>
@@ -28,7 +29,7 @@ class DNSCryptoKeyEngine
     virtual std::string getPubKeyHash()const =0;
     virtual std::string getPublicKeyString()const =0;
     virtual int getBits() const =0;
-    
+ 
     virtual void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap)=0;
     virtual void fromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
     {
