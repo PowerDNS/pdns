@@ -81,7 +81,7 @@ case $context in
 		# generate pdns.conf for pdnssec
 		cat > pdns-remote.conf <<EOF
 launch=remote
-remote-connection-string=$connstr
+remote-connection-string=$connstr,timeout=10000
 EOF
 
 		if [ "$remotedosec" = "yes" ]
