@@ -225,38 +225,15 @@ bool Bind2Backend::abortTransaction()
 
 bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
-  string qname=r.qname;
-
   const shared_ptr<State> state = getState();
   string domain = state->id_zone_map[d_transaction_id].d_name;
 
+  string qname = r.qname;
   if(!stripDomainSuffix(&qname,domain)) 
     throw DBException("out-of-zone data '"+qname+"' during AXFR of zone '"+domain+"'");
 
-  string content=r.content;
+  *d_of << r;
 
-  // SOA needs stripping too! XXX FIXME - also, this should not be here I think
-  switch(r.qtype.getCode()) {
-  case QType::MX:
-    if(!stripDomainSuffix(&content, domain))
-      content+=".";
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<content<<endl;
-    break;
-  case QType::SRV:
-    if(!stripDomainSuffix(&content, domain))
-      content+=".";
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<content<<endl;
-    break;
-  case QType::CNAME:
-  case QType::NS:
-    if(!stripDomainSuffix(&content, domain))
-      content+=".";
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<content<<endl;
-    break;
-  default:
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
-    break;
-  }
   return true;
 }
 

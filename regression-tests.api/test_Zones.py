@@ -80,6 +80,32 @@ class AuthZones(ApiTestCase):
             self.assertIn(k, data)
         self.assertEquals(data['name'], 'example.com')
 
+    def test_ExportZoneJson(self):
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
+        name = payload['name']
+        # export it
+        r = self.session.get(
+            self.url("/servers/localhost/zones/" + name + "/export"),
+            headers={'accept': 'application/json;q=0.9,*/*;q=0.8'}
+        )
+        self.assertSuccessJson(r)
+        data = r.json()
+        self.assertIn('zone', data)
+        expected_data = [name+'.\t3600\tNS\tns1.foo.com.',name+'.\t3600\tNS\tns2.foo.com.',name+'.\t3600\tSOA\tns1.foo.com. hostmaster.'+name+'. 1 10800 3600 604800 3600']
+        self.assertEquals(data['zone'].split('\n'), expected_data)
+
+    def test_ExportZoneText(self):
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
+        name = payload['name']
+        # export it
+        r = self.session.get(
+            self.url("/servers/localhost/zones/" + name + "/export"),
+            headers={'accept': '*/*'}
+        )
+        data = r.text.split("\n")
+        expected_data = [name+'.\t3600\tNS\tns1.foo.com.',name+'.\t3600\tNS\tns2.foo.com.',name+'.\t3600\tSOA\tns1.foo.com. hostmaster.'+name+'. 1 10800 3600 604800 3600']
+        self.assertEquals(data, expected_data)
+
     def test_UpdateZone(self):
         payload, zone = self.create_zone()
         name = payload['name']

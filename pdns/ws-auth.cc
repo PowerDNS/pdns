@@ -503,6 +503,49 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   fillZone(zonename, resp);
 }
 
+static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
+  string zonename = req->path_parameters["id"];
+
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  ostringstream ss;
+
+  UeberBackend B;
+  DomainInfo di;
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  DNSResourceRecord rr;
+  di.backend->list(zonename, di.id);
+  while(di.backend->get(rr)) {
+    if (!rr.qtype.getCode())
+      continue; // skip empty non-terminals
+
+    // HACK: this should be somewhere else.
+    // Also, this is not the only canonicalization we need to perform.
+    if (rr.qtype.getCode() == QType::SOA)
+    {
+      SOAData sd;
+      fillSOAData(rr.content, sd);
+      rr.content = serializeSOAData(sd);
+    }
+
+    ss << rr;
+  }
+
+  if (req->accept_json) {
+    Document doc;
+    doc.SetObject();
+    Value val(ss.str().c_str(), doc.GetAllocator()); // copy
+    doc.AddMember("zone", val, doc.GetAllocator());
+    resp->body = makeStringFromDocument(doc);
+  } else {
+    resp->headers["Content-Type"] = "text/plain; charset=us-ascii";
+    resp->body = ss.str();
+  }
+}
+
 static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PATCH")
     throw HttpMethodNotAllowedException();
@@ -678,6 +721,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
