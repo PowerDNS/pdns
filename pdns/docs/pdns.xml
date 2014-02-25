@@ -12474,7 +12474,7 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
       </para>
     </note>
     <para>
-      An GSQL Backend schema change is necessary for new features.
+      A GSQL Backend schema change is necessary for new features.
       For MySQL:
       <screen>
 ALTER TABLE records ADD disabled BOOLEAN DEFAULT 0;
