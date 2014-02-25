@@ -29,9 +29,8 @@ script:
  - cd pdns
  - make -j 4 pdns_recursor
  - ./dist-recursor
- - cd docs
- - make
- - cd ../../regression-tests.recursor
+ - make -C docs html/index.html manpages
+ - cd ../regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
  - ./start.sh
