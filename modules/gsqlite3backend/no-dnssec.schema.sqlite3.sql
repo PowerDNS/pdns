@@ -33,3 +33,16 @@ create table supermasters (
 );
 
 CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
+
+CREATE TABLE comments (
+  id              INTEGER PRIMARY KEY,
+  domain_id       INTEGER NOT NULL,
+  name            VARCHAR(255) NOT NULL,
+  type            VARCHAR(10) NOT NULL,
+  modified_at     INT NOT NULL,
+  account         VARCHAR(40) DEFAULT NULL,
+  comment         VARCHAR(65535) NOT NULL
+);
+CREATE INDEX comments_domain_id_index ON comments (domain_id);
+CREATE INDEX comments_nametype_index ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);

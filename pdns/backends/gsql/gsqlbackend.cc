@@ -311,6 +311,11 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
   d_insertEmptyNonTerminalQuery = getArg("insert-empty-non-terminal-query"+authswitch);
   d_deleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
+
+  d_ListCommentsQuery = getArg("list-comments-query");
+  d_InsertCommentQuery = getArg("insert-comment-query");
+  d_DeleteCommentRRsetQuery = getArg("delete-comment-rrset-query");
+  d_DeleteCommentsQuery = getArg("delete-comments-query");
   
   if (d_dnssecQueries)
   {
@@ -985,6 +990,7 @@ bool GSQLBackend::deleteDomain(const string &domain)
   string recordsQuery = (boost::format(d_DeleteZoneQuery) % di.id).str();
   string metadataQuery;
   string keysQuery;
+  string commentsQuery = (boost::format(d_DeleteCommentsQuery) % di.id).str();
   string domainQuery = (boost::format(d_DeleteDomainQuery) % sqlDomain).str();
 
   if (d_dnssecQueries) {
@@ -998,6 +1004,7 @@ bool GSQLBackend::deleteDomain(const string &domain)
       d_db->doCommand(metadataQuery);
       d_db->doCommand(keysQuery);
     }
+    d_db->doCommand(commentsQuery);
     d_db->doCommand(domainQuery);
   }
   catch(SSqlException &e) {
@@ -1098,6 +1105,15 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
       ).str();
   }
   d_db->doCommand(query);
+  if (rrset.empty()) {
+    // zap comments for now non-existing rrset
+    query = (boost::format(d_DeleteCommentRRsetQuery)
+             % domain_id
+             % sqlEscape(qname)
+             % sqlEscape(qt.getName())
+      ).str();
+    d_db->doCommand(query);
+  }
   BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
     feedRecord(rr);
   }
@@ -1284,4 +1300,76 @@ bool GSQLBackend::calculateSOASerial(const string& domain, const SOAData& sd, ti
   }
 
   return false;
+}
+
+bool GSQLBackend::listComments(const uint32_t domain_id)
+{
+  string query = (boost::format(d_ListCommentsQuery)
+                  % domain_id
+    ).str();
+
+  try {
+    d_db->doQuery(query);
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("GSQLBackend list comments query: "+e.txtReason());
+  }
+
+  return true;
+}
+
+bool GSQLBackend::getComment(Comment& comment)
+{
+  SSql::row_t row;
+
+  if (!d_db->getRow(row)) {
+    return false;
+  }
+
+  // domain_id,name,type,modified_at,account,comment
+  comment.domain_id = atol(row[0].c_str());
+  comment.qname = row[1];
+  comment.qtype = row[2];
+  comment.modified_at = atol(row[3].c_str());
+  comment.account = row[4];
+  comment.content = row[5];
+
+  return true;
+}
+
+void GSQLBackend::feedComment(const Comment& comment)
+{
+  string query = (boost::format(d_InsertCommentQuery)
+                  % comment.domain_id
+                  % toLower(sqlEscape(comment.qname))
+                  % sqlEscape(comment.qtype.getName())
+                  % comment.modified_at
+                  % sqlEscape(comment.account)
+                  % sqlEscape(comment.content)
+    ).str();
+
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to feed comment: "+e.txtReason());
+  }
+}
+
+bool GSQLBackend::replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments)
+{
+  string query;
+    query = (boost::format(d_DeleteCommentRRsetQuery)
+             % domain_id
+             % toLower(sqlEscape(qname))
+             % sqlEscape(qt.getName())
+      ).str();
+
+  d_db->doCommand(query);
+
+  BOOST_FOREACH(const Comment& comment, comments) {
+    feedComment(comment);
+  }
+
+  return true;
 }

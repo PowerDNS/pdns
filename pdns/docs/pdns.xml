@@ -17314,6 +17314,8 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Partial, no delegation, no key storage</entry></row>
+	      <row><entry>Disabled data</entry><entry>No</entry></row>
+	      <row><entry>Comments</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>pipe</entry></row>
 	      <row><entry>Launch name</entry><entry>pipe</entry></row>
 	    </tbody>
@@ -17635,6 +17637,8 @@ authoritative).
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>Case</entry><entry>Depends</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Yes, no key storage</entry></row>
+	      <row><entry>Disabled data</entry><entry>No</entry></row>
+	      <row><entry>Comments</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>built in</entry></row>
 	      <row><entry>Launch name</entry><entry>random</entry></row>
 	    </tbody>
@@ -17684,6 +17688,7 @@ authoritative).
 	      <row><entry>Case</entry><entry>All lower</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Yes (set gmysql-dnssec or gpgsql-dnssec)</entry></row>
 	      <row><entry>Disabled data</entry><entry>Yes (v3.4 and up)</entry></row>
+	      <row><entry>Comments</entry><entry>Yes (v3.4 and up)</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
 	      <row><entry>Launch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
@@ -18070,6 +18075,49 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	  </variablelist>
 	</para>
       </sect2>
+      <sect2><title>Comments queries</title>
+	<para>
+          For listing/modifying comments. For defaults, please see <command>pdns_server --load=BACKEND --config</command>.
+	  <variablelist>
+	    <varlistentry>
+	      <term>list-comments-query</term>
+	      <listitem>
+		<para>
+                  Called to get all comments in a zone.
+                  Returns fields: domain_id, name, type, modified_at, account, comment.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>insert-comment-query</term>
+	      <listitem>
+		<para>
+                  Called to create a single comment for a specific RRSet.
+                  Given fields: domain_id, name, type, modified_at, account, comment
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>delete-comment-rrset-query</term>
+	      <listitem>
+		<para>
+                  Called to delete all comments for a specific RRset.
+                  Given fields: domain_id, name, type
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>delete-comments-query</term>
+	      <listitem>
+		<para>
+                  Called to delete all comments for a zone. Usually called before deleting the entire zone.
+                  Given fields: domain_id
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	</para>
+      </sect2>
       <sect2><title>Fancy records</title>
       <warning><para>Fancy records are unsupported as of version 3.0</para></warning>
 	<para>
@@ -18282,6 +18330,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
               <row><entry>Superslave</entry><entry>Yes</entry></row>
               <row><entry>Autoserial</entry><entry>Yes</entry></row>
               <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+	      <row><entry>Comments</entry><entry>No</entry></row>
               <row><entry>Module name</entry><entry>oracle</entry></row>
               <row><entry>Launch name</entry><entry>oracle</entry></row>
             </tbody>
@@ -19222,6 +19271,8 @@ VALUES (:zoneid, :ip)
 	            <row><entry>Slave</entry><entry>Yes</entry></row>
 	            <row><entry>Superslave</entry><entry>Yes</entry></row>
 		    <row><entry>DNSSEC</entry><entry>gsqlite3 only (set gsqlite3-dnssec)</entry></row>
+	            <row><entry>Disabled data</entry><entry>gsqlite3 only</entry></row>
+	            <row><entry>Comments</entry><entry>gsqlite3 only</entry></row>
 	            <row><entry>Module name</entry><entry>gsqlite and gsqlite3</entry></row>
 	            <row><entry>Launch name</entry><entry>gsqlite and gsqlite3</entry></row>
 	          </tbody>
@@ -19317,6 +19368,8 @@ VALUES (:zoneid, :ip)
 	      <row><entry>Superslave</entry><entry>No</entry></row>
 	      <row><entry>Autoserial</entry><entry>Yes</entry></row>
 	      <row><entry>DNSSEC</entry><entry>No</entry></row>
+	      <row><entry>Disabled data</entry><entry>No</entry></row>
+	      <row><entry>Comments</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>db2</entry></row>
 	      <row><entry>Launch name</entry><entry>db2</entry></row>
 
@@ -19408,6 +19461,8 @@ VALUES (:zoneid, :ip)
 	      <row><entry>Superslave</entry><entry>Experimental</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Yes, but no key storage</entry></row>
+	      <row><entry>Disabled data</entry><entry>No</entry></row>
+	      <row><entry>Comments</entry><entry>No</entry></row>
 	      <row><entry>Module name</entry><entry>none (built in)</entry></row>
 	      <row><entry>Launch</entry><entry>bind</entry></row>
 	    </tbody>

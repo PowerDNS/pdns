@@ -33,3 +33,18 @@ create table supermasters (
   account    VARCHAR(40) DEFAULT NULL,
   PRIMARY KEY (ip, nameserver)
 ) Engine=InnoDB;
+
+CREATE TABLE comments (
+  id              INT auto_increment,
+  domain_id       INT NOT NULL,
+  name            VARCHAR(255) NOT NULL,
+  type            VARCHAR(10) NOT NULL,
+  modified_at     INT NOT NULL,
+  account         VARCHAR(40) NOT NULL,
+  comment         VARCHAR(64000) NOT NULL,
+  primary key(id)
+) Engine=InnoDB;
+
+CREATE INDEX comments_domain_id_idx ON comments (domain_id);
+CREATE INDEX comments_name_type_idx ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);

@@ -62,7 +62,8 @@ randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnsseci
 dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra.cc \
 sha.hh md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc lua-auth.hh serialtweaker.cc \
 ednssubnet.cc ednssubnet.hh cachecleaner.hh json.cc json.hh \
-version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh
+version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh \
+comment.hh
 
 
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
