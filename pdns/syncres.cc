@@ -49,6 +49,8 @@ unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
 unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
+unsigned int SyncRes::s_serverdownmaxfails;
+unsigned int SyncRes::s_serverdownthrottletime;
 unsigned int SyncRes::s_queries;
 unsigned int SyncRes::s_outgoingtimeouts;
 unsigned int SyncRes::s_outqueries;
@@ -907,7 +909,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
           extern NetmaskGroup* g_dontQuery;
           
-          if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
+          if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, "", 0))) {
+            LOG(prefix<<qname<<": server throttled "<<endl);
+            s_throttledqueries++; d_throttledqueries++;
+            continue;
+          }
+          else if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
             LOG(prefix<<qname<<": query throttled "<<endl);
             s_throttledqueries++; d_throttledqueries++;
             continue;
@@ -947,7 +954,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
                   
                   t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
                 }
-                if(resolveret==-1)
+                if (s_serverdownmaxfails > 0 && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
+                  LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for 1 minute" <<endl);
+                  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
+                } else if(resolveret==-1)
                   t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
                 else
                   t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
@@ -961,6 +971,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               continue;
             }
             
+            if(s_serverdownmaxfails > 0)
+              t_sstorage->fails.clear(*remoteIP);
+
             break;  // this IP address worked!
           wasLame:; // well, it didn't
             LOG(prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl);
