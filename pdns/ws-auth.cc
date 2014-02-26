@@ -343,7 +343,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
     object.AddMember("name", jname, doc.GetAllocator());
     Value jtype(comment.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
-    object.AddMember("modified_at", comment.modified_at, doc.GetAllocator());
+    object.AddMember("modified_at", (unsigned int) comment.modified_at, doc.GetAllocator());
     Value jaccount(comment.account.c_str(), doc.GetAllocator()); // copy
     object.AddMember("account", jaccount, doc.GetAllocator());
     Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
