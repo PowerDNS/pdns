@@ -10,6 +10,9 @@ using namespace rapidjson;
 
 int intFromJson(const Value& container, const char* key)
 {
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
   const Value& val = container[key];
   if (val.IsInt()) {
     return val.GetInt();
@@ -22,6 +25,9 @@ int intFromJson(const Value& container, const char* key)
 
 int intFromJson(const Value& container, const char* key, const int default_value)
 {
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
   const Value& val = container[key];
   if (val.IsInt()) {
     return val.GetInt();
@@ -35,6 +41,9 @@ int intFromJson(const Value& container, const char* key, const int default_value
 
 string stringFromJson(const Value& container, const char* key)
 {
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
   const Value& val = container[key];
   if (val.IsString()) {
     return val.GetString();
@@ -45,6 +54,9 @@ string stringFromJson(const Value& container, const char* key)
 
 string stringFromJson(const Value& container, const char* key, const string& default_value)
 {
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
   const Value& val = container[key];
   if (val.IsString()) {
     return val.GetString();
@@ -56,6 +68,9 @@ string stringFromJson(const Value& container, const char* key, const string& def
 
 bool boolFromJson(const rapidjson::Value& container, const char* key)
 {
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
   const Value& val = container[key];
   if (val.IsBool()) {
     return val.GetBool();
