@@ -29,6 +29,7 @@
 #include "misc.hh"
 #include "arguments.hh"
 #include "dns.hh"
+#include "comment.hh"
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
@@ -306,6 +307,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
   doc.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
 
+  // fill records
   DNSResourceRecord rr;
   Value records;
   records.SetArray();
@@ -329,6 +331,27 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   }
   doc.AddMember("records", records, doc.GetAllocator());
 
+  // fill comments
+  Comment comment;
+  Value comments;
+  comments.SetArray();
+  di.backend->listComments(di.id);
+  while(di.backend->getComment(comment)) {
+    Value object;
+    object.SetObject();
+    Value jname(comment.qname.c_str(), doc.GetAllocator()); // copy
+    object.AddMember("name", jname, doc.GetAllocator());
+    Value jtype(comment.qtype.getName().c_str(), doc.GetAllocator()); // copy
+    object.AddMember("type", jtype, doc.GetAllocator());
+    object.AddMember("modified_at", comment.modified_at, doc.GetAllocator());
+    Value jaccount(comment.account.c_str(), doc.GetAllocator()); // copy
+    object.AddMember("account", jaccount, doc.GetAllocator());
+    Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
+    object.AddMember("content", jcontent, doc.GetAllocator());
+    comments.PushBack(object, doc.GetAllocator());
+  }
+  doc.AddMember("comments", comments, doc.GetAllocator());
+
   resp->setBody(doc);
 }
 
@@ -342,6 +365,8 @@ void productServerStatisticsFetch(map<string,string>& out)
   // add uptime
   out["uptime"] = lexical_cast<string>(time(0) - s_starttime);
 }
+
+static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp);
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
@@ -495,12 +520,15 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     // empty body on success
     resp->body = "";
     return;
+  } else if (req->method == "PATCH") {
+    apiServerZoneRRset(req, resp);
+    return;
+  } else if (req->method == "GET") {
+    fillZone(zonename, resp);
+    return;
   }
 
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  fillZone(zonename, resp);
+  throw HttpMethodNotAllowedException();
 }
 
 static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
@@ -527,44 +555,86 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
 
   if (changetype == "DELETE") {
-    // delete all matching qname/qtype RRs
-    di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>());
+    // delete all matching qname/qtype RRs (and, implictly comments).
+    if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
+      throw ApiException("Hosting backend does not support editing records.");
+    }
   }
   else if (changetype == "REPLACE") {
+    vector<DNSResourceRecord> new_records;
+    vector<Comment> new_comments;
+    bool replace_records = false;
+    bool replace_comments = false;
+
+    // gather records
     DNSResourceRecord rr;
-    vector<DNSResourceRecord> rrset;
     const Value& records = document["records"];
-    for(SizeType idx = 0; idx < records.Size(); ++idx) {
-      const Value& record = records[idx];
-      rr.qname = stringFromJson(record, "name");
-      rr.content = stringFromJson(record, "content");
-      rr.qtype = stringFromJson(record, "type");
-      rr.domain_id = di.id;
-      rr.auth = 1;
-      rr.ttl = intFromJson(record, "ttl");
-      rr.priority = intFromJson(record, "priority");
-      rr.disabled = boolFromJson(record, "disabled");
+    if (records.IsArray()) {
+      replace_records = true;
+      for(SizeType idx = 0; idx < records.Size(); ++idx) {
+        const Value& record = records[idx];
+        rr.qname = stringFromJson(record, "name");
+        rr.content = stringFromJson(record, "content");
+        rr.qtype = stringFromJson(record, "type");
+        rr.domain_id = di.id;
+        rr.auth = 1;
+        rr.ttl = intFromJson(record, "ttl");
+        rr.priority = intFromJson(record, "priority");
+        rr.disabled = boolFromJson(record, "disabled");
 
-      rrset.push_back(rr);
+        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+          rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
 
-      if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-        rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
+        if(rr.qname != qname || rr.qtype != qtype)
+          throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": Record bundled with wrong RRset");
 
-      if(rr.qname != qname || rr.qtype != qtype)
-        throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": Record bundled with wrong RRset");
+        try {
+          shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+          string tmp = drc->serialize(rr.qname);
+        }
+        catch(std::exception& e)
+        {
+          throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": "+e.what());
+        }
 
-      try {
-        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
-        string tmp = drc->serialize(rr.qname);
-      }
-      catch(std::exception& e)
-      {
-        throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": "+e.what());
+        new_records.push_back(rr);
       }
     }
-    // Actually store the change.
+
+    // gather comments
+    Comment c;
+    c.domain_id = di.id;
+    c.qname = qname;
+    c.qtype = qtype;
+    time_t now = time(0);
+    const Value& comments = document["comments"];
+    if (comments.IsArray()) {
+      replace_comments = true;
+      for(SizeType idx = 0; idx < comments.Size(); ++idx) {
+        const Value& comment = comments[idx];
+        c.modified_at = intFromJson(comment, "modified_at", now);
+        c.content = stringFromJson(comment, "content");
+        c.account = stringFromJson(comment, "account");
+        new_comments.push_back(c);
+      }
+    }
+
+    if (!replace_records && !replace_comments) {
+      throw ApiException("No change");
+    }
+
+    // Actually store the change(s).
     di.backend->startTransaction(qname);
-    di.backend->replaceRRSet(di.id, qname, qtype, rrset);
+    if (replace_records) {
+      if (!di.backend->replaceRRSet(di.id, qname, qtype, new_records)) {
+        throw ApiException("Hosting backend does not support editing records.");
+      }
+    }
+    if (replace_comments) {
+      if (!di.backend->replaceComments(di.id, qname, qtype, new_comments)) {
+        throw ApiException("Hosting backend does not support editing comments.");
+      }
+    }
     di.backend->commitTransaction();
   }
   else

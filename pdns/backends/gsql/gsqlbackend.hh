@@ -80,6 +80,11 @@ public:
   bool deleteTSIGKey(const string& name);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
+  bool listComments(const uint32_t domain_id);
+  bool getComment(Comment& comment);
+  void feedComment(const Comment& comment);
+  bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
+
 private:
   string d_qname;
   SSql *d_db;
@@ -153,6 +158,11 @@ private:
   string d_getTSIGKeysQuery;
 
   string d_getAllDomainsQuery;
+
+  string d_ListCommentsQuery;
+  string d_InsertCommentQuery;
+  string d_DeleteCommentRRsetQuery;
+  string d_DeleteCommentsQuery;
 
 protected:
   bool d_dnssecQueries;

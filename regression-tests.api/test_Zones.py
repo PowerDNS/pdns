@@ -48,6 +48,7 @@ class AuthZones(ApiTestCase):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
+        self.assertEquals(data['comments'], [])
 
     def test_CreateZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
@@ -144,10 +145,7 @@ class AuthZones(ApiTestCase):
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
         # verify that (only) the new record is there
-        r = self.session.get(
-            self.url("/servers/localhost/zones/" + name),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()['records']
         recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
         self.assertEquals(recs, payload['records'])
@@ -167,10 +165,7 @@ class AuthZones(ApiTestCase):
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
         # verify that the records are gone
-        r = self.session.get(
-            self.url("/servers/localhost/zones/" + name),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()['records']
         recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
         self.assertEquals(recs, [])
@@ -302,6 +297,113 @@ class AuthZones(ApiTestCase):
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
         self.assertIn('out of zone', r.json()['error'])
+
+    def test_ZoneCommentCreate(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'comments': [
+                {
+                    'account': 'test1',
+                    'content': 'blah blah',
+                },
+                {
+                    'account': 'test2',
+                    'content': 'blah blah bleh',
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # make sure the comments have been set, and that the NS
+        # records are still present
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        data = r.json()
+        print data
+        self.assertNotEquals([r for r in data['records'] if r['type'] == 'NS'], [])
+        self.assertNotEquals(data['comments'], [])
+        # verify that modified_at has been set by pdns
+        self.assertNotEquals([c for c in data['comments']][0]['modified_at'], 0)
+
+    def test_ZoneCommentDelete(self):
+        # Test: Delete ONLY comments.
+        payload, zone = self.create_zone()
+        name = payload['name']
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'comments': []
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # make sure the NS records are still present
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        data = r.json()
+        print data
+        self.assertNotEquals([r for r in data['records'] if r['type'] == 'NS'], [])
+        self.assertEquals(data['comments'], [])
+
+    def test_ZoneCommentStayIntact(self):
+        # Test if comments on an rrset stay intact if the rrset is replaced
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # create a comment
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'comments': [
+                {
+                    'account': 'test1',
+                    'content': 'oh hi there',
+                    'modified_at': 1111,
+                    'name': name,  # only for assertEquals, ignored by pdns
+                    'type': 'NS'   # only for assertEquals, ignored by pdns
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # replace rrset records
+        payload2 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'records': [
+                {
+                    "name": name,
+                    "type": "NS",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": "ns1.bar.com",
+                    "disabled": False
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload2),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # make sure the comments still exist
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        data = r.json()
+        print data
+        self.assertEquals([r for r in data['records'] if r['type'] == 'NS'], payload2['records'])
+        self.assertEquals(data['comments'], payload['comments'])
 
 
 @unittest.skipIf(not isRecursor(), "Not applicable")

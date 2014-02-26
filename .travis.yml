@@ -11,13 +11,13 @@ before_script:
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
- - gem install bundler --no-rdoc --no-ri 
+ - travis_retry gem install bundler --no-rdoc --no-ri
  - cd regression-tests
  - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
  - unzip top-1m.csv.zip
  - cd ..
  - cd modules/remotebackend
- - ruby -S bundle install
+ - travis_retry ruby -S bundle install
  - cd ../..
 script:
  - ./bootstrap

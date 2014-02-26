@@ -42,6 +42,21 @@ create table supermasters (
 );
 
 
+CREATE TABLE comments (
+  id              number(11) not NULL,
+  domain_id       INT NOT NULL REFERENCES Domains(ID) ON DELETE CASCADE,
+  name            VARCHAR(255) NOT NULL,
+  type            VARCHAR(10) NOT NULL,
+  modified_at     INT NOT NULL,
+  account         VARCHAR(40) NOT NULL,
+  comment         VARCHAR2(4000) NOT NULL
+);
+CREATE INDEX comments$nametype ON comments (name, type);
+CREATE INDEX comments$domain_id ON comments (domain_id);
+CREATE INDEX comments$order ON comments (domain_id, modified_at);
+CREATE SEQUENCE comments_id_sequence;
+
+
 create table domainmetadata (
   id              NUMBER,
   domain_id       INT NOT NULL,

@@ -39,6 +39,7 @@ class DNSPacket;
 #include "dns.hh"
 #include <vector>
 #include "namespaces.hh"
+#include "comment.hh"
 
 class DNSBackend;  
 struct DomainInfo
@@ -205,6 +206,26 @@ public:
   }
 
   // end DNSSEC
+
+  // comments support
+  virtual bool listComments(uint32_t domain_id)
+  {
+    return false; // unsupported by this backend
+  }
+
+  virtual bool getComment(Comment& comment)
+  {
+    return false;
+  }
+
+  virtual void feedComment(const Comment& comment)
+  {
+  }
+
+  virtual bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments)
+  {
+    return false;
+  }
 
   //! returns true if master ip is master for domain name.
   virtual bool isMaster(const string &name, const string &ip)
