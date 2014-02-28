@@ -56,4 +56,5 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid);
+string DLDeleteZone(const vector<string>&parts, Utility::pid_t ppid);
 #endif /* PDNS_DYNHANDLER_HH */
