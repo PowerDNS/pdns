@@ -20228,11 +20228,12 @@ Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200
 +dnssec-parent.com:9.9.9.9:3600
 &dnssec-parent.com::ns1.dnssec-parent.com.:3600
 &dnssec-parent.com::ns2.dnssec-parent.com.:3600
+&insecure-delegated.ent.ent.auth-ent.dnssec-parent.com::ns.example.com.:3600
++something1.auth-ent.dnssec-parent.com:1.1.2.3:3600
 &delegated.dnssec-parent.com::ns1.delegated.dnssec-parent.com.:3600
 &delegated.dnssec-parent.com::ns2.delegated.dnssec-parent.com.:3600
 +ns1.delegated.dnssec-parent.com:4.5.6.7:3600
 +ns2.delegated.dnssec-parent.com:5.6.7.8:3600
-&insecure-delegated.ent.dnssec-parent.com::ns.example.com.:3600
 +ns1.dnssec-parent.com:1.2.3.4:3600
 +ns2.dnssec-parent.com:4.3.2.1:3600
 &secure-delegated.dnssec-parent.com::ns1.secure-delegated.dnssec-parent.com.:3600
