@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2013  PowerDNS.COM BV
+    Copyright (C) 2003 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -1056,7 +1056,7 @@ void makeUDPServerSockets()
       throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
     }
 
-    setSocketReceiveBuffer(fd, 200000);
+    setSocketReceiveBuffer(fd, 250000);
     sin.sin4.sin_port = htons(st.port);
 
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
@@ -1607,6 +1607,28 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
   return broadcastAccFunction<string>(boost::bind(pleaseUseNewTraceRegex, begin!=end ? *begin : ""));
 }
 
+static void checkLinuxIPv6Limits()
+{
+#ifdef __linux__
+  string line;
+  if(readFileIfThere("/proc/sys/net/ipv6/route/max_size", &line)) {
+    int lim=atoi(line.c_str());
+    if(lim < 16384) {
+      L<<Logger::Error<<"If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to "<<lim<<", which is too low"<<endl;
+    }
+  }
+#endif
+}
+
+static void warnAboutFDS()
+{
+#if 0
+  unsigned int maxFDs, curFDs;
+  getFDLimits(curFDs, maxFDs);
+  if(curFDs < 2048) 
+    L<<Logger::Warning<<"Only "<<curFDs<<" file descriptors available (out of: "<<maxFDs<<"), may not be suitable for high performance"<<endl;
+#endif
+}
 
 void* recursorThread(void*);
 
@@ -1698,8 +1720,6 @@ void parseACLs()
 
 int serviceMain(int argc, char*argv[])
 {
-
-
   L.setName(s_programname);
 
   L.setLoglevel((Logger::Urgency)(6)); // info and up
@@ -1713,14 +1733,8 @@ int serviceMain(int argc, char*argv[])
   }
 
   showProductVersion();
-  
-  #if 0
-  unsigned int maxFDs, curFDs;
-  getFDLimits(curFDs, maxFDs);
-  if(curFDs < 2048) 
-    L<<Logger::Warning<<"Only "<<curFDs<<" file descriptors available (out of: "<<maxFDs<<"), may not be suitable for high performance"<<endl;
-  #endif
-  
+  warnAboutFDS();
+
   seedRandom(::arg()["entropy-source"]);
 
   parseACLs();
@@ -1757,7 +1771,7 @@ int serviceMain(int argc, char*argv[])
     g_quiet=false;
   }
   
-  
+  checkLinuxIPv6Limits();
   try {
     vector<string> addrs;  
     if(!::arg()["query-local-address6"].empty()) {

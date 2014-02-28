@@ -758,6 +758,17 @@ bool stringfgets(FILE* fp, std::string& line)
   return true;
 }
 
+bool readFileIfThere(const char* fname, std::string* line)
+{
+  line->clear();
+  FILE* fp = fopen(fname, "r");
+  if(!fp)
+    return false;
+  stringfgets(fp, *line);
+  fclose(fp);
+  return true;
+}
+
 Regex::Regex(const string &expr)
 {
   if(regcomp(&d_preg, expr.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED))
