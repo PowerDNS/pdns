@@ -6063,7 +6063,7 @@ errors in some cases. Discovered by Sten Spans. Fixed in c1342.
 	    <listitem>
 	      <para>
 		PowerDNS now prints out a warning when running with legacy LinuxThreads implementation instead of the high performance NPTL
-		library, see <xref linkend="nptl"/>. c455.
+		library. c455.
 	      </para>
 	    </listitem>
 	    <listitem>
@@ -11957,49 +11957,19 @@ local0.err                        /var/log/pdns.err
   <chapter id="performance"><title>Authoritative Server Performance</title>
     <sect1><title>General advice</title>
     <para>
-      In general, best performance is achieved on recent Linux 2.6 kernels and using MySQL, although many of the largest PowerDNS 
-      installations are based on PostgreSQL. FreeBSD appears to achieve lower packet rates both for the PowerDNS recursor as for the 
-      authoritative nameserver, this is still being investigated. No comparative measurements have been done for Solaris installations.
-    </para>
-    <para>
-      On Linux, make sure to read <xref linkend="nptl"/>.
+      In general, best performance is achieved on recent Linux 3.x kernels and using MySQL, although many of the largest PowerDNS 
+      installations are based on PostgreSQL. FreeBSD also performs very well.
     </para>
     <para>
       Database servers can require configuration to achieve decent performance. It is especially worth noting that 
       several vendors ship PostgreSQL with a slow default configuration.
     </para>
-    </sect1>
-    <sect1 id="nptl">
-      <title>Native Posix Thread Library vs LinuxThreads</title>
-      <para>
-	To get the best performance under Linux, especially on SMP
-	systems, the use of NPTL is advised. The difference in
-	performance can be over a factor of ten in some circumstances.
-      </para>
-      <para>
-	NPTL is the default library on modern Linux distributions, so
-	there is generally not a problem, except if you use a
-	statically compiled version that, for portability reasons,
-	defaults to LinuxThreads. This includes all .deb and .rpm files
-	provided by us up to and including 2.9.18.
-      </para>
-      <para>
-	When running a PowerDNS-provided static binary of 2.9.18 or
-	lower, it may make sense to recompile, or to upgrade to a
-	newer version, if available. When recompiling, be sure to use
-	a supported compiler, like g++ &gt;3.2. You might also consider
-	moving to a distribution supplied version.
-      </para>
-      <para>
-	A good indication that your installation might benefit from
-	such an upgrade is to watch the 'cs' count in the output of
-	vmstat 1. If this is very high (&gt; 10000), you are suffering
-	from a LinuxThreads performance problem called 'overspin'.
-      </para>
-      <para>
-	Thanks are due to L. Bunt Jackson who noted the static
-	compilation problem in an article in Dr. Dobb's Journal.
-      </para>
+    <para>
+    <warning><para>When deploying (large scale) IPv6, please be aware some
+    Linux distributions leave IPv6 routing cache tables at very small
+    default values. Please check and if necessary raise 'sysctl
+    net.ipv6.route.max_size'.</para></warning>
+    </para>
     </sect1>
     <sect1 id="performance-settings">
     <title>Performance related settings</title>
@@ -14838,6 +14808,12 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      has a default limit of 256. This can be raised using the ulimit command. FreeBSD has a default limit that is high enough for even
 	      very heavy duty use.
 	    </para>
+	  </listitem>
+	  <listitem>
+    	<para>When deploying (large scale) IPv6, please be aware some
+    Linux distributions leave IPv6 routing cache tables at very small
+    default values. Please check and if necessary raise 'sysctl
+    net.ipv6.route.max_size'.</para>
 	  </listitem>
 	  <listitem>
 	    <para>
