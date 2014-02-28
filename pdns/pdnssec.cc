@@ -286,7 +286,7 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
         shorter=qname;
         while(!pdns_iequals(shorter, zone) && chopOff(shorter))
         {
-          if(!qnames.count(shorter) && !nonterm.count(shorter))
+          if(!qnames.count(shorter))
           {
             if(!(maxent))
             {
@@ -297,16 +297,16 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
               break;
             }
 
+            if (!delnonterm.count(shorter) && !nonterm.count(shorter))
+              insnonterm.insert(shorter);
+            else
+              delnonterm.erase(shorter);
+
             if (!nonterm.count(shorter)) {
               nonterm.insert(pair<string, bool>(shorter, auth));
               --maxent;
             } else if (auth)
               nonterm[shorter]=true;
-
-            if (!delnonterm.count(shorter))
-              insnonterm.insert(shorter);
-            else
-              delnonterm.erase(shorter);
           }
         }
       }

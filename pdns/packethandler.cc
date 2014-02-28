@@ -618,16 +618,18 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after, mode);
 
-    if (mode == 1 && (hashed != before)) {
-      DLOG(L<<"No matching NSEC3 for DS, do closest (provable) encloser"<<endl);
+    if ((mode == 0 ||  mode == 1) && (hashed != before)) {
+      DLOG(L<<"No matching NSEC3, do closest (provable) encloser"<<endl);
 
+      bool doBreak = false;
       DNSResourceRecord rr;
       while( chopOff( closest ) && (closest != sd.qname))  { // stop at SOA
         B.lookup(QType(QType::ANY), closest, p, sd.domain_id);
-        if (B.get(rr)) {
-          while(B.get(rr));
+        while(B.get(rr))
+          if (rr.auth)
+            doBreak = true;
+        if(doBreak)
           break;
-        }
       }
       doNextcloser = true;
       unhashed=closest;
