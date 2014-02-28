@@ -618,7 +618,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
     getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after, mode);
 
-    if ((mode == 0 ||  mode == 1) && (hashed != before)) {
+    if (((mode == 0 && ns3rc.d_flags) ||  mode == 1) && (hashed != before)) {
       DLOG(L<<"No matching NSEC3, do closest (provable) encloser"<<endl);
 
       bool doBreak = false;
