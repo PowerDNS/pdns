@@ -23,7 +23,7 @@ do
 		fi
 		RETVAL=$?
 		echo RETVAL: $RETVAL
-		if [ $RETVAL -gt 0 ] && { [[ $validator != ldns-verify-zone* ]] || [[ $skipreasons != *optout* ]]; }
+		if [ $RETVAL -gt 0 ] && { [[ $validator != ldns-verify-zone* ]] || { [[ $skipreasons != *nsec3* ]] && [[ $skipreasons != *optout* ]]; }; }
 		then
 			echo $validator reported error, full zone content:
 			echo ---

@@ -675,7 +675,7 @@ void Bind2Backend::doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nse
 
     while(chopOff(shorter))
     {
-      if(!qnames.count(shorter) && !nonterm.count(shorter))
+      if(!qnames.count(shorter))
       {
         if(!(maxent))
         {
