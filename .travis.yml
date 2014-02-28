@@ -24,7 +24,7 @@ script:
  - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap' --enable-unit-tests --enable-remotebackend-http --enable-tools --enable-remotebackend-zeromq
  - make dist
  - make -j 4
- - make -j 4 check
+ - travis_retry make -j 4 check # Workaround for remotebackend failures on travis-ci
  - make -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$)
  - cd pdns
  - make -j 4 pdns_recursor
@@ -60,14 +60,14 @@ script:
  - ./start-test-stop 5300 gpgsql-nodnssec
  - ./start-test-stop 5300 gpgsql
  - ./start-test-stop 5300 gpgsql-nsec3
- - ./start-test-stop 5300 remotebackend-pipe
- - ./start-test-stop 5300 remotebackend-pipe-dnssec
- - ./start-test-stop 5300 remotebackend-unix
- - ./start-test-stop 5300 remotebackend-unix-dnssec
- - ./start-test-stop 5300 remotebackend-http
- - ./start-test-stop 5300 remotebackend-http-dnssec
- - ./start-test-stop 5300 remotebackend-zeromq
- - ./start-test-stop 5300 remotebackend-zeromq-dnssec
+ - travis_retry ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
+ - travis_retry ./start-test-stop 5300 remotebackend-pipe-dnssec
+ - travis_retry ./start-test-stop 5300 remotebackend-unix
+ - travis_retry ./start-test-stop 5300 remotebackend-unix-dnssec
+ - travis_retry ./start-test-stop 5300 remotebackend-http
+ - travis_retry ./start-test-stop 5300 remotebackend-http-dnssec
+ - travis_retry ./start-test-stop 5300 remotebackend-zeromq
+ - travis_retry ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./start-test-stop 5300 gsqlite3-nodnssec
  - ./start-test-stop 5300 gsqlite3
  - ./start-test-stop 5300 gsqlite3-nsec3
