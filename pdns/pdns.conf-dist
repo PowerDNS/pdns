@@ -135,6 +135,11 @@
 # entropy-source=/dev/urandom
 
 #################################
+# experimental-api-readonly	If the JSON API should disallow data modification
+#
+# experimental-api-readonly=no
+
+#################################
 # experimental-json-interface	If the webserver should serve JSON data
 #
 # experimental-json-interface=no
