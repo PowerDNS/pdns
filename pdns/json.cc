@@ -79,6 +79,19 @@ bool boolFromJson(const rapidjson::Value& container, const char* key)
   }
 }
 
+bool boolFromJson(const rapidjson::Value& container, const char* key, const bool default_value)
+{
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
+  const Value& val = container[key];
+  if (val.IsBool()) {
+    return val.GetBool();
+  } else {
+    return default_value;
+  }
+}
+
 string makeStringFromDocument(const Document& doc)
 {
   StringBuffer output;

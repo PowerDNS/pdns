@@ -531,6 +531,42 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   throw HttpMethodNotAllowedException();
 }
 
+static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
+  if (rr.qtype.getCode() == QType::A) {
+    uint32_t ip;
+    if (!IpToU32(rr.content, &ip)) {
+      throw ApiException("PTR: Invalid IP address given");
+    }
+    ptr->qname = (boost::format("%u.%u.%u.%u.in-addr.arpa")
+                  % ((ip >> 24) & 0xff)
+                  % ((ip >> 16) & 0xff)
+                  % ((ip >>  8) & 0xff)
+                  % ((ip      ) & 0xff)
+      ).str();
+  } else if (rr.qtype.getCode() == QType::AAAA) {
+    ComboAddress ca(rr.content);
+    string tmp;
+    for (int group = 0; group < 8; ++group) {
+      tmp += (boost::format("%04x") % ntohs(ca.sin6.sin6_addr.s6_addr16[group])).str();
+    }
+    ostringstream ss;
+    size_t npos = tmp.size();
+    while (npos--) {
+      ss << tmp[npos] << ".";
+    }
+    ss << "ip6.arpa";
+    ptr->qname = ss.str();
+  } else {
+    throw ApiException("Unsupported PTR source '" + rr.qname + "' type '" + rr.qtype.getName() + "'");
+  }
+
+  ptr->qtype = "PTR";
+  ptr->ttl = rr.ttl;
+  ptr->disabled = rr.disabled;
+  ptr->priority = 0;
+  ptr->content = rr.qname;
+}
+
 static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PATCH")
     throw HttpMethodNotAllowedException();
@@ -563,6 +599,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   else if (changetype == "REPLACE") {
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
+    vector<DNSResourceRecord> new_ptrs;
     bool replace_records = false;
     bool replace_comments = false;
 
@@ -595,6 +632,22 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
         catch(std::exception& e)
         {
           throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": "+e.what());
+        }
+
+        if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
+            boolFromJson(record, "set-ptr", false) == true) {
+          DNSResourceRecord ptr;
+          makePtr(rr, &ptr);
+
+          // verify that there's a zone for the PTR
+          DNSPacket fakePacket;
+          SOAData sd;
+          fakePacket.qtype = QType::PTR;
+          if (!B.getAuth(&fakePacket, &sd, ptr.qname, 0))
+            throw ApiException("Could not find domain for PTR '"+ptr.qname+"' requested for '"+ptr.content+"'");
+
+          ptr.domain_id = sd.domain_id;
+          new_ptrs.push_back(ptr);
         }
 
         new_records.push_back(rr);
@@ -636,6 +689,24 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
       }
     }
     di.backend->commitTransaction();
+
+    // now the PTRs
+    BOOST_FOREACH(const DNSResourceRecord& rr, new_ptrs) {
+      DNSPacket fakePacket;
+      SOAData sd;
+      sd.db = (DNSBackend *)-1;
+      fakePacket.qtype = QType::PTR;
+
+      if (!B.getAuth(&fakePacket, &sd, rr.qname, 0))
+        throw ApiException("Could not find domain for PTR '"+rr.qname+"' requested for '"+rr.content+"' (while saving)");
+
+      sd.db->startTransaction(rr.qname);
+      if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+        throw ApiException("PTR-Hosting backend does not support editing records.");
+      }
+      sd.db->commitTransaction();
+    }
+
   }
   else
     throw ApiException("Changetype not understood");
