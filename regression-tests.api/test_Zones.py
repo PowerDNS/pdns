@@ -405,6 +405,87 @@ class AuthZones(ApiTestCase):
         self.assertEquals([r for r in data['records'] if r['type'] == 'NS'], payload2['records'])
         self.assertEquals(data['comments'], payload['comments'])
 
+    def test_ZoneAutoPtrIPv4(self):
+        revzone = '0.2.192.in-addr.arpa'
+        self.create_zone(name=revzone)
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qname mismatch
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'records': [
+                {
+                    "name": name,
+                    "type": "A",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": '192.2.0.2',
+                    "disabled": False,
+                    "set-ptr": True
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        r = self.session.get(self.url("/servers/localhost/zones/" + revzone))
+        recs = r.json()['records']
+        print recs
+        revrec = [rec for rec in recs if rec['type'] == 'PTR']
+        self.assertEquals(revrec, [{
+            u'content': name,
+            u'disabled': False,
+            u'ttl': 3600,
+            u'priority': 0,
+            u'type': u'PTR',
+            u'name': u'2.0.2.192.in-addr.arpa'
+        }])
+
+    def test_ZoneAutoPtrIPv6(self):
+        # 2001:DB8::bb:aa
+        revzone = '8.b.d.0.1.0.0.2.ip6.arpa'
+        self.create_zone(name=revzone)
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qname mismatch
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'AAAA',
+            'records': [
+                {
+                    "name": name,
+                    "type": "AAAA",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": '2001:DB8::bb:aa',
+                    "disabled": False,
+                    "set-ptr": True
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        r = self.session.get(self.url("/servers/localhost/zones/" + revzone))
+        recs = r.json()['records']
+        print recs
+        revrec = [rec for rec in recs if rec['type'] == 'PTR']
+        self.assertEquals(revrec, [{
+            u'content': name,
+            u'disabled': False,
+            u'ttl': 3600,
+            u'priority': 0,
+            u'type': u'PTR',
+            u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa'
+        }])
+
 
 @unittest.skipIf(not isRecursor(), "Not applicable")
 class RecursorZones(ApiTestCase):

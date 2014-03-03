@@ -34,6 +34,7 @@ int intFromJson(const rapidjson::Value& container, const char* key, const int de
 std::string stringFromJson(const rapidjson::Value& container, const char* key);
 std::string stringFromJson(const rapidjson::Value& container, const char* key, const std::string& default_value);
 bool boolFromJson(const rapidjson::Value& container, const char* key);
+bool boolFromJson(const rapidjson::Value& container, const char* key, const bool default_value);
 
 class JsonException : public std::runtime_error
 {
