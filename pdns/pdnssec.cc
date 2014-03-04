@@ -1120,7 +1120,8 @@ try
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
     cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
-    cerr<<"list-all-zones MASTER|SLAVE|NATIVE List all zones"<<endl;;
+    cerr<<"list-all-zones [master|slave|native]"<<endl;
+    cerr<<"                                   List all zones"<<endl;;
     cerr<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
