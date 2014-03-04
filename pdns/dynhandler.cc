@@ -287,7 +287,7 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
-string DLListZones(const vector<string>&parts, Utility::pid_t ppid) 
+string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 {
   UeberBackend B;
   L<<Logger::Notice<<"Received request to list zones."<<endl;
