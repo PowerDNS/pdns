@@ -370,7 +370,7 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp);
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
-  if (req->method == "POST") {
+  if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
     DomainInfo di;
     Document document;
     req->json(document);
@@ -483,7 +483,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   string zonename = apiZoneIdToName(req->path_parameters["id"]);
 
-  if(req->method == "PUT") {
+  if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
     // update domain settings
     UeberBackend B;
     DomainInfo di;
@@ -507,7 +507,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     fillZone(zonename, resp);
     return;
   }
-  else if(req->method == "DELETE") {
+  else if(req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
     // delete domain
     UeberBackend B;
     DomainInfo di;
@@ -520,7 +520,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     // empty body on success
     resp->body = "";
     return;
-  } else if (req->method == "PATCH") {
+  } else if (req->method == "PATCH" && !::arg().mustDo("experimental-api-readonly")) {
     apiServerZoneRRset(req, resp);
     return;
   } else if (req->method == "GET") {
@@ -568,7 +568,7 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
 }
 
 static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "PATCH")
+  if(req->method != "PATCH" || ::arg().mustDo("experimental-api-readonly"))
     throw HttpMethodNotAllowedException();
 
   UeberBackend B;
