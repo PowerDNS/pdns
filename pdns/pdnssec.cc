@@ -1088,7 +1088,7 @@ try
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
-    cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl; 
+    cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
     cerr<<"deactivate-tsig-key ZONE NAME [master|slave]"<<endl;
     cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
@@ -1103,9 +1103,9 @@ try
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
-    cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;            
+    cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
     cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
-    cerr<<"list-all-zones MASTER|SLAVE|NATIVE List all zones\n";
+    cerr<<"list-all-zones MASTER|SLAVE|NATIVE List all zones"<<endl;;
     cerr<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
@@ -1122,7 +1122,7 @@ try
     cerr<<desc<<endl;
     return 0;
   }
-  
+
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec test-algorithm algonum"<<endl;
