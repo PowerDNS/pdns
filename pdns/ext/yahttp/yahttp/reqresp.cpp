@@ -222,6 +222,10 @@ namespace YaHTTP {
 
     if (chunk_size!=0) return false; // need more data
 
+    if (!chunked && bodybuf.str().size() < maxbody) {
+      return false; // need more data
+    }
+
     bodybuf.flush();
     request->body = bodybuf.str();
     bodybuf.str("");
