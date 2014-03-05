@@ -50,6 +50,12 @@ class AuthZones(ApiTestCase):
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['comments'], [])
 
+    def test_CreateZoneTrailingDot(self):
+        # Trailing dots should not end up in the zone name.
+        basename = unique_zone_name()
+        payload, data = self.create_zone(name=basename+'.')
+        self.assertEquals(data['name'], basename)
+
     def test_CreateZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']

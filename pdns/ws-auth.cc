@@ -379,6 +379,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if(zonename.empty())
       throw ApiException("Zone name empty");
 
+    // strip any trailing dots
+    while (zonename.substr(zonename.size()-1) == ".") {
+      zonename.resize(zonename.size()-1);
+    }
+
     string kind = stringFromJson(document, "kind");
 
     bool exists = B.getDomainInfo(zonename, di);
