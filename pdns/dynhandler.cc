@@ -286,3 +286,26 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
+string DLDeleteZone(const vector<string>&parts, Utility::pid_t ppid)
+{
+  if (parts.size() != 2)
+    return "syntax: delete-zone zone";
+
+  L<<Logger::Warning<<"Received request to delete domain '"<<parts[1]<<"'"<<endl;
+
+  const string& domain=parts[1];
+  extern PacketCache PC;
+  DNSSECKeeper dk;
+  UeberBackend B;
+  DomainInfo di;
+
+  if (! B.getDomainInfo(domain, di))
+    return "Domain '"+domain+"' unknown";
+
+  if(di.backend->deleteDomain(domain)){
+    PC.purge(domain+"$");
+    dk.clearCaches(domain);
+    return "OK";
+  }
+  return "Failed to delete domain '"+domain+"'";
+}
