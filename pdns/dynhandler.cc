@@ -32,6 +32,7 @@
 #include "dnsseckeeper.hh"
 #include "nameserver.hh"
 #include "responsestats.hh"
+#include "ueberbackend.hh"
 
 extern ResponseStats g_rs;
 
@@ -286,3 +287,59 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
+string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
+{
+  UeberBackend B;
+  L<<Logger::Notice<<"Received request to list zones."<<endl;
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains);
+  ostringstream ret;
+  int kindFilter = -1;
+  if (parts.size() > 1) {
+    if (toUpper(parts[1]) == "MASTER")
+      kindFilter = 0;
+    else if (toUpper(parts[1]) == "SLAVE")
+      kindFilter = 1;
+    else if (toUpper(parts[1]) == "NATIVE")
+      kindFilter = 2;
+  }
+
+  int count = 0;
+
+  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+    if (di->kind == kindFilter || kindFilter == -1) {
+      ret<<di->zone<<endl;
+      count++;
+    }
+  }
+  if (kindFilter != -1)
+    ret<<parts[1]<<" zonecount:"<<count;
+  else
+    ret<<"All zonecount:"<<count;
+
+  return ret.str();
+}
+
+string DLDeleteZone(const vector<string>&parts, Utility::pid_t ppid)
+{
+  if (parts.size() != 2)
+    return "syntax: delete-zone zone";
+
+  L<<Logger::Warning<<"Received request to delete domain '"<<parts[1]<<"'"<<endl;
+
+  const string& domain=parts[1];
+  extern PacketCache PC;
+  DNSSECKeeper dk;
+  UeberBackend B;
+  DomainInfo di;
+
+  if (! B.getDomainInfo(domain, di))
+    return "Domain '"+domain+"' unknown";
+
+  if(di.backend->deleteDomain(domain)){
+    PC.purge(domain+"$");
+    dk.clearCaches(domain);
+    return "OK";
+  }
+  return "Failed to delete domain '"+domain+"'";
+}

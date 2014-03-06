@@ -624,6 +624,53 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
   return 0;
 }
 
+int listAllZones(const string &type) {
+  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
+
+  vector<DomainInfo> domains;
+  B->getAllDomains(&domains);
+
+  int kindFilter = -1;
+  if (type.size()) {
+    if (toUpper(type) == "MASTER")
+      kindFilter = 0;
+    else if (toUpper(type) == "SLAVE")
+      kindFilter = 1;
+    else if (toUpper(type) == "NATIVE")
+      kindFilter = 2;
+  }
+
+  int count = 0;
+
+  for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+    if (di->kind == kindFilter || kindFilter == -1) {
+      cout<<di->zone<<endl;
+      count++;
+    }
+  }
+
+  if (kindFilter != -1)
+    cout<<type<<" zonecount:"<<count<<endl;
+  else
+    cout<<"All zonecount:"<<count<<endl;
+  return 0;
+}
+
+int deleteZone(const string &zone) {
+  UeberBackend B;
+  DomainInfo di;
+  if (! B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' not found!";
+    return 1;
+  }
+
+  if(di.backend->deleteDomain(zone))
+    return 0;
+
+  cerr<<"Failed to delete domain '"+zone+"'"<<endl;;
+  return 1;
+}
+
 void testAlgorithm(int algo) 
 {
   DNSCryptoKeyEngine::testOne(algo);
@@ -1055,11 +1102,12 @@ try
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
-    cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl; 
+    cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
     cerr<<"deactivate-tsig-key ZONE NAME [master|slave]"<<endl;
     cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
+    cerr<<"delete-zone zone                   Delete the zone"<<endl;
     cerr<<"disable-dnssec ZONE                Deactivate all keys and unset PRESIGNED in ZONE"<<endl;
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
@@ -1070,8 +1118,10 @@ try
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
-    cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;            
+    cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
     cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
+    cerr<<"list-all-zones [master|slave|native]"<<endl;
+    cerr<<"                                   List all zones"<<endl;;
     cerr<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
@@ -1088,7 +1138,7 @@ try
     cerr<<desc<<endl;
     return 0;
   }
-  
+
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec test-algorithm algonum"<<endl;
@@ -1162,6 +1212,9 @@ try
   }
   else if (cmds[0] == "check-all-zones") {
     exit(checkAllZones(dk));
+  }
+  else if (cmds[0] == "list-all-zones") {
+    exit(listAllZones(cmds[1]));
   }
   else if (cmds[0] == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
@@ -1313,7 +1366,13 @@ try
     }
     return 0;
   }
-  
+  else if(cmds[0] == "delete-zone") {
+    if(cmds.size() != 2) {
+      cerr<<"Syntax: pdnssec delete-zone ZONE"<<endl;
+      return 0;
+    }
+    exit(deleteZone(cmds[1]));
+  }
   else if(cmds[0] == "secure-zone") {
     if(cmds.size() < 2) {
       cerr << "Syntax: pdnssec secure-zone ZONE"<<endl;
