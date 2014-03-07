@@ -562,7 +562,7 @@ struct ParsePacketTest
       set<string, CIStringCompare> nsset;  
       // LOG<<prefix<<qname<<": determining status after receiving this packet"<<endl;
 
-      bool done=false, realreferral=false, negindic=false;
+      bool done=false;
       string newauth, soaname, newtarget;
       string qname(".");
       vector<DNSResourceRecord> ret;
@@ -586,7 +586,6 @@ struct ParsePacketTest
             // Lock l(&s_negcachelock);
             // replacing_insert(s_negcache, ne);
           }
-          negindic=true;
         }
         else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(*i);
@@ -609,7 +608,6 @@ struct ParsePacketTest
           if(moreSpecificThan(i->qname,auth)) {
             newauth=i->qname;
             // LOG<<prefix<<qname<<": got NS record '"<<i->qname<<"' -> '"<<i->content<<"'"<<endl;
-            realreferral=true;
           }
           else 
             ;// // LOG<<prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl;
@@ -629,7 +627,6 @@ struct ParsePacketTest
            // Lock l(&s_negcachelock);
             // replacing_insert(s_negcache, ne);
           }
-          negindic=true;
         }
       }
 
