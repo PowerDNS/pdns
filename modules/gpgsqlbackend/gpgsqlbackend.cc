@@ -44,10 +44,9 @@ public:
     declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
 
-    declare(suffix,"dnssec","Assume DNSSEC Schema is in place","no");
+    declare(suffix,"dnssec","Enable DNSSEC processing","no");
 
-    string record_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name FROM records WHERE";
-    string record_auth_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int FROM records WHERE";
+    string record_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int FROM records WHERE";
 
     declare(suffix, "basic-query", "Basic query", record_query+" disabled=false and type='%s' and name=E'%s'");
     declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=false and type='%s' and name=E'%s' and domain_id=%d");
@@ -59,28 +58,12 @@ public:
     declare(suffix, "wildcard-any-query", "Wildcard ANY query", record_query+" disabled=false and name like E'%s'");
     declare(suffix, "wildcard-any-id-query", "Wildcard ANY with ID query", record_query+" disabled=false and name like E'%s' and domain_id='%d'");
 
-    declare(suffix, "list-query", "AXFR query", record_query+" (disabled=false OR %d::bool) and domain_id='%d'");
+    declare(suffix, "list-query", "AXFR query", record_query+" (disabled=false OR %d::bool) and domain_id='%d' order by name, type");
     declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=false and (name=E'%s' OR name like E'%s') and domain_id='%d'");
 
     declare(suffix,"remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id='%d' and type is null");
-    declare(suffix,"insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,disabled) values ('%d','%s',null,false)");
+    declare(suffix, "insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,disabled,auth) values ('%d','%s',null,false,true)");
     declare(suffix,"delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id='%d' and name='%s' and type is null");
-
-    // and now with auth
-    declare(suffix, "basic-query-auth", "Basic query", record_auth_query+" disabled=false and type='%s' and name=E'%s'");
-    declare(suffix, "id-query-auth", "Basic with ID query", record_auth_query+" disabled=false and type='%s' and name=E'%s' and domain_id=%d");
-    declare(suffix, "wildcard-query-auth", "Wildcard query", record_auth_query+" disabled=false and type='%s' and name like E'%s'");
-    declare(suffix, "wildcard-id-query-auth", "Wildcard with ID query", record_auth_query+" disabled=false and type='%s' and name like E'%s' and domain_id='%d'");
-
-    declare(suffix, "any-query-auth", "Any query", record_auth_query+" disabled=false and name=E'%s'");
-    declare(suffix, "any-id-query-auth", "Any with ID query", record_auth_query+" disabled=false and name=E'%s' and domain_id=%d");
-    declare(suffix, "wildcard-any-query-auth", "Wildcard ANY query", record_auth_query+" disabled=false and name like E'%s'");
-    declare(suffix, "wildcard-any-id-query-auth", "Wildcard ANY with ID query", record_auth_query+" disabled=false and name like E'%s' and domain_id='%d'");
-
-    declare(suffix, "list-query-auth", "AXFR query", record_auth_query+" (disabled=false OR %d::bool) and domain_id='%d' order by name, type");
-    declare(suffix, "list-subzone-query-auth", "Subzone listing", record_auth_query+" disabled=false and (name=E'%s' OR name like E'%s') and domain_id='%d'");
-
-    declare(suffix, "insert-empty-non-terminal-query-auth", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,disabled,auth) values ('%d','%s',null,false,true)");
 
     declare(suffix,"master-zone-query","Data", "select master from domains where name=E'%s' and type='SLAVE'");
 
@@ -89,15 +72,14 @@ public:
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver=E'%s'");
     declare(suffix,"supermaster-name-to-ips", "", "select ip from supermasters where nameserver=E'%s'");
+
     declare(suffix,"insert-zone-query","", "insert into domains (type,name) values('NATIVE',E'%s')");
     declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE',E'%s',E'%s',E'%s')");
 
-    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s')");
-    declare(suffix, "insert-record-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s','%d')");
-    declare(suffix, "insert-record-order-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s',E'%s','%d')");
-    declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name) values (null,'%d',false,E'%s')");
-    declare(suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,'%d',false,E'%s','%d')");
-    declare(suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,'%d',false,E'%s',E'%s','%d')");
+    declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s','%d')");
+    declare(suffix, "insert-record-order-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (E'%s',%d,%d,'%s',%d,%d::bool,E'%s',E'%s','%d')");
+    declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,'%d',false,E'%s','%d')");
+    declare(suffix, "insert-ent-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,'%d',false,E'%s',E'%s','%d')");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, last", "select ordername, name from records where disabled=false and domain_id=%d and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=false and ordername ~<=~ E'%s' and domain_id=%d and ordername is not null order by 1 using ~>~ limit 1");
