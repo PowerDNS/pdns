@@ -1104,7 +1104,13 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
              % sqlEscape(qname)
       ).str();
   }
-  d_db->doCommand(query);
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to delete RRSet: "+e.txtReason());
+  }
+
   if (rrset.empty()) {
     // zap comments for now non-existing rrset
     query = (boost::format(d_DeleteCommentRRsetQuery)
@@ -1112,7 +1118,12 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
              % sqlEscape(qname)
              % sqlEscape(qt.getName())
       ).str();
-    d_db->doCommand(query);
+    try {
+      d_db->doCommand(query);
+    }
+    catch (SSqlException &e) {
+      throw PDNSException("GSQLBackend unable to delete comment: "+e.txtReason());
+    }
   }
   BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
     feedRecord(rr);
@@ -1365,7 +1376,12 @@ bool GSQLBackend::replaceComments(const uint32_t domain_id, const string& qname,
              % sqlEscape(qt.getName())
       ).str();
 
-  d_db->doCommand(query);
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to delete comment: "+e.txtReason());
+  }
 
   BOOST_FOREACH(const Comment& comment, comments) {
     feedComment(comment);
