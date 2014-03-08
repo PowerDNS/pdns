@@ -1,7 +1,7 @@
 case $context in
 	gsqlite3-nodnssec)
 		rm -f pdns.sqlite3
-		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
+		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
 		tosql gsqlite | sqlite3 pdns.sqlite3
 		echo ANALYZE\; | sqlite3 pdns.sqlite3
 
@@ -14,6 +14,9 @@ __EOF__
 			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
 		done
 
+		../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test $ALGORITHM $KEY
+		../pdns/pdnssec --config-dir=. --config-name=gsqlite3 activate-tsig-key tsig.com test master
+
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=gsqlite3 \
 			--send-root-referral \
@@ -25,8 +28,7 @@ __EOF__
 
 	gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
 		rm -f pdns.sqlite3
-		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
-		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/dnssec.schema.sqlite3.sql
+		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
 		tosql gsqlite | sqlite3 pdns.sqlite3
 		echo ANALYZE\; | sqlite3 pdns.sqlite3
 
