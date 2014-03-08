@@ -116,7 +116,7 @@ public:
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name) values ('%s',%d,%d,'%s',%d,%d,'%s')");
     declare(suffix, "insert-record-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values ('%s',%d,%d,'%s',%d,%d,'%s',%d)");
-    declare(suffix, "insert-record-order-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values ('%s',%d,%d,%d,'%s','%s',%d,'%s','%d')");
+    declare(suffix, "insert-record-order-query-auth", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values ('%s',%d,%d,'%s',%d,%d,'%s','%s',%d)");
     declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name) values (null,'%d',0,'%s')");
     declare(suffix, "insert-ent-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,'%d',0,'%s','%d')");
     declare(suffix, "insert-ent-order-query-auth", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,'%d',0,'%s','%s','%d')");
