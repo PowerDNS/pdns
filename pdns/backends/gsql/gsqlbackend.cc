@@ -348,10 +348,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
 }
 
-bool isDnssecDomainMetadata (const string& name) {
-  return (name == "PRESIGNED" || name == "NSEC3PARAM" || name == "NSEC3NARROW");
-}
-
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
 {
   if(!d_dnssecQueries)
