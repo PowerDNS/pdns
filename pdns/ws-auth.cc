@@ -550,17 +550,19 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
       ).str();
   } else if (rr.qtype.getCode() == QType::AAAA) {
     ComboAddress ca(rr.content);
-    string tmp;
-    for (int group = 0; group < 8; ++group) {
-      tmp += (boost::format("%04x") % ntohs(ca.sin6.sin6_addr.s6_addr16[group])).str();
-    }
+    char buf[3];
     ostringstream ss;
-    size_t npos = tmp.size();
-    while (npos--) {
-      ss << tmp[npos] << ".";
+    for (int octet = 0; octet < 16; ++octet) {
+      if (snprintf(buf, sizeof(buf), "%02x", ca.sin6.sin6_addr.s6_addr[octet]) != (sizeof(buf)-1)) {
+        // this should be impossible: no byte should give more than two digits in hex format
+        throw PDNSException("Formatting IPv6 address failed");
+      }
+      ss << buf[0] << '.' << buf[1] << '.';
     }
-    ss << "ip6.arpa";
-    ptr->qname = ss.str();
+    string tmp = ss.str();
+    tmp.resize(tmp.size()-1); // remove last dot
+    // reverse and append arpa domain
+    ptr->qname = string(tmp.rbegin(), tmp.rend()) + ".ip6.arpa";
   } else {
     throw ApiException("Unsupported PTR source '" + rr.qname + "' type '" + rr.qtype.getName() + "'");
   }
