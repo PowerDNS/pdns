@@ -6,7 +6,6 @@ ALTER TABLE records CHANGE COLUMN type TYPE VARCHAR(10);
 CREATE INDEX recordorder ON records (domain_id, ordername);
 
 
-
 CREATE TABLE domainmetadata (
   id                    INT AUTO_INCREMENT,
   domain_id             INT NOT NULL,
@@ -16,7 +15,6 @@ CREATE TABLE domainmetadata (
 ) Engine=InnoDB;
 
 CREATE INDEX domainmetaidindex ON domainmetadata(domain_id);
-
 
 
 CREATE TABLE cryptokeys (
@@ -31,7 +29,6 @@ CREATE TABLE cryptokeys (
 CREATE INDEX domainidindex ON cryptokeys(domain_id);
 
 
-
 CREATE TABLE tsigkeys (
   id                    INT AUTO_INCREMENT,
   name                  VARCHAR(255),
@@ -41,7 +38,6 @@ CREATE TABLE tsigkeys (
 ) Engine=InnoDB;
 
 CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
-
 
 
 CREATE TABLE comments (

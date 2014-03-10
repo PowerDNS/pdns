@@ -6,7 +6,6 @@ ALTER table records ALTER COLUMN type TYPE VARCHAR(10);
 CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
 
 
-
 CREATE TABLE domainmetadata (
  id                     SERIAL PRIMARY KEY,
  domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
@@ -15,7 +14,6 @@ CREATE TABLE domainmetadata (
 );
 
 CREATE INDEX domainidmetaindex ON domainmetadata(domain_id);
-
 
 
 CREATE TABLE cryptokeys (
@@ -29,7 +27,6 @@ CREATE TABLE cryptokeys (
 CREATE INDEX domainidindex ON cryptokeys(domain_id);
 
 
-
 CREATE TABLE tsigkeys (
  id                     SERIAL PRIMARY KEY,
  name                   VARCHAR(255),
@@ -39,7 +36,6 @@ CREATE TABLE tsigkeys (
 );
 
 CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
-
 
 
 CREATE TABLE comments (

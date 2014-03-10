@@ -36,14 +36,12 @@ CREATE INDEX domain_id ON records(domain_id);
 CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
 
 
-
 CREATE TABLE supermasters (
   ip                    INET NOT NULL,
   nameserver            VARCHAR(255) NOT NULL,
   account               VARCHAR(40) DEFAULT NULL,
   PRIMARY KEY(ip, nameserver)
 );
-
 
 
 CREATE TABLE comments (
@@ -65,7 +63,6 @@ CREATE INDEX comments_name_type_idx ON comments (name, type);
 CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
 
 
-
 CREATE TABLE domainmetadata (
   id                    SERIAL PRIMARY KEY,
   domain_id             INT REFERENCES domains(id) ON DELETE CASCADE,
@@ -74,7 +71,6 @@ CREATE TABLE domainmetadata (
 );
 
 CREATE INDEX domainidmetaindex ON domainmetadata(domain_id);
-
 
 
 CREATE TABLE cryptokeys (
@@ -86,7 +82,6 @@ CREATE TABLE cryptokeys (
 );
 
 CREATE INDEX domainidindex ON cryptokeys(domain_id);
-
 
 
 CREATE TABLE tsigkeys (

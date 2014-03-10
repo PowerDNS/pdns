@@ -11,7 +11,6 @@ CREATE TABLE domains (
 CREATE UNIQUE INDEX name_index ON domains(name);
 
 
-
 CREATE TABLE records (
   id                    INTEGER PRIMARY KEY,
   domain_id             INTEGER DEFAULT NULL,
@@ -32,7 +31,6 @@ CREATE INDEX domain_id ON records(domain_id);
 CREATE INDEX orderindex ON records(ordername);
 
 
-
 CREATE TABLE supermasters (
   ip                    VARCHAR(64) NOT NULL,
   nameserver            VARCHAR(255) NOT NULL COLLATE NOCASE,
@@ -40,7 +38,6 @@ CREATE TABLE supermasters (
 );
 
 CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
-
 
 
 CREATE TABLE comments (
@@ -58,7 +55,6 @@ CREATE INDEX comments_nametype_index ON comments (name, type);
 CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
 
 
-
 CREATE TABLE domainmetadata (
  id                     INTEGER PRIMARY KEY,
  domain_id              INT NOT NULL,
@@ -67,7 +63,6 @@ CREATE TABLE domainmetadata (
 );
 
 CREATE INDEX domainmetaidindex ON domainmetadata(domain_id);
-
 
 
 CREATE TABLE cryptokeys (
@@ -79,7 +74,6 @@ CREATE TABLE cryptokeys (
 );
 
 CREATE INDEX domainidindex ON cryptokeys(domain_id);
-
 
 
 CREATE TABLE tsigkeys (

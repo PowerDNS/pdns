@@ -5,7 +5,6 @@ ALTER TABLE records ADD auth BOOL DEFAULT 1;
 CREATE INDEX orderindex ON records(ordername);
 
 
-
 CREATE TABLE domainmetadata (
   id                    INTEGER PRIMARY KEY,
   domain_id             INT NOT NULL,
@@ -14,7 +13,6 @@ CREATE TABLE domainmetadata (
 );
 
 CREATE INDEX domainmetaidindex on domainmetadata(domain_id);
-
 
 
 CREATE TABLE cryptokeys (
@@ -28,7 +26,6 @@ CREATE TABLE cryptokeys (
 CREATE INDEX domainidindex ON cryptokeys(domain_id);
 
 
-
 CREATE TABLE tsigkeys (
   id                    INTEGER PRIMARY KEY,
   name                  VARCHAR(255) COLLATE NOCASE,
@@ -37,7 +34,6 @@ CREATE TABLE tsigkeys (
 );
 
 CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
-
 
 
 CREATE TABLE comments (
