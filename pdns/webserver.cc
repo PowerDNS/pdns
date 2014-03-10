@@ -191,6 +191,8 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   // set default headers
   resp.headers["Content-Type"] = "text/html; charset=utf-8";
 
+  L<<Logger::Debug<<"HTTP: Handling request \"" << req.url.path << "\"" << endl;
+
   try {
     YaHTTP::strstr_map_t::iterator header;
 
@@ -220,17 +222,20 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
         auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), d_password.c_str())));
       }
       if (!auth_ok) {
+        L<<Logger::Debug<<"HTTP Request \"" << req.url.path << "\": Authentication failed" << endl;
         throw HttpUnauthorizedException();
       }
     }
 
     HandlerFunction *handler;
     if (!route(req.url.path, req.path_parameters, &handler)) {
+      L<<Logger::Debug<<"HTTP: No route found for \"" << req.url.path << "\"" << endl;
       throw HttpNotFoundException();
     }
 
     try {
       (*handler)(&req, &resp);
+      L<<Logger::Debug<<"HTTP: Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
     }
     catch(PDNSException &e) {
       L<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl;
@@ -247,6 +252,7 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   }
   catch(HttpException &e) {
     resp = e.response();
+    L<<Logger::Debug<<"HTTP: Error result for \"" << req.url.path << "\": " << resp.status << endl;
     string what = YaHTTP::Utility::status2text(resp.status);
     if(req.accept_html) {
       resp.headers["Content-Type"] = "text/html; charset=utf-8";
