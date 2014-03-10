@@ -11482,7 +11482,7 @@ name         IN            A        192.0.2.4
     <sect1 id="configuring-mysql"><title>Example: configuring MySQL</title>
       <para>
 	Connect to MySQL as a user with sufficient privileges and issue the following commands:
-   <programlisting><xi:include  href="../../modules/gmysqlbackend/no-dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+   <programlisting><xi:include  href="../../modules/gmysqlbackend/schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 	
 	Now we have a database and an empty table. PDNS should now be able to launch in monitor mode and display no errors:
 
@@ -17699,14 +17699,10 @@ authoritative).
 	</para>
 	<para>
 	  The default setup conforms to the following schema:
-	  <programlisting><xi:include  href="../../modules/gmysqlbackend/no-dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+	  <programlisting><xi:include  href="../../modules/gmysqlbackend/schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 	</para>
 	<para>
 	  Zone2sql with the --gmysql flag also assumes this layout is in place.
-	</para>
-	<para>
-	To support or migrate to DNSSEC, the following SQL statements must be executed:
-          <programlisting><xi:include  href="../../modules/gmysqlbackend/dnssec.schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>	
 	</para>
 	<para>
 	  For full migration notes, please see <xref linkend="dnssec-migration"/>.
@@ -17734,7 +17730,7 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
       <sect2><title>PostgreSQL specifics</title>
       <para>
 	The default setup conforms to the following schema, which you should add to a PostgreSQL database.
-	<programlisting><xi:include  href="../../modules/gpgsqlbackend/no-dnssec.schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+	<programlisting><xi:include  href="../../modules/gpgsqlbackend/schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       </para>
       <para>
 	Zone2sql with the --gpgsql flag also assumes this layout is in place.
@@ -17742,10 +17738,6 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
       <para>
 	This schema contains all elements needed for master, slave and superslave operation.
       </para>
-      <para>
-      To support DNSSEC or to migrate to DNSSEC, the following statements have to be issued:
-        <programlisting><xi:include  href="../../modules/gpgsqlbackend/dnssec.schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>  
-</para>
 	<para>
 	  For full migration notes, please see <xref linkend="dnssec-migration"/>.
 	</para>
@@ -19290,19 +19282,10 @@ VALUES (:zoneid, :ip)
 	        Before you can use this backend you first have to set it up and fill it with data.	        
 	        The default setup conforms to the following schema:
 	        
-	        <programlisting><xi:include  href="../../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+	        <programlisting><xi:include  href="../../modules/gsqlite3backend/schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 	      </para>
 	      <para>
 	        This schema contains all elements needed for master, slave and superslave operation.	  
-	      </para>
-	      <para>
-		To support DNSSEC, or to migrate to DNSSEC, the following statements must be issued:
-	      </para>
-	      <para>
-		      <programlisting><xi:include  href="../../modules/gsqlite3backend/dnssec.schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-	      </para>
-	      <para>
-		For full migration notes, please see <xref linkend="dnssec-migration"/>.
 	      </para>
 	      <para>
 	        After you have created the database you probably want to fill it with data. 
