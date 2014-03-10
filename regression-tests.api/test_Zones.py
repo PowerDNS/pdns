@@ -492,6 +492,23 @@ class AuthZones(ApiTestCase):
             u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa'
         }])
 
+    def test_SearchRRExactZone(self):
+        name = unique_zone_name()
+        self.create_zone(name=name)
+        r = self.session.get(self.url("/servers/localhost/search-data?q=" + name))
+        self.assertSuccessJson(r)
+        print r.json()
+        self.assertEquals(r.json(), [{u'type': u'zone', u'name': name}])
+
+    def test_SearchRRSubstring(self):
+        name = 'search-rr-zone.name'
+        self.create_zone(name=name)
+        r = self.session.get(self.url("/servers/localhost/search-data?q=rr-zone"))
+        self.assertSuccessJson(r)
+        print r.json()
+        # should return zone, SOA, ns1, ns2
+        self.assertEquals(len(r.json()), 4)
+
 
 @unittest.skipIf(not isRecursor(), "Not applicable")
 class RecursorZones(ApiTestCase):

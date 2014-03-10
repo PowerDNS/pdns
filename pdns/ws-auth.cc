@@ -725,6 +725,76 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
   resp->body = "{}";
 }
 
+static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  string q = req->parameters["q"];
+  if (q.empty())
+    throw ApiException("Query q can't be blank");
+
+  UeberBackend B;
+
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains, true); // incl. disabled
+
+  Document doc;
+  doc.SetArray();
+
+  DNSResourceRecord rr;
+  Comment comment;
+
+  BOOST_FOREACH(const DomainInfo& di, domains) {
+    if (di.zone.find(q) != string::npos) {
+      Value object;
+      object.SetObject();
+      object.AddMember("type", "zone", doc.GetAllocator());
+      Value jname(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("name", jname, doc.GetAllocator());
+      doc.PushBack(object, doc.GetAllocator());
+    }
+
+    // if zone name is an exact match, don't bother with returning all records/comments in it
+    if (di.zone == q) {
+      continue;
+    }
+
+    di.backend->list(di.zone, di.id, true); // incl. disabled
+    while(di.backend->get(rr)) {
+      if (!rr.qtype.getCode())
+        continue; // skip empty non-terminals
+
+      if (rr.qname.find(q) == string::npos && rr.content.find(q) == string::npos)
+        continue;
+
+      Value object;
+      object.SetObject();
+      object.AddMember("type", "record", doc.GetAllocator());
+      Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("name", jname, doc.GetAllocator());
+      Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("content", jcontent, doc.GetAllocator());
+      doc.PushBack(object, doc.GetAllocator());
+    }
+
+    di.backend->listComments(di.id);
+    while(di.backend->getComment(comment)) {
+      if (comment.qname.find(q) == string::npos && comment.content.find(q) == string::npos)
+        continue;
+
+      Value object;
+      object.SetObject();
+      object.AddMember("type", "comment", doc.GetAllocator());
+      Value jname(comment.qname.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("name", jname, doc.GetAllocator());
+      Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("content", jcontent, doc.GetAllocator());
+      doc.PushBack(object, doc.GetAllocator());
+    }
+  }
+  resp->setBody(doc);
+}
+
 void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
@@ -825,6 +895,7 @@ void AuthWebServer::webThread()
     if(::arg().mustDo("experimental-json-interface")) {
       d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+      d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
