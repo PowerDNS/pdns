@@ -19864,7 +19864,7 @@ VALUES (:zoneid, :ip)
 	The Lua backend is a full service that can allows a Lua script to provide answers to DNS queries.
 	</para>
       <para>
-	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/luabackend/README">here</ulink>, or in
+	More details can be found <ulink url="https://github.com/PowerDNS/pdns/blob/master/modules/luabackend/README">here</ulink>, or in
 	<filename>modules/luabackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
