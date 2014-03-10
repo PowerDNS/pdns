@@ -2057,6 +2057,7 @@ int main(int argc, char **argv)
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
+    ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";
     ::arg().set("chroot","switch to chroot jail")="";
     ::arg().set("setgid","If set, change group id to this gid for more security")="";
@@ -2158,6 +2159,12 @@ int main(int argc, char **argv)
       showBuildConfiguration();
       exit(99);
     }
+
+    Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+    if (logUrgency < Logger::Error)
+      logUrgency = Logger::Error;
+    L.setLoglevel(logUrgency);
+    L.toConsole(logUrgency);
 
     serviceMain(argc, argv);
   }
