@@ -69,9 +69,9 @@ script:
  - travis_retry ./start-test-stop 5300 remotebackend-http-dnssec
  - travis_retry ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry ./start-test-stop 5300 remotebackend-zeromq-dnssec
- - ./start-test-stop 5300 gsqlite3-nodnssec
- - ./start-test-stop 5300 gsqlite3
- - ./start-test-stop 5300 gsqlite3-nsec3
+ - ./start-test-stop 5300 gsqlite3-nodnssec-both
+ - ./start-test-stop 5300 gsqlite3-both
+ - ./start-test-stop 5300 gsqlite3-nsec3-both
  - ./start-test-stop 5300 mydns
  - ./start-test-stop 5300 tinydns
  - ./start-test-stop 5300 opendbx-sqlite3
