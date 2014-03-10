@@ -229,7 +229,21 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
       throw HttpNotFoundException();
     }
 
-    (*handler)(&req, &resp);
+    try {
+      (*handler)(&req, &resp);
+    }
+    catch(PDNSException &e) {
+      L<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl;
+      throw HttpInternalServerErrorException();
+    }
+    catch(std::exception &e) {
+      L<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": STL Exception: " << e.what() << endl;
+      throw HttpInternalServerErrorException();
+    }
+    catch(...) {
+      L<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": Unknown Exception" << endl;
+      throw HttpInternalServerErrorException();
+    }
   }
   catch(HttpException &e) {
     resp = e.response();

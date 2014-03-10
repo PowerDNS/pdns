@@ -94,6 +94,11 @@ public:
   HttpMethodNotAllowedException() : HttpException(405) { };
 };
 
+class HttpInternalServerErrorException : public HttpException {
+public:
+  HttpInternalServerErrorException() : HttpException(500) { };
+};
+
 class ApiException : public runtime_error
 {
 public:
