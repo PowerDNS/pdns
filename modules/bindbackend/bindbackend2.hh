@@ -152,7 +152,7 @@ public:
 
   bool d_loaded;  //!< if a domain is loaded
   string d_status; //!< message describing status of a domain, for human consumption
-  bool d_checknow; //!< if this domain has been flagged for a check
+  mutable bool d_checknow; //!< if this domain has been flagged for a check
   time_t d_ctime;  //!< last known ctime of the file on disk
   string d_name;   //!< actual name of the domain
   string d_filename; //!< full absolute filename of the zone on disk
@@ -171,6 +171,9 @@ private:
 
 class SSQLite3;
 class NSEC3PARAMRecordContent;
+
+struct NameTag
+{};
 
 class Bind2Backend : public DNSBackend
 {
@@ -219,7 +222,7 @@ public:
 
   typedef multi_index_container < BB2DomainInfo , 
 				  indexed_by < ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id> >,
-					       ordered_unique<member<BB2DomainInfo, std::string, &BB2DomainInfo::d_name>, CIStringCompare >
+					       ordered_unique<tag<NameTag>, member<BB2DomainInfo, std::string, &BB2DomainInfo::d_name>, CIStringCompare >
 					       > > state_t;
   static state_t s_state;
   static pthread_rwlock_t s_state_lock;
@@ -235,11 +238,10 @@ public:
   static pthread_mutex_t s_supermaster_config_lock;
   bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
 
-
 private:
   void setupDNSSEC();
   static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
-  static bool safePutBBDomainInfo(int id, const BB2DomainInfo& bbd);
+  static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
   static bool safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
@@ -281,7 +283,7 @@ private:
 
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
 
-  BB2DomainInfo& createDomainEntry(const string &domain, const string &filename);
+  BB2DomainInfo createDomainEntry(const string &domain, const string &filename);
 
   int d_transaction_id;
   string d_transaction_tmpname;
