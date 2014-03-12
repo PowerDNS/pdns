@@ -76,13 +76,14 @@ void BB2DomainInfo::setCheckInterval(time_t seconds)
 
 bool BB2DomainInfo::current()
 {
-  if(d_checknow)
+  if(d_checknow) {
     return false;
+  }
 
   if(!d_checkinterval) 
     return true;
 
-  if(time(0) - d_lastcheck < d_checkinterval)
+  if(time(0) - d_lastcheck < d_checkinterval) 
     return true;
   
   if(d_filename.empty())
@@ -183,7 +184,7 @@ bool Bind2Backend::safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* b
 void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
 {
   WriteLock rl(&s_state_lock);
-  s_state.insert(bbd);
+  replacing_insert(s_state, bbd);
 }
 
 bool Bind2Backend::commitTransaction()
@@ -197,8 +198,7 @@ bool Bind2Backend::commitTransaction()
   if(safeGetBBDomainInfo(d_transaction_id, &bbd)) {
     if(rename(d_transaction_tmpname.c_str(), bbd.d_filename.c_str())<0)
     throw DBException("Unable to commit (rename to: '" + bbd.d_filename+"') AXFRed zone: "+stringerror());
-    queueReload(&bbd);
-    safePutBBDomainInfo(bbd);
+    queueReloadAndStore(bbd.d_id);
   }
 
   d_transaction_id=0;
@@ -389,10 +389,10 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
 {
   NSEC3PARAMRecordContent ns3pr;
   bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
+
+  bbd->d_records = shared_ptr<recordstorage_t>(new recordstorage_t());
         
   ZoneParserTNG zpt(bbd->d_filename, bbd->d_name, s_binddirectory);
-  bbd->d_records.getWRITABLE().reset();
-
   DNSResourceRecord rr;
   string hashed;
   while(zpt.get(rr)) { 
@@ -413,8 +413,8 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
 
   bbd->setCtime();
   bbd->d_loaded=true; 
+  bbd->d_checknow=false;
   bbd->d_status="parsed into memory at "+nowTime();
-  safePutBBDomainInfo(*bbd);
 }
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
@@ -481,9 +481,8 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
     BB2DomainInfo bbd;
     if(safeGetBBDomainInfo(*i, &bbd)) {
       Bind2Backend bb2;
-      bb2.queueReload(&bbd);
+      bb2.queueReloadAndStore(bbd.d_id);
       ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
-      safePutBBDomainInfo(bbd);
     }
     else
       ret<< *i << " no such domain\n";
@@ -754,10 +753,8 @@ void Bind2Backend::loadConfig(string* status)
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 
           try {
-            // we need to allocate a new vector so we don't kill the original, which is still in use!
-            bbd.d_records=shared_ptr<recordstorage_t> (new recordstorage_t()); 
-
             parseZoneFile(&bbd);
+	    safePutBBDomainInfo(bbd);
           }
           catch(PDNSException &ae) {
             ostringstream msg;
@@ -813,26 +810,29 @@ void Bind2Backend::loadConfig(string* status)
   }
 }
 
-void Bind2Backend::queueReload(BB2DomainInfo *bbd)
+void Bind2Backend::queueReloadAndStore(unsigned int id)
 {
+  BB2DomainInfo bbold;
   try {
-    BB2DomainInfo bbold;
-    safeGetBBDomainInfo(bbd->d_id, &bbold);
-    shared_ptr<recordstorage_t > newrecords(new recordstorage_t);
-    parseZoneFile(&bbold);
 
+    if(!safeGetBBDomainInfo(id, &bbold))
+      return;
+    parseZoneFile(&bbold);
+    bbold.d_checknow=false;
     safePutBBDomainInfo(bbold);
-    L<<Logger::Warning<<"Zone '"<<bbd->d_name<<"' ("<<bbd->d_filename<<") reloaded"<<endl;
+    L<<Logger::Warning<<"Zone '"<<bbold.d_name<<"' ("<<bbold.d_filename<<") reloaded"<<endl;
   }
   catch(PDNSException &ae) {
     ostringstream msg;
-    msg<<" error at "+nowTime()+" parsing '"<<bbd->d_name<<"' from file '"<<bbd->d_filename<<"': "<<ae.reason;
-    bbd->d_status=msg.str();
+    msg<<" error at "+nowTime()+" parsing '"<<bbold.d_name<<"' from file '"<<bbold.d_filename<<"': "<<ae.reason;
+    bbold.d_status=msg.str();
+    safePutBBDomainInfo(bbold);
   }
   catch(std::exception &ae) {
     ostringstream msg;
-    msg<<" error at "+nowTime()+" parsing '"<<bbd->d_name<<"' from file '"<<bbd->d_filename<<"': "<<ae.what();
-    bbd->d_status=msg.str();
+    msg<<" error at "+nowTime()+" parsing '"<<bbold.d_name<<"' from file '"<<bbold.d_filename<<"': "<<ae.what();
+    bbold.d_status=msg.str();
+    safePutBBDomainInfo(bbold);
   }
 }
 
@@ -1019,8 +1019,7 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
     
   if(!bbd.current()) {
     L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
-    queueReload(&bbd);  // how can this be safe - ok, everybody should have their own reference counted copy of 'records'
-    safePutBBDomainInfo(bbd);
+    queueReloadAndStore(bbd.d_id);
     throw DBException("Zone for '"+bbd.d_name+"' in '"+bbd.d_filename+"' being reloaded"); // if we don't throw here, we crash for some reason
   }
 

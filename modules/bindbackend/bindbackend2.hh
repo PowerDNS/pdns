@@ -291,7 +291,7 @@ private:
   ofstream *d_of;
   handle d_handle;
 
-  void queueReload(BB2DomainInfo *bbd);
+  void queueReloadAndStore(unsigned int id);
   bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
