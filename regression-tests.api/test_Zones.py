@@ -498,7 +498,7 @@ class AuthZones(ApiTestCase):
         r = self.session.get(self.url("/servers/localhost/search-data?q=" + name))
         self.assertSuccessJson(r)
         print r.json()
-        self.assertEquals(r.json(), [{u'type': u'zone', u'name': name}])
+        self.assertEquals(r.json(), [{u'type': u'zone', u'name': name, u'zone_id': name+'.'}])
 
     def test_SearchRRSubstring(self):
         name = 'search-rr-zone.name'
