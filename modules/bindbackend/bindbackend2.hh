@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "pdns/lock.hh"
 #include "pdns/misc.hh"
 #include "pdns/dnsbackend.hh"
 
@@ -90,6 +91,55 @@ typedef multi_index_container<
               >
 > recordstorage_t;
 
+template <typename T>
+class LookButDontTouch //  : public boost::noncopyable
+{
+public:
+  LookButDontTouch() 
+  {
+    pthread_mutex_init(&d_lock, 0);
+    pthread_mutex_init(&d_swaplock, 0);
+  }
+  LookButDontTouch(shared_ptr<T> records) : d_records(records)
+  {
+    pthread_mutex_init(&d_lock, 0);
+    pthread_mutex_init(&d_swaplock, 0);
+  }
+
+  shared_ptr<const T> get()
+  {
+    shared_ptr<const T> ret;
+    {
+      Lock l(&d_lock);
+      ret = d_records;
+    }
+    return ret;
+  }
+
+  shared_ptr<T> getWRITABLE()
+  {
+    shared_ptr<T> ret;
+    {
+      Lock l(&d_lock);
+      ret = d_records;
+    }
+    return ret;
+  }
+
+
+  void swap(shared_ptr<T> records)
+  {
+    Lock l(&d_lock);
+    Lock l2(&d_swaplock);
+    d_records.swap(records);
+  }
+  pthread_mutex_t d_lock;
+  pthread_mutex_t d_swaplock;
+private:
+  shared_ptr<T> d_records;
+};
+
+
 /** Class which describes all metadata of a domain for storage by the Bind2Backend, and also contains a pointer to a vector of Bind2DNSRecord's */
 class BB2DomainInfo
 {
@@ -113,7 +163,7 @@ public:
 
   uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
 
-  shared_ptr<recordstorage_t > d_records;  //!< the actual records belonging to this domain
+  LookButDontTouch<recordstorage_t> d_records;  //!< the actual records belonging to this domain
 private:
   time_t getCtime();
   time_t d_checkinterval;
@@ -167,17 +217,15 @@ public:
   // end of DNSSEC 
 
 
-  typedef map<string, int, CIStringCompare> name_id_map_t;
-  typedef map<uint32_t, BB2DomainInfo> id_zone_map_t;
+  typedef multi_index_container < BB2DomainInfo , 
+				  indexed_by < ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id> >,
+					       ordered_unique<member<BB2DomainInfo, std::string, &BB2DomainInfo::d_name>, CIStringCompare >
+					       > > state_t;
+  static state_t s_state;
+  static pthread_rwlock_t s_state_lock;
 
-  struct State : public boost::noncopyable
-  {
-    name_id_map_t name_id_map;  //!< convert a name to a domain id
-    id_zone_map_t id_zone_map;
-  };
-
-  void parseZoneFile(shared_ptr<State> staging, BB2DomainInfo *bbd);
-  static void insert(shared_ptr<State> stage, int id, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string(), bool *auth=0);
+  void parseZoneFile(BB2DomainInfo *bbd);
+  static void insert(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -190,6 +238,10 @@ public:
 
 private:
   void setupDNSSEC();
+  static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
+  static bool safePutBBDomainInfo(int id, const BB2DomainInfo& bbd);
+  static bool safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd);
+  bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);
   class handle
@@ -200,9 +252,8 @@ private:
     
     handle();
 
-    shared_ptr<recordstorage_t > d_records;
+    shared_ptr<const recordstorage_t > d_records;
     recordstorage_t::const_iterator d_iter, d_end_iter;
-
     recordstorage_t::const_iterator d_qname_iter;
     recordstorage_t::const_iterator d_qname_end;
 
@@ -222,11 +273,6 @@ private:
     handle(const handle &);
   };
 
-
-  static shared_ptr<State> s_state;
-  static pthread_mutex_t s_state_lock;               //!< lock protecting ???
-  static pthread_mutex_t s_state_swap_lock;               
-  static shared_ptr<State> getState();
   static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
   static bool s_ignore_broken_records;
 
@@ -251,7 +297,7 @@ private:
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
   static void fixupAuth(shared_ptr<recordstorage_t> records);
-  static void doEmptyNonTerminals(shared_ptr<State> stage, int id, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
+  static void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
   void loadConfig(string *status=0);
   static void nukeZoneRecords(BB2DomainInfo *bbd);
 };
