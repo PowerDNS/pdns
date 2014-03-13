@@ -22,7 +22,6 @@
 
 #include <errno.h>
 #include <string>
-#include <map>
 #include <set>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -30,7 +29,6 @@
 #include <fstream>
 #include <fcntl.h>
 #include <sstream>
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include "pdns/dnsseckeeper.hh"
@@ -110,6 +108,35 @@ void BB2DomainInfo::setCtime()
   d_ctime=buf.st_ctime;
 }
 
+bool Bind2Backend::safeGetBBDomainInfo(int id, BB2DomainInfo* bbd)
+{
+  ReadLock rl(&s_state_lock);
+  state_t::const_iterator iter = s_state.find(id);
+  if(iter == s_state.end())
+    return false;
+  *bbd=*iter;
+  return true;
+}
+
+bool Bind2Backend::safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd)
+{
+  ReadLock rl(&s_state_lock);
+  typedef state_t::index<NameTag>::type nameindex_t;
+  nameindex_t& nameindex = boost::multi_index::get<NameTag>(s_state);
+
+  nameindex_t::const_iterator iter = nameindex.find(name);
+  if(iter == nameindex.end())
+    return false;
+  *bbd=*iter;
+  return true;
+}
+
+void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
+{
+  WriteLock rl(&s_state_lock);
+  replacing_insert(s_state, bbd);
+}
+
 void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
 {
   BB2DomainInfo bbd;
@@ -156,35 +183,6 @@ bool Bind2Backend::startTransaction(const string &qname, int id)
     return true;
   }
   return false;
-}
-
-bool Bind2Backend::safeGetBBDomainInfo(int id, BB2DomainInfo* bbd)
-{
-  ReadLock rl(&s_state_lock);
-  state_t::const_iterator iter = s_state.find(id);
-  if(iter == s_state.end())
-    return false;
-  *bbd=*iter;
-  return true;
-}
-
-bool Bind2Backend::safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd)
-{
-  ReadLock rl(&s_state_lock);
-  typedef state_t::index<NameTag>::type nameindex_t;
-  nameindex_t& nameindex = boost::multi_index::get<NameTag>(s_state);
-
-  nameindex_t::const_iterator iter = nameindex.find(name);
-  if(iter == nameindex.end())
-    return false;
-  *bbd=*iter;
-  return true;
-}
-
-void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
-{
-  WriteLock rl(&s_state_lock);
-  replacing_insert(s_state, bbd);
 }
 
 bool Bind2Backend::commitTransaction()
@@ -370,11 +368,11 @@ bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 
 void Bind2Backend::alsoNotifies(const string &domain, set<string> *ips)
 {
-  ReadLock rl(&s_state_lock);
   // combine global list with local list
   for(set<string>::iterator i = this->alsoNotify.begin(); i != this->alsoNotify.end(); i++) {
     (*ips).insert(*i);
   }
+  ReadLock rl(&s_state_lock);  
   for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
     if(pdns_iequals(i->d_name,domain)) {
       for(set<string>::iterator it = i->d_also_notify.begin(); it != i->d_also_notify.end(); it++) {
@@ -385,7 +383,8 @@ void Bind2Backend::alsoNotifies(const string &domain, set<string> *ips)
   }   
 }
 
-void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
+// only parses, does NOT add to s_state!
+void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd) 
 {
   NSEC3PARAMRecordContent ns3pr;
   bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
@@ -405,7 +404,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
       else
         hashed="";
     }
-    insert(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
+    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
   }
 
   fixupAuth(bbd->d_records.getWRITABLE());
@@ -419,7 +418,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insert(BB2DomainInfo& bb2, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed, bool *auth)
+void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed, bool *auth)
 {
   Bind2DNSRecord bdr;
   shared_ptr<recordstorage_t> records = bb2.d_records.getWRITABLE();
@@ -522,12 +521,11 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
 
 string Bind2Backend::DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  ReadLock rl(&s_state_lock);
   ostringstream ret;
+  ReadLock rl(&s_state_lock);
   for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
     if(!i->d_loaded)
       ret<<i->d_name<<"\t"<<i->d_status<<endl;
-        
   }
   return ret.str();
 }
@@ -682,7 +680,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
     rr.qname=nt.first+"."+bbd.d_name+".";
     if(nsec3zone)
       hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-    insert(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, &nt.second);
+    insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, &nt.second);
   }
 }
 
@@ -814,7 +812,6 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
 {
   BB2DomainInfo bbold;
   try {
-
     if(!safeGetBBDomainInfo(id, &bbold))
       return;
     parseZoneFile(&bbold);

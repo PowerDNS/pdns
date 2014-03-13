@@ -184,7 +184,7 @@ public:
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
-  // DNSSEC
+   // DNSSEC
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const string &target, int id, bool include_disabled=false);
@@ -197,7 +197,6 @@ public:
   void setFresh(uint32_t domain_id);
   void setNotified(uint32_t id, uint32_t serial);
   bool startTransaction(const string &qname, int id);
-  //  bool Bind2Backend::stopTransaction(const string &qname, int id);
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
   bool commitTransaction();
   bool abortTransaction();
@@ -228,7 +227,7 @@ public:
   static pthread_rwlock_t s_state_lock;
 
   void parseZoneFile(BB2DomainInfo *bbd);
-  static void insert(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string(), bool *auth=0);
+  void insertRecord(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);
@@ -299,7 +298,7 @@ private:
   static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
   static void fixupAuth(shared_ptr<recordstorage_t> records);
-  static void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
+  void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
   void loadConfig(string *status=0);
   static void nukeZoneRecords(BB2DomainInfo *bbd);
 };
