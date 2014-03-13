@@ -283,7 +283,7 @@ private:
 
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
 
-  BB2DomainInfo createDomainEntry(const string &domain, const string &filename);
+  BB2DomainInfo createDomainEntry(const string &domain, const string &filename); //!< does not insert in s_state
 
   int d_transaction_id;
   string d_transaction_tmpname;

@@ -49,13 +49,30 @@
 #include "pdns/lock.hh"
 #include "pdns/namespaces.hh"
 
+/* 
+   All instances of this backend share one s_state, which is indexed by zone name and zone id.
+   The s_state is protected by a read/write lock, and the goal it to only interact with it briefly.
+   When a query comes in, we take a read lock and COPY the best zone to answer from s_state (BB2DomainInfo object)
+   All answers are served from this copy.
+
+   To interact with s_state, use safeGetBBDomainInfo (search on name or id), safePutBBDomainInfo (to update)
+   or safeRemoveBBDomainInfo. These all lock as they should.
+
+   Several functions need to traverse s_state to get data for the rest of PowerDNS. When doing so,
+   you need to manually take the s_state_lock (read).
+
+   Parsing zones happens with parseZone(), which fills a BB2DomainInfo object. This can then be stored with safePutBBDomainInfo.
+
+   Finally, the BB2DomainInfo contains all records as a LookButDontTouch object. This makes sure you only look, but don't touch, since
+   the records might be in use in other places.
+*/
 
 Bind2Backend::state_t Bind2Backend::s_state;
 int Bind2Backend::s_first=1;
 bool Bind2Backend::s_ignore_broken_records=false;
 
 pthread_rwlock_t Bind2Backend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
-pthread_mutex_t Bind2Backend::s_supermaster_config_lock=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t Bind2Backend::s_supermaster_config_lock=PTHREAD_MUTEX_INITIALIZER; // protects writes to config file
 pthread_mutex_t Bind2Backend::s_startup_lock=PTHREAD_MUTEX_INITIALIZER;
 string Bind2Backend::s_binddirectory;  
 
@@ -143,7 +160,6 @@ bool Bind2Backend::safeRemoveBBDomainInfo(const std::string& name)
   nameindex.erase(iter);
   return true;
 }
-
 
 void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
 {
@@ -348,7 +364,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
     catch(...){}
     sd.serial=soadata.serial;
-    if(sd.last_check+soadata.refresh<(unsigned int)time(0))
+    if(sd.last_check+soadata.refresh < (unsigned int)time(0))
       unfreshDomains->push_back(sd);    
   }
 }
@@ -554,8 +570,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
   BB2DomainInfo bbd;
   if(safeGetBBDomainInfo(domainname, &bbd))
     return "Already loaded";
-
-  Bind2Backend bb2; // XXX do we need this?
+  Bind2Backend bb2; // createdomainentry needs access to our configuration
   bbd=bb2.createDomainEntry(domainname, filename);
   bbd.d_filename=filename;
   bbd.d_checknow=true;
@@ -772,7 +787,7 @@ void Bind2Backend::loadConfig(string* status)
 
           try {
             parseZoneFile(&bbd);
-	    safePutBBDomainInfo(bbd);
+
           }
           catch(PDNSException &ae) {
             ostringstream msg;
@@ -795,6 +810,7 @@ void Bind2Backend::loadConfig(string* status)
             L<<Logger::Warning<<d_logprefix<<msg.str()<<endl;
             rejected++;
           }
+	  safePutBBDomainInfo(bbd);
         }
       }
 
@@ -1247,8 +1263,6 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const string &domain, const string
   bbd.d_name = domain;
   bbd.setCheckInterval(getArgAsNum("check-interval"));
   bbd.d_filename = filename;
-  
-  safePutBBDomainInfo(bbd);
   return bbd;
 }
 
