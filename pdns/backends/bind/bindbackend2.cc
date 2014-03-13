@@ -428,7 +428,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
 
     if(nsec3zone) {
       if(rr.qtype.getCode() != QType::NSEC3 && rr.qtype.getCode() != QType::RRSIG)
-        hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+        hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
       else
         hashed="";
     }
@@ -700,7 +700,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   {
     rr.qname=nt.first+"."+bbd.d_name+".";
     if(nsec3zone)
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+      hashed=toLower(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname)));
     insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, &nt.second);
   }
 }
