@@ -474,8 +474,8 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const 
   bdr.content=content; 
   bdr.nsec3hash = hashed;
   
-  if (auth) // Set auth on empty non-terminals
-    bdr.auth=*auth;
+  if (!qtype.getCode()) 
+    bdr.auth=true;
 
   if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
     prio=atoi(bdr.content.c_str());
