@@ -745,12 +745,16 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   Comment comment;
 
   BOOST_FOREACH(const DomainInfo& di, domains) {
+    string zoneId = apiZoneNameToId(di.zone);
+
     if (di.zone.find(q) != string::npos) {
       Value object;
       object.SetObject();
       object.AddMember("type", "zone", doc.GetAllocator());
-      Value jname(di.zone.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jname, doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("name", jzoneName, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
 
@@ -770,6 +774,10 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       Value object;
       object.SetObject();
       object.AddMember("type", "record", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
       Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
       Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
@@ -785,6 +793,10 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       Value object;
       object.SetObject();
       object.AddMember("type", "comment", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
       Value jname(comment.qname.c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
       Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
