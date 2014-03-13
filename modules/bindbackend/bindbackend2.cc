@@ -772,13 +772,13 @@ void Bind2Backend::loadConfig(string* status)
         bbd.d_filename=i->filename;
         bbd.d_masters=i->masters;
         bbd.d_also_notify=i->alsoNotify;
-        
+
+        newnames.insert(bbd.d_name);
         if(filenameChanged || !bbd.d_loaded || !bbd.current()) {
           L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 
           try {
             parseZoneFile(&bbd);
-
           }
           catch(PDNSException &ae) {
             ostringstream msg;
@@ -802,21 +802,13 @@ void Bind2Backend::loadConfig(string* status)
             rejected++;
           }
 	  safePutBBDomainInfo(bbd);
+	  
         }
       }
-
-    // figure out which domains were new and which vanished
-    int remdomains=0;
-    {
-      ReadLock rl(&s_state_lock);
-      BOOST_FOREACH(const BB2DomainInfo& bbd, s_state) {
-        newnames.insert(bbd.d_name);
-      }
-    }
     vector<string> diff;
 
     set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
-    remdomains=diff.size();
+    unsigned int remdomains=diff.size();
     
     BOOST_FOREACH(const std::string& name, diff) {
       safeRemoveBBDomainInfo(name);
