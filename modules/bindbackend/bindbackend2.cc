@@ -614,7 +614,7 @@ void Bind2Backend::reload()
 {
   WriteLock rwl(&s_state_lock);
   for(state_t::iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    i->d_checknow=true;
+    i->d_checknow=true; // being a bit cheeky here, don't index state_t on this (mutable)
   }
 }
 
