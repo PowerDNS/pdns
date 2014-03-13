@@ -242,6 +242,7 @@ private:
   static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
   static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
   static bool safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd);
+  static bool safeRemoveBBDomainInfo(const std::string& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);

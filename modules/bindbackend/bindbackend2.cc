@@ -131,6 +131,20 @@ bool Bind2Backend::safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* b
   return true;
 }
 
+bool Bind2Backend::safeRemoveBBDomainInfo(const std::string& name)
+{
+  WriteLock rl(&s_state_lock);
+  typedef state_t::index<NameTag>::type nameindex_t;
+  nameindex_t& nameindex = boost::multi_index::get<NameTag>(s_state);
+
+  nameindex_t::iterator iter = nameindex.find(name);
+  if(iter == nameindex.end())
+    return false;
+  nameindex.erase(iter);
+  return true;
+}
+
+
 void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
 {
   WriteLock rl(&s_state_lock);
@@ -707,10 +721,16 @@ void Bind2Backend::loadConfig(string* status)
 
     L<<Logger::Warning<<d_logprefix<<" Parsing "<<domains.size()<<" domain(s), will report when done"<<endl;
     
+    set<string> oldnames, newnames;
+    {
+      ReadLock rl(&s_state_lock);
+      BOOST_FOREACH(const BB2DomainInfo& bbd, s_state) {
+        oldnames.insert(bbd.d_name);
+      }
+    }
     int rejected=0;
     int newdomains=0;
 
-    //    random_shuffle(domains.begin(), domains.end());
     struct stat st;
       
     for(vector<BindDomainInfo>::iterator i=domains.begin(); i!=domains.end(); ++i) 
@@ -780,24 +800,25 @@ void Bind2Backend::loadConfig(string* status)
 
     // figure out which domains were new and which vanished
     int remdomains=0;
-    set<string> oldnames, newnames;
-#if 0
-    for(state_t::const_iterator j=state.get()->id_zone_map.begin();j != s_state.get()->id_zone_map.end();++j) {
-      oldnames.insert(j->second.d_name);
+    {
+      ReadLock rl(&s_state_lock);
+      BOOST_FOREACH(const BB2DomainInfo& bbd, s_state) {
+        newnames.insert(bbd.d_name);
+      }
     }
-    for(id_zone_map_t::const_iterator j=staging->id_zone_map.begin(); j!= staging->id_zone_map.end(); ++j) {
-      newnames.insert(j->second.d_name);
-    }
-#endif
     vector<string> diff;
 
     set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
     remdomains=diff.size();
+    
+    BOOST_FOREACH(const std::string& name, diff) {
+      safeRemoveBBDomainInfo(name);
+    }
 
     // count number of entirely new domains
-    vector<string> diff2;
-    set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff2));
-    newdomains=diff2.size();
+    diff.clear();
+    set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff));
+    newdomains=diff.size();
 
     ostringstream msg;
     msg<<" Done parsing domains, "<<rejected<<" rejected, "<<newdomains<<" new, "<<remdomains<<" removed"; 
