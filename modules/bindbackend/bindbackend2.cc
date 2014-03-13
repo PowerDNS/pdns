@@ -371,29 +371,27 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
 bool Bind2Backend::getDomainInfo(const string &domain, DomainInfo &di)
 {
-  ReadLock rl(&s_state_lock);
-  for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(pdns_iequals(i->d_name,domain)) {
-      di.id=i->d_id;
-      di.zone=domain;
-      di.masters=i->d_masters;
-      di.last_check=i->d_lastcheck;
-      di.backend=this;
-      di.kind=i->d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave;
-      di.serial=0;
-      try {
-        SOAData sd;
-        sd.serial=0;
-        
-        getSOA(i->d_name,sd); // we might not *have* a SOA yet
-        di.serial=sd.serial;
-      }
-      catch(...){}
+  BB2DomainInfo bbd;
+  if(!safeGetBBDomainInfo(domain, &bbd))
+    return false;
 
-      return true;
-    }
+  di.id=bbd.d_id;
+  di.zone=domain;
+  di.masters=bbd.d_masters;
+  di.last_check=bbd.d_lastcheck;
+  di.backend=this;
+  di.kind=bbd.d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave;
+  di.serial=0;
+  try {
+    SOAData sd;
+    sd.serial=0;
+    
+    getSOA(bbd.d_name,sd); // we might not *have* a SOA yet
+    di.serial=sd.serial;
   }
-  return false;
+  catch(...){}
+  
+  return true;
 }
 
 void Bind2Backend::alsoNotifies(const string &domain, set<string> *ips)
@@ -436,10 +434,8 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
     }
     insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
   }
-
   fixupAuth(bbd->d_records.getWRITABLE());
   doEmptyNonTerminals(*bbd, nsec3zone, ns3pr);
-
   bbd->setCtime();
   bbd->d_loaded=true; 
   bbd->d_checknow=false;
@@ -453,7 +449,7 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const 
   Bind2DNSRecord bdr;
   shared_ptr<recordstorage_t> records = bb2.d_records.getWRITABLE();
   bdr.qname=toLowerCanonic(qnameu);
-  //cerr << "qname = " << bdr.qname << ", d_name = " << bb2.d_name << endl;
+
   if(bb2.d_name.empty())
     ;
   else if(dottedEndsOn(bdr.qname, bb2.d_name))
@@ -473,14 +469,10 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const 
   if(!records->empty() && bdr.qname==boost::prior(records->end())->qname)
     bdr.qname=boost::prior(records->end())->qname;
 
-  //  cerr<<"Before reverse: '"<<bdr.qname<<"', ";
   bdr.qname=labelReverse(bdr.qname);
-  //  cerr<<"After: '"<<bdr.qname<<"'"<<endl;
-
   bdr.qtype=qtype.getCode();
   bdr.content=content; 
   bdr.nsec3hash = hashed;
-  // cerr<<"qname '"<<bdr.qname<<"' nsec3hash '"<<hashed<<"' qtype '"<<qtype.getName()<<"'"<<endl;
   
   if (auth) // Set auth on empty non-terminals
     bdr.auth=*auth;
@@ -713,7 +705,6 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   }
 }
 
-// XXX not idempotent right now, won't ever delete a zone!
 void Bind2Backend::loadConfig(string* status)
 {
   static int domain_id=1;
