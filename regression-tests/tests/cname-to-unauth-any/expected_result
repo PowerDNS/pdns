@@ -24,7 +24,7 @@
 2	i.root-servers.net.	IN	A	3600000	192.36.148.17
 2	j.root-servers.net.	IN	A	3600000	192.58.128.30
 2	k.root-servers.net.	IN	A	3600000	193.0.14.129
-2	l.root-servers.net.	IN	A	3600000	198.32.64.12
+2	l.root-servers.net.	IN	A	3600000	199.7.83.42
 2	m.root-servers.net.	IN	A	3600000	202.12.27.33
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='unauth.example.com.', qtype=ANY
