@@ -77,6 +77,7 @@ try
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
+    ("load-stats,l", po::value<string>()->default_value(""), "if set, emit per-second load statistics (questions, answers, outstanding)")
     ("write-failures,w", po::value<string>()->default_value(""), "if set, write weird packets to this PCAP file")
     ("verbose,v", "be verbose");
     
@@ -326,15 +327,18 @@ try
         lastperc=sum*100.0/totpackets;
       }
   }
-
-  //  ofstream load("load");
-  //  BOOST_FOREACH(pcounts_t::value_type& val, pcounts) {
-  //    load<<val.first<<'\t'<<val.second.questions<<'\t'<<val.second.answers<<'\t'<<val.second.outstanding<<'\n';
-  //    
-  //  }
-  
   if(totpackets)
     cout<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
+
+  if(!g_vm["load-stats"].as<string>().empty()) {
+    ofstream load(g_vm["load-stats"].as<string>().c_str());
+    if(!load) 
+      throw runtime_error("Error writing load statistics to "+g_vm["load-stats"].as<string>());
+    BOOST_FOREACH(pcounts_t::value_type& val, pcounts) {
+      load<<val.first<<'\t'<<val.second.questions<<'\t'<<val.second.answers<<'\t'<<val.second.outstanding<<'\n';  
+    }
+  }
+  
 }
 catch(std::exception& e)
 {
