@@ -132,19 +132,16 @@ ComboAddress PcapPacketReader::getDest() const
   return ret;
 }
 
-
 PcapPacketWriter::PcapPacketWriter(const string& fname, PcapPacketReader& ppr) : d_fname(fname), d_ppr(ppr)
 {
   d_fp=fopen(fname.c_str(),"w");
   if(!d_fp)
     unixDie("Unable to open file");
   
-  
   int flags=fcntl(fileno(d_fp),F_GETFL,0);
   fcntl(fileno(d_fp), F_SETFL,flags&(~O_NONBLOCK)); // bsd needs this in stdin (??)
 
   fwrite(&ppr.d_pfh, 1, sizeof(ppr.d_pfh), d_fp);
-  
 }
 
 void PcapPacketWriter::write()

@@ -204,11 +204,11 @@ try
     cout<<i->first<<"\t"<<i->second<<endl;
 
   uint32_t sum=0;
-  ofstream stats("stats");
+  //  ofstream stats("stats");
   uint32_t totpackets=0;
   double tottime=0;
   for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
-    stats<<i->first<<"\t"<<(sum+=i->second)<<"\n";
+    //    stats<<i->first<<"\t"<<(sum+=i->second)<<"\n";
     totpackets+=i->second;
     tottime+=i->first*i->second;
   }
