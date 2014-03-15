@@ -44,6 +44,7 @@ try
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
+    ("write-failures,w", po::value<string>()->default_value(""), "if set, write weird packets to this PCAP file")
     ("verbose,v", "be verbose");
     
   hidden.add_options()
@@ -56,13 +57,17 @@ try
 
   po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
   po::notify(g_vm);
-
-  vector<string> files = g_vm["files"].as<vector<string> >();
+ 
+  vector<string> files;
+  if(g_vm.count("files")) 
+    files = g_vm["files"].as<vector<string> >(); 
   if(files.size() != 1 || g_vm.count("help")) {
     cerr<<"Syntax: dnsscope filename.pcap"<<endl;
     cout << desc << endl;
     exit(1);
   }
+
+  bool verbose = g_vm.count("verbose");
 
   bool haveRDFilter=0, rdFilter=0;
   if(g_vm.count("rd")) {
@@ -75,16 +80,15 @@ try
 
   PcapPacketReader pr(files[0]);
   PcapPacketWriter* pw=0;
-  /*
-  if(argc==3)
-    pw=new PcapPacketWriter(argv[2], pr);
-  */
+  if(!g_vm["write-failures"].as<string>().empty())
+    pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
+ 
 
   int dnserrors=0, bogus=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
-  unsigned int ipv4Packets=0, ipv6Packets=0;
+  unsigned int ipv4Packets=0, ipv6Packets=0, fragmented=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
@@ -98,6 +102,13 @@ try
       try {
         if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
           continue;
+	if(pr.d_ip->ip_v ==4) {
+	  uint16_t frag = ntohs(pr.d_ip->ip_off);
+	  if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
+	    fragmented++;
+	    continue;
+	  }
+	}
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
         if(haveRDFilter && mdp.d_header.rd != rdFilter)
           continue;
@@ -158,13 +169,17 @@ try
         rcodes[mdp.d_header.rcode]++;
       }
       catch(MOADNSException& mde) {
-        //        cerr<<"error parsing packet: "<<mde.what()<<endl;
+        if(verbose)
+	  cout<<"error parsing packet: "<<mde.what()<<endl;
         if(pw)
           pw->write();
         dnserrors++;
         continue;
       }
       catch(std::exception& e) {
+        if(verbose)
+	  cout<<"error parsing packet: "<<e.what()<<endl;
+
         if(pw)
           pw->write();
         bogus++;
@@ -176,6 +191,7 @@ try
 
   cout<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
     pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
+  cout<<"Fragments: "<<fragmented<<" (ignored)"<<endl;
   cout<<"IPv4: "<<ipv4Packets<<" packets, IPv6: "<<ipv6Packets<<" packets"<<endl;
   unsigned int unanswered=0;
   for(statmap_t::const_iterator i=statmap.begin(); i!=statmap.end(); ++i) {
