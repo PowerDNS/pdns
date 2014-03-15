@@ -35,6 +35,39 @@ struct QuestionData
 typedef map<QuestionIdentifier, QuestionData> statmap_t;
 statmap_t statmap;
 
+unsigned int liveQuestions()
+{
+  unsigned int ret=0;
+  BOOST_FOREACH(statmap_t::value_type& val, statmap) {
+    if(!val.second.d_answercount)
+      ret++;
+    //    if(val.second.d_qcount > val.second.d_answercount)
+    //      ret+= val.second.d_qcount - val.second.d_answercount;
+  }
+  return ret;
+}
+
+struct LiveCounts
+{
+  unsigned int questions;
+  unsigned int answers;
+  unsigned int outstanding;
+
+  LiveCounts()
+  {
+    questions=answers=outstanding=0;
+  }
+
+  LiveCounts operator-(const LiveCounts& rhs)
+  {
+    LiveCounts ret;
+    ret.questions = questions - rhs.questions;
+    ret.answers = answers - rhs.answers;
+    ret.outstanding = outstanding;
+    return ret;
+  }
+};
+
 int main(int argc, char** argv)
 try
 {
@@ -73,7 +106,10 @@ try
   if(g_vm.count("rd")) {
     rdFilter = g_vm["rd"].as<bool>();
     haveRDFilter=1;
+    cout<<"Filtering on recursion desired="<<rdFilter<<endl;
   }
+  else
+    cout<<"Warning, looking at both RD and non-RD traffic!"<<endl;
 
   bool doIPv4 = g_vm["ipv4"].as<bool>();
   bool doIPv6 = g_vm["ipv6"].as<bool>();
@@ -89,12 +125,16 @@ try
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
   unsigned int ipv4Packets=0, ipv6Packets=0, fragmented=0;
+  unsigned int questions=0, answers=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
 
   time_t lowestTime=2000000000, highestTime=0;
-
+  time_t lastsec=0;
+  LiveCounts lastcounts;
+  typedef vector<pair<time_t, LiveCounts> > pcounts_t;
+  pcounts_t pcounts;
   while(pr.getUDPPacket()) {
     if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
         ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
@@ -102,7 +142,7 @@ try
       try {
         if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
           continue;
-	if(pr.d_ip->ip_v ==4) {
+	if(pr.d_ip->ip_v == 4) {
 	  uint16_t frag = ntohs(pr.d_ip->ip_off);
 	  if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
 	    fragmented++;
@@ -118,6 +158,21 @@ try
         else
           ++ipv6Packets;
         
+	if(pr.d_pheader.ts.tv_sec != lastsec) {
+	  LiveCounts lc;
+	  if(lastsec) {
+	    lc.questions = questions;
+	    lc.answers = answers;
+	    lc.outstanding = liveQuestions(); 
+
+	    LiveCounts diff = lc - lastcounts;
+	    pcounts.push_back(make_pair(pr.d_pheader.ts.tv_sec, diff));
+
+	  }
+	  lastsec = pr.d_pheader.ts.tv_sec;
+	  lastcounts = lc;
+	}
+
         if(!mdp.d_header.qr) {
           if(!mdp.d_header.rd)
             nonRDQueries++;
@@ -131,23 +186,23 @@ try
         
         QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
-        if(!mdp.d_header.qr) {
-          //          cout<<"Question for '"<< name <<"'\n";
-
+        if(!mdp.d_header.qr) { // question
           QuestionData& qd=statmap[qi];
           
           if(!qd.d_firstquestiontime.tv_sec)
             qd.d_firstquestiontime=pr.d_pheader.ts;
           qd.d_qcount++;
+	  questions++;
         }
         else  {  // NO ERROR or NXDOMAIN
+	  answers++;
           QuestionData& qd=statmap[qi];
 
           if(!qd.d_qcount)
             untracked++;
 
           qd.d_answercount++;
-          //          cout<<"Answer to '"<< name <<"': RCODE="<<(int)mdp.d_rcode<<", "<<mdp.d_answers.size()<<" answers\n";
+
           if(qd.d_qcount) {
             uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
                             (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
@@ -156,14 +211,13 @@ try
               cumul[usecs]++;
             else
               reallylate++;
-
             
             if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
               errorresult++;
           }
 
           if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
-            statmap.erase(statmap.find(qi));
+            statmap.erase(qi);
          }
 
         rcodes[mdp.d_header.rcode]++;
@@ -189,16 +243,19 @@ try
   }
   cout<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
 
-  cout<<"Saw "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
+  cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
     pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
-  cout<<"Fragments: "<<fragmented<<" (ignored)"<<endl;
-  cout<<"IPv4: "<<ipv4Packets<<" packets, IPv6: "<<ipv6Packets<<" packets"<<endl;
+  cout<<"Ignored fragment packets: "<<fragmented<<endl;
+  cout<<"DNS IPv4: "<<ipv4Packets<<" packets, IPv6: "<<ipv6Packets<<" packets"<<endl;
   unsigned int unanswered=0;
+
+
+  //  ofstream openf("openf");
   for(statmap_t::const_iterator i=statmap.begin(); i!=statmap.end(); ++i) {
     if(!i->second.d_answercount) {
       unanswered++;
-      // cout << i->first.d_qname <<" " <<i->first.d_qtype<<endl;
     }
+    //openf<< i->first.d_source.toStringWithPort()<<' ' <<i->first.d_dest.toStringWithPort()<<' '<<i->first.d_id<<' '<<i->first.d_qname <<" " <<i->first.d_qtype<< " "<<i->second.d_qcount <<" " <<i->second.d_answercount<<endl;
   }
 
   cout<< boost::format("%d (%.02f%% of all) queries did not request recursion") % nonRDQueries % ((nonRDQueries*100.0)/queries) << endl;
@@ -269,6 +326,12 @@ try
         lastperc=sum*100.0/totpackets;
       }
   }
+
+  //  ofstream load("load");
+  //  BOOST_FOREACH(pcounts_t::value_type& val, pcounts) {
+  //    load<<val.first<<'\t'<<val.second.questions<<'\t'<<val.second.answers<<'\t'<<val.second.outstanding<<'\n';
+  //    
+  //  }
   
   if(totpackets)
     cout<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
