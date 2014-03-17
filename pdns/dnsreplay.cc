@@ -137,6 +137,31 @@ private:
 } s_idmanager;
 
 
+void setSocketBuffer(int fd, int optname, uint32_t size)
+{
+  uint32_t psize=0;
+  socklen_t len=sizeof(psize);
+  
+  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
+    cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
+    return; 
+  }
+
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
+    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+}
+
+static void setSocketReceiveBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_RCVBUF, size);
+}
+
+static void setSocketSendBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_SNDBUF, size);
+}
+
+
 struct AssignedIDTag{};
 struct QuestionTag{};
 
@@ -539,6 +564,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   {
     s_origdnserrors++;
   }
+
   return sent;
 }
 
@@ -598,7 +624,9 @@ try
   s_socket= new Socket(InterNetwork, Datagram);
 
   s_socket->setNonBlocking();
-  
+  setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
+  setSocketSendBuffer(s_socket->getHandle(), 2000000);
+
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
                     g_vm["target-port"].as<uint16_t>());
 
