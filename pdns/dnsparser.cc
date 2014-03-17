@@ -494,6 +494,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
 }
 
 void PacketReader::xfrBlob(string& blob)
+try
 {
   if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen)))
     blob.assign(&d_content.at(d_pos), &d_content.at(d_startrecordpos + d_recordlen - 1 ) + 1);
@@ -501,6 +502,10 @@ void PacketReader::xfrBlob(string& blob)
     blob.clear();
 
   d_pos = d_startrecordpos + d_recordlen;
+}
+catch(...)
+{
+  throw std::out_of_range("xfrBlob out of range");
 }
 
 void PacketReader::xfrBlob(string& blob, int length)
