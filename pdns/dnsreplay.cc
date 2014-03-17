@@ -99,8 +99,6 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
 }
 
 
-
-
 class DNSIDManager : public boost::noncopyable
 {
 public:
@@ -108,7 +106,6 @@ public:
   {
     for(unsigned int i=0; i < 65536; ++i)
       d_available.push_back(i);
-
   }
 
   uint16_t peakID()
@@ -166,8 +163,6 @@ typedef multi_index_container<
 > qids_t;
                                          
 qids_t qids;
-
-
 bool g_throttled;
 
 unsigned int s_questions, s_origanswers, s_weanswers, s_wetimedout, s_perfect, s_mostly, s_origtimedout;
@@ -175,7 +170,6 @@ unsigned int s_wenever, s_orignever;
 unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
-
 
 double DiffTime(const struct timeval& first, const struct timeval& second)
 {
@@ -374,16 +368,15 @@ try
       s_wednserrors++;
     }
   }
-
 }
 catch(std::exception& e)
 {
-  cerr<<"Receiver thread died: "<<e.what()<<endl;
+  cerr<<"Receiver function died: "<<e.what()<<endl;
   exit(1);
 }
 catch(...)
 {
-  cerr<<"Receiver thread died with unknown exception"<<endl;
+  cerr<<"Receiver function died with unknown exception"<<endl;
   exit(1);
 }
 
@@ -409,14 +402,12 @@ void pruneQids()
   }
 }
 
-
 void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
 {
 
   format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
   format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
 
-  
   cerr<<headerfmt;
   cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);
   cerr<<(datafmt % "Refer." % s_questions % weWaitingFor    % s_wenever    % s_weanswers   % 0 % s_wetimedout    % 0 % 0);
@@ -429,7 +420,6 @@ void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
   cerr<<"original questions from IP addresses for which recursion was not available: "<<s_norecursionavailable<<endl;
   cerr<<"Unmatched from us: "<<s_weunmatched<<", unmatched from original: "<<s_origunmatched << " ( - decoding err: "<<s_origunmatched-s_origdnserrors<<")"<<endl;
   cerr<<"DNS decoding errors from us: "<<s_wednserrors<<", from original: "<<s_origdnserrors<<", exact duplicates from client: "<<s_duplicates<<endl<<endl;
-
 }
 
 void houseKeeping()
@@ -469,9 +459,7 @@ Orig    9           21      29     36         47        57       66    72
    */
 
   printStats(origWaitingFor, weWaitingFor);
-
   pruneQids();
-
 }
 
 

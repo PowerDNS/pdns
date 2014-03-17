@@ -1290,7 +1290,16 @@ void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
     unixDie("read from thread pipe returned wrong size or error");
   }
   
-  void *resp = tmsg->func();
+  void *resp=0;
+  try {
+    resp = tmsg->func();
+  }
+  catch(std::exception& e) {
+    L<<Logger::Error<<"PIPE function we executed created exception: "<<e.what()<<endl; // but what if they wanted an answer.. we send 0
+  }
+  catch(PDNSException& e) {
+    L<<Logger::Error<<"PIPE function we executed created PDNS exception: "<<e.reason<<endl; // but what if they wanted an answer.. we send 0
+  }
   if(tmsg->wantAnswer)
     if(write(g_pipes[t_id].writeFromThread, &resp, sizeof(resp)) != sizeof(resp))
       unixDie("write to thread pipe returned wrong size or error");
