@@ -1113,11 +1113,11 @@ void doStats(void)
 {
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
+
+  uint64_t cacheHits = broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
+  uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
   
-  if(g_stats.qcounter && (t_RC->cacheHits + t_RC->cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {  // this only runs once thread 0 has had hits
-    uint64_t cacheHits = broadcastAccFunction<uint64_t>(pleaseGetCacheHits);
-    uint64_t cacheMisses = broadcastAccFunction<uint64_t>(pleaseGetCacheMisses);
-    
+  if(g_stats.qcounter && (cacheHits + cacheMisses) && SyncRes::s_queries && SyncRes::s_outqueries) {
     L<<Logger::Warning<<"stats: "<<g_stats.qcounter<<" questions, "<<
       broadcastAccFunction<uint64_t>(pleaseGetCacheSize)<< " cache entries, "<<
       broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize)<<" negative entries, "<<
