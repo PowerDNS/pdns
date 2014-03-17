@@ -509,6 +509,15 @@ class AuthZones(ApiTestCase):
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 4)
 
+    def test_SearchRRCaseInsensitive(self):
+        name = 'search-rr-insenszone.name'
+        self.create_zone(name=name)
+        r = self.session.get(self.url("/servers/localhost/search-data?q=rr-insensZONE"))
+        self.assertSuccessJson(r)
+        print r.json()
+        # should return zone, SOA, ns1, ns2
+        self.assertEquals(len(r.json()), 4)
+
 
 @unittest.skipIf(not isRecursor(), "Not applicable")
 class RecursorZones(ApiTestCase):
