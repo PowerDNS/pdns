@@ -152,14 +152,20 @@ public:
 
 
   //! For datagram sockets, send a datagram to a destination
+  void sendTo(const char* msg, unsigned int len, const ComboAddress &ep)
+  {
+    if(sendto(d_socket, msg, len, 0, (sockaddr *)&ep, ep.getSocklen())<0)
+      throw NetworkError(strerror(errno));
+  }
+
   /** For datagram sockets, send a datagram to a destination
       \param dgram The datagram
       \param ep The intended destination of the datagram */
   void sendTo(const string &dgram, const ComboAddress &ep)
   {
-    if(sendto(d_socket, dgram.c_str(), (int)dgram.size(), 0, (sockaddr *)&ep, ep.getSocklen())<0)
-      throw NetworkError(strerror(errno));
+    sendTo(dgram.c_str(), dgram.length(), ep);
   }
+
 
   //! Write this data to the socket, taking care that all bytes are written out 
   void writen(const string &data)
