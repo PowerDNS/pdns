@@ -296,10 +296,10 @@ try
   }
 
   cout<< boost::format("%d (%.02f%% of all) queries did not request recursion") % nonRDQueries % ((nonRDQueries*100.0)/queries) << endl;
-  cout<< rdNonRAAnswers << " answers had recursion desired bit set, but recursion available=0"<<endl;
+  cout<< rdNonRAAnswers << " answers had recursion desired bit set, but recursion available=0 (for "<<rdnonra.size()<<" remotes)"<<endl;
   cout<<statmap.size()<<" queries went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cout<<untracked<<" responses could not be matched to questions"<<endl;
-  cout<<reallylate<<" responses (would be) discarded because older than 2 seconds"<<endl;
+
 
   if(answers) {
     cout<<(boost::format("%1% %|25t|%2%") % "Rcode" % "Count\n");
@@ -309,14 +309,14 @@ try
 
   uint32_t sum=0;
   //  ofstream stats("stats");
-  uint32_t totpackets=0;
+  uint32_t totpackets=reallylate;
   double tottime=0;
   for(cumul_t::const_iterator i=cumul.begin(); i!=cumul.end(); ++i) {
     //    stats<<i->first<<"\t"<<(sum+=i->second)<<"\n";
     totpackets+=i->second;
     tottime+=i->first*i->second;
   }
-
+  
   typedef map<uint32_t, bool> done_t;
   done_t done;
   done[50];
@@ -357,8 +357,9 @@ try
         lastperc=sum*100.0/totpackets;
       }
   }
+  cout<<reallylate<<" responses ("<<reallylate*100.0/answers<<"%) older than 2 seconds"<<endl;
   if(totpackets)
-    cout<<"Average response time: "<<tottime/totpackets<<" usec"<<endl;
+    cout<<"Average non-late response time: "<<tottime/totpackets<<" usec"<<endl;
 
   if(!g_vm["load-stats"].as<string>().empty()) {
     ofstream load(g_vm["load-stats"].as<string>().c_str());
@@ -378,7 +379,7 @@ try
 
   vector<ComboAddress> diff;
   set_difference(requestors.begin(), requestors.end(), recipients.begin(), recipients.end(), back_inserter(diff), comboCompare());
-  cout<<"Saw "<<diff.size()<<" remotes ("<<rdnonra.size()<< " distinct) asking questions, but not getting RA answers"<<endl;
+  cout<<"Saw "<<diff.size()<<" unique remotes asking questions, but not getting RA answers"<<endl;
   
   ofstream ignored("ignored");
   BOOST_FOREACH(const ComboAddress& rem, diff) {
