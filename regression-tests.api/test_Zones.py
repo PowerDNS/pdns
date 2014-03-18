@@ -59,7 +59,7 @@ class AuthZones(ApiTestCase):
     def test_CreateZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
-        expected_id = (name.replace('/', '=47')) + '.'
+        expected_id = (name.replace('/', '=2F')) + '.'
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
             if k in payload:
@@ -69,7 +69,7 @@ class AuthZones(ApiTestCase):
     def test_GetZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
-        zone_id = (name.replace('/', '=47')) + '.'
+        zone_id = (name.replace('/', '=2F')) + '.'
         r = self.session.get(self.url("/servers/localhost/zones/" + zone_id))
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
@@ -591,7 +591,7 @@ class RecursorZones(ApiTestCase):
         data = r.json()
         # return values are normalized
         payload['name'] += '.'
-        expected_id = (payload['name'].replace('/', '=47'))
+        expected_id = (payload['name'].replace('/', '=2F'))
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)

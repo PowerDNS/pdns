@@ -228,13 +228,27 @@ string apiZoneIdToName(const string& id) {
   std::size_t lastpos = 0, pos = 0;
   while ((pos = id.find('=', lastpos)) != string::npos) {
     ss << id.substr(lastpos, pos-lastpos);
-    if ((id[pos+1] >= '0' && id[pos+1] <= '9') &&
-        (id[pos+2] >= '0' && id[pos+2] <= '9')) {
-      char c = ((id[pos+1] - '0')*10) + (id[pos+2] - '0');
-      ss << c;
+    char c;
+    // decode tens
+    if (id[pos+1] >= '0' && id[pos+1] <= '9') {
+      c = id[pos+1] - '0';
+    } else if (id[pos+1] >= 'A' && id[pos+1] <= 'F') {
+      c = id[pos+1] - 'A' + 10;
     } else {
       throw HttpBadRequestException();
     }
+    c = c * 10;
+
+    // decode unit place
+    if (id[pos+2] >= '0' && id[pos+2] <= '9') {
+      c += id[pos+2] - '0';
+    } else if (id[pos+2] >= 'A' && id[pos+2] <= 'F') {
+      c += id[pos+2] - 'A' + 10;
+    } else {
+      throw HttpBadRequestException();
+    }
+
+    ss << c;
 
     lastpos = pos+3;
   }
@@ -261,7 +275,7 @@ string apiZoneNameToId(const string& name) {
         (*iter == '.') || (*iter == '-')) {
       ss << *iter;
     } else {
-      ss << "=" << std::setfill('0') << std::setw(2) << (int)(*iter);
+      ss << (boost::format("=%02X") % (int)(*iter));
     }
   }
 
@@ -275,7 +289,7 @@ string apiZoneNameToId(const string& name) {
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
   if (id == ".") {
-    id = (boost::format("=%d") % (int)('.')).str();
+    id = (boost::format("=%02x") % (int)('.')).str();
   }
   return id;
 }
