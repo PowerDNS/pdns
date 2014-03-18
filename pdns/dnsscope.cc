@@ -12,11 +12,17 @@
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp>
 #include <boost/logic/tribool.hpp>
+#include "arguments.hh"
 #include "namespaces.hh"
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
+ArgvMap& arg()
+{	
+  static ArgvMap theArg;
+  return theArg;
+}
 StatBag S;
 
 struct QuestionData
@@ -65,6 +71,14 @@ struct LiveCounts
     ret.answers = answers - rhs.answers;
     ret.outstanding = outstanding;
     return ret;
+  }
+};
+
+struct comboCompare
+{
+  bool operator()(const ComboAddress& a, const ComboAddress& b) const
+  {
+    return ntohl(a.sin4.sin_addr.s_addr) < ntohl(b.sin4.sin_addr.s_addr);
   }
 };
 
@@ -134,6 +148,7 @@ try
   time_t lowestTime=2000000000, highestTime=0;
   time_t lastsec=0;
   LiveCounts lastcounts;
+  set<ComboAddress, comboCompare> requestors, recipients, rdnonra;
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
   while(pr.getUDPPacket()) {
@@ -186,17 +201,29 @@ try
             nonRDQueries++;
           queries++;
 
+	  ComboAddress rem = pr.getSource();
+	  rem.sin4.sin_port=0;
+	  requestors.insert(rem);	  
+
           QuestionData& qd=statmap[qi];
           
           if(!qd.d_firstquestiontime.tv_sec)
             qd.d_firstquestiontime=pr.d_pheader.ts;
           qd.d_qcount++;
         }
-        else  {  // NO ERROR or NXDOMAIN
+        else  {  // answer
+          rcodes[mdp.d_header.rcode]++;
+          answers++;
 	  if(mdp.d_header.rd && !mdp.d_header.ra) {
 	    rdNonRAAnswers++;
+            rdnonra.insert(pr.getDest());
 	  }
-	  answers++;
+	  
+	  if(mdp.d_header.ra) {
+	    ComboAddress rem = pr.getDest();
+	    rem.sin4.sin_port=0;
+	    recipients.insert(rem);	  
+	  }
 
           QuestionData& qd=statmap[qi];
 
@@ -222,7 +249,7 @@ try
             statmap.erase(qi);
          }
 
-        rcodes[mdp.d_header.rcode]++;
+        
       }
       catch(MOADNSException& mde) {
         if(verbose)
@@ -249,6 +276,7 @@ try
     pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
   cout<<"Ignored fragment packets: "<<fragmented<<endl;
   cout<<"DNS IPv4: "<<ipv4Packets<<" packets, IPv6: "<<ipv6Packets<<" packets"<<endl;
+  cout<<"Questions: "<<queries<<", answers: "<<answers<<endl;
   unsigned int unanswered=0;
 
 
@@ -264,20 +292,13 @@ try
   cout<< rdNonRAAnswers << " answers had recursion desired bit set, but recursion available=0"<<endl;
   cout<<statmap.size()<<" queries went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cout<<untracked<<" responses could not be matched to questions"<<endl;
-  cout<<dnserrors<<" responses were unsatisfactory (indefinite, or SERVFAIL)"<<endl;
   cout<<reallylate<<" responses (would be) discarded because older than 2 seconds"<<endl;
-#if 0
-        ns_r_noerror = 0,       /* No error occurred. */
-        ns_r_formerr = 1,       /* Format error. */
-        ns_r_servfail = 2,      /* Server failure. */
-        ns_r_nxdomain = 3,      /* Name error. */
-        ns_r_notimpl = 4,       /* Unimplemented. */
-        ns_r_refused = 5,       /* Operation refused. */
-#endif
 
-  cout<<"Rcode\tCount\n";
-  for(rcodes_t::const_iterator i=rcodes.begin(); i!=rcodes.end(); ++i)
-    cout<<i->first<<"\t"<<i->second<<endl;
+  if(answers) {
+    cout<<(boost::format("%1% %|25t|%2%") % "Rcode" % "Count\n");
+    for(rcodes_t::const_iterator i=rcodes.begin(); i!=rcodes.end(); ++i)
+      cout<<(boost::format("%s %|25t|%d %|35t|(%.1f%%)") % RCode::to_s(i->first) % i->second % (i->second*100.0/answers))<<endl;
+  }
 
   uint32_t sum=0;
   //  ofstream stats("stats");
@@ -339,6 +360,26 @@ try
     BOOST_FOREACH(pcounts_t::value_type& val, pcounts) {
       load<<val.first<<'\t'<<val.second.questions<<'\t'<<val.second.answers<<'\t'<<val.second.outstanding<<'\n';  
     }
+  }
+
+
+  cout<<"Saw questions from "<<requestors.size()<<" distinct remotes, answers to "<<recipients.size()<<endl;
+  ofstream remotes("remotes");
+  BOOST_FOREACH(const ComboAddress& rem, requestors) {
+    remotes<<rem.toString()<<'\n';
+  }
+
+  vector<ComboAddress> diff;
+  set_difference(requestors.begin(), requestors.end(), recipients.begin(), recipients.end(), back_inserter(diff), comboCompare());
+  cout<<"Saw "<<diff.size()<<" remotes ("<<rdnonra.size()<< " distinct) asking questions, but not getting RA answers"<<endl;
+  
+  ofstream ignored("ignored");
+  BOOST_FOREACH(const ComboAddress& rem, diff) {
+    ignored<<rem.toString()<<'\n';
+  }
+  ofstream rdnonrafs("rdnonra");
+  BOOST_FOREACH(const ComboAddress& rem, rdnonra) {
+    rdnonrafs<<rem.toString()<<'\n';
   }
   
 }

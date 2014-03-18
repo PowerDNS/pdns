@@ -253,7 +253,7 @@ notify_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.cc dnsrecords.cc \
 	base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
-	utility.hh dnsparser.hh sillyrecords.cc nsecrecords.cc base32.cc
+	utility.hh dnsparser.hh sillyrecords.cc nsecrecords.cc base32.cc dns.cc arguments.cc
 
 dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
 dnsscope_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS) 
