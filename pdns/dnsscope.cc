@@ -125,8 +125,8 @@ try
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
-  unsigned int ipv4Packets=0, ipv6Packets=0, fragmented=0;
-  unsigned int questions=0, answers=0;
+  unsigned int ipv4Packets=0, ipv6Packets=0, fragmented=0, rdNonRAAnswers=0;
+  unsigned int answers=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
@@ -162,7 +162,7 @@ try
 	if(pr.d_pheader.ts.tv_sec != lastsec) {
 	  LiveCounts lc;
 	  if(lastsec) {
-	    lc.questions = questions;
+	    lc.questions = queries;
 	    lc.answers = answers;
 	    lc.outstanding = liveQuestions(); 
 
@@ -174,12 +174,6 @@ try
 	  lastcounts = lc;
 	}
 
-        if(!mdp.d_header.qr) {
-          if(!mdp.d_header.rd)
-            nonRDQueries++;
-          queries++;
-        }
-
         lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
         highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
@@ -188,15 +182,22 @@ try
         QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
         if(!mdp.d_header.qr) { // question
+          if(!mdp.d_header.rd)
+            nonRDQueries++;
+          queries++;
+
           QuestionData& qd=statmap[qi];
           
           if(!qd.d_firstquestiontime.tv_sec)
             qd.d_firstquestiontime=pr.d_pheader.ts;
           qd.d_qcount++;
-	  questions++;
         }
         else  {  // NO ERROR or NXDOMAIN
+	  if(mdp.d_header.rd && !mdp.d_header.ra) {
+	    rdNonRAAnswers++;
+	  }
 	  answers++;
+
           QuestionData& qd=statmap[qi];
 
           if(!qd.d_qcount)
@@ -260,6 +261,7 @@ try
   }
 
   cout<< boost::format("%d (%.02f%% of all) queries did not request recursion") % nonRDQueries % ((nonRDQueries*100.0)/queries) << endl;
+  cout<< rdNonRAAnswers << " answers had recursion desired bit set, but recursion available=0"<<endl;
   cout<<statmap.size()<<" queries went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cout<<untracked<<" responses could not be matched to questions"<<endl;
   cout<<dnserrors<<" responses were unsatisfactory (indefinite, or SERVFAIL)"<<endl;
