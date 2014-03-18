@@ -52,8 +52,10 @@ try
 {
   for(;;) {
     checkedFread(&d_pheader);
-    if(!d_pheader.caplen)
+    if(!d_pheader.caplen) {
+      d_runts++;
       continue;
+    }
 
     if(d_pheader.caplen > sizeof(d_buffer)) {
       d_oversized++;
@@ -92,7 +94,6 @@ try
       d_correctpackets++;
       return true;
     }
-
     else {
       d_nonetheripudp++;
     }

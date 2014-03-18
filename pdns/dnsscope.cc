@@ -139,8 +139,8 @@ try
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
-  unsigned int ipv4Packets=0, ipv6Packets=0, fragmented=0, rdNonRAAnswers=0;
-  unsigned int answers=0;
+  unsigned int ipv4DNSPackets=0, ipv6DNSPackets=0, fragmented=0, rdNonRAAnswers=0;
+  unsigned int answers=0, nonDNSIP=0, rdFilterMismatch=0;
 
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
@@ -166,13 +166,15 @@ try
 	  }
 	}
         MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-        if(haveRDFilter && mdp.d_header.rd != rdFilter)
+        if(haveRDFilter && mdp.d_header.rd != rdFilter) {
+          rdFilterMismatch++;
           continue;
+        }
 
         if(pr.d_ip->ip_v == 4) 
-          ++ipv4Packets;
+          ++ipv4DNSPackets;
         else
-          ++ipv6Packets;
+          ++ipv6DNSPackets;
         
 	if(pr.d_pheader.ts.tv_sec != lastsec) {
 	  LiveCounts lc;
@@ -269,13 +271,18 @@ try
         continue;
       }
     }
+    else { // non-DNS ip
+      nonDNSIP++;
+    }
+   
   }
   cout<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
 
-  cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<
-    pr.d_nonetheripudp<<" unknown encaps, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
+  cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP,\n";
+  cout<<nonDNSIP<<" non-DNS UDP, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
   cout<<"Ignored fragment packets: "<<fragmented<<endl;
-  cout<<"DNS IPv4: "<<ipv4Packets<<" packets, IPv6: "<<ipv6Packets<<" packets"<<endl;
+  cout<<"Dropped DNS packets based on recursion-desired filter: "<<rdFilterMismatch<<endl;
+  cout<<"DNS IPv4: "<<ipv4DNSPackets<<" packets, IPv6: "<<ipv6DNSPackets<<" packets"<<endl;
   cout<<"Questions: "<<queries<<", answers: "<<answers<<endl;
   unsigned int unanswered=0;
 
