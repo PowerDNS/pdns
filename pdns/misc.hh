@@ -338,6 +338,15 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   return true;
 }
 
+inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));
+inline bool pdns_iequals_ch(const char a, const char b)
+{
+  if ((a != b) && (dns_tolower(a) != dns_tolower(b)))
+    return false;
+
+  return true;
+}
+
 // lifted from boost, with thanks
 class AtomicCounter
 {
@@ -438,6 +447,17 @@ struct CIStringPairCompare: public std::binary_function<pair<string, uint16_t>, 
   }
 };
 
+inline size_t pdns_ci_find(const string& haystack, const string& needle)
+{
+  string::const_iterator it = std::search(haystack.begin(), haystack.end(),
+    needle.begin(), needle.end(), pdns_iequals_ch);
+  if (it == haystack.end()) {
+    // not found
+    return string::npos;
+  } else {
+    return it - haystack.begin();
+  }
+}
 
 pair<string, string> splitField(const string& inp, char sepa);
 

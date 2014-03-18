@@ -747,7 +747,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   BOOST_FOREACH(const DomainInfo& di, domains) {
     string zoneId = apiZoneNameToId(di.zone);
 
-    if (di.zone.find(q) != string::npos) {
+    if (pdns_ci_find(di.zone, q) != string::npos) {
       Value object;
       object.SetObject();
       object.AddMember("type", "zone", doc.GetAllocator());
@@ -768,7 +768,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       if (!rr.qtype.getCode())
         continue; // skip empty non-terminals
 
-      if (rr.qname.find(q) == string::npos && rr.content.find(q) == string::npos)
+      if (pdns_ci_find(rr.qname, q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
         continue;
 
       Value object;
@@ -787,7 +787,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->listComments(di.id);
     while(di.backend->getComment(comment)) {
-      if (comment.qname.find(q) == string::npos && comment.content.find(q) == string::npos)
+      if (pdns_ci_find(comment.qname, q) == string::npos && pdns_ci_find(comment.content, q) == string::npos)
         continue;
 
       Value object;
