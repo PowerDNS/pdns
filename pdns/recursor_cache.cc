@@ -91,6 +91,7 @@ unsigned int MemRecursorCache::size()
   return (unsigned int)d_cache.size();
 }
 
+// this function is too slow to poll!
 unsigned int MemRecursorCache::bytes()
 {
   unsigned int ret=0;

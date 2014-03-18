@@ -69,7 +69,9 @@ map<string,string> getAllStatsMap()
   BOOST_FOREACH(the64bits, d_get64bitpointers) {
     ret.insert(make_pair(the64bits.first, lexical_cast<string>(*the64bits.second)));
   }
-  BOOST_FOREACH(the32bitmembers, d_get32bitmembers) {
+  BOOST_FOREACH(the32bitmembers, d_get32bitmembers) { 
+    if(the32bitmembers.first == "cache-bytes" || the32bitmembers.first=="packetcache-bytes")
+      continue; // too slow for 'get-all'
     ret.insert(make_pair(the32bitmembers.first, lexical_cast<string>(the32bitmembers.second())));
   }
   return ret;
