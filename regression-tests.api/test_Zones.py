@@ -522,36 +522,33 @@ class AuthZones(ApiTestCase):
 @unittest.skipIf(not isRecursor(), "Not applicable")
 class RecursorZones(ApiTestCase):
 
-    def test_CreateAuthZone(self):
+    def create_zone(self, name=None, kind=None, rd=False, servers=None):
+        if name is None:
+            name = unique_zone_name()
+        if servers is None:
+            servers = []
         payload = {
-            'name': unique_zone_name(),
-            'kind': 'Native',
-            'recursion_desired': False
+            'name': name,
+            'kind': kind,
+            'servers': servers,
+            'recursion_desired': rd
         }
         r = self.session.post(
             self.url("/servers/localhost/zones"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
-        data = r.json()
+        return (payload, r.json())
+
+    def test_CreateAuthZone(self):
+        payload, data = self.create_zone(kind='Native')
         # return values are normalized
         payload['name'] += '.'
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
 
     def test_CreateForwardedZone(self):
-        payload = {
-            'name': unique_zone_name(),
-            'kind': 'Forwarded',
-            'servers': ['8.8.8.8'],
-            'recursion_desired': False
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
-        data = r.json()
+        payload, data = self.create_zone(kind='Forwarded', rd=False, servers=['8.8.8.8'])
         # return values are normalized
         payload['servers'][0] += ':53'
         payload['name'] += '.'
@@ -559,18 +556,7 @@ class RecursorZones(ApiTestCase):
             self.assertEquals(data[k], payload[k])
 
     def test_CreateForwardedRDZone(self):
-        payload = {
-            'name': 'google.com',
-            'kind': 'Forwarded',
-            'servers': ['8.8.8.8'],
-            'recursion_desired': True
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
-        data = r.json()
+        payload, data = self.create_zone(name='google.com', kind='Forwarded', rd=True, servers=['8.8.8.8'])
         # return values are normalized
         payload['servers'][0] += ':53'
         payload['name'] += '.'
@@ -578,17 +564,7 @@ class RecursorZones(ApiTestCase):
             self.assertEquals(data[k], payload[k])
 
     def test_CreateAuthZoneWithSymbols(self):
-        payload = {
-            'name': 'foo/bar.'+unique_zone_name(),
-            'kind': 'Native',
-            'recursion_desired': False
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
-        data = r.json()
+        payload, data = self.create_zone(name='foo/bar.'+unique_zone_name(), kind='Native')
         # return values are normalized
         payload['name'] += '.'
         expected_id = (payload['name'].replace('/', '=2F'))
@@ -597,17 +573,8 @@ class RecursorZones(ApiTestCase):
         self.assertEquals(data['id'], expected_id)
 
     def test_RenameAuthZone(self):
-        name = unique_zone_name()+'.'
-        payload = {
-            'name': name,
-            'kind': 'Native',
-            'recursion_desired': False
-        }
-        r = self.session.post(
-            self.url("/servers/localhost/zones"),
-            data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
+        payload, data = self.create_zone(kind='Native')
+        name = payload['name'] + '.'
         # now rename it
         payload = {
             'name': 'renamed-'+name,
@@ -622,3 +589,20 @@ class RecursorZones(ApiTestCase):
         data = r.json()
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
+
+    def test_SearchRRExactZone(self):
+        name = unique_zone_name() + '.'
+        self.create_zone(name=name, kind='Native')
+        r = self.session.get(self.url("/servers/localhost/search-data?q=" + name))
+        self.assertSuccessJson(r)
+        print r.json()
+        self.assertEquals(r.json(), [{u'type': u'zone', u'name': name, u'zone_id': name}])
+
+    def test_SearchRRSubstring(self):
+        name = 'search-rr-zone.name'
+        self.create_zone(name=name, kind='Native')
+        r = self.session.get(self.url("/servers/localhost/search-data?q=rr-zone"))
+        self.assertSuccessJson(r)
+        print r.json()
+        # should return zone, SOA
+        self.assertEquals(len(r.json()), 2)
