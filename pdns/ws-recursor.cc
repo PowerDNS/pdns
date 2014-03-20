@@ -345,6 +345,59 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
   }
 }
 
+static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  string q = req->parameters["q"];
+  if (q.empty())
+    throw ApiException("Query q can't be blank");
+
+  Document doc;
+  doc.SetArray();
+
+  BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
+    string zoneId = apiZoneNameToId(val.first);
+    if (pdns_ci_find(val.first, q) != string::npos) {
+      Value object;
+      object.SetObject();
+      object.AddMember("type", "zone", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(val.first.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("name", jzoneName, doc.GetAllocator());
+      doc.PushBack(object, doc.GetAllocator());
+    }
+
+    // if zone name is an exact match, don't bother with returning all records/comments in it
+    if (val.first == q) {
+      continue;
+    }
+
+    const SyncRes::AuthDomain& zone = val.second;
+
+    BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
+      if (pdns_ci_find(rr.qname, q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
+        continue;
+
+      Value object;
+      object.SetObject();
+      object.AddMember("type", "record", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(val.first.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
+      Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("name", jname, doc.GetAllocator());
+      Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("content", jcontent, doc.GetAllocator());
+
+      doc.PushBack(object, doc.GetAllocator());
+    }
+  }
+  resp->setBody(doc);
+}
+
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
@@ -361,6 +414,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
   d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
+  d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
   d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
   d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
   d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
