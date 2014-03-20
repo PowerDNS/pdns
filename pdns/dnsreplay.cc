@@ -562,7 +562,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       s_questions++;
       if(qids.count(qi)) {
         if(!g_quiet)
-          cout<<"Saw an exact duplicate question, "<<qi<< endl;
+          cout<<"Saw an exact duplicate question in PCAP "<<qi<< endl;
         s_duplicates++;
 	s_idmanager.releaseID(qd.d_assignedID); // release = puts at back of pool
         return sent;
