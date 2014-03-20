@@ -14,6 +14,12 @@ function preresolve ( remoteip, domain, qtype )
 		return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
 	end
 
+	if domain == "www.followme.com."
+	then
+		print ("Need to CNAME www.followme.com to www.powerdns.com")
+		return "followCNAMERecords", 0, {{qtype=pdns.CNAME, content="www.powerdns.com"}}
+	end
+
 	if domain == "www.donotanswer.org."
 	then
 		print("we won't answer a query for donotanswer.org")
