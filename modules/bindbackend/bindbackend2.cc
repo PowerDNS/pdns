@@ -290,35 +290,41 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
 
 void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 {
-  SOAData soadata;
-  ReadLock rl(&s_state_lock);
+  vector<BB2DomainInfo> toPut;
+  {
+    ReadLock rl(&s_state_lock);
+    SOAData soadata;
 
-  for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(!i->d_masters.empty() && this->alsoNotify.empty() && i->d_also_notify.empty())
-      continue;
-    soadata.serial=0;
-    try {
-      this->getSOA(i->d_name, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
-    }
-    catch(...){}
-    DomainInfo di;
-    di.id=i->d_id;
-    di.serial=soadata.serial;
-    di.zone=i->d_name;
-    di.last_check=i->d_lastcheck;
-    di.backend=this;
-    di.kind=DomainInfo::Master;
-    if(!i->d_lastnotified)  {          // don't do notification storm on startup 
-      // what if i->first is new??
-      BB2DomainInfo bbd;
-      if(safeGetBBDomainInfo(i->d_id, &bbd)) {
-	bbd.d_lastnotified=soadata.serial; 
-	safePutBBDomainInfo(bbd);
+    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
+      if(!i->d_masters.empty() && this->alsoNotify.empty() && i->d_also_notify.empty())
+	continue;
+      soadata.serial=0;
+      try {
+	this->getSOA(i->d_name, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
       }
+      catch(...){}
+      DomainInfo di;
+      di.id=i->d_id;
+      di.serial=soadata.serial;
+      di.zone=i->d_name;
+      di.last_check=i->d_lastcheck;
+      di.backend=this;
+      di.kind=DomainInfo::Master;
+      if(!i->d_lastnotified)  {          // don't do notification storm on startup 
+	// what if i->first is new??
+	BB2DomainInfo bbd;
+	if(safeGetBBDomainInfo(i->d_id, &bbd)) { // we hold a readlock, so this is fine
+	  bbd.d_lastnotified=soadata.serial; 
+	  toPut.push_back(bbd);	                 // but we can't write yet
+	}
+      }
+      else
+	if(soadata.serial != i->d_lastnotified)
+	  changedDomains->push_back(di);
     }
-    else
-      if(soadata.serial != i->d_lastnotified)
-        changedDomains->push_back(di);
+  }
+  BOOST_FOREACH(BB2DomainInfo& bbd, toPut) {
+    safePutBBDomainInfo(bbd);
   }
 }
 
