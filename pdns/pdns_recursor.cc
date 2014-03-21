@@ -1103,10 +1103,9 @@ void usr1Handler(int)
 
 void usr2Handler(int)
 {
-  SyncRes::setDefaultLogMode(SyncRes::Log);
-  g_quiet=false;
-  ::arg().set("quiet")="no";
-
+  g_quiet= !g_quiet;
+  SyncRes::setDefaultLogMode(g_quiet ? SyncRes::LogNone : SyncRes::Log);
+  ::arg().set("quiet")=g_quiet ? "" : "no";
 }
 
 void doStats(void)
