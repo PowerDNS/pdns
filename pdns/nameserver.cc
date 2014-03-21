@@ -329,7 +329,7 @@ void UDPNameserver::send(DNSPacket *p)
     L<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
-    L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<"): "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
 }
 
 static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination)
