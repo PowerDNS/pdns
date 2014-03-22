@@ -420,8 +420,12 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   if(sock==-1)
     throw PDNSException("poll betrayed us! (should not happen)");
   
-
   DLOG(L<<"Received a packet " << len <<" bytes long from "<< remote.toString()<<endl);
+
+  BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
+
+  if(remote.sin4.sin_port == 0) // would generate error on responding. sin4 also works for ipv6
+    return 0;
   
   DNSPacket *packet;
   if(prefilled)  // they gave us a preallocated packet

@@ -31,6 +31,7 @@
 #include "dns_random.hh"
 #include <iostream>
 #include <errno.h>
+#include <boost/static_assert.hpp>
 #include <map>
 #include <set>
 #include "recursor_cache.hh"
@@ -921,6 +922,14 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedUDP++;
+      return;
+    }
+    BOOST_STATIC_ASSERT_MSG(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port), "IPv4 and IPv6 structs differ wrt port");
+    if(!fromaddr.sin4.sin_port) { // also works for IPv6
+     if(!g_quiet) 
+        L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toStringWithPort()<<", can't deal with port 0"<<endl;
+
+      g_stats.clientParseError++; // not quite the best place to put it, but needs to go somewhere
       return;
     }
     try {
