@@ -924,7 +924,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       g_stats.unauthorizedUDP++;
       return;
     }
-    BOOST_STATIC_ASSERT_MSG(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port), "IPv4 and IPv6 structs differ wrt port");
+    BOOST_STATIC_ASSERT(offsetof(sockaddr_in, sin_port) == offsetof(sockaddr_in6, sin6_port));
     if(!fromaddr.sin4.sin_port) { // also works for IPv6
      if(!g_quiet) 
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping UDP query from "<<fromaddr.toStringWithPort()<<", can't deal with port 0"<<endl;
