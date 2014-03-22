@@ -21,7 +21,6 @@ There is one central object, which has (when complete)
 What to do with timeouts. We keep around at most 65536 outstanding answers. 
 */
 
-
 /* 
    mental_clock=0;
    for(;;) {
@@ -98,8 +97,11 @@ const struct timeval operator*(float fact, const struct timeval& rhs)
   return ret;
 }
 
-
-
+bool g_pleaseQuit;
+void pleaseQuitHandler(int)
+{
+  g_pleaseQuit=true;
+}
 
 class DNSIDManager : public boost::noncopyable
 {
@@ -108,7 +110,6 @@ public:
   {
     for(unsigned int i=0; i < 65536; ++i)
       d_available.push_back(i);
-
   }
 
   uint16_t peakID()
@@ -140,6 +141,31 @@ private:
 } s_idmanager;
 
 
+void setSocketBuffer(int fd, int optname, uint32_t size)
+{
+  uint32_t psize=0;
+  socklen_t len=sizeof(psize);
+  
+  if(!getsockopt(fd, SOL_SOCKET, optname, (char*)&psize, &len) && psize > size) {
+    cerr<<"Not decreasing socket buffer size from "<<psize<<" to "<<size<<endl;
+    return; 
+  }
+
+  if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
+    cerr<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+}
+
+static void setSocketReceiveBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_RCVBUF, size);
+}
+
+static void setSocketSendBuffer(int fd, uint32_t size)
+{
+  setSocketBuffer(fd, SO_SNDBUF, size);
+}
+
+
 struct AssignedIDTag{};
 struct QuestionTag{};
 
@@ -166,8 +192,6 @@ typedef multi_index_container<
 > qids_t;
                                          
 qids_t qids;
-
-
 bool g_throttled;
 
 unsigned int s_questions, s_origanswers, s_weanswers, s_wetimedout, s_perfect, s_mostly, s_origtimedout;
@@ -175,7 +199,6 @@ unsigned int s_wenever, s_orignever;
 unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
-
 
 double DiffTime(const struct timeval& first, const struct timeval& second)
 {
@@ -260,16 +283,60 @@ bool isRootReferral(const MOADNSParser::answers_t& answers)
   return ok;
 }
 
-void measureResultAndClean(const QuestionIdentifier& qi)
+vector<uint32_t> flightTimes;
+void accountFlightTime(qids_t::const_iterator iter)
 {
-  QuestionData qd=*qids.find(qi);
+  if(flightTimes.empty())
+    flightTimes.resize(2050); 
+
+  struct timeval now;
+  gettimeofday(&now, 0);
+  unsigned int mdiff = 1000*DiffTime(iter->d_resentTime, now);
+  if(mdiff > flightTimes.size()-2)
+    mdiff= flightTimes.size()-1;
+
+  flightTimes[mdiff]++;
+}
+
+uint64_t countLessThan(unsigned int msec)
+{
+  uint64_t ret=0;
+  for(unsigned int i = 0 ; i < msec && i < flightTimes.size() ; ++i) {
+    ret += flightTimes[i];
+  }
+  return ret;
+}
+
+void emitFlightTimes()
+{
+  uint64_t totals = countLessThan(flightTimes.size());
+  unsigned int limits[]={1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, flightTimes.size()};
+  uint64_t sofar=0;
+  cout.setf(std::ios::fixed);
+  cout.precision(2);
+  for(unsigned int i =0 ; i < sizeof(limits)/sizeof(limits[0]); ++i) {
+    if(limits[i]!=flightTimes.size())
+      cout<<"Within "<<limits[i]<<" msec: ";
+    else 
+      cout<<"Beyond "<<limits[i]-2<<" msec: ";
+    uint64_t here = countLessThan(limits[i]);
+    cout<<100.0*here/totals<<"% ("<<100.0*(here-sofar)/totals<<"%)"<<endl;
+    sofar=here;
+    
+  }
+}
+
+void measureResultAndClean(qids_t::const_iterator iter)
+{
+  const QuestionData& qd=*iter;
+  accountFlightTime(iter);
 
   set<DNSRecord> canonicOrig, canonicNew;
   compactAnswerSet(qd.d_origAnswers, canonicOrig);
   compactAnswerSet(qd.d_newAnswers, canonicNew);
         
   if(!g_quiet) {
-    cout<<qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
+    cout<<qd.d_qi<<", orig rcode: "<<qd.d_origRcode<<", ours: "<<qd.d_newRcode;  
     cout<<", "<<canonicOrig.size()<< " vs " << canonicNew.size()<<", perfect: ";
   }
 
@@ -301,8 +368,8 @@ void measureResultAndClean(const QuestionIdentifier& qi)
         cout<<"\t* orig better *"<<endl;
       s_origbetter++;
       if(!g_quiet) 
-        if(s_origbetterset.insert(make_pair(qi.d_qname, qi.d_qtype)).second) {
-          cout<<"orig better: " << qi.d_qname<<" "<< qi.d_qtype<<endl;
+        if(s_origbetterset.insert(make_pair(qd.d_qi.d_qname, qd.d_qi.d_qtype)).second) {
+          cout<<"orig better: " << qd.d_qi.d_qname<<" "<< qd.d_qi.d_qtype<<endl;
         }
     }
 
@@ -319,9 +386,9 @@ void measureResultAndClean(const QuestionIdentifier& qi)
     }
   }
   
-
-  qids.erase(qi);
-  s_idmanager.releaseID(qd.d_assignedID);
+  int releaseID=qd.d_assignedID;
+  qids.erase(iter); // qd invalid now
+  s_idmanager.releaseID(releaseID);
 }
 
 
@@ -354,15 +421,14 @@ try
         s_weunmatched++;
         continue;
       }
-      QuestionIdentifier qi=found->d_qi;
-      QuestionData qd=*found;
-      
+
+      QuestionData qd=*found;    // we have to make a copy because we reinsert below      
       qd.d_newAnswers=mdp.d_answers;
       qd.d_newRcode=mdp.d_header.rcode;
       idindex.replace(found, qd);
       if(qd.d_origRcode!=-1) {
-        //      cout<<"Removing entry "<<i->first<<", is done [in socket]"<<endl;
-        measureResultAndClean(qi);
+	qids_t::const_iterator iter= qids.project<0>(found);
+	measureResultAndClean(iter);
       }
     }
     catch(MOADNSException &e)
@@ -374,16 +440,15 @@ try
       s_wednserrors++;
     }
   }
-
 }
 catch(std::exception& e)
 {
-  cerr<<"Receiver thread died: "<<e.what()<<endl;
+  cerr<<"Receiver function died: "<<e.what()<<endl;
   exit(1);
 }
 catch(...)
 {
-  cerr<<"Receiver thread died with unknown exception"<<endl;
+  cerr<<"Receiver function died with unknown exception"<<endl;
   exit(1);
 }
 
@@ -409,14 +474,11 @@ void pruneQids()
   }
 }
 
-
 void printStats(uint64_t origWaitingFor=0, uint64_t weWaitingFor=0)
 {
-
   format headerfmt   ("%|9t|Questions - Pend. - Drop = Answers = (On time + Late) = (Err + Ok)\n");
   format datafmt("%s%|9t|%d %|21t|%d %|29t|%d %|36t|%d %|47t|%d %|57t|%d %|66t|%d %|72t|%d\n");
 
-  
   cerr<<headerfmt;
   cerr<<(datafmt % "Orig"   % s_questions % origWaitingFor  % s_orignever  % s_origanswers % 0 % s_origtimedout  % 0 % 0);
   cerr<<(datafmt % "Refer." % s_questions % weWaitingFor    % s_wenever    % s_weanswers   % 0 % s_wetimedout    % 0 % 0);
@@ -469,9 +531,7 @@ Orig    9           21      29     36         47        57       66    72
    */
 
   printStats(origWaitingFor, weWaitingFor);
-
   pruneQids();
-
 }
 
 
@@ -486,39 +546,37 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
 
   QuestionData qd;
   try {
-    if(!dh->qr) {
-      qd.d_assignedID = s_idmanager.peakID();
+    // yes, we send out ALWAYS. Even if we don't do anything with it later, 
+    if(!dh->qr) { // this is to stress out the reference server with all the pain
+      qd.d_assignedID = s_idmanager.getID();
       uint16_t tmp=dh->id;
       dh->id=htons(qd.d_assignedID);
-      s_socket->sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
+      s_socket->sendTo((const char*)pr.d_payload, pr.d_len, remote);
       sent=true;
       dh->id=tmp;
     }
     MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
     QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
-    
+
     if(!mdp.d_header.qr) {
       s_questions++;
       if(qids.count(qi)) {
         if(!g_quiet)
-          cout<<"Saw an exact duplicate question, "<<qi<< endl;
+          cout<<"Saw an exact duplicate question in PCAP "<<qi<< endl;
         s_duplicates++;
+	s_idmanager.releaseID(qd.d_assignedID); // release = puts at back of pool
         return sent;
       }
-      // new question!
+      // new question - ID assigned above already
       qd.d_qi=qi;
       gettimeofday(&qd.d_resentTime,0);
-      qd.d_assignedID = s_idmanager.getID();
       qids.insert(qd);
     }
     else {
       s_origanswers++;
-      
-      if(qids.count(qi)) {
-        qids_t::const_iterator i=qids.find(qi);
-        QuestionData qd=*i;
-
-        //          cout<<"Matched answer "<<qi<<endl;
+      qids_t::const_iterator iter=qids.find(qi);      
+      if(iter != qids.end()) {
+        QuestionData qd=*iter;
         qd.d_origAnswers=mdp.d_answers;
         qd.d_origRcode=mdp.d_header.rcode;
         
@@ -526,12 +584,10 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
           s_norecursionavailable++;
           qd.d_norecursionavailable=true;
         }
-        qids.replace(i, qd);
+        qids.replace(iter, qd);
 
         if(qd.d_newRcode!=-1) {
-          //            cout<<"Removing entry "<<qi<<", is done [in main loop]"<<endl;
-
-          measureResultAndClean(qi);
+          measureResultAndClean(iter);
         }
         
         return sent;
@@ -545,12 +601,16 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   }
   catch(MOADNSException &e)
   {
+    s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }
   catch(std::out_of_range &e)
   {
+    s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
+    
   }
+
   return sent;
 }
 
@@ -603,6 +663,7 @@ try
 
   g_quiet = g_vm["quiet"].as<bool>();
 
+  signal(SIGINT, pleaseQuitHandler);
   float speedup=g_vm["speedup"].as<float>();
   g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
 
@@ -610,7 +671,9 @@ try
   s_socket= new Socket(InterNetwork, Datagram);
 
   s_socket->setNonBlocking();
-  
+  setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
+  setSocketSendBuffer(s_socket->getHandle(), 2000000);
+
   ComboAddress remote(g_vm["target-ip"].as<string>(), 
                     g_vm["target-port"].as<uint16_t>());
 
@@ -625,6 +688,10 @@ try
   unsigned int count=0;
 
   for(;;) {
+    if(g_pleaseQuit) {
+      cerr<<"Interrupted from terminal"<<endl;
+      break;
+    }
     if(!((once++)%100)) 
       houseKeeping();
     
@@ -659,6 +726,7 @@ try
   sleep(1);
   receiveFromReference();
   printStats();
+  emitFlightTimes();
 }
 catch(std::exception& e)
 {
