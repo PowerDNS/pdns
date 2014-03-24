@@ -344,3 +344,29 @@ void Utility::gmtime_r(const time_t *timer, struct tm *tmbuf) {
   tmbuf->tm_wday = (days + 4) % 7; // Day 0 is magic thursday ;)
   tmbuf->tm_isdst = 0;
 }
+
+#ifdef __linux__
+#include <execinfo.h>
+#endif
+
+void Utility::log_and_crash(int num)
+{
+#ifdef __linux__
+  L<<Logger::Critical<<"Got a signal "<<num<<", attempting to print trace: "<<endl;
+  void *array[20]; // only care about last 17 functions (3 taken with tracing support)
+  size_t size;
+  char **strings;
+  size_t i;
+
+  size = backtrace (array, 20);
+  strings = backtrace_symbols (array, size); // Need -rdynamic gcc (linker) flag for this to work
+
+  for (i = 0; i < size; i++) // skip useless functions
+    L<<Logger::Error<<strings[i]<<endl;
+#else
+  L<<Logger::Critical<<"Got a signal "<<num<<", dying."<<endl;
+#endif
+
+  signal(SIGABRT, SIG_DFL);
+  abort();//hopefully will give core
+}

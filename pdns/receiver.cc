@@ -379,29 +379,6 @@ static void loadModules()
   }
 }
 
-#ifdef __linux__
-#include <execinfo.h>
-static void tbhandler(int num)
-{
-  L<<Logger::Critical<<"Got a signal "<<num<<", attempting to print trace: "<<endl;
-  void *array[20]; //only care about last 17 functions (3 taken with tracing support)
-  size_t size;
-  char **strings;
-  size_t i;
-  
-  size = backtrace (array, 20);
-  strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
-  
-  for (i = 0; i < size; i++) //skip useless functions
-    L<<Logger::Error<<strings[i]<<endl;
-  
-  
-  signal(SIGABRT, SIG_DFL);
-  abort();//hopefully will give core
-
-}
-#endif
-
 //! The main function of pdns, the pdns process
 int main(int argc, char **argv)
 {
@@ -424,12 +401,10 @@ int main(int argc, char **argv)
   s_programname="pdns";
   s_starttime=time(0);
 
-#ifdef __linux__
-  signal(SIGSEGV,tbhandler);
-  signal(SIGFPE,tbhandler);
-  signal(SIGABRT,tbhandler);
-  signal(SIGILL,tbhandler);
-#endif
+  signal(SIGSEGV, Utility::log_and_crash);
+  signal(SIGFPE, Utility::log_and_crash);
+  signal(SIGABRT, Utility::log_and_crash);
+  signal(SIGILL, Utility::log_and_crash);
 
 #if __GNUC__ >= 3
   std::ios_base::sync_with_stdio(false);

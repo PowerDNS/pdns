@@ -158,6 +158,9 @@ public:
   static time_t timegm(struct tm *tm);
 
   static void gmtime_r(const time_t *timer, struct tm *tmbuf);
+
+  // Signal handler for generally unhandled signals.
+  static void log_and_crash(int num);
 };
 
 
