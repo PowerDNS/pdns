@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2013  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -35,67 +35,28 @@
 #include <sys/types.h>
 #include <strings.h>
 
+#include "sstuff.hh"
 #include "iputils.hh"
-#include "pdnsexception.hh"
 #include "mplexer.hh"
+#include "syncres.hh"
 
-class SessionException: public PDNSException
-{
-public:
-  SessionException(const string &reason) : PDNSException(reason){}
-};
-
-class SessionTimeoutException: public SessionException
-{
-public:
-  SessionTimeoutException(const string &reason) : SessionException(reason){}
-};
-
-//! The Session class represents a TCP/IP session, which can either be created or run on an existing socket
-class Session
-{
-public:
-  bool put(const string &s);
-  bool good();
-  size_t read(char* buf, size_t len);
-
-  Session(int s, ComboAddress r); //!< Start a session on an existing socket, and inform this class of the remotes name
-
-  /** Create a session to a remote host and port. This function reads a timeout value from the ArgvMap class 
-      and does a nonblocking connect to support this timeout. It should be noted that nonblocking connects 
-      suffer from bad portability problems, so look here if you see weird problems on new platforms */
-  Session(const string &remote, int port, int timeout=0); 
-
-  Session(const Session &s); 
-  Session();
-  
-  ~Session();
-  int getSocket(); //!< return the filedescriptor for layering violations
-  int close(); //!< close and disconnect the connection
-  void setTimeout(unsigned int seconds);
-private:
-  int d_socket;
-  ComboAddress d_remote;
-  int d_timeout;
-  bool d_good;
-};
 
 //! The server class can be used to create listening servers
 class Server
 {
 public:
-  Server(const string &localaddress, int port);
+  Server(const string &localaddress, int port) : d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(InterNetwork, Stream, 0) {
+    d_server_socket.setReuseAddr();
+    d_server_socket.bind(d_local);
+    d_server_socket.listen();
+  }
+
   ComboAddress d_local;
 
-  Session accept(); //!< Call accept() in an endless loop to accept new connections
+  Socket *accept(); //!< Call accept() in an endless loop to accept new connections
 
-  typedef boost::function< void(Session) > newconnectioncb_t;
-  void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
-
-private:
-  int s;
-  void asyncNewConnection();
-  newconnectioncb_t d_asyncNewConnectionCallback;
+protected:
+  Socket d_server_socket;
 };
 
 #endif /* SESSION_HH */

@@ -471,12 +471,12 @@ extern __thread SyncRes::StaticStorage* t_sstorage;
 class Socket;
 /* external functions, opaque to us */
 int asendtcp(const string& data, Socket* sock);
-int arecvtcp(string& data, int len, Socket* sock);
+int arecvtcp(string& data, int len, Socket* sock, bool incompleteOkay);
 
 
 struct PacketID
 {
-  PacketID() : id(0), type(0), sock(0), inNeeded(0), outPos(0), nearMisses(0), fd(-1)
+  PacketID() : id(0), type(0), sock(0), inNeeded(0), inIncompleteOkay(false), outPos(0), nearMisses(0), fd(-1)
   {
     memset(&remote, 0, sizeof(remote));
   }
@@ -489,6 +489,7 @@ struct PacketID
   Socket* sock;  // or wait for an event on a TCP fd
   int inNeeded; // if this is set, we'll read until inNeeded bytes are read
   string inMSG; // they'll go here
+  bool inIncompleteOkay;
 
   string outMSG; // the outgoing message that needs to be sent
   string::size_type outPos;    // how far we are along in the outMSG
@@ -534,7 +535,6 @@ extern __thread MemRecursorCache* t_RC;
 extern __thread RecursorPacketCache* t_packetCache;
 typedef MTasker<PacketID,string> MT_t;
 extern __thread MT_t* MT;
-
 
 struct RecursorStats
 {

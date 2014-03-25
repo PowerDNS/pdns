@@ -55,8 +55,10 @@ AuthWebServer::AuthWebServer()
   d_min10=d_min5=d_min1=0;
   d_ws = 0;
   d_tid = 0;
-  if(arg().mustDo("webserver"))
+  if(arg().mustDo("webserver")) {
     d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
+    d_ws->bind();
+  }
 }
 
 void AuthWebServer::go()

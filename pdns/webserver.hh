@@ -30,17 +30,17 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "namespaces.hh"
-
-class Server;
-class Session;
+#include "sstuff.hh"
+#include "session.hh"
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false) { };
+  HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false) { };
 
   map<string,string> path_parameters;
   bool accept_json;
   bool accept_html;
+  bool complete;
   void json(rapidjson::Document& document);
 };
 
@@ -110,9 +110,10 @@ class WebServer : public boost::noncopyable
 {
 public:
   WebServer(const string &listenaddress, int port, const string &password="");
+  void bind();
   void go();
 
-  void serveConnection(Session client);
+  void serveConnection(Socket *client);
   HttpResponse handleRequest(HttpRequest request);
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
@@ -130,27 +131,15 @@ protected:
   static int B64Decode(const std::string& strInput, std::string& strOutput);
   bool route(const std::string& url, std::map<std::string, std::string>& urlArgs, HandlerFunction** handler);
 
+  virtual Server* createServer() {
+    return new Server(d_listenaddress, d_port);
+  }
+
   string d_listenaddress;
   int d_port;
   std::list<HandlerRegistration> d_handlers;
   string d_password;
   Server* d_server;
-};
-
-class FDMultiplexer;
-
-class AsyncWebServer : public WebServer
-{
-public:
-  AsyncWebServer(FDMultiplexer* fdm, const string &listenaddress, int port, const string &password="") :
-    WebServer(listenaddress, port, password), d_fdm(fdm) { };
-  void go();
-
-private:
-  FDMultiplexer* d_fdm;
-
-  void newConnection(Session session);
-  void serveConnection(Session session);
 };
 
 #endif /* WEBSERVER_HH */

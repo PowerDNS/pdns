@@ -87,6 +87,13 @@ public:
     Utility::setNonBlocking(d_socket);
   }
 
+  void setReuseAddr()
+  {
+    int tmp = 1;
+    if (setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
+      throw NetworkError(string("Setsockopt failed: ")+strerror(errno));
+  }
+
   //! Bind the socket to a specified endpoint
   void bind(const ComboAddress &local)
   {
@@ -222,6 +229,33 @@ public:
     return res;
   }
 
+  void writenWithTimeout(const void *buffer, unsigned int n, int timeout)
+  {
+    unsigned int bytes=n;
+    const char *ptr = (char*)buffer;
+    int ret;
+    while(bytes) {
+      ret=::write(d_socket, ptr, bytes);
+      if(ret < 0) {
+        if(errno==EAGAIN) {
+          ret=waitForRWData(d_socket, false, timeout, 0);
+          if(ret < 0)
+            throw NetworkError("Waiting for data write");
+          if(!ret)
+            throw NetworkError("Timeout writing data");
+          continue;
+        }
+        else
+          throw NetworkError("Writing data: "+stringerror());
+      }
+      if(!ret) {
+        throw NetworkError("Did not fulfill TCP write due to EOF");
+      }
+
+      ptr += ret;
+      bytes -= ret;
+    }
+  }
 
   //! reads one character from the socket 
   int getChar()
@@ -261,7 +295,18 @@ public:
     if(res<0) 
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
     return res;
+  }
 
+  int readWithTimeout(char* buffer, int n, int timeout)
+  {
+    int err = waitForRWData(d_socket, true, timeout, 0);
+
+    if(err == 0)
+      throw NetworkError("timeout reading");
+    if(err < 0)
+      throw NetworkError("nonblocking read failed: "+string(strerror(errno)));
+
+    return read(buffer, n);
   }
 
   //! Sets the socket to listen with a default listen backlog of 10 bytes 

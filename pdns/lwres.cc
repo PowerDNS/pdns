@@ -122,14 +122,14 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
         return ret;
       
       packet.clear();
-      ret=arecvtcp(packet, 2, &s);
+      ret=arecvtcp(packet, 2, &s, false);
       if(!(ret > 0))
         return ret;
       
       memcpy(&tlen, packet.c_str(), 2);
       len=ntohs(tlen); // switch to the 'len' shared with the rest of the function
       
-      ret=arecvtcp(packet, len, &s);
+      ret=arecvtcp(packet, len, &s, false);
       if(!(ret > 0))
         return ret;
       
