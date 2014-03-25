@@ -46,7 +46,7 @@ dns.hh dnsbackend.hh dnsbackend.cc dnspacket.hh dynmessenger.hh lock.hh logger.h
 nameserver.hh packetcache.hh packethandler.hh qtype.hh statbag.hh \
 ueberbackend.hh pdns.conf-dist \
 ws-auth.hh ws-auth.cc ws-api.cc ws-api.hh webserver.cc webserver.hh \
-session.cc session.hh misc.cc misc.hh receiver.cc ueberbackend.cc \
+misc.cc misc.hh receiver.cc ueberbackend.cc \
 dynlistener.cc dynlistener.hh  dynhandler.cc dynhandler.hh  \
 resolver.hh resolver.cc slavecommunicator.cc mastercommunicator.cc communicator.cc communicator.hh dnsproxy.cc \
 dnsproxy.hh unix_utility.cc common_startup.cc \
@@ -293,7 +293,7 @@ dns_random.cc \
 lua-pdns.cc lua-pdns.hh lua-recursor.cc lua-recursor.hh randomhelper.cc  \
 recpacketcache.cc recpacketcache.hh dns.cc nsecrecords.cc base32.cc cachecleaner.hh \
 ws-recursor.cc ws-recursor.hh ws-api.cc ws-api.hh webserver.cc webserver.hh \
-session.cc session.hh json.cc json.hh version.hh version.cc responsestats.cc
+json.cc json.hh version.hh version.cc responsestats.cc
 
 pdns_recursor_LDFLAGS= $(LUA_LIBS)
 pdns_recursor_LDADD= $(POLARSSL_LIBS) $(YAHTTP_LIBS)

@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2012  PowerDNS.COM BV
+    Copyright (C) 2003 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -36,6 +36,8 @@
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
+
+extern __thread FDMultiplexer* t_fdm;
 
 using namespace rapidjson;
 
@@ -408,6 +410,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   }
 
   d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"), arg()["experimental-webserver-password"]);
+  d_ws->bind();
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
@@ -540,4 +543,68 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     resp->status = 404;
     resp->body = returnJsonError("Not found");
   }
+}
+
+
+void AsyncServerNewConnectionMT(void *p) {
+  AsyncServer *server = (AsyncServer*)p;
+  try {
+    Socket* socket = server->accept();
+    server->d_asyncNewConnectionCallback(socket);
+    delete socket;
+  } catch (NetworkError &e) {
+    // we're running in a shared process/thread, so can't just terminate/abort.
+    return;
+  }
+}
+
+void AsyncServer::asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback)
+{
+  d_asyncNewConnectionCallback = callback;
+  fdm->addReadFD(d_server_socket.getHandle(), boost::bind(&AsyncServer::newConnection, this));
+}
+
+void AsyncServer::newConnection()
+{
+  MT->makeThread(&AsyncServerNewConnectionMT, this);
+}
+
+
+void AsyncWebServer::serveConnection(Socket *client)
+{
+  HttpRequest req;
+  YaHTTP::AsyncRequestLoader yarl(&req);
+  client->setNonBlocking();
+
+  string data;
+  try {
+    while(!req.complete) {
+      data.empty();
+      int bytes = arecvtcp(data, 16384, client, true);
+      if (bytes > 0) {
+        req.complete = yarl.feed(data);
+      } else {
+        // read error OR EOF
+        break;
+      }
+    }
+  } catch (YaHTTP::ParseError &e) {
+    // request stays incomplete
+  }
+
+  HttpResponse resp = handleRequest(req);
+  ostringstream ss;
+  resp.write(ss);
+  data = ss.str();
+
+  // now send the reply
+  if (asendtcp(data, client) == -1 || data.empty()) {
+    L<<Logger::Error<<"Failed sending reply to HTTP client"<<endl;
+  }
+}
+
+void AsyncWebServer::go() {
+  if (!d_server)
+    return;
+  ((AsyncServer*)d_server)->asyncWaitForConnections(d_fdm, boost::bind(&AsyncWebServer::serveConnection, this, _1));
 }

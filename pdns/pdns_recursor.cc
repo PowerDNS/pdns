@@ -188,12 +188,13 @@ int asendtcp(const string& data, Socket* sock)
 void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var);
 
 // -1 is error, 0 is timeout, 1 is success
-int arecvtcp(string& data, int len, Socket* sock) 
+int arecvtcp(string& data, int len, Socket* sock, bool incompleteOkay)
 {
   data.clear();
   PacketID pident;
   pident.sock=sock;
   pident.inNeeded=len;
+  pident.inIncompleteOkay=incompleteOkay;
   t_fdm->addReadFD(sock->getHandle(), handleTCPClientReadable, pident);
 
   int ret=MT->waitEvent(pident,&data, g_networkTimeoutMsec);
@@ -1400,7 +1401,7 @@ void handleTCPClientReadable(int fd, FDMultiplexer::funcparam_t& var)
   if(ret > 0) {
     pident->inMSG.append(&buffer[0], &buffer[ret]);
     pident->inNeeded-=ret;
-    if(!pident->inNeeded) {
+    if(!pident->inNeeded || pident->inIncompleteOkay) {
       //      cerr<<"Got entire load of "<<pident->inMSG.size()<<" bytes"<<endl;
       PacketID pid=*pident;
       string msg=pident->inMSG;
