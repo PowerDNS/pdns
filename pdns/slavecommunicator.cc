@@ -35,7 +35,6 @@
 #include "logger.hh"
 #include "dns.hh"
 #include "arguments.hh"
-#include "session.hh"
 #include "packetcache.hh"
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>

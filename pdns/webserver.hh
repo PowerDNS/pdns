@@ -31,7 +31,6 @@
 #include "rapidjson/writer.h"
 #include "namespaces.hh"
 #include "sstuff.hh"
-#include "session.hh"
 
 class HttpRequest : public YaHTTP::Request {
 public:
@@ -104,6 +103,25 @@ class ApiException : public runtime_error
 public:
   ApiException(const string& what) : runtime_error(what) {
   }
+};
+
+class Server
+{
+public:
+  Server(const string &localaddress, int port) : d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(InterNetwork, Stream, 0) {
+    d_server_socket.setReuseAddr();
+    d_server_socket.bind(d_local);
+    d_server_socket.listen();
+  }
+
+  ComboAddress d_local;
+
+  Socket *accept() {
+    return d_server_socket.accept();
+  }
+
+protected:
+  Socket d_server_socket;
 };
 
 class WebServer : public boost::noncopyable

@@ -22,7 +22,6 @@
 #include <boost/utility.hpp> 
 #include "namespaces.hh"
 #include "mplexer.hh"
-#include "session.hh"
 #include "webserver.hh"
 
 class HttpRequest;

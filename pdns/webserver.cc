@@ -21,7 +21,6 @@
 */
 #include "utility.hh"
 #include "webserver.hh"
-#include "session.hh"
 #include "misc.hh"
 #include <vector>
 #include "logger.hh"
