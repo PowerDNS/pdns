@@ -2091,6 +2091,7 @@ int main(int argc, char **argv)
     ::arg().set("experimental-webserver-port", "Port of webserver to listen on") = "8082";
     ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
+    ::arg().set("experimental-api-readonly", "If the JSON API should disallow data modification") = "no";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
