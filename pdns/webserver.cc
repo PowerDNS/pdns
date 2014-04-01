@@ -314,7 +314,7 @@ catch(...) {
   L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
-WebServer::WebServer(const string &listenaddress, int port, const string &password)
+WebServer::WebServer(const string &listenaddress, int port, const string &password) : d_server(NULL)
 {
   d_listenaddress=listenaddress;
   d_port=port;

@@ -579,7 +579,7 @@ void AsyncWebServer::serveConnection(Socket *client)
   string data;
   try {
     while(!req.complete) {
-      data.empty();
+      data.clear();
       int bytes = arecvtcp(data, 16384, client, true);
       if (bytes > 0) {
         req.complete = yarl.feed(data);

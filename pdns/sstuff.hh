@@ -39,8 +39,9 @@ typedef int ProtocolType; //!< Supported protocol types
 class Socket : public boost::noncopyable
 {
 private:
-  explicit Socket(int fd)
+  explicit Socket(int fd, AddressFamily af)
   {
+    d_family=af;
     d_buflen=4096;
     d_buffer=new char[d_buflen];
     d_socket=fd;
@@ -78,7 +79,7 @@ public:
       throw NetworkError("Accepting a connection: "+string(strerror(errno)));
     }
 
-    return new Socket(s);
+    return new Socket(s, d_family);
   }
 
   //! Set the socket to non-blocking
@@ -326,7 +327,7 @@ private:
   int d_socket;
   char *d_buffer;
   int d_buflen;
-  int d_family;
+  AddressFamily d_family;
 };
 
 
