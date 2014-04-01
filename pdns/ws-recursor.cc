@@ -65,7 +65,7 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
 
 static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "PUT") {
+  if (req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
     Document document;
     req->json(document);
     const Value &jlist = document["value"];
@@ -258,7 +258,7 @@ static bool doDeleteZone(const string& zonename)
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "POST") {
+  if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
     if (::arg()["experimental-api-config-dir"].empty()) {
       throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
     }
@@ -323,7 +323,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
   if (iter == t_sstorage->domainmap->end())
     throw ApiException("Could not find domain '"+zonename+"'");
 
-  if(req->method == "PUT") {
+  if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
     Document document;
     req->json(document);
 
@@ -332,7 +332,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     reloadAuthAndForwards();
     fillZone(stringFromJson(document, "name"), resp);
   }
-  else if(req->method == "DELETE") {
+  else if(req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
     if (!doDeleteZone(zonename)) {
       throw ApiException("Deleting domain failed");
     }
