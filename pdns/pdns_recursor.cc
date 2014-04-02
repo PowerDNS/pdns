@@ -1191,7 +1191,7 @@ try
   }
   
   if(!t_id) {
-    if(now.tv_sec - last_stat > 1800) { 
+    if(now.tv_sec - last_stat >= 1800) { 
       doStats();
       last_stat=time(0);
     }
