@@ -156,6 +156,37 @@ class AuthZones(ApiTestCase):
         recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
         self.assertEquals(recs, payload['records'])
 
+    def test_ZoneRRUpdateMX(self):
+        # Important to test with MX records, as they have a priority field, which must not end up in the content field.
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # do a replace (= update)
+        payload = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'MX',
+            'records': [
+                {
+                    "name": name,
+                    "type": "MX",
+                    "priority": 10,
+                    "ttl": 3600,
+                    "content": "mail.example.org",
+                    "disabled": False
+                }
+            ]
+        }
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # verify that (only) the new record is there
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        data = r.json()['records']
+        recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
+        self.assertEquals(recs, payload['records'])
+
     def test_ZoneRRDelete(self):
         payload, zone = self.create_zone()
         name = payload['name']
