@@ -108,7 +108,7 @@ public:
 class Server
 {
 public:
-  Server(const string &localaddress, int port) : d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(InterNetwork, Stream, 0) {
+  Server(const string &localaddress, int port) : d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(d_local.sin4.sin_family, SOCK_STREAM, 0) {
     d_server_socket.setReuseAddr();
     d_server_socket.bind(d_local);
     d_server_socket.listen();

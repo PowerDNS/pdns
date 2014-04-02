@@ -101,7 +101,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   }
   else {
     try {
-      Socket s((AddressFamily)ip.sin4.sin_family, Stream);
+      Socket s(ip.sin4.sin_family, SOCK_STREAM);
 
       s.setNonBlocking();
       ComboAddress local = getQueryLocalAddress(ip.sin4.sin_family, 0);
