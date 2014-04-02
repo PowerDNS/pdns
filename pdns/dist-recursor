@@ -37,7 +37,7 @@ selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
 dnslabeltext.cc json.cc ws-recursor.cc ws-api.cc version.cc dns_random.cc \
-responsestats.cc webserver.cc"
+responsestats.cc webserver.cc rec-carbon.cc"
 
 cd docs
 make pdns_recursor.1 rec_control.1
