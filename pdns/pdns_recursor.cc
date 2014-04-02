@@ -1993,6 +1993,8 @@ try
   
   bool listenOnTCP(true);
 
+  time_t last_carbon=0;
+  time_t carbonInterval=::arg().asNum("carbon-interval");
   counter=0; // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
@@ -2020,6 +2022,12 @@ try
     }
 
     Utility::gettimeofday(&g_now, 0);
+
+    if(!t_id && (g_now.tv_sec - last_carbon >= carbonInterval)) {
+      MT->makeThread(doCarbonDump, 0);
+      last_carbon = g_now.tv_sec;
+    }
+
     t_fdm->run(&g_now);
     // 'run' updates g_now for us
 
@@ -2091,6 +2099,8 @@ int main(int argc, char **argv)
     ::arg().set("experimental-webserver-port", "Port of webserver to listen on") = "8082";
     ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
+    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+    ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
     ::arg().set("quiet","Suppress logging of questions and answers")="";
     ::arg().set("logging-facility","Facility to log messages as. 0 corresponds to local0")="";
     ::arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
