@@ -34,6 +34,8 @@ public:
   static void nop(void){}
   typedef void func_t(void);
   std::string getAnswer(const std::string& question, func_t** func);
+private:
+  static bool s_init;
 };
 
 std::map<std::string, std::string> getAllStatsMap();

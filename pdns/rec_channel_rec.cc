@@ -427,8 +427,13 @@ uint64_t doGetMallocated()
 
 extern ResponseStats g_rs;
 
+bool RecursorControlParser::s_init;
 RecursorControlParser::RecursorControlParser()
 {
+  if(s_init)
+    return;
+  s_init=true;
+
   addGetStat("questions", &g_stats.qcounter);
   addGetStat("ipv6-questions", &g_stats.ipv6qcounter);
   addGetStat("tcp-questions", &g_stats.tcpqcounter);
