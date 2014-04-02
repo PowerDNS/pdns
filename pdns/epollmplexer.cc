@@ -149,7 +149,7 @@ void acceptData(int fd, funcparam_t& parameter)
 
 int main()
 {
-  Socket s(InterNetwork, Datagram);
+  Socket s(AF_INET, SOCK_DGRAM);
   
   IPEndpoint loc("0.0.0.0", 2000);
   s.bind(loc);
