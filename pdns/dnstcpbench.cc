@@ -77,7 +77,7 @@ try
   gettimeofday(&tv, 0);
 
   if(!g_onlyTCP) {
-    Socket udpsock((AddressFamily)g_dest.sin4.sin_family, Datagram);
+    Socket udpsock(g_dest.sin4.sin_family, SOCK_DGRAM);
     
     udpsock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), g_dest);
     ComboAddress origin;
@@ -101,7 +101,7 @@ try
     g_truncates++;
   }
 
-  Socket sock((AddressFamily)g_dest.sin4.sin_family, Stream);
+  Socket sock(g_dest.sin4.sin_family, SOCK_STREAM);
   int tmp=1;
   if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
     throw runtime_error("Unable to set socket reuse: "+string(strerror(errno)));

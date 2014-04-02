@@ -25,7 +25,7 @@ StatBag S;
 int main(int argc, char** argv)
 try
 {
-  Socket sock(InterNetwork, Datagram);
+  Socket sock(AF_INET, SOCK_DGRAM);
 
   /*
   IPEndpoint remote(argc > 2 ? argv[2] : "127.0.0.1", 
