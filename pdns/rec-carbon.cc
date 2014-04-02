@@ -24,8 +24,15 @@ try
 
   ostringstream str;
   time_t now=time(0);
+  string hostname=arg()["carbon-ourname"];
+  if(hostname.empty()) {
+    char tmp[80];
+    memset(tmp, 0, sizeof(tmp));
+    gethostname(tmp, sizeof(tmp));
+    hostname=tmp;
+  }
   BOOST_FOREACH(const all_t::value_type& val, all) {
-    str<<"pdns.recursor.localhost."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
+    str<<"pdns.recursor."<<hostname<<"."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
   }
   const string msg = str.str();
 
