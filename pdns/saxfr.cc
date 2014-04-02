@@ -38,8 +38,9 @@ try
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, argv[3], 252);
 
-  Socket sock(InterNetwork, Stream);
+
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+  Socket sock(dest.sin4.sin_family, SOCK_STREAM);  
   sock.connect(dest);
   uint16_t len;
   len = htons(packet.size());

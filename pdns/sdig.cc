@@ -84,7 +84,7 @@ try
   string reply;
 
   if(tcp) {
-    Socket sock(InterNetwork, Stream);
+    Socket sock(AF_INET, SOCK_STREAM);
     ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
     sock.connect(dest);
     uint16_t len;
@@ -113,7 +113,7 @@ try
   }
   else //udp
   {
-    Socket sock(InterNetwork, Datagram);
+    Socket sock(AF_INET, SOCK_DGRAM);
     ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
     sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
     

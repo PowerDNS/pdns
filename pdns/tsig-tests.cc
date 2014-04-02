@@ -54,7 +54,7 @@ try
 
   addTSIG(pw, &trc, keyname, key, "", false);
 
-  Socket sock(InterNetwork, Datagram);
+  Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
 #if 0
   sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);

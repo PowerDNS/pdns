@@ -35,7 +35,7 @@ try
   pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
   pw.commit();
  
-  Socket sock(InterNetwork, Datagram);
+  Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
   sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
   
