@@ -668,7 +668,7 @@ try
   g_timeoutMsec=g_vm["timeout-msec"].as<uint32_t>();
 
   PcapPacketReader pr(g_vm["pcap-source"].as<string>());
-  s_socket= new Socket(InterNetwork, Datagram);
+  s_socket= new Socket(AF_INET, SOCK_DGRAM);
 
   s_socket->setNonBlocking();
   setSocketReceiveBuffer(s_socket->getHandle(), 2000000);
