@@ -36,11 +36,17 @@ typedef int ProtocolType; //!< Supported protocol types
 //! Representation of a Socket and many of the Berkeley functions available
 class Socket : public boost::noncopyable
 {
+  Socket(int fd)
+  {
+    d_socket = fd;
+    d_buflen=4096;
+    d_buffer=new char[d_buflen];
+  }
+
 public:
   //! Construct a socket of specified address family and socket type.
   Socket(int af, int st, ProtocolType pt=0)
   {
-    d_family=af;
     if((d_socket=(int)socket(af,st, pt))<0)
       throw NetworkError(strerror(errno));
     Utility::setCloseOnExec(d_socket);
@@ -69,7 +75,7 @@ public:
       throw NetworkError("Accepting a connection: "+string(strerror(errno)));
     }
 
-    return new Socket(s, d_family);
+    return new Socket(s);
   }
 
   //! Set the socket to non-blocking
@@ -317,7 +323,6 @@ private:
   int d_socket;
   char *d_buffer;
   int d_buflen;
-  int d_family;
 };
 
 
