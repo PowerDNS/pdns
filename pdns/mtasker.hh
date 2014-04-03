@@ -21,7 +21,7 @@
 */
 #ifndef MTASKER_HH
 #define MTASKER_HH
-
+#include <stdint.h>
 #include <signal.h>
 #include <ucontext.h>
 #include <queue>
