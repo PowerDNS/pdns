@@ -5,7 +5,7 @@
 #include "dns.hh"
 #include "namespaces.hh"
 #include "lock.hh"
-
+#include "dnswriter.hh"
 
 RecursorPacketCache::RecursorPacketCache()
 {
@@ -14,22 +14,30 @@ RecursorPacketCache::RecursorPacketCache()
 
 int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
 {
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, name, 0);
+  pw.getHeader()->rd=1;
+  Entry e;
+  e.d_packet.assign(&*packet.begin(), &*packet.end());
+
+  // so the idea is, we search for a packet with qtype=0, which is ahead of anything with that name
+
   int count=0;
-  for(packetCache_t::iterator iter = d_packetCache.begin(); iter != d_packetCache.end();)
-  {
+  for(packetCache_t::iterator iter = d_packetCache.lower_bound(e); iter != d_packetCache.end(); ) {
     const struct dnsheader* packet = reinterpret_cast<const struct dnsheader*>((*iter).d_packet.c_str());
-    if (packet->qdcount > 0) 
-    {
-        // find out type
-        const struct dnsrecordheader *header = reinterpret_cast<const struct dnsrecordheader*>((*iter).d_packet.c_str()+sizeof(struct dnsheader));
-        uint16_t type = header->d_type;
-        std::string domain=questionExpand((*iter).d_packet.c_str(), (*iter).d_packet.size(), type);         
-        if (pdns_iequals(name,domain)) 
-        { 
-            iter = d_packetCache.erase(iter);
-          count++;
-        } else iter++;
+    if(packet->qdcount==0)
+      break;
+    uint16_t t;
+    string found=questionExpand(iter->d_packet.c_str(), iter->d_packet.length(), t);
+    if(found != name) {
+      break;
     }
+    if(t==qtype || qtype==0xffff) {
+      iter=d_packetCache.erase(iter);
+      count++;
+    }
+    else
+      ++iter;
   }
   return count;
 }
