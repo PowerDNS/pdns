@@ -628,14 +628,15 @@ static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
         rr.priority = intFromJson(record, "priority");
         rr.disabled = boolFromJson(record, "disabled");
 
-        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-          rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
         if(rr.qname != qname || rr.qtype != qtype)
           throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": Record bundled with wrong RRset");
 
+        string temp_content = rr.content;
+        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+          temp_content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
         try {
-          shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+          shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, temp_content));
           string tmp = drc->serialize(rr.qname);
         }
         catch(std::exception& e)
