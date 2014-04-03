@@ -313,6 +313,16 @@ uint64_t getNegCacheSize()
   return broadcastAccFunction<uint64_t>(pleaseGetNegCacheSize);
 }
 
+uint64_t* pleaseGetFailedHostsSize()
+{
+  uint64_t tmp=t_sstorage->fails.size();
+  return new uint64_t(tmp);
+}
+uint64_t getFailedHostsSize()
+{
+  return broadcastAccFunction<uint64_t>(pleaseGetFailedHostsSize);
+}
+
 uint64_t* pleaseGetNsSpeedsSize()
 {
   return new uint64_t(t_sstorage->nsSpeeds.size());
@@ -484,6 +494,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("throttle-entries", boost::bind(getThrottleSize)); 
 
   addGetStat("nsspeeds-entries", boost::bind(getNsSpeedsSize));
+  addGetStat("failed-host-entries", boost::bind(getFailedHostsSize));
 
   addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);

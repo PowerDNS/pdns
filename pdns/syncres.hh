@@ -220,7 +220,10 @@ public:
       d_cont.erase(i);
     }
   }
-
+  size_t size()
+  {
+    return d_cont.size();
+  }
 private:
   typedef map<Thing,unsigned long> cont_t;
   cont_t d_cont;
