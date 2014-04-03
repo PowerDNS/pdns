@@ -32,7 +32,7 @@ try
     hostname=tmp;
   }
   BOOST_FOREACH(const all_t::value_type& val, all) {
-    str<<"pdns.recursor."<<hostname<<"."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
+    str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
   }
   const string msg = str.str();
 
