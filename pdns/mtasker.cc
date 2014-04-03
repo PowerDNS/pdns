@@ -22,6 +22,7 @@
 #include "mtasker.hh"
 #include "misc.hh"
 #include <stdio.h>
+#include <stdint.h>
 #include <iostream>
 
 /** \page MTasker
