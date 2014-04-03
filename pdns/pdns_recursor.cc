@@ -2117,7 +2117,7 @@ int main(int argc, char **argv)
     ::arg().set("client-tcp-timeout","Timeout in seconds when talking to TCP clients")="2";
     ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads")="2048";
     ::arg().set("max-tcp-clients","Maximum number of simultaneous TCP clients")="128";
-    ::arg().set("server-down-max-fails","Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )")="0";
+    ::arg().set("server-down-max-fails","Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )")="64";
     ::arg().set("server-down-throttle-time","Number of seconds to throttle all queries to a server after being maked as down")="60";
     ::arg().set("hint-file", "If set, load root hints from this file")="";
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
