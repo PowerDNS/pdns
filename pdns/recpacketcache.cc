@@ -15,10 +15,10 @@ RecursorPacketCache::RecursorPacketCache()
 int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, name, 0);
+  DNSPacketWriter pw(packet, toLower(name), 0);
   pw.getHeader()->rd=1;
   Entry e;
-  e.d_packet.assign(&*packet.begin(), &*packet.end());
+  e.d_packet.assign((const char*)&*packet.begin(), packet.size());
 
   // so the idea is, we search for a packet with qtype=0, which is ahead of anything with that name
 
@@ -29,7 +29,7 @@ int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
       break;
     uint16_t t;
     string found=questionExpand(iter->d_packet.c_str(), iter->d_packet.length(), t);
-    if(found != name) {
+    if(!pdns_iequals(found, name)) {  
       break;
     }
     if(t==qtype || qtype==0xffff) {

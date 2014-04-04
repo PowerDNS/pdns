@@ -101,7 +101,7 @@ bool dnspacketLessThan(const std::string& a, const std::string& b)
     int result=0;
     unsigned int n;
     for(n = 0; n < aLabelLen && n < bLabelLen; ++n) 
-      if((result = aSafe[aPos + n] - bSafe[bPos +n]))
+      if((result = aSafe[aPos + n] - bSafe[bPos +n]))   // XXX this should perhaps be dns_tolower
         break;
     // cerr<<"Done loop, result="<<result<<", n = "<<n<<", aLabelLen="<<aLabelLen<<", bLabelLen="<<bLabelLen<<endl;
     if(result < 0)
