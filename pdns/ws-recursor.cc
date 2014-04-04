@@ -184,18 +184,15 @@ static void doCreateZone(const Value& document)
   }
 
   string zonename = stringFromJson(document, "name");
-  // TODO: better validation of zonename
+  // TODO: better validation of zonename - apiZoneNameToId takes care of escaping / however
   if(zonename.empty())
     throw ApiException("Zone name empty");
-
-  if(zonename.find('/') != string::npos) 
-    throw ApiException("Illegal character in zone name");
 
   if (zonename[zonename.size()-1] != '.') {
     zonename += ".";
   }
 
-  string singleIPTarget = stringFromJson(document, "single-ip-target", "");
+  string singleIPTarget = stringFromJson(document, "single_target_ip", "");
   string kind = toUpper(stringFromJson(document, "kind"));
   bool rd = boolFromJson(document, "recursion_desired");
   string confbasename = "zone-" + apiZoneNameToId(zonename);
