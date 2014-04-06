@@ -25,10 +25,10 @@
   </bookinfo>
   
   <chapter id="powerdns">
-    <title>The PowerDNS dynamic nameserver</title>
+    <title>The PowerDNS Authoritative Server</title>
 
     <para>
-      The PowerDNS daemon is a versatile nameserver which supports a large number
+      The PowerDNS Authoritative Server is a versatile nameserver which supports a large number
       of backends. These backends can either be <link linkend="bindbackend">plain zone files</link> or be 
       <link linkend="pipebackend">more dynamic</link> in nature. Additionally, through use of clever programming techniques,
       PowerDNS offers very high domain resolution performance.
@@ -37,7 +37,7 @@
       Prime examples of backends include relational databases, but also (geographical) load balancing and failover algorithms. 
     </para>
     <para>
-      The company is called PowerDNS.COM BV, the nameserver daemon is called PDNS.
+      The company is called PowerDNS.COM BV, the nameserver daemons are called PowerDNS Authoritative Server and PowerDNS Recursor.
     </para>
 
     <sect1 id="function-design"><title>Function &amp; design of PDNS</title>
@@ -65,11 +65,11 @@
       </para>
       <para>
 	Another prime goal is <link linkend="security">security</link>. By the use of language features, the PDNS source code 
-	is very small (in the order of  10.000 lines) which makes auditing easy. In the same way, library features have been used 
+	is reasonably which makes auditing easy. In the same way, library features have been used 
 	to mitigate the risks of buffer overflows.
       </para>
       <para>
-	Finally, PDNS is able to give a lot of <link linkend="monitoring">statistics</link> on its operation which is both helpful in 
+	Finally, PowerDNS is able to give a lot of <link linkend="monitoring">statistics</link> on its operation which is both helpful in 
 	determining the scalability of an installation as well as for spotting problems.
       </para>
     </sect1>
@@ -14179,6 +14179,20 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry><term>carbon-ourname=...</term>
+	    <listitem><para>
+		If sending carbon updates, if set, this will override our hostname. See <xref linkend="metrics-carbon"/>. Available beyond 3.5.3.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>carbon-server=...</term>
+	    <listitem><para>
+		If set to an IP or IPv6 address, will send all available metrics to this server
+		via the carbon protocol, which is used by graphite and metronome. See <xref linkend="metrics-carbon"/>. Available beyond 3.5.3.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>carbon-interval=...</term>
+	    <listitem><para>
+		If sending carbon updates, this is the interval between them in seconds. See <xref linkend="metrics-carbon"/>. Available beyond 3.5.3.
+	      </para></listitem></varlistentry>
+
 	  <varlistentry><term>chroot</term>
 	    <listitem><para>
 		If set, chroot to this directory for more security. See <xref linkend="security"/>.
@@ -15908,6 +15922,20 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Seconds to store packets in the PacketCache. See <xref linkend="packetcache"/>.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>carbon-ourname=...</term>
+	    <listitem><para>
+		If sending carbon updates, if set, this will override our hostname. See <xref linkend="metrics-carbon"/>. Available beyond 3.3.1.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>carbon-server=...</term>
+	    <listitem><para>
+		If set to an IP or IPv6 address, will send all available metrics to this server
+		via the carbon protocol, which is used by graphite and metronome. See <xref linkend="metrics-carbon"/>. Available beyond 3.3.1.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>carbon-interval=...</term>
+	    <listitem><para>
+		If sending carbon updates, this is the interval between them in seconds. See <xref linkend="metrics-carbon"/>. Available beyond 3.3.1.
+	      </para></listitem></varlistentry>
+
 	  <varlistentry><term>chroot=...</term>
 	    <listitem><para>
 		If set, chroot to this directory for more security. See <xref linkend="security"/>.
@@ -17280,6 +17308,36 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
       </variablelist>
     </para>
   </chapter>
+  <chapter id="metrics-carbon"><title>PowerDNS Metrics, and how to display them</title>
+    <warning>
+      <para>
+	Available in releases after PowerDNS Authoritative Server 3.3.1 and PowerDNS Recursor 3.5.3.
+      </para>
+    </warning>
+    <para>
+      Both PowerDNS daemons generate ample metrics which can be used to monitor performance. These metrics
+      can be polled using the rec_control and pdns_control commands, and they are also available via the http-based API.
+      Finally, they can be pushed to a Carbon/Graphite server, either native carbon, or our own Metronome implementation.
+    </para>
+    <para>
+      For carbon/graphite/metronome, we use the following namespace. Everything starts with 'pdns.', which is then followed
+      by the local hostname. Thirdly, we add either 'auth' or 'recursor' to siginify the daemon generating the metrics. 
+      This is then rounded off with the actual name of the metric. As an example: 'pdns.ns1.recursor.questions'.
+    </para>
+    <para>
+      Care has been taken to make the sending of statistics as unobtrusive as possible, the daemons will not be
+      hindered by an unreachable carbon server, timeouts or connection refused situations.
+    </para>
+    <para>
+      To benefit from our carbon/graphite support, either install Graphite, or use our own lightweight 
+      statistics daemon, Metronome, currently available on <ulink url="https://github.com/ahupowerdns/metronome/">GitHub</ulink>. 
+    </para>
+    <para>
+      Secondly, set carbon-server, possibly carbon-interval, possibly carbon-ourname in the configuration.
+    </para>
+  </chapter>
+  
+
   <appendix id="backends-detail"><title>Backends in detail</title>
     <para>
       This appendix lists several of the available backends in more detail
