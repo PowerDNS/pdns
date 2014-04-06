@@ -35,6 +35,21 @@
 # cache-ttl=20
 
 #################################
+# carbon-interval	Number of seconds between carbon (graphite) updates
+#
+# carbon-interval=30
+
+#################################
+# carbon-ourname	If set, overrides our reported hostname for carbon stats
+#
+# carbon-ourname=
+
+#################################
+# carbon-server	If set, send metrics in carbon (graphite) format to this server
+#
+# carbon-server=
+
+#################################
 # chroot	If set, chroot to this directory for more security
 #
 # chroot=
