@@ -29,6 +29,9 @@ try
     char tmp[80];
     memset(tmp, 0, sizeof(tmp));
     gethostname(tmp, sizeof(tmp));
+    char *p = strchr(tmp, '.');
+    if(p) *p=0;
+
     hostname=tmp;
   }
   BOOST_FOREACH(const all_t::value_type& val, all) {
