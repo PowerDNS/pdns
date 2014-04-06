@@ -26,7 +26,6 @@ bool g_anyToTcp;
 bool g_addSuperfluousNSEC3;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
-
 ArgvMap theArg;
 StatBag S;  //!< Statistics are gathered across PDNS via the StatBag class S
 PacketCache PC; //!< This is the main PacketCache, shared across all threads
@@ -122,7 +121,11 @@ void declareArguments()
   ::arg().setSwitch("out-of-zone-additional-processing","Do out of zone additional processing")="yes";
   ::arg().setSwitch("do-ipv6-additional-processing", "Do AAAA additional processing")="yes";
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
-  
+
+  ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
+  ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+  ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
+
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
   ::arg().set("recursive-cache-ttl","Seconds to store packets for recursive queries in the PacketCache")="10";
   ::arg().set("negquery-cache-ttl","Seconds to store negative query results in the QueryCache")="60";
@@ -273,7 +276,6 @@ void *qthread(void *number)
       }
     }
 
-
     if(!(P=NS->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
     }
@@ -391,7 +393,8 @@ void mainthread()
 
   if(TN)
     TN->go(); // tcp nameserver launch
-    
+
+  pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
   //  fork(); (this worked :-))
   unsigned int max_rthreads= ::arg().asNum("receiver-threads");
   for(unsigned int n=0; n < max_rthreads; ++n)

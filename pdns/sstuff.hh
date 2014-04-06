@@ -83,6 +83,11 @@ public:
   {
     Utility::setNonBlocking(d_socket);
   }
+  //! Set the socket to blocking
+  void setBlocking()
+  {
+    Utility::setBlocking(d_socket);
+  }
 
   void setReuseAddr()
   {

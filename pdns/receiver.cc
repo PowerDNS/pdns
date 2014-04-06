@@ -350,7 +350,6 @@ static void UNIX_declareArguments()
   ::arg().set("chroot","If set, chroot to this directory for more security")="";
   ::arg().set("logging-facility","Log under a specific facility")="";
   ::arg().set("daemon","Operate as a daemon")="no";
-
 }
 
 static void loadModules()

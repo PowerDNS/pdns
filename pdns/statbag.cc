@@ -128,19 +128,16 @@ unsigned int StatBag::readZero(const string &key)
 {
   lock();
 
-
   if(!d_stats.count(key))
     {
       unlock();
       return 0;
     }
-
   
   unsigned int tmp=*d_stats[key];
   d_stats[key]=0;
 
   unlock();
-
   return tmp;
 }
 

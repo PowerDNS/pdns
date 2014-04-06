@@ -53,7 +53,6 @@ string DLQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
     L<<Logger::Error<<"Scheduling exit on remote request"<<endl;
   }
   return ret;
-
 }
 
 static void dokill(int)

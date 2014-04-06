@@ -63,7 +63,7 @@ dnsseckeeper.hh dnssecinfra.hh base32.hh dns.cc dnssecsigner.cc polarrsakeyinfra
 sha.hh md5.hh signingpipe.cc signingpipe.hh dnslabeltext.cc lua-pdns.cc lua-auth.cc lua-auth.hh serialtweaker.cc \
 ednssubnet.cc ednssubnet.hh cachecleaner.hh json.cc json.hh \
 version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh \
-comment.hh
+comment.hh auth-carbon.cc
 
 
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
