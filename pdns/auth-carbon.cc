@@ -5,8 +5,7 @@
 #include "arguments.hh"
 #include "common_startup.hh"
 #include <boost/foreach.hpp>
-
-using namespace std;
+#include "namespaces.hh"
 
 void* carbonDumpThread(void*)
 try
@@ -59,13 +58,13 @@ try
       if(ret==0)
 	L<<Logger::Warning<<"EOF writing carbon data to "<<remote.toStringWithPort();
     }
-    catch(exception& e) {
+    catch(std::exception& e) {
       L<<Logger::Warning<<"Problem sending carbon data: "<<e.what()<<endl;
     }
   }
   return 0;
 }
-catch(exception& e)
+catch(std::exception& e)
 {
   L<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
   return 0;
