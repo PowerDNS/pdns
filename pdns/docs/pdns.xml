@@ -65,7 +65,7 @@
       </para>
       <para>
 	Another prime goal is <link linkend="security">security</link>. By the use of language features, the PDNS source code 
-	is reasonably which makes auditing easy. In the same way, library features have been used 
+	is reasonably small which makes auditing easy. In the same way, library features have been used 
 	to mitigate the risks of buffer overflows.
       </para>
       <para>
