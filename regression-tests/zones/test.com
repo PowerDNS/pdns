@@ -37,3 +37,4 @@ b.c			IN	A	5.6.7.8
 aland		IN TXT "\195\133LAND ISLANDS"
 hightxt		IN	TXT	"v=spf1 mx ip4:78.46.192.210 –all"
 hightxt		IN	SPF	"v=spf1 mx ip4:78.46.192.210 –all"
+d		IN	DNAME	d2.test2.com.

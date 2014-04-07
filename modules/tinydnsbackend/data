@@ -20017,7 +20017,7 @@ Cexternal.example.com:somewhere.else.net.:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
 :hwinfo.example.com:13:\003abc\003def:120
-:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
+3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
 &italy.example.com::italy-ns1.example.com.:120
 &italy.example.com::italy-ns2.example.com.:120
 +italy-ns1.example.com:192.168.5.1:120
@@ -20154,6 +20154,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +b.c.test.com:5.6.7.8:3600
 +\052.a.b.c.test.com:8.7.6.5:3600
 +counter.test.com:1.1.1.5:3600
+:d.test.com:39:\002d2\005test2\003com\000:3600
 :_double._tcp.dc.test.com:33:\000\000\000d\001\205\007server1\004test\003com\000:3600
 :_double._tcp.dc.test.com:33:\000\001\000d\001\205\007server1\004test\003com\000:3600
 :_ldap._tcp.dc.test.com:33:\000\000\000d\001\205\007server2\007example\003net\000:3600

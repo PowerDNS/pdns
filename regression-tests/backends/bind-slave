@@ -30,6 +30,6 @@
 		--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave \
 		--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
 		--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-		--cache-ttl=$cachettl --no-config --bind-dnssec-db=./dnssec-slave.sqlite3 &
+		--cache-ttl=$cachettl --no-config --experimental-dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 &
 	echo 'waiting for zones to be loaded'
 	bindwait bind-slave

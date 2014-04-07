@@ -95,6 +95,8 @@ private:
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd);
   void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd, int mode);
   vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
+  vector<DNSResourceRecord> getBestDNAMESynth(DNSPacket *p, SOAData& sd, string &target);
+  bool tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target);
   bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
 
   bool getBestWildcard(DNSPacket *p, SOAData& sd, const string &target, string &wildcard, vector<DNSResourceRecord>* ret);
@@ -108,6 +110,7 @@ private:
   bool d_doRecursion;
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
+  bool d_doDNAME;
   int d_sendRootReferral;
   AuthLua* d_pdl;
 

@@ -36,7 +36,7 @@
 		--no-shuffle --launch=gmysql --gmysql-dnssec \
 		--send-root-referral \
 		--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-		--cache-ttl=$cachettl --query-cache-ttl=$cachettl --no-config --slave --retrieval-threads=4 \
+		--cache-ttl=$cachettl --query-cache-ttl=$cachettl --experimental-dname-processing --no-config --slave --retrieval-threads=4 \
 		--gmysql-dbname="$GMYSQL2DB" \
 		--gmysql-user="$GMYSQL2USER" \
 		--gmysql-host="$GMYSQL2HOST" \

@@ -7,7 +7,8 @@ _underscore.test.com.	IN	NSEC	86400	aland.test.com. TXT RRSIG NSEC
 aland.test.com.	IN	NSEC	86400	blah.test.com. TXT RRSIG NSEC
 b.c.test.com.	IN	NSEC	86400	*.a.b.c.test.com. A RRSIG NSEC
 blah.test.com.	IN	NSEC	86400	b.c.test.com. NS RRSIG NSEC
-counter.test.com.	IN	NSEC	86400	_double._tcp.dc.test.com. A RRSIG NSEC
+counter.test.com.	IN	NSEC	86400	d.test.com. A RRSIG NSEC
+d.test.com.	IN	NSEC	86400	_double._tcp.dc.test.com. DNAME RRSIG NSEC
 enum.test.com.	IN	NSEC	86400	hightxt.test.com. NAPTR RRSIG NSEC
 hightxt.test.com.	IN	NSEC	86400	ns1.test.com. TXT RRSIG NSEC SPF
 ns1.test.com.	IN	NSEC	86400	ns2.test.com. A RRSIG NSEC

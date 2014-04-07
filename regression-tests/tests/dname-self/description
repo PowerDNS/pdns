@@ -1,0 +1,1 @@
+Make sure a DNAME does not synthesise for its own owner name.

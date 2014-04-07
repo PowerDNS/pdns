@@ -35,7 +35,7 @@ __EOF__
 			--no-shuffle --launch=gmysql \
 			--master --send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
-			--cache-ttl=$cachettl --no-config \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--gmysql-dbname="$GMYSQLDB" \
 			--gmysql-user="$GMYSQLUSER" \
 			--gmysql-host="$GMYSQLHOST" \
@@ -87,7 +87,7 @@ __EOF__
 			--no-shuffle --launch --launch+=random --launch+=gmysql --launch+=random --gmysql-dnssec \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
-			--cache-ttl=$cachettl --no-config \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--gmysql-dbname="$GMYSQLDB" \
 			--gmysql-user="$GMYSQLUSER" \
 			--gmysql-host="$GMYSQLHOST" \

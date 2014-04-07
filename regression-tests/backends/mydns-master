@@ -24,7 +24,7 @@ __EOF__
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=mydns \
 			--master --send-root-referral \
-			--cache-ttl=0 --no-config \
+			--cache-ttl=0 --experimental-dname-processing --no-config \
 			--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no \
 			--mydns-dbname="$MYDNSDB" \
 			--mydns-user="$MYDNSUSER" \

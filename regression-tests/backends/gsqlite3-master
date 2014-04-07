@@ -21,7 +21,7 @@ __EOF__
 			--no-shuffle --launch=gsqlite3 \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --no-config \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--gsqlite3-database=pdns.sqlite3 &
 		skipreasons="nodnssec nodyndns"
 		;;
@@ -54,7 +54,7 @@ __EOF__
 			--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --no-config \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--gsqlite3-database=pdns.sqlite3 $lua_prequery &
 		if [ $context = gsqlite3-nsec3 ]
 		then

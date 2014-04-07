@@ -106,7 +106,7 @@ EOF
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=remote \
-			--query-logging --loglevel=9 --cache-ttl=$cachettl --no-config \
+			--query-logging --loglevel=9 --cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral --distributor-threads=1 \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 			--remote-connection-string="$connstr" $remote_add_param &

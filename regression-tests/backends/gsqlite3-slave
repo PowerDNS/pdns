@@ -22,7 +22,7 @@
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./  \
 		--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
 		--fancy-records --send-root-referral \
-		--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=4 \
+		--cache-ttl=0 --query-cache-ttl=0 --experimental-dname-processing --no-config --slave --retrieval-threads=4 \
 		--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 \
 		--config-name=gsqlite32 &
 	echo 'waiting for zones to be slaved'

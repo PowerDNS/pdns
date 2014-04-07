@@ -27,7 +27,7 @@ __EOF__
 			--no-shuffle --launch=gpgsql \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --no-config \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--gpgsql-dbname="$GPGSQLDB" \
 			--gpgsql-user="$GPGSQLUSER" &
 		skipreasons="nodnssec nodyndns"
@@ -67,7 +67,7 @@ __EOF__
 			--no-shuffle --launch=gpgsql --gpgsql-dnssec \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --no-config \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--gpgsql-dbname="$GPGSQLDB" \
 			--gpgsql-user="$GPGSQLUSER" $lua_prequery &
 		if [ $context = gpgsql-nsec3 ]

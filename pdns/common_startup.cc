@@ -65,6 +65,7 @@ void declareArguments()
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
   ::arg().setSwitch("experimental-json-interface", "If the webserver should serve JSON data")="no";
   ::arg().setSwitch("experimental-api-readonly", "If the JSON API should disallow data modification")="no";
+  ::arg().setSwitch("experimental-dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
   ::arg().setCmd("version","Output version and compilation date");
@@ -349,6 +350,7 @@ void mainthread()
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
    g_addSuperfluousNSEC3 = ::arg().mustDo("add-superfluous-nsec3-for-old-bind");
+
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
    {

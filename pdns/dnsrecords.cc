@@ -119,6 +119,7 @@ boilerplate_conv(AAAA, ns_t_aaaa, conv.xfrIP6(d_ip6); );
 boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
 boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
 boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
+boilerplate_conv(DNAME, ns_t_dname, conv.xfrLabel(d_content));
 boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, true));
 boilerplate_conv(MINFO, ns_t_minfo, conv.xfrLabel(d_rmailbx, true); conv.xfrLabel(d_emailbx, true));
 boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text, true));
@@ -493,6 +494,7 @@ void reportBasicTypes()
 void reportOtherTypes()
 {
    AFSDBRecordContent::report();
+   DNAMERecordContent::report();
    SPFRecordContent::report();
    NAPTRRecordContent::report();
    LOCRecordContent::report();

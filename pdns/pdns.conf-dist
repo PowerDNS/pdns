@@ -155,6 +155,11 @@
 # experimental-api-readonly=no
 
 #################################
+# experimental-dname-processing	If we should support DNAME records
+#
+# experimental-dname-processing=no
+
+#################################
 # experimental-json-interface	If the webserver should serve JSON data
 #
 # experimental-json-interface=no
