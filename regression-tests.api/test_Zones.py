@@ -122,7 +122,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # do a replace (= update)
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
@@ -145,23 +145,24 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
         # verify that (only) the new record is there
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()['records']
-        recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
-        self.assertEquals(recs, payload['records'])
+        recs = [rec for rec in data if rec['type'] == rrset['type'] and rec['name'] == rrset['name']]
+        self.assertEquals(recs, rrset['records'])
 
     def test_ZoneRRUpdateMX(self):
         # Important to test with MX records, as they have a priority field, which must not end up in the content field.
         payload, zone = self.create_zone()
         name = payload['name']
         # do a replace (= update)
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'MX',
@@ -176,42 +177,91 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
         # verify that (only) the new record is there
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()['records']
-        recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
-        self.assertEquals(recs, payload['records'])
+        recs = [rec for rec in data if rec['type'] == rrset['type'] and rec['name'] == rrset['name']]
+        self.assertEquals(recs, rrset['records'])
+
+    def test_ZoneRRUpdateMultipleRRsets(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        rrset1 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'NS',
+            'records': [
+                {
+                    "name": name,
+                    "type": "NS",
+                    "priority": 0,
+                    "ttl": 3600,
+                    "content": "ns9999.example.com",
+                    "disabled": False
+                }
+            ]
+        }
+        rrset2 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'MX',
+            'records': [
+                {
+                    "name": name,
+                    "type": "MX",
+                    "priority": 10,
+                    "ttl": 3600,
+                    "content": "mx444.example.com",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset1, rrset2]}
+        r = self.session.patch(
+            self.url("/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertSuccessJson(r)
+        # verify that all rrsets have been updated
+        r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        data = r.json()['records']
+        recs1 = [rec for rec in data if rec['type'] == rrset1['type'] and rec['name'] == rrset1['name']]
+        self.assertEquals(recs1, rrset1['records'])
+        recs2 = [rec for rec in data if rec['type'] == rrset2['type'] and rec['name'] == rrset2['name']]
+        self.assertEquals(recs2, rrset2['records'])
 
     def test_ZoneRRDelete(self):
         payload, zone = self.create_zone()
         name = payload['name']
         # do a delete of all NS records (these are created with the zone)
-        payload = {
+        rrset = {
             'changetype': 'delete',
             'name': name,
             'type': 'NS'
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
         # verify that the records are gone
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()['records']
-        recs = [rec for rec in data if rec['type'] == payload['type'] and rec['name'] == payload['name']]
+        recs = [rec for rec in data if rec['type'] == rrset['type'] and rec['name'] == rrset['name']]
         self.assertEquals(recs, [])
 
     def test_ZoneDisableReenable(self):
         payload, zone = self.create_zone()
         name = payload['name']
         # disable zone by disabling SOA
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'SOA',
@@ -226,8 +276,9 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
@@ -236,9 +287,10 @@ class AuthZones(ApiTestCase):
         domains = r.json()
         self.assertEquals(len([domain for domain in domains if domain['name'] == name]), 1)
         # verify that modifying it still works
-        payload['records'][0]['disabled'] = False
+        rrset['records'][0]['disabled'] = False
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
@@ -247,7 +299,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # replace with qtype mismatch
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'A',
@@ -262,8 +314,9 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
@@ -272,7 +325,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # replace with qname mismatch
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
@@ -287,8 +340,9 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
@@ -297,7 +351,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # replace with qname mismatch
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': 'not-in-zone',
             'type': 'NS',
@@ -312,8 +366,9 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
@@ -323,13 +378,14 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # replace with qname mismatch
-        payload = {
+        rrset = {
             'changetype': 'delete',
             'name': 'not-in-zone',
             'type': 'NS'
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
@@ -338,7 +394,7 @@ class AuthZones(ApiTestCase):
     def test_ZoneCommentCreate(self):
         payload, zone = self.create_zone()
         name = payload['name']
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
@@ -353,6 +409,7 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
             self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
@@ -372,12 +429,13 @@ class AuthZones(ApiTestCase):
         # Test: Delete ONLY comments.
         payload, zone = self.create_zone()
         name = payload['name']
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
             'comments': []
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
             self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
@@ -395,7 +453,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # create a comment
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
@@ -409,13 +467,14 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
             self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
         # replace rrset records
-        payload2 = {
+        rrset2 = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
@@ -430,6 +489,7 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload2 = {'rrsets': [rrset2]}
         r = self.session.patch(
             self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload2),
@@ -439,8 +499,8 @@ class AuthZones(ApiTestCase):
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()
         print data
-        self.assertEquals([r for r in data['records'] if r['type'] == 'NS'], payload2['records'])
-        self.assertEquals(data['comments'], payload['comments'])
+        self.assertEquals([r for r in data['records'] if r['type'] == 'NS'], rrset2['records'])
+        self.assertEquals(data['comments'], rrset['comments'])
 
     def test_ZoneAutoPtrIPv4(self):
         revzone = '0.2.192.in-addr.arpa'
@@ -448,7 +508,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # replace with qname mismatch
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'A',
@@ -464,8 +524,9 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
@@ -489,7 +550,7 @@ class AuthZones(ApiTestCase):
         payload, zone = self.create_zone()
         name = payload['name']
         # replace with qname mismatch
-        payload = {
+        rrset = {
             'changetype': 'replace',
             'name': name,
             'type': 'AAAA',
@@ -505,8 +566,9 @@ class AuthZones(ApiTestCase):
                 }
             ]
         }
+        payload = {'rrsets': [rrset]}
         r = self.session.patch(
-            self.url("/servers/localhost/zones/" + name + "/rrset"),
+            self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)

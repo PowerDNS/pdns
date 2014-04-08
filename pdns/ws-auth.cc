@@ -368,7 +368,7 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = lexical_cast<string>(time(0) - s_starttime);
 }
 
-static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp);
+static void patchZone(HttpRequest* req, HttpResponse* resp);
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
@@ -528,7 +528,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->body = "";
     return;
   } else if (req->method == "PATCH" && !::arg().mustDo("experimental-api-readonly")) {
-    apiServerZoneRRset(req, resp);
+    patchZone(req, resp);
     return;
   } else if (req->method == "GET") {
     fillZone(zonename, resp);
@@ -576,156 +576,166 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   ptr->content = rr.qname;
 }
 
-static void apiServerZoneRRset(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "PATCH" || ::arg().mustDo("experimental-api-readonly"))
-    throw HttpMethodNotAllowedException();
-
+static void patchZone(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   string zonename = apiZoneIdToName(req->path_parameters["id"]);
-  if(!B.getDomainInfo(zonename, di))
+  if (!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
+
+  string dotsuffix = "." + zonename;
+  vector<DNSResourceRecord> new_ptrs;
 
   Document document;
   req->json(document);
 
-  string qname, changetype;
-  QType qtype;
-  qname = stringFromJson(document, "name");
-  qtype = stringFromJson(document, "type");
-  changetype = toUpper(stringFromJson(document, "changetype"));
+  const Value& rrsets = document["rrsets"];
+  if (!rrsets.IsArray())
+    throw ApiException("No rrsets given in update request");
 
-  string dotsuffix = "." + zonename;
-  if(!iends_with(qname, dotsuffix) && qname != zonename)
-    throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
+  di.backend->startTransaction(zonename);
 
-  if (changetype == "DELETE") {
-    // delete all matching qname/qtype RRs (and, implictly comments).
-    if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
-      throw ApiException("Hosting backend does not support editing records.");
+  try {
+    for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
+      const Value& rrset = rrsets[rrsetIdx];
+      string qname, changetype;
+      QType qtype;
+      qname = stringFromJson(rrset, "name");
+      qtype = stringFromJson(rrset, "type");
+      changetype = toUpper(stringFromJson(rrset, "changetype"));
+
+      if (!iends_with(qname, dotsuffix) && qname != zonename)
+        throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
+
+      if (changetype == "DELETE") {
+        // delete all matching qname/qtype RRs (and, implictly comments).
+        if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
+          throw ApiException("Hosting backend does not support editing records.");
+        }
+      }
+      else if (changetype == "REPLACE") {
+        vector<DNSResourceRecord> new_records;
+        vector<Comment> new_comments;
+        bool replace_records = false;
+        bool replace_comments = false;
+
+        // gather records
+        DNSResourceRecord rr;
+        const Value& records = rrset["records"];
+        if (records.IsArray()) {
+          replace_records = true;
+          for (SizeType idx = 0; idx < records.Size(); ++idx) {
+            const Value& record = records[idx];
+            rr.qname = stringFromJson(record, "name");
+            rr.content = stringFromJson(record, "content");
+            rr.qtype = stringFromJson(record, "type");
+            rr.domain_id = di.id;
+            rr.auth = 1;
+            rr.ttl = intFromJson(record, "ttl");
+            rr.priority = intFromJson(record, "priority");
+            rr.disabled = boolFromJson(record, "disabled");
+
+            if (rr.qname != qname || rr.qtype != qtype)
+              throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
+
+            string temp_content = rr.content;
+            if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+              temp_content = lexical_cast<string>(rr.priority)+" "+rr.content;
+
+            try {
+              shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, temp_content));
+              string tmp = drc->serialize(rr.qname);
+            }
+            catch(std::exception& e)
+            {
+              throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": "+e.what());
+            }
+
+            if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
+                boolFromJson(record, "set-ptr", false) == true) {
+              DNSResourceRecord ptr;
+              makePtr(rr, &ptr);
+
+              // verify that there's a zone for the PTR
+              DNSPacket fakePacket;
+              SOAData sd;
+              fakePacket.qtype = QType::PTR;
+              if (!B.getAuth(&fakePacket, &sd, ptr.qname, 0))
+                throw ApiException("Could not find domain for PTR '"+ptr.qname+"' requested for '"+ptr.content+"'");
+
+              ptr.domain_id = sd.domain_id;
+              new_ptrs.push_back(ptr);
+            }
+
+            new_records.push_back(rr);
+          }
+        }
+
+        // gather comments
+        Comment c;
+        c.domain_id = di.id;
+        c.qname = qname;
+        c.qtype = qtype;
+        time_t now = time(0);
+        const Value& comments = rrset["comments"];
+        if (comments.IsArray()) {
+          replace_comments = true;
+          for(SizeType idx = 0; idx < comments.Size(); ++idx) {
+            const Value& comment = comments[idx];
+            c.modified_at = intFromJson(comment, "modified_at", now);
+            c.content = stringFromJson(comment, "content");
+            c.account = stringFromJson(comment, "account");
+            new_comments.push_back(c);
+          }
+        }
+
+        if (!replace_records && !replace_comments) {
+          throw ApiException("No change for RRset " + qname + "/" + qtype.getName());
+        }
+
+        if (replace_records) {
+          if (!di.backend->replaceRRSet(di.id, qname, qtype, new_records)) {
+            throw ApiException("Hosting backend does not support editing records.");
+          }
+        }
+        if (replace_comments) {
+          if (!di.backend->replaceComments(di.id, qname, qtype, new_comments)) {
+            throw ApiException("Hosting backend does not support editing comments.");
+          }
+        }
+      }
+      else
+        throw ApiException("Changetype not understood");
     }
+  } catch(...) {
+    di.backend->abortTransaction();
+    throw;
   }
-  else if (changetype == "REPLACE") {
-    vector<DNSResourceRecord> new_records;
-    vector<Comment> new_comments;
-    vector<DNSResourceRecord> new_ptrs;
-    bool replace_records = false;
-    bool replace_comments = false;
-
-    // gather records
-    DNSResourceRecord rr;
-    const Value& records = document["records"];
-    if (records.IsArray()) {
-      replace_records = true;
-      for(SizeType idx = 0; idx < records.Size(); ++idx) {
-        const Value& record = records[idx];
-        rr.qname = stringFromJson(record, "name");
-        rr.content = stringFromJson(record, "content");
-        rr.qtype = stringFromJson(record, "type");
-        rr.domain_id = di.id;
-        rr.auth = 1;
-        rr.ttl = intFromJson(record, "ttl");
-        rr.priority = intFromJson(record, "priority");
-        rr.disabled = boolFromJson(record, "disabled");
-
-        if(rr.qname != qname || rr.qtype != qtype)
-          throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": Record bundled with wrong RRset");
-
-        string temp_content = rr.content;
-        if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-          temp_content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
-        try {
-          shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, temp_content));
-          string tmp = drc->serialize(rr.qname);
-        }
-        catch(std::exception& e)
-        {
-          throw ApiException("Record "+rr.qname+" IN "+rr.qtype.getName()+" "+rr.content+": "+e.what());
-        }
-
-        if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
-            boolFromJson(record, "set-ptr", false) == true) {
-          DNSResourceRecord ptr;
-          makePtr(rr, &ptr);
-
-          // verify that there's a zone for the PTR
-          DNSPacket fakePacket;
-          SOAData sd;
-          fakePacket.qtype = QType::PTR;
-          if (!B.getAuth(&fakePacket, &sd, ptr.qname, 0))
-            throw ApiException("Could not find domain for PTR '"+ptr.qname+"' requested for '"+ptr.content+"'");
-
-          ptr.domain_id = sd.domain_id;
-          new_ptrs.push_back(ptr);
-        }
-
-        new_records.push_back(rr);
-      }
-    }
-
-    // gather comments
-    Comment c;
-    c.domain_id = di.id;
-    c.qname = qname;
-    c.qtype = qtype;
-    time_t now = time(0);
-    const Value& comments = document["comments"];
-    if (comments.IsArray()) {
-      replace_comments = true;
-      for(SizeType idx = 0; idx < comments.Size(); ++idx) {
-        const Value& comment = comments[idx];
-        c.modified_at = intFromJson(comment, "modified_at", now);
-        c.content = stringFromJson(comment, "content");
-        c.account = stringFromJson(comment, "account");
-        new_comments.push_back(c);
-      }
-    }
-
-    if (!replace_records && !replace_comments) {
-      throw ApiException("No change");
-    }
-
-    // Actually store the change(s).
-    di.backend->startTransaction(qname);
-    if (replace_records) {
-      if (!di.backend->replaceRRSet(di.id, qname, qtype, new_records)) {
-        throw ApiException("Hosting backend does not support editing records.");
-      }
-    }
-    if (replace_comments) {
-      if (!di.backend->replaceComments(di.id, qname, qtype, new_comments)) {
-        throw ApiException("Hosting backend does not support editing comments.");
-      }
-    }
-    di.backend->commitTransaction();
-
-    // now the PTRs
-    BOOST_FOREACH(const DNSResourceRecord& rr, new_ptrs) {
-      DNSPacket fakePacket;
-      SOAData sd;
-      sd.db = (DNSBackend *)-1;
-      fakePacket.qtype = QType::PTR;
-
-      if (!B.getAuth(&fakePacket, &sd, rr.qname, 0))
-        throw ApiException("Could not find domain for PTR '"+rr.qname+"' requested for '"+rr.content+"' (while saving)");
-
-      sd.db->startTransaction(rr.qname);
-      if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
-        throw ApiException("PTR-Hosting backend does not support editing records.");
-      }
-      sd.db->commitTransaction();
-    }
-
-  }
-  else
-    throw ApiException("Changetype not understood");
+  di.backend->commitTransaction();
 
   extern PacketCache PC;
-  PC.purge(qname);
+  PC.purge(zonename);
+
+  // now the PTRs
+  BOOST_FOREACH(const DNSResourceRecord& rr, new_ptrs) {
+    DNSPacket fakePacket;
+    SOAData sd;
+    sd.db = (DNSBackend *)-1;
+    fakePacket.qtype = QType::PTR;
+
+    if (!B.getAuth(&fakePacket, &sd, rr.qname, 0))
+      throw ApiException("Could not find domain for PTR '"+rr.qname+"' requested for '"+rr.content+"' (while saving)");
+
+    sd.db->startTransaction(rr.qname);
+    if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+      throw ApiException("PTR-Hosting backend for "+rr.qname+"/"+rr.qtype.getName()+" does not support editing records.");
+    }
+    sd.db->commitTransaction();
+    PC.purge(rr.qname);
+  }
 
   // success
-  resp->body = "{}";
+  fillZone(zonename, resp);
 }
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
@@ -912,7 +922,6 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/rrset", &apiServerZoneRRset);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
