@@ -25,7 +25,7 @@ class Zones(ApiTestCase):
 @unittest.skipIf(not isAuth(), "Not applicable")
 class AuthZones(ApiTestCase):
 
-    def create_zone(self, name=None, nameservers=None):
+    def create_zone(self, name=None, **kwargs):
         if name is None:
             name = unique_zone_name()
         payload = {
@@ -33,8 +33,9 @@ class AuthZones(ApiTestCase):
             'kind': 'Native',
             'nameservers': ['ns1.example.com', 'ns2.example.com']
         }
-        if nameservers is not None:
-            payload['nameservers'] = nameservers
+        for k, v in kwargs.items():
+            payload[k] = v
+        print payload
         r = self.session.post(
             self.url("/servers/localhost/zones"),
             data=json.dumps(payload),
