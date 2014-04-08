@@ -370,6 +370,20 @@ void productServerStatisticsFetch(map<string,string>& out)
 
 static void patchZone(HttpRequest* req, HttpResponse* resp);
 
+static void updateDomainSettingsFromDocument(const DomainInfo& di, const string& zonename, Document& document) {
+  string master;
+  const Value &masters = document["masters"];
+  if (masters.IsArray()) {
+    for (SizeType i = 0; i < masters.Size(); ++i) {
+      master += masters[i].GetString();
+      master += " ";
+    }
+  }
+
+  di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
+  di.backend->setMaster(zonename, master);
+}
+
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
@@ -386,24 +400,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       zonename.resize(zonename.size()-1);
     }
 
-    string kind = stringFromJson(document, "kind");
-
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
       throw ApiException("Domain '"+zonename+"' already exists");
 
+    // validate 'kind' is set
+    stringFromJson(document, "kind");
+
     const Value &nameservers = document["nameservers"];
     if (!nameservers.IsArray() || nameservers.Size() == 0)
       throw ApiException("Need at least one nameserver");
-
-    string master;
-    const Value &masters = document["masters"];
-    if (masters.IsArray()) {
-      for (SizeType i = 0; i < masters.Size(); ++i) {
-        master += masters[i].GetString();
-        master += " ";
-      }
-    }
 
     // no going back after this
     if(!B.createDomain(zonename))
@@ -444,8 +450,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
     di.backend->commitTransaction();
 
-    di.backend->setKind(zonename, DomainInfo::stringToKind(kind));
-    di.backend->setMaster(zonename, master);
+    updateDomainSettingsFromDocument(di, zonename, document);
 
     fillZone(zonename, resp);
     return;
@@ -500,17 +505,8 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     Document document;
     req->json(document);
 
-    string master;
-    const Value &masters = document["masters"];
-    if (masters.IsArray()) {
-      for(SizeType i = 0; i < masters.Size(); ++i) {
-        master += masters[i].GetString();
-        master += " ";
-      }
-    }
+    updateDomainSettingsFromDocument(di, zonename, document);
 
-    di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
-    di.backend->setMaster(zonename, master);
     fillZone(zonename, resp);
     return;
   }
