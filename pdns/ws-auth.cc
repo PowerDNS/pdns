@@ -39,6 +39,7 @@
 #include "rapidjson/writer.h"
 #include "ws-api.hh"
 #include "version.hh"
+#include "dnsseckeeper.hh"
 #include <iomanip>
 
 #ifdef HAVE_CONFIG_H
@@ -298,6 +299,9 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.AddMember("name", di.zone.c_str(), doc.GetAllocator());
   doc.AddMember("type", "Zone", doc.GetAllocator());
   doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
+  string soa_edit_api;
+  di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
+  doc.AddMember("soa_edit_api", soa_edit_api.c_str(), doc.GetAllocator());
   Value masters;
   masters.SetArray();
   BOOST_FOREACH(const string& master, di.masters) {
@@ -382,6 +386,10 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
 
   di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
   di.backend->setMaster(zonename, master);
+
+  if (document["soa_edit_api"].IsString()) {
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", document["soa_edit_api"].GetString());
+  }
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
@@ -592,6 +600,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   di.backend->startTransaction(zonename);
 
   try {
+    string soa_edit_api_kind;
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    bool soa_edit_done = false;
+
     for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
       const Value& rrset = rrsets[rrsetIdx];
       string qname, changetype;
@@ -663,6 +675,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
               new_ptrs.push_back(ptr);
             }
 
+            if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
+              soa_edit_done = editSOARecord(rr, soa_edit_api_kind);
+            }
+
             new_records.push_back(rr);
           }
         }
@@ -703,6 +719,28 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       else
         throw ApiException("Changetype not understood");
     }
+
+    // edit SOA (if needed)
+    if (!soa_edit_api_kind.empty() && !soa_edit_done) {
+      SOAData sd;
+      if (!B.getSOA(zonename, sd))
+        throw ApiException("No SOA found for domain '"+zonename+"'");
+
+      DNSResourceRecord rr;
+      rr.qname = zonename;
+      rr.content = serializeSOAData(sd);
+      rr.qtype = "SOA";
+      rr.domain_id = di.id;
+      rr.auth = 1;
+      rr.ttl = sd.ttl;
+      rr.priority = 0;
+      editSOARecord(rr, soa_edit_api_kind);
+
+      if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+        throw ApiException("Hosting backend does not support editing records.");
+      }
+    }
+
   } catch(...) {
     di.backend->abortTransaction();
     throw;

@@ -136,7 +136,25 @@ public:
   // the DNSSEC related (getDomainMetadata has broader uses too)
   virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta) { return false; };
   virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
+  virtual bool getDomainMetadataOne(const string& name, const std::string& kind, std::string& value)
+  {
+    std::vector<std::string> meta;
+    if (getDomainMetadata(name, kind, meta)) {
+      if(!meta.empty()) {
+        value = *meta.begin();
+        return true;
+      }
+    }
+    return false;
+  }
+
   virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
+  virtual bool setDomainMetadataOne(const string& name, const std::string& kind, const std::string& value)
+  {
+    const std::vector<std::string> meta(1, value);
+    return setDomainMetadata(name, kind, meta);
+  }
+
 
   virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) { }
 

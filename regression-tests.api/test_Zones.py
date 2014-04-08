@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 import unittest
 from test_helper import ApiTestCase, unique_zone_name, isAuth, isRecursor
@@ -45,7 +46,15 @@ class AuthZones(ApiTestCase):
 
     def test_CreateZone(self):
         payload, data = self.create_zone()
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api'):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
+        self.assertEquals(data['comments'], [])
+
+    def test_CreateZoneWithSoaEditApi(self):
+        payload, data = self.create_zone(soa_edit_api='EPOCH')
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
@@ -91,10 +100,11 @@ class AuthZones(ApiTestCase):
     def test_UpdateZone(self):
         payload, zone = self.create_zone()
         name = payload['name']
-        # update, set as Master
+        # update, set as Master and enable SOA-EDIT-API
         payload = {
             'kind': 'Master',
-            'masters': ['192.0.2.1','192.0.2.2']
+            'masters': ['192.0.2.1','192.0.2.2'],
+            'soa_edit_api': 'EPOCH'
         }
         r = self.session.put(
             self.url("/servers/localhost/zones/" + name),
@@ -105,9 +115,10 @@ class AuthZones(ApiTestCase):
         for k in payload.keys():
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
-        # update, back to Native
+        # update, back to Native and empty(off)
         payload = {
-            'kind': 'Native'
+            'kind': 'Native',
+            'soa_edit_api': ''
         }
         r = self.session.put(
             self.url("/servers/localhost/zones/" + name),
@@ -259,7 +270,8 @@ class AuthZones(ApiTestCase):
         self.assertEquals(recs, [])
 
     def test_ZoneDisableReenable(self):
-        payload, zone = self.create_zone()
+        # This also tests that SOA-EDIT-API works.
+        payload, zone = self.create_zone(soa_edit_api='EPOCH')
         name = payload['name']
         # disable zone by disabling SOA
         rrset = {
@@ -283,10 +295,16 @@ class AuthZones(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
-        # make sure it's still in zone list
+        # check SOA serial has been edited
+        print r.json()
+        soa_serial1 = [rec for rec in r.json()['records'] if rec['type'] == 'SOA'][0]['content'].split()[2]
+        self.assertNotEquals(soa_serial1, '1')
+        # make sure domain is still in zone list (disabled SOA!)
         r = self.session.get(self.url("/servers/localhost/zones"))
         domains = r.json()
         self.assertEquals(len([domain for domain in domains if domain['name'] == name]), 1)
+        # sleep 1sec to ensure the EPOCH value changes for the next request
+        time.sleep(1)
         # verify that modifying it still works
         rrset['records'][0]['disabled'] = False
         payload = {'rrsets': [rrset]}
@@ -295,6 +313,11 @@ class AuthZones(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertSuccessJson(r)
+        # check SOA serial has been edited again
+        print r.json()
+        soa_serial2 = [rec for rec in r.json()['records'] if rec['type'] == 'SOA'][0]['content'].split()[2]
+        self.assertNotEquals(soa_serial2, '1')
+        self.assertNotEquals(soa_serial2, soa_serial1)
 
     def test_ZoneRRUpdateQTypeMismatch(self):
         payload, zone = self.create_zone()
