@@ -600,7 +600,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
 
-      if (!iends_with(qname, dotsuffix) && qname != zonename)
+      if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
         throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
 
       if (changetype == "DELETE") {
