@@ -1,6 +1,6 @@
 ALTER table records ADD disabled BOOL DEFAULT 'f';
 ALTER table records ADD ordername VARCHAR(255);
-ALTER table records ADD auth bool BOOL DEFAULT 't';
+ALTER table records ADD auth BOOL DEFAULT 't';
 ALTER table records ALTER COLUMN type TYPE VARCHAR(10);
 
 CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
