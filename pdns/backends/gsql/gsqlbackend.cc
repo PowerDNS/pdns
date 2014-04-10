@@ -273,16 +273,11 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_dnssecQueries = false;
   }
 
-  d_noWildCardNoIDQuery=getArg("basic-query");
-  d_noWildCardIDQuery=getArg("id-query");
-  d_wildCardNoIDQuery=getArg("wildcard-query");
-  d_wildCardIDQuery=getArg("wildcard-id-query");
+  d_NoIdQuery=getArg("basic-query");
+  d_IdQuery=getArg("id-query");
+  d_ANYNoIdQuery=getArg("any-query");
+  d_ANYIdQuery=getArg("any-id-query");
 
-  d_noWildCardANYNoIDQuery=getArg("any-query");
-  d_noWildCardANYIDQuery=getArg("any-id-query");
-  d_wildCardANYNoIDQuery=getArg("wildcard-any-query");
-  d_wildCardANYIDQuery=getArg("wildcard-any-id-query");
-  
   d_listQuery=getArg("list-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
 
@@ -794,56 +789,41 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
 
 void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int domain_id)
 {
-  string format;
-  char output[1024];
-
   string lcqname=toLower(qname);
-  
-  // lcqname=labelReverse(makeRelative(lcqname, "net"));
 
+  string query;
   if(qtype.getCode()!=QType::ANY) {
-    // qtype qname domain_id
-    if(domain_id<0) {
-      if(qname[0]=='%')
-        format=d_wildCardNoIDQuery;
-      else
-        format=d_noWildCardNoIDQuery;
-
-      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(), sqlEscape(lcqname).c_str());
+    if(domain_id < 0) {
+      query = (boost::format(d_NoIdQuery)
+               % sqlEscape(qtype.getName())
+               % sqlEscape(lcqname)
+        ).str();
+    } else {
+      query = (boost::format(d_IdQuery)
+               % sqlEscape(qtype.getName())
+               % sqlEscape(lcqname)
+               % domain_id
+        ).str();
     }
-    else {
-      if(qname[0]!='%')
-        format=d_noWildCardIDQuery;
-      else
-        format=d_wildCardIDQuery;
-      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(qtype.getName()).c_str(),sqlEscape(lcqname).c_str(),domain_id);
-    }
-  }
-  else {
+  } else {
     // qtype==ANY
-    // qname domain_id
-    if(domain_id<0) {
-      if(qname[0]=='%')
-        format=d_wildCardANYNoIDQuery;
-      else
-        format=d_noWildCardANYNoIDQuery;
-
-      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str());
-    }
-    else {
-      if(qname[0]!='%')
-        format=d_noWildCardANYIDQuery;
-      else
-        format=d_wildCardANYIDQuery;
-      snprintf(output,sizeof(output)-1, format.c_str(),sqlEscape(lcqname).c_str(),domain_id);
+    if(domain_id < 0) {
+      query = (boost::format(d_ANYNoIdQuery)
+               % sqlEscape(lcqname)
+        ).str();
+    } else {
+      query = (boost::format(d_ANYIdQuery)
+               % sqlEscape(lcqname)
+               % domain_id
+        ).str();
     }
   }
 
   try {
-    d_db->doQuery(output);
+    d_db->doQuery(query);
   }
   catch(SSqlException &e) {
-    throw PDNSException(e.txtReason());
+    throw PDNSException("GSQLBackend lookup query:"+e.txtReason());
   }
 
   d_qname=qname;
