@@ -92,14 +92,11 @@ private:
   SSql *d_db;
   SSql::result_t d_result;
 
-  string d_wildCardNoIDQuery;
-  string d_noWildCardNoIDQuery;
-  string d_noWildCardIDQuery;
-  string d_wildCardIDQuery;
-  string d_wildCardANYNoIDQuery;
-  string d_noWildCardANYNoIDQuery;
-  string d_noWildCardANYIDQuery;
-  string d_wildCardANYIDQuery;
+  string d_NoIdQuery;
+  string d_IdQuery;
+  string d_ANYNoIdQuery;
+  string d_ANYIdQuery;
+
   string d_listQuery;
   string d_listSubZoneQuery;
   string d_logprefix;

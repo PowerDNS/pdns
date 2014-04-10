@@ -50,13 +50,8 @@ public:
 
     declare(suffix, "basic-query", "Basic query", record_query+" disabled=false and type='%s' and name=E'%s'");
     declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=false and type='%s' and name=E'%s' and domain_id=%d");
-    declare(suffix, "wildcard-query", "Wildcard query", record_query+" disabled=false and type='%s' and name like E'%s'");
-    declare(suffix, "wildcard-id-query", "Wildcard with ID query", record_query+" disabled=false and type='%s' and name like E'%s' and domain_id='%d'");
-
     declare(suffix, "any-query", "Any query", record_query+" disabled=false and name=E'%s'");
     declare(suffix, "any-id-query", "Any with ID query", record_query+" disabled=false and name=E'%s' and domain_id=%d");
-    declare(suffix, "wildcard-any-query", "Wildcard ANY query", record_query+" disabled=false and name like E'%s'");
-    declare(suffix, "wildcard-any-id-query", "Wildcard ANY with ID query", record_query+" disabled=false and name like E'%s' and domain_id='%d'");
 
     declare(suffix, "list-query", "AXFR query", record_query+" (disabled=false OR %d::bool) and domain_id='%d' order by name, type");
     declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=false and (name=E'%s' OR name like E'%s') and domain_id='%d'");
