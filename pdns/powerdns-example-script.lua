@@ -3,9 +3,9 @@ function endswith(s, send)
 	 return #s >= #send and s:find(send, #s-#send+1, true) and true or false
 end
 
-function preresolve ( remoteip, domain, qtype )
+function preresolve ( remoteip, domain, qtype, isUDP )
 
-	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
+	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype, isUDP)
 	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress(), pdns.loglevels.Info);
 
 	if endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
@@ -51,8 +51,8 @@ function preresolve ( remoteip, domain, qtype )
 	end
 end
 
-function nxdomain ( remoteip, domain, qtype )
-	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
+function nxdomain ( remoteip, domain, qtype, isUDP )
+	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, isUDP, pdns.AAAA)
 	if qtype ~= pdns.A then 
     pdnslog("Only A records", pdns.loglevels.Error)
 	return pdns.PASS, {} 
@@ -92,8 +92,8 @@ function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
 	return 0, ret
 end
 
-function nodata ( remoteip, domain, qtype, records )
-	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
+function nodata ( remoteip, domain, qtype, records, isUDP )
+	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype, isUDP)
 	if qtype ~= pdns.AAAA then return pdns.PASS, {} end  --  only AAAA records
 
 	setvariable()
@@ -101,8 +101,8 @@ function nodata ( remoteip, domain, qtype, records )
 end	
 
 -- records contains the entire packet, ready for your modifying pleasure
-function postresolve ( remoteip, domain, qtype, records, origrcode )
-	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode, pdns.loglevels.Info)
+function postresolve ( remoteip, domain, qtype, records, origrcode, isUDP )
+	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode, isUDP, pdns.loglevels.Info)
 
 	for key,val in ipairs(records) 
 	do

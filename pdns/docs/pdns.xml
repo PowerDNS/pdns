@@ -15217,18 +15217,18 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	  Once a script is loaded, PowerDNS looks for several functions, as detailed below. All of these functions are optional.
 	</para>
 	<para>
-	  <function>preresolve ( remoteip, domain, qtype )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
+	  <function>function preresolve ( remoteip, domain, qtype, isUDP )</function> is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the 
 	  DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason. 
 	</para>
 	<para>
-	  <function>postresolve ( remoteip, domain, qtype, records, origrcode )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since version 3.4.
+	  <function>function postresolve ( remoteip, domain, qtype, records, origrcode, isUDP )</function> is called right before returning a response to a client (and, unless <function>setvariable()</function> is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since version 3.4.
 	</para>
 	<para>
-	  <function>function nxdomain ( remoteip, domain, qtype )</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
+	  <function>function nxdomain ( remoteip, domain, qtype, isUDP )</function> is called after the DNS resolution process has run its course, but ended in an 'NXDOMAIN' situation, indicating that the domain
 	  or the specific record does not exist. This can be used for various purposes.
 	</para>
 	<para>
-	  <function>function nodata ( remoteip, domain, qtype, records )</function> is just like <function>nxdomain</function>, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since version 3.4.
+	  <function>function nodata ( remoteip, domain, qtype, records, isUDP )</function> is just like <function>nxdomain</function>, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since version 3.4.
 	</para>
 	<para>
 	  All these functions are passed the IP address of the requester, plus the name and type being requested. In return, these functions indicate if they
@@ -15252,8 +15252,8 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	</para>
 	<para>
 	  <screen>
-function nxdomain ( ip, domain, qtype )
-  print ("nxhandler called for: ", ip, domain, qtype)
+function nxdomain ( ip, domain, qtype, isUDP )
+  print ("nxhandler called for: ", ip, domain, qtype, isUDP)
 
   ret={}
   if qtype ~= pdns.A then return pdns.PASS, ret end  --  only A records
