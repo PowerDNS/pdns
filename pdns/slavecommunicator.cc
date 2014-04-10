@@ -156,6 +156,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     vector<DNSResourceRecord> rrs;
     set<string> secured;
     bool first=true;
+    bool firstNSEC3=true;
     while(retriever.getChunk(recs)) {
       if(first) {
         L<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
@@ -177,8 +178,12 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           dnssecZone = haveNSEC3 = gotPresigned = gotNSEC3 = true;
           continue;
         } else if (i->qtype.getCode() == QType::NSEC3) {
-          dnssecZone = gotPresigned = true;
           NSEC3RecordContent ns3rc(i->content);
+          if (firstNSEC3) {
+            dnssecZone = gotPresigned = true;
+            firstNSEC3 = false;
+          } else if (gotOptOutFlag != (ns3rc.d_flags & 1))
+            throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
           gotOptOutFlag = ns3rc.d_flags & 1;
           if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(i->qname, domain))
             secured.insert(toLower(makeRelative(i->qname, domain)));
