@@ -43,18 +43,22 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
     if(rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname,qname)) {
       string kind;
       dk.getFromMeta(qname, "SOA-EDIT", kind);
-      if(kind.empty())
-        return false;
-      SOAData sd;
-      fillSOAData(rr.content, sd);
-      sd.serial = calculateEditSOA(sd, kind);
-      rr.content = serializeSOAData(sd);      
-      return true;
+      return editSOARecord(rr, kind);
     }
   }
   return false;
 }
 
+bool editSOARecord(DNSResourceRecord& rr, const string& kind) {
+  if(kind.empty())
+    return false;
+
+  SOAData sd;
+  fillSOAData(rr.content, sd);
+  sd.serial = calculateEditSOA(sd, kind);
+  rr.content = serializeSOAData(sd);
+  return true;
+}
 
 uint32_t calculateEditSOA(SOAData sd, const string& kind) {
   if(pdns_iequals(kind,"INCEPTION")) {
