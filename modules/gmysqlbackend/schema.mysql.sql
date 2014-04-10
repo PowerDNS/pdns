@@ -1,9 +1,9 @@
-create table domains (
+CREATE TABLE domains (
   id                    INT AUTO_INCREMENT,
   name                  VARCHAR(255) NOT NULL,
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INT DEFAULT NULL,
-  type                  VARCHAR(10) NOT NULL,
+  type                  VARCHAR(6) NOT NULL,
   notified_serial       INT DEFAULT NULL,
   account               VARCHAR(40) DEFAULT NULL,
   PRIMARY KEY (id)
@@ -48,7 +48,7 @@ CREATE TABLE comments (
   modified_at           INT NOT NULL,
   account               VARCHAR(40) NOT NULL,
   comment               VARCHAR(64000) NOT NULL,
-  primary key(id)
+  PRIMARY KEY (id)
 ) Engine=InnoDB;
 
 CREATE INDEX comments_domain_id_idx ON comments (domain_id);

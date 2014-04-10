@@ -12457,26 +12457,7 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
       For gmysql backend with nodnssec schema:
       <programlisting><xi:include  href="../../modules/gmysqlbackend/nodnssec-3.x_to_3.4_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gmysql backend with dnssec schema:
-      <screen>
-ALTER TABLE records ADD disabled BOOLEAN DEFAULT 0;
-ALTER TABLE records MODIFY auth BOOLEAN DEFAULT 1;
-
-
-CREATE TABLE comments (
-  id                    INT AUTO_INCREMENT,
-  domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) NOT NULL,
-  comment               VARCHAR(64000) NOT NULL,
-  PRIMARY KEY(id)
-) Engine=InnoDB;
-
-CREATE INDEX comments_domain_id_idx ON comments (domain_id);
-CREATE INDEX comments_name_type_idx ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
-      </screen>
+      <programlisting><xi:include  href="../../modules/gmysqlbackend/dnssec-3.x_to_3.4_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gpgsql backend with nodnssec schema:
       <programlisting><xi:include  href="../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gpgsql backend with dnssec schema:
