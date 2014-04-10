@@ -5,6 +5,8 @@
 
 #include "../../namespaces.hh"
 
+bool isDnssecDomainMetadata (const string& name);
+
 /* 
 GSQLBackend is a generic backend used by other sql backends
 */

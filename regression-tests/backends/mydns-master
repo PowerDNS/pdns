@@ -30,7 +30,7 @@ __EOF__
 			--mydns-user="$MYDNSUSER" \
 			--mydns-host="$MYDNSHOST" \
 			--mydns-password="$MYDNSPASSWD" &
-		skipreasons="nodnssec noent nodyndns noaxfr"
+		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;
 
 		*)

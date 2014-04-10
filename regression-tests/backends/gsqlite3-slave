@@ -1,24 +1,19 @@
 	context=${context}-presigned-gsqlite3
 	rm -f pdns.sqlite31
-	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql
-	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/dnssec.schema.sqlite3.sql
+	sqlite3 pdns.sqlite31 < ../modules/gsqlite3backend/schema.sqlite3.sql
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
 	do
 		sqlite3 pdns.sqlite31 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 	done
 
+	sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','$ALGORITHM', '$KEY')"
+	sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
 	set +e
-	echo $skipreasons | grep -q nodnssec
+	echo $skipreasons | grep -q nolua
 	if [ $? -ne 0 ]
 	then
-		sqlite3 pdns.sqlite31 "INSERT INTO tsigkeys (name,algorithm,secret) VALUES('test','$ALGORITHM', '$KEY')"
-		sqlite3 pdns.sqlite31 "INSERT INTO domainmetadata (domain_id, kind, content) SELECT id, 'AXFR-MASTER-TSIG', 'test' FROM domains WHERE name = 'tsig.com'"
-		echo $skipreasons | grep -q nolua
-		if [ $? -ne 0 ]
-		then
-			sqlite3 pdns.sqlite31  "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
-		fi
+		sqlite3 pdns.sqlite31  "INSERT INTO domainmetadata (domain_id,kind,content) SELECT id,'AXFR-SOURCE','127.0.0.2' FROM domains WHERE name = 'stest.com'"
 	fi
 	set -e
 
@@ -29,7 +24,7 @@
 		--fancy-records --send-root-referral \
 		--cache-ttl=0 --query-cache-ttl=0 --no-config --slave --retrieval-threads=4 \
 		--gsqlite3-database=pdns.sqlite31 --gsqlite3-pragma-synchronous=0 \
-		--config-name=gsqlite32 |& egrep -v "update records set ordername|insert into records" &
+		--config-name=gsqlite32 &
 	echo 'waiting for zones to be slaved'
 	set +e
 	loopcount=0

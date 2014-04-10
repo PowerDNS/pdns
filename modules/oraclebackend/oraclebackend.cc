@@ -1251,9 +1251,6 @@ OracleBackend::createSlaveDomain(const string &ip, const string &domain,
 bool
 OracleBackend::getAllDomainMetadata (const string& name, std::map<string, vector<string> >& meta)
 {
-  if(!d_dnssecQueries)
-    return -1;
-
   DomainInfo di;
   if (getDomainInfo(name, di) == false) return false;
 
@@ -1280,7 +1277,8 @@ OracleBackend::getAllDomainMetadata (const string& name, std::map<string, vector
 
     string kind = mResultType;
     string content = mResultContent;
-    meta[kind].push_back(content);
+    if (!isDnssecDomainMetadata(content))
+      meta[kind].push_back(content);
 
     rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
   }
@@ -1293,7 +1291,7 @@ bool
 OracleBackend::getDomainMetadata (const string& name, const string& kind,
                                   vector<string>& meta)
 {
-  if(!d_dnssecQueries)
+  if(!d_dnssecQueries && isDnssecDomainMetadata(kind))
     return -1;
   DomainInfo di;
   if (getDomainInfo(name, di) == false) return false;
@@ -1333,7 +1331,7 @@ bool
 OracleBackend::setDomainMetadata(const string& name, const string& kind,
                                  const vector<string>& meta)
 {
-  if(!d_dnssecQueries)
+  if(!d_dnssecQueries && isDnssecDomainMetadata(kind))
     return -1;
   DomainInfo di;
   if (getDomainInfo(name, di) == false) return false;
@@ -1396,9 +1394,6 @@ OracleBackend::setDomainMetadata(const string& name, const string& kind,
 bool
 OracleBackend::getTSIGKey (const string& name, string* algorithm, string* content)
 {
-  if(!d_dnssecQueries)
-    return -1;
-
   sword rc;
   OCIStmt *stmt;
 
@@ -1432,9 +1427,6 @@ OracleBackend::getTSIGKey (const string& name, string* algorithm, string* conten
 bool
 OracleBackend::delTSIGKey(const string& name)
 {
-  if(!d_dnssecQueries)
-    return -1;
-
   sword rc;
   OCIStmt *stmt;
 
@@ -1464,9 +1456,6 @@ OracleBackend::delTSIGKey(const string& name)
 bool
 OracleBackend::setTSIGKey(const string& name, const string& algorithm, const string& content)
 {
-  if(!d_dnssecQueries)
-    return -1;
-
   sword rc;
   OCIStmt *stmt;
 
@@ -1520,9 +1509,6 @@ OracleBackend::setTSIGKey(const string& name, const string& algorithm, const str
 bool
 OracleBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 {
-  if(!d_dnssecQueries)
-    return -1;
-
   sword rc;
   OCIStmt *stmt;
 

@@ -5,7 +5,7 @@ case $context in
 
 		dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
 		createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
-		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/no-dnssec.schema.pgsql.sql
+		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/schema.pgsql.sql
 
 		tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
 
@@ -19,6 +19,9 @@ __EOF__
 		do
 			../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
 		done
+
+		../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test $ALGORITHM $KEY
+		../pdns/pdnssec --config-dir=. --config-name=gpgsql activate-tsig-key tsig.com test master
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=gpgsql \
@@ -37,8 +40,7 @@ __EOF__
 
 		dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring dropdb failure
 		createdb --user="$GPGSQLUSER" "$GPGSQLDB" || echo ignoring createdb failure # FIXME
-		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/no-dnssec.schema.pgsql.sql
-		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/dnssec.schema.pgsql.sql
+		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/schema.pgsql.sql
 
 		tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
 

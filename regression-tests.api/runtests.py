@@ -64,9 +64,7 @@ if daemon == 'authoritative':
     subprocess.check_call(["rm", "-f", SQLITE_DB])
     subprocess.check_call(["make", "-C", "../pdns", "zone2sql"])
 
-    with open('../modules/gsqlite3backend/no-dnssec.schema.sqlite3.sql', 'r') as schema_file:
-        subprocess.check_call(["sqlite3", SQLITE_DB], stdin=schema_file)
-    with open('../modules/gsqlite3backend/dnssec.schema.sqlite3.sql', 'r') as schema_file:
+    with open('../modules/gsqlite3backend/schema.sqlite3.sql', 'r') as schema_file:
         subprocess.check_call(["sqlite3", SQLITE_DB], stdin=schema_file)
 
     with open('named.conf', 'w') as named_conf:
