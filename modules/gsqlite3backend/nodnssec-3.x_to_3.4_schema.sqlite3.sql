@@ -49,3 +49,25 @@ CREATE TABLE comments (
 CREATE INDEX comments_domain_id_index ON comments (domain_id);
 CREATE INDEX comments_nametype_index ON comments (name, type);
 CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+
+
+BEGIN TRANSACTION;
+  CREATE TEMPORARY TABLE supermasters_backup (
+    ip                  VARCHAR(64) NOT NULL,
+    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
+    account             VARCHAR(40) DEFAULT NULL
+  );
+
+  INSERT INTO supermasters_backup SELECT ip, nameserver, account FROM supermasters;
+  DROP TABLE supermasters;
+
+  CREATE TABLE supermasters (
+    ip                  VARCHAR(64) NOT NULL,
+    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
+    account             VARCHAR(40) DEFAULT NULL
+  );
+  CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
+
+  INSERT INTO supermasters SELECT ip, nameserver, account FROM supermasters_backup;
+  DROP TABLE supermasters_backup;
+COMMIT;
