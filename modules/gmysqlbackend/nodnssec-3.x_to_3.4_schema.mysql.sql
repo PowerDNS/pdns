@@ -2,11 +2,13 @@
 /* DROP INDEX rec_name_index ON records; */
 
 ALTER TABLE records ADD disabled TINYINT(1) DEFAULT 0;
+ALTER TABLE records MODIFY content VARCHAR(64000) DEFAULT NULL;
 ALTER TABLE records ADD ordername VARCHAR(255) BINARY DEFAULT NULL;
 ALTER TABLE records ADD auth TINYINT(1) DEFAULT 1;
 ALTER TABLE records MODIFY type VARCHAR(10);
 ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
 ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
+ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
 
 CREATE INDEX recordorder ON records (domain_id, ordername);
 
