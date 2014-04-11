@@ -1,48 +1,17 @@
-/* Uncomment next line for versions <= 3.3 */
+/* Uncomment next 2 lines for versions <= 3.3 */
 /* ALTER TABLE domains ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
+/* ALTER TABLE tsigkeys ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
 
 ALTER TABLE records ADD disabled BOOL DEFAULT 'f';
 ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
-ALTER TABLE records ADD ordername VARCHAR(255);
-ALTER TABLE records ADD auth BOOL DEFAULT 't';
+ALTER TABLE records ALTER COLUMN auth SET DEFAULT 't';
 ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
 ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
 ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
 ALTER TABLE tsigkeys ALTER COLUMN algorithm TYPE VARCHAR(50);
 
 CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
-
-
-CREATE TABLE domainmetadata (
- id                     SERIAL PRIMARY KEY,
- domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
- kind                   VARCHAR(16),
- content                TEXT
-);
-
-CREATE INDEX domainidmetaindex ON domainmetadata(domain_id);
-
-
-CREATE TABLE cryptokeys (
- id                     SERIAL PRIMARY KEY,
- domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
- flags                  INT NOT NULL,
- active                 BOOL,
- content                TEXT
-);
-
-CREATE INDEX domainidindex ON cryptokeys(domain_id);
-
-
-CREATE TABLE tsigkeys (
- id                     SERIAL PRIMARY KEY,
- name                   VARCHAR(255),
- algorithm              VARCHAR(50),
- secret                 VARCHAR(255),
- constraint c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
-);
-
-CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
+DROP INDEX IF EXISTS orderindex;
 
 
 CREATE TABLE comments (
