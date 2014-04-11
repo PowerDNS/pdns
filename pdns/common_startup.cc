@@ -268,10 +268,10 @@ void *qthread(void *number)
       numreceived++;
 
     if(number==0) { // only run on main thread
-      if(!((maintcount++)%250)) { // maintenance tasks
+      if(!((maintcount++)%250)) { // maintenance tasks - this can conceivably run infrequently
         S.set("latency",(int)avg_latency);
         int qcount, acount;
-        distributor->getQueueSizes(qcount, acount);
+        distributor->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
         S.set("qsize-q",qcount);
       }
     }
