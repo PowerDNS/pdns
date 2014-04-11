@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^\(example.com\|nztest.com\)$')
 do
-	TFILE=$(mktemp)
+	TFILE=$(mktemp tmp.XXXXXXXXXX)
 	dig axfr $zone @$nameserver -p $port | ldns-read-zone -z > $TFILE
 	for validator in "ldns-verify-zone -V2" validns jdnssec-verifyzone named-checkzone
 	do
