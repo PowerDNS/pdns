@@ -16108,6 +16108,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 	    	Entropy source (like /dev/urandom).
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>experimental-dname-processing=...</term>
+	    <listitem><para>
+		Synthesise CNAME records from DNAME records as required. This approximately doubles query load. Do not combine
+		with DNSSEC!
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>fancy-records=...</term>
 	    <listitem><para>
 		Process URL and MBOXFW records. See <xref linkend="fancy-records"/>.
