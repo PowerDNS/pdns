@@ -45,7 +45,7 @@ __EOF__
 			--config-name=goracle --socket-dir=./ --no-shuffle \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl $lua_prequery &
+			--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
 
 		if [ $context = goracle-nsec3 ]
 		then
