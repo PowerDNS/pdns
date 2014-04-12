@@ -22,17 +22,13 @@ __EOF__
 		echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 	done
 
+	../pdns/pdnssec --config-dir=. --config-name=goracle2 import-tsig-key test $ALGORITHM $KEY
+	../pdns/pdnssec --config-dir=. --config-name=goracle2 activate-tsig-key tsig.com test master
 	set +e
-	echo $skipreasons | grep -q nodnssec
+	echo $skipreasons | grep -q nolua
 	if [ $? -ne 0 ]
 	then
-		../pdns/pdnssec --config-dir=. --config-name=goracle2 import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=goracle2 activate-tsig-key tsig.com test master
-		echo $skipreasons | grep -q nolua
-		if [ $? -ne 0 ]
-		then
-			../pdns/pdnssec --config-dir=. --config-name=goracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
-		fi
+		../pdns/pdnssec --config-dir=. --config-name=goracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 	set -e
 
