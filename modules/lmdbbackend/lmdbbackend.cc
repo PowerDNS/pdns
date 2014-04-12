@@ -45,31 +45,31 @@ void LMDBBackend::open_db() {
     if( MDB_VERINT( major, minor, patch ) < MDB_VERINT( 0, 9, 8 ) )
         throw PDNSException( "LMDB Library version too old (" + verstring + "). Needs to be 0.9.8 or greater" );
 
-    if( rc = mdb_env_create(&env) )
+    if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
 
-    if( rc = mdb_env_set_maxdbs( env, 3 ) )
+    if( (rc = mdb_env_set_maxdbs( env, 3 )) )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_set_maxdbs() returned " + mdb_strerror(rc));
 
-    if( rc = mdb_env_open(env, path.c_str(), MDB_RDONLY, 0) )
+    if( (rc = mdb_env_open(env, path.c_str(), MDB_RDONLY, 0)) )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_open() returned " + mdb_strerror(rc));
 
-    if( rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn) )
+    if( (rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn) ))
         throw PDNSException("Couldn't start LMDB txn " + path + ": mdb_txn_begin() returned " + mdb_strerror(rc));
 
-    if( rc = mdb_dbi_open(txn, "zone", 0, &zone_db) )
+    if( (rc = mdb_dbi_open(txn, "zone", 0, &zone_db) ) )
         throw PDNSException("Couldn't open LMDB zone database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
-    if( rc = mdb_cursor_open(txn, zone_db, &zone_cursor) )
+    if( (rc = mdb_cursor_open(txn, zone_db, &zone_cursor) ))
         throw PDNSException("Couldn't open cursor on LMDB zone database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
-    if( rc = mdb_dbi_open(txn, "data", MDB_DUPSORT, &data_db) )
+    if( (rc = mdb_dbi_open(txn, "data", MDB_DUPSORT, &data_db) ))
         throw PDNSException("Couldn't open LMDB data database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
-    if( rc = mdb_cursor_open(txn, data_db, &data_cursor) )
+    if( (rc = mdb_cursor_open(txn, data_db, &data_cursor) ))
         throw PDNSException("Couldn't open cursor on LMDB data database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
-    if( rc = mdb_dbi_open(txn, "extended_data", 0, &data_extended_db) )
+    if( (rc = mdb_dbi_open(txn, "extended_data", 0, &data_extended_db) ))
         throw PDNSException("Couldn't open LMDB extended_data database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
-    if( rc = mdb_cursor_open(txn, data_extended_db, &data_extended_cursor) )
+    if( ( rc = mdb_cursor_open(txn, data_extended_db, &data_extended_cursor)) )
         throw PDNSException("Couldn't open cursor on LMDB data_extended database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
 }
