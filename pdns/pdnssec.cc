@@ -1846,7 +1846,7 @@ try
       cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
     }
   } else {
-    cerr<<"Unknown command '"<<cmds[0] << endl;
+    cerr<<"Unknown command '"<<cmds[0] <<"'"<< endl;
     return 1;
   }
   return 0;
