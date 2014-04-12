@@ -1,5 +1,5 @@
 case $context in
-	gpgsql-nodnssec)
+	gpgsql-nodnssec | gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout | gpgsql-nsec3-narrow)
 		[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
 		[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
 
@@ -15,47 +15,26 @@ gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
 __EOF__
 
+		if [ $context != gpgsql-nodnssec ]
+		then
+			echo "gpgsql-dnssec" >> pdns-gpgsql.conf
+		fi
+
 		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 		do
-			../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
-		done
-
-		../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=gpgsql activate-tsig-key tsig.com test master
-
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
-			--no-shuffle --launch=gpgsql \
-			--send-root-referral \
-			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--gpgsql-dbname="$GPGSQLDB" \
-			--gpgsql-user="$GPGSQLUSER" &
-		skipreasons="nodnssec nodyndns"
-		;;
-
-
-	gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout)
-		[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
-		[ -z "$GPGSQLUSER" ] && GPGSQLUSER=$(whoami)
-
-		dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring dropdb failure
-		createdb --user="$GPGSQLUSER" "$GPGSQLDB" || echo ignoring createdb failure # FIXME
-		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/schema.pgsql.sql
-
-		tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
-
-		cat > pdns-gpgsql.conf << __EOF__
-launch=gpgsql
-gpgsql-dbname=$GPGSQLDB
-gpgsql-user=$GPGSQLUSER
-gpgsql-dnssec
-__EOF__
-		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-		do
-			securezone $zone gpgsql
-			if [ $context = gpgsql-nsec3 ] || [ $context = gpgsql-nsec3-optout ]
+			if [ $context != gpgsql-nodnssec ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+				securezone $zone gpgsql
+				if [ $context = gpgsql-nsec3 ] || [ $context = gpgsql-nsec3-optout ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
+				elif [ $context = gpgsql-nsec3-narrow ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
+				fi
+			else
 				../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
 			fi
 		done
@@ -63,13 +42,12 @@ __EOF__
 		../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test $ALGORITHM $KEY
 		../pdns/pdnssec --config-dir=. --config-name=gpgsql activate-tsig-key tsig.com test master
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
-			--no-shuffle --launch=gpgsql --gpgsql-dnssec \
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+			--config-name=gpgsql  --socket-dir=./ --no-shuffle \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--gpgsql-dbname="$GPGSQLDB" \
-			--gpgsql-user="$GPGSQLUSER" $lua_prequery &
+			--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
+
 		if [ $context = gpgsql-nsec3 ]
 		then
 			extracontexts="dnssec nsec3"
@@ -81,6 +59,10 @@ __EOF__
 		elif [ $context = gpgsql-nsec3-narrow ]
 		then
 			extracontexts="dnssec narrow"
+			skipreasons="narrow nodyndns"
+		elif [ $context = gpgsql-nodnssec ]
+		then
+			skipreasons="nodnssec nodyndns"
 		else
 			extracontexts="dnssec"
 			skipreasons="nodyndns"

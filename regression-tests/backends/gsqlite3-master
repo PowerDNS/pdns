@@ -1,5 +1,5 @@
 case $context in
-	gsqlite3-nodnssec)
+	gsqlite3-nodnssec | gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout | gsqlite3-nsec3-narrow)
 		rm -f pdns.sqlite3
 		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
 		tosql gsqlite | sqlite3 pdns.sqlite3
@@ -9,40 +9,27 @@ case $context in
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 __EOF__
+
+		if [ $context != gsqlite3-nodnssec ]
+		then
+			echo "gsqlite3-dnssec" >> pdns-gsqlite3.conf
+		fi
+
 		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 		do
-			../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
-		done
-
-		../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=gsqlite3 activate-tsig-key tsig.com test master
-
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
-			--no-shuffle --launch=gsqlite3 \
-			--send-root-referral \
-			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--gsqlite3-database=pdns.sqlite3 &
-		skipreasons="nodnssec nodyndns"
-		;;
-
-	gsqlite3 | gsqlite3-nsec3 | gsqlite3-nsec3-optout)
-		rm -f pdns.sqlite3
-		sqlite3 pdns.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
-		tosql gsqlite | sqlite3 pdns.sqlite3
-		echo ANALYZE\; | sqlite3 pdns.sqlite3
-
-		cat > pdns-gsqlite3.conf << __EOF__
-launch=gsqlite3
-gsqlite3-database=pdns.sqlite3
-gsqlite3-dnssec
-__EOF__
-		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-		do
-			securezone $zone gsqlite3
-			if [ $context = gsqlite3-nsec3 ] || [ $context = gsqlite3-nsec3-optout ]
+			if [ $context != gsqlite3-nodnssec ]
 			then
-				../pdns/pdnssec --config-dir=. --config-name=gsqlite3 set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+				securezone $zone gsqlite3
+				if [ $context = gsqlite3-nsec3 ] || [ $context = gsqlite3-nsec3-optout ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
+				elif [ $context = gsqlite3-nsec3-narrow ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
+				fi
+			else
 				../pdns/pdnssec --config-dir=. --config-name=gsqlite3 rectify-zone $zone 2>&1
 			fi
 		done
@@ -50,12 +37,12 @@ __EOF__
 		../pdns/pdnssec --config-dir=. --config-name=gsqlite3 import-tsig-key test $ALGORITHM $KEY
 		../pdns/pdnssec --config-dir=. --config-name=gsqlite3 activate-tsig-key tsig.com test master
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
-			--no-shuffle --launch=gsqlite3 --gsqlite3-dnssec \
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
+			--config-name=gsqlite3  --socket-dir=./ --no-shuffle \
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--gsqlite3-database=pdns.sqlite3 $lua_prequery &
+			--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
+
 		if [ $context = gsqlite3-nsec3 ]
 		then
 			extracontexts="dnssec nsec3"
@@ -64,6 +51,13 @@ __EOF__
 		then
 			extracontexts="dnssec nsec3 nsec3-optout"
 			skipreasons="optout nodyndns"
+		elif [ $context = gsqlite3-nsec3-narrow ]
+		then
+			extracontexts="dnssec narrow"
+			skipreasons="narrow nodyndns"
+		elif [ $context = gsqlite3-nodnssec ]
+		then
+			skipreasons="nodnssec nodyndns"
 		else
 			extracontexts="dnssec"
 			skipreasons="nodyndns"

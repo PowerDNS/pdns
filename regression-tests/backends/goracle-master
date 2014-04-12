@@ -1,5 +1,5 @@
 case $context in
-	goracle-nodnssec | goracle | goracle-nsec3 | goracle-nsec3-optout)
+	goracle-nodnssec | goracle | goracle-nsec3 | goracle-nsec3-optout | goracle-nsec3-narrow)
 		[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
 		[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
 
@@ -32,6 +32,10 @@ __EOF__
 				then
 					../pdns/pdnssec --config-dir=. --config-name=goracle set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 					../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
+				elif [ $context = gmysql-nsec3-narrow ]
+				then
+					../pdns/pdnssec --config-dir=. --config-name=goracle set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+					../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
 				fi
 			else
 				../pdns/pdnssec --config-dir=. --config-name=goracle rectify-zone $zone 2>&1
@@ -55,6 +59,10 @@ __EOF__
 		then
 			extracontexts="dnssec nsec3 nsec3-optout"
 			skipreasons="optout nodyndns"
+		elif [ $context = goracle-nsec3-narrow ]
+		then
+			extracontexts="dnssec narrow"
+			skipreasons="narrow nodyndns"
 		elif [ $context = goracle-nodnssec ]
 		then
 			skipreasons="nodnssec nodyndns"
