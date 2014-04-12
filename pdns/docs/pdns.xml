@@ -19673,6 +19673,180 @@ VALUES (:zoneid, :ip)
       </sect2>
     </sect1>
 
+    <sect1 id="lmdbbackend"><title>LMDB (high performance) backend</title>
+      <para>
+	<table>
+	  <title>LMDB backend capabilities</title>
+	  <tgroup cols="2">
+	    <tbody>
+	      <row><entry>Native</entry><entry>Yes</entry></row>
+	      <row><entry>Master</entry><entry>No</entry></row>
+	      <row><entry>Slave</entry><entry>No</entry></row>
+	      <row><entry>Superslave</entry><entry>No</entry></row>
+	      <row><entry>Autoserial</entry><entry>No</entry></row>
+	      <row><entry>DNSSEC</entry><entry>No</entry></row>
+	      <row><entry>Module name</entry><entry>lmdb</entry></row>
+	      <row><entry>Launch</entry><entry>lmdb</entry></row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+      Based on the <ulink url="http://symas.com/mdb/">LMDB key-value
+      database</ulink>, the LMDB backend turns powerdns into a very high
+      performance and DDOS-resilient authoritative DNS server. Testing on a
+      32-core server shows the ability to answer up to 400,000 queries per second
+      with instant startup and real-time updates independent of database size.
+      </para>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term>lmdb-datapath=</term>
+	    <listitem>
+	      <para>
+            Location of the database to load
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+      <sect2>
+	<title>Operation</title>
+	<para>
+      Unlike other backends LMDB does not require any special configuration.
+      New or updated zones are available the next query after the update
+      transaction is committed. If the underlying database is removed or
+      recreated then the reload command should be sent through to powerdns to
+      get it to close and reopen the database.
+	</para>
+    </sect2>
+      <sect2><title>Database Format</title>
+	<para>
+        A full example script for generating a database can be found in
+        pdns/modules/lmdbbackend/lmdb-example.pl. Basically the database
+        environment is comprised of three databases to store the data:
+	</para>
+        <sect3><title>zone database</title>
+        <para>
+            Each key in the zone database is the reversed lower-cased name of
+            the zone without
+            leading or trailing dots (ie for example.com the key would be moc.elpmaxe).
+        </para>
+        <para>
+          Each value in the database must contain the following data (tab-separated):
+          <variablelist>
+            <varlistentry>
+              <term>Zone ID</term>
+              <listitem>
+                <para>The Zone's unique integer ID in ASCII (32-bit)</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>TTL</term>
+              <listitem>
+                <para>The TTL for the zone's SOA record</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>SOA data</term>
+              <listitem>
+                <para>space-separated SOA data eg
+                <screen>
+                ns.foo.com. hostmaster.foo.com. &lt;serial&gt; &lt;refresh&gt; &lt;retry&gt; &lt;expire&gt; &lt;minimum&gt;
+                </screen>
+                If refresh, retry, expire or minimum are not specified then the powerdns defaults will be used
+                </para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+        </sect3>
+        <sect3 id="lmdb-data"><title>data database</title>
+        <para>
+            This database is required to have been created with the MDB_DUPSORT flag enabled. It stores the records for each domain.
+            Each key must contain the following data (tab-separated):
+          <variablelist>
+            <varlistentry>
+              <term>Record name</term>
+              <listitem>
+                <para>The reversed lower-cased name of the record and zone without leading or trailing dots</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>Record type</term>
+              <listitem>
+                <para>The type of record A, NS, PTR etc. SOA is not allowed as it is automatically created from the zone database records.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+          </para>
+          <para>
+            The value for each entry must contain the following data
+            (tab-separated). If the length of this record is greater than the
+            LMDB limit of 510 bytes (for DUPSORT databases) an entry of "REF"
+            followed by the tab character and a unique 32-bit ASCII integer
+            which contains a reference into <xref linkend="lmdb-extended-data" />.
+          <variablelist>
+            <varlistentry>
+              <term>Zone ID</term>
+              <listitem>
+                <para>The Zone's unique integer ID in ASCII (32-bit)</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>TTL</term>
+              <listitem>
+                <para>The TTL for the SOA record</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>Record data</term>
+              <listitem>
+                <para>
+                The record's data entry. For MX/SRV records the
+                priority is the first field and space-separated from the rest
+                of the data. Care must be taken to escape the data
+                appropriately for PowerDNS. As in the Pipe backend " and \
+                characters are not allowed and any it is advised that any
+                characters outside of ASCII 32-126 are escaped using the \
+                character.
+                </para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+        </sect3>
+        <sect3 id="lmdb-extended-data"><title>extended_data database</title>
+        <para>
+        If the length of the value that you wish to insert into <xref
+        linkend="lmdb-data" /> is longer than 510 bytes you need to create the
+        REF entry as described above linked in to this table. The value is a
+        unique 32-bit integer value formatted in ASCII and the value is the
+        exact same format as it would have been in <xref linkend="lmdb-data" />
+        but can be however long you require.
+        </para>
+        </sect3>
+
+        <sect3><title>Example database structure</title>
+        <para>
+        (as output by the pdns/modules/lmdbbackend/lmdb-example.pl example script and shown by pdns/modules/lmdbbackend/dumpdb.pl)
+        <screen>
+        # perl dumpdb.pl /var/tmp/lmdb zone
+        key: moc.elpmaxe; value: 1      300     ns.example.com. hostmaster.example.com. 2012021101 86400 7200 604800 86400
+        # perl dumpdb.pl /var/tmp/lmdb data
+        key: moc.elpmaxe        MX; value: 1    300     10 mail.hotmail.com
+        key: moc.elpmaxe        NS; value: 1    300     ns.example.com
+        key: moc.elpmaxe.tset   A; value: 1     300     1.2.3.4
+        key: moc.elpmaxe.txet   TXT; value: 1   300     test\010123
+        key: moc.elpmaxe.txetgnol       TXT; value: REF 1
+        # perl dumpdb.pl /var/tmp/lmdb extended_data
+        key: 1; value: 1        300     AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        </screen>
+        </para>
+        </sect3>
+      </sect2>
+    </sect1>
+
   <sect1 id="odbc">
     <title>ODBC backend</title>
       <para>

@@ -8,6 +8,9 @@ before_script:
  - sudo rm /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update
  - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev
+ - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
+ - sudo apt-get update
+ - sudo apt-get install liblmdb0 liblmdb-dev lmdb-utils
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
@@ -21,7 +24,7 @@ before_script:
  - cd ../..
 script:
  - ./bootstrap
- - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap' --enable-unit-tests --enable-remotebackend-http --enable-tools --enable-remotebackend-zeromq
+ - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --enable-unit-tests --enable-remotebackend-http --enable-tools --enable-remotebackend-zeromq
  - make dist
  - make -j 4
  - travis_retry make -j 4 check # Workaround for remotebackend failures on travis-ci
