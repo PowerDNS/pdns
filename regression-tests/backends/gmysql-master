@@ -1,3 +1,5 @@
+source ./backends/gsql-common
+
 case $context in
 	gmysql-nodnssec | gmysql | gmysql-nsec3 | gmysql-nsec3-optout | gmysql-nsec3-narrow)
 		[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
@@ -22,58 +24,7 @@ gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
 __EOF__
 
-		if [ $context != gmysql-nodnssec ]
-		then
-			echo "gmysql-dnssec" >> pdns-gmysql.conf
-		fi
-
-		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-		do
-			if [ $context != gmysql-nodnssec ]
-			then
-				securezone $zone gmysql
-				if [ $context = gmysql-nsec3 ] || [ $context = gmysql-nsec3-optout ]
-				then
-					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone "1 $optout 1 abcd" 2>&1
-					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
-				elif [ $context = gmysql-nsec3-narrow ]
-				then
-					../pdns/pdnssec --config-dir=. --config-name=gmysql set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
-					../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
-				fi
-			else
-				../pdns/pdnssec --config-dir=. --config-name=gmysql rectify-zone $zone 2>&1
-			fi
-		done
-
-		../pdns/pdnssec --config-dir=. --config-name=gmysql import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=gmysql activate-tsig-key tsig.com test master
-
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
-			--config-name=gmysql  --socket-dir=./ --no-shuffle \
-			--send-root-referral \
-			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
-
-		if [ $context = gmysql-nsec3 ]
-		then
-			extracontexts="dnssec nsec3"
-			skipreasons="nsec3"
-		elif [ $context = gmysql-nsec3-optout ]
-		then
-			extracontexts="dnssec nsec3 nsec3-optout"
-			skipreasons="optout"
-		elif [ $context = gmysql-nsec3-narrow ]
-		then
-			extracontexts="dnssec narrow"
-			skipreasons="narrow"
-		elif [ $context = gmysql-nodnssec ]
-		then
-			skipreasons="nodnssec"
-		else
-			extracontexts="dnssec"
-			skipreasons=""
-		fi
+		gsql-master gmysql
 		;;
 
 	*)

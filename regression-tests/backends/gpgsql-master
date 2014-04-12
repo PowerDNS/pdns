@@ -1,3 +1,5 @@
+source ./backends/gsql-common
+
 case $context in
 	gpgsql-nodnssec | gpgsql | gpgsql-nsec3 | gpgsql-nsec3-optout | gpgsql-nsec3-narrow)
 		[ -z "$GPGSQLDB" ] && GPGSQLDB=pdnstest
@@ -15,58 +17,7 @@ gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
 __EOF__
 
-		if [ $context != gpgsql-nodnssec ]
-		then
-			echo "gpgsql-dnssec" >> pdns-gpgsql.conf
-		fi
-
-		for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-		do
-			if [ $context != gpgsql-nodnssec ]
-			then
-				securezone $zone gpgsql
-				if [ $context = gpgsql-nsec3 ] || [ $context = gpgsql-nsec3-optout ]
-				then
-					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone "1 $optout 1 abcd" 2>&1
-					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
-				elif [ $context = gpgsql-nsec3-narrow ]
-				then
-					../pdns/pdnssec --config-dir=. --config-name=gpgsql set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
-					../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
-				fi
-			else
-				../pdns/pdnssec --config-dir=. --config-name=gpgsql rectify-zone $zone 2>&1
-			fi
-		done
-
-		../pdns/pdnssec --config-dir=. --config-name=gpgsql import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=gpgsql activate-tsig-key tsig.com test master
-
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
-			--config-name=gpgsql  --socket-dir=./ --no-shuffle \
-			--send-root-referral \
-			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-			--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
-
-		if [ $context = gpgsql-nsec3 ]
-		then
-			extracontexts="dnssec nsec3"
-			skipreasons="nsec3 nodyndns"
-		elif [ $context = gpgsql-nsec3-optout ]
-		then
-			extracontexts="dnssec nsec3 nsec3-optout"
-			skipreasons="optout nodyndns"
-		elif [ $context = gpgsql-nsec3-narrow ]
-		then
-			extracontexts="dnssec narrow"
-			skipreasons="narrow nodyndns"
-		elif [ $context = gpgsql-nodnssec ]
-		then
-			skipreasons="nodnssec nodyndns"
-		else
-			extracontexts="dnssec"
-			skipreasons="nodyndns"
-		fi
+		gsql-master gpgsql nodyndns
 		;;
 
 	*)
