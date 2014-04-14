@@ -1102,7 +1102,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
              % (int)r.disabled
              % toLower(sqlEscape(r.qname))
              % sqlEscape(*ordername)
-             % (int)(r.auth || !d_dnssecQueries)
+             % (int)(r.auth)
       ).str();
   else
     query = (boost::format(d_InsertRecordQuery)
@@ -1132,17 +1132,11 @@ bool GSQLBackend::feedEnts(int domain_id, map<string,bool>& nonterm)
 
   BOOST_FOREACH(nt, nonterm) {
 
-    if (!d_dnssecQueries)
-      query = (boost::format(d_InsertEntQuery)
-               % domain_id
-               % toLower(sqlEscape(nt.first))
-       ).str();
-    else
-      query = (boost::format(d_InsertEntQuery)
-               % domain_id
-               % toLower(sqlEscape(nt.first))
-               % 1
-       ).str();
+    query = (boost::format(d_InsertEntQuery)
+             % domain_id
+             % toLower(sqlEscape(nt.first))
+             % (int)(nt.second || !d_dnssecQueries)
+      ).str();
 
     try {
       d_db->doCommand(query);
