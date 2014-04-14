@@ -1,0 +1,57 @@
+	context=${context}-presigned-gpgql
+	[ -z "$GPGSQ2LDB" ] && GPGSQL2DB=pdnstest2
+	[ -z "$GPGSQL2USER" ] && GPGSQL2USER=$(whoami)
+
+	dropdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
+	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
+	psql --user="$GPGSQL2USER" "$GPGSQL2DB" < ../modules/gpgsqlbackend/schema.pgsql.sql
+
+  cat > pdns-gpgsql2.conf << __EOF__
+launch=gpgsql
+gpgsql-dbname=$GPGSQL2DB
+gpgsql-user=$GPGSQL2USER
+__EOF__
+
+	if [[ $context != *nodnssec* ]]
+	then
+		echo "gpgsql-dnssec" >> pdns-gpgsql2.conf
+	fi
+
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	do
+		psql --user="$GPGSQL2USER" "$GPGSQL2DB" \
+		-c "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
+	done
+
+	../pdns/pdnssec --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
+	../pdns/pdnssec --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test master
+	if [[ $skipreasons != *nolua* ]]
+	then
+		../pdns/pdnssec --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+	fi
+
+	port=$((port+100))
+
+	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
+		--config-name=gpgsql2 --socket-dir=./ --no-shuffle \
+		--send-root-referral --slave --retrieval-threads=4 \
+		--slave-cycle-interval=300 --experimental-dname-processing &
+
+	echo 'waiting for zones to be slaved'
+	loopcount=0
+	while [ $loopcount -lt 30 ]
+	do
+		sleep 5
+		todo=$(psql --user="$GPGSQL2USER" "$GPGSQL2DB" \
+		  -t -c 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+		if [ $todo = 0 ]
+		then
+			break
+		fi
+		let loopcount=loopcount+1
+	done
+	if [ $todo -ne 0 ]
+	then
+		echo "AXFR FAILED" >> failed_tests
+		exit
+	fi

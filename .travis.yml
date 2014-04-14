@@ -61,9 +61,18 @@ script:
  - ./start-test-stop 5300 gmysql-nsec3-both
  - ./start-test-stop 5300 gmysql-nsec3-optout-both
  - ./start-test-stop 5300 gmysql-nsec3-narrow
- - ./start-test-stop 5300 gpgsql-nodnssec
- - ./start-test-stop 5300 gpgsql
- - ./start-test-stop 5300 gpgsql-nsec3
+ - ./start-test-stop 5300 gpgsql-nodnssec-both
+ - ./start-test-stop 5300 gpgsql-both
+ - ./start-test-stop 5300 gpgsql-nsec3-both
+ - ./start-test-stop 5300 gpgsql-nsec3-optout-both
+ - ./start-test-stop 5300 gpgsql-nsec3-narrow
+ - ./start-test-stop 5300 gsqlite3-nodnssec-both
+ - ./start-test-stop 5300 gsqlite3-both
+ - ./start-test-stop 5300 gsqlite3-nsec3-both
+ - ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+ - ./start-test-stop 5300 gsqlite3-nsec3-narrow
+ - ./start-test-stop 5300 mydns
+ - ./start-test-stop 5300 opendbx-sqlite3
  - travis_retry ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
  - travis_retry ./start-test-stop 5300 remotebackend-pipe-dnssec
  - travis_retry ./start-test-stop 5300 remotebackend-unix
@@ -72,12 +81,7 @@ script:
  - travis_retry ./start-test-stop 5300 remotebackend-http-dnssec
  - travis_retry ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry ./start-test-stop 5300 remotebackend-zeromq-dnssec
- - ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./start-test-stop 5300 gsqlite3-both
- - ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./start-test-stop 5300 mydns
  - ./start-test-stop 5300 tinydns
- - ./start-test-stop 5300 opendbx-sqlite3
  - THRESHOLD=90 TRACE=no ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests
