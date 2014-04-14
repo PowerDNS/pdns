@@ -80,6 +80,10 @@ start_slave ()
 			source ./backends/goracle-slave
 			;;
 
+		gpgsql*)
+		source ./backends/gpgsql-slave
+			;;
+
 		gsqlite3*)
 			source ./backends/gsqlite3-slave
 			;;
