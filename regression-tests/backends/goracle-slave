@@ -14,8 +14,12 @@ goracle-nls-lang=$NLS_LANG
 goracle-tnsname=xe
 goracle-user=$GORACLE2USER
 goracle-password=$GORACLE2PASSWD
-goracle-dnssec
 __EOF__
+
+	if [[ $context != *nodnssec* ]]
+	then
+		echo "goracle-dnssec" >> pdns-goracle2.conf
+	fi
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
 	do

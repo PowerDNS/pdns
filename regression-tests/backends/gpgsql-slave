@@ -10,8 +10,12 @@
 launch=gpgsql
 gpgsql-dbname=$GPGSQL2DB
 gpgsql-user=$GPGSQL2USER
-gpgsql-dnssec
 __EOF__
+
+	if [[ $context != *nodnssec* ]]
+	then
+		echo "gpgsql-dnssec" >> pdns-gpgsql2.conf
+	fi
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
 	do

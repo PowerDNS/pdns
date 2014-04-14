@@ -6,8 +6,12 @@
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite32
 gsqlite3-pragma-synchronous=0
-gsqlite3-dnssec
 __EOF__
+
+	if [[ $context != *nodnssec* ]]
+	then
+		echo "gsqlite3-dnssec" >> pdns-gsqlite32.conf
+	fi
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
 	do
