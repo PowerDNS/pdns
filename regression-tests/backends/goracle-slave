@@ -24,13 +24,10 @@ __EOF__
 
 	../pdns/pdnssec --config-dir=. --config-name=goracle2 import-tsig-key test $ALGORITHM $KEY
 	../pdns/pdnssec --config-dir=. --config-name=goracle2 activate-tsig-key tsig.com test master
-	set +e
-	echo $skipreasons | grep -q nolua
-	if [ $? -ne 0 ]
+	if [[ $skipreasons != *nolua* ]]
 	then
 		../pdns/pdnssec --config-dir=. --config-name=goracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
-	set -e
 
 	port=$((port+100))
 
@@ -38,10 +35,10 @@ __EOF__
 		--config-name=goracle2 --socket-dir=./ --no-shuffle \
 		--send-root-referral --slave --retrieval-threads=4 \
 		--slave-cycle-interval=300 --experimental-dname-processing &
-	echo 'waiting for zones to be slaved'
 
+	echo 'waiting for zones to be slaved'
 	loopcount=0
-	while [ $loopcount -lt 40 ]
+	while [ $loopcount -lt 30 ]
 	do
 		sleep 5
 		todo=$(sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe << __EOF__
@@ -59,4 +56,5 @@ __EOF__
 	if [ $todo -ne 0 ]
 	then
 		echo "AXFR FAILED" >> failed_tests
+		exit
 	fi
