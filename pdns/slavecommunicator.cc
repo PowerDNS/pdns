@@ -3,8 +3,8 @@
     Copyright (C) 2002-2012  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as 
-    published by the Free Software Foundation; 
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation;
 
     Additionally, the license of this program contains a special
     exception which allows to distribute the program in binary form when
@@ -56,7 +56,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   pair<UniQueue::iterator, bool>  res;
 
   res=d_suckdomains.push_back(sr);
-  
+
   if(res.second) {
     d_suck_sem.post();
   }
@@ -479,7 +479,7 @@ struct SlaveSenderReceiver
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone+"': "+e.reason);
     }
   }
-  
+
   bool receive(Identifier& id, Answer& a)
   {
     if(d_resolver.tryGetSOASerial(&id.first, &a.theirSerial, &a.theirInception, &a.theirExpire, &id.second)) {
@@ -487,12 +487,12 @@ struct SlaveSenderReceiver
     }
     return 0;
   }
-  
+
   void deliverAnswer(DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
   {
     d_freshness[dni.di.id]=a;
   }
-  
+
   Resolver d_resolver;
 };
 
@@ -519,7 +519,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   vector<DomainInfo> rdomains;
   vector<DomainNotificationInfo> sdomains; // the bool is for 'presigned'
   vector<DNSPacket> trysuperdomains;
-  
+
   {
     Lock l(&d_lock);
     rdomains.insert(rdomains.end(), d_tocheck.begin(), d_tocheck.end());
@@ -527,7 +527,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     trysuperdomains.insert(trysuperdomains.end(), d_potentialsupermasters.begin(), d_potentialsupermasters.end());
     d_potentialsupermasters.clear();
   }
-  
+
   BOOST_FOREACH(DNSPacket& dp, trysuperdomains) {
     int res;
     res=P->trySuperMasterSynchronous(&dp);
@@ -542,7 +542,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
   if(rdomains.empty()) // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
-    
+
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
   {
     Lock l(&d_lock);
@@ -562,7 +562,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       DomainNotificationInfo dni;
       dni.di=di;
       dni.dnssecOk = dk.isPresigned(di.zone);
-      
+
       if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
         string secret64;
         B->getTSIGKey(dni.tsigkeyname, &dni.tsigalgname, &secret64);
@@ -587,7 +587,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       sdomains.push_back(dni);
     }
   }
-  
+
   if(sdomains.empty())
   {
     if(d_slaveschanged) {
@@ -603,11 +603,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       (sdomains.size()>1 ? "" : "s")<<
       " checking, "<<d_suckdomains.size()<<" queued for AXFR"<<endl;
   }
-      
+
   SlaveSenderReceiver ssr;
-  
+
   Inflighter<vector<DomainNotificationInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);
-  
+
   ifl.d_maxInFlight = 200;
 
   for(;;) {
@@ -618,7 +618,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     catch(std::exception& e) {
       L<<Logger::Error<<"While checking domain freshness: " << e.what()<<endl;
     }
-    catch(PDNSException &re) {  
+    catch(PDNSException &re) {
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
     }
   }
@@ -632,11 +632,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
         continue;
     }
-      
-    if(!ssr.d_freshness.count(di.id)) 
+
+    if(!ssr.d_freshness.count(di.id))
       continue;
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial, ourserial = di.serial;
-    
+
     if(rfc1982LessThan(theirserial, ourserial)) {
       L<<Logger::Error<<"Domain '"<<di.zone<<"' more recent than master, our serial " << ourserial << " > their serial "<< theirserial << endl;
       di.backend->setFresh(di.id);
@@ -672,7 +672,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       addSuckRequest(di.zone, *di.masters.begin());
     }
   }
-}  
+}
 
 // stub for PowerDNSLua linking
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
