@@ -1853,8 +1853,14 @@ try
     if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
+
+      if (cmds.size() < 9) {
+        std::cout << "Usage: pdnssec hsm assign zone algorithm ksk|zsk module slot pin label" << std::endl;
+        return 1;
+      }
+
       string zone = cmds[2];
- 
+
       // verify zone
       if (!B.getDomainInfo(zone, di)) {
         cerr << "Unable to assign module to unknown zone '" << zone << "'" << std::endl;
@@ -1862,6 +1868,7 @@ try
       }
 
       int algorithm = shorthand2algorithm(cmds[3]);
+      int id;
       bool keyOrZone = (cmds[4] == "ksk" ? true : false);
       string module = cmds[5];
       string slot = cmds[6];
@@ -1880,13 +1887,13 @@ try
      DNSSECPrivateKey dpk;
      dpk.d_flags = (keyOrZone ? 257 : 256);
      dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
-
-     if (!dk.addKey(zone, dpk)) {
+ 
+     if (!(id = dk.addKey(zone, dpk))) {
        cerr << "Unable to assign module slot to zone" << std::endl;
        return 1;
      }
 
-     cerr << "Module " << module << " slot " << slot << " assigned to " << zone << endl;
+     cerr << "Module " << module << " slot " << slot << " assigned to " << zone << " with key id " << id << endl;
      return 0;
     } else if (cmds[1] == "create-key") {
       DomainInfo di;
@@ -1920,8 +1927,15 @@ try
         cerr << "Could not find key with ID " << id << endl;
         return 1;
       }
-
-      dke->create(2048);
+      try {
+        dke->create(2048);
+      } catch (PDNSException& e1) {
+         cerr << e1.reason << endl;
+         return 1;
+      } catch (PDNSException* e2) {
+         cerr << e2->reason << endl;
+         return 1;
+      }
 
       cerr << "Created key i think" << std::endl;
       return 0;
