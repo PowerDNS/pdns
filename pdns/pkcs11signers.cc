@@ -613,7 +613,10 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   P11KitSlot d_slot;
   pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION|CKF_RW_SESSION, d_slot);
   std::string pubExp("\000\001\000\001", 4); // 65537
-
+  
+  pubAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
+  pubAttr.push_back(P11KitAttribute(CKA_KEY_TYPE, (unsigned long)CKK_RSA));
+  pubAttr.push_back(P11KitAttribute(CKA_TOKEN, (char)CK_TRUE));
   pubAttr.push_back(P11KitAttribute(CKA_ENCRYPT, (char)CK_TRUE));
   pubAttr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
   pubAttr.push_back(P11KitAttribute(CKA_WRAP, (char)CK_TRUE));
@@ -621,6 +624,8 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   pubAttr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, pubExp)); 
   pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_label));
 
+  privAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
+  privAttr.push_back(P11KitAttribute(CKA_KEY_TYPE, (unsigned long)CKK_RSA));
   privAttr.push_back(P11KitAttribute(CKA_TOKEN, (char)CK_TRUE));
   privAttr.push_back(P11KitAttribute(CKA_PRIVATE, (char)CK_TRUE));
 //  privAttr.push_back(P11KitAttribute(CKA_SUBJECT, "CN=keygen"));
@@ -732,7 +737,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
   std::vector<CK_OBJECT_HANDLE> key;
   std::vector<P11KitAttribute> attr;
   // find us a public key
-  //attr.push_back(P11KitAttribute(CKA_CLASS, CKO_PUBLIC_KEY));
+  attr.push_back(P11KitAttribute(CKA_CLASS, CKO_PUBLIC_KEY));
   attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
   P11KitSlot d_slot;
   pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
@@ -788,7 +793,7 @@ int PKCS11DNSCryptoKeyEngine::getBits() const {
   int bits = -1;
   std::vector<CK_OBJECT_HANDLE> key;
   std::vector<P11KitAttribute> attr;
-  //attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
+  attr.push_back(P11KitAttribute(CKA_CLASS, CKO_PUBLIC_KEY));
   attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
   P11KitSlot d_slot;
   pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
