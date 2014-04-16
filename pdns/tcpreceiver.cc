@@ -666,6 +666,79 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     return 0;
   }
 
+
+  const bool rectify = true; // TODO add config option
+  set<string> qnames, nsset, terms;
+  vector<DNSResourceRecord> rrs;
+
+  while(sd.db->get(rr)) {
+    if(endsOn(rr.qname, target)) {
+      if (rectify) {
+        if (rr.qtype.getCode()) {
+          qnames.insert(rr.qname);
+          if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, target))
+            nsset.insert(rr.qname);
+        } else {
+          // remove existing ents
+          continue;
+        }
+      }
+      rrs.push_back(rr);
+    } else {
+      L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.getName()<<"', ignoring"<<endl;
+      continue;
+    }
+  }
+
+  if(rectify) {
+    // set auth
+    BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
+      rr.auth=true;
+      if (rr.qtype.getCode() != QType::NS || !pdns_iequals(rr.qname, target)) {
+        string shorter(rr.qname);
+        do {
+          if (pdns_iequals(shorter, target)) // apex is always auth
+            continue;
+          if(nsset.count(shorter) && !(pdns_iequals(rr.qname, shorter) && rr.qtype.getCode() == QType::DS))
+            rr.auth=false;
+        } while(chopOff(shorter));
+      } else
+        continue;
+    }
+
+    if(NSEC3Zone) {
+      // ents are only required for NSEC3 zones
+      uint32_t maxent = ::arg().asNum("max-ent-entries");
+      map<string,bool> nonterm;
+      BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
+        string shorter(rr.qname);
+        while(!pdns_iequals(shorter, target) && chopOff(shorter)) {
+          if(!qnames.count(shorter)) {
+            if(!(maxent)) {
+              L<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;
+              return 0;
+            }
+            if (!nonterm.count(shorter)) {
+              nonterm.insert(pair<string, bool>(shorter, rr.auth));
+              --maxent;
+            } else if (rr.auth)
+              nonterm[shorter]=true;
+          }
+        }
+      }
+
+      pair<string,bool> nt;
+      BOOST_FOREACH(nt, nonterm) {
+        DNSResourceRecord rr;
+        rr.qname=nt.first;
+        rr.qtype="TYPE0";
+        rr.auth=(nt.second || !ns3pr.d_flags);
+        rrs.push_back(rr);
+      }
+    }
+  }
+
+
   /* now write all other records */
   
   string keyname;
@@ -674,7 +747,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   DTime dt;
   dt.set();
   int records=0;
-  while(sd.db->get(rr)) {
+  BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       if(presignedZone && rrc.d_type == QType::NSEC3)
