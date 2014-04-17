@@ -120,6 +120,11 @@
 # disable-axfr=no
 
 #################################
+# disable-axfr-rectify	Disable the rectify step during an outgoing AXFR. Only required for regression testing.
+#
+# disable-axfr-rectify=no
+
+#################################
 # disable-tcp	Do not listen to TCP queries
 #
 # disable-tcp=no

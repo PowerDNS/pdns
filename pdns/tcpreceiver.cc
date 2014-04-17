@@ -667,7 +667,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
 
 
-  const bool rectify = true; // TODO add config option
+  const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
   set<string> qnames, nsset, terms;
   vector<DNSResourceRecord> rrs;
 

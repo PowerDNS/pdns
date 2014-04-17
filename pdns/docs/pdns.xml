@@ -16214,6 +16214,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		Do not allow zone transfers. Before 2.9.10, this could be overridden by allow-axfr-ips.
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>disable-axfr-rectify=...</term>
+	    <listitem><para>
+		Disable the rectify step during an outgoing AXFR. Only required for regression testing.
+		Default is no."/>.
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>disable-tcp=...</term>
 	    <listitem><para>
 		Do not listen to TCP queries. Breaks RFC compliance.
