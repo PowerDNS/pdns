@@ -189,6 +189,12 @@
 	  </listitem>
 	  <listitem>
             <para>
+	      g4e9a20e: warn about Linux suboptimal IPv6 settings if we detect them.
+	    </para>
+	  </listitem>
+
+	  <listitem>
+            <para>
 	      SIGUSR2 turns on a 'trace' of all DNS traffic, a second SIGUSR2 now turns it off again. g4f217ce.
 	    </para>
 	  </listitem>
