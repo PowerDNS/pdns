@@ -93,6 +93,173 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-recursor-3.6"><title>PowerDNS Recursor version 3.6</title>
+      <note>
+        <para>
+	  UNRELEASED
+        </para>
+      </note>
+        <para>
+	  New features:
+        <itemizedlist>
+          <listitem>
+            <para>
+              Lots of work on the JSON API, based on Aki Tuomi's 'yahttp'. Documentation &amp; demo forthcoming.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Lua modules can now use 'pdnslog(INFO..'), as described in t1074, implemented in g674a305
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+	      Adopt any-to-tcp feature to the recursor. Based on a patch by Winfried Angele. Closes t836, g56b4d21 and ge661a20.
+            </para>
+          </listitem>
+	  <listitem>
+            <para>
+	      g2c78bd5: implement built-in statistics dumper using the 'carbon' protocol, which is also understood by metronome (our mini-graphite). Use 'carbon-server', 'carbon-ourname' and 'carbon-interval' settings.
+	    </para>
+	  </listitem>
+
+          <listitem>
+            <para>
+	      New setting 'udp-truncation-threshold' to configure from how many bytes we should truncate. ga09a8ce.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+	      Proper support for CHaos class for CHAOS TXT queries. gc86e1f2, addition for lua in gf94c53d, some warnings
+	      in g438db54 however.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+	      Added support for Lua scripts to drop queries w/o further processing. g0478c54.
+            </para>
+          </listitem>
+	  <listitem>
+            <para>
+	      Kevin Holly added qtype statistics to recursor and rec_control (get-qtypelist) (g79332bf)
+            </para>
+          </listitem>
+	  <listitem>
+            <para>
+	      Add support for include-files in configuration, also reload ACLs and zones defined in them (g829849d, g242b90e, g302df81).
+	    </para>
+	  </listitem>
+
+	  <listitem>
+            <para>
+	      Paulo Anes contributed server-down-max-fails which helps combat Recursive DNS based amplification attacks. 
+	      Described in <ulink url="http://blog.powerdns.com/2014/04/03/further-dos-guidance-packages-and-patches-available/">this post</ulink>. Also comes with new metric 'failed-host-entries' in g406f46f.
+	    </para>
+	  </listitem>
+
+	</itemizedlist>
+
+	  Improvements:
+        <itemizedlist>
+          <listitem>
+            <para>
+              To aid in limiting DoS attacks, when truncating a response, we actually truncate all the way
+	      so only the question remains. Suggested in t1092, code in gadd935a.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+	      Update to embedded PolarSSL, plus remove previous AES implementation and shift to PolarSSL (ge22d9b4, g990ad9a)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+	      g92c0733 moves various Lua magic constants into an enum namespace.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+	      set group and supplementary groups before chroot (g6ee50ce, t1198).
+            </para>
+          </listitem>
+	  <listitem>
+            <para>
+	      g4e9a20e: raise our socket buffer setting so it no longer generates a warning about lowering it.
+	    </para>
+	  </listitem>
+	  <listitem>
+            <para>
+	      SIGUSR2 turns on a 'trace' of all DNS traffic, a second SIGUSR2 now turns it off again. g4f217ce.
+	    </para>
+	  </listitem>
+          <listitem>
+            <para>
+	      Various fixes for Lua 5.2.
+            </para>
+          </listitem>
+	  <listitem>
+            <para>
+    g81859ba: No longer attempt to answer questions coming in from port 0, reply would not reach them anyhow.  Thanks
+to Niels Bakker and 'sid3windr' for insight &amp; debugging.  Closes t844.
+	    </para>
+	  </listitem>
+	  <listitem>
+            <para>
+	      gb1a2d6c: now, I'm not one to get OCD over things, but that log message about stats based on 1801 seconds got to
+	      me.  1800 now.
+	    </para>
+	  </listitem>
+
+	</itemizedlist>
+	Fixes:
+	<itemizedlist>
+	  <listitem>
+            <para>
+	      g2f22827: Fix statistics and stability when running with pdns-distributes-queries.
+	    </para>
+	  </listitem>
+	  <listitem>
+            <para>
+	      g6196f90: avoid merging old and new additional data, fixes an issue caused by weird (but proably legal) Akamai behaviour
+	    </para>
+	  </listitem>
+	  <listitem>
+            <para>
+	      g3a8a4d6: make sure we don't exceed the number of available filedescriptors for mthreads. Raises performance 
+	      in case of DoS. See <ulink url="http://blog.powerdns.com/2014/02/06/related-to-recent-dos-attacks-recursor-configuration-file-guidance/">this post</ulink> for further details.
+            </para>
+          </listitem>
+	  <listitem>
+            <para>
+	      g7313fe6: implement indexed packet cache wiping for recursor, orders of magnitude faster. Important
+	      when reloading all zones, which causes massive cache cleaning.
+	    </para>
+	  </listitem>
+	  <listitem>
+            <para>
+	      rec_control get-all would include 'cache-bytes' and 'packetcache-bytes', which were expensive operations,
+	      too expensive for frequent polling. Removed in g8e42d27.
+	    </para>
+	  </listitem>
+
+          <listitem>
+            <para>
+              All old workarounds for supporting Windows of the XP era have been removed. 
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Add (theoretical) support for 64 bit bigendian DNSSEC processing (g0c37420).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              Fix issues on S390X based systems which have unsigned characters (g916a0fd)
+            </para>
+          </listitem>
+	</itemizedlist>
+	</para>
+      </sect2>
       <sect2 id="changelog-auth-3-3-1"><title>PowerDNS Authoritative Server version 3.3.1</title>
        <warning><para>Version 3.3.1 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. There are also some important changes if you are coming from 3.0, 3.1 or 3.2.
   Please refer to <xref linkend="from2.9to3.0"/>, <xref linkend="from3.0to3.1"/>, <xref linkend="from3.1to3.2"/>, <xref linkend="from3.2to3.3"/> and <xref linkend="from3.3to3.3.1"/> for important information on 
@@ -14536,6 +14703,19 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>server-down-max-fails</term>
+	    <term>server-down-throttle-time</term>
+	    <listitem>
+	      <para>
+		If a server has not responded in any way this many times in a row, no longer send it any queries
+		for server-down-throttle-time seconds. Afterwards, we will try a new packet, and if that also
+		gets no response at all, we again throttle for server-down-throttle-time-seconds. Even a single
+		reponse packet will drop the block. Available and on by default since 3.6.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
 	  <varlistentry>
 	    <term>server-id</term>
 	    <listitem>
