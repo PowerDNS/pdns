@@ -2033,7 +2033,7 @@ try
     t_fdm->run(&g_now);
     // 'run' updates g_now for us
 
-    if(!t_id) {
+    if(!g_weDistributeQueries || !t_id) { // if pdns distributes queries, only tid 0 should do this
       if(listenOnTCP) {
 	if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
 	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
