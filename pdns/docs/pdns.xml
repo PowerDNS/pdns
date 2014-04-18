@@ -104,7 +104,9 @@
         <itemizedlist>
           <listitem>
             <para>
-              Lots of work on the JSON API, based on Aki Tuomi's 'yahttp'. Documentation &amp; demo forthcoming.
+              Lots of work on the JSON API, which is exposed via Aki Tuomi's 'yahttp'. Massive thanks to Christian Hofstaedtler for delivering
+	      this exciting new functionality. Documentation &amp; demo forthcoming, but code to use it is available
+	      <ulink url="https://github.com/powerdns/pdnscontrol">on GitHub</ulink>.
             </para>
           </listitem>
           <listitem>
@@ -167,6 +169,12 @@
 	      so only the question remains. Suggested in t1092, code in gadd935a.
             </para>
           </listitem>
+          <listitem>
+            <para>
+	      No longer experimental, the switch 'pdns-distributes-queries' can improve multi-threaded performance on Linux (various cleanup commits).
+            </para>
+          </listitem>
+
           <listitem>
             <para>
 	      Update to embedded PolarSSL, plus remove previous AES implementation and shift to PolarSSL (ge22d9b4, g990ad9a)
@@ -14343,6 +14351,15 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+          <varlistentry>
+            <term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
+            <listitem>
+              <para>
+                Answer questions for the ANY type on UDP with a truncated packet that refers the
+                remote server to TCP. Useful for mitigating ANY reflection attacks. Defaults to off.
+              </para>
+            </listitem>
+          </varlistentry>
 
 	  <varlistentry>
 	    <term>auth-can-lower-ttl</term>
@@ -14426,15 +14443,6 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
-          <varlistentry>
-            <term>any-to-tcp | any-to-tcp=yes | any-to-tcp=no</term>
-            <listitem>
-              <para>
-                Answer questions for the ANY type on UDP with a truncated packet that refers the
-                remote server to TCP. Useful for mitigating ANY reflection attacks. Defaults to off.
-              </para>
-            </listitem>
-          </varlistentry>
 	  <varlistentry>
 	    <term>dont-query</term>
 	    <listitem>
@@ -14641,6 +14649,17 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
+	    <term>minimum-ttl-override</term>
+	    <listitem>
+	      <para>
+		Available since 3.6, this setting artificially raises all TTLs to be at least this long. While this is a gross hack, 
+		and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers. Can be set at runtime using
+		'rec_control set-minimum-ttl 3600'. To disable, set to 0 (the default).
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
 	    <term>network-timeout</term>
 	    <listitem>
 	      <para>
@@ -14664,6 +14683,16 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>pdns-distributes-queries</term>
+	    <listitem>
+	      <para>
+		If set, PowerDNS will have only 1 thread listening on client sockets, and distribute work by itself over threads. Improves
+		performance on Linux. Do not use on Recursor versions before 3.6 as the feature was experimental back then, and not that stable.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
 	  <varlistentry>
 	    <term>query-local-address</term>
 	    <listitem>
@@ -14913,6 +14942,17 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 		</para>
 	      </listitem>
 	    </varlistentry>	  
+	    <varlistentry>
+	      <term>set-minimum-ttl</term>
+	      <listitem>
+		<para>
+		Available since 3.6, this setting artificially raises all TTLs to be at least this long. While this is a gross hack, 
+		and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers. Corresponds
+		to the configuration file setting 'minimum-ttl-override'. 
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+
 	    <varlistentry>
 	      <term>top-remotes</term>
 	      <listitem>
