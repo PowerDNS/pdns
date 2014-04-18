@@ -1496,7 +1496,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   pident.id=dh.id;
   pident.fd=fd;
 
-  if(!dh.qr) {
+  if(!dh.qr && g_logCommonErrors) {
     L<<Logger::Warning<<"Not taking data from question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
   }
 
