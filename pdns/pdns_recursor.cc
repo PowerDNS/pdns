@@ -2031,18 +2031,20 @@ try
     t_fdm->run(&g_now);
     // 'run' updates g_now for us
 
-    if(listenOnTCP) {
-      if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
-        for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-          t_fdm->removeReadFD(*i);
-        listenOnTCP=false;
+    if(!t_id) {
+      if(listenOnTCP) {
+	if(TCPConnection::getCurrentConnections() > maxTcpClients) {  // shutdown, too many connections
+	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	    t_fdm->removeReadFD(*i);
+	  listenOnTCP=false;
+	}
       }
-    }
-    else {
-      if(TCPConnection::getCurrentConnections() <= maxTcpClients) {  // reenable
-        for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
-          t_fdm->addReadFD(*i, handleNewTCPQuestion);
-        listenOnTCP=true;
+      else {
+	if(TCPConnection::getCurrentConnections() <= maxTcpClients) {  // reenable
+	  for(tcpListenSockets_t::iterator i=g_tcpListenSockets.begin(); i != g_tcpListenSockets.end(); ++i)
+	    t_fdm->addReadFD(*i, handleNewTCPQuestion);
+	  listenOnTCP=true;
+	}
       }
     }
   }
