@@ -59,6 +59,7 @@ unsigned int SyncRes::s_throttledqueries;
 unsigned int SyncRes::s_dontqueries;
 unsigned int SyncRes::s_nodelegated;
 unsigned int SyncRes::s_unreachables;
+unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 
@@ -1003,6 +1004,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         //        cout<<"msec: "<<lwr.d_usec/1000.0<<", "<<g_avgLatency/1000.0<<'\n';
 
         t_sstorage->nsSpeeds[*tns].submit(*remoteIP, lwr.d_usec, &d_now);
+      }
+
+      if(s_minimumTTL) {
+	for(LWResult::res_t::iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
+	  i->ttl = max(i->ttl, s_minimumTTL);
+	}
       }
 
       typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;

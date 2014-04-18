@@ -289,6 +289,7 @@ public:
   static unsigned int s_tcpoutqueries;
   static unsigned int s_nodelegated;
   static unsigned int s_unreachables;
+  static unsigned int s_minimumTTL;
   static bool s_doAAAAAdditionalProcessing;
   static bool s_doAdditionalProcessing;
   static bool s_doIPv6;

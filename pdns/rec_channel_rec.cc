@@ -246,6 +246,16 @@ string doWipeCache(T begin, T end)
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
 }
 
+template<typename T>
+string setMinimumTTL(T begin, T end)
+{
+  if(end-begin != 1) 
+    return "Need to supply new minimum TTL number\n";
+  SyncRes::s_minimumTTL = atoi(begin->c_str());
+  return "New minimum TTL: " + lexical_cast<string>(SyncRes::s_minimumTTL) + "\n";
+}
+
+
 static uint64_t getSysTimeMsec()
 {
   struct rusage ru;
@@ -620,6 +630,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-acls                      reload ACLS\n"
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-zones                     reload all auth and forward zones\n"
+"set-minimum-ttl value            set mininum-ttl-override\n"
 "trace-regex regex                emit resolution trace for matching queries\n"
 "top-remotes                      show top remotes\n"
 "unload-lua-script                unload Lua script\n"
@@ -698,6 +709,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-zones") {
     return reloadAuthAndForwards();
+  }
+
+  if(cmd=="set-minimum-ttl") {
+    return setMinimumTTL(begin, end);
   }
   
   if(cmd=="get-qtypelist") {

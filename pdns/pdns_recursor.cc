@@ -1793,6 +1793,8 @@ int serviceMain(int argc, char*argv[])
     g_quiet=false;
   }
   
+  SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
+
   checkLinuxIPv6Limits();
   try {
     vector<string> addrs;  
@@ -2153,6 +2155,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
+    ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
 
