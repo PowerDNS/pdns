@@ -1708,7 +1708,6 @@ try
         return 0;
      }
      string name = cmds[1];
-     string algo = cmds[2];
 
      UeberBackend B("default");
      if (B.deleteTSIGKey(name)) {
