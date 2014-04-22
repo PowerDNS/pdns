@@ -35,8 +35,8 @@ public:
   ZoneParserTNG(const string& fname, const string& zname="", const string& reldir="");
 
   ~ZoneParserTNG();
-
-  bool get(DNSResourceRecord& rr);
+  void enableComments();
+  bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
   typedef deque<pair<string::size_type, string::size_type> > parts_t;
 private:
@@ -54,6 +54,7 @@ private:
   uint32_t d_templatecounter, d_templatestop, d_templatestep;
   string d_templateline;
   parts_t d_templateparts;
+  bool d_doPassComments;
 
   struct filestate {
     filestate(FILE* fp, string filename) : d_fp(fp), d_filename(filename), d_lineno(0){}

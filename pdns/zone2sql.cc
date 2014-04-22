@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <string>
 #include <map>
-
+#include "json.hh"
 #include <iostream>
 #include <stdio.h>
 #include "namespaces.hh"
@@ -142,8 +142,23 @@ static void emitDomain(const string& domain, const vector<string> *masters = 0) 
   }
 }
 
-static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio)
+static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio, const string& comment="")
 {
+  int disabled=0;
+  string recordcomment;
+
+  if(!comment.empty()) {
+    string::size_type pos = comment.find("json={");
+    if(pos!=string::npos) {
+      string json = comment.substr(pos+5);
+      rapidjson::Document document;
+      if(document.Parse<0>(json.c_str()).HasParseError())
+	throw runtime_error("Could not parse JSON '"+json+"'");
+
+      disabled=boolFromJson(document, "disabled", false);
+      recordcomment=stringFromJson(document, "comment", "");
+    }
+  }
   g_numRecords++;
   string content(ocontent);
 
@@ -169,15 +184,22 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+
+      if(!recordcomment.empty()) {
+	cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(zoneName))<<", "<<sqlstr(qtype)<<", "<<time(0)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+       
+      }
+
+
     } else
     {
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", "<<auth<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
@@ -186,7 +208,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"insert into records (domain_id, name,type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 'f'"<<
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<< (disabled ? 't': 'f')<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
@@ -194,7 +216,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 'f'"<<
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<(disabled ? 't': 'f') <<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
@@ -202,7 +224,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
     cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio, disabled) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"
+      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if(g_mode==ORACLE) {
@@ -389,8 +411,12 @@ try
       DNSResourceRecord rr;
       startNewTransaction();
       emitDomain(zonename);
-      while(zpt.get(rr)) 
-        emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+      string comment;
+      
+      while(zpt.get(rr, &comment))  {
+	
+        emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority, comment);
+      }
       num_domainsdone=1;
     }
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<g_numRecords<<" records\n";
