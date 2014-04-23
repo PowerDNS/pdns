@@ -549,6 +549,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   try {
     // yes, we send out ALWAYS. Even if we don't do anything with it later, 
     if(!dh->qr) { // this is to stress out the reference server with all the pain
+      s_questions++;
       qd.d_assignedID = s_idmanager.getID();
       uint16_t tmp=dh->id;
       dh->id=htons(qd.d_assignedID);
@@ -560,7 +561,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
     QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
     if(!mdp.d_header.qr) {
-      s_questions++;
+
       if(qids.count(qi)) {
         if(!g_quiet)
           cout<<"Saw an exact duplicate question in PCAP "<<qi<< endl;
@@ -608,8 +609,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
   catch(std::out_of_range &e)
   {
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
-    s_origdnserrors++;
-    
+    s_origdnserrors++;    
   }
 
   return sent;
@@ -687,7 +687,7 @@ try
   if(!pr.getUDPPacket()) // we do this here so we error out more cleanly on no packets
     return 0;
   unsigned int count=0;
-
+  bool first = true;
   for(;;) {
     if(g_pleaseQuit) {
       cerr<<"Interrupted from terminal"<<endl;
@@ -699,7 +699,7 @@ try
     struct timeval packet_ts;
     packet_ts.tv_sec = 0; 
     packet_ts.tv_usec = 0; 
-    bool first = true;
+
     while(packet_ts < mental_time) {
       if(!first && !pr.getUDPPacket()) // otherwise we miss the first packet
         goto out;
