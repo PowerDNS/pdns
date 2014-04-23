@@ -809,7 +809,8 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     if (di.zone == q) {
       continue;
     }
-
+    // the code below is too slow
+#if 0
     di.backend->list(di.zone, di.id, true); // incl. disabled
     while(di.backend->get(rr)) {
       if (!rr.qtype.getCode())
@@ -850,7 +851,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       object.AddMember("content", jcontent, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
+#endif
   }
+
   resp->setBody(doc);
 }
 
