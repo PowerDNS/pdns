@@ -208,16 +208,16 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"insert into records (domain_id, name,type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<< (disabled ? 't': 'f')<<
-        " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<< (disabled ? 't': 'f')<<
+        "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<(disabled ? 't': 'f') <<
-        " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
+        "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
   else if(g_mode==GORACLE) {
@@ -295,6 +295,7 @@ try
     ::arg().setSwitch("slave","Keep BIND slaves as slaves. Only works with named-conf.")="no";
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";
+    ::arg().setSwitch("filter-duplicate-soa","Filter second SOA in zone")="yes";
     ::arg().set("zone","Zonefile to parse")="";
     ::arg().set("zone-name","Specify an $ORIGIN in case it is not present")="";
     ::arg().set("named-conf","Bind 8/9 named.conf to parse")="";
@@ -319,6 +320,9 @@ try
       exit(1);
     }
   
+    bool filterDupSOA = ::arg().mustDo("filter-duplicate-soa");
+      
+
     if(::arg().mustDo("gmysql")) 
       g_mode=MYSQL;
     else if(::arg().mustDo("gpgsql"))
@@ -382,8 +386,14 @@ try
             
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
-            while(zpt.get(rr)) 
+	    bool seenSOA=false;
+            while(zpt.get(rr)) {
+	      if(filterDupSOA && seenSOA && rr.qtype.getCode() == QType::SOA)
+		continue;
+	      if(rr.qtype.getCode() == QType::SOA)
+		seenSOA=true;
               emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+	    }
             num_domainsdone++;
           }
           catch(std::exception &ae) {
@@ -412,9 +422,13 @@ try
       startNewTransaction();
       emitDomain(zonename);
       string comment;
-      
+      bool seenSOA=false;
       while(zpt.get(rr, &comment))  {
-	
+	if(filterDupSOA && seenSOA && rr.qtype.getCode() == QType::SOA)
+	  continue;
+	if(rr.qtype.getCode() == QType::SOA)
+	  seenSOA=true;
+
         emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority, comment);
       }
       num_domainsdone=1;
