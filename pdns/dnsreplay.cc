@@ -417,7 +417,7 @@ try
       qids_by_id_index_t& idindex=qids.get<AssignedIDTag>();
       qids_by_id_index_t::const_iterator found=idindex.find(ntohs(mdp.d_header.id));
       if(found == idindex.end()) {
-        if(!s_quiet)      
+        if(!g_quiet)      
           cout<<"Received an answer ("<<mdp.d_qname<<") from reference nameserver with id "<<mdp.d_header.id<<" which we can't match to a question!"<<endl;
         s_weunmatched++;
         continue;
