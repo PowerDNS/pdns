@@ -947,7 +947,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       else {
         string question(data, len);
         if(g_weDistributeQueries)
-          distributeAsyncFunction(boost::bind(doProcessUDPQuestion, question, fromaddr, fd));
+          distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, fd));
         else
           doProcessUDPQuestion(question, fromaddr, fd);
       }
@@ -1272,11 +1272,13 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
     }
   }
 }
-void distributeAsyncFunction(const pipefunc_t& func)
+
+uint32_t g_disthashseed;
+void distributeAsyncFunction(const std::string& question, const pipefunc_t& func)
 {
-  static unsigned int counter;
-  unsigned int target = 1 + (++counter % (g_pipes.size()-1));
-  // cerr<<"Sending to: "<<target<<endl;
+  unsigned int hash = hashQuestion(question.c_str(), question.length(), g_disthashseed);
+  unsigned int target = 1 + (hash % (g_pipes.size()-1));
+
   if(target == t_id) {
     func();
     return;
@@ -1287,8 +1289,7 @@ void distributeAsyncFunction(const pipefunc_t& func)
   tmsg->wantAnswer = false;
   
   if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
-    unixDie("write to thread pipe returned wrong size or error");
-    
+    unixDie("write to thread pipe returned wrong size or error");    
 }
 
 void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
@@ -1759,6 +1760,8 @@ int serviceMain(int argc, char*argv[])
 
   showProductVersion();
   seedRandom(::arg()["entropy-source"]);
+  g_disthashseed=dns_random(0xffffffff);
+
   parseACLs();
   
   if(!::arg()["dont-query"].empty()) {

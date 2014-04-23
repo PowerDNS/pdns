@@ -83,7 +83,6 @@ public:
 
   bool getUDPPacket();
 
-
   ComboAddress getSource() const;
   ComboAddress getDest() const;
 

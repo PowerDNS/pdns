@@ -528,4 +528,5 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source);
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
+uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
 #endif
