@@ -128,7 +128,7 @@ bool dnspacketLessThan(const std::string& a, const std::string& b)
   return boost::tie(aQtype, aQclass) < boost::tie(bQtype, bQclass);
 }
 
-// goal is to has based purely on the question name, and turn error into 'default'
+// goal is to hash based purely on the question name, and turn error into 'default'
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
 {
   if(len < 12) 
@@ -140,7 +140,7 @@ uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
 
   unsigned char labellen;
   while((labellen=*pos++) && pos < end) { 
-    if(pos + labellen + 1> end)
+    if(pos + labellen + 1 > end) // include length field  in hash
       return 0;
     ret=burtle(pos, labellen+1, ret);
     pos += labellen;
