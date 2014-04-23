@@ -113,7 +113,7 @@ zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	zoneparser-tng.cc dnsrecords.cc sillyrecords.cc \
 	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc \
 	nsecrecords.cc dnssecinfra.cc base32.cc bindparserclasses.hh \
-	dns_random.cc json.cc json.hh
+	dns_random.cc
 
 zone2sql_LDFLAGS=@THREADFLAGS@
 zone2sql_LDADD= $(POLARSSL_LIBS)

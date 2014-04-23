@@ -35,7 +35,7 @@
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
                                                                                                d_zonename(zname), d_defaultttl(3600), 
-                                                                                               d_havedollarttl(false), d_doPassComments(0)
+                                                                                               d_havedollarttl(false)
 {
   d_zonename = toCanonic("", d_zonename);
   stackFile(fname);
@@ -230,17 +230,14 @@ string ZoneParserTNG::getLineOfFile()
 }
 
 // ODD: this function never fills out the prio field! rest of pdns compensates though
-bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment) 
+bool ZoneParserTNG::get(DNSResourceRecord& rr) 
 {
  retry:;
   if(!getTemplateLine() && !getLine())
     return false;
 
   boost::trim_right_if(d_line, is_any_of(" \r\n\x1a"));
-  if(comment)
-    comment->clear();
-  if(comment && d_line.find(';') != string::npos)
-    *comment = d_line.substr(d_line.find(';'));
+
   parts_t parts;
   vstringtok(parts, d_line);
 
@@ -317,9 +314,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     if(nextpart.empty())
       break;
 
-    if(nextpart.find(';')!=string::npos) {
+    if(nextpart.find(';')!=string::npos)
       break;
-    }
 
     // cout<<"Next part: '"<<nextpart<<"'"<<endl;
     
