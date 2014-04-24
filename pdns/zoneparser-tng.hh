@@ -35,8 +35,7 @@ public:
   ZoneParserTNG(const string& fname, const string& zname="", const string& reldir="");
 
   ~ZoneParserTNG();
-
-  bool get(DNSResourceRecord& rr);
+  bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
   typedef deque<pair<string::size_type, string::size_type> > parts_t;
 private:
