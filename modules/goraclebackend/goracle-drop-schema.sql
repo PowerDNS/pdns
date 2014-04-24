@@ -3,6 +3,9 @@ DROP SEQUENCE records_id_sequence;
 
 DROP TABLE supermasters;
 
+DROP TABLE comments;
+DROP SEQUENCE comments_id_sequence;
+
 DROP TABLE domainmetadata;
 DROP SEQUENCE domainmetadata_id_sequence;
 
