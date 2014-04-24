@@ -28,7 +28,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "namespaces.hh"
-
+#include "json.hh"
 #include "dns.hh"
 #include "arguments.hh"
 #include "bindparserclasses.hh"
@@ -141,11 +141,7 @@ static void emitDomain(const string& domain, const vector<string> *masters = 0) 
     }
   }
 }
-<<<<<<< HEAD
 
-static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio)
-{
-=======
 bool g_doJSONComments;
 static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio, const string& comment="")
 {
@@ -164,7 +160,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       recordcomment=stringFromJson(document, "comment", "");
     }
   }
->>>>>>> jsonzone2sql
+
   g_numRecords++;
   string content(ocontent);
 
@@ -423,10 +419,6 @@ try
       DNSResourceRecord rr;
       startNewTransaction();
       emitDomain(zonename);
-<<<<<<< HEAD
-      while(zpt.get(rr)) 
-        emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
-=======
       string comment;
       bool seenSOA=false;
       while(zpt.get(rr, &comment))  {
@@ -437,7 +429,6 @@ try
 
         emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority, comment);
       }
->>>>>>> jsonzone2sql
       num_domainsdone=1;
     }
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<g_numRecords<<" records\n";
