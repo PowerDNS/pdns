@@ -303,7 +303,7 @@ boilerplate_conv(DLV,32769 ,
 boilerplate_conv(SSHFP, 44, 
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfr8BitInt(d_fptype); 
-                 conv.xfrHexBlob(d_fingerprint);
+                 conv.xfrHexBlob(d_fingerprint, true);
                  )
 
 boilerplate_conv(RRSIG, 46, 
