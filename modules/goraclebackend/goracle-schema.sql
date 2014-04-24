@@ -49,7 +49,7 @@ CREATE TABLE comments (
   type            VARCHAR2(10) NOT NULL,
   modified_at     INTEGER NOT NULL,
   account         VARCHAR2(40) NOT NULL,
-  comment         VARCHAR2(4000) NOT NULL
+  "comment"       VARCHAR2(4000) NOT NULL
 );
 CREATE SEQUENCE comments_id_sequence;
 CREATE INDEX comments$nametype ON comments (name, type);
