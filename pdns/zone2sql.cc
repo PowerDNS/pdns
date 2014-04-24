@@ -141,13 +141,13 @@ static void emitDomain(const string& domain, const vector<string> *masters = 0) 
     }
   }
 }
-
+bool g_doJSONComments;
 static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio, const string& comment="")
 {
   int disabled=0;
   string recordcomment;
 
-  if(!comment.empty()) {
+  if(g_doJSONComments & !comment.empty()) {
     string::size_type pos = comment.find("json={");
     if(pos!=string::npos) {
       string json = comment.substr(pos+5);
@@ -293,6 +293,7 @@ try
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
     ::arg().setSwitch("dnssec","Add DNSSEC related data")="no";
     ::arg().setSwitch("slave","Keep BIND slaves as slaves. Only works with named-conf.")="no";
+    ::arg().setSwitch("json-comments","Parse json={} field for disabled & comments")="no";
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";
     ::arg().setSwitch("filter-duplicate-soa","Filter second SOA in zone")="yes";
@@ -321,8 +322,9 @@ try
     }
   
     bool filterDupSOA = ::arg().mustDo("filter-duplicate-soa");
-      
 
+    g_doJSONComments=::arg().mustDo("json-comments");
+      
     if(::arg().mustDo("gmysql")) 
       g_mode=MYSQL;
     else if(::arg().mustDo("gpgsql"))
@@ -387,12 +389,13 @@ try
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
 	    bool seenSOA=false;
-            while(zpt.get(rr)) {
+	    string comment;
+            while(zpt.get(rr, &comment)) {
 	      if(filterDupSOA && seenSOA && rr.qtype.getCode() == QType::SOA)
 		continue;
 	      if(rr.qtype.getCode() == QType::SOA)
 		seenSOA=true;
-              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority, comment);
 	    }
             num_domainsdone++;
           }
