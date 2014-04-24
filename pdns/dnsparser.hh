@@ -143,6 +143,8 @@ public:
 
   uint16_t d_pos;
 
+  bool eof() { return true; };
+
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto

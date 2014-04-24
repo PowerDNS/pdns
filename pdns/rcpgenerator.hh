@@ -85,7 +85,7 @@ public:
   void xfrText(const string& val, bool multi=false);
   void xfrBlob(const string& val, int len=-1);
   void xfrHexBlob(const string& val, bool keepReading=false);
-
+  bool eof() { return true; };
 private:
   string& d_string;
 };

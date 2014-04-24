@@ -601,6 +601,7 @@ template<class Convertor>                                         \
 void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
 {                                                                 \
   CONV;                                                           \
+  if (conv.eof() == false) throw MOADNSException("All data was not consumed"); \
 }                                                                 \
 
 struct EDNSOpts
