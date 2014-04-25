@@ -188,6 +188,12 @@ static void emitRecord(const string& zoneName, const string &qname, const string
         sqlstr(qtype)<<", "<<
         sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+
+      if(!recordcomment.empty()) {
+        cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(zoneName))<<", "<<sqlstr(qtype)<<", "<<time(0)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+       
+      }
+
     } else
     {
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
