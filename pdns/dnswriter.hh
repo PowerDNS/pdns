@@ -110,6 +110,7 @@ public:
   {
     return d_content;
   }
+  bool eof() { return true; } // we don't know how long the record should be
 
 private:
   vector <uint8_t>& d_content;

@@ -220,6 +220,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (case_t(QType::A, "932.521.256.42", zone, false)) // hollywood IP
      (case_t(QType::A, "932.521", zone, false)) // truncated IP
      (case_t(QType::A, "\xca\xec\x00", wire, false)) // truncated wire value
+     (case_t(QType::A, "127.0.0.1 evil data", zone, false)) // trailing garbage
      (case_t(QType::AAAA, "23:00", zone, false)) // time when this test was written 
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
