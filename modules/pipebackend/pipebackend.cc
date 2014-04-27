@@ -154,7 +154,7 @@ bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled
 // The question format:
 
 // type    qname           qclass  qtype   id      ip-address
-      if (abiVersion >= 3)
+      if (abiVersion >= 4)
         query<<"AXFR\t"<<inZoneId<<"\t"<<target;
       else
         query<<"AXFR\t"<<inZoneId<;
