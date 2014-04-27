@@ -155,7 +155,7 @@ bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled
 
 // type    qname           qclass  qtype   id      ip-address
 
-      query<<"AXFR\t"<<inZoneId;
+      query<<"AXFR\t"<<inZoneId<<"\t"<<target;
 
       d_coproc->send(query.str());
    }
