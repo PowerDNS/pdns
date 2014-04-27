@@ -154,8 +154,10 @@ bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled
 // The question format:
 
 // type    qname           qclass  qtype   id      ip-address
-
-      query<<"AXFR\t"<<inZoneId<<"\t"<<target;
+      if (abiVersion >= 3)
+        query<<"AXFR\t"<<inZoneId<<"\t"<<target;
+      else
+        query<<"AXFR\t"<<inZoneId<;
 
       d_coproc->send(query.str());
    }
