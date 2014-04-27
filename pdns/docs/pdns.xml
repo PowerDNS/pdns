@@ -17660,6 +17660,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 		If not set the default pipebackend-abi-version is 1. When set to 2, the local-ip-address field is added
 		after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on). When
 		set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling 'edns-subnet-processing').
+                When set to 4 it sends zone name in AXFR request.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -17764,9 +17765,9 @@ query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
 <para>
 AXFR-queries look like this:
 <screen>
-AXFR	id
+AXFR	id	zoneName
 </screen>
-The id is gathered from the answer to a SOA query.
+The id is gathered from the answer to a SOA query. ZoneName is given in ABI version 4. 
 
 </para> 
  </sect3>
