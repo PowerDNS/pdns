@@ -16198,6 +16198,10 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    <listitem><para>
 		name to insert in the SOA record if none set in the backend
 	      </para></listitem></varlistentry>
+	  <varlistentry><term>default-soa-mail=...</term>
+	    <listitem><para>
+		mail address to insert in the SOA record if none set in the backend
+	      </para></listitem></varlistentry>
 	  <varlistentry><term>default-ttl=...</term>
 	    <listitem><para>
 		TTL to use when none is provided.

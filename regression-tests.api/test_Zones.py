@@ -45,20 +45,77 @@ class AuthZones(ApiTestCase):
         return (payload, r.json())
 
     def test_CreateZone(self):
-        payload, data = self.create_zone()
+        payload, data = self.create_zone(serial=22)
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['comments'], [])
+        # validate generated SOA
+        self.assertEquals(
+            [r['content'] for r in data['records'] if r['type'] == 'SOA'][0],
+            "a.misconfigured.powerdns.server hostmaster."+payload['name']+" "+str(payload['serial'])+" 10800 3600 604800 3600"
+        )
 
     def test_CreateZoneWithSoaEditApi(self):
-        payload, data = self.create_zone(soa_edit_api='EPOCH')
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api'):
+        # soa_edit_api wins over serial
+        payload, data = self.create_zone(soa_edit_api='EPOCH', serial=10)
+        for k in ('soa_edit_api', ):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
-        self.assertEquals(data['comments'], [])
+        # generated EPOCH serial surely is > fixed serial we passed in
+        print data
+        self.assertGreater(data['serial'], payload['serial'])
+        soa_serial = int([r['content'].split(' ')[2] for r in data['records'] if r['type'] == 'SOA'][0])
+        self.assertGreater(soa_serial, payload['serial'])
+        self.assertEquals(soa_serial, data['serial'])
+
+    def test_CreateZoneWithRecords(self):
+        name = unique_zone_name()
+        records = [
+            {
+                "name": name,
+                "type": "A",
+                "priority": 0,
+                "ttl": 3600,
+                "content": "4.3.2.1",
+                "disabled": False
+            }
+        ]
+        payload, data = self.create_zone(name=name, records=records)
+        # check our record has appeared
+        self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
+
+    def test_CreateZoneWithComments(self):
+        name = unique_zone_name()
+        comments = [
+            {
+                'name': name,
+                'type': 'SOA',
+                'account': 'test1',
+                'content': 'blah blah',
+                'modified_at': 11112,
+            }
+        ]
+        payload, data = self.create_zone(name=name, comments=comments)
+        # check our comment has appeared
+        self.assertEquals(data['comments'], comments)
+
+    def test_CreateZoneWithCustomSOA(self):
+        name = unique_zone_name()
+        records = [
+            {
+                "name": name,
+                "type": "SOA",
+                "priority": 0,
+                "ttl": 3600,
+                "content": "ns1.example.net testmaster@example.net 10 10800 3600 604800 3600",
+                "disabled": False
+            }
+        ]
+        payload, data = self.create_zone(name=name, records=records)
+        self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
 
     def test_CreateZoneTrailingDot(self):
         # Trailing dots should not end up in the zone name.
@@ -75,6 +132,21 @@ class AuthZones(ApiTestCase):
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)
+
+    def test_CreateZoneWithNameserversNonString(self):
+        # ensure we don't crash
+        name = unique_zone_name()
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': [{'a': 'ns1.example.com'}]  # invalid
+        }
+        print payload
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
 
     def test_GetZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
@@ -485,9 +557,7 @@ class AuthZones(ApiTestCase):
                 {
                     'account': 'test1',
                     'content': 'oh hi there',
-                    'modified_at': 1111,
-                    'name': name,  # only for assertEquals, ignored by pdns
-                    'type': 'NS'   # only for assertEquals, ignored by pdns
+                    'modified_at': 1111
                 }
             ]
         }
@@ -523,6 +593,12 @@ class AuthZones(ApiTestCase):
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()
         print data
+        # fix up input data for comparison with assertEquals.
+        # the fact that we're not sending name+type is part of the API spec.
+        for c in rrset['comments']:
+            c['name'] = rrset['name']
+            c['type'] = rrset['type']
+
         self.assertEquals([r for r in data['records'] if r['type'] == 'NS'], rrset2['records'])
         self.assertEquals(data['comments'], rrset['comments'])
 
