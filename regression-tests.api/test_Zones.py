@@ -76,6 +76,21 @@ class AuthZones(ApiTestCase):
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)
 
+    def test_CreateZoneWithNameserversNonString(self):
+        # ensure we don't crash
+        name = unique_zone_name()
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': [{'a': 'ns1.example.com'}]  # invalid
+        }
+        print payload
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+
     def test_GetZoneWithSymbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']

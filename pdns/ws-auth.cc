@@ -419,6 +419,12 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if (!nameservers.IsArray() || nameservers.Size() == 0)
       throw ApiException("Need at least one nameserver");
 
+    for (SizeType i = 0; i < nameservers.Size(); ++i) {
+      if (!nameservers[i].IsString()) {
+        throw ApiException("Nameservers must be strings.");
+      }
+    }
+
     // no going back after this
     if(!B.createDomain(zonename))
       throw ApiException("Creating domain '"+zonename+"' failed");
