@@ -557,9 +557,7 @@ class AuthZones(ApiTestCase):
                 {
                     'account': 'test1',
                     'content': 'oh hi there',
-                    'modified_at': 1111,
-                    'name': name,  # only for assertEquals, ignored by pdns
-                    'type': 'NS'   # only for assertEquals, ignored by pdns
+                    'modified_at': 1111
                 }
             ]
         }
@@ -595,6 +593,12 @@ class AuthZones(ApiTestCase):
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
         data = r.json()
         print data
+        # fix up input data for comparison with assertEquals.
+        # the fact that we're not sending name+type is part of the API spec.
+        for c in rrset['comments']:
+            c['name'] = rrset['name']
+            c['type'] = rrset['type']
+
         self.assertEquals([r for r in data['records'] if r['type'] == 'NS'], rrset2['records'])
         self.assertEquals(data['comments'], rrset['comments'])
 
