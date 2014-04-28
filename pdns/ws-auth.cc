@@ -661,6 +661,78 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   throw HttpMethodNotAllowedException();
 }
 
+static string makeDotted(string in) {
+  if (in.empty()) {
+    return ".";
+  }
+  if (in[in.size()-1] != '.') {
+    return in + ".";
+  }
+  return in;
+}
+
+static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
+  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+
+  if(req->method != "GET")
+    throw HttpMethodNotAllowedException();
+
+  ostringstream ss;
+
+  UeberBackend B;
+  DomainInfo di;
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  DNSResourceRecord rr;
+  SOAData sd;
+  di.backend->list(zonename, di.id);
+  while(di.backend->get(rr)) {
+    if (!rr.qtype.getCode())
+      continue; // skip empty non-terminals
+
+    string content = rr.content;
+
+    switch(rr.qtype.getCode()) {
+    case QType::SOA:
+      fillSOAData(rr.content, sd);
+      sd.nameserver = makeDotted(sd.nameserver);
+      sd.hostmaster = makeDotted(sd.hostmaster);
+      content = serializeSOAData(sd);
+      break;
+    case QType::MX:
+    case QType::SRV:
+      content = lexical_cast<string>(rr.priority) + "\t" + makeDotted(content);
+      break;
+    case QType::CNAME:
+    case QType::NS:
+    case QType::AFSDB:
+      content = makeDotted(rr.content);
+      break;
+    default:
+      break;
+    }
+
+    ss <<
+      makeDotted(rr.qname) << "\t" <<
+      rr.ttl << "\t" <<
+      rr.qtype.getName() << "\t" <<
+      content <<
+      endl;
+  }
+
+  if (req->accept_json) {
+    Document doc;
+    doc.SetObject();
+    Value val(ss.str().c_str(), doc.GetAllocator()); // copy
+    doc.AddMember("zone", val, doc.GetAllocator());
+    resp->body = makeStringFromDocument(doc);
+  } else {
+    resp->headers["Content-Type"] = "text/plain; charset=us-ascii";
+    resp->body = ss.str();
+  }
+}
+
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   if (rr.qtype.getCode() == QType::A) {
     uint32_t ip;
@@ -1025,6 +1097,7 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
