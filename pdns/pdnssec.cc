@@ -118,9 +118,9 @@ void loadMainConfig(const std::string& configdir)
   //::arg().laxParse(argc,argv);
 
   if(::arg().mustDo("help")) {
-    cerr<<"syntax:"<<endl<<endl;
-    cerr<<::arg().helpstring(::arg()["help"])<<endl;
-    exit(99);
+    cout<<"syntax:"<<endl<<endl;
+    cout<<::arg().helpstring(::arg()["help"])<<endl;
+    exit(0);
   }
 
   if(::arg()["config-name"]!="") 
