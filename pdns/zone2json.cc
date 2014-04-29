@@ -155,7 +155,13 @@ try
 
     ::arg().parse(argc, argv);
   
-    if(argc<2 || ::arg().mustDo("help")) {
+    if(::arg().mustDo("help")) {
+      cout<<"syntax:"<<endl<<endl;
+      cout<<::arg().helpstring()<<endl;
+      exit(0);
+    }
+
+    if(argc<2) {
       cerr<<"syntax:"<<endl<<endl;
       cerr<<::arg().helpstring()<<endl;
       exit(1);

@@ -49,7 +49,13 @@ static void initArguments(int argc, char** argv)
   arg().setCmd("help","Provide this helpful message");
 
   arg().laxParse(argc,argv);  
-  if(arg().getCommands().empty() || arg().mustDo("help")) {
+  if(arg().mustDo("help")) {
+    cout<<"syntax: rec_control [options] command, options as below: "<<endl<<endl;
+    cout<<arg().helpstring(arg()["help"])<<endl;
+    exit(0);
+  }
+
+  if(arg().getCommands().empty()) {
     cerr<<"syntax: rec_control [options] command, options as below: "<<endl<<endl;
     cerr<<arg().helpstring(arg()["help"])<<endl;
     exit(99);

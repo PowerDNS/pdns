@@ -169,7 +169,14 @@ int main( int argc, char* argv[] )
 
                 args.parse( argc, argv );
 
-                if( argc < 2 || args.mustDo( "help" ) )
+                if( args.mustDo( "help" ) )
+                {
+                        cout << "Syntax:" << endl << endl;
+                        cout << args.helpstring() << endl;
+                        exit( 0 );
+                }
+
+                if( argc < 2 )
                 {
                         cerr << "Syntax:" << endl << endl;
                         cerr << args.helpstring() << endl;
