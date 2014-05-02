@@ -2,10 +2,10 @@
 set -e
 set -x
 cd pdns-recursor-$1
-export DEBFULLNAME="Bert Hubert"
-dh_make -e bert.hubert@netherlabs.nl -s -f ../pdns-recursor-$1.tar.bz2 -p pdns-recursor_0.0-$1 < /dev/null
+export DEBFULLNAME="PowerDNS.COM BV"
+dh_make -e powerdns.support@powerdns.com -s -f ../pdns-recursor-$1.tar.bz2 -p pdns-recursor_0.0-$1 < /dev/null
 cp pdns-recursor.init.d debian/init.d
-#[ -e debian/control ] || dh_make -e bert.hubert@netherlabs.nl -s -r cdbs  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
+#[ -e debian/control ] || dh_make -e powerdns.support@powerdns.com -s -r cdbs  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
 perl -i -pe 's/Description: <.*>/Description: extremely powerful and versatile recursing nameserver/' debian/control
 # only to be nice to people usind the generated .dsc
 perl -i -pe 's/(Build-Depends: .*)/$1, libboost-dev, libboost-serialization-dev, liblua5.1-0-dev/' debian/control
