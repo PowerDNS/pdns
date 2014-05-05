@@ -19,7 +19,6 @@
 #include <curl/curl.h>
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
-//#include <zmq.hpp>
 #include <zmq.h>
 #endif
 #define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
