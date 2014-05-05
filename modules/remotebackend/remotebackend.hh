@@ -19,7 +19,8 @@
 #include <curl/curl.h>
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
-#include <zmq.hpp>
+//#include <zmq.hpp>
+#include <zmq.h>
 #endif
 #define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
 #define JSON_ADD_MEMBER(obj, name, val, alloc) { rapidjson::Value __xval; __xval = val; obj.AddMember(name, __xval, alloc); }
@@ -94,8 +95,8 @@ class ZeroMQConnector: public Connector {
     int d_timeout;
     int d_timespent;
     std::map<std::string,std::string> d_options;
-    zmq::context_t d_ctx;
-    zmq::socket_t d_sock;
+    void *d_ctx;
+    void *d_sock; 
 };
 #endif
 
