@@ -129,7 +129,7 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
         /* Skip back 1 entry to what should be a substring of what was searched
          * for (or a totally different entry) */
         if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {
-            // At beginning of database; therefore didnt actually hit the
+            // At beginning of database; therefore didn't actually hit the
             // record. Return false
             return false;
         }

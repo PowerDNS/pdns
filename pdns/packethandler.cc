@@ -1256,7 +1256,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         return r;
     }
 
-    // we only know about qclass IN (and ANY), send NotImp for everthing else.
+    // we only know about qclass IN (and ANY), send NotImp for everything else.
     if(p->qclass != QClass::IN && p->qclass!=QClass::ANY) {
       r->setRcode(RCode::NotImp);
       return r;

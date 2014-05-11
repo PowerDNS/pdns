@@ -377,14 +377,14 @@ private:
 class DNSReversedBackend : public DNSBackend {
     public:
         /* Given rev_zone (the reversed name of the zone we are looking for the
-         * SOA record for), return the equivelent of
+         * SOA record for), return the equivalent of
          *     SELECT name
          *     FROM soa_records
          *     WHERE name <= rev_zone
          *     ORDER BY name DESC
          *
          * ie we want either an exact hit on the record, or the immediately
-         * preceeding record when sorted lexographically.
+         * preceding record when sorted lexographically.
          *
          * Return true if something has been found, false if not
          */

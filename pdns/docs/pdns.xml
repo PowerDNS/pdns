@@ -14746,7 +14746,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 		If a server has not responded in any way this many times in a row, no longer send it any queries
 		for server-down-throttle-time seconds. Afterwards, we will try a new packet, and if that also
 		gets no response at all, we again throttle for server-down-throttle-time-seconds. Even a single
-		reponse packet will drop the block. Available and on by default since 3.6.
+		response packet will drop the block. Available and on by default since 3.6.
 	      </para>
 	    </listitem>
 	  </varlistentry>

@@ -14,7 +14,7 @@ PowerDNS can be employed in a GSLB configuration
 <toc>
 <sect>GSLB
 <p>
-GSLB, short for Global Server Load Balancing, isr the act of distributing
+GSLB, short for Global Server Load Balancing, is the act of distributing
 server traffic to different locations. Although not necessary, this is
 almost always done using a smart nameserver.
 <sect1>Typical GSLB implementation
@@ -56,7 +56,7 @@ distance, as many Autonomous Subsystems now spread the globe.
 <sect1>IP Netmasks Configuration
 <p>
 PowerDNS comes preconfigured with a reasonable set of IP Rules. These may
-need some maintainance over time. It is adviseable to get a Subscription with
+need some maintenance over time. It is adviseable to get a Subscription with
 PowerDNS so as to receive updates.
 
 These rules come in several levels. The lowest level is based on who
