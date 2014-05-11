@@ -340,7 +340,7 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
 /* String a is the query key, string b is the result from the database. Trys to
  * be intelegent and only return matching sections (ie up to the last point at
  * which there were .'s in both strings, however because the - character is
- * legal and < . in ascii it does not gaurentee to return a section point.
+ * legal and < . in ascii it does not guarantee to return a section point.
  */
 inline unsigned int compare_domains( const string &a, const string &b ) {
     int aLen = a.length(), bLen = b.length(), n = 0, last_dot = 0;
@@ -391,7 +391,7 @@ inline unsigned int compare_domains( const string &a, const string &b ) {
  * which, given a reversed zone name will return false if there was some sort
  * of error (eg no record found as top of database was hit, lookup issues),
  * otherwise returns true and sets reversed_zone_name to be the exact entry
- * found, otherwise the entry directly preceeding where it would be.
+ * found, otherwise the entry directly preceding where it would be.
  *
  * The subclass MUST implement getAuthData( const string &rev_zone_name, SOAData *soa )
  * which is basically the same as getSOA() but is called with the reversed zone name
