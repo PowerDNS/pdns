@@ -411,7 +411,8 @@ public:
   struct timeval d_now;
   static unsigned int s_maxnegttl;
   static unsigned int s_maxcachettl;
-  static unsigned int s_packetcachettl;
+  static unsigned int s_mincachettl;
+  static unsigned int s_maxpacketcachettl;
   static unsigned int s_packetcacheservfailttl;
   static unsigned int s_serverdownmaxfails;
   static unsigned int s_serverdownthrottletime;
