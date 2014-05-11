@@ -47,7 +47,8 @@ __thread SyncRes::StaticStorage* t_sstorage;
 
 unsigned int SyncRes::s_maxnegttl;
 unsigned int SyncRes::s_maxcachettl;
-unsigned int SyncRes::s_packetcachettl;
+unsigned int SyncRes::s_mincachettl;
+unsigned int SyncRes::s_maxpacketcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
@@ -1037,6 +1038,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             LOG("YES!"<<endl);
 
             i->ttl=min(s_maxcachettl, i->ttl);
+            i->ttl=max(s_mincachettl, i->ttl);
             
             DNSResourceRecord rr=*i;
             rr.d_place=DNSResourceRecord::ANSWER;

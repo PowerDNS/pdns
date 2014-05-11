@@ -630,7 +630,7 @@ void startDoResolve(void *p)
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec, 
                                             min(minTTL, 
-                                                (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
+                                                (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_maxpacketcachettl
                                             ) 
         );
       }
@@ -1837,7 +1837,8 @@ int serviceMain(int argc, char*argv[])
 
   SyncRes::s_maxnegttl=::arg().asNum("max-negative-ttl");
   SyncRes::s_maxcachettl=::arg().asNum("max-cache-ttl");
-  SyncRes::s_packetcachettl=::arg().asNum("packetcache-ttl");
+  SyncRes::s_mincachettl=::arg().asNum("max-cache-ttl");
+  SyncRes::s_maxpacketcachettl=::arg().asNum("packetcache-ttl");
   SyncRes::s_packetcacheservfailttl=::arg().asNum("packetcache-servfail-ttl");
   SyncRes::s_serverdownmaxfails=::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
@@ -2130,6 +2131,7 @@ int main(int argc, char **argv)
     ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache")="1000000";
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory")="3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory")="86400";
+    ::arg().set("min-cache-ttl", "minimum number of seconds to keep cached entry in memory")="0"; 
     ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache")="3600";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
