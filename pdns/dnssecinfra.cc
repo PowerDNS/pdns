@@ -16,6 +16,10 @@
 #include "base64.hh"
 #include "sha.hh"
 #include "namespaces.hh"
+#ifdef HAVE_P11KIT1
+#include "pkcs11signers.hh"
+#endif
+
 using namespace boost::assign;
 
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
@@ -35,6 +39,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc
 
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& drc, const std::string& content)
 {
+  bool pkcs11=false;
   int algorithm = 0;
   string sline, key, value, raw;
   std::istringstream str(content);
@@ -47,6 +52,20 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
       algorithm = atoi(value.c_str());
       stormap["algorithm"]=lexical_cast<string>(algorithm);
       continue;
+    } else if (pdns_iequals(key,"pin")) {
+      stormap["pin"]=value;
+      continue;
+    } else if (pdns_iequals(key,"engine")) {
+      stormap["engine"]=value;
+      pkcs11=true;
+      continue;
+    } else if (pdns_iequals(key,"slot")) {
+      int slot = atoi(value.c_str());
+      stormap["slot"]=lexical_cast<string>(slot);
+      continue;
+    }  else if (pdns_iequals(key,"label")) {
+      stormap["label"]=value;
+      continue;
     }
     else if(pdns_iequals(key, "Private-key-format"))
       continue;
@@ -54,7 +73,17 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
     B64Decode(value, raw);
     stormap[toLower(key)]=raw;
   }
-  DNSCryptoKeyEngine* dpk=make(algorithm);
+  DNSCryptoKeyEngine* dpk;
+
+  if (pkcs11) {
+#ifdef HAVE_P11KIT1
+    dpk = PKCS11DNSCryptoKeyEngine::maker(algorithm); 
+#else
+    throw new PDNSException("Cannot load PKCS#11 key without support for it");
+#endif
+  } else {
+    dpk=make(algorithm);
+  }
   dpk->fromISCMap(drc, stormap);
   return dpk;
 }
@@ -66,7 +95,9 @@ std::string DNSCryptoKeyEngine::convertToISC() const
   ostringstream ret;
   ret<<"Private-key-format: v1.2\n";
   BOOST_FOREACH(const stormap_t::value_type& value, stormap) {
-    if(value.first != "Algorithm") 
+    if(value.first != "Algorithm" && value.first != "PIN" && 
+       value.first != "Slot" && value.first != "Engine" &&
+       value.first != "Label") 
       ret<<value.first<<": "<<Base64Encode(value.second)<<"\n";
     else
       ret<<value.first<<": "<<value.second<<"\n";
@@ -168,6 +199,19 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
         algorithm = atoi(value.c_str());
         stormap["algorithm"]=lexical_cast<string>(algorithm);
         continue;
+      } else if (pdns_iequals(key,"pin")) {
+        stormap["pin"]=value;
+        continue;
+      } else if (pdns_iequals(key,"engine")) {
+        stormap["engine"]=value;
+        continue;
+      } else if (pdns_iequals(key,"slot")) {
+        int slot = atoi(value.c_str());
+        stormap["slot"]=lexical_cast<string>(slot);
+        continue;
+      }  else if (pdns_iequals(key,"label")) {
+        stormap["label"]=value;
+        continue;
       }
       else if(pdns_iequals(key, "Private-key-format"))
         continue;
@@ -262,7 +306,6 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
   string toHash;
   toHash.assign(toLower(simpleCompress(qname)));
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
-
   
   DSRecordContent dsrc;
   if(digest==1) {
@@ -287,6 +330,7 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
   dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;
   dsrc.d_tag=const_cast<DNSKEYRecordContent&>(drc).getTag();
+
   return dsrc;
 }
 
@@ -294,12 +338,13 @@ DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordCon
 DNSKEYRecordContent makeDNSKEYFromDNSCryptoKeyEngine(const DNSCryptoKeyEngine* pk, uint8_t algorithm, uint16_t flags)
 {
   DNSKEYRecordContent drc;
-  
+
   drc.d_protocol=3;
   drc.d_algorithm = algorithm;
 
   drc.d_flags=flags;
   drc.d_key = pk->getPublicKeyString();
+
   return drc;
 }
 
@@ -594,3 +639,4 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   trc->toPacket(pw);
   pw.commit();
 }
+
