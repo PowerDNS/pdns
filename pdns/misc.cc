@@ -777,7 +777,7 @@ Regex::Regex(const string &expr)
 
 void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source)
 {
-  struct cmsghdr *cmsg;
+  struct cmsghdr *cmsg = NULL;
 
   if(source->sin4.sin_family == AF_INET6) {
     struct in6_pktinfo *pkt;
@@ -810,6 +810,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source)
     pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
     memset(pkt, 0, sizeof(*pkt));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
+    msgh->msg_controllen = cmsg->cmsg_len;
 #endif
 #ifdef IP_SENDSRCADDR
     struct in_addr *in;
@@ -824,8 +825,8 @@ void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source)
 
     in = (struct in_addr *) CMSG_DATA(cmsg);
     *in = source->sin4.sin_addr;
-#endif
     msgh->msg_controllen = cmsg->cmsg_len;
+#endif
   }
 }
 
