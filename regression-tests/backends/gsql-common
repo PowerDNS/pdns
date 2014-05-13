@@ -34,7 +34,8 @@ gsql-master()
 		--config-name=$backend --socket-dir=./ --no-shuffle \
 		--send-root-referral \
 		--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
-		--cache-ttl=$cachettl --experimental-dname-processing $lua_prequery &
+		--cache-ttl=$cachettl --experimental-dname-processing \
+		--disable-axfr-rectify=yes $lua_prequery &
 
 	if [ $context = ${backend}-nsec3 ]
 	then

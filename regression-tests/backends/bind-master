@@ -5,7 +5,7 @@ case $context in
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 			--cache-ttl=$cachettl --no-config --experimental-dname-processing \
-			--bind-ignore-broken-records=yes &
+			--bind-ignore-broken-records=yes --disable-axfr-rectify=yes  &
 		skipreasons="nodnssec nodyndns nometa"
 		bindwait
 		;;
@@ -52,7 +52,7 @@ case $context in
 			--send-root-referral \
 			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes --direct-dnskey=yes \
 			--cache-ttl=$cachettl --no-config --experimental-dname-processing \
-			--bind-ignore-broken-records=yes $lua_prequery &
+			--bind-ignore-broken-records=yes --disable-axfr-rectify=yes $lua_prequery &
 		bindwait
 		;;
 

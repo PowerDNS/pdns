@@ -13105,6 +13105,14 @@ $ pdnssec rectify-zone powerdnssec.org
 	    </listitem>
 	</varlistentry>
 	<varlistentry>
+	    <term>secure-all-zones</term>
+	    <listitem>
+	      <para>
+		Add keymaterial to all zones. You should manually run 'rectify-all-zones' afterwards.
+	      </para>
+	    </listitem>
+	</varlistentry>
+	<varlistentry>
 	    <term>set-nsec3 ZONE 'parameters' [narrow]</term>
 	    <listitem>
 	      <para>
@@ -16213,6 +16221,11 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
    	  <varlistentry><term>disable-axfr=...</term>
 	    <listitem><para>
 		Do not allow zone transfers. Before 2.9.10, this could be overridden by allow-axfr-ips.
+	      </para></listitem></varlistentry>
+	  <varlistentry><term>disable-axfr-rectify=...</term>
+	    <listitem><para>
+		Disable the rectify step during an outgoing AXFR. Only required for regression testing.
+		Default is no.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>disable-tcp=...</term>
 	    <listitem><para>
