@@ -13,7 +13,6 @@
 #include "packetcache.hh"
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
-#include <boost/scoped_ptr.hpp>
 #include "dns_random.hh"
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
@@ -23,7 +22,6 @@
 StatBag S;
 PacketCache PC;
 
-using boost::scoped_ptr;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
@@ -641,10 +639,6 @@ int deleteZone(const string &zone) {
 }
 
 int listAllZones(const string &type="") {
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
-
-  vector<DomainInfo> domains;
-  B->getAllDomains(&domains);
 
   int kindFilter = -1;
   if (type.size()) {
@@ -660,8 +654,12 @@ int listAllZones(const string &type="") {
     }
   }
 
-  int count = 0;
+  UeberBackend B("default");
 
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains);
+
+  int count = 0;
   for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
     if (di->kind == kindFilter || kindFilter == -1) {
       cout<<di->zone<<endl;
