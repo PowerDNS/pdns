@@ -640,7 +640,7 @@ int deleteZone(const string &zone) {
   return 1;
 }
 
-int listAllZones(const string &type) {
+int listAllZones(const string &type="") {
   scoped_ptr<UeberBackend> B(new UeberBackend("default"));
 
   vector<DomainInfo> domains;
@@ -654,6 +654,10 @@ int listAllZones(const string &type) {
       kindFilter = 1;
     else if (toUpper(type) == "NATIVE")
       kindFilter = 2;
+    else {
+      cerr<<"Syntax: pdnssec list-all-zones [master|slave|native]"<<endl;
+      return 1;
+    }
   }
 
   int count = 0;
@@ -1218,7 +1222,13 @@ try
     exit(checkAllZones(dk));
   }
   else if (cmds[0] == "list-all-zones") {
-    exit(listAllZones(cmds[1]));
+    if (cmds.size() > 2) {
+      cerr << "Syntax: pdnssec list-all-zones [master|slave|native]"<<endl;
+      return 0;
+    }
+    if (cmds.size() == 2)
+      return listAllZones(cmds[1]);
+    return listAllZones();
   }
   else if (cmds[0] == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
