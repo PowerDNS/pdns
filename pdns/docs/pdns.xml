@@ -13108,7 +13108,8 @@ $ pdnssec rectify-zone powerdnssec.org
 	    <term>secure-all-zones</term>
 	    <listitem>
 	      <para>
-		Add keymaterial to all zones. You should manually run 'rectify-all-zones' afterwards.
+		Add keymaterial to all zones. You should manually run 'rectify-all-zones' afterwards. The 'increase-serial' option
+		increases the SOA serial for new secured zones.
 	      </para>
 	    </listitem>
 	</varlistentry>

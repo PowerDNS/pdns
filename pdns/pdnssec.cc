@@ -1129,7 +1129,7 @@ try
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
-    cerr<<"secure-all-zones                   Secure all zones without keys."<<endl;
+    cerr<<"secure-all-zones [increase-serial] Secure all zones without keys."<<endl;
     cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs"<<endl;
     cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
@@ -1404,21 +1404,33 @@ try
     return 0;
   }
   else if (cmds[0] == "secure-all-zones") {
+    if (cmds.size() >= 2 && !pdns_iequals(cmds[1], "increase-serial")) {
+      cerr << "Syntax: pdnssec secure-all-zones [increase-serial]"<<endl;
+      return 0;
+    }
+
     UeberBackend B("default");
 
     vector<DomainInfo> domainInfo;
     B.getAllDomains(&domainInfo);
 
-    dk.startTransaction();
+    unsigned int zonesSecured=0, zoneErrors=0;
     BOOST_FOREACH(DomainInfo di, domainInfo) {
       if(!dk.isSecuredZone(di.zone)) {
         cout<<"Securing "<<di.zone<<": ";
-        if (!secureZone(dk, di.zone))
-          zoneErrors++;
+        if (secureZone(dk, di.zone)) {
+          zonesSecured++;
+          if (cmds.size() == 2) {
+            if (!increaseSerial(di.zone, dk))
+              continue;
+          } else
+            continue;
+        }
+        zoneErrors++;
       }
     }
 
-    cout<<"Secured: "<<domainInfo.size()<<" zones. Errors: "<<zoneErrors<<endl;
+    cout<<"Secured: "<<zonesSecured<<" zones. Errors: "<<zoneErrors<<endl;
 
     if (zoneErrors) {
       return 1;
