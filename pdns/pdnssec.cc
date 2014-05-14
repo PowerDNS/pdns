@@ -1406,7 +1406,6 @@ try
   else if (cmds[0] == "secure-all-zones") {
     UeberBackend B("default");
 
-    unsigned int zoneErrors=0;
     vector<DomainInfo> domainInfo;
     B.getAllDomains(&domainInfo);
 
@@ -1418,7 +1417,6 @@ try
           zoneErrors++;
       }
     }
-    dk.commitTransaction();
 
     cout<<"Secured: "<<domainInfo.size()<<" zones. Errors: "<<zoneErrors<<endl;
 
