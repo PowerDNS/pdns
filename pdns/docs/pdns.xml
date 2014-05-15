@@ -13449,6 +13449,47 @@ $ pdnssec rectify-zone powerdnssec.org
   </para>
   </section>
 </section>
+  <section id="dnssec-pkcs11"><title>PKCS#11 support</title>
+    <para>
+      NB! This feature is experimental, and not ready for production. Use at your own risk!
+    </para>
+    <para>
+      To enable it, compile PowerDNS Authoritative Server using --experimental-pkcs11-support flag. This requires you to have p11-kit libraries and headers. 
+    </para>
+    <para> 
+      Instructions on how to setup SoftHSM to work with the feature after compilation on ubuntu/debian.
+      <itemizedlist>
+      <listitem><para>apt-get install softhsm p11-kit</para></listitem>
+      <listitem><para>create directory /etc/pkcs11/modules</para></listitem>
+      <listitem><para>Add file called 'softhsm' there with (on some versions, use softhsm.module)
+<programlisting>
+module: /home/cmouse/softhsm/lib/softhsm/libsofthsm.so
+managed: yes
+</programlisting>
+</para></listitem>
+      <listitem><para>Run p11-kit -l to verify it worked (you should see softhsm there)</para></listitem>
+      <listitem><para>Create at least two tokens (ksk and zsk) with (slot-number starts from 0)
+<programlisting>
+softhsm --init-token --slot slot-number --label zone-ksk|zone-zsk --pin some-pin --so-pin another-pin 
+</programlisting>
+</para></listitem>
+      <listitem><para>Run p11-kit -l to verify it worked (you should see softhsm there and tokens)</para></listitem>
+      <listitem><para>Assign the keys using
+<programlisting>
+pdnssec hsm assign zone rsasha256 ksk|zsk softhsm slot-id pin zone-ksk|zsk
+</programlisting>
+</para></listitem>
+      <listitem><para>Take note of the generated key id, if it always shows up 1, run pdnssec show-zone zone to retrieve them</para></listitem>
+      <listitem><para>Generate the keys using
+<programlisting>
+pdnssec hsm create-key zone key-id
+</programlisting>
+</para></listitem>
+      <listitem><para>Verify that everything worked with pdnssec show-zone zone, you should see valid data there</para></listitem>
+      <listitem><para>Enjoy using PKCS#11!</para></listitem>
+      </itemizedlist>
+    </para>
+  </section>
   <section id="dnssec-transfers"><title>Secure transfers</title>
   <para>
     From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in <ulink

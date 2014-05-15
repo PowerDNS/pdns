@@ -79,7 +79,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
 #ifdef HAVE_P11KIT1
     dpk = PKCS11DNSCryptoKeyEngine::maker(algorithm); 
 #else
-    throw new PDNSException("Cannot load PKCS#11 key without support for it");
+    throw PDNSException("Cannot load PKCS#11 key without support for it");
 #endif
   } else {
     dpk=make(algorithm);

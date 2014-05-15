@@ -11,6 +11,7 @@
 #include "dnssecinfra.hh"
 #include "pkcs11signers.hh"
 #include "pdnsexception.hh"
+#include "logger.hh"
 
 /* TODO
 
@@ -297,8 +298,8 @@ P11KitSlot::P11KitSlot(const P11KitSlot &rhs)
 
 P11KitSlot::~P11KitSlot()
 {
-  if (this->d_module)
-    this->d_module->functions->C_CloseAllSessions(this->d_slot);
+  if (this->d_module && this->d_session)
+    this->d_module->functions->C_CloseSession(this->d_session);
 }
 
 // DO NOT CALL THIS ON YOUR OWN
@@ -594,9 +595,9 @@ static bool pkcs11_GetSlot(const std::string& engine, CK_SLOT_ID slotId, const s
     return false; 
   };
   rv = slot.Login(pin, CKU_USER);
-//  if (rv) {
-//    std::cerr << "Login gave " << rv << std::endl;
-//  };
+  if (rv) {
+    L<<Logger::Error<<"Login failed for " << engine << " slot " << slotId << ": " << rv <<std::endl;
+  };
   return rv == 0;
 }
 
@@ -643,7 +644,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   if ((rv = d_slot.GenerateKeyPair(&mech, pubAttr, privAttr, &pubKey, &privKey))) {
     std::ostringstream error;
     error << "Keypair generation failed with " << rv;
-    throw new PDNSException(error.str());
+    throw PDNSException(error.str());
   }
 };
 

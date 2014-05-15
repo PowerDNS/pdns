@@ -7,7 +7,7 @@ before_script:
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo rm /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update
- - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev
+ - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit 
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
  - sudo apt-get update
  - sudo apt-get install liblmdb0 liblmdb-dev lmdb-utils
@@ -22,9 +22,16 @@ before_script:
  - cd modules/remotebackend
  - travis_retry ruby -S bundle install
  - cd ../..
+ - sudo mkdir -p /etc/pkcs11/modules/
+ - sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm
+ - sudo cp -f regression-tests/softhsm.conf /etc/softhsm/softhsm.conf
+ - sudo chmod 0755 /etc/softhsm/
+ - sudo chmod 0644 /etc/softhsm/softhsm.conf
+ - sudo chmod 0777 /var/lib/softhsm
+ - p11-kit -l # ensure it's ok
 script:
  - ./bootstrap
- - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --enable-unit-tests --enable-remotebackend-http --enable-tools --enable-remotebackend-zeromq
+ - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --enable-unit-tests --enable-remotebackend-http --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11
  - make dist
  - make -j 4
  - travis_retry make -j 4 check # Workaround for remotebackend failures on travis-ci
@@ -53,6 +60,7 @@ script:
  - touch tests/verify-dnssec-zone/skip.optout
  - ./start-test-stop 5300 bind-both
  - ./start-test-stop 5300 bind-dnssec-both
+ - ./start-test-stop 5300 bind-dnssec-pkcs11
  - ./start-test-stop 5300 bind-dnssec-nsec3-both
  - ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
  - ./start-test-stop 5300 bind-dnssec-nsec3-narrow
