@@ -13,7 +13,6 @@
 #include "packetcache.hh"
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
-#include <boost/scoped_ptr.hpp>
 #include "dns_random.hh"
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
@@ -23,7 +22,6 @@
 StatBag S;
 PacketCache PC;
 
-using boost::scoped_ptr;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
@@ -640,11 +638,7 @@ int deleteZone(const string &zone) {
   return 1;
 }
 
-int listAllZones(const string &type) {
-  scoped_ptr<UeberBackend> B(new UeberBackend("default"));
-
-  vector<DomainInfo> domains;
-  B->getAllDomains(&domains);
+int listAllZones(const string &type="") {
 
   int kindFilter = -1;
   if (type.size()) {
@@ -654,10 +648,18 @@ int listAllZones(const string &type) {
       kindFilter = 1;
     else if (toUpper(type) == "NATIVE")
       kindFilter = 2;
+    else {
+      cerr<<"Syntax: pdnssec list-all-zones [master|slave|native]"<<endl;
+      return 1;
+    }
   }
 
-  int count = 0;
+  UeberBackend B("default");
 
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains);
+
+  int count = 0;
   for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
     if (di->kind == kindFilter || kindFilter == -1) {
       cout<<di->zone<<endl;
@@ -1218,7 +1220,13 @@ try
     exit(checkAllZones(dk));
   }
   else if (cmds[0] == "list-all-zones") {
-    exit(listAllZones(cmds[1]));
+    if (cmds.size() > 2) {
+      cerr << "Syntax: pdnssec list-all-zones [master|slave|native]"<<endl;
+      return 0;
+    }
+    if (cmds.size() == 2)
+      return listAllZones(cmds[1]);
+    return listAllZones();
   }
   else if (cmds[0] == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
