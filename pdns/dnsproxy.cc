@@ -168,7 +168,7 @@ void DNSProxy::mainloop(void)
       memcpy(&d,buffer,sizeof(d));
       {
         Lock l(&d_lock);
-#ifdef WORDS_BIGENDIAN
+#if BYTE_ORDER == BIG_ENDIAN
         // this is needed because spoof ID down below does not respect the native byteorder
         d.id = ( 256 * (uint16_t)buffer[1] ) + (uint16_t)buffer[0];  
 #endif
