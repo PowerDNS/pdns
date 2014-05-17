@@ -210,7 +210,7 @@ void DNSProxy::mainloop(void)
         if(sendmsg(i->second.outsock, &msgh, 0) < 0)
           L<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
         
-        PC.insert(&q, &p);
+        PC.insert(&q, &p, true);
         i->second.created=0;
       }
     }

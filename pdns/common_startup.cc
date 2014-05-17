@@ -252,6 +252,7 @@ void *qthread(void *number)
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
+  bool doRecursion = ::arg().mustDo("recursor");
   bool skipfirst=true;
   unsigned int maintcount = 0;
   UDPNameserver *NS = N;
@@ -305,23 +306,29 @@ void *qthread(void *number)
             "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
     }
 
+    if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached()) {
+      bool haveSomething = false;
+      if (doRecursion && P->d.rd && DP->recurseFor(P))
+        haveSomething=PC.get(P, &cached, true); // does the PacketCache recognize this ruestion (recursive)?
+      if (!haveSomething)
+        haveSomething=PC.get(P, &cached, false); // does the PacketCache recognize this question?
+      if (haveSomething) {
+        if(logDNSQueries)
+          L<<"packetcache HIT"<<endl;
+        cached.setRemote(&P->d_remote);  // inlined
+        cached.setSocket(P->getSocket());                               // inlined
+        cached.d_anyLocal = P->d_anyLocal;
+        cached.setMaxReplyLen(P->getMaxReplyLen());
+        cached.d.rd=P->d.rd; // copy in recursion desired bit
+        cached.d.id=P->d.id;
+        cached.commitD(); // commit d to the packet                        inlined
 
-    if((P->d.opcode != Opcode::Notify && P->d.opcode != Opcode::Update) && P->couldBeCached() && PC.get(P, &cached)) { // short circuit - does the PacketCache recognize this question?
-      if(logDNSQueries)
-        L<<"packetcache HIT"<<endl;
-      cached.setRemote(&P->d_remote);  // inlined
-      cached.setSocket(P->getSocket());                               // inlined
-      cached.d_anyLocal = P->d_anyLocal;
-      cached.setMaxReplyLen(P->getMaxReplyLen());
-      cached.d.rd=P->d.rd; // copy in recursion desired bit 
-      cached.d.id=P->d.id;
-      cached.commitD(); // commit d to the packet                        inlined
+        NS->send(&cached);   // answer it then                              inlined
+        diff=P->d_dt.udiff();
+        avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
 
-      NS->send(&cached);   // answer it then                              inlined
-      diff=P->d_dt.udiff();                                                    
-      avg_latency=(int)(0.999*avg_latency+0.001*diff); // 'EWMA'
-      
-      continue;
+        continue;
+      }
     }
     
     if(distributor->isOverloaded()) {
