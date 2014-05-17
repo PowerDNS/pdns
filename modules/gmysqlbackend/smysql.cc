@@ -149,3 +149,12 @@ string SMySQL::escape(const string &name)
   }
   return a;
 }
+
+int SMySQL::getLastInsertId(const string& table) 
+{
+  doQuery("SELECT LAST_INSERT_ID()");
+  row_t row;
+  if (getRow(row))
+    return boost::lexical_cast<int>(row[0]);
+  return -1;
+}

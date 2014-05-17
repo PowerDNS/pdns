@@ -22,6 +22,7 @@ public:
   bool getRow(row_t &row);
   string escape(const string &str);    
   void setLog(bool state);
+  int getLastInsertId(const string &table);
 private:
   void ensureConnect();
   PGconn* d_db; 

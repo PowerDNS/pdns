@@ -164,3 +164,7 @@ std::string SSQLite3::escape( const std::string & name)
   return a;
 }
 
+int SSQLite3::getLastInsertId( const std::string & table)
+{
+  return static_cast<int>( sqlite3_last_insert_rowid(m_pDB) );
+}

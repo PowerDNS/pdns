@@ -28,6 +28,7 @@ public:
   bool getRow(row_t &row);
   string escape(const string &str);
   void setLog(bool state);
+  int getLastInsertId(const string &table);
 private:
   OCIEnv*    d_environmentHandle;
   OCIError*  d_errorHandle;

@@ -73,8 +73,8 @@ public:
   
   keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
-  bool addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
-  bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
+  bool addKey(const std::string& zname, bool keyOrZone, int& id, int algorithm=5, int bits=0, bool active=true);
+  bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, int& id, bool active=true);
   bool removeKey(const std::string& zname, unsigned int id);
   bool activateKey(const std::string& zname, unsigned int id);
   bool deactivateKey(const std::string& zname, unsigned int id);

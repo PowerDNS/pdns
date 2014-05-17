@@ -85,7 +85,7 @@ bool DNSSECKeeper::isPresigned(const std::string& name)
   return meta=="1";
 }
 
-bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm, int bits, bool active)
+bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int& id, int algorithm, int bits, bool active)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -106,7 +106,7 @@ bool DNSSECKeeper::addKey(const std::string& name, bool keyOrZone, int algorithm
   dspk.setKey(dpk);
   dspk.d_algorithm = algorithm;
   dspk.d_flags = keyOrZone ? 257 : 256;
-  return addKey(name, dspk, active);
+  return addKey(name, dspk, id, active);
 }
 
 void DNSSECKeeper::clearAllCaches() {
@@ -131,7 +131,7 @@ void DNSSECKeeper::clearCaches(const std::string& name)
 }
 
 
-bool DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, bool active)
+bool DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, int& id, bool active)
 {
   clearCaches(name);
   DNSBackend::KeyData kd;
@@ -139,7 +139,8 @@ bool DNSSECKeeper::addKey(const std::string& name, const DNSSECPrivateKey& dpk, 
   kd.active = active;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb->addDomainKey(name, kd) >= 0; // >= 0 == s
+  id = d_keymetadb->addDomainKey(name, kd);
+  return id >= 0; // >= 0 == s
 }
 
 

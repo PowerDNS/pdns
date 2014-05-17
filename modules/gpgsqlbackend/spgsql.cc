@@ -183,3 +183,13 @@ string SPgSQL::escape(const string &name)
   }
   return a;
 }
+
+int SPgSQL::getLastInsertId(const string &table) {
+  std::ostringstream oss;
+  oss << "SELECT CURRVAL(" << table << "_id_seq)";
+  doQuery(oss.str());
+  row_t row;
+  if (getRow(row)) 
+    return boost::lexical_cast<int>(row[0]);
+  return -1;
+}
