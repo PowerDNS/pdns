@@ -330,15 +330,29 @@ void DynListener::theListener()
         continue;
       }
 
-      parts[0] = toUpper( parts[0] );
-      if(s_funcdb.count(parts[0])) 
-        sendlines((*(s_funcdb[parts[0]].func))(parts,d_ppid));
-      else if (parts[0] == "HELP")
-        sendlines(getHelp());
-      else if(s_restfunc)
-        sendlines((*s_restfunc)(parts,d_ppid));
-      else
-        sendlines("Unknown command: '"+parts[0]+"'");
+      try {
+        parts[0] = toUpper( parts[0] );
+        if(s_funcdb.count(parts[0]))
+          sendlines((*(s_funcdb[parts[0]].func))(parts,d_ppid));
+        else if (parts[0] == "HELP")
+          sendlines(getHelp());
+        else if(s_restfunc)
+          sendlines((*s_restfunc)(parts,d_ppid));
+        else
+          sendlines("Unknown command: '"+parts[0]+"'");
+      }
+      catch(PDNSException &AE) {
+        L<<Logger::Error<<"Non-fatal error in control listener command '"<<line<<"': "<<AE.reason<<endl;
+      }
+      catch(string &E) {
+        L<<Logger::Error<<"Non-fatal error 2 in control listener command '"<<line<<"': "<<E<<endl;
+      }
+      catch(std::exception& e) {
+        L<<Logger::Error<<"Non-fatal STL error in control listener command '"<<line<<"': "<<e.what()<<endl;
+      }
+      catch(...) {
+        L<<Logger::Error<<"Non-fatal error in control listener command '"<<line<<"': unknown exception occurred"<<endl;
+      }
     }
   }
   catch(PDNSException &AE) {
@@ -348,10 +362,10 @@ void DynListener::theListener()
     L<<Logger::Error<<"Fatal error 2 in control listener: "<<E<<endl;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Fatal STL error: "<<e.what()<<endl;
+    L<<Logger::Error<<"Fatal STL error in control listener: "<<e.what()<<endl;
   }
   catch(...) {
-    L<<Logger::Error<<"Fatal: unknown exception occurred"<<endl;
+    L<<Logger::Error<<"Fatal: unknown exception in control listener occurred"<<endl;
   }
 }
 
