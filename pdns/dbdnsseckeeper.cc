@@ -352,8 +352,9 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
 
 bool DNSSECKeeper::secureZone(const std::string& name, int algorithm, int size)
 {
+  int id;
   clearCaches(name); // just to be sure ;)
-  return addKey(name, true, algorithm, size);
+  return addKey(name, true, id, algorithm, size);
 }
 
 bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, 

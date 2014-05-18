@@ -961,7 +961,8 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
   BOOST_FOREACH(string z_algo, z_algos)
   {
     int algo = shorthand2algorithm(z_algo);
-    dk.addKey(zone, false, algo, z_size);
+    int id;
+    dk.addKey(zone, false, id, algo, z_size);
   }
 
   // rectifyZone(dk, zone);
