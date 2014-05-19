@@ -482,6 +482,8 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const 
   
   if (auth) // Set auth on empty non-terminals
     bdr.auth=*auth;
+  else
+    bdr.auth=true;
 
   if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
     prio=atoi(bdr.content.c_str());
@@ -670,7 +672,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
     shorter=labelReverse(bdr.qname);
 
     if (!bdr.auth && bdr.qtype == QType::NS)
-      auth=(!ns3pr.d_flags);
+      auth=(!nsec3zone || !ns3pr.d_flags);
     else
       auth=bdr.auth;
 
