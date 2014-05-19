@@ -319,8 +319,9 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       if(doent && !rrterm.empty()) {
         bool auth;
         if (!rr.auth && rr.qtype.getCode() == QType::NS) {
-          ordername=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-          auth=(!optOutFlag || secured.count(ordername));
+          if (isNSEC3)
+            ordername=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+          auth=(!isNSEC3 || !optOutFlag || secured.count(ordername));
         } else
           auth=rr.auth;
 
