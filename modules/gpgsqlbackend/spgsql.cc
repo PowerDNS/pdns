@@ -187,7 +187,7 @@ string SPgSQL::escape(const string &name)
 int SPgSQL::getLastInsertId(const string &table) {
   int id = -1;
   std::ostringstream oss;
-  oss << "SELECT CURRVAL(" << table << "_id_seq)";
+  oss << "SELECT CURRVAL('" << table << "_id_seq')";
   doQuery(oss.str());
   row_t row;
   if (getRow(row)) 
