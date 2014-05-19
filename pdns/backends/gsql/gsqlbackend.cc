@@ -542,16 +542,17 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
   if(!d_dnssecQueries)
     return -1;
   char output[16384];  
+  int id;
   snprintf(output,sizeof(output)-1,d_AddDomainKeyQuery.c_str(),
 	   key.flags, (int)key.active, sqlEscape(key.content).c_str(), sqlEscape(toLower(name)).c_str());
-
   try {
     d_db->doCommand(output);
+    id = d_db->getLastInsertId("cryptokeys");
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to store key: "+e.txtReason());
   }
-  return d_db->getLastInsertId("cryptokeys");
+  return id;
 }
 
 bool GSQLBackend::activateDomainKey(const string& name, unsigned int id)
