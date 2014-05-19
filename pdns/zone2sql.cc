@@ -186,7 +186,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
 
       if(!recordcomment.empty()) {
@@ -200,7 +200,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
         sqlstr(toLower(stripDot(qname)))<<", "<<
         sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", "<<auth<<", "<<
         sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"<<
+        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
@@ -225,7 +225,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
     cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio, disabled) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
       sqlstr(toLower(stripDot(qname)))<<", "<<
       sqlstr(qtype)<<", "<<
-      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", 0"
+      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if(g_mode==ORACLE) {
