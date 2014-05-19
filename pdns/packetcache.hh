@@ -72,14 +72,14 @@ public:
   ~PacketCache();
   enum CacheEntryType { PACKETCACHE, QUERYCACHE};
 
-  void insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
   void insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
     unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
 
-  int get(DNSPacket *p, DNSPacket *q); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
-  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
-    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
+  int get(DNSPacket *p, DNSPacket *q, bool recursive); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
+  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
+    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
 
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
@@ -88,8 +88,8 @@ public:
 
   map<char,int> getCounts();
 private:
-  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1, 
-    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false);
+  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
+    bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
   struct CacheEntry
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}
@@ -98,6 +98,7 @@ private:
     uint16_t qtype;
     uint16_t ctype;
     int zoneID;
+    time_t created;
     time_t ttd;
     bool meritsRecursion;
     unsigned int maxReplyLen;

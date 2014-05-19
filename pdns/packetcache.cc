@@ -51,7 +51,7 @@ PacketCache::~PacketCache()
   WriteLock l(&d_mut);
 }
 
-int PacketCache::get(DNSPacket *p, DNSPacket *cached)
+int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
 {
   extern StatBag S;
 
@@ -75,10 +75,10 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
   }
     
-  bool packetMeritsRecursion=d_doRecursion && p->d.rd;
   if(ntohs(p->d.qdcount)!=1) // we get confused by packets with more than one question
     return 0;
 
+  unsigned int age=0;
   string value;
   bool haveSomething;
   {
@@ -89,13 +89,14 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached)
     }
 
     uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, packetMeritsRecursion, maxReplyLen, p->d_dnssecOk, p->hasEDNS());
+    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, recursive, maxReplyLen, p->d_dnssecOk, p->hasEDNS(), &age);
   }
   if(haveSomething) {
     (*d_statnumhit)++;
-    if(cached->noparse(value.c_str(), value.size()) < 0) {
+    if (recursive)
+      ageDNSPacket(value, age);
+    if(cached->noparse(value.c_str(), value.size()) < 0)
       return 0;
-    }
     cached->spoofQuestion(p); // for correct case
     cached->qdomain=p->qdomain;
     cached->qtype=p->qtype;
@@ -116,7 +117,7 @@ void PacketCache::getTTLS()
 }
 
 
-void PacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl)
+void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned int maxttl)
 {
   if(d_ttl < 0)
     getTTLS();
@@ -128,12 +129,17 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, unsigned int maxttl)
   if(q->qclass != QClass::IN) // we only cache the INternet
     return;
 
-  bool packetMeritsRecursion=d_doRecursion && q->d.rd;
   uint16_t maxReplyLen = q->d_tcp ? 0xffff : q->getMaxReplyLen();
-  unsigned int ourttl = packetMeritsRecursion ? d_recursivettl : d_ttl;
-  if(maxttl<ourttl)
-    ourttl=maxttl;
-  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, packetMeritsRecursion,
+  unsigned int ourttl = recursive ? d_recursivettl : d_ttl;
+  if(!recursive) {
+    if(maxttl<ourttl)
+      ourttl=maxttl;
+  } else {
+    unsigned int minttl = r->getMinTTL();
+    if(minttl<ourttl)
+      ourttl=minttl;
+  }
+  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, recursive,
     maxReplyLen, q->d_dnssecOk, q->hasEDNS());
 }
 
@@ -150,7 +156,8 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   
   //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
   CacheEntry val;
-  val.ttd=time(0)+ttl;
+  val.created=time(0);
+  val.ttd=val.created+ttl;
   val.qname=qname;
   val.qtype=qtype.getCode();
   val.value=value;
@@ -261,7 +268,7 @@ int PacketCache::purge(const string &match)
 }
 // called from ueberbackend
 bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
-  unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS)
+  unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS, unsigned int *age)
 {
   if(d_ttl<0) 
     getTTLS();
@@ -276,21 +283,24 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     return false;
   }
 
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS);
+  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS, age);
 }
 
 
 bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
-  unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS)
+  unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS, unsigned int *age)
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS));
+  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
-  if(ret)
+  if(ret) {
+    if (age)
+      *age = now - i->created;
     value = i->value;
-  
+  }
+
   return ret;
 }
 
