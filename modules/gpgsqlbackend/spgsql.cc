@@ -185,11 +185,13 @@ string SPgSQL::escape(const string &name)
 }
 
 int SPgSQL::getLastInsertId(const string &table) {
+  int id = -1;
   std::ostringstream oss;
   oss << "SELECT CURRVAL(" << table << "_id_seq)";
   doQuery(oss.str());
   row_t row;
   if (getRow(row)) 
-    return boost::lexical_cast<int>(row[0]);
-  return -1;
+    id = boost::lexical_cast<int>(row[0]);
+  while(getRow(row));
+  return id;
 }
