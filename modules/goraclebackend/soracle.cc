@@ -262,6 +262,7 @@ string SOracle::escape(const string &name)
   return a;
 }
 
+// FIXME: Warning! This is not per-connection in Oracle 
 int SOracle::getLastInsertId(const string& table)
 {
   int id = -1;
