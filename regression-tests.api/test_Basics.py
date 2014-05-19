@@ -1,18 +1,16 @@
-import unittest
 import requests
 import socket
-import pprint
 import time
 from test_helper import ApiTestCase
 
 
 class TestBasics(ApiTestCase):
 
-    def test_Unauth(self):
+    def test_unauth(self):
         r = requests.get(self.url("/servers/localhost"))
         self.assertEquals(r.status_code, requests.codes.unauthorized)
 
-    def test_SplitRequest(self):
+    def test_split_request(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.connect((self.server_address, self.server_port))
@@ -33,4 +31,3 @@ class TestBasics(ApiTestCase):
         status = resp.splitlines(0)[0]
         if '400' in status:
             raise Exception('Got unwanted response: %s' % status)
-            print 'Got', status

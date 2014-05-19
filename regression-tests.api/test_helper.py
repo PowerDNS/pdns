@@ -20,7 +20,7 @@ class ApiTestCase(unittest.TestCase):
     def url(self, relative_url):
         return urlparse.urljoin(self.server_url, relative_url)
 
-    def assertSuccessJson(self, result):
+    def assert_success_json(self, result):
         try:
             result.raise_for_status()
         except:
@@ -33,9 +33,9 @@ def unique_zone_name():
     return 'test-' + datetime.now().strftime('%d%H%S%M%f') + '.org'
 
 
-def isAuth():
-    return (DAEMON == 'authoritative')
+def is_auth():
+    return DAEMON == 'authoritative'
 
 
-def isRecursor():
-    return (DAEMON == 'recursor')
+def is_recursor():
+    return DAEMON == 'recursor'

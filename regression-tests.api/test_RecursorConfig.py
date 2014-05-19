@@ -1,27 +1,26 @@
 import json
-import requests
 import unittest
-from test_helper import ApiTestCase, isRecursor
+from test_helper import ApiTestCase, is_recursor
 
 
-@unittest.skipIf(not isRecursor(), "Only applicable to recursors")
+@unittest.skipIf(not is_recursor(), "Only applicable to recursors")
 class RecursorConfig(ApiTestCase):
 
-    def test_ConfigAllowFromGet(self):
+    def test_config_allow_from_get(self):
         r = self.session.get(self.url("/servers/localhost/config/allow-from"))
-        self.assertSuccessJson(r)
+        self.assert_success_json(r)
 
-    def test_ConfigAllowFromReplace(self):
+    def test_config_allow_from_replace(self):
         payload = {'value': ["127.0.0.1"]}
         r = self.session.put(
             self.url("/servers/localhost/config/allow-from"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertSuccessJson(r)
+        self.assert_success_json(r)
         data = r.json()
         self.assertEquals("127.0.0.1/32", data["value"][0])
 
-    def test_ConfigAllowFromReplaceError(self):
+    def test_config_allow_from_replace_error(self):
         """Test the error case, should return 422."""
         payload = {'value': ["abcdefgh"]}
         r = self.session.put(
