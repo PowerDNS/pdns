@@ -157,6 +157,27 @@ class AuthZones(ApiTestCase):
         for k in ('name', 'masters', 'kind'):
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
+        print "payload:", payload
+        print "data:", data
+        # Because slave zones don't get a SOA, we need to test that they'll show up in the zone list.
+        r = self.session.get(self.url("/servers/localhost/zones"))
+        zonelist = r.json()
+        print "zonelist:", zonelist
+        self.assertIn(payload['name'], [zone['name'] for zone in zonelist])
+        # Also test that fetching the zone works.
+        r = self.session.get(self.url("/servers/localhost/zones/" + data['id']))
+        data = r.json()
+        print "zone (fetched):", data
+        for k in ('name', 'masters', 'kind'):
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
+        self.assertEqual(data['serial'], 0)
+        self.assertEqual(data['records'], [])
+
+    def test_delete_slave_zone(self):
+        payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
+        r = self.session.delete(self.url("/servers/localhost/zones/" + data['id']))
+        r.raise_for_status()
 
     def test_get_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())

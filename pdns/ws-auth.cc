@@ -523,7 +523,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     rr.ttl = ::arg().asNum("default-ttl");
     rr.priority = 0;
 
-    if (!have_soa) {
+    if (!have_soa && zonekind != DomainInfo::Slave) {
       // synthesize a SOA record so the zone "really" exists
 
       SOAData sd;
