@@ -237,7 +237,7 @@ string apiZoneIdToName(const string& id) {
     } else {
       throw HttpBadRequestException();
     }
-    c = c * 10;
+    c = c * 16;
 
     // decode unit place
     if (id[pos+2] >= '0' && id[pos+2] <= '9') {
