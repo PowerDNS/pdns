@@ -552,6 +552,12 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to store key: "+e.txtReason());
   }
+  try {
+    id = d_db->getLastInsertId("cryptokeys");
+  catch (SSqlException &e) {
+    // sorry. we have to assume it worked. 
+    id = 1;
+  }
   return id;
 }
 
