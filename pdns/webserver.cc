@@ -119,6 +119,11 @@ static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler
     return;
   }
 
+  if (resp->status == 204) {
+    // No Content -> no Content-Type.
+    resp->headers.erase("Content-Type");
+  }
+
   if(!callback.empty()) {
     resp->body = callback + "(" + resp->body + ");";
   }

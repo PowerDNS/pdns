@@ -520,6 +520,13 @@ class AuthZones(ApiTestCase):
         self.assertEquals(r.status_code, 422)
         self.assertIn('out of zone', r.json()['error'])
 
+    def test_zone_delete(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        r = self.session.delete(self.url("/servers/localhost/zones/" + name))
+        self.assertEquals(r.status_code, 204)
+        self.assertNotIn('Content-Type', r.headers)
+
     def test_zone_comment_create(self):
         payload, zone = self.create_zone()
         name = payload['name']
@@ -815,6 +822,13 @@ class RecursorZones(ApiTestCase):
         data = r.json()
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
+
+    def test_zone_delete(self):
+        payload, zone = self.create_zone(kind='Native')
+        name = payload['name']
+        r = self.session.delete(self.url("/servers/localhost/zones/" + name))
+        self.assertEquals(r.status_code, 204)
+        self.assertNotIn('Content-Type', r.headers)
 
     def test_search_rr_exact_zone(self):
         name = unique_zone_name() + '.'
