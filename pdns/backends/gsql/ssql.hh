@@ -43,7 +43,7 @@ public:
   virtual string escape(const string &name)=0;
   virtual void setLog(bool state){}
   virtual ~SSql(){};
-  virtual int getLastInsertId(const string& table) { return 1; };
+  virtual int getLastInsertId(const string& table) { return -1; };
 };
 
 #endif /* SSQL_HH */
