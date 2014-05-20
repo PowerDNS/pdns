@@ -488,10 +488,10 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Domain '"+zonename+"' already exists");
 
     // validate 'kind' is set
-    stringFromJson(document, "kind");
+    DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
 
     const Value &nameservers = document["nameservers"];
-    if (!nameservers.IsArray())
+    if (!nameservers.IsArray() && zonekind != DomainInfo::Slave)
       throw ApiException("Nameservers list must be given (but can be empty if NS records are supplied)");
 
     string soa_edit_api_kind;
@@ -549,12 +549,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     // create NS records if nameservers are given
-    for (SizeType i = 0; i < nameservers.Size(); ++i) {
-      if (!nameservers[i].IsString())
-        throw ApiException("Nameservers must be strings");
-      rr.content = nameservers[i].GetString();
-      rr.qtype = "NS";
-      new_records.push_back(rr);
+    if (nameservers.IsArray()) {
+      for (SizeType i = 0; i < nameservers.Size(); ++i) {
+        if (!nameservers[i].IsString())
+          throw ApiException("Nameservers must be strings");
+        rr.content = nameservers[i].GetString();
+        rr.qtype = "NS";
+        new_records.push_back(rr);
+      }
     }
 
     // no going back after this

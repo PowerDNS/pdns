@@ -34,7 +34,10 @@ class AuthZones(ApiTestCase):
             'nameservers': ['ns1.example.com', 'ns2.example.com']
         }
         for k, v in kwargs.items():
-            payload[k] = v
+            if v is None:
+                del payload[k]
+            else:
+                payload[k] = v
         print payload
         r = self.session.post(
             self.url("/servers/localhost/zones"),
@@ -147,6 +150,13 @@ class AuthZones(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
+
+    def test_create_slave_zone(self):
+        # Test that nameservers can be absent for slave zones.
+        payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
+        for k in ('name', 'masters', 'kind'):
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
 
     def test_get_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
