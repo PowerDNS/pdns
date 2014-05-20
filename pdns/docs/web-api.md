@@ -49,7 +49,7 @@ For now, only enabled if the 'experimental-json-interface' parameter is configur
 API calls for the PowerDNS Recursor
 -----------------------------------
 
-For now, only enabled if the 'experimental-json-interface' parameter is configured, as this API is not yet fully stable.
+For now, only enabled if the 'experimental-webserver' parameter is configured, as this API is not yet fully stable.
 
  * flush-cache  
    Flush from the cache the domain specified in the parameter 'domain'
