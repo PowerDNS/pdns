@@ -554,7 +554,7 @@ int GSQLBackend::addDomainKey(const string& name, const KeyData& key)
   }
   try {
     id = d_db->getLastInsertId("cryptokeys");
-  catch (SSqlException &e) {
+  } catch (SSqlException &e) {
     // sorry. we have to assume it worked. upstream wants non-negative integer.
     id = 0;
   }
