@@ -419,11 +419,6 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
 
-  if(!arg().mustDo("experimental-webserver")) {
-    d_ws = NULL;
-    return;
-  }
-
   d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"), arg()["experimental-webserver-password"]);
   d_ws->bind();
 

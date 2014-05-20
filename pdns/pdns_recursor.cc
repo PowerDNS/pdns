@@ -1030,8 +1030,6 @@ void makeTCPServerSockets()
   }
 }
 
-
-
 void makeUDPServerSockets()
 {
   vector<string>locals;
@@ -1971,8 +1969,8 @@ try
 
   t_fdm=getMultiplexer();
   if(!t_id) {
-    if(::arg().mustDo("experimental-json-interface")) {
-      L<<Logger::Warning << "Enabling JSON interface" << endl;
+    if(::arg().mustDo("experimental-webserver")) {
+      L<<Logger::Warning << "Enabling web server" << endl;
       try {
         new RecursorWebServer(t_fdm);
       }
@@ -2100,7 +2098,6 @@ int main(int argc, char **argv)
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1";
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
     ::arg().set( "experimental-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log"; 
-    ::arg().setSwitch( "experimental-json-interface", "If we should run a JSON webserver") = "no";
     ::arg().setSwitch("experimental-webserver", "Start a webserver for monitoring") = "no";
     ::arg().set("experimental-webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("experimental-webserver-port", "Port of webserver to listen on") = "8082";
