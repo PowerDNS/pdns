@@ -90,7 +90,7 @@ else:
     with open(conf_dir+'/example.com..conf', 'w') as conf_file:
         conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
 
-    pdnscmd = ("../pdns/pdns_recursor --daemon=no --socket-dir=. --config-dir=. --allow-from-file=acl.list --local-port=5555 --experimental-json-interface=yes --experimental-webserver=yes --experimental-webserver-port="+WEBPORT+" --experimental-webserver-address=127.0.0.1 --experimental-webserver-password="+WEBPASSWORD).split()
+    pdnscmd = ("../pdns/pdns_recursor --daemon=no --socket-dir=. --config-dir=. --allow-from-file=acl.list --local-port=5555 --experimental-webserver=yes --experimental-webserver-port="+WEBPORT+" --experimental-webserver-address=127.0.0.1 --experimental-webserver-password="+WEBPASSWORD).split()
 
 
 # Now run pdns and the tests.
