@@ -672,29 +672,26 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     port = atoi(addr.c_str()+pos+2);  
   }
   
-  struct addrinfo* res;
-  struct addrinfo hints;
-  memset(&hints, 0, sizeof(hints));
+  if(inet_pton(AF_INET6, ourAddr.c_str(), (void*)&ret->sin6_addr) != 1) {
+    struct addrinfo* res;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    
+    hints.ai_family = AF_INET6;
+    hints.ai_flags = AI_NUMERICHOST;
+    
+    int error;
+    if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) { // this is correct
+      return -1;
+    }
   
-  hints.ai_family = AF_INET6;
-  hints.ai_flags = AI_NUMERICHOST;
-  
-  int error;
-  if((error=getaddrinfo(ourAddr.c_str(), 0, &hints, &res))) { // this is correct
-    /*
-    cerr<<"Error translating IPv6 address '"<<addr<<"': ";
-    if(error==EAI_SYSTEM)
-      cerr<<strerror(errno)<<endl;
-    else
-      cerr<<gai_strerror(error)<<endl;
-    */
-    return -1;
+    memcpy(ret, res->ai_addr, res->ai_addrlen);
+    freeaddrinfo(res);
   }
-  
-  memcpy(ret, res->ai_addr, res->ai_addrlen);
+
   if(port >= 0)
     ret->sin6_port = htons(port);
-  freeaddrinfo(res);
+
   return 0;
 }
 
