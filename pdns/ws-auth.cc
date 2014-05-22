@@ -651,6 +651,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
     // empty body on success
     resp->body = "";
+    resp->status = 204; // No Content: declare that the zone is gone now
     return;
   } else if (req->method == "PATCH" && !::arg().mustDo("experimental-api-readonly")) {
     patchZone(req, resp);

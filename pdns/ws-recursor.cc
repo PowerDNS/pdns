@@ -355,6 +355,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     reloadAuthAndForwards();
     // empty body on success
     resp->body = "";
+    resp->status = 204; // No Content: declare that the zone is gone now
   } else if(req->method == "GET") {
     fillZone(zonename, resp);
   } else {
