@@ -48,7 +48,7 @@ class AuthZones(ApiTestCase):
 
     def test_create_zone(self):
         payload, data = self.create_zone(serial=22)
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api'):
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
@@ -64,6 +64,20 @@ class AuthZones(ApiTestCase):
         # soa_edit_api wins over serial
         payload, data = self.create_zone(soa_edit_api='EPOCH', serial=10)
         for k in ('soa_edit_api', ):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
+        # generated EPOCH serial surely is > fixed serial we passed in
+        print data
+        self.assertGreater(data['serial'], payload['serial'])
+        soa_serial = int([r['content'].split(' ')[2] for r in data['records'] if r['type'] == 'SOA'][0])
+        self.assertGreater(soa_serial, payload['serial'])
+        self.assertEquals(soa_serial, data['serial'])
+
+    def test_create_zone_with_soa_edit(self):
+        # soa_edit wins over serial
+        payload, data = self.create_zone(soa_edit='EPOCH', serial=10)
+        for k in ('soa_edit', ):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
@@ -185,7 +199,7 @@ class AuthZones(ApiTestCase):
         zone_id = (name.replace('/', '=2F')) + '.'
         r = self.session.get(self.url("/servers/localhost/zones/" + zone_id))
         data = r.json()
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'dnssec'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
@@ -240,7 +254,8 @@ class AuthZones(ApiTestCase):
         payload = {
             'kind': 'Master',
             'masters': ['192.0.2.1', '192.0.2.2'],
-            'soa_edit_api': 'EPOCH'
+            'soa_edit_api': 'EPOCH',
+            'soa_edit': 'EPOCH'
         }
         r = self.session.put(
             self.url("/servers/localhost/zones/" + name),
@@ -254,7 +269,8 @@ class AuthZones(ApiTestCase):
         # update, back to Native and empty(off)
         payload = {
             'kind': 'Native',
-            'soa_edit_api': ''
+            'soa_edit_api': '',
+            'soa_edit': ''
         }
         r = self.session.put(
             self.url("/servers/localhost/zones/" + name),

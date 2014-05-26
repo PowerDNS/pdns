@@ -286,6 +286,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 static void fillZone(const string& zonename, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
+  DNSSECKeeper dk;
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
@@ -302,9 +303,13 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.AddMember("name", di.zone.c_str(), doc.GetAllocator());
   doc.AddMember("type", "Zone", doc.GetAllocator());
   doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
+  doc.AddMember("dnssec", dk.isSecuredZone(di.zone.c_str()), doc.GetAllocator());
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
   doc.AddMember("soa_edit_api", soa_edit_api.c_str(), doc.GetAllocator());
+  string soa_edit;
+  di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit);
+  doc.AddMember("soa_edit", soa_edit.c_str(), doc.GetAllocator());
   Value masters;
   masters.SetArray();
   BOOST_FOREACH(const string& master, di.masters) {
@@ -463,6 +468,9 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
 
   if (document["soa_edit_api"].IsString()) {
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", document["soa_edit_api"].GetString());
+  }
+  if (document["soa_edit"].IsString()) {
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].GetString());
   }
 }
 
