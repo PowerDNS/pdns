@@ -161,6 +161,7 @@ int getLuaTableLength(lua_State* lua, int depth)
 #endif
 }
 
+// expects a table at offset 2, and, importantly DOES NOT POP IT from the stack - only the contents
 void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret)
 {
   /* get the result */
@@ -169,10 +170,7 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
   rr.d_place = DNSResourceRecord::ANSWER;
   rr.ttl = 3600;
 
-//  cerr<<"Lua stacksize "<<lua_gettop(lua)<<endl;
-
   int tableLen = getLuaTableLength(lua, 2);
-//  cerr<<"Got back "<<tableLen<< " answers from Lua"<<endl;
 
   for(int n=1; n < tableLen + 1; ++n) {
     lua_pushnumber(lua, n);
@@ -278,7 +276,6 @@ int logLua(lua_State *lua)
 
 PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
-
   d_lua = luaL_newstate();
 
   lua_pushcfunction(d_lua, netmaskMatchLua);
@@ -353,4 +350,36 @@ PowerDNSLua::~PowerDNSLua()
 {
   lua_close(d_lua);
 }
+
+#if 0
+void luaStackDump (lua_State *L) {
+  int i;
+  int top = lua_gettop(L);
+  for (i = 1; i <= top; i++) {  /* repeat for each level */
+    int t = lua_type(L, i);
+    switch (t) {
+      
+    case LUA_TSTRING:  /* strings */
+      printf("`%s'", lua_tostring(L, i));
+      break;
+      
+    case LUA_TBOOLEAN:  /* booleans */
+      printf(lua_toboolean(L, i) ? "true" : "false");
+      break;
+      
+    case LUA_TNUMBER:  /* numbers */
+      printf("%g", lua_tonumber(L, i));
+      break;
+      
+    default:  /* other values */
+      printf("%s", lua_typename(L, t));
+      break;
+      
+    }
+    printf("  ");  /* put a separator */
+  }
+  printf("\n");  /* end the listing */
+}
+#endif 
+
 #endif

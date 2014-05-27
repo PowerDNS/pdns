@@ -58,6 +58,32 @@ RecursorLua::RecursorLua(const std::string &fname)
   // empty
 }
 
+int followCNAMERecords(vector<DNSResourceRecord>& ret, const QType& qtype)
+{
+  vector<DNSResourceRecord> resolved;
+  string target;
+  BOOST_FOREACH(DNSResourceRecord& rr, ret) {
+    if(rr.qtype.getCode() == QType::CNAME) {
+      target=rr.content;
+      break;
+    }
+  }
+  if(target.empty()) 
+    return 0;
+  
+  if(target[target.size()-1]!='.')
+    target.append(1, '.');
+
+  int rcode=directResolve(target, qtype, 1, resolved); // 1 == class
+
+  BOOST_FOREACH(const DNSResourceRecord& rr, resolved)
+  {    
+    ret.push_back(rr);
+  }
+  return rcode;
+
+}
+
 int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
 {
   int rcode=directResolve(qname, QType(QType::A), 1, ret);
@@ -158,26 +184,37 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     extraParameter+=2;
   }
 
-  if(lua_pcall(d_lua,  3 + extraParameter, 3, 0)) { 
+  if(lua_pcall(d_lua,  3 + extraParameter, 3, 0)) {   // NOTE! Means we always get 3 stack entries back!
     string error=string("lua error in '"+func+"' while processing query for '"+query+"|"+qtype.getName()+": ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
     return false;
   }
-  
+
   *variable |= d_variable;
     
   if(!lua_isnumber(d_lua, 1)) {
     string tocall = lua_tostring(d_lua,1);
-    string luaqname = lua_tostring(d_lua,2);
-    string luaprefix = lua_tostring(d_lua, 3);
-    lua_pop(d_lua, 3);
-    // cerr<<"should call '"<<tocall<<"' to finish off"<<endl;
+    lua_remove(d_lua, 1); // the name
     ret.clear();
-    if(tocall == "getFakeAAAARecords")
+    if(tocall == "getFakeAAAARecords") {
+      string luaprefix = lua_tostring(d_lua, 2);
+      string luaqname = lua_tostring(d_lua,1);
+      lua_pop(d_lua, 2);
       res = getFakeAAAARecords(luaqname, luaprefix, ret);
-    else if(tocall == "getFakePTRRecords")
+    }
+    else if(tocall == "getFakePTRRecords") {
+      string luaprefix = lua_tostring(d_lua, 2);
+      string luaqname = lua_tostring(d_lua,1);
+      lua_pop(d_lua, 2);
       res = getFakePTRRecords(luaqname, luaprefix, ret);
+    }
+    else if(tocall == "followCNAMERecords") {
+      popResourceRecordsTable(d_lua, query, ret);
+      lua_pop(d_lua, 2); 
+      res = followCNAMERecords(ret, qtype);
+    }
+
     return true;
     // returned a followup 
   }
@@ -195,10 +232,8 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   /*           1       2   3   4   */
   /* stack:  boolean table key row */
 
-  popResourceRecordsTable(d_lua, query, ret);
-
+  popResourceRecordsTable(d_lua, query, ret); // doesn't actually pop the table itself!
   lua_pop(d_lua, 3);
-
   return true;
 }
 
