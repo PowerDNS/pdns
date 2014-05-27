@@ -369,6 +369,12 @@ uint64_t doGetCacheSize()
   return broadcastAccFunction<uint64_t>(pleaseGetCacheSize);
 }
 
+uint64_t doGetAvgLatencyUsec()
+{
+  return (uint64_t) g_stats.avgLatencyUsec;
+}
+
+
 uint64_t doGetCacheBytes()
 {
   return broadcastAccFunction<uint64_t>(pleaseGetCacheBytes);
@@ -487,7 +493,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
-  addGetStat("qa-latency", &g_stats.avgLatencyUsec);
+  addGetStat("qa-latency", doGetAvgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
   addGetStat("spoof-prevents", &g_stats.spoofCount);

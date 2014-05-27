@@ -14597,6 +14597,14 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>latency-statistic-size</term>
+	    <listitem>
+	      <para>
+		Indication of how many queries will be averaged to get the average latency reported by the 'qa-latency' metric. Since 3.6.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>local-address</term>
