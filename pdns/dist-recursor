@@ -78,6 +78,7 @@ cp ../build-scripts/redhat/pdns-recursor-test.spec $DIRNAME/build-scripts/redhat
 mkdir -p $DIRNAME/sysdeps
 rm -f sysdeps-recursor/*~
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
+touch $DIRNAME/dnslabeltext.cc # avoid spurious recompiles
 tar cf $DIRNAME.tar $DIRNAME
 bzip2 -f $DIRNAME.tar # .. solaris
 
