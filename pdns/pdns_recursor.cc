@@ -694,7 +694,7 @@ void startDoResolve(void *p)
     uint64_t newLat=(uint64_t)(spent*1000000);
     newLat = min(newLat,(uint64_t)(g_networkTimeoutMsec*1000)); // outliers of several minutes exist..
     g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
-
+    // no worries, we do this for packet cache hits elsewhere
     delete dc;
     dc=0;
   }
@@ -875,7 +875,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
         L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
-
+      
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
       ageDNSPacket(response, age);
