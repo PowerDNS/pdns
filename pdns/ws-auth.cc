@@ -474,6 +474,76 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
   }
 }
 
+static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw ApiException("Only GET is implemented");
+
+  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+
+  UeberBackend B;
+  DomainInfo di;
+  DNSSECKeeper dk;
+
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  if(!dk.isSecuredZone(zonename))
+    throw ApiException("Zone '"+zonename+"' is not secured");
+
+  DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename);
+
+  if (keyset.empty())
+    throw ApiException("No keys for zone '"+zonename+"'");
+
+  Document doc;
+  doc.SetArray();
+
+  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+    Value key;
+    key.SetObject();
+    key.AddMember("type", "Cryptokey", doc.GetAllocator());
+    key.AddMember("id", value.second.id, doc.GetAllocator());
+    key.AddMember("active", value.second.active, doc.GetAllocator());
+    key.AddMember("keytype", (value.second.keyOrZone ? "ksk" : "zsk"), doc.GetAllocator());
+    Value content(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
+    key.AddMember("content", content, doc.GetAllocator());
+
+    if (value.second.keyOrZone) {
+      Value dses;
+      dses.SetArray();
+      Value ds;
+      ds.SetString(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 1).getZoneRepresentation().c_str());
+      dses.PushBack(ds, doc.GetAllocator());
+      Value ds2;
+      ds2.SetString(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 2).getZoneRepresentation().c_str());
+      dses.PushBack(ds2, doc.GetAllocator());
+
+      try {
+      Value ds3;
+      ds3.SetString(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 3).getZoneRepresentation().c_str());
+      dses.PushBack(ds3, doc.GetAllocator());
+      }
+      catch(...)
+      {
+      }
+      try {
+      Value ds4;
+      ds4.SetString(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 4).getZoneRepresentation().c_str());
+      dses.PushBack(ds4, doc.GetAllocator());
+      }
+      catch(...)
+      {
+      }
+
+      key.AddMember("ds", dses, doc.GetAllocator());
+    }
+
+    doc.PushBack(key, doc.GetAllocator());
+  }
+
+  resp->setBody(doc);
+}
+
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
@@ -1108,6 +1178,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
