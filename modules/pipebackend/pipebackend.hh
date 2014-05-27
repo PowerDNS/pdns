@@ -29,6 +29,7 @@ private:
   string d_command;
   void launch();
   int d_timeout;
+  int d_abiVersion;
 };
 
 class PipeBackend : public DNSBackend
@@ -49,6 +50,7 @@ private:
   Regex* d_regex;
   string d_regexstr;
   bool d_disavow;
+  int d_abiVersion;
 };
 
 
