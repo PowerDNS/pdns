@@ -15354,14 +15354,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	programming language.
       </para>
       <para>
-	<warning>
-	  <para>
-	    This functionality is expected to change from version to version as additional scripting needs become apparent!
-	  </para>
-	</warning>
-      </para>
-      <para>
-	These scripts can be used to quickly override dangerous domains, for load balancing or for legal or commercial purposes.
+	These scripts can be used to quickly override dangerous domains, fix things that are wrong, for load balancing or for legal or commercial purposes.
       </para>
       <para>
 	As of 3.1.7, queries can be intercepted in two places: before the resolving logic starts to work, plus after the resolving process failed to find
@@ -15569,6 +15562,13 @@ end
 	<para>
 	  To get fake AAAA records for DNS64 usage, use <function>return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"</function>. Available since version 3.4.
 	</para>
+	<sect3><title>CNAME chain resolution</title>
+	  <para>
+	    It may be useful to return a CNAME record for Lua, and then have the PowerDNS Recursor continue resolving that CNAME.
+	    This can be achieved by returning: "followCNAMERecords", 0, {{qtype=pdns.CNAME, content="www.powerdns.com"}}. This indicates
+	    an rcode of 0 and the records to put in the record. But the first string instruct PowerDNS to complete the CNAME chain. Available since 3.6.
+	  </para>
+	</sect3>
       </sect2>
     </sect1>
     <sect1 id="dns64"><title>DNS64 support in the PowerDNS Recursor</title>
