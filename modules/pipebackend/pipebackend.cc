@@ -197,7 +197,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
    // The answer format:
    // DATA    qname           qclass  qtype   ttl     id      content 
    unsigned int extraFields = 0;
-   if(d_abiVersion == 3)
+   if(d_abiVersion >= 3)
      extraFields = 2;
      
    for(;;) {
@@ -225,7 +225,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
             // now what?
          }
          
-         if(d_abiVersion == 3) {
+         if(d_abiVersion >= 3) {
            r.scopeMask = atoi(parts[1].c_str());
            r.auth = atoi(parts[2].c_str());
          } else {
