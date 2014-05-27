@@ -197,7 +197,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
    // The answer format:
    // DATA    qname           qclass  qtype   ttl     id      content 
    unsigned int extraFields = 0;
-   if(d_abiVersion == 3)
+   if(d_abiVersion >= 3)
      extraFields = 2;
      
    for(;;) {
