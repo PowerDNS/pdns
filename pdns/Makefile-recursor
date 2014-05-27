@@ -59,6 +59,9 @@ LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
 CXXFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 
+%.cc: %.rl
+	ragel $< -o $@
+
 # Version
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
 build_host=$(shell id -u -n)@$(shell hostname -f)
