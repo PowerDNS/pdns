@@ -17689,6 +17689,10 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	      <para>
 		Command to launch as backend. Mandatory.
 	      </para>
+        <para>
+    Or the path to a unix domain socket file. The socket should already be open and listening before pdns starts.
+    Available since version 3.3.
+        </para>
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
