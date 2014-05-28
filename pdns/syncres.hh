@@ -281,14 +281,14 @@ public:
   
   static void doEDNSDumpAndClose(int fd);
 
-  static unsigned int s_queries;
-  static unsigned int s_outgoingtimeouts;
-  static unsigned int s_throttledqueries;
-  static unsigned int s_dontqueries;
-  static unsigned int s_outqueries;
-  static unsigned int s_tcpoutqueries;
-  static unsigned int s_nodelegated;
-  static unsigned int s_unreachables;
+  static uint64_t s_queries;
+  static uint64_t s_outgoingtimeouts;
+  static uint64_t s_throttledqueries;
+  static uint64_t s_dontqueries;
+  static uint64_t s_outqueries;
+  static uint64_t s_tcpoutqueries;
+  static uint64_t s_nodelegated;
+  static uint64_t s_unreachables;
   static unsigned int s_minimumTTL;
   static bool s_doAAAAAdditionalProcessing;
   static bool s_doAdditionalProcessing;
