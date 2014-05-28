@@ -247,6 +247,7 @@ for a in $modules $dynmodules; do
       ;;
     lmdb)
       PDNS_WITH_LMDB
+      needlmdb=yes
       ;;
     mydns|gmysql|pdns)
       PDNS_WITH_MYSQL
@@ -270,6 +271,8 @@ for a in $modules $dynmodules; do
 done
 
 AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
+
+AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 if test "$needsqlite3"; then
