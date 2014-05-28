@@ -145,6 +145,20 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 zone2ldap_LDFLAGS=@THREADFLAGS@
 zone2ldap_LDADD= $(POLARSSL_LIBS)
 
+if LMDB
+bin_PROGRAMS += zone2lmdb
+
+zone2lmdb_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
+	arguments.cc logger.cc zone2lmdb.cc statbag.cc misc.cc \
+	unix_utility.cc qtype.cc zoneparser-tng.cc dnsrecords.cc \
+	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc sillyrecords.cc \
+	nsecrecords.cc base32.cc bindparserclasses.hh \
+	dns_random.cc dns.cc
+
+zone2lmdb_LDFLAGS=@THREADFLAGS@
+zone2lmdb_LDADD= $(POLARSSL_LIBS) -llmdb
+endif
+
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
 pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt

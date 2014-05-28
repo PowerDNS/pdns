@@ -29,3 +29,5 @@
 /goracle2.log
 /oracle.log
 /oracle2.log
+/data.mdb
+/lock.mdb
