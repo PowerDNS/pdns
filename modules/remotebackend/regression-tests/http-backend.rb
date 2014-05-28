@@ -5,6 +5,7 @@ require "webrick"
 $:.unshift File.dirname(__FILE__)
 require "dnsbackend"
 require "backend"
+require "pathname"
 
 server = WEBrick::HTTPServer.new(
 	:Port=>62434,
@@ -13,7 +14,7 @@ server = WEBrick::HTTPServer.new(
 	:AccessLog=>[ [ File.open("remotebackend-access.log", "w"), WEBrick::AccessLog::COMBINED_LOG_FORMAT ] ] 
 )
 
-be = Handler.new("#{File.dirname(__FILE__)}/remote.sqlite3")
+be = Handler.new(Pathname.new(File.join(File.dirname(__FILE__),"remote.sqlite3")).realpath.to_s)
 server.mount "/dns", DNSBackendHandler, be
 server.mount_proc("/ping"){ |req,resp| resp.body = "pong" }
 
