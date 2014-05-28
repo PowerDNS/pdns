@@ -74,20 +74,6 @@ class AuthZones(ApiTestCase):
         self.assertGreater(soa_serial, payload['serial'])
         self.assertEquals(soa_serial, data['serial'])
 
-    def test_create_zone_with_soa_edit(self):
-        # soa_edit wins over serial
-        payload, data = self.create_zone(soa_edit='EPOCH', serial=10)
-        for k in ('soa_edit', ):
-            self.assertIn(k, data)
-            if k in payload:
-                self.assertEquals(data[k], payload[k])
-        # generated EPOCH serial surely is > fixed serial we passed in
-        print data
-        self.assertGreater(data['serial'], payload['serial'])
-        soa_serial = int([r['content'].split(' ')[2] for r in data['records'] if r['type'] == 'SOA'][0])
-        self.assertGreater(soa_serial, payload['serial'])
-        self.assertEquals(soa_serial, data['serial'])
-
     def test_create_zone_with_records(self):
         name = unique_zone_name()
         records = [
