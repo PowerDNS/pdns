@@ -48,7 +48,7 @@ void LMDBBackend::open_db() {
     if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
 
-    if( (rc = mdb_env_set_maxdbs( env, 3 )) )
+    if( (rc = mdb_env_set_maxdbs( env, 5 )) )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_set_maxdbs() returned " + mdb_strerror(rc));
 
     if( (rc = mdb_env_open(env, path.c_str(), MDB_RDONLY, 0)) )
@@ -72,6 +72,16 @@ void LMDBBackend::open_db() {
     if( ( rc = mdb_cursor_open(txn, data_extended_db, &data_extended_cursor)) )
         throw PDNSException("Couldn't open cursor on LMDB data_extended database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
+    if( (rc = mdb_dbi_open(txn, "rrsig", MDB_DUPSORT, &rrsig_db) ))
+        throw PDNSException("Couldn't open LMDB rrsig database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+    if( ( rc = mdb_cursor_open(txn, rrsig_db, &rrsig_cursor)) )
+        throw PDNSException("Couldn't open cursor on LMDB rrsig database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+
+    if( (rc = mdb_dbi_open(txn, "nsecx", 0, &nsecx_db) ))
+        throw PDNSException("Couldn't open LMDB nsecx database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+    if( ( rc = mdb_cursor_open(txn, nsecx_db, &nsecx_cursor)) )
+        throw PDNSException("Couldn't open cursor on LMDB nsecx database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+
 }
 
 void LMDBBackend::close_db() {
@@ -80,9 +90,13 @@ void LMDBBackend::close_db() {
     mdb_cursor_close(data_cursor);
     mdb_cursor_close(zone_cursor);
     mdb_cursor_close(data_extended_cursor);
+    mdb_cursor_close(rrsig_cursor);
+    mdb_cursor_close(nsecx_cursor);
     mdb_dbi_close(env, data_db);
     mdb_dbi_close(env, zone_db);
     mdb_dbi_close(env, data_extended_db);
+    mdb_dbi_close(env, rrsig_db);
+    mdb_dbi_close(env, nsecx_db);
     mdb_txn_abort(txn);
     mdb_env_close(env);
 }
@@ -114,6 +128,8 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
     mdb_cursor_renew( txn, zone_cursor );
     mdb_cursor_renew( txn, data_cursor );
     mdb_cursor_renew( txn, data_extended_cursor );
+    mdb_cursor_renew( txn, rrsig_cursor );
+    mdb_cursor_renew( txn, nsecx_cursor );
 
     // Find the nearest record, or the last record if none
     if( mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_RANGE) )
@@ -121,11 +137,9 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
     rev_zone.assign( (const char *)key.mv_data, key.mv_size );
 
-    DEBUGLOG("Auth key: " << rev_zone <<endl);
-
-    /* Only skip this bit if we got an exact hit on the SOA. otherwise we have
-     * to go back to the previous record */
-    if( orig.compare( rev_zone ) != 0 ) {
+    /* Only skip this bit if we got an exact hit on the SOA or if the key is a shoter
+     * version of rev_zone. Otherwise we have to go back to the previous record */
+    if( orig.compare( 0, rev_zone.length(), rev_zone ) != 0 ) {
         /* Skip back 1 entry to what should be a substring of what was searched
          * for (or a totally different entry) */
         if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {
@@ -136,6 +150,8 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
         rev_zone.assign( (const char *)key.mv_data, key.mv_size );
     }
+
+    DEBUGLOG("Auth key: " << rev_zone <<endl);
 
     return true;
 }

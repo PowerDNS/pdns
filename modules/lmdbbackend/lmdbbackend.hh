@@ -11,9 +11,9 @@ class LMDBBackend : public DNSReversedBackend
 private:
 
     MDB_env *env;
-    MDB_dbi data_db, zone_db, data_extended_db;
+    MDB_dbi data_db, zone_db, data_extended_db, rrsig_db, nsecx_db,;
     MDB_txn *txn;
-    MDB_cursor *data_cursor, *zone_cursor, *data_extended_cursor;
+    MDB_cursor *data_cursor, *zone_cursor, *data_extended_cursor, *rrsig_cursor, *nsecx_cursor;
 
     // Domain that we are querying for in list()/lookup()/get(). In original case and direction.
     string d_origdomain;

@@ -49,13 +49,13 @@ int g_numRecords=0;
 int g_numRefs=0;
 
 MDB_env *env;
-MDB_dbi data_db, zone_db, data_extended_db;
+MDB_dbi data_db, zone_db, data_extended_db, rrsig_db, nsecx_db;
 MDB_txn *txn, *txn_zone;
 
 void openDB(){
   mdb_env_create(&env);
   mdb_env_set_mapsize(env, 1*1024*1024*1024);
-  mdb_env_set_maxdbs(env, 3);
+  mdb_env_set_maxdbs(env, 5);
   mdb_env_open(env, "./", 0, 0644);
 
   mdb_txn_begin(env, NULL, 0, &txn);
@@ -63,6 +63,8 @@ void openDB(){
   mdb_dbi_open(txn, "zone", MDB_CREATE, &zone_db);
   mdb_dbi_open(txn, "data", MDB_CREATE | MDB_DUPSORT, &data_db);
   mdb_dbi_open(txn, "extended_data", MDB_CREATE, &data_extended_db);
+  mdb_dbi_open(txn, "rrsig", MDB_CREATE | MDB_DUPSORT, &rrsig_db);
+  mdb_dbi_open(txn, "nsecx", MDB_CREATE, &nsecx_db);
 }
 
 void closeDB(){
@@ -70,6 +72,8 @@ void closeDB(){
   mdb_dbi_close(env, data_db);
   mdb_dbi_close(env, zone_db);
   mdb_dbi_close(env, data_extended_db);
+  mdb_dbi_close(env, rrsig_db);
+  mdb_dbi_close(env, nsecx_db);
   mdb_env_close(env);
 }
 
