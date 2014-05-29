@@ -99,8 +99,38 @@ void emitData(string zone, ZoneParserTNG &zpt){
       sd.ttl=rr.ttl;
       continue;
     }
-    string keyStr=reverse(stripDot(rr.qname))+"\t"+rr.qtype.getName();
-    string dataStr=itoa(g_numZones+1)+"\t"+itoa(rr.ttl)+"\t"+rr.content;
+
+    string keyStr, dataStr;
+
+    if (rr.qtype == QType::RRSIG) {
+      RRSIGRecordContent rrc(rr.content);
+      keyStr=stripDot(rr.qname)+"\t"+DNSRecordContent::NumberToType(rrc.d_type)+"\t"+itoa(g_numZones+1);
+      dataStr=itoa(rr.ttl)+"\t"+rr.content;
+
+      key.mv_data = (char*)keyStr.c_str();
+      key.mv_size = keyStr.length();
+      data.mv_data = (char*)dataStr.c_str();
+      data.mv_size = dataStr.length();
+
+      mdb_put(txn_zone, rrsig_db, &key, &data, 0);
+      continue;
+    }
+
+    if (rr.qtype == QType::NSEC || rr.qtype == QType::NSEC3) {
+      keyStr=stripDot(rr.qname)+"\t"+itoa(g_numZones+1);
+      dataStr=itoa(rr.ttl)+"\t"+rr.content;
+
+      key.mv_data = (char*)keyStr.c_str();
+      key.mv_size = keyStr.length();
+      data.mv_data = (char*)dataStr.c_str();
+      data.mv_size = dataStr.length();
+
+      mdb_put(txn_zone, nsecx_db, &key, &data, 0);
+      continue;
+    }
+
+    keyStr=reverse(stripDot(rr.qname))+"\t"+rr.qtype.getName();
+    dataStr=itoa(g_numZones+1)+"\t"+itoa(rr.ttl)+"\t"+rr.content;
 
     key.mv_data = (char*)keyStr.c_str();
     key.mv_size = keyStr.length();
