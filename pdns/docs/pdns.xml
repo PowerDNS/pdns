@@ -15344,6 +15344,7 @@ packetcache-bytes   Size of the packet cache in bytes (since 3.3.1)
 packetcache-entries Size of packet cache (since 3.2)
 packetcache-hits    Packet cache hits (since 3.2)
 packetcache-misses  Packet cache misses (since 3.2)
+policy-drops        Packets dropped because of (Lua) policy decision
 qa-latency          shows the current latency average, in microseconds
 questions           counts all End-user initiated queries with the RD bit set
 ipv6-questions      counts all End-user initiated queries with the RD bit set, received over IPv6 UDP
@@ -15358,7 +15359,7 @@ tcp-questions       counts all incoming TCP queries (since starting)
 throttled-out       counts the number of throttled outgoing UDP queries since starting
 throttle-entries    shows the number of entries in the throttle map
 unauthorized-tcp    number of TCP questions denied because of allow-from restrictions
-unauthorized-udp    number of UDP questions denied because of allow-from restrictions
+unauthorized-udp    number of UDP questions denied because of allow-from restrictions 
 unexpected-packets  number of answers from remote servers that were unexpected (might point to spoofing)
 uptime              number of seconds process has been running (since 3.1.5)
 user-msec           number of CPU milliseconds spent in 'user' mode
@@ -15367,7 +15368,10 @@ user-msec           number of CPU milliseconds spent in 'user' mode
 	graphs of all these numbers. Use <command>rec_control get-all</command> to get all statistics in one go.
       </para>
       <para>
-	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops = questions.
+	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops + policy-drops = questions.
+      </para>
+      <para>
+	Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count. 
       </para>
       <para>
 	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
@@ -15493,7 +15497,8 @@ end
 	  '25 smtp.example.net.'.
 	</para>
 	<para>
-	  Useful return 'rcodes' include 0 for "no error" and <function>pdns.NXDOMAIN</function> for "NXDOMAIN".
+	  Useful return 'rcodes' include 0 for "no error", <function>pdns.NXDOMAIN</function> for "NXDOMAIN", <function>pdns.DROP</function> to drop the question
+	  from further processing (since 3.6, and such a drop is accounted in the 'policy-drops' metric).
 	</para>
 	<para>
 	  Fields that can be set in the return table include:
@@ -16050,7 +16055,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	containing one or more replacement records to be stored in the back-end database. If, on the other hand, your 
 	function decides not to modify a record, it must return pdns.PASS and an empty table indicating that PowerDNS should 
 	handle the incoming record as normal. If your function decides to drop a query and not respond whatsoever, it must return
-  pdns.DROP and an empty table indicating that the recursor does not want to process the packet in Lua nor in the core recursor logic.
+	pdns.DROP and an empty table indicating that the recursor does not want to process the packet in Lua nor in the core recursor logic.
       </para>
       <para>
 	Consider the following simple example:

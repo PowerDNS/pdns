@@ -502,6 +502,7 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("resource-limits", &g_stats.resourceLimits);
   addGetStat("over-capacity-drops", &g_stats.overCapacityDrops);
+  addGetStat("policy-drops", &g_stats.policyDrops);
   addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);

@@ -547,11 +547,12 @@ struct RecursorStats
   uint64_t noErrors;
   uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
   double avgLatencyUsec;
-  uint64_t qcounter;
+  uint64_t qcounter;     // not increased for unauth packets
   uint64_t ipv6qcounter;
   uint64_t tcpqcounter;
-  uint64_t unauthorizedUDP;
-  uint64_t unauthorizedTCP;
+  uint64_t unauthorizedUDP;  // when this is increased, qcounter isn't
+  uint64_t unauthorizedTCP;  // when this is increased, qcounter isn't
+  uint64_t policyDrops;
   uint64_t tcpClientOverflow;
   uint64_t clientParseError;
   uint64_t serverParseError;
