@@ -82,7 +82,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      tmp = req.path[/dns\/(.*)/,1]
      return 400, "Bad request" if (tmp.nil?)
 
-     method, args = parse_url(tmp)
+     method, args = parse_url(tmp.force_encoding("UTF-8"))
 
      method = "do_#{method}"
     
@@ -105,7 +105,6 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      end
 
      args = parse_arrays args
-     args.map do |name,arg| if (arg.respond_to? :force_encoding) then arg = arg.force_encoding("UTF-8") end end
  
      @@f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
 
