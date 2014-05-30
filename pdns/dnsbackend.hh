@@ -363,6 +363,17 @@ public:
     return false;
   }
 
+  //! called to get a NSECx record from backend
+  virtual bool getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr)
+  {
+    return false;
+  }
+  //! called to get RRSIG record(s) from backend
+  virtual bool getDirectRRSIGs(uint32_t id, const string &qname, const QType &qtype, const vector<DNSResourceRecord>&rrs)
+  {
+    return false;
+  }
+
 protected:
   bool mustDo(const string &key);
   const string &getArg(const string &key);

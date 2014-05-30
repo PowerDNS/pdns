@@ -235,6 +235,24 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
+bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getDirectNSECx(id, hashed, before, rr))
+      return true;
+  }
+  return false;
+}
+
+bool UeberBackend::getDirectRRSIGs(uint32_t id, const string &qname, const QType &qtype, const vector<DNSResourceRecord>&rrs)
+{
+  BOOST_FOREACH(DNSBackend* db, backends) {
+    if(db->getDirectRRSIGs(id, qname, qtype, rrs))
+      return true;
+  }
+  return false;
+}
+
 /* Called from anywhere to signal a reload of all backend databases */
 void UeberBackend::reload_all()
 {

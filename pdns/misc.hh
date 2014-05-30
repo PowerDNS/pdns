@@ -171,6 +171,7 @@ string stringerror();
 string netstringerror();
 string itoa(int i);
 string uitoa(unsigned int i);
+string bitFlip(const string &str);
 
 void dropPrivs(int uid, int gid);
 int makeGidNumeric(const string &group);

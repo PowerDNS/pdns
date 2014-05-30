@@ -21,6 +21,7 @@
 #include <signal.h>
 #include "lmdbbackend.hh"
 #include <pdns/arguments.hh>
+#include <pdns/base32.hh>
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
@@ -111,6 +112,77 @@ void LMDBBackend::reload() {
     open_db();
 }
 
+bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
+{
+  if (kind == "PRESIGNED") {
+    meta.push_back("1");
+  } else if (kind == "NSEC3PARAM") {
+    meta.push_back("1 0 1 abcd");
+  }
+  return true;
+}
+
+bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr)
+{
+  MDB_val key, data;
+  string key_str, cur_key, cur_value;
+  vector<string> keyparts, valparts;
+
+  key_str=itoa(id)+"\t"+toBase32Hex(bitFlip(hashed));
+  key.mv_data = (char *)key_str.c_str();
+  key.mv_size = key_str.length();
+
+  before.clear();
+  if(!mdb_cursor_get(nsecx_cursor, &key, &data, MDB_SET_RANGE)) {
+    cur_key.assign((const char *)key.mv_data, key.mv_size);
+    cur_value.assign((const char *)data.mv_data, data.mv_size);
+    stringtok(keyparts,cur_key,"\t");
+    stringtok(valparts,cur_value,"\t");
+
+    if( keyparts.size() != 2 || valparts.size() != 4 ) {
+      throw PDNSException("Invalid record in nsecx table: key: '" + cur_key + "'; value: "+ cur_value);
+    }
+
+    // is the key a full match or does the id part match our zone?
+    // if it does we have a valid answer.
+    if (!key_str.compare(cur_key) || atoi(keyparts[0].c_str()) == (int) id) // FIXME need atoui
+      goto hasnsecx;
+  }
+  // no match, now we look for the last record in the NSECx chain.
+  key_str=itoa(id)+"\t";
+  key.mv_data = (char *)key_str.c_str();
+  key.mv_size = key_str.length();
+
+  if(!mdb_cursor_get(nsecx_cursor, &key, &data, MDB_SET_RANGE)) {
+    cur_key.assign((const char *)key.mv_data, key.mv_size);
+    cur_value.assign((const char *)data.mv_data, data.mv_size);
+    stringtok(keyparts,cur_key,"\t");
+    stringtok(valparts,cur_value,"\t");
+
+    if( keyparts.size() != 2 || valparts.size() != 4 ) {
+      throw PDNSException("Invalid record in nsecx table: key: '" + cur_key + "'; value: "+ cur_value);
+    }
+
+    if (!key_str.compare(cur_key) || atoi(keyparts[0].c_str()) == (int) id) // FIXME we need atoui
+      goto hasnsecx;
+  }
+
+  DEBUGLOG("NSECx record for '"<<toBase32Hex(bitFlip(hashed))<<"'' in zone '"<<id<<"' not found"<<endl);
+  return true;
+
+hasnsecx:
+
+  before=bitFlip(fromBase32Hex(keyparts[1]));
+  rr.qname=valparts[0];
+  rr.ttl=atoi(valparts[1].c_str());
+  rr.qtype=DNSRecordContent::TypeToNumber(valparts[2]);
+  rr.content=valparts[3];
+  rr.d_place=DNSResourceRecord::AUTHORITY;
+  rr.auth=true;
+
+  return true;
+}
+
 // Get the zone name and value of the requested zone (reversed) OR the entry
 // just before where it should have been
 bool LMDBBackend::getAuthZone( string &rev_zone )
@@ -139,7 +211,7 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
     /* Only skip this bit if we got an exact hit on the SOA or if the key is a shoter
      * version of rev_zone. Otherwise we have to go back to the previous record */
-    if( orig.compare( 0, rev_zone.length(), rev_zone ) != 0 ) {
+    if( orig.compare( rev_zone ) != 0 ) {
         /* Skip back 1 entry to what should be a substring of what was searched
          * for (or a totally different entry) */
         if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {

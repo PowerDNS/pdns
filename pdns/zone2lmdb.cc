@@ -42,6 +42,7 @@
 #include <unistd.h>
 #include <boost/foreach.hpp>
 #include <lmdb.h>
+#include "base32.hh"
 
 StatBag S;
 int g_numZones=0;
@@ -117,8 +118,11 @@ void emitData(string zone, ZoneParserTNG &zpt){
     }
 
     if (rr.qtype == QType::NSEC || rr.qtype == QType::NSEC3) {
-      keyStr=stripDot(rr.qname)+"\t"+itoa(g_numZones+1);
-      dataStr=itoa(rr.ttl)+"\t"+rr.content;
+      if (rr.qtype == QType::NSEC)
+        keyStr=stripDot(rr.qname)+"\t"+itoa(g_numZones+1);
+      else
+        keyStr=itoa(g_numZones+1)+"\t"+toBase32Hex(bitFlip(fromBase32Hex(makeRelative(stripDot(rr.qname), zone))));
+      dataStr=rr.qname+"\t"+itoa(rr.ttl)+"\t"+rr.qtype.getName()+"\t"+rr.content;
 
       key.mv_data = (char*)keyStr.c_str();
       key.mv_size = keyStr.length();

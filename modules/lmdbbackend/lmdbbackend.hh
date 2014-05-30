@@ -45,6 +45,9 @@ public:
     void reload();
     bool get(DNSResourceRecord &rr);
 
+    bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
+    bool getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr);
+
     bool getAuthZone( string &rev_zone );
     bool getAuthData( SOAData &, DNSPacket *);
 };
