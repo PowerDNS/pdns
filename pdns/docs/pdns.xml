@@ -93,7 +93,7 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3.6"><title>PowerDNS Recursor version 3.6</title>
+      <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
       <note>
         <para>
 	  UNRELEASED
@@ -102,6 +102,11 @@
         <para>
 	  New features:
         <itemizedlist>
+          <listitem>
+            <para>
+              gaadceba: Implement minimum-ttl-override config setting, plus runtime configurability via 'rec_control set-minimum-ttl'.
+            </para>
+          </listitem>
           <listitem>
             <para>
               Lots of work on the JSON API, which is exposed via Aki Tuomi's 'yahttp'. Massive thanks to Christian Hofstaedtler for delivering
@@ -158,11 +163,27 @@
 	      Described in <ulink url="http://blog.powerdns.com/2014/04/03/further-dos-guidance-packages-and-patches-available/">this post</ulink>. Also comes with new metric 'failed-host-entries' in g406f46f.
 	    </para>
 	  </listitem>
+    <listitem>
+      <para>
+        g21e7976: Implement "followCNAMERecords" feature in the Lua hooks.
+      </para>
+    </listitem>
 
 	</itemizedlist>
 
 	  Improvements:
         <itemizedlist>
+          <listitem>
+            <para>
+              g06ea901: make pdns-distributes-queries use a hash so related queries get sent to the same thread. Original idea by Winfried Angele. Astoundingly effective, approximately halves CPU usage!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gb13e737: --help now writes to stdout instead of stderr. Thanks Winfried Angele.
+            </para>
+          </listitem>
+
           <listitem>
             <para>
               To aid in limiting DoS attacks, when truncating a response, we actually truncate all the way
@@ -227,14 +248,30 @@ to Niels Bakker and 'sid3windr' for insight &amp; debugging.  Closes t844.
 	</itemizedlist>
 	Fixes:
 	<itemizedlist>
-	  <listitem>
+    <listitem>
+      <para>
+        0c9de4fc: stay away from getaddrinfo unless we really can't help it for ascii ipv6 conversions to binary
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>
+        g08f3f63: fix average latency calculation, closing t424.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+        g75ba907: Some of our counters were still 32 bits, now 64.
+      </para>
+    </listitem>
+    <listitem>
             <para>
 	      g2f22827: Fix statistics and stability when running with pdns-distributes-queries.
 	    </para>
 	  </listitem>
 	  <listitem>
             <para>
-	      g6196f90: avoid merging old and new additional data, fixes an issue caused by weird (but proably legal) Akamai behaviour
+	      g6196f90: avoid merging old and new additional data, fixes an issue caused by weird (but probably legal) Akamai behaviour
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -259,11 +296,6 @@ to Niels Bakker and 'sid3windr' for insight &amp; debugging.  Closes t844.
           <listitem>
             <para>
               All old workarounds for supporting Windows of the XP era have been removed. 
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              Add (theoretical) support for 64 bit bigendian DNSSEC processing (g0c37420).
             </para>
           </listitem>
           <listitem>
