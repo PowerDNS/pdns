@@ -145,7 +145,7 @@ bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, string &befo
 
     // is the key a full match or does the id part match our zone?
     // if it does we have a valid answer.
-    if (!key_str.compare(cur_key) || atoi(keyparts[0].c_str()) == (int) id) // FIXME need atoui
+    if (!key_str.compare(cur_key) || atoi(keyparts[0].c_str()) == (int) id) // FIXME we need atoui
       goto hasnsecx;
   }
   // no match, now we look for the last record in the NSECx chain.
@@ -153,7 +153,7 @@ bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, string &befo
   key.mv_data = (char *)key_str.c_str();
   key.mv_size = key_str.length();
 
-  if(!mdb_cursor_get(nsecx_cursor, &key, &data, MDB_SET_RANGE)) {
+  if(!mdb_cursor_get(nsecx_cursor, &key, &data, MDB_NEXT_NODUP )) {
     cur_key.assign((const char *)key.mv_data, key.mv_size);
     cur_value.assign((const char *)data.mv_data, data.mv_size);
     stringtok(keyparts,cur_key,"\t");
@@ -178,7 +178,47 @@ hasnsecx:
   rr.qtype=DNSRecordContent::TypeToNumber(valparts[2]);
   rr.content=valparts[3];
   rr.d_place=DNSResourceRecord::AUTHORITY;
+  rr.domain_id=id;
   rr.auth=true;
+
+  return true;
+}
+
+bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
+{
+  int rc;
+  MDB_val key, data;
+  string key_str, cur_value;
+  vector<string> valparts;
+
+  key_str=signer+"\t"+makeRelative(qname, signer)+"\t"+qtype.getName();
+  key.mv_data = (char *)key_str.c_str();
+  key.mv_size = key_str.length();
+
+  if ((rc = mdb_cursor_get(rrsig_cursor, &key, &data, MDB_SET_KEY)) == 0) {
+    DNSResourceRecord rr;
+    rr.qname=qname;
+    rr.qtype=QType::RRSIG;
+    //rr.d_place = (DNSResourceRecord::Place) signPlace;
+    rr.auth=false;
+
+    do {
+      cur_value.assign((const char *)data.mv_data, data.mv_size);
+      stringtok(valparts,cur_value,"\t");
+
+      if( valparts.size() != 2 ) {
+        throw PDNSException("Invalid record in rrsig table: qname: '" + qname + "'; value: "+ cur_value);
+      }
+
+      rr.ttl=atoi(valparts[0].c_str());
+      rr.content = valparts[1];
+      rrsigs.push_back(rr);
+
+    } while (mdb_cursor_get(rrsig_cursor, &key, &data, MDB_NEXT_DUP) == 0);
+  }
+
+  if (rc == MDB_NOTFOUND)
+    DEBUGLOG("RRSIG records for qname: '"<<qname"'' with type: '"<<qtype.getName()<<"' not found"<<endl);
 
   return true;
 }

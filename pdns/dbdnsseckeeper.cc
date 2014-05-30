@@ -355,10 +355,22 @@ bool DNSSECKeeper::secureZone(const std::string& name, int algorithm, int size)
   return addKey(name, true, algorithm, size);
 }
 
-bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, 
-        const std::string& wildcardname, const QType& qtype, 
+bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname,
+        const std::string& wildcardname, const QType& qtype,
         DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
+  vector<DNSResourceRecord> sigs;
+  if(db.getDirectRRSIGs(toLower(signer), toLower(wildcardname.empty() ? qname : wildcardname), qtype, sigs)) {
+    BOOST_FOREACH(DNSResourceRecord &rr, sigs) {
+      if (!wildcardname.empty())
+        rr.qname = toLower(qname);
+      rr.d_place = (DNSResourceRecord::Place)signPlace;
+      rr.ttl = signTTL;
+      rrsigs.push_back(rr);
+    }
+    return true;
+  }
+
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
         SOAData sd;
         sd.db=(DNSBackend *)-1; // force uncached answer

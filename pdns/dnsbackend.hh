@@ -369,7 +369,7 @@ public:
     return false;
   }
   //! called to get RRSIG record(s) from backend
-  virtual bool getDirectRRSIGs(uint32_t id, const string &qname, const QType &qtype, const vector<DNSResourceRecord>&rrs)
+  virtual bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
   {
     return false;
   }

@@ -244,10 +244,10 @@ bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, string &bef
   return false;
 }
 
-bool UeberBackend::getDirectRRSIGs(uint32_t id, const string &qname, const QType &qtype, const vector<DNSResourceRecord>&rrs)
+bool UeberBackend::getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->getDirectRRSIGs(id, qname, qtype, rrs))
+    if(db->getDirectRRSIGs(signer, qname, qtype, rrsigs))
       return true;
   }
   return false;

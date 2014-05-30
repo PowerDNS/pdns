@@ -100,12 +100,14 @@ void emitData(string zone, ZoneParserTNG &zpt){
       sd.ttl=rr.ttl;
       continue;
     }
+    if (rr.qtype == QType::NSEC3PARAM)
+      continue; // TODO set metadata
 
     string keyStr, dataStr;
 
     if (rr.qtype == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
-      keyStr=stripDot(rr.qname)+"\t"+DNSRecordContent::NumberToType(rrc.d_type)+"\t"+itoa(g_numZones+1);
+      keyStr=zone+"\t"+makeRelative(stripDot(rr.qname), zone)+"\t"+DNSRecordContent::NumberToType(rrc.d_type);
       dataStr=itoa(rr.ttl)+"\t"+rr.content;
 
       key.mv_data = (char*)keyStr.c_str();
@@ -122,7 +124,7 @@ void emitData(string zone, ZoneParserTNG &zpt){
         keyStr=stripDot(rr.qname)+"\t"+itoa(g_numZones+1);
       else
         keyStr=itoa(g_numZones+1)+"\t"+toBase32Hex(bitFlip(fromBase32Hex(makeRelative(stripDot(rr.qname), zone))));
-      dataStr=rr.qname+"\t"+itoa(rr.ttl)+"\t"+rr.qtype.getName()+"\t"+rr.content;
+      dataStr=stripDot(rr.qname)+"\t"+itoa(rr.ttl)+"\t"+rr.qtype.getName()+"\t"+rr.content;
 
       key.mv_data = (char*)keyStr.c_str();
       key.mv_size = keyStr.length();

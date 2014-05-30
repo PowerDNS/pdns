@@ -145,7 +145,7 @@ public:
   bool deactivateDomainKey(const string& name, unsigned int id);
 
   bool getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr);
-  bool getDirectRRSIGs(uint32_t id, const string &qname, const QType &qtype, const vector<DNSResourceRecord>&rrs);
+  bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs);
 
   bool getTSIGKey(const string& name, string* algorithm, string* content);
   bool setTSIGKey(const string& name, const string& algorithm, const string& content);

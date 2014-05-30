@@ -11,7 +11,7 @@ class LMDBBackend : public DNSReversedBackend
 private:
 
     MDB_env *env;
-    MDB_dbi data_db, zone_db, data_extended_db, rrsig_db, nsecx_db,;
+    MDB_dbi data_db, zone_db, data_extended_db, rrsig_db, nsecx_db;
     MDB_txn *txn;
     MDB_cursor *data_cursor, *zone_cursor, *data_extended_cursor, *rrsig_cursor, *nsecx_cursor;
 
@@ -47,6 +47,7 @@ public:
 
     bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
     bool getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr);
+    bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs);
 
     bool getAuthZone( string &rev_zone );
     bool getAuthData( SOAData &, DNSPacket *);
