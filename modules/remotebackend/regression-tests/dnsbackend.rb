@@ -90,7 +90,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      req.each do |k,v|
         attr = k[/x-remotebackend-(.*)/i,1]
         if attr 
-          args[attr.downcase] = v
+          args[attr.downcase] = v.force_encoding("UTF-8")
         end
      end
 
@@ -105,7 +105,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      end
 
      args = parse_arrays args
-     args.map { |name,arg| arg = arg.force_encoding("UTF-8") }
+     args.map do |name,arg| if (arg.respond_to? :force_encoding) then arg = arg.force_encoding("UTF-8") end end
  
      @@f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
 
