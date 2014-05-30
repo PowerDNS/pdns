@@ -105,6 +105,7 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
      end
 
      args = parse_arrays args
+     args.map { |name,arg| arg = arg.force_encoding("UTF-8") }
  
      @@f.puts "#{Time.now.to_f} [http]: #{({:method=>method,:parameters=>args}).to_json}"
 
