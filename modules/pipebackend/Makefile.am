@@ -5,7 +5,7 @@ AM_CPPFLAGS=@THREADFLAGS@ $(BOOST_CPPFLAGS)
 #endif
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS backend.pl
-lib_LTLIBRARIES = libpipebackend.la
+pkglib_LTLIBRARIES = libpipebackend.la
 
 libpipebackend_la_SOURCES=pipebackend.cc pipebackend.hh coprocess.cc coprocess.hh
 libpipebackend_la_LDFLAGS=-module -avoid-version

@@ -1,5 +1,5 @@
 AM_CPPFLAGS=@THREADFLAGS@ $(BOOST_CPPFLAGS)
-lib_LTLIBRARIES = libgsqlite3backend.la
+pkglib_LTLIBRARIES = libgsqlite3backend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS \
 	schema.sqlite3.sql nodnssec-3.x_to_3.4_schema.sqlite3.sql dnssec-3.x_to_3.4_schema.sqlite3.sql

@@ -1,4 +1,4 @@
-AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DLIBDIR=\"@libdir@\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include -Iext/yahttp
+AM_CXXFLAGS=-DSYSCONFDIR=\"@sysconfdir@\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -Iext/rapidjson/include -Iext/yahttp
 
 YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
 

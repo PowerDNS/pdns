@@ -20,7 +20,7 @@ ifdef STATIC
                 --sysconfdir=/etc/powerdns \
                 --mandir=\$${prefix}/share/man \
                 --infodir=\$${prefix}/share/info \
-                --libdir='$${prefix}/lib/powerdns' \
+                --libdir='$${prefix}/lib' \
                 --libexecdir='$${prefix}/lib' \
                 --with-modules="$(backends)" \
                 --with-pgsql-includes=`pg_config --includedir` \
@@ -39,7 +39,7 @@ else
 		--sysconfdir=/etc/powerdns \
 		--mandir=\$${prefix}/share/man \
 		--infodir=\$${prefix}/share/info \
-		--libdir='$${prefix}/lib/powerdns' \
+		--libdir='$${prefix}/lib' \
 		--libexecdir='$${prefix}/lib' \
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \

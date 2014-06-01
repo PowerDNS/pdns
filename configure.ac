@@ -35,6 +35,10 @@ LT_INIT
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
+# Define full_libdir to be the fully expanded (${exec_prefix}, etc.)
+# "system" library path.
+# We use this to search for other libraries.
+eval full_libdir="\"$libdir\""
 
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG

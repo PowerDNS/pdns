@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libbindbackend.la
+pkglib_LTLIBRARIES = libbindbackend.la
 AM_CPPFLAGS=-I../../pdns $(BOOST_CPPFLAGS) $(POLARSSL_CFLAGS) @THREADFLAGS@
 
 AM_LFLAGS = -i

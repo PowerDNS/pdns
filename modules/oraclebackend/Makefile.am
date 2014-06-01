@@ -1,6 +1,6 @@
 AM_CPPFLAGS=$(ORACLE_CFLAGS) @THREADFLAGS@
 
-lib_LTLIBRARIES = liboraclebackend.la
+pkglib_LTLIBRARIES = liboraclebackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS schema.sql dropschema.sql
 

@@ -287,7 +287,7 @@
 #################################
 # module-dir	Default directory for modules
 #
-# module-dir=/usr/local/lib
+# module-dir=/usr/local/lib/pdns
 
 #################################
 # negquery-cache-ttl	Seconds to store negative query results in the QueryCache
