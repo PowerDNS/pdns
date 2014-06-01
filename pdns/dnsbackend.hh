@@ -364,7 +364,7 @@ public:
   }
 
   //! called to get a NSECx record from backend
-  virtual bool getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr)
+  virtual bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
   {
     return false;
   }

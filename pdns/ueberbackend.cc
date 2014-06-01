@@ -235,10 +235,10 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
-bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr)
+bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->getDirectNSECx(id, hashed, before, rr))
+    if(db->getDirectNSECx(id, hashed, qtype, before, rr))
       return true;
   }
   return false;

@@ -649,7 +649,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-    if(!B.getDirectNSECx(sd.domain_id, hashed, before, rr))
+    if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr))
       getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after, mode);
 
     if (((mode == 0 && ns3rc.d_flags) ||  mode == 1) && (hashed != before)) {
@@ -670,7 +670,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
       hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
       DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-      if(!B.getDirectNSECx(sd.domain_id, hashed, before, rr))
+      if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr))
         getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, false, unhashed, before, after);
     }
 
@@ -691,7 +691,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
 
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     DLOG(L<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
-    if(!B.getDirectNSECx(sd.domain_id, hashed, before, rr)) {
+    if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr)) {
       getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after);
       DLOG(L<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
       emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
@@ -706,7 +706,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
     hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
     DLOG(L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
-    if(!B.getDirectNSECx(sd.domain_id, hashed, before, rr)) {
+    if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr)) {
       getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
       DLOG(L<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
       emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
@@ -727,8 +727,17 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   }
 
   string before,after;
-  sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-  emitNSEC(before, after, target, sd, r, mode);
+  DNSResourceRecord rr;
+
+  rr.auth=false;
+  if(!B.getDirectNSECx(sd.domain_id, toLower(labelReverse(makeRelative(target, auth))), QType(QType::NSEC), before, rr)) {
+    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
+    emitNSEC(before, after, target, sd, r, mode);
+  } else if(rr.auth) {
+    if (mode == 5)
+      rr.d_place=DNSResourceRecord::ANSWER;
+    r->addRecord(rr);
+  }
 
   if (mode == 2 || mode == 4) {
     // wildcard NO-DATA or wildcard denial
@@ -738,8 +747,12 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
       (void) chopOff(closest);
       closest=dotConcat("*", closest);
     }
-    sd.db->getBeforeAndAfterNames(sd.domain_id, auth, closest, before, after);
-    emitNSEC(before, after, target, sd, r, mode);
+    rr.auth=false;
+    if(!B.getDirectNSECx(sd.domain_id, toLower(labelReverse(makeRelative(closest, auth))), QType(QType::NSEC), before, rr)) {
+      sd.db->getBeforeAndAfterNames(sd.domain_id, auth, closest, before, after);
+      emitNSEC(before, after, target, sd, r, mode);
+    } else if(rr.auth)
+      r->addRecord(rr);
   }
   return;
 }

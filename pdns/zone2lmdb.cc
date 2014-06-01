@@ -79,7 +79,7 @@ void closeDB(){
 }
 
 string reverse(const string &name) {
-  return toLower(string(name.rbegin(), name.rend()));
+  return string(name.rbegin(), name.rend());
 }
 
 void emitData(string zone, ZoneParserTNG &zpt){
@@ -87,14 +87,16 @@ void emitData(string zone, ZoneParserTNG &zpt){
   bool hasSOA=false, isPresigned=false;
   int numRefs=g_numRefs;
   int numRecords=g_numRecords;
-  string metaData;
+  string metaData="1", qname;
   SOAData sd;
   DNSResourceRecord rr;
   MDB_val key, data, keyExt, dataExt;
 
+  zone=toLower(zone);
   mdb_txn_begin(env, txn, 0, &txn_zone);
   while(zpt.get(rr)) {
     numRecords++;
+    qname=toLower(stripDot(rr.qname));
     if (rr.qtype == QType::SOA) {
       hasSOA=true;
       fillSOAData(rr.content, sd);
@@ -103,7 +105,7 @@ void emitData(string zone, ZoneParserTNG &zpt){
     }
     if (rr.qtype == QType::NSEC3PARAM) {
       metaData=rr.content;
-      continue; // TODO set metadata
+      continue;
     }
 
     string keyStr, dataStr;
@@ -111,7 +113,7 @@ void emitData(string zone, ZoneParserTNG &zpt){
     if (rr.qtype == QType::RRSIG) {
       isPresigned=true;
       RRSIGRecordContent rrc(rr.content);
-      keyStr=zone+"\t"+makeRelative(stripDot(rr.qname), zone)+"\t"+DNSRecordContent::NumberToType(rrc.d_type);
+      keyStr=zone+"\t"+makeRelative(qname, zone)+"\t"+DNSRecordContent::NumberToType(rrc.d_type);
       dataStr=itoa(rr.ttl)+"\t"+rr.content;
 
       key.mv_data = (char*)keyStr.c_str();
@@ -125,10 +127,10 @@ void emitData(string zone, ZoneParserTNG &zpt){
 
     if (rr.qtype == QType::NSEC || rr.qtype == QType::NSEC3) {
       if (rr.qtype == QType::NSEC)
-        keyStr=stripDot(rr.qname)+"\t"+itoa(g_numZones+1);
+        keyStr=itoa(g_numZones+1)+"\t"+bitFlip(labelReverse(makeRelative(qname,zone)))+"\xff";
       else
-        keyStr=itoa(g_numZones+1)+"\t"+toBase32Hex(bitFlip(fromBase32Hex(makeRelative(stripDot(rr.qname), zone))));
-      dataStr=stripDot(rr.qname)+"\t"+itoa(rr.ttl)+"\t"+rr.qtype.getName()+"\t"+rr.content;
+        keyStr=itoa(g_numZones+1)+"\t"+toBase32Hex(bitFlip(fromBase32Hex(makeRelative(qname, zone))));
+      dataStr=qname+"\t"+itoa(rr.ttl)+"\t"+rr.qtype.getName()+"\t"+rr.content;
 
       key.mv_data = (char*)keyStr.c_str();
       key.mv_size = keyStr.length();
@@ -139,7 +141,7 @@ void emitData(string zone, ZoneParserTNG &zpt){
       continue;
     }
 
-    keyStr=reverse(stripDot(rr.qname))+"\t"+rr.qtype.getName();
+    keyStr=reverse(qname)+"\t"+rr.qtype.getName();
     dataStr=itoa(g_numZones+1)+"\t"+itoa(rr.ttl)+"\t"+rr.content;
 
     key.mv_data = (char*)keyStr.c_str();

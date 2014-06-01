@@ -46,7 +46,7 @@ public:
     bool get(DNSResourceRecord &rr);
 
     bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-    bool getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr);
+    bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr);
     bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs);
 
     bool getAuthZone( string &rev_zone );

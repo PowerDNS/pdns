@@ -131,7 +131,7 @@ bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind,
       if (valparts.size() == 4) {
         if (kind == "PRESIGNED")
           meta.push_back("1");
-        else
+        else if (valparts[3] != "1")
           meta.push_back(valparts[3]);
       }
     }
@@ -143,13 +143,16 @@ bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind,
   return true;
 }
 
-bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, string &before, DNSResourceRecord &rr)
+bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
 {
   MDB_val key, data;
   string key_str, cur_key, cur_value;
   vector<string> keyparts, valparts;
 
-  key_str=itoa(id)+"\t"+toBase32Hex(bitFlip(hashed));
+  if (qtype == QType::NSEC)
+    key_str=itoa(id)+"\t"+bitFlip(hashed)+"\xff";
+  else
+    key_str=itoa(id)+"\t"+toBase32Hex(bitFlip(hashed));
   key.mv_data = (char *)key_str.c_str();
   key.mv_size = key_str.length();
 
@@ -192,8 +195,10 @@ bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, string &befo
   return true;
 
 hasnsecx:
-
-  before=bitFlip(fromBase32Hex(keyparts[1]));
+  if (qtype == QType::NSEC)
+    before=bitFlip(keyparts[1]).c_str();
+  else
+    before=bitFlip(fromBase32Hex(keyparts[1]));
   rr.qname=valparts[0];
   rr.ttl=atoi(valparts[1].c_str());
   rr.qtype=DNSRecordContent::TypeToNumber(valparts[2]);
@@ -239,7 +244,7 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
   }
 
   if (rc == MDB_NOTFOUND)
-    DEBUGLOG("RRSIG records for qname: '"<<qname"'' with type: '"<<qtype.getName()<<"' not found"<<endl);
+    DEBUGLOG("RRSIG records for qname: '"<<qname<<"'' with type: '"<<qtype.getName()<<"' not found"<<endl);
 
   return true;
 }
