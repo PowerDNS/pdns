@@ -84,9 +84,10 @@ string reverse(const string &name) {
 
 void emitData(string zone, ZoneParserTNG &zpt){
 
-  bool hasSOA = false;
+  bool hasSOA=false, isPresigned=false;
   int numRefs=g_numRefs;
   int numRecords=g_numRecords;
+  string metaData;
   SOAData sd;
   DNSResourceRecord rr;
   MDB_val key, data, keyExt, dataExt;
@@ -95,17 +96,20 @@ void emitData(string zone, ZoneParserTNG &zpt){
   while(zpt.get(rr)) {
     numRecords++;
     if (rr.qtype == QType::SOA) {
-      hasSOA = true;
+      hasSOA=true;
       fillSOAData(rr.content, sd);
       sd.ttl=rr.ttl;
       continue;
     }
-    if (rr.qtype == QType::NSEC3PARAM)
+    if (rr.qtype == QType::NSEC3PARAM) {
+      metaData=rr.content;
       continue; // TODO set metadata
+    }
 
     string keyStr, dataStr;
 
     if (rr.qtype == QType::RRSIG) {
+      isPresigned=true;
       RRSIGRecordContent rrc(rr.content);
       keyStr=zone+"\t"+makeRelative(stripDot(rr.qname), zone)+"\t"+DNSRecordContent::NumberToType(rrc.d_type);
       dataStr=itoa(rr.ttl)+"\t"+rr.content;
@@ -160,6 +164,9 @@ void emitData(string zone, ZoneParserTNG &zpt){
   if (hasSOA) {
     string keyStr=(reverse(stripDot(zone)));
     string dataStr=itoa(g_numZones+1)+"\t"+itoa(sd.ttl)+"\t"+serializeSOAData(sd);
+
+    if (isPresigned)
+      dataStr.append("\t"+metaData);
 
     key.mv_data = (char*)keyStr.c_str();
     key.mv_size = keyStr.length();

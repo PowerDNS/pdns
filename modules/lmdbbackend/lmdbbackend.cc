@@ -114,11 +114,32 @@ void LMDBBackend::reload() {
 
 bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  if (kind == "PRESIGNED") {
-    meta.push_back("1");
-  } else if (kind == "NSEC3PARAM") {
-    meta.push_back("1 0 1 abcd");
+  if (kind == "PRESIGNED" || kind == "NSEC3PARAM") {
+    int rc;
+    MDB_val key, data;
+    string key_str, cur_value;
+    vector<string> valparts;
+
+    key_str=d_querykey = string( name.rbegin(), name.rend() );
+    key.mv_data = (char *)key_str.c_str();
+    key.mv_size = key_str.length();
+
+    if ((rc = mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_KEY)) == 0) {
+      cur_value.assign((const char *)data.mv_data, data.mv_size);
+      stringtok(valparts,cur_value,"\t");
+
+      if (valparts.size() == 4) {
+        if (kind == "PRESIGNED")
+          meta.push_back("1");
+        else
+          meta.push_back(valparts[3]);
+      }
+    }
+
+    if (rc == MDB_NOTFOUND)
+      DEBUGLOG("Metadata records for zone: '"<<name<<"'' not found. This is impossible !!!"<<endl);
   }
+
   return true;
 }
 
@@ -281,7 +302,7 @@ bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
     vector<string>parts;
     stringtok(parts,data,"\t");
 
-    if(parts.size() != 3 )
+    if(parts.size() < 3 )
         throw PDNSException("Invalid record in zone table: " + data );
 
     fillSOAData( parts[2], soa );
