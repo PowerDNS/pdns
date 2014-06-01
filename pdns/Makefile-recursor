@@ -33,6 +33,12 @@ all: message version_generated.h build
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
+ifeq ($(shell uname),GNU/kFreeBSD)
+	-include sysdeps/FreeBSD.inc
+endif
+ifeq ($(shell uname),GNU/Hurd)
+	-include sysdeps/Linux.inc
+endif
 
 ifeq ($(LUA), 1)
 	LUALIBS=$(LUA_LIBS_CONFIG)

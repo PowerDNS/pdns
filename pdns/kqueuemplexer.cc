@@ -6,7 +6,7 @@
 #include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 #include <sys/types.h>
-#ifdef __FreeBSD__ 
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <sys/event.h>
 #endif
 #include <sys/time.h>
