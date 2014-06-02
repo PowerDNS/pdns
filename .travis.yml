@@ -85,8 +85,8 @@ script:
  - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
  - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-unix
  - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - timeout 120s ./start-test-stop 5300 remotebackend-http || true # Disarm broken http tests for now
- - timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || true
+ - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-http
+ - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
  - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./start-test-stop 5300 tinydns

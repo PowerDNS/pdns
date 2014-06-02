@@ -11,21 +11,21 @@ end
 class Handler
    def initialize(dbpath)
      @dbpath = dbpath
+     @db = SQLite3::Database.new @dbpath
    end
 
    def db
-      d = SQLite3::Database.new @dbpath
       if block_given?
-        d.transaction
+        @db.transaction
         begin
-           yield d
+           yield @db
         rescue
-           d.rollback
+           @db.rollback
            return
          end
-         d.commit
+         @db.commit
       else
-         d
+         @db
       end
    end
 
