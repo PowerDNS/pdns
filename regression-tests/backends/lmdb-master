@@ -1,0 +1,17 @@
+case $context in
+	lmdb)
+		${MAKE} -C ../pdns zone2sql > /dev/null
+		rm -f data.mdb lock.mdb
+		../pdns/zone2lmdb --named-conf=./named.conf
+
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
+			--no-shuffle --launch=lmdb \
+			--send-root-referral \
+			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
+			--lmdb-datapath=./ &
+		skipreasons="nodnssec noent nodyndns nometa"
+		;;
+
+	*)
+		nocontext=yes
+esac

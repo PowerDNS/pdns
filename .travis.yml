@@ -79,6 +79,7 @@ script:
  - ./start-test-stop 5300 gsqlite3-nsec3-both
  - ./start-test-stop 5300 gsqlite3-nsec3-optout-both
  - ./start-test-stop 5300 gsqlite3-nsec3-narrow
+ - ./start-test-stop 5300 lmdb
  - ./start-test-stop 5300 mydns
  - ./start-test-stop 5300 opendbx-sqlite3
  - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
