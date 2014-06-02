@@ -116,7 +116,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o ext/yahttp/yahttp/*.o
+	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o ext/yahttp/yahttp/*.o version_generated.h
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@
