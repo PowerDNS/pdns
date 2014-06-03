@@ -290,8 +290,6 @@ public:
   static uint64_t s_nodelegated;
   static uint64_t s_unreachables;
   static unsigned int s_minimumTTL;
-  static bool s_doAAAAAdditionalProcessing;
-  static bool s_doAdditionalProcessing;
   static bool s_doIPv6;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
@@ -438,7 +436,6 @@ private:
   bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  void addCruft(const string &qname, vector<DNSResourceRecord>& ret);
   string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
   void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
 

@@ -1823,9 +1823,6 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
-  SyncRes::s_doAAAAAdditionalProcessing = ::arg().mustDo("aaaa-additional-processing");
-  SyncRes::s_doAdditionalProcessing = ::arg().mustDo("additional-processing") | SyncRes::s_doAAAAAdditionalProcessing;
-  
   SyncRes::s_noEDNSPing = true; // ::arg().mustDo("disable-edns-ping");
   SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
   if(!SyncRes::s_noEDNS) {
@@ -2084,8 +2081,6 @@ int main(int argc, char **argv)
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("soa-serial-offset","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
-    ::arg().set("additional-processing","turn on to do additional processing")="off";
-    ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";

@@ -70,8 +70,6 @@ SyncRes::LogMode SyncRes::s_lm;
 
 bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
-bool SyncRes::s_doAdditionalProcessing;
-bool SyncRes::s_doAAAAAdditionalProcessing;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
                                                  d_now(now),
@@ -131,8 +129,6 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
   
   set<GetBestNSAnswer> beenthere;
   int res=doResolve(qname, qtype, ret, 0, beenthere);
-  if(!res && s_doAdditionalProcessing)
-    addCruft(qname, ret);
   return res;
 }
 
@@ -1182,57 +1178,6 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     }
   }
   return -1;
-}
-
-static bool uniqueComp(const DNSResourceRecord& a, const DNSResourceRecord& b)
-{
-  return(a.qtype==b.qtype && a.qname==b.qname && a.content==b.content);
-}
-
-void SyncRes::addCruft(const string &qname, vector<DNSResourceRecord>& ret)
-{
-  for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k)  // don't add stuff to an NXDOMAIN!
-    if(k->d_place==DNSResourceRecord::AUTHORITY && k->qtype==QType(QType::SOA))
-      return;
-
-  //  LOG(qname<<": Adding best authority records from cache"<<endl);
-  // addAuthorityRecords(qname,ret,0);
-  // LOG(qname<<": Done adding best authority records."<<endl);
-
-  LOG(d_prefix<<qname<<": Starting additional processing"<<endl);
-  vector<DNSResourceRecord> addit;
-
-  for(vector<DNSResourceRecord>::const_iterator k=ret.begin();k!=ret.end();++k) 
-    if( (k->d_place==DNSResourceRecord::ANSWER && (k->qtype==QType(QType::MX) || k->qtype==QType(QType::SRV)))  || 
-       ((k->d_place==DNSResourceRecord::AUTHORITY || k->d_place==DNSResourceRecord::ANSWER) && k->qtype==QType(QType::NS))) {
-      LOG(d_prefix<<qname<<": record '"<<k->content<<"|"<<k->qtype.getName()<<"' needs IP for additional processing"<<endl);
-      set<GetBestNSAnswer> beenthere;
-      vector<pair<string::size_type, string::size_type> > fields;
-      vstringtok(fields, k->content, " ");
-      string host;
-      if(k->qtype==QType(QType::MX) && fields.size()==2)
-        host=string(k->content.c_str() + fields[1].first, fields[1].second - fields[1].first);
-      else if(k->qtype==QType(QType::NS))
-        host=k->content;
-      else if(k->qtype==QType(QType::SRV) && fields.size()==4)
-        host=string(k->content.c_str() + fields[3].first, fields[3].second - fields[3].first);
-      else 
-        continue;
-      // we used to do additional processing here.. no more
-      // doResolve(host, QType(QType::A), addit, 1, beenthere);
-    }
-  
-  if(!addit.empty()) {
-    sort(addit.begin(), addit.end());
-    addit.erase(unique(addit.begin(), addit.end(), uniqueComp), addit.end());
-    for(vector<DNSResourceRecord>::iterator k=addit.begin();k!=addit.end();++k) {
-      if(k->qtype.getCode()==QType::A || k->qtype.getCode()==QType::AAAA) {
-        k->d_place=DNSResourceRecord::ADDITIONAL;
-        ret.push_back(*k);
-      }
-    }
-  }
-  LOG(d_prefix<<qname<<": Done with additional processing"<<endl);
 }
 
 void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
