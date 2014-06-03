@@ -8,7 +8,7 @@ case $context in
 		# cleanup unbound-host.conf to avoid failures
 		rm -f unbound-host.conf
 
-		echo "Setting up test database..."
+		dolog "Setting up test database..."
 		# setup test database
 		rm -f $testsdir/remote.sqlite3
 		sqlite3 $testsdir/remote.sqlite3 < $testsdir/test-schema.sql
@@ -49,7 +49,7 @@ case $context in
 			connstr="pipe:command=$testsdir/pipe-backend.rb"
 			;;
 		*)
-			echo "Invalid usage"
+			dolog "Invalid usage"
 			exit
 			;;
 		esac
