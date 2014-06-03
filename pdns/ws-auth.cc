@@ -286,6 +286,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 static void fillZone(const string& zonename, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
+  DNSSECKeeper dk;
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
@@ -302,9 +303,13 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.AddMember("name", di.zone.c_str(), doc.GetAllocator());
   doc.AddMember("type", "Zone", doc.GetAllocator());
   doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
+  doc.AddMember("dnssec", dk.isSecuredZone(di.zone.c_str()), doc.GetAllocator());
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
   doc.AddMember("soa_edit_api", soa_edit_api.c_str(), doc.GetAllocator());
+  string soa_edit;
+  di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit);
+  doc.AddMember("soa_edit", soa_edit.c_str(), doc.GetAllocator());
   Value masters;
   masters.SetArray();
   BOOST_FOREACH(const string& master, di.masters) {
@@ -464,6 +469,82 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
   if (document["soa_edit_api"].IsString()) {
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", document["soa_edit_api"].GetString());
   }
+  if (document["soa_edit"].IsString()) {
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].GetString());
+  }
+}
+
+static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "GET")
+    throw ApiException("Only GET is implemented");
+
+  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+
+  UeberBackend B;
+  DomainInfo di;
+  DNSSECKeeper dk;
+
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  if(!dk.isSecuredZone(zonename))
+    throw ApiException("Zone '"+zonename+"' is not secured");
+
+  DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename);
+
+  if (keyset.empty())
+    throw ApiException("No keys for zone '"+zonename+"'");
+
+  Document doc;
+  doc.SetArray();
+
+  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+    if (req->path_parameters.count("key_id")) {
+      int keyid = lexical_cast<int>(req->path_parameters["key_id"]);
+      int curid = lexical_cast<int>(value.second.id);
+      if (keyid != curid)
+        continue;
+    }
+    Value key;
+    key.SetObject();
+    key.AddMember("type", "Cryptokey", doc.GetAllocator());
+    key.AddMember("id", value.second.id, doc.GetAllocator());
+    key.AddMember("active", value.second.active, doc.GetAllocator());
+    key.AddMember("keytype", (value.second.keyOrZone ? "ksk" : "zsk"), doc.GetAllocator());
+    if (req->path_parameters.count("key_id")) {
+      Value content(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
+      key.AddMember("content", content, doc.GetAllocator());
+    }
+
+    if (value.second.keyOrZone) {
+      Value dses;
+      dses.SetArray();
+      Value ds(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 1).getZoneRepresentation().c_str(), doc.GetAllocator());
+      dses.PushBack(ds, doc.GetAllocator());
+      Value ds2(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 2).getZoneRepresentation().c_str(), doc.GetAllocator());
+      dses.PushBack(ds2, doc.GetAllocator());
+
+      try {
+        Value ds3(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 3).getZoneRepresentation().c_str(), doc.GetAllocator());
+        dses.PushBack(ds3, doc.GetAllocator());
+      }
+      catch(...)
+      {
+      }
+      try {
+        Value ds4(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 4).getZoneRepresentation().c_str(), doc.GetAllocator());
+        dses.PushBack(ds4, doc.GetAllocator());
+      }
+      catch(...)
+      {
+      }
+      key.AddMember("ds", dses, doc.GetAllocator());
+    }
+
+    doc.PushBack(key, doc.GetAllocator());
+  }
+
+  resp->setBody(doc);
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
@@ -1100,6 +1181,8 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
