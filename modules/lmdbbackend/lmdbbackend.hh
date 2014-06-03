@@ -24,6 +24,9 @@ private:
     // Is this the first call to ::get() ?
     bool d_first;
 
+    // Is dnssec enabled ?
+    bool d_doDnssec;
+
     // Current domain ID being queried for
     int d_domain_id;
 

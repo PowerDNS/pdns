@@ -32,6 +32,12 @@
 LMDBBackend::LMDBBackend(const string &suffix)
 {
     setArgPrefix("lmdb"+suffix);
+    try {
+      d_doDnssec = mustDo("experimental-dnssec");
+    }
+    catch (ArgException e) {
+      d_doDnssec = false;
+    }
     open_db();
 }
 
@@ -49,7 +55,7 @@ void LMDBBackend::open_db() {
     if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
 
-    if( (rc = mdb_env_set_maxdbs( env, 5 )) )
+    if( (rc = mdb_env_set_maxdbs( env, d_doDnssec ? 5 : 3)) )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_set_maxdbs() returned " + mdb_strerror(rc));
 
     if( (rc = mdb_env_open(env, path.c_str(), MDB_RDONLY, 0)) )
@@ -73,16 +79,18 @@ void LMDBBackend::open_db() {
     if( ( rc = mdb_cursor_open(txn, data_extended_db, &data_extended_cursor)) )
         throw PDNSException("Couldn't open cursor on LMDB data_extended database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
-    if( (rc = mdb_dbi_open(txn, "rrsig", MDB_DUPSORT, &rrsig_db) ))
-        throw PDNSException("Couldn't open LMDB rrsig database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
-    if( ( rc = mdb_cursor_open(txn, rrsig_db, &rrsig_cursor)) )
-        throw PDNSException("Couldn't open cursor on LMDB rrsig database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+    if(d_doDnssec) {
+      DEBUGLOG("Experimental dnssec support enabled"<<endl);
+      if( (rc = mdb_dbi_open(txn, "rrsig", MDB_DUPSORT, &rrsig_db) ))
+          throw PDNSException("Couldn't open LMDB rrsig database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+      if( ( rc = mdb_cursor_open(txn, rrsig_db, &rrsig_cursor)) )
+          throw PDNSException("Couldn't open cursor on LMDB rrsig database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
-    if( (rc = mdb_dbi_open(txn, "nsecx", 0, &nsecx_db) ))
-        throw PDNSException("Couldn't open LMDB nsecx database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
-    if( ( rc = mdb_cursor_open(txn, nsecx_db, &nsecx_cursor)) )
-        throw PDNSException("Couldn't open cursor on LMDB nsecx database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
-
+      if( (rc = mdb_dbi_open(txn, "nsecx", 0, &nsecx_db) ))
+          throw PDNSException("Couldn't open LMDB nsecx database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+      if( ( rc = mdb_cursor_open(txn, nsecx_db, &nsecx_cursor)) )
+          throw PDNSException("Couldn't open cursor on LMDB nsecx database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+    }
 }
 
 void LMDBBackend::close_db() {
@@ -91,13 +99,15 @@ void LMDBBackend::close_db() {
     mdb_cursor_close(data_cursor);
     mdb_cursor_close(zone_cursor);
     mdb_cursor_close(data_extended_cursor);
-    mdb_cursor_close(rrsig_cursor);
-    mdb_cursor_close(nsecx_cursor);
     mdb_dbi_close(env, data_db);
     mdb_dbi_close(env, zone_db);
     mdb_dbi_close(env, data_extended_db);
-    mdb_dbi_close(env, rrsig_db);
-    mdb_dbi_close(env, nsecx_db);
+    if (d_doDnssec) {
+      mdb_cursor_close(rrsig_cursor);
+      mdb_cursor_close(nsecx_cursor);
+      mdb_dbi_close(env, rrsig_db);
+      mdb_dbi_close(env, nsecx_db);
+    }
     mdb_txn_abort(txn);
     mdb_env_close(env);
 }
@@ -114,6 +124,9 @@ void LMDBBackend::reload() {
 
 bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
+  if (!d_doDnssec)
+    return false;
+
   if (kind == "PRESIGNED" || kind == "NSEC3PARAM") {
     int rc;
     MDB_val key, data;
@@ -145,6 +158,9 @@ bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind,
 
 bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
 {
+  if (!d_doDnssec)
+    return false;
+
   MDB_val key, data;
   string key_str, cur_key, cur_value;
   vector<string> keyparts, valparts;
@@ -212,6 +228,9 @@ hasnsecx:
 
 bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
 {
+  if (!d_doDnssec)
+    return false;
+
   int rc;
   MDB_val key, data;
   string key_str, cur_value;
@@ -266,8 +285,10 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
     mdb_cursor_renew( txn, zone_cursor );
     mdb_cursor_renew( txn, data_cursor );
     mdb_cursor_renew( txn, data_extended_cursor );
-    mdb_cursor_renew( txn, rrsig_cursor );
-    mdb_cursor_renew( txn, nsecx_cursor );
+    if (d_doDnssec) {
+      mdb_cursor_renew( txn, rrsig_cursor );
+      mdb_cursor_renew( txn, nsecx_cursor );
+    }
 
     // Find the nearest record, or the last record if none
     if( mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_RANGE) )
@@ -277,7 +298,7 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
     /* Only skip this bit if we got an exact hit on the SOA or if the key is a shoter
      * version of rev_zone. Otherwise we have to go back to the previous record */
-    if( orig.compare( rev_zone ) != 0 ) {
+    if( orig.compare( rev_zone ) != 0 ) { // FIXME detect shorter version
         /* Skip back 1 entry to what should be a substring of what was searched
          * for (or a totally different entry) */
         if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {
@@ -307,7 +328,7 @@ bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
     vector<string>parts;
     stringtok(parts,data,"\t");
 
-    if(parts.size() < 3 )
+    if(parts.size() < 3)
         throw PDNSException("Invalid record in zone table: " + data );
 
     fillSOAData( parts[2], soa );
@@ -500,6 +521,7 @@ public:
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"datapath","Path to the directory containing the lmdb files","/etc/pdns/data");
+    declare(suffix,"experimental-dnssec","Enable experimental DNSSEC processing","no");
   }
   DNSBackend *make(const string &suffix="")
   {
