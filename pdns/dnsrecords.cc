@@ -48,17 +48,19 @@ void DNSResourceRecord::setContent(const string &cont) {
   }
 }
 
-string DNSResourceRecord::getZoneRepresentation() {
+string DNSResourceRecord::getZoneRepresentation() const {
   ostringstream ret;
   switch(qtype.getCode()) {
     case QType::SRV:
     case QType::MX:
       ret<<priority;
-      ret<<" "<<content<<".";
+      ret<<" "<<content;
+      if (*(content.rbegin()) != '.') ret<<".";
     break;
     case QType::CNAME:
     case QType::NS:
-      ret<<content<<".";
+      ret<<content;
+      if (*(content.rbegin()) != '.') ret<<".";
     break;
     default:
       ret<<content;
