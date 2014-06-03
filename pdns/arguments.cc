@@ -326,6 +326,8 @@ void ArgvMap::parseOne(const string &arg, const string &parseOnly, bool lax)
   }
   else // command
     d_cmds.push_back(arg);
+ 
+  boost::trim(var);
 
   if(var!="" && (parseOnly.empty() || var==parseOnly)) {
     pos=val.find_first_not_of(" \t");  // strip leading whitespace
