@@ -36,4 +36,5 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
 void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret);
 void pushSyslogSecurityLevelTable(lua_State *lua);
 int getLuaTableLength(lua_State* lua, int depth);
+void luaStackDump (lua_State *L);
 #endif

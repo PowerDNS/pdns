@@ -93,7 +93,7 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3.6"><title>PowerDNS Recursor version 3.6</title>
+      <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
       <note>
         <para>
 	  UNRELEASED
@@ -102,6 +102,11 @@
         <para>
 	  New features:
         <itemizedlist>
+          <listitem>
+            <para>
+              gaadceba: Implement minimum-ttl-override config setting, plus runtime configurability via 'rec_control set-minimum-ttl'.
+            </para>
+          </listitem>
           <listitem>
             <para>
               Lots of work on the JSON API, which is exposed via Aki Tuomi's 'yahttp'. Massive thanks to Christian Hofstaedtler for delivering
@@ -158,11 +163,27 @@
 	      Described in <ulink url="http://blog.powerdns.com/2014/04/03/further-dos-guidance-packages-and-patches-available/">this post</ulink>. Also comes with new metric 'failed-host-entries' in g406f46f.
 	    </para>
 	  </listitem>
+    <listitem>
+      <para>
+        g21e7976: Implement "followCNAMERecords" feature in the Lua hooks.
+      </para>
+    </listitem>
 
 	</itemizedlist>
 
 	  Improvements:
         <itemizedlist>
+          <listitem>
+            <para>
+              g06ea901: make pdns-distributes-queries use a hash so related queries get sent to the same thread. Original idea by Winfried Angele. Astoundingly effective, approximately halves CPU usage!
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              gb13e737: --help now writes to stdout instead of stderr. Thanks Winfried Angele.
+            </para>
+          </listitem>
+
           <listitem>
             <para>
               To aid in limiting DoS attacks, when truncating a response, we actually truncate all the way
@@ -227,14 +248,30 @@ to Niels Bakker and 'sid3windr' for insight &amp; debugging.  Closes t844.
 	</itemizedlist>
 	Fixes:
 	<itemizedlist>
-	  <listitem>
+    <listitem>
+      <para>
+        0c9de4fc: stay away from getaddrinfo unless we really can't help it for ascii ipv6 conversions to binary
+      </para>
+    </listitem>
+
+    <listitem>
+      <para>
+        g08f3f63: fix average latency calculation, closing t424.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+        g75ba907: Some of our counters were still 32 bits, now 64.
+      </para>
+    </listitem>
+    <listitem>
             <para>
 	      g2f22827: Fix statistics and stability when running with pdns-distributes-queries.
 	    </para>
 	  </listitem>
 	  <listitem>
             <para>
-	      g6196f90: avoid merging old and new additional data, fixes an issue caused by weird (but proably legal) Akamai behaviour
+	      g6196f90: avoid merging old and new additional data, fixes an issue caused by weird (but probably legal) Akamai behaviour
 	    </para>
 	  </listitem>
 	  <listitem>
@@ -259,11 +296,6 @@ to Niels Bakker and 'sid3windr' for insight &amp; debugging.  Closes t844.
           <listitem>
             <para>
               All old workarounds for supporting Windows of the XP era have been removed. 
-            </para>
-          </listitem>
-          <listitem>
-            <para>
-              Add (theoretical) support for 64 bit bigendian DNSSEC processing (g0c37420).
             </para>
           </listitem>
           <listitem>
@@ -13449,6 +13481,47 @@ $ pdnssec rectify-zone powerdnssec.org
   </para>
   </section>
 </section>
+  <section id="dnssec-pkcs11"><title>PKCS#11 support</title>
+    <para>
+      NB! This feature is experimental, and not ready for production. Use at your own risk!
+    </para>
+    <para>
+      To enable it, compile PowerDNS Authoritative Server using --experimental-pkcs11-support flag. This requires you to have p11-kit libraries and headers. 
+    </para>
+    <para> 
+      Instructions on how to setup SoftHSM to work with the feature after compilation on ubuntu/debian.
+      <itemizedlist>
+      <listitem><para>apt-get install softhsm p11-kit</para></listitem>
+      <listitem><para>create directory /etc/pkcs11/modules</para></listitem>
+      <listitem><para>Add file called 'softhsm' there with (on some versions, use softhsm.module)
+<programlisting>
+module: /home/cmouse/softhsm/lib/softhsm/libsofthsm.so
+managed: yes
+</programlisting>
+</para></listitem>
+      <listitem><para>Run p11-kit -l to verify it worked (you should see softhsm there)</para></listitem>
+      <listitem><para>Create at least two tokens (ksk and zsk) with (slot-number starts from 0)
+<programlisting>
+softhsm --init-token --slot slot-number --label zone-ksk|zone-zsk --pin some-pin --so-pin another-pin 
+</programlisting>
+</para></listitem>
+      <listitem><para>Run p11-kit -l to verify it worked (you should see softhsm there and tokens)</para></listitem>
+      <listitem><para>Assign the keys using
+<programlisting>
+pdnssec hsm assign zone rsasha256 ksk|zsk softhsm slot-id pin zone-ksk|zsk
+</programlisting>
+</para></listitem>
+      <listitem><para>Take note of the generated key id, if it always shows up 1, run pdnssec show-zone zone to retrieve them</para></listitem>
+      <listitem><para>Generate the keys using
+<programlisting>
+pdnssec hsm create-key zone key-id
+</programlisting>
+</para></listitem>
+      <listitem><para>Verify that everything worked with pdnssec show-zone zone, you should see valid data there</para></listitem>
+      <listitem><para>Enjoy using PKCS#11!</para></listitem>
+      </itemizedlist>
+    </para>
+  </section>
   <section id="dnssec-transfers"><title>Secure transfers</title>
   <para>
     From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in <ulink
@@ -14556,6 +14629,14 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term>latency-statistic-size</term>
+	    <listitem>
+	      <para>
+		Indication of how many queries will be averaged to get the average latency reported by the 'qa-latency' metric. Since 3.6.
+	      </para>
+	    </listitem>
+	  </varlistentry>
 
 	  <varlistentry>
 	    <term>local-address</term>
@@ -15263,6 +15344,7 @@ packetcache-bytes   Size of the packet cache in bytes (since 3.3.1)
 packetcache-entries Size of packet cache (since 3.2)
 packetcache-hits    Packet cache hits (since 3.2)
 packetcache-misses  Packet cache misses (since 3.2)
+policy-drops        Packets dropped because of (Lua) policy decision
 qa-latency          shows the current latency average, in microseconds
 questions           counts all End-user initiated queries with the RD bit set
 ipv6-questions      counts all End-user initiated queries with the RD bit set, received over IPv6 UDP
@@ -15277,7 +15359,7 @@ tcp-questions       counts all incoming TCP queries (since starting)
 throttled-out       counts the number of throttled outgoing UDP queries since starting
 throttle-entries    shows the number of entries in the throttle map
 unauthorized-tcp    number of TCP questions denied because of allow-from restrictions
-unauthorized-udp    number of UDP questions denied because of allow-from restrictions
+unauthorized-udp    number of UDP questions denied because of allow-from restrictions 
 unexpected-packets  number of answers from remote servers that were unexpected (might point to spoofing)
 uptime              number of seconds process has been running (since 3.1.5)
 user-msec           number of CPU milliseconds spent in 'user' mode
@@ -15286,7 +15368,10 @@ user-msec           number of CPU milliseconds spent in 'user' mode
 	graphs of all these numbers. Use <command>rec_control get-all</command> to get all statistics in one go.
       </para>
       <para>
-	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops = questions.
+	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops + policy-drops = questions.
+      </para>
+      <para>
+	Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count. 
       </para>
       <para>
 	Every half our or so, the recursor outputs a line with statistics. More infrastructure is planned so as to allow
@@ -15313,14 +15398,7 @@ Feb 10 14:16:03 stats: 125784 questions, 13971 cache entries, 309 negative entri
 	programming language.
       </para>
       <para>
-	<warning>
-	  <para>
-	    This functionality is expected to change from version to version as additional scripting needs become apparent!
-	  </para>
-	</warning>
-      </para>
-      <para>
-	These scripts can be used to quickly override dangerous domains, for load balancing or for legal or commercial purposes.
+	These scripts can be used to quickly override dangerous domains, fix things that are wrong, for load balancing or for legal or commercial purposes.
       </para>
       <para>
 	As of 3.1.7, queries can be intercepted in two places: before the resolving logic starts to work, plus after the resolving process failed to find
@@ -15419,7 +15497,8 @@ end
 	  '25 smtp.example.net.'.
 	</para>
 	<para>
-	  Useful return 'rcodes' include 0 for "no error" and <function>pdns.NXDOMAIN</function> for "NXDOMAIN".
+	  Useful return 'rcodes' include 0 for "no error", <function>pdns.NXDOMAIN</function> for "NXDOMAIN", <function>pdns.DROP</function> to drop the question
+	  from further processing (since 3.6, and such a drop is accounted in the 'policy-drops' metric).
 	</para>
 	<para>
 	  Fields that can be set in the return table include:
@@ -15528,6 +15607,13 @@ end
 	<para>
 	  To get fake AAAA records for DNS64 usage, use <function>return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"</function>. Available since version 3.4.
 	</para>
+	<sect3><title>CNAME chain resolution</title>
+	  <para>
+	    It may be useful to return a CNAME record for Lua, and then have the PowerDNS Recursor continue resolving that CNAME.
+	    This can be achieved by returning: "followCNAMERecords", 0, {{qtype=pdns.CNAME, content="www.powerdns.com"}}. This indicates
+	    an rcode of 0 and the records to put in the record. But the first string instruct PowerDNS to complete the CNAME chain. Available since 3.6.
+	  </para>
+	</sect3>
       </sect2>
     </sect1>
     <sect1 id="dns64"><title>DNS64 support in the PowerDNS Recursor</title>
@@ -15969,7 +16055,7 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	containing one or more replacement records to be stored in the back-end database. If, on the other hand, your 
 	function decides not to modify a record, it must return pdns.PASS and an empty table indicating that PowerDNS should 
 	handle the incoming record as normal. If your function decides to drop a query and not respond whatsoever, it must return
-  pdns.DROP and an empty table indicating that the recursor does not want to process the packet in Lua nor in the core recursor logic.
+	pdns.DROP and an empty table indicating that the recursor does not want to process the packet in Lua nor in the core recursor logic.
       </para>
       <para>
 	Consider the following simple example:
@@ -16157,7 +16243,8 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <term>also-notify=...</term>
 	  <listitem>
 	    <para>
-	      When notifying a domain, also notify these nameservers. Example: <command>also-notify=192.168.0.1, 10.0.0.1</command>.
+	      When notifying a domain, also notify these nameservers. Example: <command>also-notify=192.168.0.1, 10.0.0.1</command>. The IP adresses listed in <command>
+	      also-notify</command> always receive a notification. Even if they do not mach the list in <command>only-notify</command>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -17640,6 +17727,10 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	      <para>
 		Command to launch as backend. Mandatory.
 	      </para>
+        <para>
+    Or the path to a unix domain socket file. The socket should already be open and listening before pdns starts.
+    Available since version 3.3.
+        </para>
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
@@ -17679,6 +17770,7 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 		If not set the default pipebackend-abi-version is 1. When set to 2, the local-ip-address field is added
 		after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on). When
 		set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling 'edns-subnet-processing').
+                When set to 4 it sends zone name in AXFR request.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -17783,9 +17875,9 @@ query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
 <para>
 AXFR-queries look like this:
 <screen>
-AXFR	id
+AXFR	id	zoneName
 </screen>
-The id is gathered from the answer to a SOA query.
+The id is gathered from the answer to a SOA query. ZoneName is given in ABI version 4. 
 
 </para> 
  </sect3>

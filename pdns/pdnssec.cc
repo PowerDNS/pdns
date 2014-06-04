@@ -1119,8 +1119,12 @@ try
     cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits"<<endl;
     cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
-    cerr<<"hsm assign zone module slot pin    Assign a hardware signing module to a ZONE"<<endl;
-    cerr<<"hsm create-key zone                Create a key using hardware signing module for ZONE (assign first)"<<endl;
+#ifdef HAVE_P11KIT1
+    cerr<<"hsm assign zone zsk|ksk module slot pin label"<<endl<<
+          "                                   Assign a hardware signing module to a ZONE"<<endl;
+    cerr<<"hsm create-key zone [bits]         Create a key using hardware signing module for ZONE (use assign first)"<<endl; 
+    cerr<<"                                   bits defaults to 2048"<<endl;
+#endif
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
@@ -1891,6 +1895,7 @@ try
       cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
     }
   } else if (cmds[0]=="hsm") {
+#ifdef HAVE_P11KIT1
     UeberBackend B("default");
     if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
@@ -1938,10 +1943,15 @@ try
      cerr << "Module " << module << " slot " << slot << " assigned to " << zone << " with key id " << id << endl;
      return 0;
     } else if (cmds[1] == "create-key") {
+
+      if (cmds.size() < 4) {
+        cerr << "Usage: pdnssec hsm create-key zone key-id [bits]" << endl;
+        return 1;
+      }
       DomainInfo di;
       string zone = cmds[2];
       unsigned int id;
-
+      int bits = 2048;
       // verify zone
       if (!B.getDomainInfo(zone, di)) {
         cerr << "Unable to create key for unknown zone '" << zone << "'" << std::endl;
@@ -1969,19 +1979,27 @@ try
         cerr << "Could not find key with ID " << id << endl;
         return 1;
       }
+      if (cmds.size() > 4) {
+        bits = boost::lexical_cast<int>(cmds[4]);
+      }
+      if (bits < 1) {
+        cerr << "Invalid bit size " << bits << "given, must be positive integer";
+        return 1;
+      }
       try {
-        dke->create(2048);
-      } catch (PDNSException& e1) {
-         cerr << e1.reason << endl;
-         return 1;
-      } catch (PDNSException* e2) {
-         cerr << e2->reason << endl;
+        dke->create(bits);
+      } catch (PDNSException& e) {
+         cerr << e.reason << endl;
          return 1;
       }
 
-      cerr << "Created key i think" << std::endl;
+      cerr << "Key of size " << bits << " created" << std::endl;
       return 0;
     }
+#else
+    cerr<<"PKCS#11 support not enabled"<<endl;
+    return 1; 
+#endif
   } else {
     cerr<<"Unknown command '"<<cmds[0] <<"'"<< endl;
     return 1;

@@ -179,9 +179,13 @@ sdig_SOURCES=sdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 
 saxfr_SOURCES=saxfr.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
-	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc dnssecinfra.cc
+	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc dnssecinfra.cc 
 saxfr_LDADD= $(POLARSSL_LIBS)
 
+if PKCS11
+saxfr_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+saxfr_LDADD += $(P11KIT1_LIBS)
+endif
 
 dnstcpbench_SOURCES=dnstcpbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -203,6 +207,10 @@ nsec3dig_SOURCES=nsec3dig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc d
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc
 nsec3dig_LDADD= $(POLARSSL_LIBS)
 
+if PKCS11
+nsec3dig_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+nsec3dig_LDADD += $(P11KIT1_LIBS)
+endif
 
 toysdig_SOURCES=toysdig.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -218,6 +226,11 @@ tsig_tests_SOURCES=tsig-tests.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.
 	randomhelper.cc dns.cc
 tsig_tests_LDADD= $(POLARSSL_LIBS)
 
+
+if PKCS11
+tsig_tests_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+tsig_tests_LDADD += $(P11KIT1_LIBS)
+endif
 
 speedtest_SOURCES=speedtest.cc dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
@@ -291,7 +304,8 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
 	test-base64_cc.cc test-iputils_hh.cc test-dns_random_hh.cc dns_random.cc \
 	test-rcpgenerator_cc.cc responsestats.cc test-bindparser_cc.cc \
-	bindparser.cc bindlexer.c dns.cc 
+	bindparser.cc bindlexer.c test-zoneparser_tng_cc.cc zoneparser-tng.hh \
+        zoneparser-tng.cc dns.cc
 
 testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)

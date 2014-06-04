@@ -62,9 +62,10 @@ mkdir -p $DIRNAME/ext/polarssl-1.3.2/include/polarssl
 cp -a ext/polarssl-1.3.2/include/polarssl/config.h ext/polarssl-1.3.2/include/polarssl/aes.h ext/polarssl-1.3.2/include/polarssl/padlock.h $DIRNAME/ext/polarssl-1.3.2/include/polarssl
 mkdir -p $DIRNAME/ext/polarssl-1.3.2/library
 cp -a ext/polarssl-1.3.2/library/aes.c ext/polarssl-1.3.2/library/padlock.c $DIRNAME/ext/polarssl-1.3.2/library
-cp -a ext/yahttp/ $DIRNAME/ext/
+cp -a ext/yahttp/ $DIRNAME/ext/yahttp
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
+cp dnslabeltext.rl $DIRNAME
 cp pdns-recursor.init.d $DIRNAME
 cp docs/pdns_recursor.1 docs/rec_control.1 $DIRNAME
 cp configure-recursor $DIRNAME/configure
@@ -77,6 +78,7 @@ cp ../build-scripts/redhat/pdns-recursor-test.spec $DIRNAME/build-scripts/redhat
 mkdir -p $DIRNAME/sysdeps
 rm -f sysdeps-recursor/*~
 cp  sysdeps-recursor/* $DIRNAME/sysdeps
+touch $DIRNAME/dnslabeltext.cc # avoid spurious recompiles
 tar cf $DIRNAME.tar $DIRNAME
 bzip2 -f $DIRNAME.tar # .. solaris
 

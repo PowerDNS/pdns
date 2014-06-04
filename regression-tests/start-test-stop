@@ -15,6 +15,11 @@ export KEY
 
 trap "kill_process 2" EXIT INT TERM
 
+dolog()
+{
+	echo "[$(date "+%F %R:%S.%N")] $*"
+}
+
 tosql ()
 {
 	${MAKE} -C ../pdns zone2sql > /dev/null
@@ -28,7 +33,7 @@ bindwait ()
 	domcount=$(grep -c ^zone named.conf)
 	if [ ! -x ../pdns/pdns_control ]
 	then
-		echo "No pdns_control found"
+		dolog "No pdns_control found"
 		exit
 	fi
 	loopcount=0
@@ -54,6 +59,7 @@ securezone ()
 {
 	local zone=$1
 	local configname=$2
+
 	if [ -n "$configname" ]
 	then
 		configname="--config-name=$configname"
@@ -66,7 +72,26 @@ securezone ()
 		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
 		../pdns/pdnssec --config-dir=. $configname rectify-zone $zone 2>&1
 	else
-		../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1
+		# check if PKCS#11 should be used
+		if [ $pcks11 -eq 1 ]; then
+                  if [ "$slot" == "" ]; then
+                    slot=0
+                  else
+                    slot=$((slot+1))
+                  fi
+                  sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot 
+                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'` 
+# keep this until #1413 is merged
+                  kid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
+                  ../pdns/pdnssec --config-dir=. $configname hsm create-key $zone $kid
+                  slot=$((slot+1))
+                  sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot
+                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
+                  kid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
+                  ../pdns/pdnssec --config-dir=. $configname hsm create-key $zone $kid
+                else
+                  ../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1
+                fi
 	fi
 }
 
@@ -129,13 +154,13 @@ kill_process ()
 
 if [ ! -x $PDNS ]
  then
-	echo "$PDNS is not executable binary"
+	dolog "$PDNS is not executable binary"
 	exit
 fi
 
 if [ ! -x $PDNS2 ]
 then
-	echo "$PDNS2 is not executable binary"
+	dolog "$PDNS2 is not executable binary"
 	exit
 fi
 
@@ -227,10 +252,17 @@ then
 fi
 
 optout=0
+pkcs11=0
 
 if [ "${context: -13}" = "-nsec3-optout" ]
 then
 	optout=1
+fi
+
+if [ "${context: -7}" = "-pkcs11" ]
+then
+        pcks11=1
+        context=${context:0:-7}
 fi
 
 # check for lua
@@ -303,7 +335,7 @@ fi
 
 if [ "$wait" = "wait" ]
 then
-	echo tests done! push enter to terminate instance
+	dolog "tests done! push enter to terminate instance"
 	read l
 fi
 

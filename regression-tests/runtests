@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+dolog()
+{
+        echo "[$(date "+%F %R:%S.%N")] $*"
+}
+
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
 
@@ -23,7 +29,7 @@ do
 	fi
 	testname=$(basename $a)
 	export testname
-	echo  "$testname: "
+	dolog "$testname: "
 	cat $a/description 
 
 	echo  "$testname: " >> test-results
@@ -77,14 +83,15 @@ do
 			passed=$[$passed+1]
 		fi
 	fi	
-	echo "$result"
+	dolog "$result"
 	echo
 	echo "$result" >> test-results
 	echo >> test-results
 done
 
+echo -n "[$(date "+%F %R:%S.%N")] "
 echo -n $passed out of $[$passed+$failed]
 echo -n " ("
 res=$((echo scale=2; echo 100*$passed/\($passed+$failed\)) | bc )
 echo -n "$res%) "
-echo tests passed, $skipped were skipped
+dolog tests passed, $skipped were skipped

@@ -80,7 +80,7 @@ public:
   ~DNSResourceRecord(){};
 
   void setContent(const string& content);
-  string getZoneRepresentation();
+  string getZoneRepresentation() const;
 
   // data
   

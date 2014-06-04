@@ -76,6 +76,7 @@ __thread FDMultiplexer* t_fdm;
 __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
 unsigned int g_networkTimeoutMsec;
+uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
 bool g_anyToTcp;
 uint16_t g_udpTruncationThreshold;
@@ -547,10 +548,9 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
-       res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+      res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
@@ -569,6 +569,7 @@ void startDoResolve(void *p)
     }
     
     if(res == RecursorBehaviour::DROP) {
+      g_stats.policyDrops++;
       delete dc;
       dc=0;
       return;
@@ -691,9 +692,9 @@ void startDoResolve(void *p)
       g_stats.answersSlow++;
 
     uint64_t newLat=(uint64_t)(spent*1000000);
-    if(newLat < 1000000)  // outliers of several minutes exist..
-      g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0.0001*newLat);
-
+    newLat = min(newLat,(uint64_t)(g_networkTimeoutMsec*1000)); // outliers of several minutes exist..
+    g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
+    // no worries, we do this for packet cache hits elsewhere
     delete dc;
     dc=0;
   }
@@ -874,7 +875,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
         L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
-
+      
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
       ageDNSPacket(response, age);
@@ -884,7 +885,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
         memcpy(&dh, response.c_str(), sizeof(dh));
         updateRcodeStats(dh.rcode);
       }
-      g_stats.avgLatencyUsec=(uint64_t)((1-0.0001)*g_stats.avgLatencyUsec + 0); // we assume 0 usec
+      g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
       return 0;
     }
   } 
@@ -1822,9 +1823,6 @@ int serviceMain(int argc, char*argv[])
     exit(99);
   }
 
-  SyncRes::s_doAAAAAdditionalProcessing = ::arg().mustDo("aaaa-additional-processing");
-  SyncRes::s_doAdditionalProcessing = ::arg().mustDo("additional-processing") | SyncRes::s_doAAAAAdditionalProcessing;
-  
   SyncRes::s_noEDNSPing = true; // ::arg().mustDo("disable-edns-ping");
   SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
   if(!SyncRes::s_noEDNS) {
@@ -1850,6 +1848,7 @@ int serviceMain(int argc, char*argv[])
 
   g_initialDomainMap = parseAuthAndForwards();
  
+  g_latencyStatSize=::arg().asNum("latency-statistic-size");
     
   g_logCommonErrors=::arg().mustDo("log-common-errors");
 
@@ -2082,8 +2081,6 @@ int main(int argc, char **argv)
     ::arg().set("soa-minimum-ttl","Don't change")="0";
     ::arg().set("soa-serial-offset","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
-    ::arg().set("additional-processing","turn on to do additional processing")="off";
-    ::arg().set("aaaa-additional-processing","turn on to do AAAA additional processing (slow)")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
@@ -2149,6 +2146,7 @@ int main(int argc, char **argv)
     ::arg().set("etc-hosts-file", "Path to 'hosts' file")="/etc/hosts";
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
+    ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
 //    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no"; 
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 

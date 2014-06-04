@@ -7,6 +7,7 @@ OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl-1.3.2/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl-1.3.2/include -pthread
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread
+STRIP_BINARIES?=1
 
 LINKCC=$(CXX)
 CC?=gcc
@@ -33,6 +34,12 @@ all: message version_generated.h build
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
+ifeq ($(shell uname),GNU/kFreeBSD)
+	-include sysdeps/FreeBSD.inc
+endif
+ifeq ($(shell uname),GNU/Hurd)
+	-include sysdeps/Linux.inc
+endif
 
 ifeq ($(LUA), 1)
 	LUALIBS=$(LUA_LIBS_CONFIG)
@@ -58,6 +65,9 @@ LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
 
 CXXFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
+
+%.cc: %.rl
+	ragel $< -o $@
 
 # Version
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
@@ -93,10 +103,14 @@ basic_checks:
 install: build-stamp
 	-mkdir -p $(DESTDIR)/$(SBINDIR)
 	mv pdns_recursor $(DESTDIR)/$(SBINDIR)
+ifeq ($(STRIP_BINARIES), 1)
 	strip $(DESTDIR)/$(SBINDIR)/pdns_recursor
+endif
 	mkdir -p $(DESTDIR)/$(BINDIR)
 	mv rec_control $(DESTDIR)/$(BINDIR)
+ifeq ($(STRIP_BINARIES), 1)
 	strip $(DESTDIR)/$(BINDIR)/rec_control
+endif
 	-mkdir -p $(DESTDIR)/$(SYSCONFDIR)
 	$(DESTDIR)/$(SBINDIR)/pdns_recursor --config > $(DESTDIR)/$(SYSCONFDIR)/recursor.conf-dist
 	-mkdir -p $(DESTDIR)/usr/share/man/man1
@@ -107,7 +121,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o  pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o ext/yahttp/yahttp/*.o
+	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/polarssl-1.3.2/library/*.o ext/yahttp/yahttp/*.o version_generated.h
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@

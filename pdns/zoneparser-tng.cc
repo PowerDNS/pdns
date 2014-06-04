@@ -379,7 +379,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::MX:
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
-      recparts[1] = stripDot(toCanonic(d_zonename, recparts[1]));
+      if (recparts[1]!=".")
+        recparts[1] = stripDot(toCanonic(d_zonename, recparts[1]));
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;

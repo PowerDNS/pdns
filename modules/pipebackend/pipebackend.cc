@@ -32,6 +32,7 @@ CoWrapper::CoWrapper(const string &command, int timeout)
    d_cp=0;
    d_command=command;
    d_timeout=timeout;
+   d_abiVersion = ::arg().asNum("pipebackend-abi-version");
    launch(); // let exceptions fall through - if initial launch fails, we want to die
    // I think
 }
@@ -52,7 +53,7 @@ void CoWrapper::launch()
      d_cp = new UnixRemote(d_command, d_timeout);
    else
      d_cp = new CoProcess(d_command, d_timeout); 
-   d_cp->send("HELO\t"+lexical_cast<string>(::arg().asNum("pipebackend-abi-version")));
+   d_cp->send("HELO\t"+lexical_cast<string>(d_abiVersion));
    string banner;
    d_cp->receive(banner); 
    L<<Logger::Error<<"Backend launched with banner: "<<banner<<endl;
@@ -94,6 +95,7 @@ PipeBackend::PipeBackend(const string &suffix)
      d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout")));
      d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
      d_regexstr=getArg("regex");
+     d_abiVersion = ::arg().asNum("pipebackend-abi-version");
    }
    catch(const ArgException &A) {
       L<<Logger::Error<<kBackendId<<" Fatal argument error: "<<A.reason<<endl;
@@ -122,15 +124,14 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
             realRemote = pkt_p->getRealRemote();
             remoteIP = pkt_p->getRemote();
          }
-         int abiVersion = ::arg().asNum("pipebackend-abi-version");
          // pipebackend-abi-version = 1
          // type    qname           qclass  qtype   id      remote-ip-address
          query<<"Q\t"<<qname<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
 
          // add the local-ip-address if pipebackend-abi-version is set to 2
-         if (abiVersion >= 2)
+         if (d_abiVersion >= 2)
             query<<"\t"<<localIP;
-         if(abiVersion >= 3)
+         if(d_abiVersion >= 3)
            query <<"\t"<<realRemote.toString(); 
 
          if(::arg().mustDo("query-logging"))
@@ -154,8 +155,10 @@ bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled
 // The question format:
 
 // type    qname           qclass  qtype   id      ip-address
-
-      query<<"AXFR\t"<<inZoneId;
+      if (d_abiVersion >= 4)
+        query<<"AXFR\t"<<inZoneId<<"\t"<<target;
+      else
+        query<<"AXFR\t"<<inZoneId;
 
       d_coproc->send(query.str());
    }
@@ -193,9 +196,8 @@ bool PipeBackend::get(DNSResourceRecord &r)
 
    // The answer format:
    // DATA    qname           qclass  qtype   ttl     id      content 
-   int abiVersion = ::arg().asNum("pipebackend-abi-version");
    unsigned int extraFields = 0;
-   if(abiVersion == 3)
+   if(d_abiVersion >= 3)
      extraFields = 2;
      
    for(;;) {
@@ -223,7 +225,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
             // now what?
          }
          
-         if(abiVersion == 3) {
+         if(d_abiVersion >= 3) {
            r.scopeMask = atoi(parts[1].c_str());
            r.auth = atoi(parts[2].c_str());
          } else {
