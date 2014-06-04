@@ -16243,7 +16243,8 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	  <term>also-notify=...</term>
 	  <listitem>
 	    <para>
-	      When notifying a domain, also notify these nameservers. Example: <command>also-notify=192.168.0.1, 10.0.0.1</command>.
+	      When notifying a domain, also notify these nameservers. Example: <command>also-notify=192.168.0.1, 10.0.0.1</command>. The IP adresses listed in <command>
+	      also-notify</command> always receive a notification. Even if they do not mach the list in <command>only-notify</command>.
 	    </para>
 	  </listitem>
 	</varlistentry>
