@@ -346,7 +346,7 @@ static void UNIX_declareArguments()
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
   ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
-  ::arg().set("module-dir","Default directory for modules")=LIBDIR;
+  ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().set("chroot","If set, chroot to this directory for more security")="";
   ::arg().set("logging-facility","Log under a specific facility")="";
   ::arg().set("daemon","Operate as a daemon")="no";

@@ -1,5 +1,5 @@
 AM_CPPFLAGS=$(ORACLE_CFLAGS) @THREADFLAGS@
-lib_LTLIBRARIES = libgoraclebackend.la
+pkglib_LTLIBRARIES = libgoraclebackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 

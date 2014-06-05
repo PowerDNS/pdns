@@ -9,7 +9,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
     [
       MYSQL_lib_check="/usr/local/mysql/lib/mysql /usr/local/lib/mysql /opt/mysql/lib/mysql \
         /usr/lib/mysql /usr/lib64/mysql /usr/local/mysql/lib /usr/local/lib /opt/mysql/lib /usr/lib \
-        /usr/sfw/lib/ /usr/lib/x86_64-linux-gnu/"
+        /usr/sfw/lib/ $full_libdir"
       MYSQL_inc_check="/usr/local/mysql/include/mysql /usr/local/include/mysql \
         /opt/mysql/include/mysql /opt/mysql/include /usr/include/mysql /usr/sfw/include/mysql"
     ]

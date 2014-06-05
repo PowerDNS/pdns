@@ -46,7 +46,7 @@ build-static stamp-build-static:
 		PKG_CONFIG_PATH=/opt/botan-1.10/lib/pkgconfig/ \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
-		--libdir='$${prefix}/lib/powerdns' \
+		--libdir='$${prefix}/lib' \
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
@@ -65,7 +65,7 @@ build stamp-build: configure
 	./configure \
 		--prefix=/usr \
 		--libexecdir='$${prefix}/lib' \
-		--libdir='$${prefix}/lib/powerdns' \
+		--libdir='$${prefix}/lib' \
 		--sysconfdir=/etc/powerdns \
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \

@@ -1,5 +1,5 @@
 AM_CPPFLAGS=-I@PGSQL_incdir@ @THREADFLAGS@
-lib_LTLIBRARIES = libgpgsqlbackend.la
+pkglib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS \
 	schema.pgsql.sql nodnssec-3.x_to_3.4_schema.pgsql.sql dnssec-3.x_to_3.4_schema.pgsql.sql

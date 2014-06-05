@@ -1,5 +1,5 @@
 AM_CPPFLAGS=@CDB_CFLAGS@ @THREADFLAGS@
-lib_LTLIBRARIES = libtinydnsbackend.la
+pkglib_LTLIBRARIES = libtinydnsbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 

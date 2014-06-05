@@ -1,5 +1,5 @@
 AM_CPPFLAGS=@MYSQL_inc@ @THREADFLAGS@ $(BOOST_CPPFLAGS)
-lib_LTLIBRARIES = libgmysqlbackend.la
+pkglib_LTLIBRARIES = libgmysqlbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS \
 	schema.mysql.sql nodnssec-3.x_to_3.4_schema.mysql.sql dnssec-3.x_to_3.4_schema.mysql.sql

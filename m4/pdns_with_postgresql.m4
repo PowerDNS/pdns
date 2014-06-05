@@ -6,7 +6,7 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
    [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
     PGSQL_inc_check="$withval/include/pgsql"
    ],
-   [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64"
+   [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64 $full_libdir"
     PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"
    ]
   )
@@ -41,6 +41,9 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
       PGSQL_lib=""
       ;;
     /usr/lib64)
+      PGSQL_lib=""
+      ;;
+    $full_libdir)
       PGSQL_lib=""
       ;;
     /*)

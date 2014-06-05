@@ -11,7 +11,7 @@ EXTRA_LTLIBRARIES=libtestremotebackend.la
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 
-lib_LTLIBRARIES = libremotebackend.la 
+pkglib_LTLIBRARIES = libremotebackend.la
 
 libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
