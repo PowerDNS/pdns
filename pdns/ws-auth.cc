@@ -549,6 +549,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
+  DNSSECKeeper dk;
   if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
     DomainInfo di;
     Document document;
@@ -687,6 +688,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     jdi.AddMember("url", jurl, doc.GetAllocator());
     jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
     jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
+    jdi.AddMember("dnssec", dk.isSecuredZone(di.zone.c_str()), doc.GetAllocator());
     Value masters;
     masters.SetArray();
     BOOST_FOREACH(const string& master, di.masters) {
