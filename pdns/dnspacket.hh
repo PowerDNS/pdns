@@ -143,6 +143,8 @@ public:
   QType qtype;  //!< type of the question 8
 
   string qdomain;  //!< qname of the question 4 - unsure how this is used
+  string qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
+  string qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
   bool d_tcp;
   bool d_dnssecOk;
   bool d_havetsig;

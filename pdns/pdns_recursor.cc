@@ -623,13 +623,13 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::DROP) {
+    if(res == PolicyDecision::DROP) {
       g_stats.policyDrops++;
       delete dc;
       dc=0;
       return;
     }  
-    if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -642,7 +642,7 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::PASS) {
+    if(res == PolicyDecision::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;

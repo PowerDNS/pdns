@@ -33,6 +33,7 @@
 #include "nameserver.hh"
 #include "responsestats.hh"
 #include "ueberbackend.hh"
+#include "common_startup.hh"
 
 extern ResponseStats g_rs;
 
@@ -378,4 +379,14 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
     ret<<"All zonecount:"<<count;
 
   return ret.str();
+}
+
+string DLPolicy(const vector<string>&parts, Utility::pid_t ppid)
+{
+  if(LPE) {
+    return LPE->policycmd(parts);
+  }
+  else {
+    return "no policy script loaded";
+  }
 }
