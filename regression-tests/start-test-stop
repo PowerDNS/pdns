@@ -73,7 +73,7 @@ securezone ()
 		../pdns/pdnssec --config-dir=. $configname rectify-zone $zone 2>&1
 	else
 		# check if PKCS#11 should be used
-		if [ $pcks11 -eq 1 ]; then
+		if [ "$pcks11" -eq 1 ]; then
                   if [ "$slot" == "" ]; then
                     slot=0
                   else
