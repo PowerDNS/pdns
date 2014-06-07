@@ -15,11 +15,6 @@ export KEY
 
 trap "kill_process 2" EXIT INT TERM
 
-dolog()
-{
-	echo "[$(date "+%F %R:%S.%N")] $*"
-}
-
 tosql ()
 {
 	${MAKE} -C ../pdns zone2sql > /dev/null
@@ -33,7 +28,7 @@ bindwait ()
 	domcount=$(grep -c ^zone named.conf)
 	if [ ! -x ../pdns/pdns_control ]
 	then
-		dolog "No pdns_control found"
+		echo "No pdns_control found"
 		exit
 	fi
 	loopcount=0
@@ -154,13 +149,13 @@ kill_process ()
 
 if [ ! -x $PDNS ]
  then
-	dolog "$PDNS is not executable binary"
+	echo "$PDNS is not executable binary"
 	exit
 fi
 
 if [ ! -x $PDNS2 ]
 then
-	dolog "$PDNS2 is not executable binary"
+	echo "$PDNS2 is not executable binary"
 	exit
 fi
 
@@ -335,7 +330,7 @@ fi
 
 if [ "$wait" = "wait" ]
 then
-	dolog "tests done! push enter to terminate instance"
+	echo tests done! push enter to terminate instance
 	read l
 fi
 
