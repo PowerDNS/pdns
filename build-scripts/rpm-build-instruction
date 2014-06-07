@@ -10,7 +10,7 @@ CC="ccache gcc" CXX="ccache g++" CPPFLAGS=-I/usr/local/include/botan-1.10 ./conf
 	--mandir=/usr/man/ \
 && make clean && make -j4 && \
 fakeroot /bin/sh -c "rm -rf /tmp/pdns ; DESTDIR=/tmp/pdns make install-strip" &&
-fakeroot rm -f /tmp/pdns/usr/lib/*.a /tmp/pdns/usr/lib/*.la &&
+fakeroot rm -f /tmp/pdns/usr/lib/pdns/*.a /tmp/pdns/usr/lib/pdns/*.la &&
 fakeroot mkdir -p /tmp/pdns/etc/init.d &&
 fakeroot cp pdns/pdns /tmp/pdns/etc/init.d/pdns &&
 fakeroot mkdir -p /tmp/pdns/etc/powerdns &&
