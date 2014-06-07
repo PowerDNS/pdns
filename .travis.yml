@@ -7,7 +7,7 @@ before_script:
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo rm /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update
- - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit 
+ - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
  - sudo apt-get update
  - sudo apt-get install liblmdb0 liblmdb-dev lmdb-utils
@@ -58,39 +58,39 @@ script:
  - touch tests/verify-dnssec-zone/allow-missing
  - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
  - touch tests/verify-dnssec-zone/skip.optout
- - ./start-test-stop 5300 bind-both
- - ./start-test-stop 5300 bind-dnssec-both
- - ./start-test-stop 5300 bind-dnssec-pkcs11
- - ./start-test-stop 5300 bind-dnssec-nsec3-both
- - ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
- - ./start-test-stop 5300 bind-dnssec-nsec3-narrow
- - ./start-test-stop 5300 gmysql-nodnssec-both
- - ./start-test-stop 5300 gmysql-both
- - ./start-test-stop 5300 gmysql-nsec3-both
- - ./start-test-stop 5300 gmysql-nsec3-optout-both
- - ./start-test-stop 5300 gmysql-nsec3-narrow
- - ./start-test-stop 5300 gpgsql-nodnssec-both
- - ./start-test-stop 5300 gpgsql-both
- - ./start-test-stop 5300 gpgsql-nsec3-both
- - ./start-test-stop 5300 gpgsql-nsec3-optout-both
- - ./start-test-stop 5300 gpgsql-nsec3-narrow
- - ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./start-test-stop 5300 gsqlite3-both
- - ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./start-test-stop 5300 gsqlite3-nsec3-optout-both
- - ./start-test-stop 5300 gsqlite3-nsec3-narrow
- - ./start-test-stop 5300 mydns
- - ./start-test-stop 5300 opendbx-sqlite3
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-unix
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-http
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-zeromq
- - travis_retry timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
- - ./start-test-stop 5300 tinydns
- - THRESHOLD=90 TRACE=no ./recursor-test 5300
+ - ./timestamp ./start-test-stop 5300 bind-both
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-both
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
+ - ./timestamp ./start-test-stop 5300 gmysql-both
+ - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
+ - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
+ - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 mydns
+ - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
+ - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
+ - ./timestamp ./start-test-stop 5300 tinydns
+ - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
