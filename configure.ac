@@ -33,6 +33,8 @@ AC_PROG_LIBTOOL
 LT_INIT
 ])
 
+MC_TM_GMTOFF
+
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
 # Define full_libdir to be the fully expanded (${exec_prefix}, etc.)
@@ -320,6 +322,8 @@ AC_CONFIG_FILES([
   pdns/Makefile
   codedocs/Makefile
   pdns/pdns
+  pdns/ext/yahttp/Makefile
+  pdns/ext/yahttp/yahttp/Makefile
   modules/bindbackend/Makefile
   modules/db2backend/Makefile
   modules/geobackend/Makefile

@@ -65,6 +65,7 @@ void declareArguments()
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
   ::arg().setSwitch("experimental-json-interface", "If the webserver should serve JSON data")="no";
   ::arg().setSwitch("experimental-api-readonly", "If the JSON API should disallow data modification")="no";
+  ::arg().set("experimental-api-key", "REST API Static authentication key (required for API use)")="";
   ::arg().setSwitch("experimental-dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");

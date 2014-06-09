@@ -32,21 +32,25 @@
 #include "namespaces.hh"
 #include "sstuff.hh"
 
+class WebServer;
+
 class HttpRequest : public YaHTTP::Request {
 public:
   HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false) { };
 
-  map<string,string> path_parameters;
   bool accept_json;
   bool accept_html;
   bool complete;
   void json(rapidjson::Document& document);
+
+  // checks password _only_.
+  bool compareAuthorization(const string &expected_password);
+  bool compareHeader(const string &header_name, const string &expected_value);
 };
 
 class HttpResponse: public YaHTTP::Response {
 public:
   HttpResponse() : YaHTTP::Response() { };
-  HttpResponse(const YaHTTP::Request &req) : YaHTTP::Response(req) { };
   HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
 
   void setBody(rapidjson::Document& document);
@@ -127,7 +131,7 @@ protected:
 class WebServer : public boost::noncopyable
 {
 public:
-  WebServer(const string &listenaddress, int port, const string &password="");
+  WebServer(const string &listenaddress, int port);
   void bind();
   void go();
 
@@ -135,19 +139,13 @@ public:
   HttpResponse handleRequest(HttpRequest request);
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  struct HandlerRegistration {
-    std::list<string> urlParts;
-    std::list<string> paramNames;
-    HandlerFunction handler;
-  };
-
-  void registerHandler(const string& url, HandlerFunction handler);
   void registerApiHandler(const string& url, HandlerFunction handler);
+  void registerWebHandler(const string& url, HandlerFunction handler);
 
 protected:
   static char B64Decode1(char cInChar);
   static int B64Decode(const std::string& strInput, std::string& strOutput);
-  bool route(const std::string& url, std::map<std::string, std::string>& urlArgs, HandlerFunction** handler);
+  void registerBareHandler(const string& url, HandlerFunction handler);
 
   virtual Server* createServer() {
     return new Server(d_listenaddress, d_port);
@@ -155,7 +153,6 @@ protected:
 
   string d_listenaddress;
   int d_port;
-  std::list<HandlerRegistration> d_handlers;
   string d_password;
   Server* d_server;
 };
