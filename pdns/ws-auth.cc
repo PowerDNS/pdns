@@ -197,17 +197,17 @@ string AuthWebServer::makePercentage(const double& val)
 
 void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
-  if(!req->parameters["resetring"].empty()) {
-    if (S.ringExists(req->parameters["resetring"]))
-      S.resetRing(req->parameters["resetring"]);
+  if(!req->getvars["resetring"].empty()) {
+    if (S.ringExists(req->getvars["resetring"]))
+      S.resetRing(req->getvars["resetring"]);
     resp->status = 301;
     resp->headers["Location"] = "/";
     return;
   }
-  if(!req->parameters["resizering"].empty()){
-    int size=atoi(req->parameters["size"].c_str());
-    if (S.ringExists(req->parameters["resizering"]) && size > 0 && size <= 500000)
-      S.resizeRing(req->parameters["resizering"], atoi(req->parameters["size"].c_str()));
+  if(!req->getvars["resizering"].empty()){
+    int size=atoi(req->getvars["size"].c_str());
+    if (S.ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000)
+      S.resizeRing(req->getvars["resizering"], atoi(req->getvars["size"].c_str()));
     resp->status = 301;
     resp->headers["Location"] = "/";
     return;
@@ -264,7 +264,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     "<br>"<<endl;
 
   ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
-  if(req->parameters["ring"].empty()) {
+  if(req->getvars["ring"].empty()) {
     vector<string>entries=S.listRings();
     for(vector<string>::const_iterator i=entries.begin();i!=entries.end();++i)
       printtable(ret,*i,S.getRingTitle(*i));
@@ -274,7 +274,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
       printargs(ret);
   }
   else
-    printtable(ret,req->parameters["ring"],S.getRingTitle(req->parameters["ring"]),100);
+    printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
   ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2014 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
@@ -478,7 +478,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw ApiException("Only GET is implemented");
 
-  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+  string zonename = apiZoneIdToName(req->parameters["id"]);
 
   UeberBackend B;
   DomainInfo di;
@@ -499,8 +499,8 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   doc.SetArray();
 
   BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
-    if (req->path_parameters.count("key_id")) {
-      int keyid = lexical_cast<int>(req->path_parameters["key_id"]);
+    if (req->parameters.count("key_id")) {
+      int keyid = lexical_cast<int>(req->parameters["key_id"]);
       int curid = lexical_cast<int>(value.second.id);
       if (keyid != curid)
         continue;
@@ -513,8 +513,8 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
     key.AddMember("keytype", (value.second.keyOrZone ? "ksk" : "zsk"), doc.GetAllocator());
     Value dnskey(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
     key.AddMember("dnskey", dnskey, doc.GetAllocator());
-    if (req->path_parameters.count("key_id")) {
-      DNSSECPrivateKey dpk=dk.getKeyById(zonename, lexical_cast<int>(req->path_parameters["key_id"]));
+    if (req->parameters.count("key_id")) {
+      DNSSECPrivateKey dpk=dk.getKeyById(zonename, lexical_cast<int>(req->parameters["key_id"]));
       Value content(dpk.getKey()->convertToISC().c_str(), doc.GetAllocator());
       key.AddMember("content", content, doc.GetAllocator());
     }
@@ -708,7 +708,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
-  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+  string zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
     // update domain settings
@@ -761,7 +761,7 @@ static string makeDotted(string in) {
 }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
-  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+  string zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
@@ -863,7 +863,7 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
 static void patchZone(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
-  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+  string zonename = apiZoneIdToName(req->parameters["id"]);
   if (!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
@@ -1003,7 +1003,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  string q = req->parameters["q"];
+  string q = req->getvars["q"];
   if (q.empty())
     throw ApiException("Query q can't be blank");
 
@@ -1088,18 +1088,18 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
 
-  if(req->parameters.count("command")) {
-    command = req->parameters["command"];
-    req->parameters.erase("command");
+  if(req->getvars.count("command")) {
+    command = req->getvars["command"];
+    req->getvars.erase("command");
   }
 
   if(command == "flush-cache") {
     extern PacketCache PC;
     int number; 
-    if(req->parameters["domain"].empty())
+    if(req->getvars["domain"].empty())
       number = PC.purge();
     else
-      number = PC.purge(req->parameters["domain"]);
+      number = PC.purge(req->getvars["domain"]);
       
     map<string, string> object;
     object["number"]=lexical_cast<string>(number);
@@ -1133,7 +1133,7 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
   }
   else if(command=="log-grep") {
     // legacy parameter name hack
-    req->parameters["q"] = req->parameters["needle"];
+    req->getvars["q"] = req->getvars["needle"];
     apiServerSearchLog(req, resp);
     return;
   }
