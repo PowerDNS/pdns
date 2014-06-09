@@ -65,13 +65,12 @@ namespace YaHTTP {
           if (pos >= url.size()) return true; // no data
           if (url[pos] != '/') return false; // not an url
           if ( (pos1 = url.find_first_of("?", pos)) == std::string::npos ) {
-             path = url;
+             path = url.substr(pos);
              pos = url.size();
           } else {
              path = url.substr(pos, pos1-pos);
              pos = pos1;
           }
-          path = Utility::decodeURL(path);
           return true;
       }
 
@@ -87,6 +86,7 @@ namespace YaHTTP {
              parameters = url.substr(pos+1, pos1-pos-1);
              pos = pos1;
           }
+          if (parameters.size()>0 && *(parameters.end()-1) == '&') parameters.resize(parameters.size()-1);
           return true;
       }
 
@@ -95,6 +95,10 @@ namespace YaHTTP {
           if (url[pos] != '#') return false; // not anchor
           anchor = url.substr(pos+1);
           return true;
+      }
+
+      void initialize() {
+        protocol = ""; host = ""; port = 0; username = ""; password = ""; path = ""; parameters = ""; anchor =""; pathless = true;
       }
 
   public:
@@ -122,7 +126,7 @@ namespace YaHTTP {
               port > 0) 
             oss << ":" << port;
 
-          oss << Utility::encodeURL(path, true);
+          oss << path;
           if (parameters.empty() == false) {
              if (!pathless) 
                 oss << "?";
@@ -143,7 +147,7 @@ namespace YaHTTP {
       std::string anchor;
       bool pathless;
 
-      URL() { protocol = ""; host = ""; port = 0; username = ""; password = ""; path = ""; parameters = ""; anchor =""; pathless = true; };
+      URL() { initialize(); }; 
       URL(const std::string& url) {
           parse(url);
       };
@@ -154,9 +158,7 @@ namespace YaHTTP {
 
       bool parse(const std::string& url) {
           // setup
-          protocol = ""; host = ""; port = 0; 
-          username = ""; password = ""; path = ""; 
-          parameters = ""; anchor =""; pathless = true;
+          initialize();
 
           if (url.size() > YAHTTP_MAX_URL_LENGTH) return false;
           size_t pos = 0;
