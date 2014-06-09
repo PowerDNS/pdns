@@ -337,48 +337,6 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
     return true;
 }
 
-/* String a is the query key, string b is the result from the database. Trys to
- * be intelegent and only return matching sections (ie up to the last point at
- * which there were .'s in both strings, however because the - character is
- * legal and < . in ascii it does not guarantee to return a section point.
- */
-inline unsigned int compare_domains( const string &a, const string &b ) {
-    int aLen = a.length(), bLen = b.length(), n = 0, last_dot = 0;
-    const unsigned char *aPtr = (const unsigned char*)a.c_str(),
-            *bPtr = (const unsigned char*)b.c_str();
-
-    while( 1 ) {
-        if( n == aLen ) {
-            if( n == bLen || bPtr[n] <= '.' )
-                return n;
-            else
-                return last_dot;
-        }
-
-        if( n == bLen ) {
-            if( n == aLen || aPtr[n] <= '.' )
-                return n;
-            else
-                return last_dot;
-        }
-
-        if( aPtr[n] != bPtr[n] ) {
-            if( aPtr[n] <= '.' && bPtr[n] <= '.' )
-                return n;
-            else
-                return last_dot;
-        }
-
-        if( aPtr[n] == '.' )        // Therefore bPtr[n] == '.' as from above they are the same
-            last_dot = n;
-
-        n++;
-    }
-
-    // Should never get here
-    return 0;
-}
-
 /* This is a subclass of DNSBackend that, assuming you have your zones reversed
  * and stored in an ordered fashion, will be able to look up SOA's much quicker
  * than the DNSBackend code. The normal case for a SOA that exists is 1 backend
@@ -404,6 +362,11 @@ enum {
 
 #undef PC
 extern PacketCache PC;
+
+#if 0
+#undef DLOG
+#define DLOG(x) x
+#endif
 
 bool _add_to_negcache( const string &zone ) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
@@ -447,61 +410,13 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
     if( !getAuthZone( foundkey ) )
         return GET_AUTH_NEG_CACHE;
 
-    unsigned int diff_point = compare_domains( querykey, foundkey );
-    DLOG(L<<Logger::Error<<"Queried: " << querykey << " and found record: " <<foundkey << " : diff point is: " << diff_point<<endl);
+    DLOG(L<<Logger::Error<<"Queried: " << querykey << " and found record: " <<foundkey<<endl);
 
     // Got a match from a previous backend that was longer than this - no need
     // to continue.
-    if( best_match_len && best_match_len >= (int)diff_point ) {
+    if( best_match_len && best_match_len >= (int) foundkey.length() ) {
         DLOG(L<<Logger::Error<<"Best match was better from a different client"<<endl);
         return GET_AUTH_NEG_DONTCACHE;
-    }
-
-    // If diff_point is 0 then either strings are totally different OR root
-    // zone was returned.
-    if( diff_point == 0 && foundkey.length() != 0 )
-        return GET_AUTH_NEG_CACHE;
-
-    /* If the strings are the same (ie diff_point == querykey.length()) then we
-     * have found the exact record.
-     *
-     * If the strings are the same up to the end of the key we pulled from the
-     * database, then we have found the true SOA for this zone. (the string we
-     * pulled from the database could be longer than the key we searched for,
-     * but if that is the case then it cannot be a sub-key because of the
-     * reliance to get the key at the requested position OR before)
-     *
-     * Otherwise, the strings are different up to a certain point. In this
-     * case, we need to retry the query as we may have the case of a subdomain
-     * in the database eg a.b.com and b.com SOA records. If we then query for
-     * www.b.com we will hit the a.b.com SOA record so we want to trim back to
-     * the . before the difference and retry the query (ie b.com). Note that
-     * because some legal dns characters come *before* the . in ascii if we try
-     * searching for www.a.com our db query may return www-a.com in which case
-     * we retry the search from the point at which the strings differ (ie
-     * a.com)
-     *
-     * To speed up future decisions for subdomains, if the negative cache is
-     * available we will make a note there if the subdomain we queried for does
-     * not exist.
-     */
-    if( diff_point != querykey.length()
-            && diff_point != foundkey.length() ) {
-        // XXX If we found some way of getting the exact domain without having
-        // to try this (ie walk the database btree up until the point where it
-        // differs), we could have a 60% performance improvement in some
-        // situations.
-
-        string shortzone = inZone.substr( inZone.length() - diff_point, string::npos );
-        string shortquerykey = querykey.substr( 0, diff_point );
-        DLOG(L<<Logger::Error<<"Retrying for " << shortzone << " querykey: " << shortquerykey<<endl);
-
-        int ret = _getAuth( p, soa, shortzone, zoneId, shortquerykey, best_match_len );
-
-        if( ret == GET_AUTH_NEG_CACHE )
-            _add_to_negcache( shortzone );
-
-        return ret;
     }
 
     // Found record successfully now, fill in the data.
@@ -523,7 +438,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
 bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const int best_match_len) {
     // Reverse the lowercased query string
     string zone = toLower(inZone);
-    string querykey( zone.rbegin(), zone.rend() );
+    string querykey = labelReverse(zone);
 
     int ret = _getAuth( p, soa, inZone, zoneId, querykey, best_match_len );
 
@@ -559,7 +474,7 @@ bool DNSReversedBackend::getSOA(const string &inZone, SOAData &soa, DNSPacket *p
 {
     // prepare the query string
     string zone = toLower( inZone );
-    string querykey( zone.rbegin(), zone.rend() );
+    string querykey = labelReverse( zone );
 
     if( !_getSOA( querykey, soa, p ) )
         return false;
