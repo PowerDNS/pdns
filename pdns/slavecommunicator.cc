@@ -170,55 +170,62 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           continue;
         }
 
-        if (i->qtype.getCode() == QType::NSEC3PARAM) {
-          ns3pr = NSEC3PARAMRecordContent(i->content);
-          isDnssecZone = isNSEC3 = true;
-          isNarrow = false;
-          continue;
-        } else if (i->qtype.getCode() == QType::NSEC3) {
-          NSEC3RecordContent ns3rc(i->content);
-          if (firstNSEC3) {
-            isDnssecZone = isPresigned = true;
-            firstNSEC3 = false;
-          } else if (optOutFlag != (ns3rc.d_flags & 1))
-            throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
-          optOutFlag = ns3rc.d_flags & 1;
-          if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(i->qname, domain))
-            secured.insert(toLower(makeRelative(i->qname, domain)));
-          continue;
-        } else if (i->qtype.getCode() == QType::NSEC) {
-          isDnssecZone = isPresigned = true;
-          continue;
-        }
-
-        if(i->qtype.getCode() == QType::SOA) {
-          if(soa_serial != 0)
-            continue; //skip the last SOA
-          SOAData sd;
-          fillSOAData(i->content,sd);
-          soa_serial = sd.serial;
-        }
-
-        i->domain_id=domain_id;
-
         vector<DNSResourceRecord> out;
-        if(pdl && pdl->axfrfilter(raddr, domain, *i, out)) {
-          BOOST_FOREACH(const DNSResourceRecord& rr, out) {
-            rrs.push_back(rr);
+        if(!pdl || !pdl->axfrfilter(raddr, domain, *i, out)) {
+          out.push_back(*i);
+        }
+
+        BOOST_FOREACH(DNSResourceRecord& rr, out) {
+          switch(rr.qtype.getCode()) {
+            case QType::NSEC3PARAM: {
+              ns3pr = NSEC3PARAMRecordContent(rr.content);
+              isDnssecZone = isNSEC3 = true;
+              isNarrow = false;
+              continue;
+            }
+            case QType::NSEC3: {
+              NSEC3RecordContent ns3rc(rr.content);
+              if (firstNSEC3) {
+                isDnssecZone = isPresigned = true;
+                firstNSEC3 = false;
+              } else if (optOutFlag != (ns3rc.d_flags & 1))
+                throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
+              optOutFlag = ns3rc.d_flags & 1;
+              if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(rr.qname, domain))
+                secured.insert(toLower(makeRelative(rr.qname, domain)));
+              continue;
+            }
+            case QType::NSEC: {
+              isDnssecZone = isPresigned = true;
+              continue;
+            }
+            case QType::SOA: {
+              if(soa_serial != 0)
+                continue; //skip the last SOA
+              SOAData sd;
+              fillSOAData(rr.content,sd);
+              soa_serial = sd.serial;
+              break;
+            }
+            case QType::NS: {
+              if(!pdns_iequals(rr.qname, domain))
+                nsset.insert(rr.qname);
+              break;
+            }
+            default:
+              break;
           }
-        } else {
-          rrs.push_back(*i);
+
+          qnames.insert(rr.qname);
+
+          rr.domain_id=domain_id;
+          rrs.push_back(rr);
         }
       }
     }
+
     if(isNSEC3) {
       ns3pr.d_flags = optOutFlag ? 1 : 0;
-    }
-
-    BOOST_FOREACH(const DNSResourceRecord& rr, rrs) {
-      if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, domain))
-        nsset.insert(rr.qname);
-      qnames.insert(rr.qname);
     }
 
 
