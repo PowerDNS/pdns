@@ -55,7 +55,7 @@ start_master ()
 
 	if [ "$nocontext" == "yes" ]
 	then
-		dolog unknown context $context
+		echo unknown context $context
 		: > passed_tests
 		echo 'unknown-context-'"$context" > failed_tests
 		./toxml $context
@@ -106,7 +106,7 @@ start_slave ()
 
 	if [ "$nocontext" == "yes" ]
 	then
-		dolog unknown presigned context $presignedcontext
+		echo unknown presigned context $presignedcontext
 		: > passed_tests
 		echo 'unknown-presigned-context-'"$presignedcontext" > failed_tests
 		./toxml $context

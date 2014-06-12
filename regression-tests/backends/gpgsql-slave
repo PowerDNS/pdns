@@ -37,7 +37,7 @@ __EOF__
 		--send-root-referral --slave --retrieval-threads=4 \
 		--slave-cycle-interval=300 --experimental-dname-processing &
 
-	dolog 'waiting for zones to be slaved'
+	echo 'waiting for zones to be slaved'
 	loopcount=0
 	while [ $loopcount -lt 30 ]
 	do

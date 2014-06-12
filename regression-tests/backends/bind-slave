@@ -31,5 +31,5 @@
 		--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
 		--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
 		--cache-ttl=$cachettl --no-config --experimental-dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 &
-	dolog 'waiting for zones to be loaded'
+	echo 'waiting for zones to be loaded'
 	bindwait bind-slave

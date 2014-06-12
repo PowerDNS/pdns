@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+"$@" 2>&1 | ts "[%F %T]"
+
+exit ${PIPESTATUS[0]}
