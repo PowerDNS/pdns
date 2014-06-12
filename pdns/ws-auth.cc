@@ -303,7 +303,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.AddMember("name", di.zone.c_str(), doc.GetAllocator());
   doc.AddMember("type", "Zone", doc.GetAllocator());
   doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
-  doc.AddMember("dnssec", dk.isSecuredZone(di.zone.c_str()), doc.GetAllocator());
+  doc.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
   doc.AddMember("soa_edit_api", soa_edit_api.c_str(), doc.GetAllocator());
@@ -549,6 +549,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
+  DNSSECKeeper dk;
   if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
     DomainInfo di;
     Document document;
@@ -687,6 +688,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     jdi.AddMember("url", jurl, doc.GetAllocator());
     jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
     jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
+    jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
     Value masters;
     masters.SetArray();
     BOOST_FOREACH(const string& master, di.masters) {
