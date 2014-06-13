@@ -41,6 +41,7 @@
 #include "version.hh"
 #include "dnsseckeeper.hh"
 #include <iomanip>
+#include "zoneparser-tng.hh"
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -550,6 +551,33 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
+static void gatherRecordsFromZone(const Value &container, vector<DNSResourceRecord>& new_records, string zonename) {
+  DNSResourceRecord rr;
+  vector<string> zonedata;
+  stringtok(zonedata, stringFromJson(container, "zone"), "\r\n");
+
+  ZoneParserTNG zpt(zonedata, zonename);
+
+  bool seenSOA=false;
+
+  string comment = "Imported via the API";
+
+  try {
+    while(zpt.get(rr, &comment)) {
+      if(seenSOA && rr.qtype.getCode() == QType::SOA)
+        continue;
+      if(rr.qtype.getCode() == QType::SOA)
+        seenSOA=true;
+
+      rr.qname = stripDot(rr.qname);
+      new_records.push_back(rr);
+    }
+  }
+  catch(std::exception& ae) {
+    throw ApiException("An error occured while parsing the zonedata: "+string(ae.what()));
+  }
+}
+
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk;
@@ -559,6 +587,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     req->json(document);
     string zonename = stringFromJson(document, "name");
     string dotsuffix = "." + zonename;
+    string zonestring = stringFromJson(document, "zone", "");
+
     // TODO: better validation of zonename
     if(zonename.empty())
       throw ApiException("Zone name empty");
@@ -575,6 +605,10 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // validate 'kind' is set
     DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
 
+    const Value &records = document["records"];
+    if (records.IsArray() && zonestring != "")
+      throw ApiException("You cannot give zonedata AND records");
+
     const Value &nameservers = document["nameservers"];
     if (!nameservers.IsArray() && zonekind != DomainInfo::Slave)
       throw ApiException("Nameservers list must be given (but can be empty if NS records are supplied)");
@@ -588,7 +622,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
     vector<DNSResourceRecord> new_ptrs;
-    gatherRecords(document, new_records, new_ptrs);
+
+    if (records.IsArray()) {
+      gatherRecords(document, new_records, new_ptrs);
+    } else if (zonestring != "") {
+      gatherRecordsFromZone(document, new_records, zonename);
+    }
+
     gatherComments(document, new_comments, false);
 
     DNSResourceRecord rr;
