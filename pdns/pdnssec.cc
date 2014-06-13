@@ -401,20 +401,14 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       if (rr.qtype.getCode() != QType::AAAA) {
         if (!pdns_iequals(tmp, rr.content)) {
           cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
-          rr.content=tmp;
           numwarnings++;
         }
       } else {
-        struct addrinfo hint, *res;
-        memset(&hint, 0, sizeof(hint));
-        hint.ai_family = AF_INET6;
-        hint.ai_flags = AI_NUMERICHOST;
-        if(getaddrinfo(rr.content.c_str(), 0, &hint, &res)) {
+        struct in6_addr tmpbuf;
+        if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1 || rr.content.find('.') != string::npos) {
           cout<<"[Warning] Following record is not a valid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
           numwarnings++;
-        } else
-          freeaddrinfo(res);
-        rr.content=tmp;
+        }
       }
     }
     catch(std::exception& e)
