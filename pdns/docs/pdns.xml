@@ -13464,8 +13464,9 @@ $ pdnssec rectify-zone powerdnssec.org
   	<section id="dnssec-bind-hybrid"><title>PowerDNSSEC hybrid BIND-mode operation</title>
     <warning>
     <para>
-      This mode is only supported in 3.0 and 3.0.1! In 3.1 and up, the bindbackend
-      always does its own key storage.
+      This mode is only supported in 3.0, 3.0.1 and 3.4 and up! In 3.1 to 3.3.1, the bindbackend
+      always did its own key storage.
+      In 3.4 and up hybrid bind mode operation is optional and enabled with the bindbackend <command>hybrid</command> config option.
     </para>
     </warning>
     <para>
@@ -19898,10 +19899,10 @@ VALUES (:zoneid, :ip)
 	      <row><entry>Slave</entry><entry>Yes</entry></row>
 	      <row><entry>Superslave</entry><entry>Experimental</entry></row>
 	      <row><entry>Autoserial</entry><entry>No</entry></row>
-	      <row><entry>DNSSEC</entry><entry>Yes, but no key storage</entry></row>
+	      <row><entry>DNSSEC</entry><entry>Yes</entry></row>
 	      <row><entry>Disabled data</entry><entry>No</entry></row>
 	      <row><entry>Comments</entry><entry>No</entry></row>
-	      <row><entry>Module name</entry><entry>none (built in)</entry></row>
+	      <row><entry>Module name</entry><entry>bind</entry></row>
 	      <row><entry>Launch</entry><entry>bind</entry></row>
 	    </tbody>
 	  </tgroup>
@@ -19947,6 +19948,22 @@ VALUES (:zoneid, :ip)
 	    <listitem>
 	      <para>
 		How often to check for zone changes. See 'Operation' section.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>bind-dnssec-db=</term>
+	    <listitem>
+	      <para>
+		Filename to store and access our DNSSEC metadatabase, empty for none.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term>bind-hybrid=</term>
+	    <listitem>
+	      <para>
+		Store DNSSEC keys and metadata storage in an other backend.
 	      </para>
 	    </listitem>
 	  </varlistentry>

@@ -244,6 +244,7 @@ private:
   static bool safeRemoveBBDomainInfo(const std::string& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
+  bool d_hybrid;
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
