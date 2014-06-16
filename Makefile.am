@@ -5,7 +5,8 @@ codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1 \
 build-scripts/redhat/pdns-server-test.spec \
-pdns/ext/rapidjson/Makefile
+pdns/ext/rapidjson/Makefile \
+pdns/named.conf.parsertest regression-tests/zones/unit.test
 
 ACLOCAL_AMFLAGS = -I m4
 
