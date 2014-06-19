@@ -26,7 +26,7 @@ typedef accumulator_set<
 BOOST_AUTO_TEST_SUITE(test_dns_random_hh)
 
 BOOST_AUTO_TEST_CASE(test_dns_random_average) {
-  dns_random_init("/dev/urandom");
+  dns_random_init("loremipsumxx");
   acc_t acc;
 
 
