@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2013  PowerDNS.COM BV
+    Copyright (C) 2003 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published 
@@ -931,7 +931,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             
             resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
                                            doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
-            if(resolveret != 1) {
+              
+	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl);
                 d_timeouts++;
@@ -945,13 +946,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
                 s_unreachables++; d_unreachables++;
                 LOG(prefix<<qname<<": error resolving"<< (doTCP ? " over TCP" : "") <<", possible error: "<<strerror(errno)<< endl);
               }
-              
+	      
               if(resolveret!=-2) { // don't account for resource limits, they are our own fault
-                {
-                  
-                  t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
-                }
-                if (s_serverdownmaxfails > 0 && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
+		t_sstorage->nsSpeeds[*tns].submit(*remoteIP, 1000000, &d_now); // 1 sec
+                
+		// code below makes sure we don't filter COM or the root
+                if (s_serverdownmaxfails > 0 && (auth.find('.')+1 != auth.size()) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
                   LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for 1 minute" <<endl);
                   t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
                 } else if(resolveret==-1)
