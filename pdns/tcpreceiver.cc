@@ -934,7 +934,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   bool securedZone = dk.isSecuredZone(q->qdomain);
   if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
     if(narrow) {
-      L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone.."<<endl;
+      L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
       L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
       outpacket->setRcode(RCode::Refused);
       sendPacket(outpacket,outsock);
