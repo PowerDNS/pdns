@@ -12226,11 +12226,6 @@ local0.err                        /var/log/pdns.err
     </para>
 
     <para>
-      Much the same holds for the <command>wildcards</command> setting. On by default, each non-existent query will lead to a number of additional
-      wildcard queries. If it is known that the backends do not contain wildcard records, performance can be improved by adding <command>wildcards=no</command>
-      to <filename>pdns.conf</filename>.
-    </para>
-    <para>
       Logging truly kills performance as answering a question from the cache is an order of magnitude less work than logging a 
       line about it. Busy sites will prefer to turn <command>log-dns-details</command> off.
     </para>
