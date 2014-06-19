@@ -355,11 +355,12 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   SOAData sd;
   sd.db=(DNSBackend*)-1;
   if(!B.getSOA(zone, sd)) {
-    cout<<"No SOA for zone '"<<zone<<"'"<<endl;
-    return -1;
+    cout<<"[error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
+    cout<<"Checked 0 records of '"<<zone<<"', 1 errors, 0 warnings."<<endl;
+    return 1;
   }
   bool presigned=dk.isPresigned(zone);
-  sd.db->list(zone, sd.domain_id);
+  sd.db->list(zone, sd.domain_id, true);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
@@ -549,7 +550,7 @@ int checkAllZones(DNSSECKeeper &dk)
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
 
-  B.getAllDomains(&domainInfo);
+  B.getAllDomains(&domainInfo, true);
   int errors=0;
   BOOST_FOREACH(DomainInfo di, domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) 
