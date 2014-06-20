@@ -114,7 +114,6 @@ void declareArguments()
   ::arg().setSwitch("webserver","Start a webserver for monitoring")="no"; 
   ::arg().setSwitch("webserver-print-arguments","If the webserver should print arguments")="no"; 
   ::arg().setSwitch("edns-subnet-processing","If we should act on EDNS Subnet options")="no"; 
-  ::arg().set("edns-subnet-option-numbers","Comma separated list of whitelisted non-standard EDNS subnet option codes (8 is always included)")="20730";
   ::arg().setSwitch("any-to-tcp","Answer ANY queries with tc=1, shunting to TCP")="no"; 
   ::arg().set("webserver-address","IP Address of webserver to listen on")="127.0.0.1";
   ::arg().set("webserver-port","Port of webserver to listen on")="8081";
@@ -361,13 +360,6 @@ void mainthread()
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
-   {
-      std::vector<std::string> codes;
-      stringtok(codes, ::arg()["edns-subnet-option-numbers"], "\t ,");
-      BOOST_FOREACH(std::string &code, codes) {
-         DNSPacket::s_ednssubnetcodes.push_back(boost::lexical_cast<int>(code));
-      }
-   }
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
