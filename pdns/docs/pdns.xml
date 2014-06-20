@@ -111,6 +111,12 @@
           </itemizedlist>
         </para>
       </note>
+      <para>
+        This is a performance, feature and bugfix update to 3.5/3.5.3. It contains
+        important fixes for slightly broken domain names, which your users expect to
+        work anyhow. It also brings robust resilience against certain classes of
+        attacks.
+      </para>
         <para>
           Changes between RC1 and release:
           <itemizedlist>
