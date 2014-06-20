@@ -511,8 +511,11 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
     key.AddMember("id", value.second.id, doc.GetAllocator());
     key.AddMember("active", value.second.active, doc.GetAllocator());
     key.AddMember("keytype", (value.second.keyOrZone ? "ksk" : "zsk"), doc.GetAllocator());
+    Value dnskey(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
+    key.AddMember("dnskey", dnskey, doc.GetAllocator());
     if (req->path_parameters.count("key_id")) {
-      Value content(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
+      DNSSECPrivateKey dpk=dk.getKeyById(zonename, lexical_cast<int>(req->path_parameters["key_id"]));
+      Value content(dpk.getKey()->convertToISC().c_str(), doc.GetAllocator());
       key.AddMember("content", content, doc.GetAllocator());
     }
 
