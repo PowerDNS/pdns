@@ -136,7 +136,7 @@
             </listitem>
             <listitem>
               <para>
-                g5cdeede: remove (non-working) [aaaa-]addition-processing flags from the recursor. Closes t1448
+                g5cdeede: remove (non-working) [aaaa-]additional-processing flags from the recursor. Closes t1448
               </para>
             </listitem>
             <listitem>
