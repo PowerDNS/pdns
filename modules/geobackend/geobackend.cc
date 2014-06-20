@@ -188,11 +188,11 @@ void GeoBackend::answerGeoRecord(const QType &qtype, const string &qdomain, DNSP
         short isocode = 0;
         if (p != NULL && ipt != NULL) {
         	try {
-        		isocode = ipt->lookup(p->getRemote());
+        		isocode = ipt->lookup(p->getRealRemote().toString());
         	}
         	catch(ParsePrefixException &e) {	// Ignore
         		L << Logger::Notice << logprefix << "Unable to parse IP '"
-        			<< p->getRemote()	<< " as IPv4 prefix" << endl;
+        			<< p->getRealRemote().toString()	<< " as IPv4 prefix" << endl;
         	}
         }
         
@@ -202,7 +202,7 @@ void GeoBackend::answerGeoRecord(const QType &qtype, const string &qdomain, DNSP
         
         L << Logger::Debug << logprefix << "Serving " << qdomain << " "
                 << rr->qtype.getName() << " " << target << " to "
-                << (p != NULL ? p->getRemote() : "(unknown)")
+                << (p != NULL ? p->getRealRemote().toString() : "(unknown)")
                 << " (" << isocode << ")" << endl;
         	
         answers.push_back(rr);		
@@ -212,7 +212,7 @@ void GeoBackend::answerLocalhostRecord(const string &qdomain, DNSPacket *p) {
         short isocode = 0;
         if (p != NULL) {
         	try {
-        		isocode = ipt->lookup(p->getRemote());
+        		isocode = ipt->lookup(p->getRealRemote().toString());
         	}
         	catch(ParsePrefixException &e) {}	// Ignore
         }
