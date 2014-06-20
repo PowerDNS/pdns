@@ -96,9 +96,66 @@
       <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
       <note>
         <para>
-	  UNRELEASED
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+              </para>
+            </listitem>
+          </itemizedlist>
         </para>
       </note>
+        <para>
+          Changes between RC1 and release:
+          <itemizedlist>
+            <listitem>
+              <para>
+                g30b13ef: do not apply some of our filters to root and gtlds, plus remove some useless {}
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                gcc81d90: fix yahttp copy in dist-recursor for BSD cp
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                gb798618: define __APPLE_USE_RFC_3542 during recursor build on Darwin, fixes t1449
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                g1d7f863: Merge pull request t1443 from zeha/recursor-nostrip
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                g5cdeede: remove (non-working) [aaaa-]addition-processing flags from the recursor. Closes t1448
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                g984d747: Support building recursor on kFreeBSD and Hurd
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                g79240f1: Allow not stripping of binaries in recursor's make install
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                ge9c2ad3: document pdns.DROP for recursor, add policy-drops metric for it
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
         <para>
 	  New features:
         <itemizedlist>
