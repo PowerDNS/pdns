@@ -320,6 +320,8 @@ AC_CONFIG_FILES([
   pdns/Makefile
   codedocs/Makefile
   pdns/pdns
+  pdns/ext/yahttp/Makefile
+  pdns/ext/yahttp/yahttp/Makefile
   modules/bindbackend/Makefile
   modules/db2backend/Makefile
   modules/geobackend/Makefile

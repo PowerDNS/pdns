@@ -332,7 +332,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 {
-  string zonename = apiZoneIdToName(req->path_parameters["id"]);
+  string zonename = apiZoneIdToName(req->parameters["id"]);
   zonename += ".";
 
   SyncRes::domainmap_t::const_iterator iter = t_sstorage->domainmap->find(zonename);
@@ -368,7 +368,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  string q = req->parameters["q"];
+  string q = req->getvars["q"];
   if (q.empty())
     throw ApiException("Query q can't be blank");
 
@@ -443,9 +443,9 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
 {
   string command;
 
-  if(req->parameters.count("command")) {
-    command = req->parameters["command"];
-    req->parameters.erase("command");
+  if(req->getvars.count("command")) {
+    command = req->getvars["command"];
+    req->getvars.erase("command");
   }
 
   map<string, string> stats; 
@@ -477,7 +477,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     return;
   }
   else if(command == "zone") {
-    string arg_zone = req->parameters["zone"];
+    string arg_zone = req->getvars["zone"];
     SyncRes::domainmap_t::const_iterator ret = t_sstorage->domainmap->find(arg_zone);
     if (ret != t_sstorage->domainmap->end()) {
       Document doc;
@@ -526,7 +526,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     }
   }
   else if(command == "flush-cache") {
-    string canon=toCanonic("", req->parameters["domain"]);
+    string canon=toCanonic("", req->getvars["domain"]);
     int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     count+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
     stats["number"]=lexical_cast<string>(count);
@@ -543,7 +543,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
   }
   else if(command == "log-grep") {
     // legacy parameter name hack
-    req->parameters["q"] = req->parameters["needle"];
+    req->getvars["q"] = req->getvars["needle"];
     apiServerSearchLog(req, resp);
     return;
   }
@@ -585,7 +585,8 @@ void AsyncServer::newConnection()
 void AsyncWebServer::serveConnection(Socket *client)
 {
   HttpRequest req;
-  YaHTTP::AsyncRequestLoader yarl(&req);
+  YaHTTP::AsyncRequestLoader yarl;
+  yarl.initialize(&req);
   client->setNonBlocking();
 
   string data;
@@ -600,6 +601,7 @@ void AsyncWebServer::serveConnection(Socket *client)
         break;
       }
     }
+    yarl.finalize();
   } catch (YaHTTP::ParseError &e) {
     // request stays incomplete
   }
