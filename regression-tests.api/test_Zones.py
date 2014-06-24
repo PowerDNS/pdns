@@ -44,6 +44,7 @@ class AuthZones(ApiTestCase):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
+        self.assertEquals(r.status_code, 201)
         return payload, r.json()
 
     def test_create_zone(self):
