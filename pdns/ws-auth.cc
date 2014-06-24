@@ -667,6 +667,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     di.backend->commitTransaction();
 
     fillZone(zonename, resp);
+    resp->status = 201;
     return;
   }
 

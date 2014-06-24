@@ -293,6 +293,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     doCreateZone(document);
     reloadAuthAndForwards();
     fillZone(zonename, resp);
+    resp->status = 201;
     return;
   }
 
