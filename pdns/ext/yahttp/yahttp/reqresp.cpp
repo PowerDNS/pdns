@@ -138,7 +138,7 @@ namespace YaHTTP {
       std::string getparms;
       // prepare URL 
       for(strstr_map_t::const_iterator i = getvars.begin(); i != getvars.end(); i++) {
-        getparmbuf << Utility::encodeURL(i->first) << "=" << Utility::encodeURL(i->second) << "&";
+        getparmbuf << Utility::encodeURL(i->first, false) << "=" << Utility::encodeURL(i->second, false) << "&";
       }
       if (getparmbuf.str().length() > 0)  
         getparms = "?" + std::string(getparmbuf.str().begin(), getparmbuf.str().end() - 1);

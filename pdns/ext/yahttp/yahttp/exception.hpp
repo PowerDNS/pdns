@@ -4,6 +4,7 @@
 #include <exception>
 
 namespace YaHTTP {
+  /*! Generic error class */
   class Error: public std::exception {
   public:
     Error() {};
@@ -14,8 +15,9 @@ namespace YaHTTP {
     {
       return reason.c_str();
     }
-    const std::string reason;
+    const std::string reason; //<! Cause of the error
   };
+  /*! Parse error class */
   class ParseError: public YaHTTP::Error {
   public:
     ParseError() {};
