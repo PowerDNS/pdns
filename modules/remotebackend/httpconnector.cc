@@ -91,8 +91,174 @@ template <class T> std::string buildMemberListArgs(std::string prefix, const T* 
         stream << "&";
     }
 
-    return stream.str();
+    return stream.str().substr(0, stream.str().size()-1); // snip the trailing & 
 }
+
+// builds our request (near-restful)
+void HTTPConnector::restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, YaHTTP::Request& req)
+{
+    std::stringstream ss;
+    std::string sparam;
+    std::string verb;
+
+    // special names are qname, name, zonename, kind, others go to headers
+
+    ss << d_url;
+
+    ss << "/" << method;
+
+    // add the url components, if found, in following order.
+    // id must be first due to the fact that the qname/name can be empty
+
+    addUrlComponent(parameters, "id", ss);
+    addUrlComponent(parameters, "domain_id", ss);
+    addUrlComponent(parameters, "zonename", ss);
+    addUrlComponent(parameters, "qname", ss);
+    addUrlComponent(parameters, "name", ss);
+    addUrlComponent(parameters, "kind", ss);
+    addUrlComponent(parameters, "qtype", ss);
+
+    // set the correct type of request based on method
+    if (method == "activateDomainKey" || method == "deactivateDomainKey") {
+        // create an empty post
+        verb = "POST";
+    } else if (method == "setTSIGKey") {
+        req.POST()["algorithm"] = parameters["algorithm"].GetString();
+        req.POST()["content"] = parameters["content"].GetString();
+        req.preparePost();
+        verb = "PATCH";
+    } else if (method == "deleteTSIGKey") {
+        verb = "DELETE";
+    } else if (method == "addDomainKey") {
+        const rapidjson::Value& param = parameters["key"];
+        json2string(param["flags"],sparam);
+        req.POST()["flags"] = sparam;
+        req.POST()["active"] = (param["active"].GetBool() ? "1" : "0");
+        req.POST()["content"] = param["content"].GetString();
+        req.preparePost();
+        verb = "PUT";
+    } else if (method == "superMasterBackend") {
+        std::stringstream ss2;
+        addUrlComponent(parameters, "ip", ss);
+        addUrlComponent(parameters, "domain", ss);
+        // then we need to serialize rrset payload into POST
+        size_t index = 0;
+        for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
+            index++;
+            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr);
+        }
+        req.body = ss2.str();
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "POST";
+    } else if (method == "createSlaveDomain") {
+        addUrlComponent(parameters, "ip", ss);
+        addUrlComponent(parameters, "domain", ss);
+        if (parameters.HasMember("account")) {
+           req.POST()["account"] = parameters["account"].GetString();
+        }
+        req.preparePost();
+        verb = "PUT";
+    } else if (method == "replaceRRSet") {
+        std::stringstream ss2;
+        size_t index = 0;
+        for(rapidjson::Value::ConstValueIterator itr = parameters["rrset"].Begin(); itr != parameters["rrset"].End(); itr++) {
+            index++;
+            ss2 << buildMemberListArgs("rrset[" + boost::lexical_cast<std::string>(index) + "]", itr);
+        }
+        req.body = ss2.str();
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
+    } else if (method == "feedRecord") {
+        addUrlComponent(parameters, "trxid", ss);
+        req.body = buildMemberListArgs("rr", &parameters["rr"]);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
+    } else if (method == "feedEnts") {
+        std::stringstream ss2;
+        addUrlComponent(parameters, "trxid", ss);
+        for(rapidjson::Value::ConstValueIterator itr = parameters["nonterm"].Begin(); itr != parameters["nonterm"].End(); itr++) {
+          ss2 << "nonterm[]=" << YaHTTP::Utility::encodeURL(itr->GetString(), false) << "&";
+        }
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
+    } else if (method == "feedEnts3") {
+        std::stringstream ss2;
+        addUrlComponent(parameters, "domain", ss);
+        addUrlComponent(parameters, "trxid", ss);
+        ss2 << "times=" << parameters["times"].GetInt() << "&salt=" << YaHTTP::Utility::encodeURL(parameters["salt"].GetString(), false) << "&narrow=" << (parameters["narrow"].GetBool() ? 1 : 0) << "&";
+        for(rapidjson::Value::ConstValueIterator itr = parameters["nonterm"].Begin(); itr != parameters["nonterm"].End(); itr++) {
+          ss2 << "nonterm[]=" << YaHTTP::Utility::encodeURL(itr->GetString(), false) << "&";
+        }
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
+    } else if (method == "startTransaction") {
+        addUrlComponent(parameters, "domain", ss);
+        addUrlComponent(parameters, "trxid", ss);
+        verb = "POST";
+    } else if (method == "commitTransaction" || method == "abortTransaction") {
+        addUrlComponent(parameters, "trxid", ss);
+        verb = "POST";
+    } else if (method == "calculateSOASerial") {
+        addUrlComponent(parameters, "domain", ss);
+        req.body = buildMemberListArgs("sd", &parameters["sd"]);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "POST";
+    } else if (method == "setDomainMetadata") {
+        // copy all metadata values into post
+        std::stringstream ss2;
+        const rapidjson::Value& param = parameters["value"];
+        // this one has values too
+        if (param.IsArray()) {
+           for(rapidjson::Value::ConstValueIterator i = param.Begin(); i != param.End(); i++) {
+              ss2 << "value[]=" << YaHTTP::Utility::encodeURL(i->GetString(), false) << "&";
+           }
+        }
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
+    } else if (method == "removeDomainKey") {
+        // this one is delete
+        verb = "DELETE";
+    } else if (method == "setNotified") {
+        json2string(parameters["serial"],sparam);
+        req.POST()["serial"] = sparam;
+        req.preparePost();
+        verb = "PATCH";
+    } else {
+        // perform normal get
+        verb = "GET";
+    }
+
+    // put everything else into headers
+    for (rapidjson::Value::ConstMemberIterator iter = parameters.MemberBegin(); iter != parameters.MemberEnd(); ++iter) {
+      std::string member = iter->name.GetString();
+      // whitelist header parameters
+      if ((member == "trxid" ||
+           member == "local" || 
+           member == "remote" ||
+           member == "real-remote" ||
+           member == "zone-id") && 
+          json2string(parameters[member.c_str()], sparam)) {
+        std::string hdr = "x-remotebackend-" + member;
+        req.headers[hdr] = sparam;
+      }
+    };
+
+    // finally add suffix and store url
+    ss << d_url_suffix;
+
+    req.setup(verb, ss.str());
+}
+
 
 void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req) {
     if (this->d_post_json) {
@@ -116,19 +282,12 @@ void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP
     }
 }
 
-void HTTPConnector::restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, YaHTTP::Request& req) {
-};
-
 int HTTPConnector::send_message(const rapidjson::Document &input) {
     int rv,ec;
-    long rcode;
     
     std::vector<std::string> members;
     std::string method;
     std::ostringstream out;
-
-    // initialize curl
-    d_data = "";
 
     // perform request
     YaHTTP::Request req;
@@ -139,12 +298,12 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
       restful_requestbuilder(input["method"].GetString(), input["parameters"], req);
 
     rv = -1;
-    req.headers["connection"] = "close";
+    req.headers["connection"] = "close"; // make sure the other ends knows we are not going to hang around
 
     out << req;
 
     if (req.url.protocol == "unix") {
-      // connect using unix d_socketet
+      // connect using unix socket
     } else {
       // connect using tcp
       struct addrinfo *gAddr, *gAddrPtr;
@@ -193,6 +352,12 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
        arl.feed(std::string(buffer, rd));
     }
     arl.finalize();
+
+    if (resp.status < 200 || resp.status >= 400) {
+      // bad
+      return -1;
+    }
+
     rapidjson::StringStream ss(resp.body.c_str());
     int rv = -1;
     output.ParseStream<0>(ss);
