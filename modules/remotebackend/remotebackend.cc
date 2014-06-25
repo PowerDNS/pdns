@@ -137,11 +137,7 @@ int RemoteBackend::build() {
       if (type == "unix") {
         this->connector = new UnixsocketConnector(options);
       } else if (type == "http") {
-#ifdef REMOTEBACKEND_HTTP
         this->connector = new HTTPConnector(options);
-#else
-	throw PDNSException("Invalid connection string: http connector support not enabled. Recompile with --enable-remotebackend-http");
-#endif
       } else if (type == "zeromq") {
 #ifdef REMOTEBACKEND_ZEROMQ
         this->connector = new ZeroMQConnector(options);

@@ -23,17 +23,15 @@ zeromq_pid=""
 socat=$(which socat)
 
 function start_web() {
-  if [ x"$REMOTEBACKEND_HTTP" == "xyes" ]; then
-   ./unittest_$1.rb >> $mode.log 2>&1 & 
-   webrick_pid=$!
-   loopcount=0
-   while [ $loopcount -lt 20 ]; do
-     res=$(curl http://localhost:62434/ping 2>/dev/null)
-     if [ "x$res" == "xpong" ]; then break; fi
-     sleep 1
-     let loopcount=loopcount+1
-   done
-  fi
+ ./unittest_$1.rb >> $mode.log 2>&1 & 
+ webrick_pid=$!
+ loopcount=0
+ while [ $loopcount -lt 20 ]; do
+   res=$(curl http://localhost:62434/ping 2>/dev/null)
+   if [ "x$res" == "xpong" ]; then break; fi
+   sleep 1
+   let loopcount=loopcount+1
+  done
 }
 
 function stop_web() {

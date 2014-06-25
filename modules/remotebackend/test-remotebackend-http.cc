@@ -29,8 +29,6 @@ class RemoteLoader
 
 DNSBackend *be;
 
-#ifdef REMOTEBACKEND_HTTP
-
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE unit
@@ -60,14 +58,3 @@ struct RemotebackendSetup {
 };
 
 BOOST_GLOBAL_FIXTURE( RemotebackendSetup );
-
-#else
-
-#include <iostream>
-
-int main(void) {
-  std::cout << "No HTTP support in remotebackend - skipping test" << std::endl;
-  return 0;
-}
-
-#endif
