@@ -345,16 +345,22 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
     int rd;
 
     arl.initialize(&resp);
+
     while(arl.ready() == false) {
        rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
-       if (rd>0)
-         buffer[rd] = 0;
+       if (rd<0) {
+         delete d_socket;
+         d_socket = NULL;
+         return -1;
+       }
+       buffer[rd] = 0;
        arl.feed(std::string(buffer, rd));
     }
+
     arl.finalize();
 
     if (resp.status < 200 || resp.status >= 400) {
-      // bad
+      // bad. 
       return -1;
     }
 
