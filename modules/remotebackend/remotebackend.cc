@@ -70,8 +70,6 @@ bool RemoteBackend::send(rapidjson::Document &value) {
      return connector->send(value);
    } catch (PDNSException &ex) {
      L<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
-   } catch (...) {
-     L<<Logger::Error<<"Exception caught when sending"<<std::endl;
    }
 
    delete this->connector;
@@ -1042,9 +1040,6 @@ public:
 
 
 RemoteLoader::RemoteLoader() {
-#ifdef REMOTEBACKEND_HTTP
-    curl_global_init(CURL_GLOBAL_ALL);
-#endif
     BackendMakers().report(new RemoteBackendFactory);
     L<<Logger::Notice<<kBackendId<<" This is the remotebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
 }
