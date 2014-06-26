@@ -187,7 +187,7 @@ void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNod
   if(1.0*childstat.servfails / (childstat.servfails+childstat.noerrors) > 0.8 && node->children.size()>100) {
     cout<<node->fullname<<", servfails: "<<childstat.servfails<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<endl;
     BOOST_FOREACH(const StatNode::Stat::remotes_t::value_type& rem, childstat.remotes) {
-      cout<<node->fullname<<" "<<rem.first.toString()<<"\t"<<rem.second<<endl;
+      cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
     }
   }
 }
