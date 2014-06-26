@@ -14,6 +14,7 @@
 #include <boost/logic/tribool.hpp>
 #include "arguments.hh"
 #include "namespaces.hh"
+#include <deque>
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
@@ -24,6 +25,172 @@ ArgvMap& arg()
   return theArg;
 }
 StatBag S;
+
+struct comboCompare
+{
+  bool operator()(const ComboAddress& a, const ComboAddress& b) const
+  {
+    return ntohl(a.sin4.sin_addr.s_addr) < ntohl(b.sin4.sin_addr.s_addr);
+  }
+};
+
+
+class StatNode
+{
+public:
+  void submit(const std::string& domain, int rcode, const ComboAddress& remote);
+  void submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote);
+
+  string name;
+  string fullname;
+  struct Stat 
+  {
+    Stat() : queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0){}
+    int queries, noerrors, nxdomains, servfails, drops;
+
+    Stat& operator+=(const Stat& rhs) {
+      queries+=rhs.queries;
+      noerrors+=rhs.noerrors;
+      nxdomains+=rhs.nxdomains;
+      servfails+=rhs.servfails;
+      drops+=rhs.drops;
+
+      BOOST_FOREACH(const remotes_t::value_type& rem, rhs.remotes) {
+	remotes[rem.first]+=rem.second;
+      }
+      return *this;
+    }
+    typedef map<ComboAddress,int,comboCompare> remotes_t;
+    remotes_t remotes;
+  };
+
+  Stat s;
+  Stat print(int depth=0, Stat newstat=Stat(), bool silent=false) const;
+  typedef boost::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
+  void visit(visitor_t visitor, Stat& newstat, int depth=0) const;
+  typedef map<string,StatNode, CIStringCompare> children_t;
+  children_t children;
+  
+};
+
+StatNode::Stat StatNode::print(int depth, Stat newstat, bool silent) const
+{
+  if(!silent) {
+    cout<<string(depth, ' ');
+    cout<<name<<": "<<endl;
+  }
+  Stat childstat;
+  childstat.queries += s.queries;
+  childstat.noerrors += s.noerrors;
+  childstat.nxdomains += s.nxdomains;
+  childstat.servfails += s.servfails;
+  childstat.drops += s.drops;
+  if(children.size()>1024 && !silent) {
+    cout<<string(depth, ' ')<<name<<": too many to print"<<endl;
+  }
+  BOOST_FOREACH(const children_t::value_type& child, children) {
+    childstat=child.second.print(depth+8, childstat, silent || children.size()>1024);
+  }
+  if(!silent || children.size()>1)
+    cout<<string(depth, ' ')<<childstat.queries<<" queries, " << 
+      childstat.noerrors<<" noerrors, "<< 
+      childstat.nxdomains<<" nxdomains, "<< 
+      childstat.servfails<<" servfails, "<< 
+      childstat.drops<<" drops"<<endl;
+
+  newstat+=childstat;
+
+  return newstat;
+}
+
+
+void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
+{
+  Stat childstat;
+  childstat.queries += s.queries;
+  childstat.noerrors += s.noerrors;
+  childstat.nxdomains += s.nxdomains;
+  childstat.servfails += s.servfails;
+  childstat.drops += s.drops;
+  childstat.remotes = s.remotes;
+  
+  Stat selfstat(childstat);
+
+
+  BOOST_FOREACH(const children_t::value_type& child, children) {
+    child.second.visit(visitor, childstat, depth+8);
+  }
+
+  visitor(this, selfstat, childstat);
+
+  newstat+=childstat;
+}
+
+
+void StatNode::submit(const std::string& domain, int rcode, const ComboAddress& remote)
+{
+  //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
+  deque<string> parts;
+  stringtok(parts, domain, ".");
+  if(parts.empty())
+    return;
+  children[parts.back()].submit(parts, "", rcode, remote);
+}
+
+/* www.powerdns.com. -> 
+   .                 <- fullnames
+   com.
+   powerdns.com
+   www.powerdns.com. 
+*/
+
+void StatNode::submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote)
+{
+  if(labels.empty())
+    return;
+  //  cerr<<"Submit called for domain='"<<domain<<"': ";
+  //  BOOST_FOREACH(const std::string& n, labels) 
+  //    cerr<<n<<".";
+  //  cerr<<endl;
+  if(name.empty()) {
+
+    name=labels.back();
+    //    cerr<<"Set short name to '"<<name<<"'"<<endl;
+  }
+  else 
+    ; //    cerr<<"Short name was already set to '"<<name<<"'"<<endl;
+
+  if(labels.size()==1) {
+    fullname=name+"."+domain;
+    //    cerr<<"Hit the end, set our fullname to '"<<fullname<<"'"<<endl<<endl;
+    s.queries++;
+    if(rcode<0)
+      s.drops++;
+    else if(rcode==0)
+      s.noerrors++;
+    else if(rcode==2)
+      s.servfails++;
+    else if(rcode==3)
+      s.nxdomains++;
+    s.remotes[remote]++;
+  }
+  else {
+    fullname=name+"."+domain;
+    //    cerr<<"Not yet end, set our fullname to '"<<fullname<<"', recursing"<<endl;
+    labels.pop_back();
+    children[labels.back()].submit(labels, fullname, rcode, remote);
+  }
+}
+
+void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNode::Stat& childstat)
+{
+  if(1.0*childstat.servfails / (childstat.servfails+childstat.noerrors) > 0.8 && node->children.size()>100) {
+    cout<<node->fullname<<", servfails: "<<childstat.servfails<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<endl;
+    BOOST_FOREACH(const StatNode::Stat::remotes_t::value_type& rem, childstat.remotes) {
+      cout<<node->fullname<<" "<<rem.first.toString()<<"\t"<<rem.second<<endl;
+    }
+  }
+}
 
 struct QuestionData
 {
@@ -74,13 +241,6 @@ struct LiveCounts
   }
 };
 
-struct comboCompare
-{
-  bool operator()(const ComboAddress& a, const ComboAddress& b) const
-  {
-    return ntohl(a.sin4.sin_addr.s_addr) < ntohl(b.sin4.sin_addr.s_addr);
-  }
-};
 
 int main(int argc, char** argv)
 try
@@ -91,6 +251,7 @@ try
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
+    ("servfail-tree", "Figure out subtrees that generate servfails")
     ("load-stats,l", po::value<string>()->default_value(""), "if set, emit per-second load statistics (questions, answers, outstanding)")
     ("write-failures,w", po::value<string>()->default_value(""), "if set, write weird packets to this PCAP file")
     ("verbose,v", "be verbose");
@@ -115,6 +276,8 @@ try
     exit(1);
   }
 
+  StatNode root;
+
   bool verbose = g_vm.count("verbose");
 
   bool haveRDFilter=0, rdFilter=0;
@@ -128,6 +291,7 @@ try
 
   bool doIPv4 = g_vm["ipv4"].as<bool>();
   bool doIPv6 = g_vm["ipv6"].as<bool>();
+  bool doServFailTree = g_vm.count("servfail-tree");
 
   PcapPacketReader pr(files[0]);
   PcapPacketWriter* pw=0;
@@ -245,6 +409,11 @@ try
             
             if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
               errorresult++;
+	    ComboAddress rem = pr.getDest();
+	    rem.sin4.sin_port=0;
+
+	    if(doServFailTree)
+	      root.submit(mdp.d_qname, mdp.d_header.rcode, rem);
           }
 
           if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
@@ -389,7 +558,12 @@ try
   BOOST_FOREACH(const ComboAddress& rem, rdnonra) {
     rdnonrafs<<rem.toString()<<'\n';
   }
-  
+
+  if(doServFailTree) {
+    StatNode::Stat node;
+    root.visit(visitor, node);
+  }
+
 }
 catch(std::exception& e)
 {
