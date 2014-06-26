@@ -16,3 +16,5 @@ for dir in $PREFIX.* recursor-service
 do
 	supervise $dir &
 done
+
+sleep 1
