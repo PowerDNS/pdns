@@ -77,6 +77,10 @@ ghost.example.net.       3600 IN NS  ns.ghost.example.net.
 ns.ghost.example.net.    3600 IN A   $PREFIX.17
 ford.example.net.        3600 IN NS  ns.ford.example.net.
 ns.ford.example.net.     3600 IN A   $PREFIX.12
+hijackme.example.net.    3600 IN NS  ns.hijackme.example.net.
+ns.hijackme.example.net. 3600 IN A   $PREFIX.20
+hijacker.example.net.    3600 IN NS  ns.hijacker.example.net.
+ns.hijacker.example.net. 3600 IN A   $PREFIX.21
 EOF
 
 mkdir $PREFIX.11
@@ -296,6 +300,32 @@ function prequery ( dnspacket )
     end
     return false
 end
+EOF
+
+### plain domain as target for hijacking
+mkdir $PREFIX.20
+cat > $PREFIX.20/hijackme.example.net.zone <<EOF
+hijackme.example.net.    3600 IN SOA $SOA
+hijackme.example.net.      20 IN NS  ns.hijackme.example.net.
+ns.hijackme.example.net.   20 IN A   $PREFIX.20
+www.hijackme.example.net.  20 IN A   192.0.2.20
+EOF
+
+### domain designed to hijack the A of ns.hijackme.example.net
+mkdir $PREFIX.21
+cat > $PREFIX.21/hijacker.example.net.zone <<EOF
+hijacker.example.net.    3600 IN SOA $SOA
+hijacker.example.net.      20 IN NS  ns.hijackme.example.net.
+;ns.hijackme.example.net.   20 IN A   $PREFIX.21
+
+EOF
+
+cat > $PREFIX.21/hijackme.example.net.zone <<EOF
+hijackme.example.net.    3600 IN SOA $SOA
+hijackme.example.net.      20 IN NS  ns.hijackme.example.net.
+ns.hijackme.example.net.   20 IN A   $PREFIX.21
+www.hijackme.example.net.  20 IN A   192.0.2.21
+
 EOF
 
 for dir in $PREFIX.*
