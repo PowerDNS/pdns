@@ -32,7 +32,14 @@ PowerDNS Authoritative Server 3.0 and beyond depend on Boost.
 On Debian 7.0, the following is useful:
 
     apt-get install autoconf automake bison flex g++ git libboost-all-dev libtool make pkg-config ragel
-    
+
+If you build from git, first build configure:
+
+    $ ./bootstrap
+
+(You may need to do that twice. You also need libtool-1.4, 1.3 won't work.
+Automake 1.6 or newer is required, too.)
+
 To compile a very clean version, use:
 
     $ ./configure --with-modules="" --without-lua
