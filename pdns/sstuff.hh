@@ -1,5 +1,4 @@
-#ifndef SSTUFF_HH
-#define SSTUFF_HH
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -18,8 +17,6 @@
 #include <boost/utility.hpp>
 #include <csignal>
 #include "namespaces.hh"
-#include "namespaces.hh"
-
 
 class NetworkError : public runtime_error
 {
@@ -36,11 +33,24 @@ typedef int ProtocolType; //!< Supported protocol types
 //! Representation of a Socket and many of the Berkeley functions available
 class Socket : public boost::noncopyable
 {
+protected:
   Socket(int fd)
   {
     d_socket = fd;
+    initialize();
+  }
+
+  virtual void initialize() {
     d_buflen=4096;
     d_buffer=new char[d_buflen];
+  }
+
+  virtual int internal_recv(char *buffer, size_t buflen) {
+    return ::recv(d_socket, buffer, buflen, 0);
+  }
+
+  virtual int internal_send(const char *buffer, size_t buflen) {
+    return ::send(d_socket, buffer, buflen, 0);
   }
 
 public:
@@ -51,11 +61,10 @@ public:
       throw NetworkError(strerror(errno));
     Utility::setCloseOnExec(d_socket);
 
-    d_buflen=4096;
-    d_buffer=new char[d_buflen];
+    initialize();
   }
 
-  ~Socket()
+  virtual ~Socket()
   {
     Utility::closesocket(d_socket);
     delete[] d_buffer;
@@ -143,7 +152,6 @@ public:
       throw NetworkError(strerror(errno));
   }
 
-
   //! For datagram sockets, receive a datagram and learn where it came from
   /** For datagram sockets, receive a datagram and learn where it came from
       \param dgram Will be filled with the datagram
@@ -203,7 +211,7 @@ public:
     const char *ptr=data.c_str();
 
     do {
-      res=::send(d_socket, ptr, toWrite, 0);
+      res=internal_send(ptr, toWrite);
       if(res<0) 
         throw NetworkError("Writing to a socket: "+string(strerror(errno)));
       if(!res)
@@ -222,7 +230,8 @@ public:
   unsigned int tryWrite(const char *ptr, int toWrite)
   {
     int res;
-    res=::send(d_socket,ptr,toWrite,0);
+    res=internal_send(ptr,toWrite);
+ 
     if(res==0)
       throw NetworkError("EOF on writing to a socket");
 
@@ -240,7 +249,8 @@ public:
   unsigned int write(const char *ptr, int toWrite)
   {
     int res;
-    res=::send(d_socket,ptr,toWrite,0);
+    res=internal_send(ptr,toWrite);
+  
     if(res<0) {
       throw NetworkError("Writing to a socket: "+string(strerror(errno)));
     }
@@ -253,7 +263,7 @@ public:
     const char *ptr = (char*)buffer;
     int ret;
     while(bytes) {
-      ret=::write(d_socket, ptr, bytes);
+      ret=internal_send(ptr, bytes);
       if(ret < 0) {
         if(errno==EAGAIN) {
           ret=waitForRWData(d_socket, false, timeout, 0);
@@ -275,48 +285,25 @@ public:
     }
   }
 
-  //! reads one character from the socket 
-  int getChar()
-  {
-    char c;
-
-    int res=::recv(d_socket,&c,1,0);
-    if(res)
-      return c;
-    return -1;
-  }
-
-  void getline(string &data)
-  {
-    data="";
-    int c;
-    while((c=getChar())!=-1) {
-      data+=(char)c;
-      if(c=='\n')
-        break;
-    }
-  }
-
   //! Reads a block of data from the socket to a string
   void read(string &data)
   {
-    int res=::recv(d_socket,d_buffer,d_buflen,0);
-    if(res<0) 
-      throw NetworkError("Reading from a socket: "+string(strerror(errno)));
+    int res = read(d_buffer, d_buflen);
     data.assign(d_buffer,res);
   }
 
   //! Reads a block of data from the socket to a block of memory
   int read(char *buffer, int bytes)
   {
-    int res=::recv(d_socket,buffer,bytes,0);
+    int res=internal_recv(buffer,bytes);
     if(res<0) 
       throw NetworkError("Reading from a socket: "+string(strerror(errno)));
     return res;
   }
 
-  int readWithTimeout(char* buffer, int n, int timeout)
+  virtual int readWithTimeout(char* buffer, int n, int timeout)
   {
+
     int err = waitForRWData(d_socket, true, timeout, 0);
 
     if(err == 0)
@@ -339,12 +326,9 @@ public:
   {
     return d_socket;
   }
-  
-private:
+
+protected:
   int d_socket;
   char *d_buffer;
   int d_buflen;
 };
-
-
-#endif
