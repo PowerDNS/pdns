@@ -17290,10 +17290,10 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term>Q: I'm trying to build from SVN but I get lots of weird errors!</term>
+	    <term>Q: I'm trying to build from Git but I get lots of weird errors!</term>
 	    <listitem>
 	      <para>
-		A: Read the 'HACKING' file, it lists the build requirements (mostly autoconf, automake, libtool). In many cases, 
+		A: Read the 'README' file, it lists the build requirements (mostly autoconf, automake, libtool). In many cases,
 		it may be easier to build from the source distribution though. More information for developers
 		is available on <ulink url="http://wiki.powerdns.com">the PowerDNS Open Source Community Wiki</ulink>.
 	      </para>
