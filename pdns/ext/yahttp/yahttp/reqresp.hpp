@@ -237,12 +237,15 @@ public:
       hasBody = false;
     }; //<! Initialize the parser for target and clear state
     int feed(const std::string& somedata); //<! Feed data to the parser
-    bool ready() {  return state > 1 && 
-                      (!hasBody || 
-                         (bodybuf.str().size() <= maxbody && 
-                          bodybuf.str().size() >= minbody)
-                      ); 
-                 }; //<! whether we have received enough data
+    bool ready() {
+     return (chunked == true && state == 3) || // if it's chunked we get end of data indication
+             (chunked == false && state > 1 &&  
+               (!hasBody || 
+                 (bodybuf.str().size() <= maxbody && 
+                  bodybuf.str().size() >= minbody)
+               )
+             ); 
+    }; //<! whether we have received enough data
     void finalize() {
       bodybuf.flush();
       if (ready()) {
