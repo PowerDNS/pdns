@@ -421,7 +421,12 @@ void Bind2Backend::alsoNotifies(const string &domain, set<string> *ips)
 void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd) 
 {
   NSEC3PARAMRecordContent ns3pr;
-  bool nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
+  bool nsec3zone;
+  if (d_hybrid) {
+    DNSSECKeeper dk;
+    nsec3zone=dk.getNSEC3PARAM(bbd->d_name, &ns3pr);
+  } else
+    nsec3zone=getNSEC3PARAM(bbd->d_name, &ns3pr);
 
   bbd->d_records = shared_ptr<recordstorage_t>(new recordstorage_t());
         
@@ -588,7 +593,11 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
   setArgPrefix("bind"+suffix);
   d_logprefix="[bind"+suffix+"backend]";
+  d_hybrid=mustDo("hybrid");
   s_ignore_broken_records=mustDo("ignore-broken-records");
+
+  if (!loadZones && d_hybrid)
+    return;
 
   Lock l(&s_startup_lock);
   
@@ -914,7 +923,14 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   NSEC3PARAMRecordContent ns3pr;
   string auth=bbd.d_name;
     
-  if(!getNSEC3PARAM(auth, &ns3pr)) {
+  bool nsec3zone;
+  if (d_hybrid) {
+    DNSSECKeeper dk;
+    nsec3zone=dk.getNSEC3PARAM(auth, &ns3pr);
+  } else
+    nsec3zone=getNSEC3PARAM(auth, &ns3pr);
+
+  if(!nsec3zone) {
     //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, qname, unhashed, before, after);
   
@@ -1304,6 +1320,7 @@ class Bind2Factory : public BackendFactory
          declare(suffix,"supermasters","List of IP-addresses of supermasters","");
          declare(suffix,"supermaster-destdir","Destination directory for newly added slave zones",::arg()["config-dir"]);
          declare(suffix,"dnssec-db","Filename to store & access our DNSSEC metadatabase, empty for none", "");         
+         declare(suffix,"hybrid","Store DNSSEC metadata in other backend","no");
       }
 
       DNSBackend *make(const string &suffix="")

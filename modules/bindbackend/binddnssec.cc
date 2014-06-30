@@ -34,7 +34,7 @@ void Bind2Backend::setupDNSSEC()
 }
 
 bool Bind2Backend::doesDNSSEC()
-{ return false; }
+{ return d_hybrid; }
 
 bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 { return false; }
@@ -55,7 +55,7 @@ bool Bind2Backend::removeDomainKey(const string& name, unsigned int id)
 { return false; }
 
 int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
-{ return false; }
+{ return -1; }
 
 bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)
 { return false; }
@@ -80,7 +80,7 @@ bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 void Bind2Backend::setupDNSSEC()
 {
   // cerr<<"Settting up dnssec db.. "<<getArg("dnssec-db") <<endl;
-  if(getArg("dnssec-db").empty())
+  if(getArg("dnssec-db").empty() || d_hybrid)
     return;
   try {
     d_dnssecdb = shared_ptr<SSQLite3>(new SSQLite3(getArg("dnssec-db")));
@@ -95,11 +95,14 @@ void Bind2Backend::setupDNSSEC()
 
 bool Bind2Backend::doesDNSSEC()
 {
-  return true;
+  return d_dnssecdb || d_hybrid;
 }
 
 bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p)
 {
+  if(!d_dnssecdb || d_hybrid)
+    return false;
+
   string value;
   vector<string> meta;
   getDomainMetadata(zname, "NSEC3PARAM", meta);
@@ -120,7 +123,7 @@ bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
 
 bool Bind2Backend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
 
   // cerr<<"Asked to get metadata for zone '"<<name<<"'|"<<kind<<"\n";
@@ -142,7 +145,7 @@ bool Bind2Backend::getAllDomainMetadata(const string& name, std::map<std::string
 
 bool Bind2Backend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
     
   // cerr<<"Asked to get metadata for zone '"<<name<<"'|"<<kind<<"\n";
@@ -164,7 +167,7 @@ bool Bind2Backend::getDomainMetadata(const string& name, const std::string& kind
 
 bool Bind2Backend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
   
   boost::format fmt("delete from domainmetadata where domain='%s' and kind='%s'");
@@ -184,7 +187,7 @@ bool Bind2Backend::setDomainMetadata(const string& name, const std::string& kind
 bool Bind2Backend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
 {
   // cerr<<"Asked to get keys for zone '"<<name<<"'\n";
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
   boost::format fmt("select id,flags, active, content from cryptokeys where domain='%s'");
   try {
@@ -208,7 +211,7 @@ bool Bind2Backend::getDomainKeys(const string& name, unsigned int kind, std::vec
 
 bool Bind2Backend::removeDomainKey(const string& name, unsigned int id)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
 
   // cerr<<"Asked to remove key "<<id<<" in zone '"<<name<<"'\n";
@@ -226,8 +229,8 @@ bool Bind2Backend::removeDomainKey(const string& name, unsigned int id)
 
 int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
 {
-  if(!d_dnssecdb)
-    return false;
+  if(!d_dnssecdb || d_hybrid)
+    return -1;
   
   //cerr<<"Asked to add a key to zone '"<<name<<"'\n";
   
@@ -245,7 +248,7 @@ int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
 bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)
 {
   // cerr<<"Asked to activate key "<<id<<" inzone '"<<name<<"'\n";
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
   
   boost::format fmt("update cryptokeys set active=1 where domain='%s' and id=%d");
@@ -262,7 +265,7 @@ bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)
 bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
 {
   // cerr<<"Asked to deactivate key "<<id<<" inzone '"<<name<<"'\n";
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
     
   boost::format fmt("update cryptokeys set active=0 where domain='%s' and id=%d");
@@ -278,7 +281,7 @@ bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
 
 bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* content)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
   boost::format fmt("select algorithm, secret from tsigkeys where name='%s'");
   
@@ -303,7 +306,7 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
 
 bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const string& content)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
   boost::format fmt("replace into tsigkeys (name,algorithm,secret) values('%s', '%s', '%s')");
   try {
@@ -318,7 +321,7 @@ bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const
 
 bool Bind2Backend::deleteTSIGKey(const string& name) 
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
   boost::format fmt("delete from tsigkeys where name='%s'");
 
@@ -334,7 +337,7 @@ bool Bind2Backend::deleteTSIGKey(const string& name)
 
 bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 {
-  if(!d_dnssecdb)
+  if(!d_dnssecdb || d_hybrid)
     return false;
 
   try {
