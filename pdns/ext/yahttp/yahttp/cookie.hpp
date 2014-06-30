@@ -43,14 +43,15 @@ namespace YaHTTP {
      }; //!< Stringify the cookie
   };
 
+  /*! Implements a Cookie jar for storing multiple cookies */
   class CookieJar {
     public:
-    std::map<std::string, Cookie> cookies; 
+    std::map<std::string, Cookie> cookies;  //<! cookie container
   
-    CookieJar() {};
+    CookieJar() {}; //<! constructs empty cookie jar
     CookieJar(const CookieJar & rhs) {
       this->cookies = rhs.cookies;
-    }
+    } //<! copy cookies from another cookie jar
   
     void keyValuePair(const std::string &keyvalue, std::string &key, std::string &value) {
       size_t pos;
@@ -58,7 +59,7 @@ namespace YaHTTP {
       if (pos == std::string::npos) throw "Not a Key-Value pair (cookie)";
       key = std::string(keyvalue.begin(), keyvalue.begin()+pos);
       value = std::string(keyvalue.begin()+pos+1, keyvalue.end());
-    }
+    } //<! key value pair parser
   
     void parseCookieHeader(const std::string &cookiestr) {
       std::list<Cookie> cookies;
@@ -129,6 +130,6 @@ namespace YaHTTP {
       for(std::list<Cookie>::iterator i = cookies.begin(); i != cookies.end(); i++) {
         this->cookies[i->name] = *i;
       }
-    };
+    }; //<! Parse multiple cookies from header 
   };
 };

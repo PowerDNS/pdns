@@ -2,42 +2,43 @@
 #define _YAHTTP_UTILITY_HPP 1
 
 namespace YaHTTP {
-  static const char *MONTHS[] = {0,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",0};
-  static const char *DAYS[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat",0};
+  static const char *MONTHS[] = {0,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",0}; //<! List of months 
+  static const char *DAYS[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat",0}; //<! List of days
 
+  /*! Represents a date/time with utc offset */
   class DateTime {
   public:
-     bool isSet;
+     bool isSet; //<! if this is initialized yet
 
-     int year;
+     int year; //<! year, 0 is year 0, not 1900
 
-     int month;
-     int day;
-     int wday;
+     int month; //<! month, range 1-12
+     int day; //<! day, range 1-31
+     int wday; //<! week day, range 1-7
 
-     int hours;
-     int minutes;
-     int seconds;
+     int hours; //<! hours, range 0-23
+     int minutes; //<! minutes, range 0-59
+     int seconds; //<! seconds, range 0-60
 
-     int utc_offset;
+     int utc_offset; //<! UTC offset with minutes (hhmm)
 
      DateTime() { 
        initialize();
-     };
+     }; //<! Construct and initialize
 
      void initialize() {
        isSet = false; 
        year = month = day = wday = hours = minutes = seconds = utc_offset = 0;
        month = 1; // it's invalid otherwise
-     };
+     }; //<! Creates year 0 date
 
      void setLocal() {
        fromLocaltime(time((time_t*)NULL)); 
-     };
+     }; //<! sets current local time
 
      void setGm() {
        fromGmtime(time((time_t*)NULL));
-     }
+     }; //<! sets current gmtime (almost UTC)
 
      void fromLocaltime(time_t t) {
 #ifdef HAVE_LOCALTIME_R
@@ -49,7 +50,7 @@ namespace YaHTTP {
        tm = localtime(&t);
        fromTm(tm);
 #endif
-     };
+     }; //<! uses localtime for time
 
      void fromGmtime(time_t t) {
 #ifdef HAVE_GMTIME_R
@@ -61,7 +62,7 @@ namespace YaHTTP {
        tm = gmtime(&t);
        fromTm(tm);
 #endif
-     };
+     }; //<! uses gmtime for time
 
      void fromTm(const struct tm *tm) {
        year = tm->tm_year + 1900;
@@ -73,7 +74,7 @@ namespace YaHTTP {
        wday = tm->tm_wday;
        utc_offset = tm->tm_gmtoff;
        isSet = true;
-     };
+     }; //<! parses date from struct tm 
 
      void validate() const {
        if (wday < 0 || wday > 6) throw "Invalid date";
@@ -82,7 +83,7 @@ namespace YaHTTP {
        if (hours < 0 || hours > 23 ||
            minutes < 0 || minutes > 59 ||
            seconds < 0 || seconds > 60) throw "Invalid date";
-     }
+     }; //<! make sure we are within ranges (not a *REAL* validation, just range check)
 
      std::string rfc_str() const {
        std::ostringstream oss;
@@ -99,7 +100,7 @@ namespace YaHTTP {
        oss << std::setfill('0') << std::setw(2) << (tmp_off%3600)/60;
 
        return oss.str(); 
-     };
+     }; //<! converts this date into a RFC-822 format
  
      std::string cookie_str() const {
        std::ostringstream oss;
@@ -109,27 +110,25 @@ namespace YaHTTP {
          std::setfill('0') << std::setw(2) << minutes << ":" << 
          std::setfill('0') << std::setw(2) << seconds << " GMT";
        return oss.str();
-     }
+     }; //<! converts this date into a HTTP Cookie date
  
      void parse822(const std::string &rfc822_date) {
-       char *pos;
        struct tm tm;
-       if ( (pos = strptime(rfc822_date.c_str(), "%a, %d %b %Y %T %z", &tm)) != NULL) {
+       if ( (strptime(rfc822_date.c_str(), "%a, %d %b %Y %T %z", &tm)) != NULL) {
           fromTm(&tm);
        } else {
           throw "Unparseable date";
        }
-     };
+     }; //<! parses RFC-822 date
 
      void parseCookie(const std::string &cookie_date) {
-       char *pos;
        struct tm tm;
-       if ( (pos = strptime(cookie_date.c_str(), "%d-%b-%Y %T %Z", &tm)) != NULL) {
+       if ( (strptime(cookie_date.c_str(), "%d-%b-%Y %T %Z", &tm)) != NULL) {
           fromTm(&tm);
        } else {
           throw "Unparseable date";
        }
-     };
+     }; //<! parses HTTP Cookie date
 
      int unixtime() const {
        struct tm tm;
@@ -141,10 +140,10 @@ namespace YaHTTP {
        tm.tm_sec = seconds;
        tm.tm_gmtoff = utc_offset;
        return mktime(&tm);
-     }
-     
+     }; //<! returns this datetime as unixtime. will not work for dates before 1970/1/1 00:00:00 GMT
   };
- 
+
+  /*! Various helpers needed in the code */ 
   class Utility {
   public:
     static std::string decodeURL(const std::string& component) {
@@ -174,7 +173,7 @@ namespace YaHTTP {
            pos2=pos1;
         }
         return result;
-    };
+    }; //<! Decodes %xx from string into bytes
     
     static std::string encodeURL(const std::string& component, bool asUrl = true) {
       std::string result = component;
@@ -191,7 +190,7 @@ namespace YaHTTP {
         }
       }
       return result;
-    };
+    }; //<! Escapes any characters into %xx representation when necessary, set asUrl to false to fully encode the url
 
     static std::string encodeURL(const std::wstring& component, bool asUrl = true) {
       unsigned char const *p = reinterpret_cast<unsigned char const*>(&component[0]);
@@ -207,9 +206,7 @@ namespace YaHTTP {
         } else result << (char)*iter;
       }
       return result.str();
-    };
-
-
+    }; //<! Escapes any characters into %xx representation when necessary, set asUrl to false to fully encode the url, for wide strings, returns ordinary string
 
     static std::string status2text(int status) {
        switch(status) {
@@ -292,7 +289,7 @@ namespace YaHTTP {
        default:
            return "Unknown Status";
        }
-    };
+    }; //<! static HTTP codes to text mappings
 
     static std::map<std::string,std::string> parseUrlParameters(std::string parameters) {
       std::string::size_type pos = 0;
@@ -331,7 +328,7 @@ namespace YaHTTP {
         pos = nextpos+1;
       }
       return parameter_map;
-    };
+    }; //<! parses URL parameters into string map 
 
     static bool iequals(const std::string& a, const std::string& b, size_t length) {
       std::string::const_iterator ai, bi;
@@ -345,19 +342,19 @@ namespace YaHTTP {
           (ai != a.end() && bi == b.end())) return false;
       
       return ::toupper(*ai) == ::toupper(*bi);
-    }
+    }; //<! case-insensitive comparison with length
 
     static bool iequals(const std::string& a, const std::string& b) {
       if (a.size() != b.size()) return false;
       return iequals(a,b,a.size());
-    }
+    }; //<! case-insensitive comparison
 
     static void trimRight(std::string &str) {
        const std::locale &loc = std::locale::classic();
        std::string::reverse_iterator iter = str.rbegin();
        while(iter != str.rend() && std::isspace(*iter, loc)) iter++;
        str.erase(iter.base(), str.end());
-    };
+    }; //<! removes whitespace from right
 
     static std::string camelizeHeader(const std::string &str) {
        std::string::const_iterator iter = str.begin();
@@ -375,7 +372,7 @@ namespace YaHTTP {
        }
 
        return result;
-     };
-   };
+   }; //<! camelizes headers, such as, content-type => Content-Type
+  };
 };
 #endif

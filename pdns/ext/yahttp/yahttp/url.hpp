@@ -10,6 +10,7 @@
 #endif 
 
 namespace YaHTTP {
+  /*! URL parser and container */
   class URL {
    private: 
       bool parseSchema(const std::string& url, size_t &pos) {
@@ -25,7 +26,7 @@ namespace YaHTTP {
              pos += 2;
           }
           return true;
-      }
+      }; //<! parse schema/protocol part 
 
       bool parseHost(const std::string& url, size_t &pos) {
           size_t pos1;
@@ -38,8 +39,13 @@ namespace YaHTTP {
              host = url.substr(pos, pos1-pos);
              pos = pos1;
           }
+          if ( (pos1 = host.find_first_of(":")) != std::string::npos ) {
+             std::istringstream tmp(host.substr(pos1+1));
+             tmp >> port;
+             host = host.substr(0, pos1);
+          }
           return true;
-      }
+      }; //<! parse host and port
 
       bool parseUserPass(const std::string& url, size_t &pos) {
           size_t pos1,pos2;
@@ -58,7 +64,7 @@ namespace YaHTTP {
           pos = pos1+1;
           username = Utility::decodeURL(username);
           return true;
-      };
+      }; //<! parse possible username and password
 
       bool parsePath(const std::string& url, size_t &pos) {
           size_t pos1;
@@ -72,7 +78,7 @@ namespace YaHTTP {
              pos = pos1;
           }
           return true;
-      }
+      }; //<! parse path component
 
       bool parseParameters(const std::string& url, size_t &pos) {
           size_t pos1;
@@ -88,18 +94,18 @@ namespace YaHTTP {
           }
           if (parameters.size()>0 && *(parameters.end()-1) == '&') parameters.resize(parameters.size()-1);
           return true;
-      }
+      }; //<! parse url parameters
 
       bool parseAnchor(const std::string& url, size_t &pos) {
           if (pos >= url.size()) return true; // no data
           if (url[pos] != '#') return false; // not anchor
           anchor = url.substr(pos+1);
           return true;
-      }
+      }; //<! parse anchor
 
       void initialize() {
         protocol = ""; host = ""; port = 0; username = ""; password = ""; path = ""; parameters = ""; anchor =""; pathless = true;
-      }
+      }; //<! initialize to empty URL
 
   public:
       std::string to_string() const {
@@ -135,26 +141,26 @@ namespace YaHTTP {
           if (anchor.empty() == false)
              oss << "#" << anchor;
           return oss.str();
-      }
+      }; //<! convert this URL to string
 
-      std::string protocol;
-      std::string host;
-      int port;
-      std::string username;
-      std::string password;
-      std::string path;
-      std::string parameters;
-      std::string anchor;
-      bool pathless;
+      std::string protocol; //<! schema/protocol 
+      std::string host; //<! host
+      int port; //<! port
+      std::string username; //<! username
+      std::string password; //<! password
+      std::string path; //<! path 
+      std::string parameters; //<! url parameters
+      std::string anchor; //<! anchor
+      bool pathless; //<! whether this url has no path
 
-      URL() { initialize(); }; 
+      URL() { initialize(); }; //<! construct empty url
       URL(const std::string& url) {
           parse(url);
-      };
+      }; //<! calls parse with url 
 
       URL(const char *url) {
           parse(std::string(url));
-      };
+      }; //<! calls parse with url
 
       bool parse(const std::string& url) {
           // setup
@@ -174,12 +180,12 @@ namespace YaHTTP {
           if (parsePath(url, pos) == false) return false;
           if (parseParameters(url, pos) == false) return false;
           return parseAnchor(url, pos);
-      };
+      }; /*! parse various formats of urls ranging from http://example.com/foo?bar=baz into data:base64:d089swt64wt... */
 
       friend std::ostream & operator<<(std::ostream& os, const URL& url) {
          os<<url.to_string();
          return os;
-      }
+      };
   };
 };
 #endif
