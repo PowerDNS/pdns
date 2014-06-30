@@ -70,8 +70,6 @@ bool RemoteBackend::send(rapidjson::Document &value) {
      return connector->send(value);
    } catch (PDNSException &ex) {
      L<<Logger::Error<<"Exception caught when sending: "<<ex.reason<<std::endl;
-   } catch (...) {
-     L<<Logger::Error<<"Exception caught when sending"<<std::endl;
    }
 
    delete this->connector;
@@ -139,11 +137,7 @@ int RemoteBackend::build() {
       if (type == "unix") {
         this->connector = new UnixsocketConnector(options);
       } else if (type == "http") {
-#ifdef REMOTEBACKEND_HTTP
         this->connector = new HTTPConnector(options);
-#else
-	throw PDNSException("Invalid connection string: http connector support not enabled. Recompile with --enable-remotebackend-http");
-#endif
       } else if (type == "zeromq") {
 #ifdef REMOTEBACKEND_ZEROMQ
         this->connector = new ZeroMQConnector(options);
@@ -1042,9 +1036,6 @@ public:
 
 
 RemoteLoader::RemoteLoader() {
-#ifdef REMOTEBACKEND_HTTP
-    curl_global_init(CURL_GLOBAL_ALL);
-#endif
     BackendMakers().report(new RemoteBackendFactory);
     L<<Logger::Notice<<kBackendId<<" This is the remotebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
 }

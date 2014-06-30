@@ -6,18 +6,13 @@
 #include <sstream>
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "polarssl/ssl.h"
 
-#ifdef REMOTEBACKEND_HTTP
-#include <curl/curl.h>
-#endif
-
-#ifndef UNIX_PATH_MAX 
+#ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
 #endif
 
-#ifdef REMOTEBACKEND_HTTP
 HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
-    this->d_c = NULL;
     this->d_url = options.find("url")->second;
     if (options.find("url-suffix") != options.end()) {
       this->d_url_suffix = options.find("url-suffix")->second;
@@ -28,7 +23,7 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     this->d_post = false;
     this->d_post_json = false;
 
-    if (options.find("timeout") != options.end()) { 
+    if (options.find("timeout") != options.end()) {
       this->timeout = boost::lexical_cast<int>(options.find("timeout")->second)/1000;
     }
     if (options.find("post") != options.end()) {
@@ -48,15 +43,6 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
 }
 
 HTTPConnector::~HTTPConnector() {
-    this->d_c = NULL;
-}
-
-// friend method for writing data into our buffer
-size_t httpconnector_write_data(void *buffer, size_t size, size_t nmemb, void *userp) {
-    HTTPConnector *tc = reinterpret_cast<HTTPConnector*>(userp);
-    std::string tmp(reinterpret_cast<char *>(buffer), size*nmemb);
-    tc->d_data += tmp;
-    return nmemb;
 }
 
 // converts json value into string
@@ -82,7 +68,7 @@ void HTTPConnector::addUrlComponent(const rapidjson::Value &parameters, const ch
     }
 }
 
-template <class T> std::string buildMemberListArgs(std::string prefix, const T* value, CURL* curlContext) {
+template <class T> std::string buildMemberListArgs(std::string prefix, const T* value) {
     std::stringstream stream;
 
     for (rapidjson::Value::ConstMemberIterator itr = value->MemberBegin(); itr != value->MemberEnd(); itr++) {
@@ -99,23 +85,21 @@ template <class T> std::string buildMemberListArgs(std::string prefix, const T* 
         } else if (itr->value.IsBool()) {
             stream << (itr->value.GetBool() ? 1 : 0);
         } else if (itr->value.IsString()) {
-            char *tmpstr = curl_easy_escape(curlContext, itr->value.GetString(), 0);
-            stream << tmpstr;
-            curl_free(tmpstr);
+            stream << YaHTTP::Utility::encodeURL(itr->value.GetString(), false);
         }
 
         stream << "&";
     }
 
-    return stream.str();
+    return stream.str().substr(0, stream.str().size()-1); // snip the trailing & 
 }
 
 // builds our request (near-restful)
-void HTTPConnector::restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist)
+void HTTPConnector::restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, YaHTTP::Request& req)
 {
     std::stringstream ss;
     std::string sparam;
-    char *tmpstr;
+    std::string verb;
 
     // special names are qname, name, zonename, kind, others go to headers
 
@@ -134,37 +118,25 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
     addUrlComponent(parameters, "kind", ss);
     addUrlComponent(parameters, "qtype", ss);
 
-    (*slist) = NULL;
     // set the correct type of request based on method
-    if (method == "activateDomainKey" || method == "deactivateDomainKey") { 
+    if (method == "activateDomainKey" || method == "deactivateDomainKey") {
         // create an empty post
-        curl_easy_setopt(d_c, CURLOPT_POST, 1);
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
+        verb = "POST";
     } else if (method == "setTSIGKey") {
-        std::stringstream ss2;
-        tmpstr = curl_easy_escape(d_c, parameters["algorithm"].GetString(), 0);
-        ss2 << "algorithm=" << tmpstr << "&content=";
-        tmpstr = curl_easy_escape(d_c, parameters["content"].GetString(), 0);
-        ss2 << tmpstr;
-        std::string out = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
-        curl_free(tmpstr);
+        req.POST()["algorithm"] = parameters["algorithm"].GetString();
+        req.POST()["content"] = parameters["content"].GetString();
+        req.preparePost();
+        verb = "PATCH";
     } else if (method == "deleteTSIGKey") {
-        curl_easy_setopt(d_c, CURLOPT_CUSTOMREQUEST, "DELETE");
+        verb = "DELETE";
     } else if (method == "addDomainKey") {
-        // create post with keydata
-        char *postfields;
-        int nsize;
         const rapidjson::Value& param = parameters["key"];
-        tmpstr = curl_easy_escape(d_c, param["content"].GetString(), 0);
-        nsize = 35 + strlen(tmpstr);
-        postfields = new char[nsize];
-        nsize = snprintf(postfields, nsize, "flags=%u&active=%d&content=%s", param["flags"].GetUint(), (param["active"].GetBool() ? 1 : 0), tmpstr);
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, nsize);
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, postfields);
-        curl_free(tmpstr);
-        delete [] postfields;
+        json2string(param["flags"],sparam);
+        req.POST()["flags"] = sparam;
+        req.POST()["active"] = (param["active"].GetBool() ? "1" : "0");
+        req.POST()["content"] = param["content"].GetString();
+        req.preparePost();
+        verb = "PUT";
     } else if (method == "superMasterBackend") {
         std::stringstream ss2;
         addUrlComponent(parameters, "ip", ss);
@@ -173,229 +145,237 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         size_t index = 0;
         for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
             index++;
-            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr, d_c);
+            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr);
         }
-        // then give it to curl
-        std::string out = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        req.body = ss2.str();
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "POST";
     } else if (method == "createSlaveDomain") {
         addUrlComponent(parameters, "ip", ss);
         addUrlComponent(parameters, "domain", ss);
         if (parameters.HasMember("account")) {
-           std::string out = parameters["account"].GetString();
-           curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-           curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str()); 
-        } else {
-           curl_easy_setopt(d_c, CURLOPT_POST, 1);
-           curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0); 
+           req.POST()["account"] = parameters["account"].GetString();
         }
+        req.preparePost();
+        verb = "PUT";
     } else if (method == "replaceRRSet") {
         std::stringstream ss2;
         size_t index = 0;
         for(rapidjson::Value::ConstValueIterator itr = parameters["rrset"].Begin(); itr != parameters["rrset"].End(); itr++) {
             index++;
-            ss2 << buildMemberListArgs("rrset[" + boost::lexical_cast<std::string>(index) + "]", itr, d_c);
+            ss2 << buildMemberListArgs("rrset[" + boost::lexical_cast<std::string>(index) + "]", itr);
         }
-        // then give it to curl
-        std::string out = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        req.body = ss2.str();
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
     } else if (method == "feedRecord") {
-        std::string out = buildMemberListArgs("rr", &parameters["rr"], d_c);
         addUrlComponent(parameters, "trxid", ss);
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        req.body = buildMemberListArgs("rr", &parameters["rr"]);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
     } else if (method == "feedEnts") {
         std::stringstream ss2;
         addUrlComponent(parameters, "trxid", ss);
         for(rapidjson::Value::ConstValueIterator itr = parameters["nonterm"].Begin(); itr != parameters["nonterm"].End(); itr++) {
-          tmpstr = curl_easy_escape(d_c, itr->GetString(), 0);
-          ss2 << "nonterm[]=" << tmpstr << "&";
-          curl_free(tmpstr);
+          ss2 << "nonterm[]=" << YaHTTP::Utility::encodeURL(itr->GetString(), false) << "&";
         }
-        std::string out = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
     } else if (method == "feedEnts3") {
         std::stringstream ss2;
         addUrlComponent(parameters, "domain", ss);
         addUrlComponent(parameters, "trxid", ss);
-        ss2 << "times=" << parameters["times"].GetInt() << "&salt=" << parameters["salt"].GetString() << "&narrow=" << (parameters["narrow"].GetBool() ? 1 : 0) << "&";
+        ss2 << "times=" << parameters["times"].GetInt() << "&salt=" << YaHTTP::Utility::encodeURL(parameters["salt"].GetString(), false) << "&narrow=" << (parameters["narrow"].GetBool() ? 1 : 0) << "&";
         for(rapidjson::Value::ConstValueIterator itr = parameters["nonterm"].Begin(); itr != parameters["nonterm"].End(); itr++) {
-          tmpstr = curl_easy_escape(d_c, itr->GetString(), 0);
-          ss2 << "nonterm[]=" << tmpstr << "&";
-          curl_free(tmpstr);
+          ss2 << "nonterm[]=" << YaHTTP::Utility::encodeURL(itr->GetString(), false) << "&";
         }
-        std::string out = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
     } else if (method == "startTransaction") {
         addUrlComponent(parameters, "domain", ss);
         addUrlComponent(parameters, "trxid", ss);
-        curl_easy_setopt(d_c, CURLOPT_POST, 1);
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
+        verb = "POST";
     } else if (method == "commitTransaction" || method == "abortTransaction") {
         addUrlComponent(parameters, "trxid", ss);
-        curl_easy_setopt(d_c, CURLOPT_POST, 1);
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, 0);
+        verb = "POST";
     } else if (method == "calculateSOASerial") {
         addUrlComponent(parameters, "domain", ss);
-        std::string out = buildMemberListArgs("sd", &parameters["sd"], d_c);
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
+        req.body = buildMemberListArgs("sd", &parameters["sd"]);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "POST";
     } else if (method == "setDomainMetadata") {
         // copy all metadata values into post
         std::stringstream ss2;
         const rapidjson::Value& param = parameters["value"];
-        curl_easy_setopt(d_c, CURLOPT_POST, 1);
         // this one has values too
         if (param.IsArray()) {
            for(rapidjson::Value::ConstValueIterator i = param.Begin(); i != param.End(); i++) {
-              ss2 << "value[]=" << i->GetString() << "&";
+              ss2 << "value[]=" << YaHTTP::Utility::encodeURL(i->GetString(), false) << "&";
            }
         }
-        sparam = ss2.str();
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, sparam.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, sparam.c_str());
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
+        req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
+        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        verb = "PATCH";
     } else if (method == "removeDomainKey") {
         // this one is delete
-        curl_easy_setopt(d_c, CURLOPT_CUSTOMREQUEST, "DELETE");
+        verb = "DELETE";
     } else if (method == "setNotified") {
-        tmpstr = (char*)malloc(128);
-        snprintf(tmpstr, 128, "serial=%u", parameters["serial"].GetInt());
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, strlen(tmpstr));
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, tmpstr);
-        free(tmpstr);
+        json2string(parameters["serial"],sparam);
+        req.POST()["serial"] = sparam;
+        req.preparePost();
+        verb = "PATCH";
     } else {
         // perform normal get
-        curl_easy_setopt(d_c, CURLOPT_HTTPGET, 1);
+        verb = "GET";
     }
 
     // put everything else into headers
     for (rapidjson::Value::ConstMemberIterator iter = parameters.MemberBegin(); iter != parameters.MemberEnd(); ++iter) {
-      char header[1024];
-      const char *member = iter->name.GetString();
-      // these are not put into headers for obvious reasons
-      if (!strncmp(member,"zonename",8) || !strncmp(member,"qname",5) ||
-          !strncmp(member,"name",4) || !strncmp(member,"kind",4) ||
-          !strncmp(member,"qtype",5) || !strncmp(member,"id",2) ||
-          !strncmp(member,"key",3)) continue;
-      if (json2string(parameters[member], sparam)) {
-         snprintf(header, sizeof header, "X-RemoteBackend-%s: %s", iter->name.GetString(), sparam.c_str());
-         (*slist) = curl_slist_append((*slist), header);
+      std::string member = iter->name.GetString();
+      // whitelist header parameters
+      if ((member == "trxid" ||
+           member == "local" || 
+           member == "remote" ||
+           member == "real-remote" ||
+           member == "zone-id") && 
+          json2string(parameters[member.c_str()], sparam)) {
+        std::string hdr = "x-remotebackend-" + member;
+        req.headers[hdr] = sparam;
       }
     };
 
     // finally add suffix and store url
     ss << d_url_suffix;
-    curl_easy_setopt(d_c, CURLOPT_URL, ss.str().c_str());
 
-    // store headers into request
-    curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist); 
+    req.setup(verb, ss.str());
 }
 
-void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, struct curl_slist **slist) {
+
+void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req) {
     if (this->d_post_json) {
-        // simple case, POST JSON into url. nothing fancy. 
+        req.setup("POST", d_url);
+        // simple case, POST JSON into url. nothing fancy.
         std::string out = makeStringFromDocument(input);
-        (*slist) = curl_slist_append((*slist), "Content-Type: text/javascript; charset=utf-8");
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, out.size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, out.c_str());
-        curl_easy_setopt(d_c, CURLOPT_URL, d_url.c_str());
-        curl_easy_setopt(d_c, CURLOPT_HTTPHEADER, *slist);
+        req.headers["Content-Type"] = "text/javascript; charset=utf-8";
+        req.headers["Content-Length"] = boost::lexical_cast<std::string>(out.size());
+        req.body = out;
     } else {
         std::stringstream url,content;
-        char *tmpstr;
         // call url/method.suffix
         rapidjson::StringBuffer output;
         rapidjson::Writer<rapidjson::StringBuffer> w(output);
         input["parameters"].Accept(w);
         url << d_url << "/" << input["method"].GetString() << d_url_suffix;
+        req.setup("POST", url.str());
         // then build content
-        tmpstr = curl_easy_escape(d_c, output.GetString(), 0);
-        content << "parameters=" << tmpstr;
-        // convert into parameters=urlencoded
-        curl_easy_setopt(d_c, CURLOPT_POSTFIELDSIZE, content.str().size());
-        curl_easy_setopt(d_c, CURLOPT_COPYPOSTFIELDS, content.str().c_str());
-        free(tmpstr);
-        curl_easy_setopt(d_c, CURLOPT_URL, d_url.c_str());
-        curl_easy_setopt(d_c, CURLOPT_URL, url.str().c_str());
+        req.POST()["parameters"] = output.GetString();
+        req.preparePost();
     }
 }
 
 int HTTPConnector::send_message(const rapidjson::Document &input) {
-    int rv;
-    long rcode;
-    struct curl_slist *slist;
-
+    int rv,ec;
+    
     std::vector<std::string> members;
     std::string method;
+    std::ostringstream out;
 
-    // initialize curl
-    d_c = curl_easy_init();
-    d_data = "";
-    curl_easy_setopt(d_c, CURLOPT_NOSIGNAL, 1);
-    curl_easy_setopt(d_c, CURLOPT_TIMEOUT, this->timeout);
- 
-    // turn off peer verification or set verification roots
-    if (d_capath.empty()) {
-      if (d_cafile.empty()) {
-         curl_easy_setopt(d_c, CURLOPT_SSL_VERIFYPEER, 0);
-      } else {
-         curl_easy_setopt(d_c, CURLOPT_CAINFO, d_cafile.c_str());
-      }
-    } else {
-       curl_easy_setopt(d_c, CURLOPT_CAPATH, d_capath.c_str());
-    }
+    // perform request
+    YaHTTP::Request req;
 
-    slist = NULL;
-
-    // build request based on mode
-    
-    if (d_post) 
-      post_requestbuilder(input, &slist);
+    if (d_post)
+      post_requestbuilder(input, req);
     else
-      restful_requestbuilder(input["method"].GetString(), input["parameters"], &slist);
+      restful_requestbuilder(input["method"].GetString(), input["parameters"], req);
 
-    // setup write function helper
-    curl_easy_setopt(d_c, CURLOPT_WRITEFUNCTION, &(httpconnector_write_data));
-    curl_easy_setopt(d_c, CURLOPT_WRITEDATA, this);
+    rv = -1;
+    req.headers["connection"] = "close"; // make sure the other ends knows we are not going to hang around
 
-    // then we actually do it
-    if (curl_easy_perform(d_c) != CURLE_OK) {
-      // boo, it failed
-      rv = -1;
+    out << req;
+
+    if (req.url.protocol == "unix") {
+      // connect using unix socket
     } else {
-      // ensure the result was OK
-      if (curl_easy_getinfo(d_c, CURLINFO_RESPONSE_CODE, &rcode) != CURLE_OK || rcode < 200 || rcode > 299) {
-         rv = -1;
+      // connect using tcp
+      struct addrinfo *gAddr, *gAddrPtr;
+      std::string sPort = boost::lexical_cast<std::string>(req.url.port);
+      if ((ec = getaddrinfo(req.url.host.c_str(), sPort.c_str(), NULL, &gAddr)) == 0) {
+        // try to connect to each address. 
+        gAddrPtr = gAddr;
+        while(gAddrPtr) {
+          d_socket = new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
+          try {
+            ComboAddress addr = *reinterpret_cast<ComboAddress*>(gAddrPtr->ai_addr);
+            d_socket->connect(addr);
+            d_socket->setNonBlocking();
+            d_socket->writenWithTimeout(out.str().c_str(), out.str().size(), timeout);
+            rv = 1;
+          } catch (NetworkError& ne) {
+            L<<Logger::Error<<"While writing to HTTP endpoint: "<<ne.what()<<std::endl;
+          }
+          if (rv > -1) break;
+          delete d_socket;
+          d_socket = NULL;
+          gAddrPtr = gAddrPtr->ai_next;
+        }
+        freeaddrinfo(gAddr);
       } else {
-         // ok. if d_data == 0 but rcode is 2xx then result:true
-         if (this->d_data.size() == 0) 
-            this->d_data = "{\"result\": true}";
-         rv = this->d_data.size();
+        L<<Logger::Error<<"Unable to resolve " << req.url.host << ": " << gai_strerror(ec) << std::endl;
       }
     }
-
-    // clean up resources
-    curl_slist_free_all(slist);
-    curl_easy_cleanup(d_c);
 
     return rv;
 }
 
 int HTTPConnector::recv_message(rapidjson::Document &output) {
-    rapidjson::StringStream ss(d_data.c_str());
+    YaHTTP::AsyncResponseLoader arl;
+    YaHTTP::Response resp;
+
+    if (d_socket == NULL ) return -1; // cannot receive :(
+    char buffer[4096];
+    int rd;
+
+    arl.initialize(&resp);
+
+    while(arl.ready() == false) {
+       rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
+       if (rd<0) {
+         delete d_socket;
+         d_socket = NULL;
+         return -1;
+       }
+       buffer[rd] = 0;
+       arl.feed(std::string(buffer, rd));
+    }
+
+    arl.finalize();
+
+    if (resp.status < 200 || resp.status >= 400) {
+      // bad. 
+      return -1;
+    }
+
+    rapidjson::StringStream ss(resp.body.c_str());
     int rv = -1;
     output.ParseStream<0>(ss);
 
     // offer whatever we read in send_message
     if (output.HasParseError() == false)
-       rv = d_data.size();
+       rv = rd;
+    else
+       rv = -1;
 
-    d_data = ""; // cleanup here
+    delete d_socket;
+    d_socket = NULL;
+ 
     return rv;
 }
-
-#endif

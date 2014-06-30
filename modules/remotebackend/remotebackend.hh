@@ -14,10 +14,9 @@
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 #include "pdns/json.hh"
+#include "yahttp/yahttp.hpp"
+#include "sstuff.hh"
 
-#ifdef REMOTEBACKEND_HTTP
-#include <curl/curl.h>
-#endif
 #ifdef REMOTEBACKEND_ZEROMQ
 #include <zmq.hpp>
 #endif
@@ -54,7 +53,6 @@ class UnixsocketConnector: public Connector {
     int timeout;
 };
 
-#ifdef REMOTEBACKEND_HTTP
 class HTTPConnector: public Connector {
   public:
 
@@ -63,11 +61,9 @@ class HTTPConnector: public Connector {
 
   virtual int send_message(const rapidjson::Document &input);
   virtual int recv_message(rapidjson::Document &output);
-  friend size_t httpconnector_write_data(void*, size_t, size_t, void *value);
   private:
     std::string d_url;
     std::string d_url_suffix;
-    CURL *d_c;
     std::string d_data;
     int timeout;
     bool d_post; 
@@ -75,11 +71,11 @@ class HTTPConnector: public Connector {
     std::string d_capath;
     std::string d_cafile;
     bool json2string(const rapidjson::Value &input, std::string &output);
-    void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, struct curl_slist **slist);
-    void post_requestbuilder(const rapidjson::Document &input, struct curl_slist **slist);
+    void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, YaHTTP::Request& req);
+    void post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
+    Socket* d_socket;
 };
-#endif
 
 #ifdef REMOTEBACKEND_ZEROMQ
 class ZeroMQConnector: public Connector {

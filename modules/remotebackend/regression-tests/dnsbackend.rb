@@ -131,4 +131,12 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
    def do_POST(req,res)
      do_GET(req,res)
    end 
+
+   def do_PATCH(req,res)
+     do_GET(req,res)
+   end
+
+   def do_PUT(req,res)
+     do_GET(req,res)
+   end
 end
