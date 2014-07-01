@@ -31,3 +31,10 @@ install-exec-local:
 	@echo "***********************************************************"
 
 
+# remove .la files. We don't need them, because we use dlopen, not libltdl.
+# If we ever switch to libltdl (to support dynamic loading on OSX, perhaps)
+# remove this hook.
+install-exec-hook:
+	find $(DESTDIR)$(pkglibdir) -type f -name \*.la -delete
+
+
