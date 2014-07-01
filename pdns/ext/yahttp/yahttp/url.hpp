@@ -155,37 +155,37 @@ namespace YaHTTP {
 
       URL() { initialize(); }; //<! construct empty url
       URL(const std::string& url) {
-          parse(url);
+        parse(url);
       }; //<! calls parse with url 
 
       URL(const char *url) {
-          parse(std::string(url));
+        parse(std::string(url));
       }; //<! calls parse with url
 
       bool parse(const std::string& url) {
-          // setup
-          initialize();
+        // setup
+        initialize();
 
-          if (url.size() > YAHTTP_MAX_URL_LENGTH) return false;
-          size_t pos = 0;
-          if (*(url.begin()) != '/') { // full url?
-             if (parseSchema(url, pos) == false) return false;
-             if (pathless) {
-                parameters = url.substr(pos);
-                return true;
-             }
-             if (parseUserPass(url, pos) == false) return false;
-             if (parseHost(url, pos) == false) return false;
+        if (url.size() > YAHTTP_MAX_URL_LENGTH) return false;
+        size_t pos = 0;
+        if (*(url.begin()) != '/') { // full url?
+          if (parseSchema(url, pos) == false) return false;
+          if (pathless) {
+            parameters = url.substr(pos);
+            return true;
           }
-          if (parsePath(url, pos) == false) return false;
-          if (parseParameters(url, pos) == false) return false;
-          return parseAnchor(url, pos);
-      }; /*! parse various formats of urls ranging from http://example.com/foo?bar=baz into data:base64:d089swt64wt... */
+          if (parseUserPass(url, pos) == false) return false;
+          if (parseHost(url, pos) == false) return false;
+        }
+        if (parsePath(url, pos) == false) return false;
+        if (parseParameters(url, pos) == false) return false;
+        return parseAnchor(url, pos);
+    }; //<! parse various formats of urls ranging from http://example.com/foo?bar=baz into data:base64:d089swt64wt... 
 
-      friend std::ostream & operator<<(std::ostream& os, const URL& url) {
-         os<<url.to_string();
-         return os;
-      };
+    friend std::ostream & operator<<(std::ostream& os, const URL& url) {
+      os<<url.to_string();
+      return os;
+    };
   };
 };
 #endif

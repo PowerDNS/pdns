@@ -96,25 +96,28 @@ namespace YaHTTP {
     if (buffer.size() == 0) return ready();
 
     while(buffer.size() > 0) {
-      char buf[1024] = {0};
-
       if (chunked) {
         if (chunk_size == 0) {
+          char buf[100];
           // read chunk length
           if ((pos = buffer.find('\n')) == std::string::npos) return false;
-          if (pos > 1023)
+          if (pos > 99)
             throw ParseError("Impossible chunk_size");
           buffer.copy(buf, pos);
           buf[pos]=0; // just in case...
           buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer
           sscanf(buf, "%x", &chunk_size);
-          if (!chunk_size) break; // last chunk
+          if (!chunk_size) { state = 3; break; } // last chunk
         } else {
+          int crlf=1;
           if (buffer.size() < static_cast<size_t>(chunk_size+1)) return false; // expect newline
-          if (buffer.at(chunk_size) != '\n') return false; // there should be newline.
-          buffer.copy(buf, chunk_size);
-          buffer.erase(buffer.begin(), buffer.begin()+chunk_size+1);
-          bodybuf << buf;
+          if (buffer.at(chunk_size) == '\r') {
+            if (buffer.size() < static_cast<size_t>(chunk_size+2) || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
+            crlf=2;
+          } else if (buffer.at(chunk_size) != '\n') return false; 
+          std::string tmp = buffer.substr(0, chunk_size);
+          buffer.erase(buffer.begin(), buffer.begin()+chunk_size+crlf);
+          bodybuf << tmp;
           chunk_size = 0;
           if (buffer.size() == 0) break; // just in case
         }
