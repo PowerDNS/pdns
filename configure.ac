@@ -28,9 +28,9 @@ AC_PROG_MAKE_SET
 AC_LANG([C++])
 
 m4_ifndef([LT_INIT],[
-AC_PROG_LIBTOOL
+AC_PROG_LIBTOOL([disable-static])
 ],[
-LT_INIT
+LT_INIT([disable-static])
 ])
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
