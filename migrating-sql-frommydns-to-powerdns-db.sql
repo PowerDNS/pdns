@@ -1,7 +1,13 @@
 # Migrating MySQL Data from MyDNS to PowerDNS 
 # 2014-07-02: Markus Neubauer
-# GPLv3
+# GPLv2
 # http://www.std-soft.com/index.php/hm-service/81-c-std-service-code/6-migration-mysql-daten-von-mydns-auf-powerdns-migrieren
+
+# make MyDNS tables consistent for migration
+ALTER IGNORE TABLE `soa` ADD `active` enum('Y','N') NOT NULL DEFAULT 'Y';
+ALTER IGNORE TABLE `soa` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER IGNORE TABLE `rr` ADD `active` enum('Y','N') NOT NULL DEFAULT 'Y';
+ALTER IGNORE TABLE `rr` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 
 # defines table domains
 CREATE TABLE IF NOT EXISTS `domains` ( `id` int(11) NOT NULL AUTO_INCREMENT, `name` varchar(255) NOT NULL, `master` varchar(128) DEFAULT NULL, 
@@ -18,16 +24,10 @@ CREATE TABLE IF NOT EXISTS `records` ( `id` int(11) NOT NULL AUTO_INCREMENT, `do
 TRUNCATE TABLE `domains`;
 TRUNCATE TABLE `records`;
 
-# make MyDNS tables consistent for migration
-ALTER IGNORE TABLE `soa` ADD `active` enum('Y','N') NOT NULL DEFAULT 'Y';
-ALTER IGNORE TABLE `soa` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-ALTER IGNORE TABLE `rr` ADD `active` enum('Y','N') NOT NULL DEFAULT 'Y';
-ALTER IGNORE TABLE `rr` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
 # import soa into table domains
-INSERT INTO `domains` (id,name,type) (SELECT d.id, SUBSTR(d.origin,1, LENGTH(d.origin)-1), 'NATIVE' FROM `soa` as d)
+INSERT INTO `domains` (id,name,type) (SELECT d.id, SUBSTR(d.origin,1, LENGTH(d.origin)-1), 'NATIVE' FROM `soa` as d);
 # import soa records to table records
-INSERT INTO `records` (domain_id,name,type,content,ttl,change_date,disabled) (select id,SUBSTR(origin,1, LENGTH(origin)-1),'SOA', CONCAT_WS(' ',SUBSTR(ns,1, LENGTH(ns)-1),serial,refresh,retry,expire,minimum),ttl,UNIX_TIMESTAMP(modified),REPLACE(active,'N','1') from soa)
+INSERT INTO `records` (domain_id,name,type,content,ttl,change_date,disabled) (select id,SUBSTR(origin,1, LENGTH(origin)-1),'SOA', CONCAT_WS(' ',SUBSTR(ns,1, LENGTH(ns)-1),serial,refresh,retry,expire,minimum),ttl,UNIX_TIMESTAMP(modified),REPLACE(active,'N','1') from soa);
 
 # import rr records into table records
 DROP TABLE IF EXISTS `temptab`;
