@@ -3,6 +3,8 @@
 # License: GPLv2
 # http://www.std-soft.com/index.php/hm-service/81-c-std-service-code/6-migration-mysql-daten-von-mydns-auf-powerdns-migrieren
 # You can skip STEP 1 and STEP 2, if your database is already prepared
+# or alternate use "mysql --force < migrate-mysql-from-mydns-to-powerdns-db.sql" to ignore errors that might occur
+# you should check your fields in domains and records in the later case and adjust the triggers if not consistent.
 
 # STEP 1: make MyDNS tables consistent for migration
 # you should skip this step if you have used the fields in the past
