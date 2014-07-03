@@ -1,6 +1,6 @@
 # Migrating MySQL Data from MyDNS to PowerDNS 
 # 2014-07-02: Markus Neubauer
-# GPLv2
+# License: GPLv2
 # http://www.std-soft.com/index.php/hm-service/81-c-std-service-code/6-migration-mysql-daten-von-mydns-auf-powerdns-migrieren
 # You can skip STEP 1 and STEP 2, if your database is already prepared
 
@@ -24,17 +24,76 @@ CREATE TABLE IF NOT EXISTS `records` ( `id` int(11) NOT NULL AUTO_INCREMENT, `do
   PRIMARY KEY (`id`), KEY `nametype_index` (`name`,`type`), KEY `recordorder` (`domain_id`,`ordername`), KEY `typename_index` (`type`,`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1;
 
-# STEP 3: clear from test data
+# STEP 3: create tables for "version control/revision" records
+# Unfortunately the field `disabled` is not honoured within pdns, despite poweradmin offers the field. 
+# Thus lets make at least a simple poor mans "version control". Create log tables and trigger the actions to record changes.
+DROP TABLE IF EXISTS `domains_log`;
+CREATE TABLE `domains_log` LIKE domains;
+ALTER  TABLE `domains_log` CHANGE  `id`  `id` INT( 11  ) NOT NULL;
+ALTER  TABLE `domains_log` ADD  INDEX (  `id`  );
+ALTER  TABLE `domains_log` DROP PRIMARY KEY;
+ALTER  TABLE `domains_log` ADD  `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER  TABLE `domains_log` ADD  INDEX (  `modified`  );
+# no trigger on INSERT used, this is not a backup!
+# trigger a delete action
+DROP TRIGGER IF EXISTS `domains_delete`;
+DELIMITER //
+CREATE TRIGGER `domains_delete` AFTER DELETE ON `domains` FOR EACH ROW  BEGIN
+ INSERT INTO domains_log VALUES(OLD.id,OLD.name,OLD.master,OLD.last_check,OLD.type,OLD.notified_serial,OLD.account,NOW());
+END
+//
+DELIMITER ;
+DROP TRIGGER IF EXISTS `domains_update`;
+# trigger some changes, not all fields will be honoured on update
+DELIMITER //
+CREATE TRIGGER `domains_update` AFTER UPDATE ON `domains` FOR EACH ROW  BEGIN  
+ IF ( NEW.name!=OLD.name OR NEW.master!=OLD.master OR NEW.type!=OLD.type OR NEW.account!=OLD.account ) THEN
+  INSERT INTO domains_log VALUES(OLD.id,OLD.name,OLD.master,OLD.last_check,OLD.type,OLD.notified_serial,OLD.account,NOW());
+ END IF;
+END
+//
+DELIMITER ;
+# accordingly for records
+DROP TABLE IF EXISTS `records_log`;
+CREATE TABLE `records_log` LIKE records;
+ALTER  TABLE `records_log` CHANGE  `id`  `id` INT( 11  ) NOT NULL;
+ALTER  TABLE `records_log`  DROP  PRIMARY  KEY;
+ALTER  TABLE `mydns`.`records_log`  ADD  INDEX  `Id` (  `id`  );
+ALTER  TABLE `records_log` ADD  `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER  TABLE `records_log` ADD  INDEX (  `modified`  );
+# no trigger on INSERT used, this is not a backup!
+# trigger a delete action
+DROP TRIGGER IF EXISTS `records_delete`;
+DELIMITER //
+CREATE TRIGGER `records_delete` AFTER DELETE ON `records` FOR EACH ROW  BEGIN
+ INSERT INTO records_log VALUES(OLD.id,OLD.domain_id,OLD.name,OLD.type,OLD.content,OLD.ttl,OLD.prio,OLD.change_date,OLD.disabled,OLD.ordername,OLD.auth,NOW());
+END
+//
+DELIMITER ;
+DROP TRIGGER IF EXISTS `records_update`;
+# trigger some changes, not all fields will be honoured on update
+DELIMITER //
+CREATE TRIGGER `records_update` AFTER UPDATE ON `records` FOR EACH ROW  BEGIN  
+ IF ( NEW.name!=OLD.name OR NEW.type!=OLD.type OR NEW.content!=OLD.content OR NEW.ttl!=OLD.ttl OR NEW.prio!=OLD.prio OR NEW.disabled!=OLD.disabled OR NEW.ordername!=OLD.ordername OR NEW.auth!=OLD.auth ) THEN
+  INSERT INTO records_log VALUES(OLD.id,OLD.domain_id,OLD.name,OLD.type,OLD.content,OLD.ttl,OLD.prio,OLD.change_date,OLD.disabled,OLD.ordername,OLD.auth,NOW());
+ END IF;
+END
+//
+DELIMITER ;
+
+# STEP 4: clear from test data
 TRUNCATE TABLE `domains`;
 TRUNCATE TABLE `records`;
 
-# STEP 4: import soa into table domains
+# STEP 5: import soa into table domains
 # You may want to change 'NATIVE' to 'MASTER', depending on your current setup. Leave 'NATIVE' if your previous setup has been a Master/Slave MySQl setup.
 INSERT INTO `domains` (id,name,type) (SELECT d.id, SUBSTR(d.origin,1, LENGTH(d.origin)-1), 'NATIVE' FROM `soa` as d);
 # import soa records to table records
 INSERT INTO `records` (domain_id,name,type,content,ttl,change_date,disabled) (select id,SUBSTR(origin,1, LENGTH(origin)-1),'SOA', CONCAT_WS(' ',SUBSTR(ns,1, LENGTH(ns)-1),serial,refresh,retry,expire,minimum),ttl,UNIX_TIMESTAMP(modified),REPLACE(active,'N','1') from soa);
+# inactive records are not supported within pdns
+DELETE FROM `records` where disabled=1;
 
-# STEP 5: prepare rr records for import into table records
+# STEP 6: prepare rr records for import into table records
 DROP TABLE IF EXISTS `temptab`;
 CREATE TABLE IF NOT EXISTS `temptab` AS (SELECT zone,SUBSTR(name,1, LENGTH(name)-1) AS name,type,data,ttl,aux AS prio,UNIX_TIMESTAMP(modified) AS change_date,REPLACE(active,'N','1') AS disabled FROM rr WHERE SUBSTR(name,-1)='.' AND (data LIKE '%.%' OR type='TXT' OR type='SRV') );
 ALTER TABLE `temptab` CHANGE `type` `type` VARCHAR( 12 ) NULL DEFAULT '''A''';
@@ -45,24 +104,29 @@ INSERT INTO `temptab` (SELECT r.zone,CONCAT(r.name,'.',d.name),r.type,r.data,r.t
 INSERT INTO `temptab` (SELECT r.zone,CONCAT(r.name,'.',d.name),r.type,CONCAT(r.data,'.',d.name),r.ttl,r.aux,UNIX_TIMESTAMP(r.modified),REPLACE(r.active,'N','1') FROM rr AS r JOIN domains AS d ON r.zone=d.id WHERE SUBSTR(r.name,-1)!='.' AND (r.data NOT LIKE '%.%' AND r.type!='TXT' AND r.type!='SRV') );
 UPDATE `temptab` SET data=SUBSTR(data,1,LENGTH(data)-1) WHERE SUBSTR(data,-1)='.';
 UPDATE `temptab` SET name=SUBSTR(name,2) WHERE SUBSTR(name,1,1)='.';
-UPDATE `temptab` SET prio=null WHERE prio=0 AND type!='MX' AND `type`!='SRV';
+UPDATE `temptab` SET prio=null WHERE prio=0 AND `type`!='MX' AND `type`!='SRV';
 
-# STEP 6: prepare the new spf records
+# STEP 7: prepare the new spf records
 DROP TABLE IF EXISTS `tempspf`;
 CREATE TABLE IF NOT EXISTS `tempspf` AS (SELECT * FROM temptab WHERE type='TXT' AND data LIKE 'v=spf%');
 UPDATE `tempspf` SET `type`='SPF', data=CONCAT('"',data,'"');
 
-# STEP 7: add the new spf records to prepared table
+# STEP 8: add the new spf records to prepared table
 INSERT INTO `temptab` (SELECT * FROM `tempspf`);
 
-# STEP 8: modify other text records
+# STEP 9: modify other text records
 UPDATE `temptab` SET data=CONCAT('"',data,'"') WHERE `type`='SRV' OR `type`='TXT';
 
-# STEP 9: import to the records table
+# STEP 10: import to the records table
 INSERT INTO `records` (domain_id,name,type,content,ttl,prio,change_date,disabled) (SELECT * FROM `temptab`);
+# inactive records are not supported within pdns. Push trigger to store these in records_log
 
-# STEP 10: clean up
+# STEP 11: clean up
 DROP TABLE `tempspf`;
 DROP TABLE `temptab`;
+DELETE FROM `records` where disabled=1;
+# a just in case: cleanup orphaned domains/records;
+DELETE d FROM `domains` d LEFT JOIN `records` r ON r.domain_id=d.id WHERE r.domain_id IS NULL;
+DELETE r FROM `records` r LEFT JOIN `domains` d ON d.id=r.domain_id WHERE d.id IS NULL;
 
-# STEP 11: restart both PowerDNS Servers - DONE!
+# STEP 12: restart both PowerDNS Servers - DONE!
