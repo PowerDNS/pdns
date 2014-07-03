@@ -83,24 +83,24 @@ try
       }
 
       ostringstream o;
-      o<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+      o<<"\t"<<i->first.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
       if(showdetails)
       {
-        o<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation();
+        o<<"\t"<<i->first.d_content->getZoneRepresentation();
       }
       else if(i->first.d_type == QType::RRSIG)
       {
         string zoneRep = i->first.d_content->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
-        o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...";
+        o<<"\t"<<parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...";
       }
       else if(i->first.d_type == QType::NSEC3)
       {
         string zoneRep = i->first.d_content->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
-        o<<"\t"<<i->first.d_ttl<<"\t"<<parts[0]<<" ";
+        o<<"\t"<<parts[0]<<" ";
         if (showflags)
           o<<parts[1];
         else
@@ -114,11 +114,11 @@ try
         string zoneRep = i->first.d_content->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
-        o<<"\t"<<i->first.d_ttl<<"\t"<< parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...";
+        o<<"\t"<<parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...";
       }
       else
       {
-        o<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation();
+        o<<"\t"<<i->first.d_content->getZoneRepresentation();
       }
 
       records.push_back(make_pair(stripDot(i->first.d_label),o.str()));

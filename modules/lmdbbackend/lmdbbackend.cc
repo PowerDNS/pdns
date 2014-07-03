@@ -21,6 +21,7 @@
 #include <signal.h>
 #include "lmdbbackend.hh"
 #include <pdns/arguments.hh>
+#include <pdns/base32.hh>
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
@@ -31,6 +32,12 @@
 LMDBBackend::LMDBBackend(const string &suffix)
 {
     setArgPrefix("lmdb"+suffix);
+    try {
+      d_doDnssec = mustDo("experimental-dnssec");
+    }
+    catch (ArgException e) {
+      d_doDnssec = false;
+    }
     open_db();
 }
 
@@ -48,7 +55,7 @@ void LMDBBackend::open_db() {
     if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
 
-    if( (rc = mdb_env_set_maxdbs( env, 3 )) )
+    if( (rc = mdb_env_set_maxdbs( env, d_doDnssec ? 5 : 3)) )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_set_maxdbs() returned " + mdb_strerror(rc));
 
     if( (rc = mdb_env_open(env, path.c_str(), MDB_RDONLY, 0)) )
@@ -72,6 +79,18 @@ void LMDBBackend::open_db() {
     if( ( rc = mdb_cursor_open(txn, data_extended_db, &data_extended_cursor)) )
         throw PDNSException("Couldn't open cursor on LMDB data_extended database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
 
+    if(d_doDnssec) {
+      DEBUGLOG("Experimental dnssec support enabled"<<endl);
+      if( (rc = mdb_dbi_open(txn, "rrsig", MDB_DUPSORT, &rrsig_db) ))
+          throw PDNSException("Couldn't open LMDB rrsig database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+      if( ( rc = mdb_cursor_open(txn, rrsig_db, &rrsig_cursor)) )
+          throw PDNSException("Couldn't open cursor on LMDB rrsig database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+
+      if( (rc = mdb_dbi_open(txn, "nsecx", 0, &nsecx_db) ))
+          throw PDNSException("Couldn't open LMDB nsecx database " + path + ": mdb_dbi_open() returned " + mdb_strerror(rc));
+      if( ( rc = mdb_cursor_open(txn, nsecx_db, &nsecx_cursor)) )
+          throw PDNSException("Couldn't open cursor on LMDB nsecx database " + path + ": mdb_cursor_open() returned " + mdb_strerror(rc));
+    }
 }
 
 void LMDBBackend::close_db() {
@@ -83,6 +102,12 @@ void LMDBBackend::close_db() {
     mdb_dbi_close(env, data_db);
     mdb_dbi_close(env, zone_db);
     mdb_dbi_close(env, data_extended_db);
+    if (d_doDnssec) {
+      mdb_cursor_close(rrsig_cursor);
+      mdb_cursor_close(nsecx_cursor);
+      mdb_dbi_close(env, rrsig_db);
+      mdb_dbi_close(env, nsecx_db);
+    }
     mdb_txn_abort(txn);
     mdb_env_close(env);
 }
@@ -95,6 +120,152 @@ LMDBBackend::~LMDBBackend()
 void LMDBBackend::reload() {
     close_db();
     open_db();
+}
+
+bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
+{
+  if (!d_doDnssec)
+    return false;
+
+  if (kind == "PRESIGNED" || kind == "NSEC3PARAM") {
+    int rc;
+    MDB_val key, data;
+    string key_str, cur_value;
+    vector<string> valparts;
+
+    key_str=d_querykey = string( name.rbegin(), name.rend() );
+    key.mv_data = (char *)key_str.c_str();
+    key.mv_size = key_str.length();
+
+    if ((rc = mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_KEY)) == 0) {
+      cur_value.assign((const char *)data.mv_data, data.mv_size);
+      stringtok(valparts,cur_value,"\t");
+
+      if (valparts.size() == 4) {
+        if (kind == "PRESIGNED")
+          meta.push_back("1");
+        else if (valparts[3] != "1")
+          meta.push_back(valparts[3]);
+      }
+    }
+
+    if (rc == MDB_NOTFOUND)
+      DEBUGLOG("Metadata records for zone: '"<<name<<"'' not found. This is impossible !!!"<<endl);
+  }
+
+  return true;
+}
+
+bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
+{
+  if (!d_doDnssec)
+    return false;
+
+  MDB_val key, data;
+  string key_str, cur_key, cur_value;
+  vector<string> keyparts, valparts;
+
+  if (qtype == QType::NSEC)
+    key_str=itoa(id)+"\t"+bitFlip(hashed)+"\xff";
+  else
+    key_str=itoa(id)+"\t"+toBase32Hex(bitFlip(hashed));
+  key.mv_data = (char *)key_str.c_str();
+  key.mv_size = key_str.length();
+
+  before.clear();
+  if(!mdb_cursor_get(nsecx_cursor, &key, &data, MDB_SET_RANGE)) {
+    cur_key.assign((const char *)key.mv_data, key.mv_size);
+    cur_value.assign((const char *)data.mv_data, data.mv_size);
+    stringtok(keyparts,cur_key,"\t");
+    stringtok(valparts,cur_value,"\t");
+
+    if( keyparts.size() != 2 || valparts.size() != 4 ) {
+      throw PDNSException("Invalid record in nsecx table: key: '" + cur_key + "'; value: "+ cur_value);
+    }
+
+    // is the key a full match or does the id part match our zone?
+    // if it does we have a valid answer.
+    if (!key_str.compare(cur_key) || atoi(keyparts[0].c_str()) == (int) id) // FIXME we need atoui
+      goto hasnsecx;
+  }
+  // no match, now we look for the last record in the NSECx chain.
+  key_str=itoa(id)+"\t";
+  key.mv_data = (char *)key_str.c_str();
+  key.mv_size = key_str.length();
+
+  if(!mdb_cursor_get(nsecx_cursor, &key, &data, MDB_NEXT_NODUP )) {
+    cur_key.assign((const char *)key.mv_data, key.mv_size);
+    cur_value.assign((const char *)data.mv_data, data.mv_size);
+    stringtok(keyparts,cur_key,"\t");
+    stringtok(valparts,cur_value,"\t");
+
+    if( keyparts.size() != 2 || valparts.size() != 4 ) {
+      throw PDNSException("Invalid record in nsecx table: key: '" + cur_key + "'; value: "+ cur_value);
+    }
+
+    if (!key_str.compare(cur_key) || atoi(keyparts[0].c_str()) == (int) id) // FIXME we need atoui
+      goto hasnsecx;
+  }
+
+  DEBUGLOG("NSECx record for '"<<toBase32Hex(bitFlip(hashed))<<"'' in zone '"<<id<<"' not found"<<endl);
+  return true;
+
+hasnsecx:
+  if (qtype == QType::NSEC)
+    before=bitFlip(keyparts[1]).c_str();
+  else
+    before=bitFlip(fromBase32Hex(keyparts[1]));
+  rr.qname=valparts[0];
+  rr.ttl=atoi(valparts[1].c_str());
+  rr.qtype=DNSRecordContent::TypeToNumber(valparts[2]);
+  rr.content=valparts[3];
+  rr.d_place=DNSResourceRecord::AUTHORITY;
+  rr.domain_id=id;
+  rr.auth=true;
+
+  return true;
+}
+
+bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
+{
+  if (!d_doDnssec)
+    return false;
+
+  int rc;
+  MDB_val key, data;
+  string key_str, cur_value;
+  vector<string> valparts;
+
+  key_str=signer+"\t"+makeRelative(qname, signer)+"\t"+qtype.getName();
+  key.mv_data = (char *)key_str.c_str();
+  key.mv_size = key_str.length();
+
+  if ((rc = mdb_cursor_get(rrsig_cursor, &key, &data, MDB_SET_KEY)) == 0) {
+    DNSResourceRecord rr;
+    rr.qname=qname;
+    rr.qtype=QType::RRSIG;
+    //rr.d_place = (DNSResourceRecord::Place) signPlace;
+    rr.auth=false;
+
+    do {
+      cur_value.assign((const char *)data.mv_data, data.mv_size);
+      stringtok(valparts,cur_value,"\t");
+
+      if( valparts.size() != 2 ) {
+        throw PDNSException("Invalid record in rrsig table: qname: '" + qname + "'; value: "+ cur_value);
+      }
+
+      rr.ttl=atoi(valparts[0].c_str());
+      rr.content = valparts[1];
+      rrsigs.push_back(rr);
+
+    } while (mdb_cursor_get(rrsig_cursor, &key, &data, MDB_NEXT_DUP) == 0);
+  }
+
+  if (rc == MDB_NOTFOUND)
+    DEBUGLOG("RRSIG records for qname: '"<<qname<<"'' with type: '"<<qtype.getName()<<"' not found"<<endl);
+
+  return true;
 }
 
 // Get the zone name and value of the requested zone (reversed) OR the entry
@@ -114,6 +285,10 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
     mdb_cursor_renew( txn, zone_cursor );
     mdb_cursor_renew( txn, data_cursor );
     mdb_cursor_renew( txn, data_extended_cursor );
+    if (d_doDnssec) {
+      mdb_cursor_renew( txn, rrsig_cursor );
+      mdb_cursor_renew( txn, nsecx_cursor );
+    }
 
     // Find the nearest record, or the last record if none
     if( mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_RANGE) )
@@ -121,11 +296,9 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
     rev_zone.assign( (const char *)key.mv_data, key.mv_size );
 
-    DEBUGLOG("Auth key: " << rev_zone <<endl);
-
-    /* Only skip this bit if we got an exact hit on the SOA. otherwise we have
-     * to go back to the previous record */
-    if( orig.compare( rev_zone ) != 0 ) {
+    /* Only skip this bit if we got an exact hit on the SOA or if the key is a shoter
+     * version of rev_zone. Otherwise we have to go back to the previous record */
+    if( orig.compare( rev_zone ) != 0 ) { // FIXME detect shorter version
         /* Skip back 1 entry to what should be a substring of what was searched
          * for (or a totally different entry) */
         if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {
@@ -136,6 +309,8 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
         rev_zone.assign( (const char *)key.mv_data, key.mv_size );
     }
+
+    DEBUGLOG("Auth key: " << rev_zone <<endl);
 
     return true;
 }
@@ -153,7 +328,7 @@ bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
     vector<string>parts;
     stringtok(parts,data,"\t");
 
-    if(parts.size() != 3 )
+    if(parts.size() < 3)
         throw PDNSException("Invalid record in zone table: " + data );
 
     fillSOAData( parts[2], soa );
@@ -346,6 +521,7 @@ public:
   void declareArguments(const string &suffix="")
   {
     declare(suffix,"datapath","Path to the directory containing the lmdb files","/etc/pdns/data");
+    declare(suffix,"experimental-dnssec","Enable experimental DNSSEC processing","no");
   }
   DNSBackend *make(const string &suffix="")
   {

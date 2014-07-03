@@ -14,6 +14,7 @@
 /pdns-*.conf
 /*.sqlite3*
 /named-slave.conf
+/named-lmdb.conf
 /bulktest.results
 /recursor-bulktest/
 /recursor.log
@@ -29,3 +30,5 @@
 /goracle2.log
 /oracle.log
 /oracle2.log
+/data.mdb
+/lock.mdb
