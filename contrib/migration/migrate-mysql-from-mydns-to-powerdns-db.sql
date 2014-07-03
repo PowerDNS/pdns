@@ -45,7 +45,7 @@ INSERT INTO `temptab` (SELECT r.zone,CONCAT(r.name,'.',d.name),r.type,r.data,r.t
 INSERT INTO `temptab` (SELECT r.zone,CONCAT(r.name,'.',d.name),r.type,CONCAT(r.data,'.',d.name),r.ttl,r.aux,UNIX_TIMESTAMP(r.modified),REPLACE(r.active,'N','1') FROM rr AS r JOIN domains AS d ON r.zone=d.id WHERE SUBSTR(r.name,-1)!='.' AND (r.data NOT LIKE '%.%' AND r.type!='TXT' AND r.type!='SRV') );
 UPDATE `temptab` SET data=SUBSTR(data,1,LENGTH(data)-1) WHERE SUBSTR(data,-1)='.';
 UPDATE `temptab` SET name=SUBSTR(name,2) WHERE SUBSTR(name,1,1)='.';
-UPDATE `temptab` SET prio=null WHERE prio=0 AND type!='MX';
+UPDATE `temptab` SET prio=null WHERE prio=0 AND type!='MX' AND `type`!='SRV';
 
 # STEP 6: prepare the new spf records
 DROP TABLE IF EXISTS `tempspf`;
