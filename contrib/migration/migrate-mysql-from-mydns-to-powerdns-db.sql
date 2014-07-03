@@ -5,10 +5,10 @@
 # You can skip STEP 1 and STEP 2, if your database is already prepared
 
 # STEP 1: make MyDNS tables consistent for migration
-# you should skip this step if you have used the fileds in the past
+# you should skip this step if you have used the fields in the past
 ALTER IGNORE TABLE `soa` ADD `active` enum('Y','N') NOT NULL DEFAULT 'Y';
-ALTER IGNORE TABLE `soa` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 ALTER IGNORE TABLE `rr` ADD `active` enum('Y','N') NOT NULL DEFAULT 'Y';
+ALTER IGNORE TABLE `soa` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 ALTER IGNORE TABLE `rr` ADD `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 
 # STEP 2: defines table domains
@@ -34,7 +34,7 @@ INSERT INTO `domains` (id,name,type) (SELECT d.id, SUBSTR(d.origin,1, LENGTH(d.o
 # import soa records to table records
 INSERT INTO `records` (domain_id,name,type,content,ttl,change_date,disabled) (select id,SUBSTR(origin,1, LENGTH(origin)-1),'SOA', CONCAT_WS(' ',SUBSTR(ns,1, LENGTH(ns)-1),serial,refresh,retry,expire,minimum),ttl,UNIX_TIMESTAMP(modified),REPLACE(active,'N','1') from soa);
 
-# STEP 5: import rr records into table records
+# STEP 5: prepare rr records for import into table records
 DROP TABLE IF EXISTS `temptab`;
 CREATE TABLE IF NOT EXISTS `temptab` AS (SELECT zone,SUBSTR(name,1, LENGTH(name)-1) AS name,type,data,ttl,aux AS prio,UNIX_TIMESTAMP(modified) AS change_date,REPLACE(active,'N','1') AS disabled FROM rr WHERE SUBSTR(name,-1)='.' AND (data LIKE '%.%' OR type='TXT' OR type='SRV') );
 ALTER TABLE `temptab` CHANGE `type` `type` VARCHAR( 12 ) NULL DEFAULT '''A''';
@@ -46,18 +46,23 @@ INSERT INTO `temptab` (SELECT r.zone,CONCAT(r.name,'.',d.name),r.type,CONCAT(r.d
 UPDATE `temptab` SET data=SUBSTR(data,1,LENGTH(data)-1) WHERE SUBSTR(data,-1)='.';
 UPDATE `temptab` SET name=SUBSTR(name,2) WHERE SUBSTR(name,1,1)='.';
 UPDATE `temptab` SET prio=null WHERE prio=0 AND type!='MX';
-# STEP 6: create the new spf records
+
+# STEP 6: prepare the new spf records
 DROP TABLE IF EXISTS `tempspf`;
 CREATE TABLE IF NOT EXISTS `tempspf` AS (SELECT * FROM temptab WHERE type='TXT' AND data LIKE 'v=spf%');
 UPDATE `tempspf` SET `type`='SPF', data=CONCAT('"',data,'"');
+
+# STEP 7: add the new spf records to prepared table
 INSERT INTO `temptab` (SELECT * FROM `tempspf`);
-# STEP 7: modify other text records
+
+# STEP 8: modify other text records
 UPDATE `temptab` SET data=CONCAT('"',data,'"') WHERE `type`='SRV' OR `type`='TXT';
-# setup the records table
+
+# STEP 9: import to the records table
 INSERT INTO `records` (domain_id,name,type,content,ttl,prio,change_date,disabled) (SELECT * FROM `temptab`);
 
-# STEP 8: clean up
+# STEP 10: clean up
 DROP TABLE `tempspf`;
 DROP TABLE `temptab`;
 
-# STEP 9: restart both PowerDNS Servers - DONE!
+# STEP 11: restart both PowerDNS Servers - DONE!
