@@ -21204,7 +21204,7 @@ deletion request.
    <para>
      Query:
 <programlisting>
-POST /dnsapi/setdomainmetadata/example.com/PRESIGNED HTTP/1.1
+PATCH /dnsapi/setdomainmetadata/example.com/PRESIGNED HTTP/1.1
 Content-Type: application/x-www-form-urlencoded 
 Content-Length: 12
 
@@ -21355,7 +21355,7 @@ Coefficient: 6S0vhIQITWzqfQSLj+wwRzs6qCvJckHb1+SD1XpwYjSgMTEUlZhf96m8WiaE1/fIt4Z
    <para>
      Query:
 <programlisting>
-POST /dnsapi/adddomainkey/example.com
+PUT /dnsapi/adddomainkey/example.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 965
 
@@ -21733,7 +21733,7 @@ Updates last notified serial for the domain id. Any errors are ignored.
    <para>
      Query:
 <programlisting>
-POST /dnsapi/setnotified/1
+PATCH /dnsapi/setnotified/1
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 17
 
@@ -21939,7 +21939,7 @@ This method replaces a given resource record with new set. The new qtype can be 
    <para>
      Query:
 <programlisting>
-POST /dnsapi/replacerrset/2/replace.example.com/A
+PATCH /dnsapi/replacerrset/2/replace.example.com/A
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 135
 
@@ -22003,7 +22003,7 @@ Asks to feed new record into system. If startTransaction was called, trxId ident
    <para>
      Query:
 <programlisting>
-POST /dnsapi/feedrecord/1370416133
+PATCH /dnsapi/feedrecord/1370416133
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 117
 
@@ -22067,7 +22067,7 @@ This method is used by pdnssec rectify-zone to populate missing non-terminals. T
    <para>
      Query:
 <programlisting>
-POST /dnsapi/feedents/2
+PATCH /dnsapi/feedents/2
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 50
 
@@ -22131,7 +22131,7 @@ Same as <xref linkend="remotebackend-api-method-feedents" />, but provides NSEC3
    <para>
      Query:
 <programlisting>
-POST /dnsapi/2/example.com
+PATCH /dnsapi/2/example.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 78
 
