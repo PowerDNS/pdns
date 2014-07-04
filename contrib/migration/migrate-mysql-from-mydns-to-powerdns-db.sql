@@ -118,7 +118,7 @@ UPDATE `temptab` SET data=CONCAT('"',data,'"') WHERE `type`='SRV' OR `type`='TXT
 # STEP 7: prepare the new spf records
 # you may want to skip this step if you don't want SPF records in the new way RFC4408 (additionally to TXT)
 DROP TABLE IF EXISTS `tempspf`;
-CREATE TABLE IF NOT EXISTS `tempspf` AS (SELECT * FROM temptab WHERE type='TXT' AND data LIKE 'v=spf%');
+CREATE TABLE IF NOT EXISTS `tempspf` AS (SELECT * FROM temptab WHERE type='TXT' AND data LIKE '"v=spf%');
 UPDATE `tempspf` SET `type`='SPF';
 # add the new spf records to prepared table
 INSERT INTO `temptab` (SELECT * FROM `tempspf`);
