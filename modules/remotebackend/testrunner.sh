@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 new_api=0
 mode=$1
 
@@ -76,8 +76,8 @@ function stop_zeromq() {
 }
 
 function start_unix() {
-  if [ ! -x $socat ]; then
-     echo "Cannot find socat - cannot test (non-fatal)"
+  if [ -z "$socat" -o ! -x "$socat" ]; then
+     echo "Cannot find socat - skipping test (non-fatal)"
      exit 0
   fi
   
@@ -144,7 +144,7 @@ case "$mode" in
     stop_zeromq
   ;;
   *)
-     echo "Usage: $0 test_remotebackend_(pipe|http|post|json)"
+     echo "Usage: $0 test_remotebackend_(pipe|unix|http|post|json|zeromq)"
      exit 1
   ;;
 esac
