@@ -12708,7 +12708,7 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     </para>
   </sect1>
 
-  <sect1 id="from3.3.1to3.4"><title>From PowerDNS Authoritative Server 3.3.1 to 3.4</title>
+  <sect1 id="from3.3.1to3.4.0"><title>From PowerDNS Authoritative Server 3.3.1 to 3.4.0</title>
     <note>
       <para>
         If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" />, <xref linkend="from3.1to3.2" /> and <xref linkend="from3.2to3.3" /> and <xref linkend="from3.3to3.3.1" />.
@@ -12726,17 +12726,17 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
     </para>
     <para>
       For gmysql backend with nodnssec schema:
-      <programlisting><xi:include  href="../../modules/gmysqlbackend/nodnssec-3.x_to_3.4_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+      <programlisting><xi:include  href="../../modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gmysql backend with dnssec schema:
-      <programlisting><xi:include  href="../../modules/gmysqlbackend/dnssec-3.x_to_3.4_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+      <programlisting><xi:include  href="../../modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gpgsql backend with nodnssec schema:
-      <programlisting><xi:include  href="../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+      <programlisting><xi:include  href="../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gpgsql backend with dnssec schema:
-      <programlisting><xi:include  href="../../modules/gpgsqlbackend/dnssec-3.x_to_3.4_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+      <programlisting><xi:include  href="../../modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gsqlite3 backend with nodnssec schema:
-      <programlisting><xi:include  href="../../modules/gsqlite3backend/nodnssec-3.x_to_3.4_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+      <programlisting><xi:include  href="../../modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For gsqlite3 backend with dnssec schema:
-      <programlisting><xi:include  href="../../modules/gsqlite3backend/dnssec-3.x_to_3.4_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+      <programlisting><xi:include  href="../../modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
       For goracle backend:
       <screen>
 ALTER TABLE records ADD disabled INT DEFAULT 0;
@@ -13464,9 +13464,9 @@ $ pdnssec rectify-zone powerdnssec.org
   	<section id="dnssec-bind-hybrid"><title>PowerDNSSEC hybrid BIND-mode operation</title>
     <warning>
     <para>
-      This mode is only supported in 3.0, 3.0.1 and 3.4 and up! In 3.1 to 3.3.1, the bindbackend
+      This mode is only supported in 3.0, 3.0.1 and 3.4.0 and up! In 3.1 to 3.3.1, the bindbackend
       always did its own key storage.
-      In 3.4 and up hybrid bind mode operation is optional and enabled with the bindbackend <command>hybrid</command> config option.
+      In 3.4.0 and up hybrid bind mode operation is optional and enabled with the bindbackend <command>hybrid</command> config option.
     </para>
     </warning>
     <para>
@@ -13963,7 +13963,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
   </para>
   </chapter>
   <chapter id="rfc2136"><title>RFC2136 Support (Dynamic DNS Update)</title>
-    <para>Starting with the PowerDNS Authoritative Server 3.4, RFC2136 support is available. There are a number of items NOT supported:
+    <para>Starting with the PowerDNS Authoritative Server 3.4.0, RFC2136 support is available. There are a number of items NOT supported:
       <itemizedlist>
         <listitem><para>There is no support for GSS-TSIG and SIG (TSIG is supported);</para></listitem>
         <listitem><para>WKS records are specifically mentioned in the RFC, we don't specifically care about WKS records;</para></listitem>
@@ -18143,8 +18143,8 @@ authoritative).
 	      <row><entry>Autoserial</entry><entry>Yes (v3.1 and up)</entry></row>
 	      <row><entry>Case</entry><entry>All lower</entry></row>
 	      <row><entry>DNSSEC</entry><entry>Yes (set gmysql-dnssec or gpgsql-dnssec)</entry></row>
-	      <row><entry>Disabled data</entry><entry>Yes (v3.4 and up)</entry></row>
-	      <row><entry>Comments</entry><entry>Yes (v3.4 and up)</entry></row>
+	      <row><entry>Disabled data</entry><entry>Yes (v3.4.0 and up)</entry></row>
+	      <row><entry>Comments</entry><entry>Yes (v3.4.0 and up)</entry></row>
 	      <row><entry>Module name &lt; 2.9.3</entry><entry>pgmysql</entry></row>
 	      <row><entry>Module name &gt; 2.9.2</entry><entry>gmysql and gpgsql</entry></row>
 	      <row><entry>Launch name</entry><entry>gmysql and gpgsql2 and gpgsql</entry></row>
@@ -18310,7 +18310,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	      <term>disabled</term>
 	      <listitem>
 		<para>
-		  If set to true, this record is hidden from DNS clients, but can still be modified from the REST API. See <xref linkend="gsql-disableddata" />. (Available since version 3.4.)
+		  If set to true, this record is hidden from DNS clients, but can still be modified from the REST API. See <xref linkend="gsql-disableddata" />. (Available since version 3.4.0.)
 		</para>
 	      </listitem>
 	    </varlistentry>
