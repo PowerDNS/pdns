@@ -10,7 +10,7 @@
 
 bool SPgSQL::s_dolog;
 
-SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &msocket, const string &user, 
+SPgSQL::SPgSQL(const string &database, const string &host, const string& port, const string &user, 
                const string &password)
 {
   d_db=0;

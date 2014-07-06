@@ -18,7 +18,6 @@ gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBa
     setDB(new SPgSQL(getArg("dbname"),
         	  getArg("host"),
         	  getArg("port"),
-        	  getArg("socket"),
         	  getArg("user"),
         	  getArg("password")));
   }
@@ -41,7 +40,6 @@ public:
     declare(suffix,"user","Pdns backend user to connect as","");
     declare(suffix,"host","Pdns backend host to connect to","");
     declare(suffix,"port","Database backend port to connect to","");
-    declare(suffix,"socket","Pdns backend socket to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
