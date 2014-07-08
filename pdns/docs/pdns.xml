@@ -18653,6 +18653,13 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
                   Database host to connect to. WARNING: When specified as a hostname a chicken/egg situation might arise where the database
 		  is needed to resolve the IP address of the database. It is best to supply an IP address of the database here.
                 </para>
+                <para>
+                  Only for postgres:
+                </para>
+                <para>
+                  If host begins with a slash, it specifies Unix-domain communication rather than TCP/IP communication; the value is the name
+                  of the directory in which the socket file is stored.
+                </para>
               </listitem>
             </varlistentry>
             <varlistentry>
