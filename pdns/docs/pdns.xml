@@ -20723,7 +20723,7 @@ remote-connection-string=unix:path=/path/to/socket
         </para>
         <para>
           <programlisting>
-remote-connection-string=unix:command=/path/to/executable,timeout=2000
+remote-connection-string=pipe:command=/path/to/executable,timeout=2000
 </programlisting>
         </para>
       </sect3>
