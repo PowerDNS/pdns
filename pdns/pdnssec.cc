@@ -1755,7 +1755,7 @@ try
      string name = cmds[1];
 
      UeberBackend B("default");
-     if (B.deleteTSIGKey(name)) {
+     if (B.deleteTSIGKey(name,"")) {
        cout << "Deleted TSIG key " << name << endl;
      } else {
        cout << "Failure deleting TSIG key " << name << endl;

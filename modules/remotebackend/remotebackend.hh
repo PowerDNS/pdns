@@ -156,7 +156,7 @@ class RemoteBackend : public DNSBackend
   virtual bool abortTransaction();
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
   virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  virtual bool deleteTSIGKey(const string& name);
+  virtual bool deleteTSIGKey(const string& name, const string& algorithm);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
   static DNSBackend *maker();

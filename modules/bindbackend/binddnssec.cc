@@ -69,7 +69,7 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
 bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const string& content)
 { return false; }
 
-bool Bind2Backend::deleteTSIGKey(const string& name)
+bool Bind2Backend::deleteTSIGKey(const string& name, const string& algorithm)
 { return false; }
 
 bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
@@ -316,14 +316,14 @@ bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const
   return true;
 }
 
-bool Bind2Backend::deleteTSIGKey(const string& name) 
+bool Bind2Backend::deleteTSIGKey(const string& name, const string& algorithm) 
 {
   if(!d_dnssecdb)
     return false;
-  boost::format fmt("delete from tsigkeys where name='%s'");
+  boost::format fmt("delete from tsigkeys where (name,algorithm) values('%s', '%s')");
 
   try {
-    d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name)).str() );
+    d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(algorithm)).str() );
   }
   catch (SSqlException &e) {
     throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());

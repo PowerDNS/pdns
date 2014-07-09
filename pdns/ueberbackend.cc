@@ -218,10 +218,10 @@ bool UeberBackend::setTSIGKey(const string& name, const string& algorithm, const
   return false;
 }
 
-bool UeberBackend::deleteTSIGKey(const string& name)
+bool UeberBackend::deleteTSIGKey(const string& name, const string& algorithm)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->deleteTSIGKey(name))
+    if(db->deleteTSIGKey(name, algorithm))
       return true;
   }
   return false;

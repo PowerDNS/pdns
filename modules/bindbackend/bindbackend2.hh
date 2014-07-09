@@ -213,7 +213,7 @@ public:
   virtual bool deactivateDomainKey(const string& name, unsigned int id);
   virtual bool getTSIGKey(const string& name, string* algorithm, string* content);
   virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  virtual bool deleteTSIGKey(const string& name);
+  virtual bool deleteTSIGKey(const string& name, const string& algorithm);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
   virtual bool doesDNSSEC();
   // end of DNSSEC 
