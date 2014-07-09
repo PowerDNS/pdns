@@ -48,17 +48,39 @@ OPTIONS
 
 COMMANDS
 --------
-dump-cache filename::
+current-queries::
+	Shows the currently active queries.
+
+dump-cache <filename>::
 	Dumps the entire cache to the filename mentioned. This file should
 	not exist already, PowerDNS will refuse to overwrite it. While
 	dumping, the recursor will not answer questions.
 
-get statistic::
+dump-edns[status] <filename>::
+	Dumps the EDNS status to the filename mentioned. This file should
+	not exist already, PowerDNS will refuse to overwrite it. While
+	dumping, the recursor will not answer questions.
+
+dump-nsspeeds <filename>::
+	Dumps the nameserver speed statistics to the filename mentioned.
+	This file should not exist already, PowerDNS will refuse to 
+	overwrite it. While dumping, the recursor will not answer questions.
+
+get <statistic0> [statistic1]::
 	Retrieve a statistic. For items that can be queried, see
 	http://doc.powerdns.com/recursor-stats.html
 
 get-all::
 	Retrieve all known statistics.
+
+get-parameter <key0> [key1]::
+	Retrieves the specified configuration parameter(s).
+
+get-qtypelist::
+	Retrieves QType statistics. Queries from cache aren't being counted yet.
+
+help::
+	Shows a list of supported commands.
 
 ping::
 	Check if server is alive.
@@ -66,15 +88,33 @@ ping::
 quit::
 	Request shutdown of the recursor
 
+quit-nicely::
+	Request nice shutdown of the recursor
+
+reload-acls::
+	Reloads ACLs.
+
+reload-lua-script [filename]::
+	(Re)loads Lua script
+
 reload-zones::
 	Reload authoritative and forward zones. Retains current configuration
 	in case of errors.
+
+set-minimum-ttl <value>::
+	Set minimum-ttl-override.
+
+trace-regex [regex]::
+	Emit resolution trace for matching queries. Empty regex to disable trace.
 
 top-remotes::
 	Shows the top-20 most active remote hosts. Statistics are over the
 	last 'remotes-ringbuffer-entries' queries, which defaults to 0.
 
-wipe-cache domain0 [domain1]::
+unload-lua-script::
+	Unloads Lua script.
+
+wipe-cache <domain0> [domain1]::
 	Wipe entries from the cache. This is useful if, for example, an
 	important server has a new IP address, but the TTL has not yet
 	expired. Multiple domain names can be passed. Note that you must
@@ -86,7 +126,7 @@ wipe-cache domain0 [domain1]::
 
 BUGS
 ----
-None known. File new ones at http://wiki.powerdns.com.
+None known. File new ones at https://github.com/PowerDNS/pdns/issues.
 
 AUTHOR
 ------
@@ -102,7 +142,7 @@ pdns_recursor(1)
 
 COPYING
 -------
-Copyright (C) 2006 PowerDNS.COM BV. Free use of this software
+Copyright (C) 2006-2014 PowerDNS.COM BV. Free use of this software
 is granted under the terms of the GNU General Public License (GPL) version
 2.
 
