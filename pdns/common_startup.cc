@@ -156,7 +156,6 @@ void declareArguments()
 
   ::arg().setSwitch("traceback-handler","Enable the traceback handler (Linux only)")="yes";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
-  ::arg().setSwitch("add-superfluous-nsec3-for-old-bind","Add superfluous NSEC3 record to positive wildcard response")="yes";
   ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
@@ -356,7 +355,6 @@ void mainthread()
      newuid=Utility::makeUidNumeric(::arg()["setuid"]); 
    
    g_anyToTcp = ::arg().mustDo("any-to-tcp");
-   g_addSuperfluousNSEC3 = ::arg().mustDo("add-superfluous-nsec3-for-old-bind");
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
