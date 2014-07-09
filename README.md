@@ -59,8 +59,8 @@ See http://doc.powerdns.com/compiling-powerdns.html for more details.
 
 COMPILING THE RECURSOR
 ----------------------
-Either use `./configure --enable-recursor` or explicitly do `make pdns_recursor`. Releases
-are built by first running `dist-recursor` and compiling from the `pdns-recursor-x.y` subdirectory.
+On Linux, `make pdns_recursor` in the `pdns` subdir may work. The portable, and supported, way to
+build the recursor is first running `dist-recursor` and compiling from the `pdns-recursor-x.y` subdirectory.
 
 SOLARIS NOTES
 -------------
