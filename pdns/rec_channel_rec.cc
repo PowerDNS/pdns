@@ -638,7 +638,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-zones                     reload all auth and forward zones\n"
 "set-minimum-ttl value            set mininum-ttl-override\n"
-"trace-regex regex                emit resolution trace for matching queries\n"
+"trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
 "top-remotes                      show top remotes\n"
 "unload-lua-script                unload Lua script\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
