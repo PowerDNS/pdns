@@ -51,12 +51,12 @@ COMMANDS
 current-queries::
 	Shows the currently active queries.
 
-dump-cache filename::
+dump-cache <filename>::
 	Dumps the entire cache to the filename mentioned. This file should
 	not exist already, PowerDNS will refuse to overwrite it. While
 	dumping, the recursor will not answer questions.
 
-dump-edns[status] filename::
+dump-edns[status] <filename>::
 	Dumps the EDNS status to the filename mentioned. This file should
 	not exist already, PowerDNS will refuse to overwrite it. While
 	dumping, the recursor will not answer questions.
@@ -114,7 +114,7 @@ top-remotes::
 unload-lua-script::
 	Unloads Lua script.
 
-wipe-cache domain0 [domain1]::
+wipe-cache <domain0> [domain1]::
 	Wipe entries from the cache. This is useful if, for example, an
 	important server has a new IP address, but the TTL has not yet
 	expired. Multiple domain names can be passed. Note that you must
