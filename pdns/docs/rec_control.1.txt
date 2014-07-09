@@ -101,7 +101,7 @@ reload-zones::
 	Reload authoritative and forward zones. Retains current configuration
 	in case of errors.
 
-set-minimul-ttl <value>::
+set-minimum-ttl <value>::
 	Set minimum-ttl-override.
 
 trace-regex [regex]::
