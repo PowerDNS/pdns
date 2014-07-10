@@ -33,6 +33,8 @@ AC_PROG_LIBTOOL([disable-static])
 LT_INIT([disable-static])
 ])
 
+MC_TM_GMTOFF
+
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 
 # Define full_libdir to be the fully expanded (${exec_prefix}, etc.)

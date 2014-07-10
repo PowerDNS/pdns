@@ -72,7 +72,11 @@ namespace YaHTTP {
        minutes = tm->tm_min;
        seconds = tm->tm_sec;
        wday = tm->tm_wday;
+#ifdef HAVE_TM_GMTOFF
        utc_offset = tm->tm_gmtoff;
+#else
+       utc_offset = 0;
+#endif
        isSet = true;
      }; //<! parses date from struct tm 
 
@@ -138,7 +142,9 @@ namespace YaHTTP {
        tm.tm_hour = hours;
        tm.tm_min = minutes;
        tm.tm_sec = seconds;
+#ifdef HAVE_TM_GMTOFF
        tm.tm_gmtoff = utc_offset;
+#endif
        return mktime(&tm);
      }; //<! returns this datetime as unixtime. will not work for dates before 1970/1/1 00:00:00 GMT
   };
