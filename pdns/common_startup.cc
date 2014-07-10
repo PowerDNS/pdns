@@ -159,7 +159,7 @@ void declareArguments()
   ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
-  ::arg().set("default-zsk-size","Default KSK size (0 means default)")="0";
+  ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
 
   ::arg().set("include-dir","Include *.conf files from this directory");
 }

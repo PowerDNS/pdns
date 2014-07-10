@@ -100,7 +100,7 @@
 # default-zsk-algorithms=rsasha256
 
 #################################
-# default-zsk-size	Default KSK size (0 means default)
+# default-zsk-size	Default ZSK size (0 means default)
 #
 # default-zsk-size=0
 
