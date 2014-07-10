@@ -1,4 +1,4 @@
-AM_CPPFLAGS=@MYSQL_inc@ @THREADFLAGS@
+AM_CPPFLAGS=@MYSQL_inc@ @THREADFLAGS@ $(BOOST_CPPFLAGS)
 pkglib_LTLIBRARIES = libmydnsbackend.la
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 libmydnsbackend_la_SOURCES=mydnsbackend.cc mydnsbackend.hh 
