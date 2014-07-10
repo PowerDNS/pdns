@@ -4,7 +4,7 @@ AM_CPPFLAGS=@THREADFLAGS@ $(BOOST_CPPFLAGS) -I../../pdns/ext/rapidjson/include -
 #       install .lib/libremotebackend.so.0.0.0 @libdir@
 #endif
 
-EXTRA_DIST=OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_zeromq.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock
+EXTRA_DIST=OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_zeromq.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock .bundle/config vendor/cache/zeromqrb-0.1.1.gem vendor/cache/ffi-1.9.3.gem vendor/cache/sqlite3-1.3.8.gem vendor/cache/ffi-rzmq-1.0.3.gem vendor/cache/webrick-1.3.1.gem 
 EXTRA_PROGRAMS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
 EXTRA_LTLIBRARIES=libtestremotebackend.la
 
