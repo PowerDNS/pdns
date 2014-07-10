@@ -45,10 +45,19 @@ namespace YaHTTP {
        struct tm tm;
        localtime_r(&t, &tm);
        fromTm(&tm);
+#ifndef HAVE_TM_GMTOFF
+       time_t t2 = timegm(&tm);
+#endif
 #else
        struct tm *tm;
        tm = localtime(&t);
        fromTm(tm);
+#ifndef HAVE_TM_GMTOFF
+       time_t t2 = timegm(tm);
+#endif
+#endif
+#ifndef HAVE_TM_GMTOFF
+       this->utc_offset = ((t2-t)/10)*10; // removes any possible differences. 
 #endif
      }; //<! uses localtime for time
 
@@ -62,6 +71,9 @@ namespace YaHTTP {
        tm = gmtime(&t);
        fromTm(tm);
 #endif
+#ifndef HAVE_TM_GMTOFF
+       this->utc_offset = 0;
+#endif
      }; //<! uses gmtime for time
 
      void fromTm(const struct tm *tm) {
@@ -74,8 +86,6 @@ namespace YaHTTP {
        wday = tm->tm_wday;
 #ifdef HAVE_TM_GMTOFF
        utc_offset = tm->tm_gmtoff;
-#else
-       utc_offset = 0;
 #endif
        isSet = true;
      }; //<! parses date from struct tm 
@@ -118,7 +128,23 @@ namespace YaHTTP {
  
      void parse822(const std::string &rfc822_date) {
        struct tm tm;
-       if ( (strptime(rfc822_date.c_str(), "%a, %d %b %Y %T %z", &tm)) != NULL) {
+       const char *ptr;
+#ifdef HAVE_TM_GMTOFF
+       if ( (ptr = strptime(rfc822_date.c_str(), "%a, %d %b %Y %T %z", &tm)) != NULL) {
+#else
+	if ( (ptr = strptime(rfc822_date.c_str(), "%a, %d %b %Y %T", &tm)) != NULL) {
+          int sign;
+  	  // parse the timezone parameter
+          while(*ptr && ::isspace(*ptr)) ptr++;
+          if (*ptr == '+') sign = 0;
+          else if (*ptr == '-') sign = -1;
+          else throw "Unparseable date";
+          ptr++;
+          utc_offset = ::atoi(ptr) * sign;
+          while(*ptr && ::isdigit(*ptr)) ptr++;
+#endif
+          while(*ptr && ::isspace(*ptr)) ptr++;
+          if (*ptr) throw "Unparseable date"; // must be final.
           fromTm(&tm);
        } else {
           throw "Unparseable date";
@@ -134,7 +160,7 @@ namespace YaHTTP {
        }
      }; //<! parses HTTP Cookie date
 
-     int unixtime() const {
+     time_t unixtime() const {
        struct tm tm;
        tm.tm_year = year-1900;
        tm.tm_mon = month-1;
@@ -145,7 +171,7 @@ namespace YaHTTP {
 #ifdef HAVE_TM_GMTOFF
        tm.tm_gmtoff = utc_offset;
 #endif
-       return mktime(&tm);
+       return timelocal(&tm);
      }; //<! returns this datetime as unixtime. will not work for dates before 1970/1/1 00:00:00 GMT
   };
 

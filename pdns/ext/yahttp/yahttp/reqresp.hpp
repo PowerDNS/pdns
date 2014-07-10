@@ -87,6 +87,8 @@ namespace YaHTTP {
 #ifdef HAVE_CPP_FUNC_PTR
       renderer = SendBodyRender();
 #endif
+      max_request_size = YAHTTP_MAX_REQUEST_SIZE;
+      max_response_size = YAHTTP_MAX_RESPONSE_SIZE;
     };
 protected:
     HTTPBase(const HTTPBase& rhs) {
@@ -127,6 +129,9 @@ public:
     std::string routeName; //<! name of the current route (only if you use YaHTTP::Router)
 
     std::string body; //<! the actual content
+
+    ssize_t max_request_size; //<! maximum size of request
+    ssize_t max_response_size;  //<! maximum size of response
  
 #ifdef HAVE_CPP_FUNC_PTR
     funcptr::function<size_t(const HTTPBase*,std::ostream&)> renderer; //<! rendering function
