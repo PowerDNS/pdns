@@ -54,6 +54,7 @@ cp config-recursor.h $DIRNAME/config.h
 cat >>$DIRNAME/config.h <<EOF
 #define VERSION "$VERSION"
 #define DIST_HOST "$DIST_HOST"
+#define HAVE_BOOST 1
 EOF
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
@@ -63,6 +64,7 @@ cp -a ext/polarssl-1.3.2/include/polarssl/config.h ext/polarssl-1.3.2/include/po
 mkdir -p $DIRNAME/ext/polarssl-1.3.2/library
 cp -a ext/polarssl-1.3.2/library/aes.c ext/polarssl-1.3.2/library/padlock.c $DIRNAME/ext/polarssl-1.3.2/library
 cp -a ext/yahttp/ $DIRNAME/ext/yahttp
+echo '#include "../../../config.h"' > $DIRNAME/ext/yahttp/yahttp/yahttp-config.h
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
 cp dnslabeltext.rl $DIRNAME
