@@ -7,7 +7,7 @@
 #################################
 # allow-axfr-ips	Allow zonetransfers only to these subnets
 #
-# allow-axfr-ips=0.0.0.0/0,::/0
+# allow-axfr-ips=127.0.0.0/8,::1
 
 #################################
 # allow-recursion	List of subnets that are allowed to recurse
