@@ -12745,6 +12745,11 @@ ALTER TABLE records MODIFY auth INT DEFAULT 1;
 UPDATE records SET auth=1 WHERE auth IS NULL;
       </screen>
     </para>
+    <note>
+      <para>
+        The default location of the backend <command>module-dir</command> has changed from libdir to pkglibdir. pkglibdir is defined as '$(libdir)/pdns'
+      </para>
+    </note>
   </sect1>
   </chapter>
 
