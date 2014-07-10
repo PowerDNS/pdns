@@ -95,7 +95,7 @@ public:
   typedef map<string,string> param_t; //!< use this if you need to know the content of the map
   bool parmIsset(const string &var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
-  int asNum(const string &var); //!< return a variable value as a number
+  int asNum(const string &var, int def=0); //!< return a variable value as a number or the default if the variable is empty
   mode_t asMode(const string &var); //!< return value interpreted as octal number
   uid_t asUid(const string &var); //!< return user id, resolves if necessary
   gid_t asGid(const string &var); //!< return group id, resolves if necessary

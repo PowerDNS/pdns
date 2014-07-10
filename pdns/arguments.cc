@@ -238,7 +238,7 @@ uid_t ArgvMap::asUid(const string &arg)
    return uid;
 }
 
-int ArgvMap::asNum(const string &arg)
+int ArgvMap::asNum(const string &arg, int def)
 {
   int retval;
   const char *cptr_orig;
@@ -247,9 +247,9 @@ int ArgvMap::asNum(const string &arg)
   if(!parmIsset(arg))
     throw ArgException(string("Undefined but needed argument: '")+arg+"'");
 
-  // treat empty values as zeros
+  // use default for empty values
   if (params[arg].empty())
-   return 0;
+   return def;
 
   cptr_orig = params[arg].c_str();
   retval = static_cast<int>(strtol(cptr_orig, &cptr_ret, 0));

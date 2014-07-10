@@ -238,7 +238,7 @@ void sendout(const AnswerData<DNSPacket> &AD)
 void *qthread(void *number)
 {
   DNSPacket *P;
-  DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads")); // the big dispatcher!
+  DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
   DNSPacket question;
   DNSPacket cached;
 
@@ -398,7 +398,7 @@ void mainthread()
 
   pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
   //  fork(); (this worked :-))
-  unsigned int max_rthreads= ::arg().asNum("receiver-threads");
+  unsigned int max_rthreads= ::arg().asNum("receiver-threads", 1);
   for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
