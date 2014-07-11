@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_method_getTSIGKey) {
 BOOST_AUTO_TEST_CASE(test_method_deleteTSIGKey) {
    std::string algorithm, content;
    BOOST_TEST_MESSAGE("Testing deleteTSIGKey method");
-   BOOST_CHECK_MESSAGE(be->deleteTSIGKey("unit.test"), "did not return true");
+   BOOST_CHECK_MESSAGE(be->deleteTSIGKey("unit.test",algorithm), "did not return true");
 }
 
 BOOST_AUTO_TEST_CASE(test_method_getTSIGKeys) {
