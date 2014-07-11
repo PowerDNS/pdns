@@ -79,7 +79,7 @@ public:
   
   bool getTSIGKey(const string& name, string* algorithm, string* content);
   bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  bool deleteTSIGKey(const string& name);
+  bool deleteTSIGKey(const string& name, const string& algorithm);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
   bool listComments(const uint32_t domain_id);

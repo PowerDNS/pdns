@@ -320,7 +320,7 @@ bool Bind2Backend::deleteTSIGKey(const string& name, const string& algorithm)
 {
   if(!d_dnssecdb)
     return false;
-  boost::format fmt("delete from tsigkeys where (name,algorithm) values('%s', '%s')");
+  boost::format fmt("delete from tsigkeys where name='%s'");
 
   try {
     d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(algorithm)).str() );
