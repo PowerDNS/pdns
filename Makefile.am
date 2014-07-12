@@ -1,4 +1,4 @@
-SUBDIRS=pdns/ext/yahttp modules codedocs @programdescend@
+SUBDIRS=modules codedocs @programdescend@
 DIST_SUBDIRS=modules codedocs pdns pdns/ext/rapidjson
 EXTRA_DIST=README INSTALL NOTICE debian-pdns/* pdns.spec  \
 codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
