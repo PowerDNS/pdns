@@ -8,3 +8,9 @@ router.cpp: yahttp-config.h
 
 yahttp-config.h: ../../../../config.h
 	cat ../../../../config.h > yahttp-config.h
+
+clean-local: clean-local-check
+.PHONY: clean-local-check
+
+clean-local-check:
+	test -f yahttp-config.h && rm yahttp-config.h || true
