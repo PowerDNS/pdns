@@ -4,15 +4,15 @@ AC_DEFUN([PDNS_ENABLE_REMOTEBACKEND_ZEROMQ],[
     AS_HELP_STRING([--enable-remotebackend-zeromq],
       [enable ZeroMQ connector for remotebackend @<:@default=no@:>@]
     ),
-    [enable_remotebackend_zeromq=yes],
+    [enable_remotebackend_zeromq=$enableval],
     [enable_remotebackend_zeromq=no]
   )
 
   AC_MSG_RESULT([$enable_remotebackend_zeromq])
 
-  AM_CONDITIONAL([REMOTEBACKEND_HTTP],[test "x$enable_remotebackend_zeromq" = "xyes"])
+  AM_CONDITIONAL([REMOTEBACKEND_HTTP],[test "x$enable_remotebackend_zeromq" != "xno"])
   AC_SUBST(REMOTEBACKEND_ZEROMQ)
-  AS_IF([test "x$enable_remotebackend_zeromq" = "xyes"],
+  AS_IF([test "x$enable_remotebackend_zeromq" != "xno"],
     [PKG_CHECK_MODULES([LIBZMQ], [libzmq],
       [
         AC_DEFINE([HAVE_LIBZMQ], [1], [Define to 1 if you have libzmq])
