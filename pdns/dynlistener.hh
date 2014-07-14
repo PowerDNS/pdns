@@ -65,7 +65,6 @@ private:
   void listenOnTCP(const ComboAddress&);
   void createSocketAndBind(int family, struct sockaddr*local, size_t len);
 
-  Utility::socklen_t d_addrlen;
   NetmaskGroup d_tcprange;
   int d_s;
   int d_client;

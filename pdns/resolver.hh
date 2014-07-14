@@ -75,8 +75,6 @@ public:
   
 private:
   std::map<std::string, int> locals;
- 
-  uint16_t d_randomid;
 };
 
 class AXFRRetriever : public boost::noncopyable

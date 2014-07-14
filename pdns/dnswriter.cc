@@ -5,7 +5,7 @@
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_pos(0), d_content(content), d_qname(qname), d_qtype(qtype), d_qclass(qclass), d_canonic(false), d_lowerCase(false)
+  : d_pos(0), d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
 {
   d_content.clear();
   dnsheader dnsheader;
