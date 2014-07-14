@@ -108,7 +108,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
       break;
 
     default:
-      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' "+getLineOfFile());
+      throw exception("Unable to parse time specification '"+str+"' "+getLineOfFile());
     }
   return val;
 }
