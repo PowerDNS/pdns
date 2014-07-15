@@ -933,7 +933,7 @@ bool RemoteBackend::getBool(rapidjson::Value &value) {
      if (boost::iequals(tmp, "0") || boost::iequals(tmp, "false")) return false;
    }
    std::cerr << value.GetType() << endl;
-   throw new PDNSException("Cannot convert rapidjson value into boolean");
+   throw PDNSException("Cannot convert rapidjson value into boolean");
 }
 
 bool Connector::getBool(rapidjson::Value &value) {
@@ -969,7 +969,7 @@ int RemoteBackend::getInt(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<int>(tmp);
    }
-   throw new PDNSException("Cannot convert rapidjson value into integer");
+   throw PDNSException("Cannot convert rapidjson value into integer");
 }
 
 unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
@@ -981,7 +981,7 @@ unsigned int RemoteBackend::getUInt(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<unsigned int>(tmp);
    }
-   throw new PDNSException("Cannot convert rapidjson value into integer");
+   throw PDNSException("Cannot convert rapidjson value into integer");
 }
 
 int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
@@ -993,16 +993,17 @@ int64_t RemoteBackend::getInt64(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<int64_t>(tmp);
    }
-   throw new PDNSException("Cannot convert rapidjson value into integer");
+   throw PDNSException("Cannot convert rapidjson value into integer");
 }
 
 std::string RemoteBackend::getString(rapidjson::Value &value) {
+   if (value.IsNull()) return "";
    if (value.IsString()) return value.GetString();
    if (value.IsBool()) return (value.GetBool() ? "true" : "false");
    if (value.IsInt64()) return boost::lexical_cast<std::string>(value.GetInt64());
    if (value.IsInt()) return boost::lexical_cast<std::string>(value.GetInt());
    if (value.IsDouble()) return boost::lexical_cast<std::string>(value.GetDouble());
-   throw new PDNSException("Cannot convert rapidjson value into std::string");
+   throw PDNSException("Cannot convert rapidjson value into std::string");
 }
 
 double RemoteBackend::getDouble(rapidjson::Value &value) {
@@ -1014,7 +1015,7 @@ double RemoteBackend::getDouble(rapidjson::Value &value) {
      std::string tmp = value.GetString();
      return boost::lexical_cast<double>(tmp);
    }
-   throw new PDNSException("Cannot convert rapidjson value into double");
+   throw PDNSException("Cannot convert rapidjson value into double");
 }
 
 DNSBackend *RemoteBackend::maker()

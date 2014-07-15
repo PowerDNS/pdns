@@ -16,7 +16,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) : d_
   // lookup timeout, target and stuff
   if (options.count("endpoint") == 0) {
     L<<Logger::Error<<"Cannot find 'endpoint' option in connection string"<<endl;
-    throw new PDNSException("Cannot find 'endpoint' option in connection string");
+    throw PDNSException("Cannot find 'endpoint' option in connection string");
   }
   this->d_endpoint = options.find("endpoint")->second;
   this->d_options = options;
@@ -74,7 +74,7 @@ int ZeroMQConnector::send_message(const rapidjson::Document &input) {
      }
    } catch (std::exception &ex) {
      L<<Logger::Error<<"Cannot send to " << this->d_endpoint << ": " << ex.what();
-     throw new PDNSException(ex.what());
+     throw PDNSException(ex.what());
    }
 
    return 0;
@@ -122,7 +122,7 @@ int ZeroMQConnector::recv_message(rapidjson::Document &output) {
      }
    } catch (std::exception &ex) {
      L<<Logger::Error<<"Cannot receive from " << this->d_endpoint << ": " << ex.what();
-     throw new PDNSException(ex.what());
+     throw PDNSException(ex.what());
    }
 
    return rv;
