@@ -139,7 +139,6 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         verb = "PUT";
     } else if (method == "isMaster") {
         addUrlComponent(parameters, "ip", ss);
-        req.preparePost();
         verb = "GET";
     } else if (method == "superMasterBackend") {
         std::stringstream ss2;
