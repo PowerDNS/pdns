@@ -647,6 +647,23 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    }
 }
 
+bool RemoteBackend::isMaster(const string &name, const string &ip)
+{
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "isMaster", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+   if (this->send(query) == false || this->recv(answer) == false)
+     return false;
+
+   return true;
+}
+
 bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb) 
 {
    rapidjson::Document query,answer;
