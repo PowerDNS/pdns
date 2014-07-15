@@ -607,8 +607,8 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
     return false;
   }
 
-  string algoName = trc->d_algoName;
-  if (stripDot(algoName) == "hmac-md5.sig-alg.reg.int")
+  string algoName = toLowerCanonic(trc->d_algoName);
+  if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 
   string secret64;

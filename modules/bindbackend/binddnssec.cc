@@ -296,8 +296,10 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
   
   content->clear();
   while(d_dnssecdb->getRow(row)) {
-    *algorithm = row[0];
-    *content=row[1];
+    if(row.size() >= 2 && (algorithm->empty() || pdns_iequals(*algorithm, row[0]))) {
+      *algorithm = row[0];
+      *content = row[1];
+    }
   }
 
   return !content->empty();

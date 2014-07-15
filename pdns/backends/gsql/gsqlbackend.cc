@@ -620,11 +620,13 @@ bool GSQLBackend::getTSIGKey(const string& name, string* algorithm, string* cont
   }
   
   SSql::row_t row;
-  
+
   content->clear();
   while(d_db->getRow(row)) {
-    *algorithm = row[0];
-    *content=row[1];
+    if(row.size() >= 2 && (algorithm->empty() || pdns_iequals(*algorithm, row[0]))) {
+      *algorithm = row[0];
+      *content = row[1];
+    }
   }
 
   return !content->empty();
