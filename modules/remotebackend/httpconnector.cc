@@ -145,9 +145,9 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         size_t index = 0;
         for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
             index++;
-            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr);
+            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr) << "&";
         }
-        req.body = ss2.str();
+        req.body = ss2.str().substr(0, ss2.str().size()-1);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
         req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
         verb = "POST";
