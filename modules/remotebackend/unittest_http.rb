@@ -75,6 +75,11 @@ class DNSBackendHandler < WEBrick::HTTPServlet::AbstractServlet
         {
              "id" => url.shift.to_i
         }
+     when "ismaster"
+        {
+             "name" => url.shift,
+             "ip" => url.shift
+        }
      when "supermasterbackend", "createslavedomain"
         {
              "ip" => url.shift,

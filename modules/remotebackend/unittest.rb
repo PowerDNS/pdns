@@ -27,6 +27,8 @@ $keys = {}
 
 $tsigkeys = { "test" => {:name => "test", :algorithm => "NULL", :content => "NULL"} }
 
+$masters = { :name => "ns1.unit.test", :ip => "10.0.0.1" }
+
 class Handler
    def initialize
    end
@@ -170,6 +172,10 @@ class Handler
        }]
      end
      [false]
+   end
+
+   def do_ismaster(args)
+     $masters[:name] == args["name"] && $masters[:ip] == args["ip"]
    end
 
    def do_supermasterbackend(args) 
