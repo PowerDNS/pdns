@@ -21766,6 +21766,67 @@ Content-Type: text/javascript; charset=utf-8
 </variablelist>
 </sect4>
 
+<sect4 id="remotebackend-api-method-ismaster"><title>Method: isMaster</title>
+ <variablelist>
+  <varlistentry>
+   <term>Mandatory:</term>
+   <listitem><para>No</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Parameters:</term>
+   <listitem><para>name,ip</para></listitem>
+ </varlistentry>
+ <varlistentry>
+   <term>Reply:</term>
+   <listitem><para>true for success, false for failure.</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Description</term>
+<listitem><para>
+Determines whether given IP is master for given domain name.  
+</para></listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example JSON/RPC:</term>
+  <listitem>
+   <para>
+    Query:
+<programlisting>
+{"method":"isMaster","parameters":{"name":"example.com","ip":"10.0.0.1"}}
+</programlisting>
+   </para>
+   <para>
+    Response:
+<programlisting>
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+ <varlistentry>
+  <term>Example HTTP/RPC:</term>
+  <listitem>
+   <para>
+     Query:
+<programlisting>
+GET /dnsapi/isMaster/example.com/10.0.0.1
+
+</programlisting>
+   </para>
+   <para>
+     Response:
+<programlisting>
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":true}
+</programlisting>
+   </para>
+  </listitem>
+ </varlistentry>
+</variablelist>
+</sect4>
+
 <sect4 id="remotebackend-api-method-supermasterbackend"><title>Method: superMasterBackend</title>
  <variablelist>
   <varlistentry>
