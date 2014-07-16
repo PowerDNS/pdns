@@ -260,6 +260,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
     ss << d_url_suffix;
 
     req.setup(verb, ss.str());
+    req.headers["accept"] = "application/json";
 }
 
 
@@ -270,6 +271,7 @@ void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP
         std::string out = makeStringFromDocument(input);
         req.headers["Content-Type"] = "text/javascript; charset=utf-8";
         req.headers["Content-Length"] = boost::lexical_cast<std::string>(out.size());
+        req.headers["accept"] = "application/json";
         req.body = out;
     } else {
         std::stringstream url,content;
@@ -282,6 +284,7 @@ void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP
         // then build content
         req.POST()["parameters"] = output.GetString();
         req.preparePost();
+        req.headers["accept"] = "application/json";
     }
 }
 
