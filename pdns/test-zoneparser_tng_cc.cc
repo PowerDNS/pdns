@@ -9,11 +9,15 @@
 #include <boost/lexical_cast.hpp>
 #include "dns.hh"
 #include "zoneparser-tng.hh"
+#include "dnsrecords.hh"
 #include <fstream>
 
 BOOST_AUTO_TEST_SUITE(test_zoneparser_tng_cc)
 
 BOOST_AUTO_TEST_CASE(test_tng_record_types) {
+  reportAllTypes();
+  reportFancyTypes();
+
   ZoneParserTNG zp("../regression-tests/zones/unit.test", "unit.test");
   DNSResourceRecord rr;
 
