@@ -141,6 +141,7 @@ class RemoteBackend : public DNSBackend
   virtual bool getDomainInfo(const string&, DomainInfo&);
   virtual void setNotified(uint32_t id, uint32_t serial);
   virtual bool doesDNSSEC();
+  virtual bool isMaster(const string &name, const string &ip);
   virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb);
   virtual bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
   virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
