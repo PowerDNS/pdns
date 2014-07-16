@@ -514,6 +514,11 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
+   if (!answer["result"].IsObject() ||
+       !answer["result"].HasMember("algorithm") ||
+       !answer["result"].HasMember("content")) 
+     throw PDNSException("Invalid response to getTSIGKey, missing field(s)");
+
    algorithm->assign(getString(answer["result"]["algorithm"]));
    content->assign(getString(answer["result"]["content"]));
    
