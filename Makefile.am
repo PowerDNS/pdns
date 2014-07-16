@@ -26,7 +26,7 @@ install-exec-local:
 	@echo "***********************************************************"
 	@echo
 	@echo An init.d startup script has been made for you in pdns/pdns.
-	@echo You may want to copy these to /etc/init.d or equivalent
+	@echo You may want to copy this to /etc/init.d or equivalent.
 	@echo
 	@echo "***********************************************************"
 
