@@ -139,6 +139,8 @@ public:
   bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  void clearMetadataCacheAllDomains();
+  void clearMetadataCache(const std::string& name);
 
   bool removeDomainKey(const string& name, unsigned int id);
   bool activateDomainKey(const string& name, unsigned int id);
@@ -195,6 +197,40 @@ private:
   
   bool stale;
   int domain_id;
+
+  // Metadata Cache
+  struct MetaCacheEntry
+  {
+    uint32_t getTTD() const
+    {
+      return d_ttd;
+    }
+
+    string d_domain;
+    unsigned int d_ttd;
+
+    mutable std::string d_kind;
+    mutable std::vector<std::string> d_values;
+  };
+
+  typedef multi_index_container<
+    MetaCacheEntry,
+    indexed_by<
+      ordered_unique<
+        composite_key<
+          MetaCacheEntry,
+          member<MetaCacheEntry, std::string, &MetaCacheEntry::d_domain> ,
+          member<MetaCacheEntry, std::string, &MetaCacheEntry::d_kind>
+        >, composite_key_compare<CIStringCompare, CIStringCompare> >,
+      sequenced<>
+    >
+  > metacache_t;
+
+  static metacache_t s_metacache;
+  static pthread_rwlock_t s_metacachelock;
+  static time_t s_metacache_last_prune;
+  static AtomicCounter s_metacache_ops;
+  void cleanupMetaCache();
 };
 
 
