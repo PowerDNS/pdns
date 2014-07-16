@@ -20,6 +20,7 @@ before_script:
  - unzip top-1m.csv.zip
  - cd ..
  - cd modules/remotebackend
+ - for n in vendor/cache/*.gem; do gem install $n; done
  - travis_retry ruby -S bundle install --deployment
  - cd ../..
  - sudo mkdir -p /etc/pkcs11/modules/
