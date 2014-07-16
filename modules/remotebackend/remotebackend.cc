@@ -281,21 +281,10 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   if (answer["result"]["unhashed"].IsNull())
-     unhashed = "";
-    else
-     unhashed = getString(answer["result"]["unhashed"]);
-
-   if (answer["result"]["before"].IsNull())
-     before = "";
-   else 
-     before = getString(answer["result"]["before"]);
-
-   if (answer["result"]["after"].IsNull())
-     after = "";
-   else 
-     after = getString(answer["result"]["after"]);
-  
+   unhashed = getString(answer["result"]["unhashed"]);
+   before = getString(answer["result"]["before"]);
+   after = getString(answer["result"]["after"]);
+ 
    return true;
 }
 
@@ -319,9 +308,14 @@ bool RemoteBackend::getAllDomainMetadata(const string& name, std::map<std::strin
      return true;
 
    if (answer["result"].IsObject()) {
-     for (rapidjson::Value::MemberIterator kind = answer["result"].MemberBegin(); kind != answer["result"].MemberEnd(); kind++)
-       for(rapidjson::Value::ValueIterator content = kind->value.Begin(); content != kind->value.End(); content++)
-         meta[kind->name.GetString()].push_back(getString(*content));
+     for (rapidjson::Value::MemberIterator kind = answer["result"].MemberBegin(); kind != answer["result"].MemberEnd(); kind++) {
+       if (kind->value.IsArray()) {
+         for(rapidjson::Value::ValueIterator content = kind->value.Begin(); content != kind->value.End(); content++)
+           meta[kind->name.GetString()].push_back(getString(*content));
+       } else {
+         meta[kind->name.GetString()].push_back(getString(kind->value));
+       }
+     }
    }
 
    return true;
@@ -400,6 +394,15 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
 
    for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
       DNSBackend::KeyData key;
+      if (!(*iter).IsObject())
+        throw PDNSException("Invalid reply to getDomainKeys, expected array of hashes, got something else");
+
+      if (!(*iter).HasMember("id") ||
+          !(*iter).HasMember("flags") ||
+          !(*iter).HasMember("active") ||
+          !(*iter).HasMember("content"))
+        throw PDNSException("Invalid reply to getDomainKeys, missing keys in key hash");
+
       key.id = getUInt((*iter)["id"]);
       key.flags = getUInt((*iter)["flags"]);
       key.active = getBool((*iter)["active"]);
@@ -511,10 +514,8 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   if (algorithm != NULL)
-     algorithm->assign(getString(answer["result"]["algorithm"]));
-   if (content != NULL)
-     content->assign(getString(answer["result"]["content"]));
+   algorithm->assign(getString(answer["result"]["algorithm"]));
+   content->assign(getString(answer["result"]["content"]));
    
    return true;
 }
@@ -573,9 +574,17 @@ bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys) {
    if (answer["result"].IsArray()) {
       for(rapidjson::Value::ValueIterator iter = answer["result"].Begin(); iter != answer["result"].End(); iter++) {
          struct TSIGKey key;
-         key.name = (*iter)["name"].GetString();
-         key.algorithm = (*iter)["algorithm"].GetString();
-         key.key = (*iter)["content"].GetString();
+         rapidjson::Value value;
+         value = "";
+         key.name = getString(JSON_GET((*iter), "name", value));
+         key.algorithm = getString(JSON_GET((*iter), "algorithm", value));
+         key.key = getString(JSON_GET((*iter), "content", value));
+
+         if (key.name.empty() ||
+             key.algorithm.empty() ||
+             key.key.empty())
+           throw PDNSException("Invalid reply for getTSIGKeys query");
+
          keys.push_back(key);
       }
    }
@@ -599,7 +608,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
      return false;
 
    // make sure we got zone & kind
-   if (!answer["result"].HasMember("zone")) {
+   if (!answer["result"].IsObject() || !answer["result"].HasMember("zone")) {
       L<<Logger::Error<<kBackendId<<"Missing zone in getDomainInfo return value"<<endl;
       throw PDNSException();
    }
