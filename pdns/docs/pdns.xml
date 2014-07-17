@@ -12274,7 +12274,7 @@ local0.err                        /var/log/pdns.err
       faster, depending on your operating system and architecture.
     </para>
     <para>
-      Another very important setting <command>cache-ttl</command>. PDNS caches entire packets it sends out so as to save the
+      Another very important setting is <command>cache-ttl</command>. PDNS caches entire packets it sends out so as to save the
       time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of
       60 seconds rarely leads to problems.
     </para>
