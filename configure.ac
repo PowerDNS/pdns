@@ -286,6 +286,8 @@ if test "$needsqlite3"; then
   AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
 fi
 
+AC_CHECK_FUNCS([localtime_r])
+
 for a in $modules; do
   moduledirs="$moduledirs ${a}backend"
 
