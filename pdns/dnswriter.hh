@@ -116,7 +116,6 @@ private:
   vector <uint8_t>& d_content;
   vector <uint8_t> d_record;
   string d_qname;
-  uint16_t d_qtype, d_qclass;
   string d_recordqname;
   uint16_t d_recordqtype, d_recordqclass;
   uint32_t d_recordttl;
