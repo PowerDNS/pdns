@@ -172,19 +172,16 @@ AC_MSG_CHECKING([whether we should build static binaries])
 
 AC_ARG_ENABLE([static-binaries],
   [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [case "${enableval}" in
-    yes) static=true ;;
-    no)  static=false ;;
-    *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
-   esac],
-   [debug=false]
+  [enable_static_binaries=$enableval],
+  [enable_static_binaries=no],
 )
-AC_MSG_RESULT([$static])
+AC_MSG_RESULT([$enable_static_binaries])
+AM_CONDITIONAL([ALLSTATIC], [test "x$enable_static_binaries" != "xno"])
 
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" = "xtrue"])
-
-if test "x$static" = "xtrue"; then
+if test "x$enable_static_binaries" != "xno"; then
   LDFLAGS="-all-static $LDFLAGS"
+else
+  debug=false
 fi
 
 modules="bind gmysql geo random"
