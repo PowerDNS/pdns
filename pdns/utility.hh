@@ -50,7 +50,6 @@ typedef unsigned long long uint64_t;
 class Semaphore
 {
 private:
-  sem_t *m_pSemaphore;
   typedef int sem_value_t;
 
 #if DARWIN || _AIX || __APPLE__
@@ -59,7 +58,9 @@ private:
   pthread_cond_t  m_gtzero;
   sem_value_t     m_count;
   uint32_t       m_nwaiters;
-#endif // DARWIN || _AIX || __APPLE__
+#else
+  sem_t *m_pSemaphore;
+#endif
 
 protected:
 public:
