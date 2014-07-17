@@ -62,6 +62,10 @@ class P11KitSlot;
 
 typedef enum { Attribute_Byte, Attribute_Long, Attribute_String } CkaValueType;
 
+#ifdef HAVE_P11KIT1_V2
+static CK_FUNCTION_LIST** p11_modules;
+#endif
+
 // Attribute handling
 class P11KitAttribute {
 private:
@@ -264,7 +268,11 @@ class P11KitModule
 
 // basically get the function list
     bool initialize() {
+#ifdef HAVE_P11KIT1_V2
+      functions = p11_kit_module_for_name(p11_modules, d_module.c_str());
+#else
       functions = p11_kit_registered_name_to_module(d_module.c_str());
+#endif
       if (functions == NULL) return false;
       return true;
     };
@@ -839,10 +847,18 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
+#ifdef HAVE_P11KIT1_V2
+    p11_modules = p11_kit_modules_load(NULL, 0);
+#else
     p11_kit_initialize_registered();
+#endif
   };
   ~LoaderStruct() {
+#ifdef HAVE_P11KIT1_V2
+    p11_kit_modules_release(p11_modules);
+#else
     p11_kit_finalize_registered();
+#endif
   };
 } loaderPkcs11;
 }
