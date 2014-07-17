@@ -238,7 +238,7 @@ AC_ARG_ENABLE([tools],
 )
 
 AC_MSG_RESULT([$enable_tools])
-AM_CONDITIONAL([TOOLS],[test "x$enable_tools" = "xyes"])
+AM_CONDITIONAL([TOOLS],[test "x$enable_tools" != "xno"])
 
 for a in $modules $dynmodules; do
   case "$a" in
