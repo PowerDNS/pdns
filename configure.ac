@@ -171,7 +171,7 @@ PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 AC_MSG_CHECKING([whether we should build static binaries])
 
 AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries])],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
   [case "${enableval}" in
     yes) static=true ;;
     no)  static=false ;;
