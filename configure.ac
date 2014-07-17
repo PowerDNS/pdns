@@ -180,8 +180,6 @@ AM_CONDITIONAL([ALLSTATIC], [test "x$enable_static_binaries" != "xno"])
 
 if test "x$enable_static_binaries" != "xno"; then
   LDFLAGS="-all-static $LDFLAGS"
-else
-  debug=false
 fi
 
 modules="bind gmysql geo random"
