@@ -81,10 +81,9 @@ extern StatBag S;
     The main() of PowerDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
 */
 
-#ifdef IP_PKTINFO
+#if defined(IP_PKTINFO)
   #define GEN_IP_PKTINFO IP_PKTINFO
-#endif
-#ifdef IP_RECVDSTADDR
+#elif defined(IP_RECVDSTADDR)
   #define GEN_IP_PKTINFO IP_RECVDSTADDR 
 #endif
 
@@ -337,15 +336,14 @@ static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destina
   memset(destination, 0, sizeof(*destination));
   struct cmsghdr *cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-#ifdef IP_PKTINFO
+#if defined(IP_PKTINFO)
      if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
         struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
         destination->sin4.sin_addr = i->ipi_addr;
         destination->sin4.sin_family = AF_INET;
         return true;
     }
-#endif
-#ifdef IP_RECVDSTADDR
+#elif defined(IP_RECVDSTADDR)
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
       struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
       destination->sin4.sin_addr = *i;
