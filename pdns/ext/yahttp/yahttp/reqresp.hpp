@@ -97,7 +97,8 @@ protected:
       this->method = rhs.method; this->headers = rhs.headers;
       this->jar = rhs.jar; this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
-      this->body = rhs.body;
+      this->body = rhs.body; this->max_request_size = rhs.max_request_size;
+      this->max_response_size = rhs.max_response_size;
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
@@ -108,7 +109,8 @@ protected:
       this->method = rhs.method; this->headers = rhs.headers;
       this->jar = rhs.jar; this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
-      this->body = rhs.body;
+      this->body = rhs.body; this->max_request_size = rhs.max_request_size;
+      this->max_response_size = rhs.max_response_size;
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif

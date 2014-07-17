@@ -45,16 +45,20 @@ namespace YaHTTP {
        struct tm tm;
        localtime_r(&t, &tm);
        fromTm(&tm);
-#ifndef HAVE_TM_GMTOFF
-       time_t t2 = timegm(&tm);
-#endif
 #else
        struct tm *tm;
        tm = localtime(&t);
        fromTm(tm);
-#ifndef HAVE_TM_GMTOFF
-       time_t t2 = timegm(tm);
-#endif
+# ifndef HAVE_TM_GMTOFF
+       time_t t2;
+#  ifdef HAVE_LOCALTIME_R
+       gmtime_r(&t, &tm);
+       t2 = mktime(&tm);
+#  else
+       tm = gmtime(&t);
+       t2 = mktime(tm);
+#  endif
+# endif
 #endif
 #ifndef HAVE_TM_GMTOFF
        this->utc_offset = ((t2-t)/10)*10; // removes any possible differences. 
@@ -153,10 +157,15 @@ namespace YaHTTP {
 
      void parseCookie(const std::string &cookie_date) {
        struct tm tm;
-       if ( (strptime(cookie_date.c_str(), "%d-%b-%Y %T %Z", &tm)) != NULL) {
+       const char *ptr;
+       if ( (ptr = strptime(cookie_date.c_str(), "%d-%b-%Y %T", &tm)) != NULL) {
+          while(*ptr && ( ::isspace(*ptr) || ::isalnum(*ptr) )) ptr++;
+          std::cerr << ptr << std::endl;
+          if (*ptr) throw "Unparseable date (non-final)"; // must be final.
           fromTm(&tm);
+          this->utc_offset = 0;
        } else {
-          throw "Unparseable date";
+          throw "Unparseable date (did not match pattern cookie)";
        }
      }; //<! parses HTTP Cookie date
 
@@ -168,10 +177,11 @@ namespace YaHTTP {
        tm.tm_hour = hours;
        tm.tm_min = minutes;
        tm.tm_sec = seconds;
+       tm.tm_isdst = 0;
 #ifdef HAVE_TM_GMTOFF
        tm.tm_gmtoff = utc_offset;
 #endif
-       return timelocal(&tm);
+       return mktime(&tm);
      }; //<! returns this datetime as unixtime. will not work for dates before 1970/1/1 00:00:00 GMT
   };
 
