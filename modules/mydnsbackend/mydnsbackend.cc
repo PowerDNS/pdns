@@ -369,7 +369,7 @@ class MyDNSLoader {
 public:
         MyDNSLoader() {
         	BackendMakers().report(new MyDNSFactory());
-        	L<<Logger::Info<<backendName<<" This is the MyDNSBackend ("__DATE__", "__TIME__") reporting"<<endl;
+		L << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
         }
 };
 

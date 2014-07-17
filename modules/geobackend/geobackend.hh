@@ -105,9 +105,7 @@ class GeoLoader {
 public:
         GeoLoader() {
         	BackendMakers().report(new GeoFactory);
-        	
-        	L << Logger::Info << "[GeoBackend] This is the geobackend ("
-        		__DATE__", "__TIME__" - $Revision: 1.1 $) reporting" << endl;
+		L << Logger::Info << "[geobackend] This is the geo backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
         }
 };
 

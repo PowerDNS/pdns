@@ -1069,7 +1069,7 @@ public:
 
 RemoteLoader::RemoteLoader() {
     BackendMakers().report(new RemoteBackendFactory);
-    L<<Logger::Notice<<kBackendId<<" This is the remotebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+    L << Logger::Info << kBackendId << " This is the remote backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
 }
 
 static RemoteLoader remoteloader;
