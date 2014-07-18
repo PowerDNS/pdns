@@ -3,3 +3,5 @@ CMakeFiles
 CTestTestfile.cmake
 cmake_install.cmake
 Testing
+Makefile
+Makefile.in
