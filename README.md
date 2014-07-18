@@ -23,7 +23,7 @@ Source code is available on GitHub:
     $ git clone https://github.com/PowerDNS/pdns.git
     
 This repository contains the sources both for the PowerDNS Recursor and for PowerDNS Authoritative Server,
-and both can be built from this repository. Both are released separately as .tar.gz, .deb and .rpm however!
+and both can be built from this repository. Both are released separately as .tar.bz2, .deb and .rpm however!
 
 COMPILING Authoritative Server
 ------------------------------
