@@ -10,7 +10,10 @@ AC_DEFUN([PDNS_ENABLE_PKCS11],[
 
   AS_IF([test "x$enable_pkcs11" != "xno"], [
     PKG_CHECK_MODULES([P11KIT1], [p11-kit-1],
-      [AC_DEFINE([HAVE_P11KIT1],[1],[Define to 1 if you have p11-kit-1])],
+      [
+        AC_DEFINE([HAVE_P11KIT1],[1],[Define to 1 if you have p11-kit-1])
+        AC_CHECK_LIB([p11-kit], [p11_kit_module_for_name], [AC_DEFINE([HAVE_P11KIT1_V2],[1],[Define to 1 if you have 0.20 or newer P11-kit])], [], [$P11KIT1_LIBS])
+      ],
       [AC_MSG_ERROR([Could not find p11-kit-1])]
     )]
   )
