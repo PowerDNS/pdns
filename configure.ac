@@ -22,7 +22,7 @@ AC_PROG_YACC
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AX_CXX_COMPILE_STDCXX_11([noext],[optional])
+PDNS_ENABLE_CXX11
 
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
