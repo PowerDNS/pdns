@@ -23,7 +23,7 @@ EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_
 	docs/dnsreplay.8 docs/dnsscope.8 docs/dnswasher.8 docs/pdnssec.8 docs/zone2ldap.8 \
 	bind-dnssec.schema.sqlite3.sql bindparser.h named.conf.parsertest
 
-SUBDIRS= $(POLARSSL_SUBDIR) ext/yahttp
+SUBDIRS= ext
 
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h bindparser.h
 CLEANFILES=version_generated.h
