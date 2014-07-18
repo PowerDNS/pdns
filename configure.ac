@@ -27,6 +27,14 @@ AC_PROG_MAKE_SET
 
 AC_LANG([C++])
 
+AC_CHECK_FUNC([socket], [], [
+ AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
+])
+
+AC_CHECK_FUNC([gethostent], [], [
+ AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
+])
+
 m4_ifndef([LT_INIT],[
 AC_PROG_LIBTOOL([disable-static])
 ],[
