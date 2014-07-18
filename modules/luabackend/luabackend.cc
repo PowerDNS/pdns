@@ -49,7 +49,7 @@ public:
   {
     BackendMakers().report(new LUAFactory);
     
-    L<<Logger::Notice<<"[LUABackend] This is the luabackend ("__DATE__", "__TIME__") reporting"<<endl;
+    L << Logger::Info << "[luabackend] This is the lua backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
   }  
 };
 

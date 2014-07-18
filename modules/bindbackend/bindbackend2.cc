@@ -1341,7 +1341,7 @@ public:
   Bind2Loader()
   {
     BackendMakers().report(new Bind2Factory);
-    L<<Logger::Notice<<"[Bind2Backend] This is the bind backend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+    L << Logger::Info << "[bind2backend] This is the bind backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
   }
 };
 static Bind2Loader bind2loader;

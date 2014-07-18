@@ -26,6 +26,7 @@
 #include "pdns/dnspacket.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
+#include "pdns/version.hh"
 #include <boost/algorithm/string.hpp>
 
 /* FIRST PART */
@@ -99,8 +100,7 @@ public:
   RandomLoader()
   {
     BackendMakers().report(new RandomFactory);
-    
-    L<<Logger::Info<<" [RandomBackend] This is the randombackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+    L << Logger::Info << "[randombackend] This is the random backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
   }  
 };
 

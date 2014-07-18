@@ -290,8 +290,7 @@ class PipeLoader
       PipeLoader()
       {
          BackendMakers().report(new PipeFactory);
-         
-         L<<Logger::Notice<<kBackendId<<" This is the pipebackend version "VERSION" ("__DATE__", "__TIME__") reporting"<<endl;
+         L << Logger::Info << kBackendId <<" This is the pipe backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
       }  
 };
 
