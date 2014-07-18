@@ -326,8 +326,11 @@ AC_CONFIG_FILES([
   pdns/Makefile
   codedocs/Makefile
   pdns/pdns
+  pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
+  pdns/ext/polarssl-1.3.2/Makefile
+  pdns/ext/polarssl-1.3.2/library/Makefile
   modules/bindbackend/Makefile
   modules/db2backend/Makefile
   modules/geobackend/Makefile
