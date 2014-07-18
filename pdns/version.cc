@@ -88,8 +88,8 @@ void showBuildConfiguration()
 #ifdef HAVE_LUA
     "lua " <<
 #endif
-#ifdef REMOTEBACKEND_HTTP
-    "remotebackend-http" <<
+#ifdef REMOTEBACKEND_ZEROMQ
+    "remotebackend-zeromq" <<
 #endif
 #ifdef VERBOSELOG
     "verboselog" <<

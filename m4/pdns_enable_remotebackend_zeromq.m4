@@ -10,7 +10,7 @@ AC_DEFUN([PDNS_ENABLE_REMOTEBACKEND_ZEROMQ],[
 
   AC_MSG_RESULT([$enable_remotebackend_zeromq])
 
-  AM_CONDITIONAL([REMOTEBACKEND_HTTP],[test "x$enable_remotebackend_zeromq" != "xno"])
+  AM_CONDITIONAL([REMOTEBACKEND_ZEROMQ],[test "x$enable_remotebackend_zeromq" != "xno"])
   AC_SUBST(REMOTEBACKEND_ZEROMQ)
   AS_IF([test "x$enable_remotebackend_zeromq" != "xno"],
     [PKG_CHECK_MODULES([LIBZMQ], [libzmq],
