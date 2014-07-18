@@ -49,19 +49,17 @@ namespace YaHTTP {
        struct tm *tm;
        tm = localtime(&t);
        fromTm(tm);
-# ifndef HAVE_TM_GMTOFF
-       time_t t2;
-#  ifdef HAVE_LOCALTIME_R
-       gmtime_r(&t, &tm);
-       t2 = mktime(&tm);
-#  else
-       tm = gmtime(&t);
-       t2 = mktime(tm);
-#  endif
-# endif
 #endif
 #ifndef HAVE_TM_GMTOFF
-       this->utc_offset = ((t2-t)/10)*10; // removes any possible differences. 
+       time_t t2;
+# ifdef HAVE_LOCALTIME_R
+       gmtime_r(&t, &tm);
+       t2 = mktime(&tm);
+# else
+       tm = gmtime(&t);
+       t2 = mktime(tm);
+# endif
+       this->utc_offset = ((t2-t)/10)*10; // removes any possible differences.
 #endif
      }; //<! uses localtime for time
 
