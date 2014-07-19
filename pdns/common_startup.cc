@@ -23,7 +23,6 @@
 #include "ws-auth.hh"
 
 bool g_anyToTcp;
-bool g_addSuperfluousNSEC3;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
