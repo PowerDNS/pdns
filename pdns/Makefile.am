@@ -39,7 +39,7 @@ if TOOLS
 endif
 
 EXTRA_PROGRAMS=pdns_recursor sdig saxfr dnstcpbench dnsdist tsig-tests speedtest dnsscope dnsgram rec_control \
-testrunner dnsreplay \
+testrunner dnsreplay zone2lmdb \
 toysdig dnsdemog dnswasher dnsscan nproxy notify dnsbulktest nsec3dig saxfr
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
