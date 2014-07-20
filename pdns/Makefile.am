@@ -349,8 +349,13 @@ misc.cc unix_utility.cc qtype.cc
 
 pdns_control_LDFLAGS=@THREADFLAGS@
 
+if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message
 TESTS=testrunner
+else
+check:
+	@echo "Unit tests are not enabled"
+endif
 
 dnslabeltext.cc: dnslabeltext.rl
 	ragel dnslabeltext.rl -o dnslabeltext.cc
