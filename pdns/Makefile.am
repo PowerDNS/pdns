@@ -38,9 +38,9 @@ if TOOLS
   bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy dnsdist nsec3dig saxfr
 endif
 
-EXTRA_PROGRAMS=pdns_recursor sdig saxfr dnstcpbench dnsdist tsig-tests speedtest pdns_control dnsscope dnsgram rec_control \
+EXTRA_PROGRAMS=pdns_recursor sdig saxfr dnstcpbench dnsdist tsig-tests speedtest dnsscope dnsgram rec_control \
 testrunner dnsreplay \
-toysdig dnsdemog dnswasher dnsscan nproxy notify pdnssec dnsbulktest nsec3dig saxfr
+toysdig dnsdemog dnswasher dnsscan nproxy notify dnsbulktest nsec3dig saxfr
 
 pdns_server_SOURCES=dnspacket.cc nameserver.cc tcpreceiver.hh \
 qtype.cc logger.cc arguments.cc packethandler.cc tcpreceiver.cc \
