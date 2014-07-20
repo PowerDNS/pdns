@@ -220,6 +220,11 @@
 # max-ent-entries=100000
 
 #################################
+# max-nsec3-iterations	Limit the number of NSEC3 hash iterations
+#
+# max-nsec3-iterations=500
+
+#################################
 # max-queue-length	Maximum queuelength before considering situation lost
 #
 # max-queue-length=5000
