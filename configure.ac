@@ -18,12 +18,16 @@ AC_C_BIGENDIAN
 : ${CXXFLAGS="-Wall -O2"}
 
 AC_PROG_CC
-AC_PROG_CXX
 AM_PROG_CC_C_O
 AC_PROG_YACC
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
+
+AC_PROG_CXX
+AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
+  AC_MSG_ERROR([no C++ compiler found])
+)
 
 AC_LANG([C++])
 
