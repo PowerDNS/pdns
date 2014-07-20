@@ -159,6 +159,7 @@ void declareArguments()
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
+  ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
 
   ::arg().set("include-dir","Include *.conf files from this directory");
 }

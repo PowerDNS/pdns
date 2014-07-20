@@ -137,6 +137,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
 
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
+  ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().laxFile(configname.c_str());
 
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
