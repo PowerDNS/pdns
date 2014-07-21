@@ -1,1 +1,1 @@
-SUBDIRS=$(POLARSSL_SUBDIR) yahttp
+SUBDIRS=$(POLARSSL_SUBDIR) yahttp rapidjson
