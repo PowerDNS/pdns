@@ -400,7 +400,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     
     DNSSECKeeper dk;
     
-    if(!dk.TSIGGrantsAccess(q->qdomain, keyname, trc.d_algoName)) {
+    if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
       L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<trc.d_algoName<<"' does not grant access to zone"<<endl;
       return false;
     }

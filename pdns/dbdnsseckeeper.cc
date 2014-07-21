@@ -397,7 +397,7 @@ bool DNSSECKeeper::getPreRRSIGs(DNSBackend& db, const std::string& signer, const
         return true;
 }
 
-bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname, const string& algorithm)
+bool DNSSECKeeper::TSIGGrantsAccess(const string& zone, const string& keyname)
 {
   vector<string> allowed;
   
