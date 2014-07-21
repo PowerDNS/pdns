@@ -353,8 +353,9 @@ if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message
 TESTS=testrunner
 else
-check:
+check-local:
 	@echo "Unit tests are not enabled"
+	@echo "Run ./configure --enable-unit-tests"
 endif
 
 dnslabeltext.cc: dnslabeltext.rl
