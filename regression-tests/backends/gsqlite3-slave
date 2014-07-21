@@ -19,7 +19,7 @@ __EOF__
 	done
 
 	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test master
+	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
 		../pdns/pdnssec --config-dir=. --config-name=gsqlite32 set-meta stest.com AXFR-SOURCE 127.0.0.2
