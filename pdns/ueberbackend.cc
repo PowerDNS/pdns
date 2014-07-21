@@ -70,8 +70,6 @@ int UeberBackend::s_s=-1; // ?
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string &name)
 {
-  // TODO: Implement dynamic loading?
-#if !defined(DARWIN)
   void *dlib=dlopen(name.c_str(), RTLD_NOW);
   
   if(dlib == NULL) {
@@ -82,12 +80,6 @@ bool UeberBackend::loadmodule(const string &name)
   }
   
   return true;
-
-#else
-  L << Logger::Warning << "This version doesn't support dynamic loading (yet)." << endl;
-   return false;
-
-#endif
 }
 
 void UeberBackend::go(void)
