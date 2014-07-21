@@ -202,6 +202,153 @@ class AuthZones(ApiTestCase):
             self.assertIn(k, data)
         self.assertEquals(data['name'], 'example.com')
 
+    def test_import_zone_broken(self):
+        payload = {}
+        payload['zone'] = """
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 58571
+flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1680
+;; QUESTION SECTION:
+;powerdns.com.                  IN      SOA
+
+;; ANSWER SECTION:
+powerdns-broken.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
+powerdns-broken.com.           3600    IN      NS      powerdnssec2.ds9a.nl.
+powerdns-broken.com.           3600    IN      AAAA    2001:888:2000:1d::2
+powerdns-broken.com.           86400   IN      A       82.94.213.34
+powerdns-broken.com.           3600    IN      MX      0 xs.powerdns.com.
+powerdns-broken.com.           3600    IN      NS      powerdnssec1.ds9a.nl.
+powerdns-broken.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
+"""
+        payload['name'] = 'powerdns-broken.com'
+        payload['kind'] = 'Master'
+        payload['nameservers'] = []
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+
+    def test_import_zone_axfr(self):
+        payload = {}
+        payload['zone'] = """
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 58571
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1680
+;; QUESTION SECTION:
+;powerdns.com.                  IN      SOA
+
+;; ANSWER SECTION:
+powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
+powerdns.com.           3600    IN      NS      powerdnssec2.ds9a.nl.
+powerdns.com.           3600    IN      AAAA    2001:888:2000:1d::2
+powerdns.com.           86400   IN      A       82.94.213.34
+powerdns.com.           3600    IN      MX      0 xs.powerdns.com.
+powerdns.com.           3600    IN      NS      powerdnssec1.ds9a.nl.
+powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
+"""
+        payload['name'] = 'powerdns.com'
+        payload['kind'] = 'Master'
+        payload['nameservers'] = []
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+        data = r.json()
+        self.assertIn('name', data)
+        self.assertIn('records', data)
+
+        expected = {}
+        expected['NS'] = []
+        expected['NS'].append('powerdnssec1.ds9a.nl.')
+        expected['NS'].append('powerdnssec2.ds9a.nl.')
+        expected['SOA'] = []
+        expected['SOA'].append('powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800')
+        expected['MX'] = []
+        expected['MX'].append('0 xs.powerdns.com.')
+        expected['A'] = []
+        expected['A'].append('82.94.213.34')
+        expected['AAAA'] = []
+        expected['AAAA'].append('2001:888:2000:1d::2')
+
+        counter = {}
+        for et in expected.keys():
+            counter[et] = len(expected[et])
+            for ev in expected[et]:
+                for ret in data['records']:
+                    if ret['content'] == ev.rstrip('.'):
+                        counter[et] = counter[et]-1
+            self.assertEquals(counter[et], 0)
+
+    def test_import_zone_bind(self):
+        payload = {}
+        payload['zone'] = """
+$TTL    86400 ; 24 hours could have been written as 24h or 1d
+; $TTL used for all RRs without explicit TTL value
+$ORIGIN example.org.
+@  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
+                  2002022401 ; serial
+                  3H ; refresh
+                  15 ; retry
+                  1w ; expire
+                  3h ; minimum
+                 )
+       IN  NS     ns1.example.org. ; in the domain
+       IN  NS     ns2.smokeyjoe.com. ; external to domain
+       IN MX  10 mail.another.com. ; external mail provider
+; server host definitions
+ns1    IN A      192.168.0.1  ;name server definition     
+www    IN  A      192.168.0.2  ;web server definition
+ftp    IN CNAME  www.example.org.  ;ftp server definition
+; non server domain hosts
+bill   IN  A      192.168.0.3
+fred   IN  A      192.168.0.4 
+"""
+        payload['name'] = 'example.org'
+        payload['kind'] = 'Master'
+        payload['nameservers'] = []
+        r = self.session.post(
+            self.url("/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+        data = r.json()
+        self.assertIn('name', data)
+        self.assertIn('records', data)
+
+        expected = {}
+        expected['NS'] = []
+        expected['NS'].append('ns1.example.org.')
+        expected['NS'].append('ns2.smokeyjoe.com.')
+        expected['SOA'] = []
+        expected['SOA'].append('ns1.example.org. hostmaster.example.org. 2002022401 10800 15 604800 10800')
+        expected['MX'] = []
+        expected['MX'].append('10 mail.another.com.')
+        expected['A'] = []
+        expected['A'].append('192.168.0.1')
+        expected['A'].append('192.168.0.2')
+        expected['A'].append('192.168.0.3')
+        expected['A'].append('192.168.0.4')
+        expected['CNAME'] = []
+        expected['CNAME'].append('www.example.org.')
+
+        counter = {}
+        for et in expected.keys():
+            counter[et] = len(expected[et])
+            found = False
+            for ev in expected[et]:
+                for ret in data['records']:
+                    if ret['content'] == ev.rstrip('.'):
+                        counter[et] = counter[et]-1
+            self.assertEquals(counter[et], 0)
+
     def test_export_zone_json(self):
         payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
         name = payload['name']
