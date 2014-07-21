@@ -34,7 +34,7 @@ script:
  - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11
  - make -k dist
  - make -k -j 4
- - DESTDIR=/tmp/pdns-install-dir make -k install
+ - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
  - travis_retry timeout 240s make -j 4 check # Workaround for remotebackend failures on travis-ci
  - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$)
