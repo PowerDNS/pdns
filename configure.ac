@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects])
+AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects no-dependencies])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_CANONICAL_HOST
