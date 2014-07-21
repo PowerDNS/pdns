@@ -14,7 +14,6 @@ AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_CANONICAL_HOST
-AC_C_BIGENDIAN
 : ${CXXFLAGS="-Wall -O2"}
 
 AC_PROG_CC
