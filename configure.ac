@@ -178,25 +178,7 @@ PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
-
-AC_MSG_CHECKING([whether we should build static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries])],
-  [case "${enableval}" in
-    yes) static=true ;;
-    no)  static=false ;;
-    *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
-   esac],
-   [debug=false]
-)
-AC_MSG_RESULT([$static])
-
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" = "xtrue"])
-
-if test "x$static" = "xtrue"; then
-  LDFLAGS="-all-static $LDFLAGS"
-fi
+PDNS_ENABLE_STATIC_BINARIES
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
