@@ -26,7 +26,7 @@ __EOF__
 	done
 
 	../pdns/pdnssec --config-dir=. --config-name=oracle2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=oracle2 activate-tsig-key tsig.com test master
+	../pdns/pdnssec --config-dir=. --config-name=oracle2 activate-tsig-key tsig.com test slave
 
 	set +e
 	echo $skipreasons | grep -q nolua

@@ -1406,22 +1406,26 @@ OracleBackend::getTSIGKey (const string& name, string* algorithm, string* conten
 
   rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
-  if (rc == OCI_NO_DATA) {
-    return false;
+  content->clear();
+  while (rc != OCI_NO_DATA) {
+
+    if (rc == OCI_ERROR) {
+      throw OracleException("Oracle getTSIGKey", oraerr);
+    }
+
+    check_indicator(mResultTypeInd, false);
+    check_indicator(mResultContentInd, false);
+
+    if(algorithm->empty() || pdns_iequals(*algorithm, mResultType)) {
+      *algorithm = mResultType;
+      *content = mResultContent;
+    }
+
+    rc = OCIStmtFetch2(stmt, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
   }
-
-  if (rc == OCI_ERROR) {
-    throw OracleException("Oracle getTSIGKey", oraerr);
-  }
-
-  check_indicator(mResultTypeInd, false);
-  check_indicator(mResultContentInd, false);
-
-  *algorithm = mResultType;
-  *content = mResultContent;
 
   release_query(stmt, getTSIGKeyQueryKey);
-  return true;
+  return !content->empty();
 }
 
 bool

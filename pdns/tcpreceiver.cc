@@ -399,13 +399,16 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
       return false;
     
     DNSSECKeeper dk;
-    
-    if(!dk.TSIGGrantsAccess(q->qdomain, keyname, trc.d_algoName)) {
-      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<trc.d_algoName<<"' does not grant access to zone"<<endl;
+
+    string algorithm=toLowerCanonic(trc.d_algoName);
+    if (algorithm == "hmac-md5.sig-alg.reg.int")
+      algorithm = "hmac-md5";
+    if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
+      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<algorithm<<"' does not grant access to zone"<<endl;
       return false;
     }
     else {
-      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<trc.d_algoName<<"'"<<endl;
+      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<algorithm<<"'"<<endl;
       return true;
     }
   }
@@ -581,7 +584,10 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
   if(!tsigkeyname.empty()) {
-    string tsig64, algorithm;
+    string tsig64;
+    string algorithm=toLowerCanonic(trc.d_algoName);
+    if (algorithm == "hmac-md5.sig-alg.reg.int")
+      algorithm = "hmac-md5";
     Lock l(&s_plock);
     s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
     B64Decode(tsig64, tsigsecret);
