@@ -3,7 +3,7 @@
 #include "ssql.hh"
 #include "pdns/arguments.hh"
 
-#include "../../namespaces.hh"
+#include "pdns/namespaces.hh"
 
 bool isDnssecDomainMetadata (const string& name);
 

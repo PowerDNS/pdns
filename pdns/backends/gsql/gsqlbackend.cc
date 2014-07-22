@@ -20,11 +20,6 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <string>
-#include <map>
-
-#include "namespaces.hh"
-
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "gsqlbackend.hh"
