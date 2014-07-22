@@ -963,7 +963,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
         sendPacket(outpacket,outsock);
         return 0;
       }
-    } else {
+    } else if (rr->d_type != QType::TSIG) {
       L<<Logger::Error<<"Additional records in IXFR query"<<endl;
       outpacket->setRcode(RCode::FormErr);
       sendPacket(outpacket,outsock);
