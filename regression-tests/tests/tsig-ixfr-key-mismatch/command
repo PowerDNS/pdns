@@ -1,0 +1,2 @@
+#!/bin/sh
+dig -t ixfr=2000081501 tsig.com @$nameserver -p $port -y $ALGORITHM:test:ZmFpbGZhaWxmYWlsZmFpbGZhaWxmYWlsZmFpbGZhaWxmYWlsZmFpbA== | grep -i 'failed'
