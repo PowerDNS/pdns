@@ -40,8 +40,7 @@ PowerDNS testbuild
     --with-modules="bind gmysql gpgsql gsqlite3 mydns tinydns remote random pipe geo ldap opendbx" \
     --with-dynmodules="" \
     --enable-unit-tests \
-    --enable-tools \
-    --enable-remotebackend-http
+    --enable-tools
 
 %{__make}
 
