@@ -49,7 +49,7 @@ struct RemotebackendSetup {
                 new RemoteLoader();
 		BackendMakers().launch("remote");
                 // then get us a instance of it 
-                ::arg().set("remote-connection-string")="zeromq:endpoint=tcp://127.0.0.1:43622";
+                ::arg().set("remote-connection-string")="zeromq:endpoint=ipc:///tmp/remotebackend.0";
                 ::arg().set("remote-dnssec")="yes";
                 be = BackendMakers().all()[0];
 		// load few record types to help out

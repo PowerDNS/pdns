@@ -1,5 +1,6 @@
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
-gem 'webrick'
-gem 'sqlite3'
-gem 'zeromqrb'
+gem "json"
+gem "webrick"
+gem "zeromqrb"
+gem "sqlite3"
