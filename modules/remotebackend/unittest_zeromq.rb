@@ -18,7 +18,7 @@ trap('TERM') { runcond = false }
 begin
   context = ZeroMQ::Context.new
   socket = context.socket ZMQ::REP
-  socket.bind("tcp://127.0.0.1:43622")
+  socket.bind("ipc:///tmp/remotebackend.0")
  
   print "[#{Time.now.to_s}] ZeroMQ unit test responder running\n"
 
@@ -43,10 +43,10 @@ begin
       else
          res, log = h.send(method)
       end
-      socket.send_string ({:result => res, :log => log}).to_json, 0
+      socket.send_string ({:result => res, :log => log}).to_json + "\n" , 0
       f.puts "#{Time.now.to_f} [zmq]: #{({:result => res, :log => log}).to_json}"
     rescue JSON::ParserError
-      socket.send_string ({:result => false, :log => "Cannot parse input #{line}"}).to_json
+      socket.send_string ({:result => false, :log => "Cannot parse input #{line}"}).to_json + "\n";
       f.puts "#{Time.now.to_f} [zmq]: #{({:result => false, :log => "Cannot parse input #{line}"}).to_json}"
       next
     end
