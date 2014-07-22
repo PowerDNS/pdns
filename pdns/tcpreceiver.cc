@@ -1015,7 +1015,10 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
     if(!tsigkeyname.empty()) {
-      string tsig64, algorithm;
+      string tsig64;
+      string algorithm=toLowerCanonic(trc.d_algoName);
+      if (algorithm == "hmac-md5.sig-alg.reg.int")
+        algorithm = "hmac-md5";
       Lock l(&s_plock);
       s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
       B64Decode(tsig64, tsigsecret);
