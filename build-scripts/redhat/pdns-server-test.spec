@@ -9,7 +9,7 @@ Release:        1
 Epoch:          0
 License:        GPL
 Group:          System/Servers
-Source:         http://downloads.powerdns.com/releases/pdns-#VERSION#.tar.gz
+Source:         http://downloads.powerdns.com/releases/pdns-#VERSION#.tar.bz2
 
 BuildRequires:  autoconf automake
 BuildRequires:  gcc gcc-c++
