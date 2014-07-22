@@ -1,6 +1,6 @@
 # Migrating MariaDB/MySQL Data from MyDNS to PowerDNS 
 # 2014-07-02: Markus Neubauer
-# Version: 0.9
+# Version: 0.95
 # License: GPLv2
 # http://www.std-soft.com/index.php/hm-service/81-c-std-service-code/6-migration-mysql-daten-von-mydns-auf-powerdns-migrieren
 # You can skip STEP 1 and STEP 2, if your database is already prepared
@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS `records` ( `id` int(11) NOT NULL AUTO_INCREMENT, `do
   `change_date` int(11) DEFAULT NULL, `disabled` tinyint(1) DEFAULT '0', `ordername` varchar(255) DEFAULT NULL, `auth` tinyint(1) DEFAULT '1',
   PRIMARY KEY (`id`), KEY `nametype_index` (`name`,`type`), KEY `recordorder` (`domain_id`,`ordername`,`prio`), KEY `domain_idtypename_index` (`domain_id`,`type`,`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1;
-ALTER TABLE `records` ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains` (`id`) ON DELETE CASCADE;
 
 # STEP 3: create tables for "version control/revision" records
 # Unfortunately the field `disabled` is not honoured within pdns, despite the field is offered.
@@ -96,7 +95,7 @@ TRUNCATE TABLE `records`;
 # You may want to change 'NATIVE' to 'MASTER', depending on your current setup. Leave 'NATIVE' if your previous setup has been a Master/Slave MySQl setup.
 INSERT INTO `domains` (id,name,type) (SELECT d.id, SUBSTR(d.origin,1, LENGTH(d.origin)-1), 'NATIVE' FROM `soa` as d);
 # import soa records to table records
-INSERT INTO `records` (domain_id,name,type,content,ttl,change_date,disabled) (select id,SUBSTR(origin,1, LENGTH(origin)-1),'SOA', CONCAT_WS(' ',SUBSTR(ns,1, LENGTH(ns)-1),serial,refresh,retry,expire,minimum),ttl,UNIX_TIMESTAMP(modified),REPLACE(active,'N','1') from soa);
+INSERT INTO `records` (domain_id,name,type,content,ttl,change_date,disabled) (select id,SUBSTR(origin,1, LENGTH(origin)-1),'SOA', CONCAT_WS(' ',SUBSTR(ns,1, LENGTH(ns)-1),SUBSTR(mbox,1, LENGTH(mbox)-1),serial,refresh,retry,expire,minimum),ttl,UNIX_TIMESTAMP(modified),REPLACE(active,'N','1') from soa);
 # inactive records are not supported within pdns
 DELETE FROM `records` where disabled=1;
 
@@ -127,7 +126,10 @@ DROP TABLE `tempspf`;
 # STEP 8: import to the records table
 INSERT INTO `records` (domain_id,name,type,content,ttl,prio,change_date,disabled) (SELECT * FROM `temptab`);
 
-# STEP 9: final clean up
+# STEP 9: add contraint to delete records on domains deletion
+ALTER TABLE `records` ADD CONSTRAINT `records_ibfk_1` FOREIGN KEY (`domain_id`) REFERENCES `domains` (`id`) ON DELETE CASCADE;
+
+# STEP 10: final clean up
 DROP TABLE `temptab`;
 # inactive records are not supported within pdns. Push trigger to store these in records_log
 DELETE FROM `records` where disabled=1;
@@ -135,4 +137,7 @@ DELETE FROM `records` where disabled=1;
 DELETE d FROM `domains` d LEFT JOIN `records` r ON r.domain_id=d.id WHERE r.domain_id IS NULL;
 DELETE r FROM `records` r LEFT JOIN `domains` d ON d.id=r.domain_id WHERE d.id IS NULL;
 
-# STEP 10: shut down MyDNS, change the port to 53 on PowerDNS and restart both PowerDNS Servers - DONE!
+# STEP 11: shut down MyDNS, change the port to 53 on PowerDNS and restart both PowerDNS Servers - DONE with DNS Server!
+
+# STEP 12: if you are going to use poweradmin add domains to zones table
+INSERT INTO zones (domain_id,owner,zone_templ_id) (SELECT id,1,1 FROM domains);
