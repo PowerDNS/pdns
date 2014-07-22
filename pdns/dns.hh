@@ -257,8 +257,7 @@ struct dnsheader {
         unsigned        ad: 1;          /* authentic data from named */
         unsigned        cd: 1;          /* checking disabled by resolver */
         unsigned        rcode :4;       /* response code */
-#endif
-#if BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == PDP_ENDIAN
+#elif BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == PDP_ENDIAN
                         /* fields in third byte */
         unsigned        rd :1;          /* recursion desired */
         unsigned        tc :1;          /* truncated message */
