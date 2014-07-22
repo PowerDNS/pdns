@@ -1,6 +1,5 @@
 DNSTCPBENCH(1)
 ==============
-bert hubert <bert.hubert@netherlabs.nl>
 
 NAME
 ----
