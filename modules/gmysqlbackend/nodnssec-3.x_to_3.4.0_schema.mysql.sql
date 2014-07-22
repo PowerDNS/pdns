@@ -20,7 +20,7 @@ CREATE TABLE domainmetadata (
   PRIMARY KEY(id)
 ) Engine=InnoDB;
 
-CREATE INDEX domainmetaidindex ON domainmetadata(domain_id);
+CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);
 
 
 CREATE TABLE cryptokeys (
