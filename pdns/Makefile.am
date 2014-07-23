@@ -84,7 +84,7 @@ endif
 
 if CRYPTOPP
 pdns_server_SOURCES += cryptoppsigners.cc
-pdns_server_LDADD += -lcryptopp
+pdns_server_LDADD += $(CRYPTOPP_LIBS)
 endif
 
 if SQLITE3
