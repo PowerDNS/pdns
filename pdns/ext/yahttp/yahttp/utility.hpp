@@ -224,7 +224,7 @@ namespace YaHTTP {
         if (!std::isalnum(*iter) && (!asUrl || skip.find(*iter) == std::string::npos)) {
           // replace with different thing
           pos = std::distance(result.begin(), iter);
-          std::snprintf(repl,3,"%02x", static_cast<unsigned char>(*iter));
+          snprintf(repl,3,"%02x", static_cast<unsigned char>(*iter));
           result = result.replace(pos, 1, "%", 1).insert(pos+1, repl, 2);
           iter = result.begin() + pos + 2;
         }
