@@ -91,8 +91,6 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS([strcasestr])
 
 # Check for libdl
-LIBS="$LIBS -lz"
-
 my_save_LIBS="$LIBS"
 LIBS=""
 AC_CHECK_LIB(dl,dlopen)
