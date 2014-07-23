@@ -12,6 +12,8 @@ ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
 ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
 ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
 
+DROP INDEX domainmetaidindex ON domainmetadata;
+CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);
 
 CREATE TABLE comments (
   id                    INT AUTO_INCREMENT,
