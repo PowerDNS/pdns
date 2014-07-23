@@ -1,4 +1,4 @@
-AM_CPPFLAGS=-I@PGSQL_incdir@ @THREADFLAGS@ $(BOOST_CPPFLAGS)
+AM_CPPFLAGS=-I$(PGSQL_incdir) $(THREADFLAGS) $(BOOST_CPPFLAGS)
 pkglib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS \
@@ -11,10 +11,10 @@ libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
 ## Don't remove the empty lines between if and endif or tabs will screw up your makefile
 if OS_MACOSX
 
-libgpgsqlbackend_la_LDFLAGS=-module -avoid-version @PGSQL_lib@ -lpq
+libgpgsqlbackend_la_LDFLAGS=-module -avoid-version $(PGSQL_lib) -lpq
 else
 
-libgpgsqlbackend_la_LDFLAGS=-module -avoid-version @PGSQL_lib@ -Wl,-Bstatic -lpq -Wl,-Bdynamic
+libgpgsqlbackend_la_LDFLAGS=-module -avoid-version $(PGSQL_lib) -Wl,-Bstatic -lpq -Wl,-Bdynamic
 endif
 
-libgpgsqlbackend_la_LIBADD=-lssl @LIBCRYPT@ -lcrypto
+libgpgsqlbackend_la_LIBADD=-lssl $(LIBCRYPT) -lcrypto

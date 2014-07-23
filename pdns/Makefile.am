@@ -1,11 +1,11 @@
-AM_CXXFLAGS += -DSYSCONFDIR=\"@sysconfdir@\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"@socketdir@\" @THREADFLAGS@ $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -I$(top_srcdir)/pdns/ext/rapidjson/include -I$(top_srcdir)/pdns/ext/yahttp
+AM_CXXFLAGS += -DSYSCONFDIR=\"$(sysconfdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"$(socketdir)\" $(THREADFLAGS) $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -I$(top_srcdir)/pdns/ext/rapidjson/include -I$(top_srcdir)/pdns/ext/yahttp
 
 YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
 
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
-AM_CPPFLAGS=$(BOOST_CPPFLAGS) @THREADFLAGS@
+AM_CPPFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS)
 if BOTAN110
 AM_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
@@ -69,7 +69,7 @@ version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh \
 comment.hh auth-carbon.cc
 
 
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) @LIBDL@ $(THREADFLAGS)  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
 pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
 
 if BOTAN110
@@ -112,7 +112,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	dns_random.cc json.cc \
 	serialtweaker.cc randomhelper.cc
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) @LIBDL@ $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
 pdnssec_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
 
 zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
@@ -123,7 +123,7 @@ zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	nsecrecords.cc base32.cc bindparserclasses.hh \
 	dns_random.cc json.cc json.hh
 
-zone2sql_LDFLAGS=@THREADFLAGS@
+zone2sql_LDFLAGS=$(THREADFLAGS)
 zone2sql_LDADD= $(POLARSSL_LIBS)
 
 zone2json_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
@@ -132,7 +132,7 @@ zone2json_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	dnswriter.cc dnslabeltext.cc rcpgenerator.cc dnsparser.cc base64.cc sillyrecords.cc \
 	nsecrecords.cc base32.cc bindparserclasses.hh
 
-zone2json_LDFLAGS=@THREADFLAGS@
+zone2json_LDFLAGS=$(THREADFLAGS)
 zone2json_LDADD= $(POLARSSL_LIBS)
 
 zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
@@ -142,7 +142,7 @@ zone2ldap_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	nsecrecords.cc base32.cc bindparserclasses.hh \
 	dns_random.cc
 
-zone2ldap_LDFLAGS=@THREADFLAGS@
+zone2ldap_LDFLAGS=$(THREADFLAGS)
 zone2ldap_LDADD= $(POLARSSL_LIBS)
 
 if LMDB
@@ -155,7 +155,7 @@ zone2lmdb_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	nsecrecords.cc base32.cc bindparserclasses.hh \
 	dns_random.cc dns.cc
 
-zone2lmdb_LDFLAGS=@THREADFLAGS@
+zone2lmdb_LDFLAGS=$(THREADFLAGS)
 zone2lmdb_LDADD= $(POLARSSL_LIBS) -llmdb
 endif
 
@@ -253,11 +253,11 @@ speedtest_SOURCES=speedtest.cc dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter
 dnswasher_SOURCES=dnswasher.cc misc.cc unix_utility.cc qtype.cc \
 	logger.cc statbag.cc  dnspcap.cc dnspcap.hh dnsparser.hh 
 
-dnswasher_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@
+dnswasher_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS)
 
 dnsbulktest_SOURCES=dnsbulktest.cc misc.cc unix_utility.cc qtype.cc logger.cc statbag.cc dnsparser.cc \
 	dnsrecords.cc dnswriter.cc dnslabeltext.cc rcpgenerator.cc base32.cc base64.cc sillyrecords.cc nsecrecords.cc 
-dnsbulktest_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnsbulktest_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnsbulktest_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 
@@ -271,7 +271,7 @@ dnsreplay_SOURCES=dnsreplay.cc misc.cc  qtype.cc anadns.hh \
 	rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	unix_utility.cc utility.hh sillyrecords.cc nsecrecords.cc base32.cc
 
-dnsreplay_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnsreplay_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnsreplay_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
@@ -279,7 +279,7 @@ nproxy_SOURCES=nproxy.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	sillyrecords.cc selectmplexer.cc   mplexer.hh misc.cc nsecrecords.cc  unix_utility.cc qtype.cc \
 	logger.cc statbag.cc base32.cc
 
-nproxy_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+nproxy_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 nproxy_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
@@ -287,7 +287,7 @@ notify_SOURCES=notify.cc dnsparser.cc dnsrecords.cc dnsparser.hh  \
 	sillyrecords.cc selectmplexer.cc nsecrecords.cc base32.cc misc.cc unix_utility.cc \
 	logger.cc qtype.cc statbag.cc dns.cc arguments.cc
 
-notify_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+notify_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 notify_LDADD= $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
@@ -295,7 +295,7 @@ dnsscope_SOURCES=dnsscope.cc misc.cc unix_utility.cc qtype.cc \
 	base64.cc base64.hh dnswriter.cc dnslabeltext.cc dnswriter.hh rcpgenerator.cc rcpgenerator.hh \
 	utility.hh dnsparser.hh sillyrecords.cc nsecrecords.cc base32.cc dns.cc arguments.cc
 
-dnsscope_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
+dnsscope_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
 dnsscope_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS) 
 
 dnsgram_SOURCES=dnsgram.cc misc.cc unix_utility.cc qtype.cc \
@@ -321,7 +321,7 @@ testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsr
 	bindparser.cc bindlexer.c test-zoneparser_tng_cc.cc zoneparser-tng.hh \
         zoneparser-tng.cc dns.cc
 
-testrunner_LDFLAGS= @DYNLINKFLAGS@ @THREADFLAGS@ $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+testrunner_LDFLAGS= $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 testrunner_LDADD= $(POLARSSL_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
 
 if PKCS11
@@ -347,7 +347,7 @@ pdns_recursor_LDADD= $(POLARSSL_LIBS) $(YAHTTP_LIBS)
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
 misc.cc unix_utility.cc qtype.cc
 
-pdns_control_LDFLAGS=@THREADFLAGS@
+pdns_control_LDFLAGS=$(THREADFLAGS)
 
 if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message
