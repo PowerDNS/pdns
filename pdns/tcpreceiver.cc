@@ -963,7 +963,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
         sendPacket(outpacket,outsock);
         return 0;
       }
-    } else {
+    } else if (rr->d_type != QType::TSIG) {
       L<<Logger::Error<<"Additional records in IXFR query"<<endl;
       outpacket->setRcode(RCode::FormErr);
       sendPacket(outpacket,outsock);
@@ -983,7 +983,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(q->qdomain, sd)) {
+    if(!s_P->getBackend()->getSOA(q->qdomain, sd) || !canDoAXFR(q)) {
       L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
@@ -1015,7 +1015,10 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
     if(!tsigkeyname.empty()) {
-      string tsig64, algorithm;
+      string tsig64;
+      string algorithm=toLowerCanonic(trc.d_algoName);
+      if (algorithm == "hmac-md5.sig-alg.reg.int")
+        algorithm = "hmac-md5";
       Lock l(&s_plock);
       s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
       B64Decode(tsig64, tsigsecret);

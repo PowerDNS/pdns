@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+if [ $ALGORITHM == "hmac-md5" ]
+then
+  dig -t axfr tsig.com @$nameserver -p $port -y hmac-sha1:test:$KEY | grep -i 'failed'
+else
+  dig -t axfr tsig.com @$nameserver -p $port -y hmac-md5:test:$KEY | grep -i 'failed'
+fi
