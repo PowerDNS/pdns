@@ -272,7 +272,7 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
         expected['SOA'] = []
         expected['SOA'].append('powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800')
         expected['MX'] = []
-        expected['MX'].append('0 xs.powerdns.com.')
+        expected['MX'].append('xs.powerdns.com.')
         expected['A'] = []
         expected['A'].append('82.94.213.34')
         expected['AAAA'] = []
@@ -330,7 +330,7 @@ fred   IN  A      192.168.0.4
         expected['SOA'] = []
         expected['SOA'].append('ns1.example.org. hostmaster.example.org. 2002022401 10800 15 604800 10800')
         expected['MX'] = []
-        expected['MX'].append('10 mail.another.com.')
+        expected['MX'].append('mail.another.com.')
         expected['A'] = []
         expected['A'].append('192.168.0.1')
         expected['A'].append('192.168.0.2')
