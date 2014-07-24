@@ -12714,42 +12714,241 @@ create index recordorder on records (domain_id, ordername text_pattern_ops);
         If you are coming from 2.9.x, please also read <xref linkend="from2.9to3.0" />, <xref linkend="from3.0to3.1" />, <xref linkend="from3.1to3.2" /> and <xref linkend="from3.2to3.3" /> and <xref linkend="from3.3to3.3.1" />.
       </para>
     </note>
-    <para>
-      <warning>
-        <para>
-          The default database schema has changed. The database update below is mandatory.
-        </para>
-        <para>
-          If custom queries are in use, they probably need an update.
-        </para>
-      </warning>
-    </para>
-    <para>
-      For gmysql backend with nodnssec schema:
-      <programlisting><xi:include  href="../../modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-      For gmysql backend with dnssec schema:
-      <programlisting><xi:include  href="../../modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-      For gpgsql backend with nodnssec schema:
-      <programlisting><xi:include  href="../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-      For gpgsql backend with dnssec schema:
-      <programlisting><xi:include  href="../../modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-      For gsqlite3 backend with nodnssec schema:
-      <programlisting><xi:include  href="../../modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-      For gsqlite3 backend with dnssec schema:
-      <programlisting><xi:include  href="../../modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
-      For goracle backend:
-      <screen>
+    <sect2 id="from3.3.1to3.4.0-database-schema"><title>Database schema</title>
+      <para>
+        <warning>
+          <para>
+            The default database schema has changed. The database update below is mandatory.
+          </para>
+          <para>
+            If custom queries are in use, they probably need an update.
+          </para>
+        </warning>
+      </para>
+      <para>
+        For gmysql backend with nodnssec schema:
+        <programlisting><xi:include  href="../../modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        For gmysql backend with dnssec schema:
+        <programlisting><xi:include  href="../../modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        For gpgsql backend with nodnssec schema:
+        <programlisting><xi:include  href="../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        For gpgsql backend with dnssec schema:
+        <programlisting><xi:include  href="../../modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        For gsqlite3 backend with nodnssec schema:
+        <programlisting><xi:include  href="../../modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        For gsqlite3 backend with dnssec schema:
+        <programlisting><xi:include  href="../../modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        For goracle backend:
+        <screen>
 ALTER TABLE records ADD disabled INT DEFAULT 0;
 ALTER TABLE records MODIFY auth INT DEFAULT 1;
 
 UPDATE records SET auth=1 WHERE auth IS NULL;
-      </screen>
-    </para>
-    <note>
-      <para>
-        The default location of the backend <command>module-dir</command> has changed from libdir to pkglibdir. pkglibdir is defined as '$(libdir)/pdns'
+        </screen>
       </para>
-    </note>
+    </sect2>
+    <sect2 id="from3.3.1to3.4.0-options"><title>Configuration option changes</title>
+      <sect3><title>New options</title>
+        <variablelist>
+        <varlistentry>
+          <term>allow-2136-from</term>
+          <listitem>
+            <para>
+              A global setting to allow RFC2136 from these IP ranges.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>also-notify</term>
+          <listitem>
+            <para>
+              When notifying a domain, also notify these nameservers
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>carbon-interval</term>
+          <listitem>
+            <para>
+              Number of seconds between carbon (graphite) updates
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>carbon-ourname</term>
+          <listitem>
+            <para>
+              If set, overrides our reported hostname for carbon stats
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>carbon-server</term>
+          <listitem>
+            <para>
+              If set, send metrics in carbon (graphite) format to this server
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>disable-axfr-rectify</term>
+          <listitem>
+            <para>
+              Disable the rectify step during an outgoing AXFR. Only required for regression testing.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>experimental-api-readonly</term>
+          <listitem>
+            <para>
+              If the JSON API should disallow data modification
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>experimental-dname-processing</term>
+          <listitem>
+            <para>
+              If we should support DNAME records
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>experimental-rfc2136</term>
+          <listitem>
+            <para>
+              Enable/Disable RFC2136 (Dynamic DNS) support. Default is no.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>forward-2136</term>
+          <listitem>
+            <para>
+              A global setting to allow RFC2136 packages that are for a Slave domain, to be forwarded to the master.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>local-address-nonexist-fail</term>
+          <listitem>
+            <para>
+              Fail to start if one or more of the local-address's do not exist on this server
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>local-ipv6-nonexist-fail</term>
+          <listitem>
+            <para>
+              Fail to start if one or more of the local-ipv6 addresses do not exist on this server
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>max-nsec3-iterations</term>
+          <listitem>
+            <para>
+              Limit the number of NSEC3 hash iterations
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>only-notify</term>
+          <listitem>
+            <para>
+              Only send AXFR NOTIFY to these IP addresses or netmasks
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>reuseport</term>
+          <listitem>
+            <para>
+              Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>udp-truncation-threshold</term>
+          <listitem>
+            <para>
+              Maximum UDP response size before we truncate
+            </para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+      </sect3>
+      <sect3><title>Removed options</title>
+        <variablelist>
+          <varlistentry>
+            <term>add-superfluous-nsec3-for-old-bind</term>
+            <listitem>
+              <para>
+                Add superfluous NSEC3 record to positive wildcard response
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>edns-subnet-option-number</term>
+            <listitem>
+              <para>
+                EDNS option number to use
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>log-failed-updates</term>
+            <listitem>
+              <para>
+                If PDNS should log failed update requests
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </sect3>
+      <sect3><title>Options with changed default values</title>
+        <variablelist>
+          <varlistentry>
+            <term>allow-axfr-ips</term>
+            <listitem>
+              <para>
+                Allow zonetransfers only to these subnets
+              </para>
+              <para>
+                old value: 0.0.0.0/0,::/0
+              </para>
+              <para>
+                new value: 127.0.0.0/8,::1
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>log-dns-details</term>
+            <listitem>
+              <para>
+                If PDNS should log DNS non-erroneous details
+              </para>
+              <para>
+                old value:
+              </para>
+              <para>
+                new value: no
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>module-dir</term>
+            <listitem>
+              <para>
+                The default location has changed from libdir to pkglibdir. pkglibdir is defined as '$(libdir)/pdns'
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </sect3>
+    </sect2>
   </sect1>
   </chapter>
 
