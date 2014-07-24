@@ -921,6 +921,11 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     di.backend->abortTransaction();
     return RCode::ServFail;
   }
+  catch(std::exception &e) {
+    L<<Logger::Error<<msgPrefix<<"Caught std:exception: "<<e.what()<<"; Sending ServFail!"<<endl;
+    di.backend->abortTransaction();
+    return RCode::ServFail;
+  }
   catch (...) {
     L<<Logger::Error<<msgPrefix<<"Caught unknown exception when performing update. Sending ServFail!"<<endl;
     di.backend->abortTransaction();
