@@ -28,6 +28,7 @@
 #include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
+#include "arguments.hh"
 #include <yahttp/router.hpp>
 
 struct connectionThreadData {
@@ -287,13 +288,24 @@ void WebServer::go()
   try {
     pthread_t tid;
 
+    NetmaskGroup acl;
+    acl.toMasks(::arg()["webserver-allow-from"]);
+
     while(true) {
       // data and data->client will be freed by thread
       connectionThreadData *data = new connectionThreadData;
       data->webServer = this;
       data->client = d_server->accept();
-      pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
+      if (data->client->acl(acl)) {
+        pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
+      } else {
+        delete data->client; // close socket
+        delete data;
+      }
     }
+  }
+  catch(PDNSException &e) {
+    L<<Logger::Error<<"PDNSException in main webserver thread: "<<e.reason<<endl;
   }
   catch(std::exception &e) {
     L<<Logger::Error<<"STL Exception in main webserver thread: "<<e.what()<<endl;

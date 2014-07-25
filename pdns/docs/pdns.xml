@@ -12878,6 +12878,14 @@ UPDATE records SET auth=1 WHERE auth IS NULL;
             </para>
           </listitem>
         </varlistentry>
+        <varlistentry>
+          <term>webserver-allow-from</term>
+          <listitem>
+            <para>
+              Webserver access is only allowed from these subnets
+            </para>
+          </listitem>
+        </varlistentry>
       </variablelist>
       </sect3>
       <sect3><title>Removed options</title>
