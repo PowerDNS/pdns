@@ -569,6 +569,20 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
       if(rr.qtype.getCode() == QType::SOA)
         seenSOA=true;
 
+      rr.priority = 0;
+
+      if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+        int prio;
+        prio=atoi(rr.content.c_str());
+
+        string::size_type pos = rr.content.find_first_not_of("0123456789");
+        if(pos != string::npos)
+          boost::erase_head(rr.content, pos);
+        trim_left(rr.content);
+        rr.priority = prio;
+      }
+
+
       rr.qname = stripDot(rr.qname);
       new_records.push_back(rr);
     }

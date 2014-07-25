@@ -265,25 +265,34 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
         self.assertIn('name', data)
         self.assertIn('records', data)
 
-        expected = {}
-        expected['NS'] = []
-        expected['NS'].append('powerdnssec1.ds9a.nl.')
-        expected['NS'].append('powerdnssec2.ds9a.nl.')
-        expected['SOA'] = []
-        expected['SOA'].append('powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800')
-        expected['MX'] = []
-        expected['MX'].append('0 xs.powerdns.com.')
-        expected['A'] = []
-        expected['A'].append('82.94.213.34')
-        expected['AAAA'] = []
-        expected['AAAA'].append('2001:888:2000:1d::2')
+        expected = {
+            'NS': [
+                { 'content': 'powerdnssec1.ds9a.nl.' },
+                { 'content': 'powerdnssec2.ds9a.nl.' } ],
+            'SOA': [
+                { 'content': 'powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800' } ],
+            'MX': [
+                { 'content': 'xs.powerdns.com.', 'priority': 0 } ],
+            'A': [
+                { 'content': '82.94.213.34', 'name': 'powerdns.com' } ],
+            'AAAA': [
+                { 'content': '2001:888:2000:1d::2', 'name': 'powerdns.com' } ]
+        }
 
         counter = {}
         for et in expected.keys():
             counter[et] = len(expected[et])
             for ev in expected[et]:
                 for ret in data['records']:
-                    if ret['content'] == ev.rstrip('.'):
+                    if 'name' in ev:
+                        if ret['name'] == ev['name'] and ret['content'] == ev['content'].rstrip('.'):
+                            counter[et] = counter[et]-1
+                            continue
+                    if 'priority' in ev:
+                        if ret['priority'] == ev['priority'] and ret['content'] == ev['content'].rstrip('.'):
+                            counter[et] = counter[et]-1
+                            continue
+                    if ret['content'] == ev['content'].rstrip('.'):
                         counter[et] = counter[et]-1
             self.assertEquals(counter[et], 0)
 
@@ -323,29 +332,37 @@ fred   IN  A      192.168.0.4
         self.assertIn('name', data)
         self.assertIn('records', data)
 
-        expected = {}
-        expected['NS'] = []
-        expected['NS'].append('ns1.example.org.')
-        expected['NS'].append('ns2.smokeyjoe.com.')
-        expected['SOA'] = []
-        expected['SOA'].append('ns1.example.org. hostmaster.example.org. 2002022401 10800 15 604800 10800')
-        expected['MX'] = []
-        expected['MX'].append('10 mail.another.com.')
-        expected['A'] = []
-        expected['A'].append('192.168.0.1')
-        expected['A'].append('192.168.0.2')
-        expected['A'].append('192.168.0.3')
-        expected['A'].append('192.168.0.4')
-        expected['CNAME'] = []
-        expected['CNAME'].append('www.example.org.')
+        expected = {
+            'NS': [
+                { 'content': 'ns1.example.org.' },
+                { 'content': 'ns2.smokeyjoe.com.' } ],
+            'SOA': [
+                { 'content': 'ns1.example.org. hostmaster.example.org. 2002022401 10800 15 604800 10800' } ],
+            'MX': [
+                { 'content': 'mail.another.com.', 'priority': 10 } ],
+            'A': [
+                { 'content': '192.168.0.1', 'name': 'ns1.example.org' },
+                { 'content': '192.168.0.2', 'name': 'www.example.org' },
+                { 'content': '192.168.0.3', 'name': 'bill.example.org' },
+                { 'content': '192.168.0.4', 'name': 'fred.example.org' } ],
+            'CNAME': [
+                { 'content': 'www.example.org', 'name': 'ftp.example.org' } ]
+        }
 
         counter = {}
         for et in expected.keys():
             counter[et] = len(expected[et])
-            found = False
             for ev in expected[et]:
                 for ret in data['records']:
-                    if ret['content'] == ev.rstrip('.'):
+                    if 'name' in ev:
+                        if ret['name'] == ev['name'] and ret['content'] == ev['content'].rstrip('.'):
+                            counter[et] = counter[et]-1
+                            continue
+                    if 'priority' in ev:
+                        if ret['priority'] == ev['priority'] and ret['content'] == ev['content'].rstrip('.'):
+                            counter[et] = counter[et]-1
+                            continue
+                    if ret['content'] == ev['content'].rstrip('.'):
                         counter[et] = counter[et]-1
             self.assertEquals(counter[et], 0)
 
