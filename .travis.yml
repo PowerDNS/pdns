@@ -98,7 +98,7 @@ script:
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
- - cat /tmp/remotebackend.txt.* | sort
+ - test ! -s ./failed_tests || (cat /tmp/remotebackend.txt.* | sort)
 notifications:
   irc:
     channels:
