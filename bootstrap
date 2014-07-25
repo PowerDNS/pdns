@@ -1,5 +1,4 @@
 #!/bin/sh
-type libtool 2>&1 > /dev/null
-if [ $? -gt 0 ]; then echo "Missing required libtool"; exit 1; fi
+set -e
 autoreconf -i
 automake --add-missing
