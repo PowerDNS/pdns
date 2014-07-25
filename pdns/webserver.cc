@@ -215,6 +215,12 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   resp.headers["Server"] = "PowerDNS/"VERSION;
   resp.headers["Connection"] = "close";
 
+  if (req.method == "HEAD") {
+    resp.body = "";
+  } else {
+    resp.headers["Content-Length"] = lexical_cast<string>(resp.body.size());
+  }
+
   return resp;
 }
 
