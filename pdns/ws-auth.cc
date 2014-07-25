@@ -282,6 +282,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
+  resp->status = 200;
 }
 
 static void fillZone(const string& zonename, HttpResponse* resp) {
