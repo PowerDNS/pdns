@@ -9,10 +9,14 @@ AC_DEFUN([PDNS_WITH_CRYPTOPP],[
   AM_CONDITIONAL([CRYPTOPP], [test "x$enable_cryptopp" != "xno"])
 
   AS_IF([test "x$enable_cryptopp" != "xno"], [
-    PKG_CHECK_MODULES([CRYPTOPP], [libcrypto++],
-      [AC_DEFINE([HAVE_CRYPTOPP], [1], [Define to 1 if you have crypto++])],
-      [AC_MSG_ERROR([Could not find crypto++])]
-    )
+    PKG_CHECK_MODULES([CRYPTOPP], [libcrypto++], [
+      AC_DEFINE([HAVE_CRYPTOPP], [1], [Define to 1 if you have crypto++])
+    ],[
+      PKG_CHECK_MODULES([CRYPTOPP], [cryptopp],
+       [AC_DEFINE([HAVE_CRYPTOPP], [1], [Define to 1 if you have cryptopp])
+      ],[
+        AC_MSG_ERROR([Could not find crypto++])
+      ])
+    ])
   ])
 ])
-
