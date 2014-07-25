@@ -2,8 +2,8 @@
 	[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
 	[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
 
-	echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe > goracle2.log
-	echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
+	echo "START ../modules/goraclebackend/drop-schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe > goracle2.log
+	echo "START ../modules/goraclebackend/schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 
 	cat > pdns-goracle2.conf << __EOF__
 launch=goracle
