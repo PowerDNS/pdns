@@ -282,6 +282,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
+  resp->status = 200;
 }
 
 static void fillZone(const string& zonename, HttpResponse* resp) {
@@ -1160,6 +1161,7 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     object["number"]=lexical_cast<string>(number);
     //cerr<<"Flushed cache for '"<<parameters["domain"]<<"', cleaned "<<number<<" records"<<endl;
     resp->body = returnJsonObject(object);
+    resp->status = 200;
     return;
   }
   else if(command == "pdns-control") {
@@ -1178,6 +1180,7 @@ void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     map<string, string> m;
     
     if(ptr) {
+      resp->status = 200;
       m["result"] = (*ptr)(parameters, 0);
     } else {
       resp->status = 404;
@@ -1231,6 +1234,7 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
   ret<<".resetring:hover i { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAA2ElEQVQY013PMUoDcRDF4c+kEzxCsNNCrBQvIGhnlcYm11EkBxAraw8gglgIoiJpAoKIYlBcgrgopsma3c3fwt1k9cHA480M8xvQp/nMjorOWY5ov7IAYlpjQk7aYxcuWBpwFQgJnUcaYk7GhEDIGL5w+MVpKLIRyR2b4JOjvGhUKzHTv2W7iuSN479Dvu9plf1awbQ6y3x1sU5tjpVJcMbakF6Ycoas8Dl5xEHJ160wRdfqzXfa6XQ4PLDlicWUjxHxZfndL/N+RhiwNzl/Q6PDhn/qsl76H7prcApk2B1aAAAAAElFTkSuQmCC);}"<<endl;
   ret<<".resizering {float: right;}"<<endl;
   resp->body = ret.str();
+  resp->status = 200;
 }
 
 void AuthWebServer::webThread()
