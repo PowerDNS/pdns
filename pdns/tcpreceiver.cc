@@ -1116,7 +1116,6 @@ TCPNameserver::TCPNameserver()
     d_prfds.push_back(pfd);
   }
 
-#if HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
 
@@ -1157,7 +1156,6 @@ TCPNameserver::TCPNameserver()
 
     d_prfds.push_back(pfd);
   }
-#endif
 }
 
 
