@@ -64,6 +64,47 @@ struct CIBackwardsStringCompare: public std::binary_function<string, string, boo
   }
 };
 
+// compares labels reversed, as in:
+//  if you have 'www.powerdns.com' and 'dns.powerdns.com', they
+//  are compared as 'com.powerdns.www' and 'com.powerdns.dns' unlike
+//  the older function above which would compare them as 
+//  'moc.sndrewop.www' and 'moc.sndrewop.snd'
+//  will actually order the labels correctly.
+struct CIBackwardsLabelCompare: public std::binary_function<string, string, bool>
+{
+  bool operator()(const string& str_a, const string& str_b) const
+  {
+    string::const_reverse_iterator ra, rb;
+    char a=0, b=0;
+    ra = str_a.rbegin(); rb = str_b.rbegin();
+    while(ra < str_a.rend() && rb < str_b.rend()) {
+       string::const_reverse_iterator ptra, ptrb;
+       // looking from right, find the next delimiting dot.
+       ra = ptra = std::find (ra, str_a.rend(), '.');
+       rb = ptrb = std::find (rb, str_b.rend(), '.');
+       // move before the dot
+       ptra--; ptrb--;
+       // to make sure these get set even if the loop never runs
+       a = dns_tolower(*ptra); b = dns_tolower(*ptrb);
+       // scan to *left* until dot, start of string, or first inequality is hit
+       while(ptra > str_a.rbegin() && ptrb > str_b.rbegin() && a == b && *ptra != '.') { a = dns_tolower(*(--ptra)); b = dns_tolower(*(--ptrb)); }
+       // check if the label component being compared is shorter than the other
+       if (ptra > str_a.rbegin() && ptrb==str_b.rbegin()) { return false; } // label on b is smaller
+       if (ptrb > str_b.rbegin() && ptra==str_a.rbegin()) { return true; } // label on a is smaller
+       if (a != b) return (a < b); // the current byte differs
+       // move past the dot unless at the end
+       if (ra < str_a.rend()) ra++;
+       if (rb < str_b.rend()) rb++;
+       // set these for below
+       a = dns_tolower(*ra);
+       b = dns_tolower(*rb);
+    }
+    // check the last label component
+    if (ra < str_a.rend() && rb==str_b.rend()) { return false; } // we are at the beginning of b -> b smaller
+    if (rb < str_b.rend() && ra==str_a.rend()) { return true; } // we are at the beginning of a -> a smaller
+    return a < b;
+  }
+};
 
 class PacketCache : public boost::noncopyable
 {
@@ -124,7 +165,7 @@ private:
                         member<CacheEntry,bool, &CacheEntry::dnssecOk>,
                         member<CacheEntry,bool, &CacheEntry::hasEDNS>
                         >,
-                        composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+                        composite_key_compare<CIBackwardsLabelCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
                             >,
                            sequenced<>
