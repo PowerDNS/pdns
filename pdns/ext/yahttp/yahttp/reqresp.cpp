@@ -86,8 +86,8 @@ namespace YaHTTP {
         maxbody = minbody;
       }
       if (minbody < 1) return true; // guess there isn't anything left.
-      if (target->kind == YAHTTP_TYPE_REQUEST && minbody > target->max_request_size) throw ParseError("Max request body size exceeded");
-      else if (target->kind == YAHTTP_TYPE_RESPONSE && minbody > target->max_response_size) throw ParseError("Max response body size exceeded");
+      if (target->kind == YAHTTP_TYPE_REQUEST && static_cast<ssize_t>(minbody) > target->max_request_size) throw ParseError("Max request body size exceeded");
+      else if (target->kind == YAHTTP_TYPE_RESPONSE && static_cast<ssize_t>(minbody) > target->max_response_size) throw ParseError("Max response body size exceeded");
     }
 
     if (maxbody == 0) hasBody = false;
