@@ -34,9 +34,9 @@ namespace YaHTTP {
 
 This class implements a router for masked urls. The URL mask syntax is as of follows
 
-/<masked>/url<number>/<hi>.<format>
+/&lt;masked&gt;/url&lt;number&gt;/&lt;hi&gt;.&lt;format&gt;
 
-You can use <*param> to denote that everything will be matched and consumed into the parameter, including slash (/). Use <*> to denote that URL 
+You can use &lt;*param&gt; to denote that everything will be matched and consumed into the parameter, including slash (/). Use &lt;*&gt; to denote that URL 
 is consumed but not stored. Note that only path is matched, scheme, host and url parameters are ignored. 
    */
   class Router {
