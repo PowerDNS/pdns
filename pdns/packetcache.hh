@@ -74,11 +74,10 @@ struct CIBackwardsLabelCompare: public std::binary_function<string, string, bool
 {
   bool operator()(const string& str_a, const string& str_b) const
   {
-    string::const_reverse_iterator ra, rb;
+    string::const_reverse_iterator ra, rb, ptra, ptrb;
     char a=0, b=0;
     ra = str_a.rbegin(); rb = str_b.rbegin();
     while(ra < str_a.rend() && rb < str_b.rend()) {
-       string::const_reverse_iterator ptra, ptrb;
        // looking from right, find the next delimiting dot.
        ra = ptra = std::find (ra, str_a.rend(), '.');
        rb = ptrb = std::find (rb, str_b.rend(), '.');
@@ -95,14 +94,12 @@ struct CIBackwardsLabelCompare: public std::binary_function<string, string, bool
        // move past the dot unless at the end
        if (ra < str_a.rend()) ra++;
        if (rb < str_b.rend()) rb++;
-       // set these for below
-       a = dns_tolower(*ra);
-       b = dns_tolower(*rb);
     }
     // check the last label component
     if (ra < str_a.rend() && rb==str_b.rend()) { return false; } // we are at the beginning of b -> b smaller
     if (rb < str_b.rend() && ra==str_a.rend()) { return true; } // we are at the beginning of a -> a smaller
-    return a < b;
+    if (ra == str_a.rend() && rb==str_b.rend()) { return false; } // c++ end() or rend() is not valid location
+    return dns_tolower(*ra) < dns_tolower(*rb);
   }
 };
 
