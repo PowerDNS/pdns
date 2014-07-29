@@ -18435,7 +18435,7 @@ REFERENCES `domains` (`id`) ON DELETE CASCADE;
       <para>
 	  Generic Oracle support is only available since version 2.9.18.
 	The default setup conforms to the following schema, which you should add to an Oracle database. You may need or want to add 'namespace' statements.
-        <programlisting><xi:include  href="../../modules/goraclebackend/goracle-schema.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
+        <programlisting><xi:include  href="../../modules/goraclebackend/schema.goracle.sql"  parse="text"  xmlns:xi="http://www.w3.org/2001/XInclude"/></programlisting>
 </para>
       <para>
 	This schema contains all elements needed for master, slave and superslave operation.

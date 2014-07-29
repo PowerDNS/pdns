@@ -2,8 +2,8 @@
 	[ -z "$ORACLE2USER" ] && ORACLE2USER=pdns2
 	[ -z "$ORACLE2PASSWD" ] && ORACLE2PASSWD=pdns
 
-	echo "START ../modules/oraclebackend/dropschema;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe > oracle2.log
-	echo "START ../modules/oraclebackend/schema;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe >> oracle2.log
+	echo "START ../modules/oraclebackend/drop-schema.oracle.sql;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe > oracle2.log
+	echo "START ../modules/oraclebackend/schema.oracle.sql;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe >> oracle2.log
 
 	cat > pdns-oracle2.conf << __EOF__
 launch=oracle

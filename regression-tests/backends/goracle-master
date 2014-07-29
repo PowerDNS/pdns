@@ -5,8 +5,8 @@ case $context in
 		[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
 		[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
 
-		echo "START ../modules/goraclebackend/goracle-drop-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
-		echo "START ../modules/goraclebackend/goracle-schema;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+		echo "START ../modules/goraclebackend/drop-schema.goracle.sql;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
+		echo "START ../modules/goraclebackend/schema.goracle.sql;" | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
 		tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
 
 		cat > pdns-goracle.conf << __EOF__
