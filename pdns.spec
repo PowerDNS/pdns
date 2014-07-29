@@ -34,6 +34,7 @@ backend'.
 "/usr/man/man8/pdns_server.8"
 "/usr/man/man8/zone2sql.8"
 "/usr/man/man8/pdnssec.8"
+"/usr/share/doc/pdns/*.sql"
 
 %dir "/etc/powerdns/"
 %config(noreplace) "/etc/powerdns/pdns.conf"
