@@ -78,6 +78,17 @@ public:
     return new Socket(s);
   }
 
+  //! Check remote address aganst netmaskgroup ng
+  bool acl(NetmaskGroup &ng)
+  {
+    ComboAddress remote;
+    socklen_t remotelen=sizeof(remote);
+    if(getpeername(d_socket, (struct sockaddr *)&remote, &remotelen) >= 0)
+      return ng.match((ComboAddress *) &remote);
+
+    return false;
+  }
+
   //! Set the socket to non-blocking
   void setNonBlocking()
   {

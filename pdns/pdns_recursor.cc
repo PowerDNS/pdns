@@ -2099,6 +2099,7 @@ int main(int argc, char **argv)
     ::arg().set("experimental-webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("experimental-webserver-port", "Port of webserver to listen on") = "8082";
     ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
+    ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
     ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
     ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";

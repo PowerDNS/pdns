@@ -500,6 +500,11 @@
 # webserver-address=127.0.0.1
 
 #################################
+# webserver-allow-from	Webserver access is only allowed from these subnets
+#
+# webserver-allow-from=0.0.0.0/0,::/0
+
+#################################
 # webserver-password	Password required for accessing the webserver
 #
 # webserver-password=
