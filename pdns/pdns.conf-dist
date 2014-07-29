@@ -275,6 +275,11 @@
 # max-queue-length=5000
 
 #################################
+# max-signature-cache-entries	Maximum number of signatures cache entries
+#
+# max-signature-cache-entries=
+
+#################################
 # max-tcp-connections	Maximum number of TCP connections
 #
 # max-tcp-connections=10

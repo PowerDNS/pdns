@@ -12831,6 +12831,14 @@ UPDATE records SET auth=1 WHERE auth IS NULL;
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>max-signature-cache-entries</term>
+          <listitem>
+            <para>
+              Maximum number of signatures cache entries
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>local-address-nonexist-fail</term>
           <listitem>
             <para>

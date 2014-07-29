@@ -26,6 +26,7 @@
 #include "dnsseckeeper.hh"
 #include "dns_random.hh"
 #include "lock.hh"
+#include "arguments.hh"
 
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
@@ -148,8 +149,10 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
     WriteLock l(&g_signatures_lock);
     /* we add some jitter here so not all your slaves start pruning their caches at the very same millisecond */
     int weekno = (time(0) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
+    const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
   
-    if(g_cacheweekno < weekno) {  // blunt but effective (C) Habbie
+    if(g_cacheweekno < weekno || g_signatures.size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
+      L<<Logger::Warning<<"Cleared signature cache."<<endl;
       g_signatures.clear();
       g_cacheweekno = weekno;
     }
