@@ -305,6 +305,9 @@ void WebServer::go()
       if (data->client->acl(acl)) {
         pthread_create(&tid, 0, &WebServerConnectionThreadStart, (void *)data);
       } else {
+        ComboAddress remote;
+        if (data->client->getRemote(remote))
+          L<<Logger::Error<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match 'webserver-allow-from'"<<endl;
         delete data->client; // close socket
         delete data;
       }
