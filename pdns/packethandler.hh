@@ -70,9 +70,6 @@ private:
   int processNotify(DNSPacket *);
   void addRootReferral(DNSPacket *r);
   int makeCanonic(DNSPacket *p, DNSPacket *r, string &target);
-  int findMboxFW(DNSPacket *p, DNSPacket *r, string &target);
-  int findUrl(DNSPacket *p, DNSPacket *r, string &target);
-  int doFancyRecords(DNSPacket *p, DNSPacket *r, string &target);
   int doChaosRequest(DNSPacket *p, DNSPacket *r, string &target);
   bool addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd);
@@ -106,7 +103,6 @@ private:
   
   static AtomicCounter s_count;
   static pthread_mutex_t s_rfc2136lock;
-  bool d_doFancyRecords;
   bool d_doRecursion;
   bool d_logDNSDetails;
   bool d_doIPv6AdditionalProcessing;
