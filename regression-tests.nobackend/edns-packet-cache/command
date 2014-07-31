@@ -26,8 +26,7 @@ rm -f pdns*.pid
 
 ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./          \
 	--no-shuffle --launch=bind --bind-config=edns-packet-cache/named.conf   \
-	--fancy-records --send-root-referral                                    \
-	--cache-ttl=60 --no-config &
+	--send-root-referral --cache-ttl=60 --no-config &
 bindwait
 	
 # prime cache without EDNS

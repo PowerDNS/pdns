@@ -170,11 +170,6 @@
 # experimental-rfc2136=no
 
 #################################
-# fancy-records	Process URL and MBOXFW records
-#
-# fancy-records=no
-
-#################################
 # forward-2136	A global setting to allow RFC2136 packages that are for a Slave domain, to be forwarded to the master.
 #
 # forward-2136=yes
@@ -415,11 +410,6 @@
 # slave-renotify=no
 
 #################################
-# smtpredirector	Our smtpredir MX host
-#
-# smtpredirector=a.misconfigured.powerdns.smtp.server
-
-#################################
 # soa-expire-default	Default SOA expire
 #
 # soa-expire-default=604800
@@ -485,11 +475,6 @@
 # udp-truncation-threshold=1680
 
 #################################
-# urlredirector	Where we send hosts to that need to be url redirected
-#
-# urlredirector=127.0.0.1
-
-#################################
 # version-string	PowerDNS version in packets - full, anonymous, powerdns or custom
 #
 # version-string=full
@@ -523,10 +508,5 @@
 # webserver-print-arguments	If the webserver should print arguments
 #
 # webserver-print-arguments=no
-
-#################################
-# wildcard-url	Process URL and MBOXFW records
-#
-# wildcard-url=no
 
 

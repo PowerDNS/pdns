@@ -61,7 +61,6 @@ enum root_referral {
 PacketHandler::PacketHandler():B(s_programname)
 {
   ++s_count;
-  d_doFancyRecords = (::arg()["fancy-records"]!="no");
   d_doDNAME=::arg().mustDo("experimental-dname-processing");
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
@@ -127,92 +126,6 @@ void PacketHandler::addRootReferral(DNSPacket* r)
     rr.content=ips[c-'a'];
     r->addRecord(rr);
   }
-}
-
-int PacketHandler::findMboxFW(DNSPacket *p, DNSPacket *r, string &target)
-{
-  DNSResourceRecord rr;
-  bool wedoforward=false;
-
-  SOAData sd;
-  int zoneId;
-  if(!B.getAuth(p, &sd, target, &zoneId))
-    return false;
-
-  B.lookup(QType(QType::MBOXFW),string("%@")+target,p, zoneId);
-      
-  while(B.get(rr))
-    wedoforward=true;
-
-  if(wedoforward) {
-    r->clearRecords();
-    rr.content=::arg()["smtpredirector"];
-    rr.priority=25;
-    rr.ttl=7200;
-    rr.qtype=QType::MX;
-    rr.qname=target;
-    
-    r->addRecord(rr);
-  }
-
-  return wedoforward;
-}
-
-int PacketHandler::findUrl(DNSPacket *p, DNSPacket *r, string &target)
-{
-  DNSResourceRecord rr;
-
-  bool found=false;
-      
-  B.lookup(QType(QType::URL),target,p); // search for a URL before we search for an A
-        
-  while(B.get(rr)) {
-    if(!found) 
-      r->clearRecords();
-    found=true;
-    DLOG(L << "Found a URL!" << endl);
-    rr.content=::arg()["urlredirector"];
-    rr.qtype=QType::A; 
-    rr.qname=target;
-          
-    r->addRecord(rr);
-  }  
-
-  if(found) 
-    return 1;
-
-  // now try CURL
-  
-  B.lookup(QType(QType::CURL),target,p); // search for a URL before we search for an A
-      
-  while(B.get(rr)) {
-    if(!found) 
-      r->clearRecords();
-    found=true;
-    DLOG(L << "Found a CURL!" << endl);
-    rr.content=::arg()["urlredirector"];
-    rr.qtype=1; // A
-    rr.qname=target;
-    rr.ttl=300;
-    r->addRecord(rr);
-  }  
-
-  if(found)
-    return found;
-  return 0;
-}
-
-/** Returns 0 if nothing was found, -1 if an error occurred or 1 if the search
-    was satisfied */
-int PacketHandler::doFancyRecords(DNSPacket *p, DNSPacket *r, string &target)
-{
-  DNSResourceRecord rr;
-  if(p->qtype.getCode()==QType::MX)  // check if this domain has smtp service from us
-    return findMboxFW(p,r,target);
-  
-  if(p->qtype.getCode()==QType::A)   // search for a URL record for an A
-    return findUrl(p,r,target);
-  return 0;
 }
 
 /** This adds DNSKEY records. Returns true if one was added */
@@ -1159,12 +1072,6 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     if(p->qtype.getCode() == QType::ANY && !p->d_tcp && g_anyToTcp) {
       r->d.tc = 1;
       r->commitD();
-      return r;
-    }
-
-    // please don't query fancy records directly!
-    if(d_doFancyRecords && (p->qtype.getCode()==QType::URL || p->qtype.getCode()==QType::CURL || p->qtype.getCode()==QType::MBOXFW)) {
-      r->setRcode(RCode::ServFail);
       return r;
     }
 

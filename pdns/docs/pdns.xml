@@ -12915,10 +12915,42 @@ UPDATE records SET auth=1 WHERE auth IS NULL;
             </listitem>
           </varlistentry>
           <varlistentry>
+            <term>fancy-records</term>
+            <listitem>
+              <para>
+                Process URL and MBOXFW records
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
             <term>log-failed-updates</term>
             <listitem>
               <para>
                 If PDNS should log failed update requests
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>smtpredirector</term>
+            <listitem>
+              <para>
+                Our smtpredir MX host
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>urlredirector</term>
+            <listitem>
+              <para>
+                Where we send hosts to that need to be url redirected
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>wildcard-url</term>
+            <listitem>
+              <para>
+                Process URL and MBOXFW records
               </para>
             </listitem>
           </varlistentry>
