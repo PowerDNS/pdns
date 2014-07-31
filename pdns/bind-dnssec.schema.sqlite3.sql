@@ -1,7 +1,7 @@
 create table domainmetadata (
  id         INTEGER PRIMARY KEY,
  domain     VARCHAR(255) COLLATE NOCASE,
- kind       VARCHAR(16) COLLATE NOCASE,
+ kind       VARCHAR(32) COLLATE NOCASE,
  content    TEXT
 );
 
@@ -13,9 +13,9 @@ create table cryptokeys (
  flags      INT NOT NULL,
  active     BOOL,
  content    TEXT
-);       
+);
 
-create index domainnameindex on cryptokeys(domain);           
+create index domainnameindex on cryptokeys(domain);
 
 create table tsigkeys (
  id         INTEGER PRIMARY KEY,

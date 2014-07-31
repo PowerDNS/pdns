@@ -12751,10 +12751,10 @@ UPDATE records SET auth=1 WHERE auth IS NULL;
       <sect3><title>New options</title>
         <variablelist>
         <varlistentry>
-          <term>allow-2136-from</term>
+          <term>allow-dnsupdate-from</term>
           <listitem>
             <para>
-              A global setting to allow RFC2136 from these IP ranges.
+              A global setting to allow DNS update from these IP ranges.
             </para>
           </listitem>
         </varlistentry>
@@ -12815,18 +12815,18 @@ UPDATE records SET auth=1 WHERE auth IS NULL;
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>experimental-rfc2136</term>
+          <term>experimental-dnsupdate</term>
           <listitem>
             <para>
-              Enable/Disable RFC2136 (Dynamic DNS) support. Default is no.
+              Enable/Disable DNS update (RFC2136) support. Default is no.
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>forward-2136</term>
+          <term>forward-dnsupdate</term>
           <listitem>
             <para>
-              A global setting to allow RFC2136 packages that are for a Slave domain, to be forwarded to the master.
+              A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.
             </para>
           </listitem>
         </varlistentry>
@@ -14041,34 +14041,34 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 	</listitem>
       </varlistentry>
         <varlistentry>
-          <term>ALLOW-2136-FROM</term>
+          <term>ALLOW-DNSUPDATE-FROM</term>
           <listitem>
             <para>
-              See <xref linkend="rfc2136-domainmetadata" />
+              See <xref linkend="dnsupdate-domainmetadata" />
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>TSIG-ALLOW-2136</term>
+          <term>TSIG-ALLOW-DNSUPDATE</term>
           <listitem>
             <para>
-              See <xref linkend="rfc2136-domainmetadata" />
+              See <xref linkend="dnsupdate-domainmetadata" />
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>FORWARD-2136</term>
+          <term>FORWARD-DNSUPDATE</term>
           <listitem>
             <para>
-              See <xref linkend="rfc2136-domainmetadata" />
+              See <xref linkend="dnsupdate-domainmetadata" />
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>SOA-EDIT-2136</term>
+          <term>SOA-EDIT-DNSUPDATE</term>
           <listitem>
             <para>
-              See <xref linkend="rfc2136-domainmetadata" />
+              See <xref linkend="dnsupdate-domainmetadata" />
             </para>
           </listitem>
         </varlistentry>
@@ -14214,51 +14214,51 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
     </variablelist>
   </para>
   </chapter>
-  <chapter id="rfc2136"><title>RFC2136 Support (Dynamic DNS Update)</title>
-    <para>Starting with the PowerDNS Authoritative Server 3.4.0, RFC2136 support is available. There are a number of items NOT supported:
+  <chapter id="dnsupdate"><title>Dynamic DNS Update (RFC2136)</title>
+    <para>Starting with the PowerDNS Authoritative Server 3.4.0, DNS update support is available. There are a number of items NOT supported:
       <itemizedlist>
         <listitem><para>There is no support for GSS-TSIG and SIG (TSIG is supported);</para></listitem>
         <listitem><para>WKS records are specifically mentioned in the RFC, we don't specifically care about WKS records;</para></listitem>
         <listitem><para>Anything we forgot....</para></listitem>
       </itemizedlist>
     </para>
-    <para>The implementation requires the backend to support a number of new oparations. Currently, the following backends have been modified to support RFC2136:
+    <para>The implementation requires the backend to support a number of new oparations. Currently, the following backends have been modified to support DNS update:
       <itemizedlist>
         <listitem><para>gmysql</para></listitem>
         <listitem><para>gpgsql</para></listitem>
         <listitem><para>gsqlite3</para></listitem>
       </itemizedlist>
     </para>
-    <sect1 id="rfc2136-configuration"><title>Configuration options</title>
+    <sect1 id="dnsupdate-configuration"><title>Configuration options</title>
       <para>There are two configuration parameters that can be used within the powerdns configuration file.</para>
       <variablelist>
         <varlistentry>
-          <term>experimental-rfc2136 [=no]</term>
+          <term>experimental-dnsupdate [=no]</term>
           <listitem>
             <para>
-              A setting to enable/disable RFC2136 support completely. The default is no, which means that RFC2136 updates are ignored by PowerDNS (no message is logged about this!).
-              Change the setting to <command>experimental-rfc2136=yes</command> to enable RFC2136 support.
+              A setting to enable/disable DNS update support completely. The default is no, which means that DNS updates are ignored by PowerDNS (no message is logged about this!).
+              Change the setting to <command>experimental-dnsupdate=yes</command> to enable DNS update support.
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>allow-2136-from</term>
+          <term>allow-dnsupdate-from</term>
           <listitem>
             <para>
               A list of IP ranges that are allowed to perform updates on any domain. The default is 0.0.0.0/0, which means that all ranges are accepted.
-              Multiple entries can be used on this line (<command>allow-2136-from=10.0.0.0/8 192.168.1.2/32</command>).
-              The option can be left empty to disallow everything, this then should be used in combination with the <command>allow-2136-from</command> domainmetadata
+              Multiple entries can be used on this line (<command>allow-dnsupdate-from=10.0.0.0/8 192.168.1.2/32</command>).
+              The option can be left empty to disallow everything, this then should be used in combination with the <command>allow-dnsupdate-from</command> domainmetadata
               setting per zone.
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>forward-2136 [=yes]</term>
+          <term>forward-dnsupdate [=yes]</term>
           <listitem>
             <para>
               Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table.
-              The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the <command>allow-2136-from</command> and
-              <command>TSIG-2136-ALLOW</command> are processed first, so those permissions apply before the <command>forward-2136</command> is used.
+              The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the <command>allow-dnsupdate-from</command> and
+              <command>TSIG-2136-ALLOW</command> are processed first, so those permissions apply before the <command>forward-dnsupdate</command> is used.
               It will try all masters that you have configured until one is successful.
             </para>
           </listitem>
@@ -14267,39 +14267,39 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
       </variablelist>
     </sect1>
 
-    <sect1 id="rfc2136-domainmetadata"><title>Per zone settings</title>
+    <sect1 id="dnsupdate-domainmetadata"><title>Per zone settings</title>
       <para>For permissions, a number of per zone settings are available via the domain metadata (See <xref linkend="domainmetadata" />).</para>
       <variablelist>
         <varlistentry>
-          <term>ALLOW-2136-FROM</term>
+          <term>ALLOW-DNSUPDATE-FROM</term>
           <listitem>
             <para>
-              This setting has the same function as described in the configuration options (See <xref linkend="rfc2136-configuration" />).
+              This setting has the same function as described in the configuration options (See <xref linkend="dnsupdate-configuration" />).
               Only one item is allowed per row, but multiple rows can be added.
               An example:
               <programlisting>
 sql> select id from domains where name='powerdnssec.org';
 5
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-2136-FROM’,’10.0.0.0/8’);
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-2136-FROM’,’192.168.1.2/32’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’10.0.0.0/8’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’192.168.1.2/32’);
               </programlisting>
 
-              This will allow 10.0.0.0/8 and 192.168.1.2/32 to send RFC2136 update messages for the powerdnssec.org domain.
+              This will allow 10.0.0.0/8 and 192.168.1.2/32 to send DNS update messages for the powerdnssec.org domain.
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>TSIG-ALLOW-2136</term>
+          <term>TSIG-ALLOW-DNSUPDATE</term>
           <listitem>
             <para>
-              This setting allows you to set the TSIG key required to do an RFC2136 update.
+              This setting allows you to set the TSIG key required to do an DNS update.
               An example:
             </para>
             <programlisting>
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
 sql> select id from domains where name='powerdnssec.org';
 5
-sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-2136', 'test');
+sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'test');
             </programlisting>
 
             <para>An example of how to use a TSIG key with the <command>nsupdate</command> command:</para>
@@ -14314,40 +14314,40 @@ send
             </programlisting>
             <para>
               If a TSIG key is set for the domain, it is required to be used for the update.
-              The TSIG is extra security on top of the <command>ALLOW-2136-FROM</command> setting.
-              If a TSIG key is set, the IP(-range) still needs to be allowed via <command>ALLOW-2136-FROM</command>.
+              The TSIG is extra security on top of the <command>ALLOW-DNSUPDATE-FROM</command> setting.
+              If a TSIG key is set, the IP(-range) still needs to be allowed via <command>ALLOW-DNSUPDATE-FROM</command>.
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>FORWARD-2136</term>
+          <term>FORWARD-DNSUPDATE</term>
           <listitem>
             <para>
-              See <xref linkend="rfc2136-configuration" /> for what it does, but per domain.
+              See <xref linkend="dnsupdate-configuration" /> for what it does, but per domain.
               <programlisting>
 sql> select id from domains where name='powerdnssec.org';
 5
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-2136’,’’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-DNSUPDATE’,’’);
               </programlisting>
 
               There is no content, the existence of the entry enables the forwarding.
-              This domain-specific setting is only useful when the configuration option <command>forward-2136</command> is set to 'no', as that will disable it globally.
+              This domain-specific setting is only useful when the configuration option <command>forward-dnsupdate</command> is set to 'no', as that will disable it globally.
               Using the domainmetadata setting than allows you to enable it per domain.
             </para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term>SOA-EDIT-2136</term>
+          <term>SOA-EDIT-DNSUPDATE</term>
           <listitem>
-            <para>This configures how the soa serial should be updated. See <xref linkend="rfc2136-soa-edit" />.</para>
+            <para>This configures how the soa serial should be updated. See <xref linkend="dnsupdate-soa-edit" />.</para>
            </listitem>
         </varlistentry>
       </variablelist>
     </sect1>
-    <sect1 id="rfc2136-soa-edit"><title>SOA Serial Updates</title>
+    <sect1 id="dnsupdate-soa-edit"><title>SOA Serial Updates</title>
       <para>
          After every update, the soa serial is updated as this is required by section 3.7 of RFC2136.
-         The behaviour is configurable via domainmetadata with the SOA-EDIT-2136 option. It has a number of
+         The behaviour is configurable via domainmetadata with the SOA-EDIT-DNSUPDATE option. It has a number of
          options listed below. If no behaviour is specified, DEFAULT is used.
       </para>
       <para>
@@ -14363,12 +14363,12 @@ sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-2
         <programlisting>
 sql> select id from domains where name='powerdnssec.org';
 5
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-2136’,’INCREASE’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-DNSUPDATE’,’INCREASE’);
         </programlisting>
         This will make the SOA Serial increase by one, for every successful update.
       </para>
-      <sect2 id="rfc2136-soa-edit-settings"><title>SOA-EDIT-2136 settings</title>
-        <para>These are the settings available for <command>SOA-EDIT-2136</command>.</para>
+      <sect2 id="dnsupdate-soa-edit-settings"><title>SOA-EDIT-DNSUPDATE settings</title>
+        <para>These are the settings available for <command>SOA-EDIT-DNSUPDATE</command>.</para>
         <variablelist>
           <varlistentry>
             <term>DEFAULT</term>
@@ -14410,12 +14410,12 @@ sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-
         </variablelist>
       </sect2>
     </sect1>
-    <sect1 id="rfc2136-howto"><title>RFC2136 How-to: Setup dyndns/rfc2136 with dhcpd</title>
+    <sect1 id="dnsupdate-howto"><title>DNS update How-to: Setup dyndns/rfc2136 with dhcpd</title>
       <para>
-        RFC2136 is often used with DHCP to automatically provide a hostname whenever a new IP-address is assigned by the DHCP server.
-        This section describes how you can setup PowerDNS to receive RFC2136 updates from ISC's dhcpd (version 4.1.1-P1).
+        DNS update is often used with DHCP to automatically provide a hostname whenever a new IP-address is assigned by the DHCP server.
+        This section describes how you can setup PowerDNS to receive DNS updates from ISC's dhcpd (version 4.1.1-P1).
       </para>
-      <sect2 id="rfc2136-howto-dhcpd"><title>Setting up dhcpd</title>
+      <sect2 id="dnsupdate-howto-dhcpd"><title>Setting up dhcpd</title>
         <para>
           We're going to use a TSIG key for security. We're going to generate a key using the following command:
 <programlisting>
@@ -14483,29 +14483,29 @@ zone 1.168.192.in-addr.arpa. {
         </para>
         <para>This concludes the changes that are needed to the <command>dhcpd</command> configuration file.</para>
       </sect2>
-      <sect2 id="rfc2136-howto-powerdns"><title>Setting up PowerDNS</title>
+      <sect2 id="dnsupdate-howto-powerdns"><title>Setting up PowerDNS</title>
         <para>A number of small changes are needed to powerdns to make it accept dynamic updates from <command>dhcpd</command>.</para>
         <para>
-         Enabled RFC2136 (dynamic update) support functionality in PowerDNS by adding the following to the
+         Enabled DNS update (RFC2136) support functionality in PowerDNS by adding the following to the
          PowerDNS configuration file (pdns.conf).
 <programlisting>
-experimental-rfc2136=yes
-allow-2136-from=
+experimental-dnsupdate=yes
+allow-dnsupdate-from=
 </programlisting>
          This tells PowerDNS to:
          <orderedlist>
-           <listitem><para>Enable RFC2136 support(<command>experimental-rfc2136</command>)</para></listitem>
-           <listitem><para>Allow updates from NO ip-address (<command>allow-2136-from=</command>)</para></listitem>
+           <listitem><para>Enable DNS update support(<command>experimental-dnsupdate</command>)</para></listitem>
+           <listitem><para>Allow updates from NO ip-address (<command>allow-dnsupdate-from=</command>)</para></listitem>
          </orderedlist>
         </para>
         <para>
           We just told powerdns (via the configuration file) that we accept updates from nobody via the
-          <command>allow-2136-from</command> parameter. That's not very useful, so we're going to give permissions
+          <command>allow-dnsupdate-from</command> parameter. That's not very useful, so we're going to give permissions
           per zone, via the domainmetadata table.
 <programlisting>
 sql> select id from domains where name='powerdnssec.org';
 5
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-2136-FROM’,’127.0.0.1’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’127.0.0.1’);
 </programlisting>
           This gives the ip '127.0.0.1' access to send update messages. Make sure you use the ip address of the machine that
           runs <command>dhcpd</command>.
@@ -14516,10 +14516,10 @@ sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-213
 sql> insert into tsigkeys (name, algorithm, secret) values ('dhcpdupdate', 'hmac-md5', 'FYhvwsW1ZtFZqWzsMpqhbg==');
 sql> select id from domains where name='powerdnssec.org';
 5
-sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-2136', 'dhcpdupdate');
+sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'dhcpdupdate');
 sql> select id from domains where name='1.168.192.in-addr.arpa';
 6
-sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLOW-2136', 'dhcpdupdate');
+sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLOW-DNSUPDATE', 'dhcpdupdate');
 </programlisting>
           This will:
           <orderedlist>
@@ -14531,27 +14531,27 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
       </sect2>
     </sect1>
 
-    <sect1 id="rfc2136-how-it-works"><title>How it works</title>
-      <para>This is a short description of how RFC2136 (update) messages are processed by PowerDNS.</para>
+    <sect1 id="dnsupdate-how-it-works"><title>How it works</title>
+      <para>This is a short description of how DNS update messages are processed by PowerDNS.</para>
       <para>
         <orderedlist>
           <listitem><para>
-            The RFC2136 message is received. If it is TSIG signed, the TSIG is validated against the tsigkeys table.
+            The DNS update message is received. If it is TSIG signed, the TSIG is validated against the tsigkeys table.
             If it is not valid, Refused is returned to the requestor.
           </para></listitem>
           <listitem><para>A check is performed on the zone to see if it is a valid zone. ServFail is returned when not valid.</para></listitem>
-          <listitem><para>The <command>experimental-rfc2136</command> setting is checked. Refused is returned when the setting is 'no'.</para></listitem>
+          <listitem><para>The <command>experimental-dnsupdate</command> setting is checked. Refused is returned when the setting is 'no'.</para></listitem>
           <listitem><para>
-            If the <command>ALLOW-2136-FROM</command> has a value (from both domainmetadata and the configuration file), a check on the value is performed.
-            If the requestor (sender of the update message) does not match the values in <command>ALLOW-2136-FROM</command>, Refused is returned.
+            If the <command>ALLOW-DNSUPDATE-FROM</command> has a value (from both domainmetadata and the configuration file), a check on the value is performed.
+            If the requestor (sender of the update message) does not match the values in <command>ALLOW-DNSUPDATE-FROM</command>, Refused is returned.
           </para></listitem>
           <listitem><para>
             If the message is TSIG signed, the TSIG keyname is compared with the TSIG keyname in domainmetadata. If they do not match, a Refused is send.
-            The TSIG-ALLOW-2136 domainmetadata setting is used to find which key belongs to the domain.
+            The TSIG-ALLOW-DNSUPDATE domainmetadata setting is used to find which key belongs to the domain.
           </para></listitem>
           <listitem><para>The backends are queried to find the backend for the given domain.</para></listitem>
           <listitem><para>
-            If the domain is a slave domain, the <command>forward-2136</command> option and domainmetadata settings are checked.
+            If the domain is a slave domain, the <command>forward-dnsupdate</command> option and domainmetadata settings are checked.
             If forwarding to a master is enabled, the message is forward to the master. If that fails, the next master is tried until all masters are tried.
             If all masters fail, ServFail is returned. If a master succeeds, the result from that master is returned.
           </para></listitem>
@@ -14571,7 +14571,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
             The cache for that record is purged.
           </para></listitem>
           <listitem><para>
-            If there are records updated and the SOA record was not modified, the SOA serial is updated. See <xref linkend="rfc2136-soa-edit"/>.
+            If there are records updated and the SOA record was not modified, the SOA serial is updated. See <xref linkend="dnsupdate-soa-edit"/>.
             The cache for this record is purged.
           </para></listitem>
           <listitem><para>The transaction with the backend is committed. If this fails, ServFail is returned.</para></listitem>
@@ -23879,10 +23879,10 @@ static RandomLoader randomloader;
       </para>
     </sect1>
 
-    <sect1 id="rfc2136-backend"><title>RFC2136 support</title>
+    <sect1 id="dnsupdate-backend"><title>DNS update support</title>
       <para>
-        To make your backend RFC2136 compatible, it needs to implement a number of new functions and functions already used for slave-operation.
-        The new functions are not RFC2136 specific and might be used for other update/remove functionality at a later stage.
+        To make your backend DNS update compatible, it needs to implement a number of new functions and functions already used for slave-operation.
+        The new functions are not DNS update specific and might be used for other update/remove functionality at a later stage.
         <programlisting>
 class DNSBackend {
 public:
