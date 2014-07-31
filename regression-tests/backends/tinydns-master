@@ -4,7 +4,7 @@ case $context in
 			--no-shuffle --launch=tinydns \
 		 --cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral \
-			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--experimental-dnsupdate=yes \
 			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb & 
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;

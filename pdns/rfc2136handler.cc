@@ -570,9 +570,9 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di) {
   vector<string> forward;
-  B.getDomainMetadata(p->qdomain, "FORWARD-2136", forward);
+  B.getDomainMetadata(p->qdomain, "FORWARD-DNSUPDATE", forward);
 
-  if (forward.size() == 0 && ! ::arg().mustDo("forward-2136")) {
+  if (forward.size() == 0 && ! ::arg().mustDo("forward-dnsupdate")) {
     L<<Logger::Notice<<msgPrefix<<"Not configured to forward to master, returning Refused."<<endl;
     return RCode::Refused;
   }
@@ -663,7 +663,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 }
 
 int PacketHandler::processUpdate(DNSPacket *p) {
-  if (! ::arg().mustDo("experimental-rfc2136"))
+  if (! ::arg().mustDo("experimental-dnsupdate"))
     return RCode::Refused;
 
   string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote() + " for " + p->qdomain + ": ";
@@ -671,23 +671,23 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
   // Check permissions - IP based
   vector<string> allowedRanges;
-  B.getDomainMetadata(p->qdomain, "ALLOW-2136-FROM", allowedRanges);
-  if (! ::arg()["allow-2136-from"].empty())
-    stringtok(allowedRanges, ::arg()["allow-2136-from"], ", \t" );
+  B.getDomainMetadata(p->qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
+  if (! ::arg()["allow-dnsupdate-from"].empty())
+    stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
   NetmaskGroup ng;
   for(vector<string>::const_iterator i=allowedRanges.begin(); i != allowedRanges.end(); i++)
     ng.addMask(*i);
 
   if ( ! ng.match(&p->d_remote)) {
-    L<<Logger::Error<<msgPrefix<<"Remote not listed in allow-2136-from or domainmetadata. Sending REFUSED"<<endl;
+    L<<Logger::Error<<msgPrefix<<"Remote not listed in allow-dnsupdate-from or domainmetadata. Sending REFUSED"<<endl;
     return RCode::Refused;
   }
 
 
   // Check permissions - TSIG based.
   vector<string> tsigKeys;
-  B.getDomainMetadata(p->qdomain, "TSIG-ALLOW-2136", tsigKeys);
+  B.getDomainMetadata(p->qdomain, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
   if (tsigKeys.size() > 0) {
     bool validKey = false;
 
@@ -734,7 +734,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   DomainInfo di;
   di.backend=0;
   if(!B.getDomainInfo(p->qdomain, di) || !di.backend) {
-    L<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p->qdomain<<"' (or backend does not support RFC2136 operation)"<<endl;
+    L<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p->qdomain<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
   }
 
@@ -891,7 +891,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         return RCode::ServFail;
       }
 
-      S.deposit("rfc2136-changes", changedRecords);
+      S.deposit("dnsupdate-changes", changedRecords);
 
       // Purge the records!
       string zone(di.zone);
@@ -949,7 +949,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   int oldSerial = soa2Update.serial;
 
   vector<string> soaEdit2136Setting;
-  B.getDomainMetadata(di->zone, "SOA-EDIT-2136", soaEdit2136Setting);
+  B.getDomainMetadata(di->zone, "SOA-EDIT-DNSUPDATE", soaEdit2136Setting);
   string soaEdit2136 = "DEFAULT";
   string soaEdit;
   if (!soaEdit2136Setting.empty()) {
@@ -958,7 +958,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
       vector<string> soaEditSetting;
       B.getDomainMetadata(di->zone, "SOA-EDIT", soaEditSetting);
       if (soaEditSetting.empty()) {
-        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-2136 increase on RFC2136, but SOA-EDIT is not set for domain. Using DEFAULT for SOA-EDIT-2136"<<endl;
+        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain. Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
         soaEdit2136 = "DEFAULT";
       } else
         soaEdit = soaEditSetting[0];

@@ -108,7 +108,7 @@ EOF
 			--no-shuffle --launch=remote \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral --distributor-threads=1 \
-			--allow-2136-from=127.0.0.0/8 --experimental-rfc2136=yes \
+			--experimental-dnsupdate=yes \
 			--remote-connection-string="$connstr" $remote_add_param &
 		;;
 

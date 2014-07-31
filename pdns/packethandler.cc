@@ -1016,12 +1016,12 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     if(p->d.opcode) { // non-zero opcode (again thanks RA!)
       if(p->d.opcode==Opcode::Update) {
-        S.inc("rfc2136-queries");
+        S.inc("dnsupdate-queries");
         int res=processUpdate(p);
         if (res == RCode::Refused)
-          S.inc("rfc2136-refused");
+          S.inc("dnsupdate-refused");
         else if (res != RCode::ServFail)
-          S.inc("rfc2136-answers");
+          S.inc("dnsupdate-answers");
         r->setRcode(res);
         r->setOpcode(Opcode::Update);
         return r;
