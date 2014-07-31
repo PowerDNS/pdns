@@ -47,24 +47,6 @@ using namespace ::boost::multi_index;
     first marks and then sweeps, a second lock is present to prevent simultaneous inserts and deletes.
 */
 
-struct CIBackwardsStringCompare: public std::binary_function<string, string, bool>  
-{
-  bool operator()(const string& str_a, const string& str_b) const
-  {
-    string::const_reverse_iterator ra, rb;
-    char a=0, b=0;
-    for(ra = str_a.rbegin(), rb = str_b.rbegin();
-        ra < str_a.rend() && rb < str_b.rend() && (a=dns_tolower(*ra)) == (b=dns_tolower(*rb));
-        ra++, rb++);
-    
-    if (ra < str_a.rend() && rb==str_b.rend()) { a=*(ra++); b=0; return false; } // we are at the beginning of b -> b smaller
-    if (rb < str_b.rend() && ra==str_a.rend()) { b=*(rb++); a=0; return true; } // we are at the beginning of a -> a smaller
-    // if BOTH are at their ends, a and b will be equal, and we should return false, which we will
-    return a < b;
-  }
-};
-
-
 class PacketCache : public boost::noncopyable
 {
 public:
@@ -90,6 +72,7 @@ public:
 private:
   bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
+  string pcReverse(const string &content);
   struct CacheEntry
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}
@@ -124,7 +107,7 @@ private:
                         member<CacheEntry,bool, &CacheEntry::dnssecOk>,
                         member<CacheEntry,bool, &CacheEntry::hasEDNS>
                         >,
-                        composite_key_compare<CIBackwardsStringCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+                        composite_key_compare<std::less<string>, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
                             >,
                            sequenced<>
