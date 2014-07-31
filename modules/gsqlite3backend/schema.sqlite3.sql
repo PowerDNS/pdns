@@ -58,7 +58,7 @@ CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
 CREATE TABLE domainmetadata (
  id                     INTEGER PRIMARY KEY,
  domain_id              INT NOT NULL,
- kind                   VARCHAR(16) COLLATE NOCASE,
+ kind                   VARCHAR(32) COLLATE NOCASE,
  content                TEXT
 );
 

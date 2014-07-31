@@ -60,7 +60,7 @@ CREATE INDEX comments$order ON comments (domain_id, modified_at);
 CREATE TABLE domainmetadata (
   id              INTEGER NOT NULL,
   domain_id       INTEGER NOT NULL,
-  kind            VARCHAR2(16),
+  kind            VARCHAR2(32),
   content         VARCHAR2(4000),
   PRIMARY KEY (id)
 );

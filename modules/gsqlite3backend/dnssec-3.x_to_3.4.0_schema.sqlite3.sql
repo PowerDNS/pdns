@@ -74,3 +74,27 @@ BEGIN TRANSACTION;
   INSERT INTO supermasters SELECT ip,nameserver,account FROM supermasters_backup;
   DROP TABLE supermasters_backup;
 COMMIT;
+
+
+BEGIN TRANSACTION;
+  CREATE TABLE domainmetadata__backup (
+    id INTEGER PRIMARY KEY,
+    domain_id INT NOT NULL,
+    kind VARCHAR(32) COLLATE NOCASE,
+    content TEXT
+  );
+
+  INSERT INTO domainmetadata_backup SELECT id,domain_id,kind,content FROM domainmetadata;
+  DROP TABLE domainmetadata;
+
+  CREATE TABLE domainmetadata (
+    id INTEGER PRIMARY KEY,
+    domain_id INT NOT NULL,
+    kind VARCHAR(32) COLLATE NOCASE,
+    content TEXT
+  );
+  CREATE INDEX domainmetaidindex ON domainmetadata(domain_id);
+
+  INSERT INTO domainmetadata SELECT id,domain_id,kind,content FROM domainmetadata_backup;
+  DROP TABLE domainmetadata_backup;
+COMMIT;

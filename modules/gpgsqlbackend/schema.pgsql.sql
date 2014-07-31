@@ -66,7 +66,7 @@ CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
 CREATE TABLE domainmetadata (
   id                    SERIAL PRIMARY KEY,
   domain_id             INT REFERENCES domains(id) ON DELETE CASCADE,
-  kind                  VARCHAR(16),
+  kind                  VARCHAR(32),
   content               TEXT
 );
 

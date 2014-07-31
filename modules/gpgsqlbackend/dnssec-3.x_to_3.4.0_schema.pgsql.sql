@@ -8,6 +8,7 @@ ALTER TABLE records ALTER COLUMN auth SET DEFAULT 't';
 ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
 ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
 ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
+ALTER TABLE domainmetadata ALTER COLUMN kind TYPE VARCHAR(32);
 ALTER TABLE tsigkeys ALTER COLUMN algorithm TYPE VARCHAR(50);
 
 CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
