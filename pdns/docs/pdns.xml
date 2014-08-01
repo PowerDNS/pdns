@@ -148,7 +148,7 @@
         </listitem>
         <listitem>
           <para>
-            Aki Tuomi contributed experimental PKCSt11 support for DNSSEC key management with a (Soft)HSM.
+            Aki Tuomi contributed experimental PKCS#11 support for DNSSEC key management with a (Soft)HSM.
           </para>
         </listitem>
         <listitem>
