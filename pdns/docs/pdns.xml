@@ -93,6 +93,481 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+      <sect2 id="changelog-auth-3.4.0"><title>PowerDNS Authoritative Server 3.4.0</title>
+      <warning>
+        <para>
+          Version 3.4.0 of the PowerDNS Authoritative Server is a major
+          upgrade if you are coming from 2.9.x. Additionally, if you are coming from
+          any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade.
+          Please refer to <xref linkend="from3.3.1to3.4.0"/> and any relevant sections
+          before it, before deploying this version.
+        </para>
+      </warning>
+      <note>
+        <para>
+          Downloads:
+          <itemizedlist>
+            <listitem>
+              <para>
+                ...
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </note>
+      <para>
+        This is a performance, feature, bugfix and conformity update to 3.3.1 and any earlier version.
+        It contains a huge amount of work by various contributors, to whom we are very grateful.
+      </para>
+      <para>
+        A list of changes since 3.3.1 follows.
+      </para>
+      <para>
+        DNSSEC changes:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gbba8413: add option (max-signature-cache-entries) to limit the maximum number of cached signatures.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g28b66a9: limit the number of NSEC3 iterations (see RFC5155 10.3), with the max-nsec3-iterations option.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gb50efd6: drop the 'superfluous NSEC3' option that old BIND validators need.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The bindbackend 'hybrid' mode was reintroduced by Kees Monshouwer. Enable it with bind-hybrid.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Aki Tuomi contributed experimental PKCSt11 support for DNSSEC key management with a (Soft)HSM.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Direct RRSIG queries now return NOTIMP.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gfa37777: add secure-all-zones command to pdnssec
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Unrectified zones can now get rectified 'on the fly' during outgoing AXFR. This makes it possible to run a hidden signing master without rectification.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g82fb538: AXFR in: don't accept zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Various minor bugfixes, mostly from the unstoppable Kees Monshouwer.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g0c4c552: set non-zero exit status in pdnssec if an exception was thrown, for easier automatic usage.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gb8bd119: pdnssec -v show-zone: Print all keys instead of just entry point keys.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g52e0d78: answer direct NSEC queries without DO bit
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gca2eb01: output ZSK DNSKEY records if experimental-direct-dnskey support is enabled
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g83609e2: SOA-EDIT: fix INCEPTION-INCREMENT handling
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gac4a2f1: AXFR-out can handle secure and insecure NSEC3 optout delegations
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gff47302: AXFR-in can handle secure and insecure NSEC3 optout delegations
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        New features:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            DNAME support. Enable with experimental-dname-processing.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            PowerDNS can now send stats directly to Carbon servers. Enable with carbon-server, tweak with carbon-ourname and carbon-interval.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g767da1a: Add list-zone capability to pdns_control
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g51f6bca: Add delete-zone to pdnssec.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The gsql backends now support record comments, and disabling records. 
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The new reuseport config option allows setting SO_REUSEPORT, which allows for some performance improvements.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            local-address-nonexist-fail and local-ipv6-nonexist-fail allow pdns to start up even if some addresses fail to bind.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            'AXFR-SOURCE' in domainmetadata sets the source address for an AXFR retrieval.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g451ba51: Implement pdnssec get-meta/set-meta
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Experimental RFC2136/DNS UPDATE support from Ruben d'Arco, with extensive testing by Kees Monshouwer.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            pdns_control bind-add-zone
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            New option bind-ignore-broken-records ignores out-of-zone records while loading zone files.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            pdnssec now has commands for TSIG key management.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            We now support other algorithms than MD5 for TSIG.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gba7244a: implement pdns_control qtypes
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Support for += syntax for options
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        Bugfixes:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            We verify the algorithm used for TSIG queries, and use the right algorithm in signing if there is possible confusion. Plus a few minor TSIG-related fixes.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gff99a74: making *-threads settings empty now yields a default of one instead of zero.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g9215e60: we had a deadly embrace in getUpdatedMasters in bindbackend reimplementation, thanks to Winfried for detailed debugging!
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g9245fd9: don't addSuckRequest after supermaster zone creation to avoid one cause of simultaneous AXFR for the same zone
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g719f902: fix dual-stack superslave when multiple namservers share a ip
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g33966bf: avoid address truncation in doNotifications
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            geac85b1: prevent duplicate slave notications caused by different ipv6 address formatting
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g3c8a711: make notification queue ipv6 compatible
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g0c13e45: make isMaster ip check more tolerant for different ipv6 notations
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Various fixes for possible issues reported by Coverity Scan (gf17c93b, )
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g9083987: don't rely on included polarssl header files when using system polarssl. Spotted by Oden Eriksson of Mandriva, thanks!
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Various users reported pdns_control hangs, especially when using the guardian. We are confident that all causes of these hangs are now gone.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Decreasing the webserver ringbuffer size could cause crashes.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4c89cce: nproxy: Add missing chdir("/") after chroot()
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g016a0ab: actually notice timeout during AXFR retrieve, thanks hkraal
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        REST API changes:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            The REST API was much improved and is nearing stability, thanks to Christian Hofstaedtler and others.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Mark Schouten at Tuxis contributed a zone importer.
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        Other changes:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            Our tarballs and packages now include *.sql schema files for the SQL backends.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The webserver (including API) now has an ACL (webserver-allow-from).
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Webserver (including API) is now powered by YaHTTP.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Various autotools usage improvements from Ruben Kerkhof.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The dist tarball is now bzip2-compressed instead of gzip.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Various remotebackend updates, including replacing curl with (included) yahttp.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Dynamic module loading is now allowed on Mac OS X.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The AXFR ACL (allow-axfr-ips) now defaults to 127.0.0.0/8,::1 instead of the whole world.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gba91c2f: remove unused gpgsql-socket option and document postgres socket usage
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Improved support for Lua 5.2.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The edns-subnet option code is now fixed at 8, and the edns-subnet-option-numbers option has been removed.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            geobackend now has very limited edns-subnet support - it will use the 'real' remote if available.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            pipebackend ABI v4 adds the zone name to the AXFR command.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            We now avoid getaddrinfo() as much as possible.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            The packet cache now handles (forwarded) recursive answers better, including TTL aging and respecting allow-recursion.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gff5ba4f: pdns_server --help no longer exits with 1.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Mark Zealey contributed an experimental LMDB backend. Kees Monshouwer added experimental DNSSEC support to it. Thanks, both!
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g81859ba: No longer attempt to answer questions coming in from port 0, reply would not reach them anyhow. Thanks to Niels Bakker and sid3windr for insight &amp; debugging. Closes t844.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            RCodes are now reported in text in various places, thanks Aki.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Kees Monshouwer set up automatic testing for the oracle and goracle backends, and fixed various issues in them.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Leftovers of previous support for Windows have been removed, thanks to Kees Monshouwer, Aki Tuomi.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Bundled PolarSSL has been upgraded to 1.3.2
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            PolarSSL replaced previously bundled implementations of AES (ge22d9b4) and SHA (g9101035)
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            bindbackend is now a module
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g14a2e52: Use the inet data type for supermasters.ip on postgrsql.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            We now send an empty SERVFAIL when a CNAME chain is too long, instead of including the partial chain.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g3613a51: Show built-in features in --version output
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4bd7d35: make domainmetadata queries case insensitive
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g088c334: output warning message when no to be notified NS's are found
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g5631b44: gpsqlbackend: use empty defaults for dbname and user; libpq will use the current user name for both by default
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gd87ded3: implement udp-truncation-threshold to override the previous 1680 byte maximum response datagram size - no matter what EDNS0 said. Plus document it.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Implement udp-truncation-threshold to override the previous 1680 byte maximum response datagram size - no matter what EDNS0 said.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            On shutdown, PowerDNS now attempts to stop all processes in its process group, especially useful for pipe/remotebackend users. Feature donated by Spotify.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            Removed settings related to fancy records, as we haven't supported those since version 3.0
+          </para>
+        </listitem>
+      </itemizedlist>
+      </sect2>
       <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
       <note>
         <para>
