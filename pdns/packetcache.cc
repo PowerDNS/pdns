@@ -208,7 +208,7 @@ int PacketCache::purge(const string &match)
     cmap_t::const_iterator start=iter;
 
     for(; iter != d_map.end(); ++iter) {
-      if(!iter->qname.compare(0, zone.size(), zone)) {
+      if(iter->qname.compare(0, zone.size(), zone) != 0) {
         break;
       }
       delcount++;
@@ -268,7 +268,7 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 string PacketCache::pcReverse(const string &content)
 {
   string tmp = string(content.rbegin(), content.rend());
-  return toLower(boost::replace_all_copy(tmp, ".", " "))+" ";
+  return toLower(boost::replace_all_copy(tmp, ".", "\t"))+"\t";
 }
 
 
