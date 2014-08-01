@@ -105,11 +105,40 @@
       </warning>
       <note>
         <para>
+          RC1 released August 1st, 2014
+        </para>
+        <para>
           Downloads:
           <itemizedlist>
             <listitem>
               <para>
-                ...
+                <ulink url="http://powerdnssec.org/downloads/pdns-3.4.0-rc1.tar.bz2">tar.bz2 source</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.i386.rpm">i386 RPM</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.x86_64.rpm">x86_64 RPM</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_i386.deb">i386 deb</ulink>
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_amd64.deb">x86_64 deb</ulink>
+              </para>
+            </listitem>
+
+            <listitem>
+              <para>
+                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
