@@ -568,8 +568,7 @@
         </listitem>
         <listitem>
           <para>
-            Based on earlier work by Mark Zealey, Kees Monshouwer doubled our packet cache performance (in one
-            specific benchmark) by simplifying some code in g801812e and g8403ade.
+            Based on earlier work by Mark Zealey, Kees Monshouwer increased our packet cache performance between 200% and 500% depending on the situation, by simplifying some code in g801812e and g8403ade.
           </para>
         </listitem>
       </itemizedlist>
