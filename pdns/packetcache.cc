@@ -158,7 +158,7 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   CacheEntry val;
   val.created=time(0);
   val.ttd=val.created+ttl;
-  val.qname=qname;
+  val.qname=pcReverse(qname);
   val.qtype=qtype.getCode();
   val.value=value;
   val.ctype=cet;
@@ -198,60 +198,17 @@ int PacketCache::purge(const string &match)
   WriteLock l(&d_mut);
   int delcount=0;
 
-  /* ok, the suffix delete plan. We want to be able to delete everything that 
-     pertains 'www.powerdns.com' but we also want to be able to delete everything
-     in the powerdns.com zone, so: 'powerdns.com' and '*.powerdns.com'.
-
-     However, we do NOT want to delete 'usepowerdns.com!, nor 'powerdnsiscool.com'
-
-     So, at first shot, store in reverse label order:
-
-     'be.someotherdomain'
-     'com.powerdns'
-     'com.powerdns.images'
-     'com.powerdns.www'
-     'com.powerdnsiscool'
-     'com.usepowerdns.www'
-
-     If we get a request to remove 'everything above powerdns.com', we do a search for 'com.powerdns' which is guaranteed to come first (it is shortest!)
-     Then we delete everything that is either equal to 'com.powerdns' or begins with 'com.powerdns.' This trailing dot saves us 
-     from deleting 'com.powerdnsiscool'.
-
-     We can stop the process once we reach something that doesn't match.
-
-     Ok - fine so far, except it doesn't work! Let's say there *is* no 'com.powerdns' in cache!
-
-     In that case our request doesn't find anything.. now what.
-     lower_bound to the rescue! It finds the place where 'com.powerdns' *would* be.
-     
-     Ok - next step, can we get away with simply reversing the string?
-
-     'moc.sndrewop'
-     'moc.sndrewop.segami'
-     'moc.sndrewop.www'
-     'moc.loocsidnsrewop'
-     'moc.dnsrewopesu.www'
-
-     Ok - next step, can we get away with only reversing the comparison?
-
-     'powerdns.com'
-     'images.powerdns.com'
-     '   www.powerdns.com'
-     'powerdnsiscool.com'
-     'www.userpowerdns.com'
-
-  */
   if(ends_with(match, "$")) {
-    string suffix(match);
-    suffix.resize(suffix.size()-1);
+    string prefix(match);
+    prefix.resize(prefix.size()-1);
 
-    cmap_t::const_iterator iter = d_map.lower_bound(tie(suffix));
+    string zone = pcReverse(prefix);
+
+    cmap_t::const_iterator iter = d_map.lower_bound(tie(zone));
     cmap_t::const_iterator start=iter;
-    string dotsuffix = "."+suffix;
 
     for(; iter != d_map.end(); ++iter) {
-      if(!pdns_iequals(iter->qname, suffix) && !iends_with(iter->qname, dotsuffix)) {
-        //        cerr<<"Stopping!"<<endl;
+      if(iter->qname.compare(0, zone.size(), zone) != 0) {
         break;
       }
       delcount++;
@@ -259,8 +216,10 @@ int PacketCache::purge(const string &match)
     d_map.erase(start, iter);
   }
   else {
-    delcount=d_map.count(tie(match));
-    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(match));
+    string qname = pcReverse(match);
+
+    delcount=d_map.count(tie(qname));
+    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(qname));
     d_map.erase(range.first, range.second);
   }
   *d_statnumentries=d_map.size();
@@ -292,7 +251,8 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  cmap_t::const_iterator i=d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+  string pcqname = pcReverse(qname);
+  cmap_t::const_iterator i=d_map.find(tie(pcqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
   time_t now=time(0);
   bool ret=(i!=d_map.end() && i->ttd > now);
   if(ret) {
@@ -303,6 +263,14 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 
   return ret;
 }
+
+
+string PacketCache::pcReverse(const string &content)
+{
+  string tmp = string(content.rbegin(), content.rend());
+  return toLower(boost::replace_all_copy(tmp, ".", "\t"))+"\t";
+}
+
 
 map<char,int> PacketCache::getCounts()
 {
