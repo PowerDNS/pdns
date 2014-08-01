@@ -463,7 +463,7 @@
         </listitem>
         <listitem>
           <para>
-            We now avoid getaddrinfo() as much as possible.
+            We now <ulink url="http://blog.powerdns.com/2014/05/21/a-surprising-discovery-on-converting-ipv6-addresses-we-no-longer-prefer-getaddrinfo/">avoid getaddrinfo()</ulink> as much as possible.
           </para>
         </listitem>
         <listitem>
