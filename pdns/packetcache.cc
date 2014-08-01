@@ -267,8 +267,12 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 
 string PacketCache::pcReverse(const string &content)
 {
-  string tmp = string(content.rbegin(), content.rend());
-  return toLower(boost::replace_all_copy(tmp, ".", "\t"))+"\t";
+  string tmp;
+  tmp.reserve(content.size()+1);
+  for(std::string::const_reverse_iterator i = content.rbegin(); i < content.rend(); i++)
+    tmp.push_back((*i == '.' ? '\t' : dns_tolower(*i)));
+  tmp.push_back('\t');
+  return tmp;
 }
 
 
