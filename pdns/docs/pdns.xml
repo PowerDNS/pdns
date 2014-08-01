@@ -566,6 +566,12 @@
             Removed settings related to fancy records, as we haven't supported those since version 3.0
           </para>
         </listitem>
+        <listitem>
+          <para>
+            Based on earlier work by Mark Zealey, Kees Monshouwer doubled our packet cache performance (in one
+            specific benchmark) by simplifying some code in g801812e and g8403ade.
+          </para>
+        </listitem>
       </itemizedlist>
       </sect2>
       <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
