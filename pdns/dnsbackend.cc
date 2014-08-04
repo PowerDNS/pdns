@@ -332,7 +332,7 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
         newest=i.last_modified;
     }
 
-    serial=newest; // +arg().asNum("soa-serial-offset");
+    serial=newest;
 
     return true;
 }
