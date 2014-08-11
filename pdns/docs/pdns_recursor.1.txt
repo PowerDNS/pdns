@@ -1,7 +1,5 @@
 PDNS_RECURSOR(1)
 ================
-bert hubert <bert.hubert@netherlabs.nl>
-v3.0, 22 March 2008
 
 NAME
 ----
@@ -172,6 +170,7 @@ None known. File new ones at http://wiki.powerdns.com.
 AUTHOR
 ------
 Written by PowerDNS.COM BV, bert hubert, <bert.hubert@netherlabs.nl>
+v3.0, 22 March 2008
 
 RESOURCES
 ---------
