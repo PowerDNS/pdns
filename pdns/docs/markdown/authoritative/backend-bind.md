@@ -43,7 +43,7 @@ If [`bind-check-interval`](#bind-check-interval) is specified as zero, no checks
 
 ## pdns\_control commands
 ### `bind-add-zone <domain> <filename>`
-Add zone \<domain\> from \<filename\> to PDNS's bind backend. Zone will be loaded at first request.
+Add zone &lt;domain> from &lt;filename> to PDNS's bind backend. Zone will be loaded at first request.
 
 ### `bind-domain-status <domain> [domain]`
 Output status of domain or domains. Can be one of 'seen in named.conf, not parsed', 'parsed successfully at \<time;\>' or 'error parsing at line ... at \<time\>'.
@@ -55,7 +55,7 @@ Lists all zones that have problems, and what those problems are.
 Reloads a zone from disk NOW, reporting back results.
 
 ### `rediscover`
-Reread the bind configuration file (`named.conf`). If parsing fails, the old configuration remains in force and pdns\_control reports the error. Any newly discovered domains are read, discarded domains are removed from memory.
+Reread the bind configuration file (`named.conf`). If parsing fails, the old configuration remains in force and `pdns_control` reports the error. Any newly discovered domains are read, discarded domains are removed from memory.
 
 **Note**: Except that with 2.9.3, they are not removed from memory.
 
@@ -63,7 +63,7 @@ Reread the bind configuration file (`named.conf`). If parsing fails, the old con
 All zones with a changed timestamp are reloaded at the next incoming query for them.
 
 ## Performance
-The BindBackend does not benefit from the packet cache as it is fast enough on its own. Furthermore, on most systems, there will be no benefit in using multiple CPUs for the packetcache, so a noticeable speedup can be attained by specifying `distributor-threads=1` in `pdns.conf`.
+The BindBackend does not benefit from the packet cache as it is fast enough on its own. Furthermore, on most systems, there will be no benefit in using multiple CPUs for the packetcache, so a noticeable speedup can be attained by specifying [`distributor-threads`](settings.md#distributor-threads)`=1` in `pdns.conf`.
 
 ## Master/slave configuration
 
