@@ -44,7 +44,7 @@ Slave operation can also be programmed using several [`pdns_control`](../appendi
 
 Since version 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify multiple masters, for SQL based backends, list all master servers separated by commas in the 'master' field of the domains table.
 
-## Supermaster automatic provisioning of slaves
+## Supermaster: automatic provisioning of slaves
 PDNS can recognize so called 'supermasters'. A supermaster is a host which is master for domains and for which we are to be a slave. When a master (re)loads a domain, it sends out a notification to its slaves. Normally, such a notification is only accepted if PDNS already knows that it is a slave for a domain.
 
 However, a notification from a supermaster carries more persuasion. When PDNS determines that a notification comes from a supermaster and it is bonafide, PDNS can provision the domain automatically, and configure itself as a slave for that zone.

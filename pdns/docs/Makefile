@@ -14,7 +14,7 @@ html-new:
 	rm -rf html-new
 	mkdir html-new
 
-html-new/index.html: html-new markdown/**
+html-new/index.html: html-new markdown/** mkdocs.yml
 	mkdocs build
 
 html/index.html: pdns-expanded.xml

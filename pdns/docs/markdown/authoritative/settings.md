@@ -6,9 +6,15 @@ You can use `+=` syntax to set some variables incrementally, but this requires y
 For boolean settings, specifying the name of the setting without a value means `yes`.
 
 ## `allow-axfr-ips`
+* IP ranges
+* Default: 127.0.0.0/8,::1
 Behaviour pre 2.9.10: When not allowing AXFR (disable-axfr), DO allow from these IP addresses or netmasks.
 
 Behaviour post 2.9.10: If set, only these IP addresses or netmasks will be able to perform AXFR.
+
+## `allow-dns-update-from`
+* IP ranges
+From 3.4 onward. Allow DNS updates from these IP ranges.
 
 ## `allow-recursion`
 By specifying `allow-recursion`, recursion can be restricted to netmasks specified. The default is to allow recursion from everywhere. Example: `allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4`.
@@ -74,7 +80,7 @@ Number of Distributor (backend) threads to start per receiver thread. See ["Auth
 Perform AAAA additional processing.
 
 ## `edns-subnet-option-number`
-If edns-subnet-processing is enabled, this option allows the user to override the option number.
+Removed in 3.4. If edns-subnet-processing is enabled, this option allows the user to override the option number.
 
 ## `edns-subnet-processing`
 Enables EDNS subnet processing, for backends that support it.
@@ -82,11 +88,25 @@ Enables EDNS subnet processing, for backends that support it.
 ## `entropy-source`
 Entropy source (like /dev/urandom).
 
+## `experimental-api-readonly`
+* Boolean
+From 3.4 onward. Disallow data modification through the json API when set.
+
 ## `experimental-dname-processing`
-Synthesise CNAME records from DNAME records as required. This approximately doubles query load. *Do not combine with DNSSEC!*
+Synthesise CNAME records from DNAME records as required. This approximately doubles query load. **Do not combine with DNSSEC!**
+
+## `experimental-dnsupdate`
+* Boolean
+* Default: no
+Enable/Disable DNS update (RFC2136) support.
 
 ## `fancy-records`
 Process URL and MBOXFW records. See ["Fancy Records"](#XXX).
+
+## `forward-dnsupdates`
+* Boolean
+* Default: no
+Forward DNS updates sent to a slave to the master.
 
 ## `guardian`
 Boolean, run within a guardian process. See ["Guardian"](#XXX).
@@ -101,7 +121,7 @@ Directory to scan for additional config files. All files that end with .conf are
 Which backends to launch and order to query them in. See ["Modules & Backends"](#XXX).
 
 ## `lazy-recursion`
-Boolean, on by default as of 2.1. Checks local data first before recursing. See ["Recursion"](#XXX).
+Boolean, on by default as of 2.1. Checks local data first before recursing. See ["Recursion"](#XXX). Removed in 3.2.
 
 ## `load-modules`
 Load this module - supply absolute or relative path. See ["Modules & Backends"](#XXX).
@@ -109,13 +129,25 @@ Load this module - supply absolute or relative path. See ["Modules & Backends"](
 ## `local-address`
 Local IP address to which we bind. You can specify multiple addresses separated by commas or whitespace. It is highly advised to bind to specific interfaces and not use the default 'bind to any'. This causes big problems if you have multiple IP addresses. Unix does not provide a way of figuring out what IP address a packet was sent to when binding to any.
 
+## `local-address-nonexist-fail`
+* Boolean
+* Default: no
+Fail to start if one or more of the local-address's do not exist on this server
+
 ## `local-ipv6`
 Local IPv6 address to which we bind. You can specify multiple addresses separated by commas or whitespace.
+
+## `local-ipv6-nonexist-fail`
+* Boolean
+* Default: no
+Fail to start if one or more of the local-ipv6 addresses do not exist on this server.
 
 ## `local-port`
 The port on which we listen. Only one port possible.
 
-## `log-dns-details` [,=no]
+## `log-dns-details`
+* Boolean
+* Default: no
 If set to 'no', informative-only DNS details will not even be sent to syslog, improving performance. Available from 2.5 and onwards.
 
 ## `logging-facility`
@@ -139,8 +171,17 @@ Maximum number of cache entries. 1 million will generally suffice for most insta
 ## `max-ent-entries`
 Maximum number of empty non-terminals to add to a zone. This is a protection measure to avoid database explosion due to long names.
 
+## `max-nsec3-iterations`
+* Integer
+* Default: 500
+Limit the number of NSEC3 hash iterations
+
 ## `max-queue-length`
 If this many packets are waiting for database attention, consider the situation hopeless and respawn.
+
+## `max-signature-cache-entries`
+* Integer
+Maximum number of signatures cache entries
 
 ## `max-tcp-connections`
 Allow this many incoming TCP DNS connections simultaneously.
@@ -184,7 +225,7 @@ Seconds to store queries with an answer in the Query Cache. See ["Query Cache"](
 ## `query-local-address`
 The IP address to use as a source address for sending queries. Useful if you have multiple IPs and pdns is not bound to the IP address your operating system uses by default for outgoing packets.
 
-## ``query-local-address6``
+## `query-local-address6`
 Source IP address for sending IPv6 queries.
 
 ## `query-logging`
@@ -271,6 +312,8 @@ Enable the Linux-only traceback handler (default on).
 IP address of incoming notification proxy
 
 ## `udp-truncation-threshold`
+* Integer
+* Default: 1680
 EDNS0 allows for large UDP response datagrams, which can potentially raise performance. Large responses however also have downsides in terms of reflection attacks. Up till PowerDNS Authoritative Server 3.3, the truncation limit was set at 1680 bytes, regardless of EDNS0 buffer size indications from the client. Beyond 3.3, this setting makes our truncation limit configurable. Maximum value is 65535, but values above 4096 should probably not be attempted.
 
 ## `urlredirector`
@@ -294,6 +337,10 @@ Start a webserver for monitoring. See ["Performance Monitoring"](logging.md#perf
 * IP Address
 * Default: 127.0.0.1
 IP Address of webserver to listen on. See ["Performance Monitoring"](logging.md#performance-monitoring).
+
+## `webserver-allow-from`
+* IP ranges
+Webserver access is only allowed from these subnets
 
 ## `webserver-password`
 * String

@@ -5,12 +5,616 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 # 3.3.1 to 3.4.0
 If you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade
 
+## Database schema
+**Warning**: The default database schema has changed. The database update below is mandatory.
+
+If custom queries are in use, they probably need an update.
+
+### gmysql backend with nodnssec schema
+
+```
+/* Uncomment next line for versions <= 3.1 */
+/* DROP INDEX rec_name_index ON records; */
+
+ALTER TABLE records ADD disabled TINYINT(1) DEFAULT 0;
+ALTER TABLE records MODIFY content VARCHAR(64000) DEFAULT NULL;
+ALTER TABLE records ADD ordername VARCHAR(255) BINARY DEFAULT NULL;
+ALTER TABLE records ADD auth TINYINT(1) DEFAULT 1;
+ALTER TABLE records MODIFY type VARCHAR(10);
+ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
+ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
+
+CREATE INDEX recordorder ON records (domain_id, ordername);
+
+
+CREATE TABLE domainmetadata (
+  id                    INT AUTO_INCREMENT,
+  domain_id             INT NOT NULL,
+  kind                  VARCHAR(32),
+  content               TEXT,
+  PRIMARY KEY(id)
+) Engine=InnoDB;
+
+CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);
+
+
+CREATE TABLE cryptokeys (
+  id                    INT AUTO_INCREMENT,
+  domain_id             INT NOT NULL,
+  flags                 INT NOT NULL,
+  active                TINYINT(1),
+  content               TEXT,
+  PRIMARY KEY(id)
+) Engine=InnoDB;
+
+CREATE INDEX domainidindex ON cryptokeys(domain_id);
+
+
+CREATE TABLE tsigkeys (
+  id                    INT AUTO_INCREMENT,
+  name                  VARCHAR(255),
+  algorithm             VARCHAR(50),
+  secret                VARCHAR(255),
+  PRIMARY KEY(id)
+) Engine=InnoDB;
+
+CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
+
+
+CREATE TABLE comments (
+  id                    INT AUTO_INCREMENT,
+  domain_id             INT NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  type                  VARCHAR(10) NOT NULL,
+  modified_at           INT NOT NULL,
+  account               VARCHAR(40) NOT NULL,
+  comment               VARCHAR(64000) NOT NULL,
+  PRIMARY KEY(id)
+) Engine=InnoDB;
+
+CREATE INDEX comments_domain_id_idx ON comments (domain_id);
+CREATE INDEX comments_name_type_idx ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```
+
+### gmysql backend with dnssec schema
+
+```
+/* Uncomment next 3 lines for versions <= 3.1 */
+/* DROP INDEX rec_name_index ON records; */
+/* DROP INDEX orderindex ON records; */
+/* CREATE INDEX recordorder ON records (domain_id, ordername); */
+
+ALTER TABLE records ADD disabled TINYINT(1) DEFAULT 0 AFTER change_date;
+ALTER TABLE records MODIFY content VARCHAR(64000) DEFAULT NULL;
+ALTER TABLE records MODIFY ordername VARCHAR(255) BINARY DEFAULT NULL;
+ALTER TABLE records MODIFY auth TINYINT(1) DEFAULT 1;
+ALTER TABLE records MODIFY type VARCHAR(10);
+ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
+ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
+ALTER TABLE domainmetadata MODIFY kind VARCHAR(32);
+ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
+
+DROP INDEX domainmetaidindex ON domainmetadata;
+CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);
+
+CREATE TABLE comments (
+  id                    INT AUTO_INCREMENT,
+  domain_id             INT NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  type                  VARCHAR(10) NOT NULL,
+  modified_at           INT NOT NULL,
+  account               VARCHAR(40) NOT NULL,
+  comment               VARCHAR(64000) NOT NULL,
+  PRIMARY KEY(id)
+) Engine=InnoDB;
+
+CREATE INDEX comments_domain_id_idx ON comments (domain_id);
+CREATE INDEX comments_name_type_idx ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```
+
+### gpgsql backend with nodnssec schema
+
+```
+/* Uncomment next line for versions <= 3.3 */
+/* ALTER TABLE domains ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
+
+ALTER TABLE records ADD disabled BOOL DEFAULT 'f';
+ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
+ALTER TABLE records ADD ordername VARCHAR(255);
+ALTER TABLE records ADD auth BOOL DEFAULT 't';
+ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
+ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
+ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
+
+CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
+
+
+CREATE TABLE domainmetadata (
+ id                     SERIAL PRIMARY KEY,
+ domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
+ kind                   VARCHAR(32),
+ content                TEXT
+);
+
+CREATE INDEX domainidmetaindex ON domainmetadata(domain_id);
+
+
+CREATE TABLE cryptokeys (
+ id                     SERIAL PRIMARY KEY,
+ domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
+ flags                  INT NOT NULL,
+ active                 BOOL,
+ content                TEXT
+);
+
+CREATE INDEX domainidindex ON cryptokeys(domain_id);
+
+
+CREATE TABLE tsigkeys (
+ id                     SERIAL PRIMARY KEY,
+ name                   VARCHAR(255),
+ algorithm              VARCHAR(50),
+ secret                 VARCHAR(255),
+ constraint c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
+);
+
+CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
+
+
+CREATE TABLE comments (
+  id                    SERIAL PRIMARY KEY,
+  domain_id             INT NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  type                  VARCHAR(10) NOT NULL,
+  modified_at           INT NOT NULL,
+  account               VARCHAR(40) DEFAULT NULL,
+  comment               VARCHAR(65535) NOT NULL,
+  CONSTRAINT domain_exists
+  FOREIGN KEY(domain_id) REFERENCES domains(id)
+  ON DELETE CASCADE,
+  CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
+);
+
+CREATE INDEX comments_domain_id_idx ON comments (domain_id);
+CREATE INDEX comments_name_type_idx ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```
+
+### gpgsql backend with dnssec schema:
+
+``` {.programlisting}
+/* Uncomment next 2 lines for versions <= 3.3 */
+/* ALTER TABLE domains ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
+/* ALTER TABLE tsigkeys ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
+
+ALTER TABLE records ADD disabled BOOL DEFAULT 'f';
+ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
+ALTER TABLE records ALTER COLUMN auth SET DEFAULT 't';
+ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
+ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
+ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
+ALTER TABLE domainmetadata ALTER COLUMN kind TYPE VARCHAR(32);
+ALTER TABLE tsigkeys ALTER COLUMN algorithm TYPE VARCHAR(50);
+
+CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
+DROP INDEX IF EXISTS orderindex;
+
+
+CREATE TABLE comments (
+  id                    SERIAL PRIMARY KEY,
+  domain_id             INT NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  type                  VARCHAR(10) NOT NULL,
+  modified_at           INT NOT NULL,
+  account               VARCHAR(40) DEFAULT NULL,
+  comment               VARCHAR(65535) NOT NULL,
+  CONSTRAINT domain_exists
+  FOREIGN KEY(domain_id) REFERENCES domains(id)
+  ON DELETE CASCADE,
+  CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
+);
+
+CREATE INDEX comments_domain_id_idx ON comments (domain_id);
+CREATE INDEX comments_name_type_idx ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```
+
+### gsqlite3 backend with nodnssec schema
+
+```
+ALTER TABLE records ADD disabled BOOL DEFAULT 0;
+ALTER TABLE records ADD ordername VARCHAR(255);
+ALTER TABLE records ADD auth BOOL DEFAULT 1;
+
+CREATE INDEX orderindex ON records(ordername);
+
+
+CREATE TABLE domainmetadata (
+  id                    INTEGER PRIMARY KEY,
+  domain_id             INT NOT NULL,
+  kind                  VARCHAR(32) COLLATE NOCASE,
+  content               TEXT
+);
+
+CREATE INDEX domainmetaidindex on domainmetadata(domain_id);
+
+
+CREATE TABLE cryptokeys (
+  id                    INTEGER PRIMARY KEY,
+  domain_id             INT NOT NULL,
+  flags                 INT NOT NULL,
+  active                BOOL,
+  content               TEXT
+);
+
+CREATE INDEX domainidindex ON cryptokeys(domain_id);
+
+
+CREATE TABLE tsigkeys (
+  id                    INTEGER PRIMARY KEY,
+  name                  VARCHAR(255) COLLATE NOCASE,
+  algorithm             VARCHAR(50) COLLATE NOCASE,
+  secret                VARCHAR(255)
+);
+
+CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
+
+
+CREATE TABLE comments (
+  id                    INTEGER PRIMARY KEY,
+  domain_id             INTEGER NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  type                  VARCHAR(10) NOT NULL,
+  modified_at           INT NOT NULL,
+  account               VARCHAR(40) DEFAULT NULL,
+  comment               VARCHAR(65535) NOT NULL
+);
+
+CREATE INDEX comments_domain_id_index ON comments (domain_id);
+CREATE INDEX comments_nametype_index ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+
+
+BEGIN TRANSACTION;
+  CREATE TEMPORARY TABLE supermasters_backup (
+    ip                  VARCHAR(64) NOT NULL,
+    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
+    account             VARCHAR(40) DEFAULT NULL
+  );
+
+  INSERT INTO supermasters_backup SELECT ip, nameserver, account FROM supermasters;
+  DROP TABLE supermasters;
+
+  CREATE TABLE supermasters (
+    ip                  VARCHAR(64) NOT NULL,
+    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
+    account             VARCHAR(40) DEFAULT NULL
+  );
+  CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
+
+  INSERT INTO supermasters SELECT ip, nameserver, account FROM supermasters_backup;
+  DROP TABLE supermasters_backup;
+COMMIT;
+```
+
+### gsqlite3 backend with dnssec schema:
+
+```
+CREATE TABLE comments (
+  id                    INTEGER PRIMARY KEY,
+  domain_id             INTEGER NOT NULL,
+  name                  VARCHAR(255) NOT NULL,
+  type                  VARCHAR(10) NOT NULL,
+  modified_at           INT NOT NULL,
+  account               VARCHAR(40) DEFAULT NULL,
+  comment               VARCHAR(65535) NOT NULL
+);
+
+CREATE INDEX comments_domain_id_index ON comments (domain_id);
+CREATE INDEX comments_nametype_index ON comments (name, type);
+CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+
+
+BEGIN TRANSACTION;
+  CREATE TEMPORARY TABLE records_backup(
+    id                  INTEGER PRIMARY KEY,
+    domain_id           INTEGER DEFAULT NULL,
+    name                VARCHAR(255) DEFAULT NULL,
+    type                VARCHAR(10) DEFAULT NULL,
+    content             VARCHAR(65535) DEFAULT NULL,
+    ttl                 INTEGER DEFAULT NULL,
+    prio                INTEGER DEFAULT NULL,
+    change_date         INTEGER DEFAULT NULL,
+    ordername           VARCHAR(255),
+    auth                BOOL DEFAULT 1
+  );
+
+  INSERT INTO records_backup SELECT id,domain_id,name,type,content,ttl,prio,change_date,ordername,auth FROM records;
+  DROP TABLE records;
+
+  CREATE TABLE records (
+    id                  INTEGER PRIMARY KEY,
+    domain_id           INTEGER DEFAULT NULL,
+    name                VARCHAR(255) DEFAULT NULL,
+    type                VARCHAR(10) DEFAULT NULL,
+    content             VARCHAR(65535) DEFAULT NULL,
+    ttl                 INTEGER DEFAULT NULL,
+    prio                INTEGER DEFAULT NULL,
+    change_date         INTEGER DEFAULT NULL,
+    disabled            BOOLEAN DEFAULT 0,
+    ordername           VARCHAR(255),
+    auth                BOOL DEFAULT 1
+  );
+
+  CREATE INDEX rec_name_index ON records(name);
+  CREATE INDEX nametype_index ON records(name,type);
+  CREATE INDEX domain_id ON records(domain_id);
+  CREATE INDEX orderindex ON records(ordername);
+
+  INSERT INTO records SELECT id,domain_id,name,type,content,ttl,prio,change_date,0,ordername,auth FROM records_backup;
+  DROP TABLE records_backup;
+COMMIT;
+
+
+BEGIN TRANSACTION;
+  CREATE TEMPORARY TABLE supermasters_backup (
+    ip                  VARCHAR(64) NOT NULL,
+    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
+    account             VARCHAR(40) DEFAULT NULL
+  );
+
+  INSERT INTO supermasters_backup SELECT ip,nameserver,account FROM supermasters;
+  DROP TABLE supermasters;
+
+  CREATE TABLE supermasters (
+    ip                  VARCHAR(64) NOT NULL,
+    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
+    account             VARCHAR(40) DEFAULT NULL
+  );
+  CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
+
+  INSERT INTO supermasters SELECT ip,nameserver,account FROM supermasters_backup;
+  DROP TABLE supermasters_backup;
+COMMIT;
+
+
+BEGIN TRANSACTION;
+  CREATE TABLE domainmetadata__backup (
+    id INTEGER PRIMARY KEY,
+    domain_id INT NOT NULL,
+    kind VARCHAR(32) COLLATE NOCASE,
+    content TEXT
+  );
+
+  INSERT INTO domainmetadata_backup SELECT id,domain_id,kind,content FROM domainmetadata;
+  DROP TABLE domainmetadata;
+
+  CREATE TABLE domainmetadata (
+    id INTEGER PRIMARY KEY,
+    domain_id INT NOT NULL,
+    kind VARCHAR(32) COLLATE NOCASE,
+    content TEXT
+  );
+  CREATE INDEX domainmetaidindex ON domainmetadata(domain_id);
+
+  INSERT INTO domainmetadata SELECT id,domain_id,kind,content FROM domainmetadata_backup;
+  DROP TABLE domainmetadata_backup;
+COMMIT;
+```
+
+### goracle backend:
+
+```
+ALTER TABLE records ADD disabled INT DEFAULT 0;
+ALTER TABLE records MODIFY auth INT DEFAULT 1;
+
+UPDATE records SET auth=1 WHERE auth IS NULL;
+```
+
+## Configuration option changes
+
+### New options
+#### `allow-dnsupdate-from`
+A global setting to allow DNS update from these IP ranges.
+
+#### `also-notify`
+When notifying a domain, also notify these nameservers
+
+#### `carbon-interval`
+Number of seconds between carbon (graphite) updates
+
+#### `carbon-ourname`
+If set, overrides our reported hostname for carbon stats
+
+#### `carbon-server`
+If set, send metrics in carbon (graphite) format to this server
+
+#### `disable-axfr-rectify`
+Disable the rectify step during an outgoing AXFR. Only required for regression testing.
+
+#### `experimental-api-readonly`
+If the JSON API should disallow data modification
+
+#### `experimental-dname-processing`
+If we should support DNAME records
+
+#### `experimental-dnsupdate`
+Enable/Disable DNS update (RFC2136) support. Default is no.
+
+#### `forward-dnsupdate`
+A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.
+
+#### `max-signature-cache-entries`
+Maximum number of signatures cache entries
+
+#### `local-address-nonexist-fail`
+Fail to start if one or more of the local-address's do not exist on this server
+
+#### `local-ipv6-nonexist-fail`
+Fail to start if one or more of the local-ipv6 addresses do not exist on this server
+
+#### `max-nsec3-iterations`
+Limit the number of NSEC3 hash iterations
+
+#### `only-notify`
+Only send AXFR NOTIFY to these IP addresses or netmasks
+
+#### `reuseport`
+Enable higher performance on compliant kernels by using SO\_REUSEPORT allowing each receiver thread to open its own socket
+
+#### `udp-truncation-threshold`
+Maximum UDP response size before we truncate
+
+#### `webserver-allow-from`
+Webserver access is only allowed from these subnets
+
+### Removed options
+#### `add-superfluous-nsec3-for-old-bind`
+Add superfluous NSEC3 record to positive wildcard response
+
+#### `edns-subnet-option-number`
+EDNS option number to use
+
+#### `fancy-records`
+Process URL and MBOXFW records
+
+#### `log-failed-updates`
+If PDNS should log failed update requests
+
+#### `smtpredirector`
+Our smtpredir MX host
+
+#### `urlredirector`
+Where we send hosts to that need to be url redirected
+
+#### `wildcard-url`
+Process URL and MBOXFW records
+
+### Options with changed default values
+
+#### `allow-axfr-ips`
+Allow zonetransfers only to these subnets
+
+* old value: 0.0.0.0/0,::/0
+* new value: 127.0.0.0/8,::1
+
+#### log-dns-details
+If PDNS should log DNS non-erroneous details
+
+* old value:
+* new value: no
+
+#### module-dir
+The default location has changed from libdir to pkglibdir. pkglibdir is defined as '\$(libdir)/pdns'
+
 # 3.3 to 3.3.1
+Constraints were added to the PostgreSQL schema:
+
+```
+        alter table domains add constraint c_lowercase_name CHECK (((name)::text = lower((name)::text)));
+        alter table tsigkeys add constraint c_lowercase_name check (((name)::text = lower((name)::text)));
+```
+
+The (gmysql-)innodb-read-committed flag was added to the gmysql backend, and enabled by default. This interferes with statement replication. Please set your binlog\_format to MIXED or ROW, or disable binlog. Alternatively, disable (gmysql-)innodb-read-committed but be aware that this may cause deadlocks during AXFRs.
 
 # 3.2 to 3.3
+The 'ip' field in the supermasters table (for the various gsql backends) has been stretched to 64 characters to support IPv6. For MySQL:
+
+```
+alter table supermasters modify ip VARCHAR(64);
+```
+
+For PostgreSQL:
+```
+alter table supermasters alter column ip type VARCHAR(64);
+```
+
+`pdnssec secure-zone` now creates one KSK and one ZSK, instead of two ZSKs.
+
+The 'rec\_name\_index' index was dropped from the gmysql schema, as it was superfluous.
 
 # 3.1 to 3.2
+Previously, on Linux, if the PowerDNS Authoritative Server was configured to bind to the IPv6 address `::`, the server would answer questions that came in via IPv6 **and** IPv4.
+
+As of 3.2, binding to :: on Linux now does the same thing as binding to :: on other operating systems: perform IPv6 service. To continue the old behaviour, use [`local-address`](settings.md#local-address)`=0.0.0.0` and [`local-ipv6`](settings.md#local-ipv6)`=::`.
+
+3.2 again involves some SQL schema changes, to make sure 'ordername' is ordered correctly for NSEC generation. For MySQL:
+
+```
+alter table records modify ordername    VARCHAR(255) BINARY;
+drop index orderindex on records;
+create index recordorder on records (domain_id, ordername);
+```
+
+You can test the BINARY change with the new and experimental 'pdnssec test-schema' command. For PostgreSQL, there are no real schema changes, but our indexes turned out to be inefficient, especially given the changed ordername queries in 3.2. Changes:
+
+```
+drop index orderindex;
+create index recordorder on records (domain_id, ordername text_pattern_ops);
+```
+Additionally, with 3.2 supporting empty non-terminals (see [XXX](XXX)), your frontend may need some changes.
+
+Due to a bug, in 3.1 and earlier releases, the pipebackend would default to a 1000 second timeout for responses from scripts, instead of the intended and documented 1000 milliseconds (1 second). In 3.2, pipe-timeout is in fact in milliseconds. To avoid some surprise, the default is now 2000 (2 seconds). If you have slow pipebackend scripts, make sure to increase [`pipe-timeout`](backend-pipe.md#pipe-timeout).
+
+Some configuration settings (that did not do anything, anyway) have been removed. You need to remove them from your configuration to start pdns\_server. They are: lazy-recursion, use-logfile, logfile.
 
 # 3.0 to 3.1
+PowerDNS 3.1 introduces native SQLite3 support for storing key material for DNSSEC in the bindbackend. With this change, support for bind+gsql-setups ('hybrid mode') has been dropped. If you were using this mode, you will need to switch to bind-dnssec-db and migrate your keying material.
+
+There have been changes to the SQL schemas for the generic backends.
+
+For MySQL:
+```
+mysql> ALTER TABLE records MODIFY content VARCHAR(64000);
+mysql> ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
+```
+
+For PostgreSQL:
+```
+postgres=# ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
+postgres=# ALTER TABLE tsigkeys alter column algorithm type VARCHAR(50);
+```
+
+The definition of 'auth' and 'ordername' in backends has changed slightly, see [XXX](XXX).
+
+PowerDNS 3.0 and 3.1 will only fetch DNSSEC metadata and key material from the first DNSSEC-capable backend in the launch line. In 3.1, the bindbackend supports DNSSEC storage. This means that setups using `launch=bind,gsqlite3` or `launch=gsqlite3,bind` may break. Please tread carefully!
 
 # 2.9.X to 3.0
+The 3.0 release of the PowerDNS Authoritative Server is significantly different from previous 2.9.x versions. This section lists important things to be aware of.
+
+**Warning**: Version 3.0 of the PowerDNS Authoritative Server is the biggest change in PowerDNS history. In some senses, this means that it behaves somewhat like a '1.0' version. We advise operators to carefully perform the upgrade process from 2.9.x, and if possible test on a copy of the database beforehand.
+
+In addition, it may also be useful to have a support agreement in place during such upgrades. For first class and rapid support, please contact powerdns-support@netherlabs.nl, or see [www.powerdns.com](www.powerdns.com). Alternatively, the [PowerDNS Community](http://wiki.powerdns.com) can be very helpful too.
+
+With similar settings, version 3.0 will most likely use a lot more memory than 2.9. This is due to the new DNSSEC key & signature caches, but also because the database query cache will now store multiple row answers, which it did not do previously. Memory use can be brought down again by tuning the cache-ttl settings.
+
+Performance may be up, or it may be down. We appreciate that this is spotty guidance, but depending on your setup, lookups may be a lot faster or a lot slower. The improved database cache may prove to be a big benefit, and improve performance dramatically. This could be offset by a near duplication of database queries needed because of more strict interpretation of DNS standards.
+
+PowerDNS Authoritative Server 3.0 contains a completely renewed implementation of the core DNS 'Algorithm', loosely specified in RFC 1034. As stated above, our new implementation is a lot closer to the original standard. This may mean that version 3.0 may interpret the contents of your database differently from how 2.9.x interpreted them. For fully standards confirming zones, there should not be a problem, but if zones were misconfigured (no SOA record, for example), things will be different.
+
+When compiling version 3.0, there are now more dependencies than there used to be. Whereas previously, only Boost header files were needed, PowerDNS now needs a number of Boost libraries to be installed (like boost-program-options, boost-serialization). In addition, for now Lua 5.1 is a dependency.
+
+PowerDNS Authoritative Server 3.0 comes with DNSSEC support, but this has required big changes to database schemas. Each backend lists the changes required. To facilitate a smooth upgrade, the old, non-DNSSEC schema is used by default. Features like per-domain metadata, TSIG and DNSSEC itself however need the new schema. Consult your backend documentation for the correct 'alter table' statements. Afterwards, set the relevant '-dnssec' setting for your backend (for example: gmysql-dnssec).
+
+In version 3.0, "Fancy Records", like URL, CURL and MBOXFW are no longer supported. Support may come back in later versions. In addition, the LDAP Backend has moved to 'unmaintained' status.
+
+## Frequently Asked Questions about 3.0
+
+Q: Can 2.9.x versions read the 3.0 DNSSEC database schema?
+A: Yes, every database can be altered to the new schema without impact on 2.9. The new fields and tables are ignored.
+
+Q: Can 3.x versions read the 2.9 pre-DNSSEC database schema?
+A: Yes, as long as the relevant '-dnssec' setting is not enabled. These settings are typically called 'gmysql-dnssec', 'gpgsql-dnssec', 'gsqlite3-dnssec'. If this setting IS enabled, 3.x expects the new schema to be in place.
+
+Q: If I run 3.0 with the new schema, and I have set '-dnssec', do I need to rectify my zones?
+A: Yes. If the '-dnssec' setting is enabled, PowerDNS expects the 'auth' field to be filled out correctly. When slaving zones this happens automatically. For other zones, run 'pdnssec rectify-zone zonename'. Even if a zone is not DNSSEC secured, as long as the new schema is in place, the zone must be rectified (or at least have the 'auth' field set correctly).
+
+Q: I want to fill out the 'auth' and 'ordername' fields directly, how do I do this?
+A: The 'auth' field should be '1' or 'true' for all records that are within your zone. For a zone without delegations, this means 'auth' should always be set. If you have delegations, both the NS records for that delegation and possible glue records for it should not have 'auth' set.
+
+For more details on 'auth' and 'ordername', please see [XXX](XXX).
+
+Q: If I don't update to the new DNSSEC schema, will 3.0 give identical answers as 2.9.x?
+A: Not always. The core DNS logic of 3.0 was changed, so even if no changes are made to the database, you may get different answers. This might happen for zones without SOA records for example, which used to (more or less) work. An upgrade from 2.9.x to 3.0 should always be monitored carefully.

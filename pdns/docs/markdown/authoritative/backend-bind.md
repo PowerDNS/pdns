@@ -15,7 +15,7 @@ The BindBackend started life as a demonstration of the versatility of PDNS but q
 
 The BindBackend parses a Bind-style `named.conf` and extracts information about zones from it. It makes no attempt to honour other configuration flags, which you should configure (when available) using the PDNS native configuration.
 
-## Settings
+## Configuration Parameters
 ### `--help=bind`
 Outputs all known parameters related to the bindbackend
 
