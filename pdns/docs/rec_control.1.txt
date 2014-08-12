@@ -1,7 +1,5 @@
 REC_CONTROL(1)
 ==============
-bert hubert <bert.hubert@netherlabs.nl>
-v3.0, 19 April 2006
 
 NAME
 ----
@@ -131,6 +129,7 @@ None known. File new ones at https://github.com/PowerDNS/pdns/issues.
 AUTHOR
 ------
 Written by PowerDNS.COM BV, bert hubert, <bert.hubert@netherlabs.nl>
+v3.0, 19 April 2006
 
 RESOURCES
 ---------
