@@ -348,7 +348,7 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
 
     if (d_socket == NULL ) return -1; // cannot receive :(
     char buffer[4096];
-    int rd;
+    int rd = -1;
 
     arl.initialize(&resp);
 
