@@ -1,11 +1,11 @@
 In a production environment, you will want to be able to monitor PDNS performance. Furthermore, PDNS can perform a configurable amount of operational logging. This chapter also explains how to configure syslog for best results.
 
 # Logging
-This chapter assumes familiarity with syslog, the unix logging device. PDNS logs messages with different levels. The more urgent the message, the lower the 'priority'. By default, PDNS will only log messages with an urgency of 3 or lower, but this can be changed using the [loglevel](settings.md#loglevel) setting in the configuration file. Setting it to 0 will eliminate all logging, 9 will log everything.
+This chapter assumes familiarity with syslog, the unix logging device. PDNS logs messages with different levels. The more urgent the message, the lower the 'priority'. By default, PDNS will only log messages with an urgency of 3 or lower, but this can be changed using the [loglevel](../authoritative/settings.md#loglevel) setting in the configuration file. Setting it to 0 will eliminate all logging, 9 will log everything.
 
 By default, logging is performed under the 'DAEMON' facility which is shared with lots of other programs. If you regard nameserving as important, you may want to have it under a dedicated facility so PDNS can log to its own files, and not clutter generic files.
 
-For this purpose, syslog knows about 'local' facilities, numbered from LOCAL0 to LOCAL7. To move PDNS logging to LOCAL0, add [`logging-facility`](settings.md#logging-facility)`=0` to your configuration.
+For this purpose, syslog knows about 'local' facilities, numbered from LOCAL0 to LOCAL7. To move PDNS logging to LOCAL0, add [`logging-facility`](../authoritative/settings.md#logging-facility)`=0` to your configuration.
 
 Furthermore, you may want to have separate files for the differing priorities - preventing lower priority messages from obscuring important ones.
 
@@ -27,7 +27,7 @@ Be aware that syslog by default logs messages at the configured priority and hig
 Both PowerDNS daemons generate ample metrics which can be used to monitor performance. These metrics can be polled using the rec\_control and pdns\_control commands, and they are also available via the http-based API. Finally, they can be pushed to a Carbon/Graphite server, either native carbon, or our own Metronome implementation.
 
 ## Webserver
-To launch the internal webserver, add a [`webserver`](settings.md#webserver) statement to the `pdns.conf`. This will instruct the PDNS daemon to start a webserver on localhost at port 8081, without password protection. Only local users (on the same host) will be able to access the webserver by default. The webserver lists a lot of information about the PDNS process, including frequent queries, frequently failing queries, lists of remote hosts sending queries, hosts sending corrupt queries etc. The webserver does not allow remote management of the daemon. The following webserver related configuration items are available:
+To launch the internal webserver, add a [`webserver`](../authoritative/settings.md#webserver) statement to the `pdns.conf`. This will instruct the PDNS daemon to start a webserver on localhost at port 8081, without password protection. Only local users (on the same host) will be able to access the webserver by default. The webserver lists a lot of information about the PDNS process, including frequent queries, frequently failing queries, lists of remote hosts sending queries, hosts sending corrupt queries etc. The webserver does not allow remote management of the daemon. The following webserver related configuration items are available:
 
 * `webserver`: If set to anything but 'no', a webserver is launched.
 * `webserver-address`: Address to bind the webserver to. Defaults to 127.0.0.1, which implies that only the local computer is able to connect to the nameserver! To allow remote hosts to connect, change to 0.0.0.0 or the physical IP address of your nameserver.
@@ -133,46 +133,4 @@ Care has been taken to make the sending of statistics as unobtrusive as possible
 
 To benefit from our carbon/graphite support, either install Graphite, or use our own lightweight statistics daemon, Metronome, currently available on [GitHub](https://github.com/ahupowerdns/metronome/).
 
-Secondly, set [`carbon-server`](settings.md#carbon-server), possibly [`carbon-interval`](settings.md#carbon-interval) and possibly [`carbon-ourname`](settings.md#carbon-ourname) in the configuration.
-
-## Counters & variables
-A number of counters and variables are set during PDNS Authoritative Server operation.
-
-### Counters
-* **corrupt-packets**: Number of corrupt packets received
-* **latency**: Average number of microseconds a packet spends within PDNS
-* **packetcache-hit**: Number of packets which were answered out of the cache
-* **packetcache-miss**: Number of times a packet could not be answered out of the cache
-* **packetcache-size**: Amount of packets in the packetcache
-* **qsize-a**: Size of the queue before the transmitting socket.
-* **qsize-q**: Number of packets waiting for database attention
-* **servfail-packets**: Amount of packets that could not be answered due to database problems
-* **tcp-answers**: Number of answers sent out over TCP
-* **tcp-questions**: Number of questions received over TCP
-* **timedout-questions**: Amount of packets that were dropped because they had to wait too long internally
-* **udp-answers**: Number of answers sent out over UDP
-* **udp-questions**: Number of questions received over UDP
-
-### Ring buffers
-Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.
-
-By counting the entries in the buffer, statistics can be generated. These statistics can currently only be viewed using the webserver and are in fact not even collected without the webserver running.
-
-The following ringbuffers are available:
-
-* **logmessages**: All messages logged
-* **noerror-queries**: Queries for existing records but for a type we don't have.
-Queries for, say, the AAAA record of a domain, when only an A is available. Queries are listed in the following format: name/type. So an AAAA query for pdns.powerdns.com looks like pdns.powerdns.com/AAAA.
-* **nxdomain-queries**: Queries for non-existing records within existing domains.
-If PDNS knows it is authoritative over a domain, and it sees a question for a record in that domain that does not exist, it is able to send out an authoritative 'no such domain' message. Indicates that hosts are trying to connect to services really not in your zone.
-* **udp-queries**: All UDP queries seen.
-* **remotes**: Remote server IP addresses.
-Number of hosts querying PDNS. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
-* **remote-corrupts**: Remotes sending corrupt packets.
-Hosts sending PDNS broken packets, possibly meant to disrupt service. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
-* **remote-unauth**: Remotes querying domains for which we are not authoritative.
-It may happen that there are misconfigured hosts on the internet which are configured to think that a PDNS installation is in fact a resolving nameserver. These hosts will not get useful answers from PDNS. This buffer lists hosts sending queries for domains which PDNS does not know about.
-* **servfail-queries**: Queries that could not be answered due to backend errors.
-For one reason or another, a backend may be unable to extract answers for a certain domain from its storage. This may be due to a corrupt database or to inconsistent data. When this happens, PDNS sends out a 'servfail' packet indicating that it was unable to answer the question. This buffer shows which queries have been causing servfails.
-* **unauth-queries**: Queries for domains that we are not authoritative for.
-If a domain is delegated to a PDNS instance, but the backend is not made aware of this fact, questions come in for which no answer is available, nor is the authority. Use this ringbuffer to spot such queries.
+Secondly, set [`carbon-server`](../authoritative/settings.md#carbon-server), possibly [`carbon-interval`](../authoritative/settings.md#carbon-interval) and possibly [`carbon-ourname`](../authoritative/settings.md#carbon-ourname) in the configuration.

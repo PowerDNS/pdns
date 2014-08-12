@@ -69,4 +69,4 @@ Dumps a lot of statistics of a running PDNS daemon. It is also possible to singl
 Show a single statistic, as present in the output of the **dump**.
 
 `mrtg`:
-See the performance [monitoring](logging.md#performance-monitoring) documentation.
+See the performance [monitoring](../common/logging.md#performance-monitoring) documentation.

@@ -341,12 +341,12 @@ When queried for its version over DNS (`dig chaos txt version.bind @pdns.ip.addr
 * Boolean
 * Default: no
 
-Start a webserver for monitoring. See ["Performance Monitoring"](logging.md#performance-monitoring).
+Start a webserver for monitoring. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-address`
 * IP Address
 * Default: 127.0.0.1
-IP Address of webserver to listen on. See ["Performance Monitoring"](logging.md#performance-monitoring).
+IP Address of webserver to listen on. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-allow-from`
 * IP ranges
@@ -355,17 +355,17 @@ Webserver access is only allowed from these subnets
 ## `webserver-password`
 * String
 * Default: unset
-The plaintext password required for accessing the webserver. See ["Performance Monitoring"](logging.md#performance-monitoring).
+The plaintext password required for accessing the webserver. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-port`
 * Integer
 * Default: 8001
-The port where webserver to listen on. See ["Performance Monitoring"](logging.md#performance-monitoring).
+The port where webserver to listen on. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-print-arguments`
 * Boolean
 * Default: no
-If the webserver should print arguments. See ["Performance Monitoring"](logging.md#performance-monitoring).
+If the webserver should print arguments. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `wildcard-url`
 Check for wildcard URL records.

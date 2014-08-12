@@ -1,17 +1,17 @@
 # Security Settings
-PDNS has several options to easily allow it to run more securely. Most notable are the [`chroot`](settings.md#chroot), [`setuid`](settings.md#setuid) and [`setgid`](settings.md#setgid) options which can be specified.
+PDNS has several options to easily allow it to run more securely. Most notable are the [`chroot`](../authoritative/settings.md#chroot), [`setuid`](../authoritative/settings.md#setuid) and [`setgid`](../authoritative/settings.md#setgid) options which can be specified.
 
 For additional information on PowerDNS security, PowerDNS security incidents and PowerDNS security policy, see [our security policy](../security/index.md).
 
 ## Running as a less privileged identity
 
-By specifying [`setuid`](settings.md#setuid) and [`setgid`](settings.md#setgid), PDNS changes to this identity shortly after binding to the privileged DNS ports. These options are highly recommended. It is suggested that a separate identity is created for PDNS as the user 'nobody' is in fact quite powerful on most systems.
+By specifying [`setuid`](../authoritative/settings.md#setuid) and [`setgid`](../authoritative/settings.md#setgid), PDNS changes to this identity shortly after binding to the privileged DNS ports. These options are highly recommended. It is suggested that a separate identity is created for PDNS as the user 'nobody' is in fact quite powerful on most systems.
 
 Both these parameters can be specified either numerically or as real names. You should set these parameters immediately if they are not set!
 
 ## Jailing the process in a chroot
 
-The [`chroot`](settings.md#chroot) option secures PDNS to its own directory so that even if it should become compromised and under control of external influences, it will have a hard time affecting the rest of the system.
+The [`chroot`](../authoritative/settings.md#chroot) option secures PDNS to its own directory so that even if it should become compromised and under control of external influences, it will have a hard time affecting the rest of the system.
 
 Even though this will hamper hackers a lot, chroot jails have been known to be broken.
 

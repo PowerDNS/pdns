@@ -17,7 +17,7 @@ Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PDNS cac
 
 Some PDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](../appendix/pdns-internals.md#pdns_control)` purge` to selectively or globally notify PDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
 
-To determine if PDNS is unable to keep up with packets, determine the value of the [`qsize-q`](logging.md#counters) variable. This represents the number of packets waiting for database attention. During normal operations the queue should be small.
+To determine if PDNS is unable to keep up with packets, determine the value of the [`qsize-q`](../common/logging.md#counters) variable. This represents the number of packets waiting for database attention. During normal operations the queue should be small.
 
 Logging truly kills performance as answering a question from the cache is an order of magnitude less work than logging a line about it. Busy sites will prefer to turn [`log-dns-details`](settings.md#log-dns-details) off.
 
@@ -38,3 +38,46 @@ Most gain is made from caching negative entries, ie, queries that have no answer
 This only is a problem when first doing a query for a record, adding it, and immediately doing a query for that record again. It may then take up to 60 seconds to appear. Changes to existing records however do not fall under the negative query ttl ([`negquery-cache-ttl`](settings.md#negquery-cache-ttl)), but under the generic [`query-cache-ttl`](settings.md#query-cache-ttl) which defaults to 20 seconds.
 
 The default values should work fine for many sites. When tuning, keep in mind that the Query Cache mostly saves database access but that the Packet Cache also saves a lot of CPU because 0 internal processing is done when answering a question from the Packet Cache.
+
+# Performance Monitoring
+## Counters & variables
+A number of counters and variables are set during PDNS Authoritative Server operation.
+
+### Counters
+* **corrupt-packets**: Number of corrupt packets received
+* **latency**: Average number of microseconds a packet spends within PDNS
+* **packetcache-hit**: Number of packets which were answered out of the cache
+* **packetcache-miss**: Number of times a packet could not be answered out of the cache
+* **packetcache-size**: Amount of packets in the packetcache
+* **qsize-a**: Size of the queue before the transmitting socket.
+* **qsize-q**: Number of packets waiting for database attention
+* **servfail-packets**: Amount of packets that could not be answered due to database problems
+* **tcp-answers**: Number of answers sent out over TCP
+* **tcp-questions**: Number of questions received over TCP
+* **timedout-questions**: Amount of packets that were dropped because they had to wait too long internally
+* **udp-answers**: Number of answers sent out over UDP
+* **udp-questions**: Number of questions received over UDP
+
+### Ring buffers
+Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.
+
+By counting the entries in the buffer, statistics can be generated. These statistics can currently only be viewed using the webserver and are in fact not even collected without the webserver running.
+
+The following ringbuffers are available:
+
+* **logmessages**: All messages logged
+* **noerror-queries**: Queries for existing records but for a type we don't have.
+Queries for, say, the AAAA record of a domain, when only an A is available. Queries are listed in the following format: name/type. So an AAAA query for pdns.powerdns.com looks like pdns.powerdns.com/AAAA.
+* **nxdomain-queries**: Queries for non-existing records within existing domains.
+If PDNS knows it is authoritative over a domain, and it sees a question for a record in that domain that does not exist, it is able to send out an authoritative 'no such domain' message. Indicates that hosts are trying to connect to services really not in your zone.
+* **udp-queries**: All UDP queries seen.
+* **remotes**: Remote server IP addresses.
+Number of hosts querying PDNS. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
+* **remote-corrupts**: Remotes sending corrupt packets.
+Hosts sending PDNS broken packets, possibly meant to disrupt service. Be aware that UDP is anonymous - person A can send queries that appear to be coming from person B.
+* **remote-unauth**: Remotes querying domains for which we are not authoritative.
+It may happen that there are misconfigured hosts on the internet which are configured to think that a PDNS installation is in fact a resolving nameserver. These hosts will not get useful answers from PDNS. This buffer lists hosts sending queries for domains which PDNS does not know about.
+* **servfail-queries**: Queries that could not be answered due to backend errors.
+For one reason or another, a backend may be unable to extract answers for a certain domain from its storage. This may be due to a corrupt database or to inconsistent data. When this happens, PDNS sends out a 'servfail' packet indicating that it was unable to answer the question. This buffer shows which queries have been causing servfails.
+* **unauth-queries**: Queries for domains that we are not authoritative for.
+If a domain is delegated to a PDNS instance, but the backend is not made aware of this fact, questions come in for which no answer is available, nor is the authority. Use this ringbuffer to spot such queries.

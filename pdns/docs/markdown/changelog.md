@@ -1475,7 +1475,7 @@ A good article on DNS spoofing can be found [here](http://www.securesphere.net/d
 **Warning**: Because of recent DNS based denial of service attacks, running an open recursor has become a security risk. Therefore, unless configured otherwise this version of PowerDNS will only listen on localhost, which means it does not resolve for hosts on your network. To fix, configure the **local-address** setting with all addresses you want to listen on. Additionally, by default service is restricted to RFC 1918 private IP addresses. Use **allow-from** to selectively open up the recursor for your own network. See [pdns\_recursor settings](recursor/settings.md#allow-from "pdns_recursor settings") for details.
 
 ## Important new features of the PowerDNS recursor 3.0
--   Best spoofing protection and detection we know of. Not only is spoofing made harder by using a new network address for each query, PowerDNS detects when an attempt is made to spoof it, and temporarily ignores the data. For details, see [Anti-spoofing](recursor/anti-spoofing.md "Anti-spoofing").
+-   Best spoofing protection and detection we know of. Not only is spoofing made harder by using a new network address for each query, PowerDNS detects when an attempt is made to spoof it, and temporarily ignores the data. For details, see [Anti-spoofing](recursor/security.md "Anti-spoofing").
 -   First nameserver to benefit from epoll/kqueue/Solaris completion ports event reporting framework, for stellar performance.
 -   Best statistics of any recursing nameserver we know of, see [Statistics](recursor/stats.md "Statistics").
 -   Last-recently-used based cache cleanup algorithm, keeping the 'best' records in memory
@@ -2406,7 +2406,7 @@ Developers: this version is compatible with 1.99.11 backends.
 -   Documentation bug - postgresql create/index statements created a duplicate index. If you've previously copy pasted the commands and not noticed the error, execute **CREATE INDEX rec\_name\_index ON records(name)** to remedy. Thanks to Jeff Miller for reporting this. This also lead to depressingly slow 'ANY' lookups for those of you doing benchmarks.
 
 ## Features
--   pdns\_control (see [pdns\_control](appendix/pdns-internals.html#pdnscontrol "pdns_control")) now opens the local end of its socket in `/tmp` instead of next to the remote socket (by default `/var/run`). This eases the way for allowing non-root access to pdns\_control. When running chrooted (see [Chapter 7, *Security settings & considerations*](authoritative/security.md "Security settings & considerations")), the local socket again moves back to `/var/run`.
+-   pdns\_control (see [pdns\_control](appendix/pdns-internals.html#pdnscontrol "pdns_control")) now opens the local end of its socket in `/tmp` instead of next to the remote socket (by default `/var/run`). This eases the way for allowing non-root access to pdns\_control. When running chrooted (see [Chapter 7, *Security settings & considerations*](common/security.md "Security settings & considerations")), the local socket again moves back to `/var/run`.
 -   pdns\_control now has a 'version' command. See [Section 1.1, “pdns\_control”](pdns-internals.html#pdnscontrol "1.1. pdns_control").
 
 # Version 1.99.11 Prerelease
@@ -2435,7 +2435,7 @@ PostgreSQL users should be aware that while 1.99.10 works with the schema as pre
 -   PDNS can now act as a master, sending out notifications in case of changes and allowing slaves to AXFR. Big rewording of replication support, domains are now either 'native', 'master' or 'slave'. See [Master/Slave operation & replication](authoritative/modes-of-operation.md "Master/Slave operation & replication") for lots of details.
 -   **Zone2sql** in PostgreSQL mode now populates the 'domains' table for easy master, slave or native replication support.
 -   Ability to run on IPv6 transport only
--   Logging can now happen under a 'facility' so all PDNS messages appear in their own file. See [Operational logging using syslog](authoritative/logging.md "Operational logging using syslog").
+-   Logging can now happen under a 'facility' so all PDNS messages appear in their own file. See [Operational logging using syslog](common/logging.md "Operational logging using syslog").
 -   Different OS releases of PDNS now get different install path defaults. Thanks to Mark Lastdrager for nagging about this and to Nero Imhard and Frederique Rijsdijk for suggesting saner defaults.
 -   Infrastructure for 'also-notify' statements added.
 
