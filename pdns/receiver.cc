@@ -198,6 +198,10 @@ static int guardian(int argc, char **argv)
   bool first=true;
 
   pthread_mutex_lock(&g_guardian_lock);
+  // Set up SIGTERM and SIGINT handlers
+  // for guardian and for it's children
+  signal(SIGINT, takedown);
+  signal(SIGTERM, takedown);
 
   for(;;) {
     int pid;
@@ -416,9 +420,6 @@ int main(int argc, char **argv)
   // cpid is needed to properly terminate PDNS process in
   // takedown function, and in Guardian's Cycle handler.
   cpid=0;
-
-  signal(SIGINT, takedown);
-  signal(SIGTERM, takedown);
 
   s_programname="pdns";
   s_starttime=time(0);
