@@ -224,9 +224,9 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 
   ret<<"<div class=\"row\">"<<endl;
   ret<<"<div class=\"headl columns\">";
-  ret<<"<a href=\"/\" id=\"appname\">PowerDNS "VERSION;
+  ret<<"<a href=\"/\" id=\"appname\">PowerDNS "<<htmlescape(VERSION);
   if(!arg()["config-name"].empty()) {
-    ret<<" ["<<arg()["config-name"]<<"]";
+    ret<<" ["<<htmlescape(arg()["config-name"])<<"]";
   }
   ret<<"</a></div>"<<endl;
   ret<<"<div class=\"headr columns\"></div></div>";
