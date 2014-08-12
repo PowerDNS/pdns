@@ -33,6 +33,7 @@ pages:
   - [recursor/stats.md, 'Recursor', 'Recursor Statistics']
   - [recursor/performance.md, 'Recursor', 'Performance Tuning']
   - [recursor/scripting.md, 'Recursor', 'Scripting']
+  - [recursor/dns64.md, 'Recursor', 'DNS64 support']
   - [recursor/settings.md, 'Recursor', 'List of Settings']
   - [security/index.md, 'Security', 'Security Policy']
   - [security/powerdns-advisory-2012-01.md, 'Security', 'Advisory 2012-01']
