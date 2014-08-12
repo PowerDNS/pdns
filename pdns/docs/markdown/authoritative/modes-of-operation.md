@@ -30,7 +30,6 @@ This instructs PDNS to notify all IP addresses it considers to be slaves of this
 * `pdns_control notify-host <domain> <ip-address>`
 This is truly an override and sends a notification to an arbitrary IP address. Can be used in [`also-notify`](settings.md#also-notify) situations or when PDNS has trouble figuring out who to notify - which may happen in contrived configurations.
 
-
 # Slave operation
 On launch, PDNS requests from all backends a list of domains which have not been checked recently for changes. This should happen every '**refresh**' seconds, as specified in the SOA record. All domains that are unfresh are then checked for changes over at their master. If the [SOA](../types.md#soa) serial number there is higher, the domain is retrieved and inserted into the database. In any case, after the check the domain is declared 'fresh', and will only be checked again after '**refresh**' seconds have passed.
 

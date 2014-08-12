@@ -1,0 +1,35 @@
+# Recursion with the Authoritative Server
+(only available from 1.99.8 and onwards, recursing component available since 2.9.5)
+
+From 2.9.5 onwards, PowerDNS offers both authoritative nameserving capabilities and a recursive nameserver component. These two halves are normally separate but many users insist on combining both recursion and authoritative service on one IP address. This can be likened to running Apache and Squid both on port 80.
+
+However, many sites want to do this anyhow and some with good reason. For example, a setup like this allows the creation of fake domains which only exist for local users. Such domains often don't end on ".com" or ".org" but on ".intern" or ".name-of-isp".
+
+PowerDNS can cooperate with either its own recursor or any other you have available to deliver recursive service on its port.
+
+By specifying the [`recursor`](settings.md#recursor) option in the configuration file, questions requiring recursive treatment will be handed over to the IP address specified. An example configuration might be `recursor=130.161.180.1`, which designates 130.161.180.1 as the nameserver to handle recursive queries.
+
+**Warning**:Using `recursor` is NOT RECOMMENDED as it comes with many potentially nasty surprises.
+
+Take care not to point `recursor` to the PowerDNS Authoritative Server itself, which leads to a very tight packet loop!
+
+By specifying [`allow-recursion`](settings.md#allow-recursion), recursion can be restricted to netmasks specified. The default is to allow recursion from everywhere. Example: `allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4`.
+
+## Details
+Questions carry a number of flags. One of these is called 'Recursion Desired'. If PDNS is configured to allow recursion, AND such a flag is seen, AND the IP address of the client is allowed to recurse via PDNS, then the packet may be handed to the recursing backend.
+
+If a Recursion Desired packet arrives and PDNS is configured to allow recursion, but not to the IP address of the client, resolution will proceed as if the RD flag were unset and the answer will indicate that recursion was not available.
+
+It is also possible to use a resolver living on a different port. To do so, specify a recursor like this: `recursor=192.0.2.1:5300`
+
+If the backend does not answer a question within a large amount of time, this is logged as 'Recursive query for remote 10.96.0.2 with internal id 0 was not answered by backend within timeout, reusing id'. This may happen when using 'BIND' as a recursor as it is prone to drop queries which it can't answer immediately.
+
+To make sure that the local authoritative database overrides recursive information, PowerDNS first tries to answer a question from its own database. If that succeeds, the answer packet is sent back immediately without involving the recursor in any way. This means that for questions for which there is no answer, PowerDNS will consult the recursor for an recursive query, even if PowerDNS is authoritative for a domain! This will only cause problems if you 'fake' domains which don't really exist.
+
+If you want to create such fake domains or override existing domains, please set the `allow-recursion-override` feature (available from 2.9.14 until 2.9.22.6).
+
+Some packets, like those asking for MX records which are needed for SMTP transport of email, can be subject to 'additional processing'. This means that a recursing nameserver is obliged to try to add A records (IP addresses) for any of the mail servers mentioned in the packet, should it have these addresses available.
+
+If PowerDNS encounters records needing such processing and finds that it does not have the data in its authoritative database, it will send an opportunistic quick query to the recursing component to see if it perhaps has such data. This question is worded such that the recursing nameserver should return immediately such as not to block the authoritative nameserver.
+
+This marks a change from pre-2.9.5 behaviour where a packet was handed wholesale to the recursor in case it needed additional processing which could not proceed from the authoritative database.

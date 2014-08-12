@@ -190,7 +190,12 @@ Allow this many incoming TCP DNS connections simultaneously.
 Default directory for modules. See ["Modules and Backends"](#XXX).
 
 ## `negquery-cache-ttl`
-Seconds to store queries with no answer in the Query Cache. See ["Query Cache"](#XXX).
+| | |
+|:-|:-|
+|Type|Integer|
+|Default|60|
+
+Seconds to store queries with no answer in the Query Cache. See ["Query Cache"](performance.md#query-cache).
 
 ## `no-config`
 Do not attempt to read the configuration file.
@@ -214,13 +219,18 @@ Only send AXFR NOTIFY to these IP addresses or netmasks. The default is to notif
 Boolean, do out of zone additional processing. This means that if a malicious user adds a '.com' zone to your server, it is not used for other domains and will not contaminate answers. Do not enable this setting if you run a public DNS service with untrusted users. Off by default.
 
 ## `pipebackend-abi-version`
-ABI version to use for the pipe backend. See ["PipeBackend protocol"](#XXX).
+ABI version to use for the pipe backend. See ["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).
 
 ## `prevent-self-notification`
 Boolean, available as of 3.3. PowerDNS Authoritative Server attempts to not send out notifications to itself in master mode. In very complicated situations we could guess wrong and not notify a server that should be notified. In that case, set prevent-self-notification to "no".
 
 ## `query-cache-ttl`
-Seconds to store queries with an answer in the Query Cache. See ["Query Cache"](#XXX).
+| | |
+|:-|:-|
+|Type|Integer|
+|Default|20|
+
+Seconds to store queries with an answer in the Query Cache. See ["Query Cache"](performance.md#query-cache).
 
 ## `query-local-address`
 The IP address to use as a source address for sending queries. Useful if you have multiple IPs and pdns is not bound to the IP address your operating system uses by default for outgoing packets.
