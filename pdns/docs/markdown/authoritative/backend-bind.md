@@ -1,15 +1,17 @@
 # Bind zone file backend
 
-* Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Experimental
-* Autoserial: No
-* DNSSEC: Yes
-* Disabled data: No
-* Comments: No
-* Module name: bind
-* Launch: bind
+| | |
+|:--|:--|
+|Native|Yes|
+|Master|Yes|
+|Slave|Yes|
+|Superslave|Experimental|
+|Autoserial|No|
+|DNSSEC|Yes|
+|Disabled data|No|
+|Comments|No|
+|Module name|bind|
+|Launch|bind|
 
 The BindBackend started life as a demonstration of the versatility of PDNS but quickly gained in importance when there appeared to be demand for a Bind 'work-alike'.
 

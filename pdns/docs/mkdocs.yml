@@ -2,7 +2,7 @@ site_name: PowerDNS
 repo_url: https://github.com/PowerDNS/pdns
 docs_dir: markdown
 site_dir: html-new
-theme: cosmo
+theme_dir: markdown/theme
 pages:
   - [index.md, 'PowerDNS Server', 'Introduction']
   - [changelog.md, 'PowerDNS Server', 'Changelogs']

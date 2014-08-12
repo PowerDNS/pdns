@@ -52,3 +52,7 @@ publish:
 publish3:
 	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.bz2 \
 		peter@xs.powerdns.com:doc.powerdns.com/
+
+publish-lieter: html-new/index.html
+	rsync -avrz --delete ./html-new/* \
+	  lieter@mango.plexis.eu:/srv/www/pdns-docs.plexis.eu/

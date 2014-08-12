@@ -7,6 +7,17 @@ A backend contains zero DNS logic. It need not look for CNAMEs, it need not retu
 
 **Warning**: PowerDNS may instantiate multiple instances of your backend, or destroy existing copies and instantiate new ones. Backend code should therefore be thread-safe with respect to its static data. Additionally, it is wise if instantiation is a fast operation, with the possible exception of the first construction.
 
+## Notes
+Besides regular query types, the DNS also knows the 'ANY' query type. When a server receives a question for this ANY type, it should reply with all record types available.
+
+Backends should therefore implement being able to answer 'ANY' queries in this way, and supply all record types they have when they receive such an 'ANY' query. This is reflected in the sample script above, which for every qtype answers if the type matches, or if the query is for 'ANY'.
+
+However, since backends need to implement the ANY query anyhow, PowerDNS makes use of this. Since almost all DNS queries internally need to be translated first into a CNAME query and then into the actual query, possibly followed by a SOA or NS query (this is how DNS works internally), it makes sense for PowerDNS to speed this up, and just ask the ANY query of a backend.
+
+When it has done so, it gets the data about SOA, CNAME and NS records in one go. This speeds things up tremendously.
+
+The upshot of the above is that for any backend, including the PIPE backend, implementing the ANY query is NOT optional. And in fact, a backend may see almost exclusively ANY queries. This is not a bug.
+
 ## Simple read-only native backends
 Implementing a backend consists of inheriting from the DNSBackend class. For read-only backends, which do not support slave operation, only the following methods are relevant:
 
