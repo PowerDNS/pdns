@@ -2019,7 +2019,7 @@ pdns[17495]: AXFR done for 'forfun.net', zone committed
 
 Also, you can force PowerDNS to reload a zone from disk immediately with **pdns\_control bind-reload-now**. All this happens 'live', per your instructions. Without instructions, the right things also happen, but the operator is in charge.
 
-For more about all this coolness, see [“pdns\_control”](appendix/pdns-internals.md#pdnscontrol "pdns_control") and [“pdns\_control commands”](authoritative/backend-bind.md#bind-control-commands "pdns_control commands").
+For more about all this coolness, see [“pdns\_control”](authoritative/internals.md#pdnscontrol "pdns_control") and [“pdns\_control commands”](authoritative/backend-bind.md#bind-control-commands "pdns_control commands").
 
 **Warning**: Again some changes in compilation instructions. The hybrid pgmysql backend has been split up into 'gmysql' and 'gpgsql', sharing a common base within the PowerDNS server itself. This means that you can no longer compile **--with-modules="pgmysql" --enable-mysql --enable-pgsql** but that you should now use: **--with-modules="gmysql gpgsql"**. The old launch-names remain available.
 
@@ -2288,7 +2288,7 @@ For operators of PowerDNS Express trying to host .DE domains, the very special *
 
 ## New features
 -   Wildcard CNAMEs now work as expected!
--   **pdns\_control purge** can now also purge based on suffix, allowing operators to purge an entire domain from the packet cache instead of only specific records. See also [pdns\_control](appendix/pdns-internals.md#pdnscontrol "pdns_control") Thanks to Mike Benoit for this suggestion.
+-   **pdns\_control purge** can now also purge based on suffix, allowing operators to purge an entire domain from the packet cache instead of only specific records. See also [pdns\_control](authoritative/internals.md#pdnscontrol "pdns_control") Thanks to Mike Benoit for this suggestion.
 -   **soa-serial-offset** for installations with small SOA serial numbers wishing to register .DE domains with DENIC which demands six-figure SOA serial numbers. See also [Chapter 21, *Index of all Authoritative Server settings*](authoritative/settings.md "Index of all Authoritative Server settings").
 
 # Version 2.1

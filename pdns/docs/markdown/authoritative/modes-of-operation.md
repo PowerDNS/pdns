@@ -39,7 +39,7 @@ PDNS also reacts to notifies by immediately checking if the zone has updated and
 
 All backends which implement this feature must make sure that they can handle transactions so as to not leave the zone in a half updated state. MySQL configured with either BerkeleyDB or InnoDB meets this requirement, as do PostgreSQL and Oracle. The Bindbackend implements transaction semantics by renaming files if and only if they have been retrieved completely and parsed correctly.
 
-Slave operation can also be programmed using several [`pdns_control`](../appendix/pdns-internals.md#pdnscontrol) commands. The `retrieve` command is especially useful as it triggers an immediate retrieval of the zone from the configured master.
+Slave operation can also be programmed using several [`pdns_control`](internals.md#pdnscontrol) commands. The `retrieve` command is especially useful as it triggers an immediate retrieval of the zone from the configured master.
 
 Since version 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify multiple masters, for SQL based backends, list all master servers separated by commas in the 'master' field of the domains table.
 
