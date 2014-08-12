@@ -57,8 +57,7 @@ void declareArguments()
   ::arg().set("query-local-address6","Source IPv6 address for sending queries")="::";
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
-  ::arg().set("soa-serial-offset","Make sure that no SOA serial is less than this number")="0";
-  
+
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
   ::arg().setSwitch("experimental-json-interface", "If the webserver should serve JSON data")="no";
   ::arg().setSwitch("experimental-api-readonly", "If the JSON API should disallow data modification")="no";

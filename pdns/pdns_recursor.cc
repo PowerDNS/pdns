@@ -2079,7 +2079,6 @@ int main(int argc, char **argv)
   try {
     ::arg().set("stack-size","stack size per mthread")="200000";
     ::arg().set("soa-minimum-ttl","Don't change")="0";
-    ::arg().set("soa-serial-offset","Don't change")="0";
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";

@@ -13463,6 +13463,16 @@ UPDATE records SET auth=1 WHERE auth IS NULL;
               </para>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>soa-serial-offset=...</term>
+            <listitem>
+              <para>
+                If your database contains single-digit SOA serials and you need to host .DE domains, this setting can help
+                placate their 6-digit SOA serial requirements. Suggested value is to set this to 1000000 which adds 1000000 to all SOA Serials
+                under that offset.
+              </para>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </sect3>
       <sect3><title>Options with changed default values</title>
@@ -17426,12 +17436,6 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <varlistentry><term>soa-retry-default=3600</term>
 	    <listitem><para>
 	      Default <link linkend="soa-type">SOA</link> retry.
-	      </para></listitem></varlistentry>
-	  <varlistentry><term>soa-serial-offset=...</term>
-	    <listitem><para>
-	      If your database contains single-digit SOA serials and you need to host .DE domains, this setting can help
-	      placate their 6-digit SOA serial requirements. Suggested value is to set this to 1000000 which adds 1000000 to all SOA Serials
-	      under that offset.
 	      </para></listitem></varlistentry>
 	  <varlistentry><term>socket-dir=...</term>
 	    <listitem><para>
