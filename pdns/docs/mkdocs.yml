@@ -24,6 +24,7 @@ pages:
   - [authoritative/backend-db2.md, 'Authoritative', 'Backend: DB2']
   - [authoritative/backend-random.md, 'Authoritative', 'Backend: Random']
   - [authoritative/backend-pipe.md, 'Authoritative', 'Backend: Pipe']
+  - [authoritative/backend-lmdb.md, 'Authoritative', 'Backend: LMDB']
   - [authoritative/backend-gsqlite.md, 'Authoritative', 'Backend: Generic SQLite']
   - [authoritative/backend-oracle.md, 'Authoritative', 'Backend: Oracle']
   - [authoritative/backend-generic-mypgsql.md, 'Authoritative', 'Backend: Generic MySQL and PostGreSQL']
