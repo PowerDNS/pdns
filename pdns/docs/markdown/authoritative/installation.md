@@ -70,3 +70,18 @@ Show a single statistic, as present in the output of the **dump**.
 
 `mrtg`:
 See the performance [monitoring](../common/logging.md#performance-monitoring) documentation.
+
+## Typical Errors after Installing
+At this point some things may have gone wrong. Typical errors include:
+
+### binding to UDP socket: Address already in use
+This means that another nameserver is listening on port 53 already. You can resolve this problem by determining if it is safe to shutdown the nameserver already present, and doing so. If uncertain, it is also possible to run PDNS on another port. To do so, add `local-port=5300` to `pdns.conf`, and try again. This however implies that you can only test your nameserver as clients expect the nameserver to live on port 53.
+
+### binding to UDP socket: Permission denied
+You must be superuser in order to be able to bind to port 53. If this is not a possibility, it is also possible to run PDNS on another port. To do so, add `local-port=5300` to `pdns.conf`, and try again. This however implies that you can only test your nameserver as clients expect the nameserver to live on port 53.
+
+### Unable to launch, no backends configured for querying
+PDNS did not find the `launch=bind` instruction in pdns.conf.
+
+# Multiple IP addresses on your server, PDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
+If you have multiple IP addresses on the internet on one machine, UNIX often sends out answers over another interface than which the packet came in on. In such cases, use `local-address` to bind to specific IP addresses, which can be comma separated. The second error comes from remotes disregarding answers to questions it didn't ask to that IP address and sending back ICMP errors.
