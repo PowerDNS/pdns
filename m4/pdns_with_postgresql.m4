@@ -5,9 +5,6 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
    ),
    [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
     PGSQL_inc_check="$withval/include/pgsql"
-   ],
-   [PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64 $full_libdir"
-    PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"
    ]
   )
 
@@ -25,6 +22,32 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
     [PGSQL_inc_check="$withval/include/pgsql $withval/pgsql $withval"]
   )
 
+  AC_ARG_WITH([pgsql-config], 
+    AS_HELP_STRING([--with-pgsql-config=<path>],
+      [location of pg_config]
+    ),
+    [PGSQL_pg_config="$withval"
+     if test "x$PGSQL_pg_config" == "xyes" || test ! -x "$PGSQL_pg_config"; then 
+       AC_MSG_ERROR([--with-pgsql-config must provide a valid path to pg_config executable])
+     fi
+    ], 
+    [AC_PATH_PROG([PGSQL_pg_config], [pg_config])]
+  )
+
+  if test "x$PGSQL_pg_config" != "x"; then
+    if test "x$PGSQL_lib_check" == "x"; then 
+      PGSQL_lib_check=$($PGSQL_pg_config --libdir)
+    fi
+    if test "x$PGSQL_inc_check" == "x"; then
+      PGSQL_inc_check=$($PGSQL_pg_config --includedir)
+    fi
+    PGSQL_CFLAGS=
+  else
+    PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64 $full_libdir"
+    PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"
+  fi
+
+  AC_SUBST([PGSQL_lib])
   AC_MSG_CHECKING([for PgSQL library directory])
   PGSQL_libdir=
   for m in $PGSQL_lib_check; do
@@ -38,25 +61,25 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
   fi
   case "$PGSQL_libdir" in
     /usr/lib)
-      PGSQL_lib=""
+      PGSQL_lib="-lpq"
       ;;
     /usr/lib64)
-      PGSQL_lib=""
+      PGSQL_lib="-lpq"
       ;;
     $full_libdir)
-      PGSQL_lib=""
+      PGSQL_lib="-lpq"
       ;;
     /*)
-      PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir"
+      PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir -lpq"
       LDFLAGS="$PGSQL_lib $LDFLAGS"
       ;;
     *)
       AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.])
       ;;
   esac
-
-  AC_SUBST(PGSQL_lib)
   AC_MSG_RESULT([$PGSQL_libdir])
+
+  AC_SUBST([PGSQL_inc]) 
   AC_MSG_CHECKING([for PgSQL include directory])
   PGSQL_incdir=
   for m in $PGSQL_inc_check; do
@@ -69,13 +92,13 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
     AC_MSG_ERROR([Did not find the PgSQL include dir in '$PGSQL_inc_check'])
   fi
   case "$PGSQL_incdir" in
-    /* )
+    /*)
+      PGSQL_inc="-I$PGSQL_incdir"
       ;;
     * )
       AC_MSG_ERROR([The PgSQL include directory ($PGSQL_incdir) must be an absolute path.])
       ;;
   esac
-  AC_SUBST(PGSQL_incdir)
   AC_MSG_RESULT([$PGSQL_incdir])
 ])
 
