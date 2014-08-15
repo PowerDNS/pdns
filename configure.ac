@@ -14,7 +14,7 @@ AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability sub
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
-: ${CXXFLAGS="-Wall -O2"}
+: ${CXXFLAGS="-Wall -O2 -D_FORTIY_SOURCE=2"}
 
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -30,6 +30,9 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 
 AC_LANG([C++])
 
+AC_CC_PIE
+AC_CC_STACK_PROTECTOR
+
 AC_CHECK_FUNC([socket], [], [
  AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
 ])
@@ -43,6 +46,8 @@ AC_PROG_LIBTOOL([disable-static])
 ],[
 LT_INIT([disable-static])
 ])
+
+AC_LD_RELRO
 
 MC_TM_GMTOFF
 
@@ -324,6 +329,10 @@ done
 for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
+
+CFLAGS="$CFLAGS $PIE_CFLAGS"
+CXXFLAGS="$CXXFLAGS $PIE_CFLAGS"
+LDFLAGS="$LDFLAGS $RELRO_LDFLAGS"
 
 AC_SUBST(LIBS)
 
