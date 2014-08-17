@@ -176,7 +176,6 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
       DNSResourceRecord rr;
-      rr.priority = 0;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
       rr.ttl=i->first.d_ttl;
