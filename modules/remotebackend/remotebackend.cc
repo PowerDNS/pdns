@@ -244,7 +244,6 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    value = -1;
    rr.ttl = getInt(JSON_GET((*d_result)["result"][d_index], "ttl",value));
    rr.domain_id = getInt(JSON_GET((*d_result)["result"][d_index],"domain_id",value));
-   rr.priority = getInt(JSON_GET((*d_result)["result"][d_index],"priority",value));
    value = 1;
    if (d_dnssec) 
      rr.auth = getInt(JSON_GET((*d_result)["result"][d_index],"auth", value));
@@ -699,7 +698,6 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
       JSON_ADD_MEMBER(rr, "qclass", QClass::IN, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "content", nsset[i].content.c_str(), query.GetAllocator());
       JSON_ADD_MEMBER(rr, "ttl", nsset[i].ttl, query.GetAllocator());
-      JSON_ADD_MEMBER(rr, "priority", nsset[i].priority, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "auth", nsset[i].auth, query.GetAllocator());
       rrset.PushBack(rr, query.GetAllocator());
    }
@@ -760,7 +758,6 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
       JSON_ADD_MEMBER(rr, "qclass", QClass::IN, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "content", rrset[i].content.c_str(), query.GetAllocator());
       JSON_ADD_MEMBER(rr, "ttl", rrset[i].ttl, query.GetAllocator());
-      JSON_ADD_MEMBER(rr, "priority", rrset[i].priority, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "auth", rrset[i].auth, query.GetAllocator());
       rj_rrset.PushBack(rr, query.GetAllocator());
    }
@@ -785,7 +782,6 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
    JSON_ADD_MEMBER(rj_rr, "qclass", QClass::IN, query.GetAllocator());
    JSON_ADD_MEMBER(rj_rr, "content", rr.content.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(rj_rr, "ttl", rr.ttl, query.GetAllocator());
-   JSON_ADD_MEMBER(rj_rr, "priority", rr.priority, query.GetAllocator());
    JSON_ADD_MEMBER(rj_rr, "auth", rr.auth, query.GetAllocator());
    parameters.AddMember("rr", rj_rr, query.GetAllocator());
 
