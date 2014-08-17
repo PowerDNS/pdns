@@ -342,7 +342,10 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
     object.AddMember("ttl", rr.ttl, doc.GetAllocator());
     object.AddMember("priority", rr.priority, doc.GetAllocator());
     object.AddMember("disabled", rr.disabled, doc.GetAllocator());
-    Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+    string temp_content = rr.content;
+    if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+      temp_content = lexical_cast<string>(rr.priority)+" "+rr.content;
+    Value jcontent(temp_content.c_str(), doc.GetAllocator()); // copy
     object.AddMember("content", jcontent, doc.GetAllocator());
     records.PushBack(object, doc.GetAllocator());
   }
