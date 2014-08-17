@@ -4,8 +4,8 @@ require 'rubygems'
 require 'json'
 require 'sqlite3'
 
-def rr(qname, qtype, content, ttl, priority = 0, auth = 1, domain_id = -1)
-   {:qname => qname, :qtype => qtype, :content => content, :ttl => ttl.to_i, :priority => priority.to_i, :auth => auth.to_i, :domain_id => domain_id.to_i}
+def rr(qname, qtype, content, ttl, auth = 1, domain_id = -1)
+   {:qname => qname, :qtype => qtype, :content => content, :ttl => ttl.to_i, :auth => auth.to_i, :domain_id => domain_id.to_i}
 end
 
 class Handler
@@ -95,7 +95,11 @@ class Handler
              end  
           end
           db.execute(sql, sargs) do |row|
-            ret << rr(row[1], row[2], row[3], row[4], row[5], row[6], row[0])
+            if (row[2] == "MX" || row[2] == "SRV")
+              ret << rr(row[1], row[2], row[5]+" "+row[3], row[4], row[6], row[0])
+            else
+              ret << rr(row[1], row[2], row[3], row[4], row[6], row[0])
+            end
           end
         rescue Exception => e
           e.backtrace
@@ -126,7 +130,11 @@ class Handler
           d_id = db.get_first_value("SELECT id FROM domains WHERE name = ?", target)
           return false if d_id.nil?
           db.execute("SELECT domain_id,name,type,content,ttl,prio,auth FROM records WHERE domain_id = ?", d_id) do |row|
-            ret << rr(row[1], row[2], row[3], row[4], row[5], row[6], row[0])
+            if (row[2] == "MX" || row[2] == "SRV")
+              ret << rr(row[1], row[2], row[5]+" "+row[3], row[4], row[6], row[0])
+            else
+              ret << rr(row[1], row[2], row[3], row[4], row[6], row[0])
+            end
           end
         rescue Exception => e
           e.backtrace
