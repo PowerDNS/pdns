@@ -1,6 +1,6 @@
 CREATE TABLE domains (
   id              INTEGER NOT NULL,
-  name            VARCHAR2(255) NOT NULL,
+  name            VARCHAR2(253) NOT NULL,
   master          VARCHAR2(128) DEFAULT NULL,
   last_check      INTEGER DEFAULT NULL,
   type            VARCHAR2(6) NOT NULL,
@@ -16,7 +16,7 @@ CREATE INDEX domains$name ON domains (name);
 CREATE TABLE records (
   id              INTEGER NOT NULL,
   domain_id       INTEGER DEFAULT NULL REFERENCES domains (id) ON DELETE CASCADE,
-  name            VARCHAR2(255) DEFAULT NULL,
+  name            VARCHAR2(253) DEFAULT NULL,
   type            VARCHAR2(10) DEFAULT NULL,
   content         VARCHAR2(4000) DEFAULT NULL,
   ttl             INTEGER DEFAULT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE supermasters (
 CREATE TABLE comments (
   id              INTEGER NOT NULL,
   domain_id       INTEGER NOT NULL REFERENCES domains (id) ON DELETE CASCADE,
-  name            VARCHAR2(255) NOT NULL,
+  name            VARCHAR2(253) NOT NULL,
   type            VARCHAR2(10) NOT NULL,
   modified_at     INTEGER NOT NULL,
   account         VARCHAR2(40) NOT NULL,

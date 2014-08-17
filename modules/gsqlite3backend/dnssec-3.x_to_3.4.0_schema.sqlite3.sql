@@ -1,7 +1,7 @@
 CREATE TABLE comments (
   id                    INTEGER PRIMARY KEY,
   domain_id             INTEGER NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
   account               VARCHAR(40) DEFAULT NULL,
@@ -33,7 +33,7 @@ BEGIN TRANSACTION;
   CREATE TABLE records (
     id                  INTEGER PRIMARY KEY,
     domain_id           INTEGER DEFAULT NULL,
-    name                VARCHAR(255) DEFAULT NULL,
+    name                VARCHAR(253) DEFAULT NULL,
     type                VARCHAR(10) DEFAULT NULL,
     content             VARCHAR(65535) DEFAULT NULL,
     ttl                 INTEGER DEFAULT NULL,

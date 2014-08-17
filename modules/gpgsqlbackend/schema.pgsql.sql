@@ -1,6 +1,6 @@
 CREATE TABLE domains (
   id                    SERIAL PRIMARY KEY,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   master                VARCHAR(128) DEFAULT NULL,
   last_check            INT DEFAULT NULL,
   type                  VARCHAR(6) NOT NULL,
@@ -15,7 +15,7 @@ CREATE UNIQUE INDEX name_index ON domains(name);
 CREATE TABLE records (
   id                    SERIAL PRIMARY KEY,
   domain_id             INT DEFAULT NULL,
-  name                  VARCHAR(255) DEFAULT NULL,
+  name                  VARCHAR(253) DEFAULT NULL,
   type                  VARCHAR(10) DEFAULT NULL,
   content               VARCHAR(65535) DEFAULT NULL,
   ttl                   INT DEFAULT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE supermasters (
 CREATE TABLE comments (
   id                    SERIAL PRIMARY KEY,
   domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
+  name                  VARCHAR(253) NOT NULL,
   type                  VARCHAR(10) NOT NULL,
   modified_at           INT NOT NULL,
   account               VARCHAR(40) DEFAULT NULL,
