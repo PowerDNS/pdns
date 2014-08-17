@@ -339,7 +339,6 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
     object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-    object.AddMember("priority", rr.priority, doc.GetAllocator());
     object.AddMember("disabled", rr.disabled, doc.GetAllocator());
     Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
     object.AddMember("content", jcontent, doc.GetAllocator());
@@ -394,15 +393,10 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       rr.content = stringFromJson(record, "content");
       rr.auth = 1;
       rr.ttl = intFromJson(record, "ttl");
-      rr.priority = intFromJson(record, "priority");
       rr.disabled = boolFromJson(record, "disabled");
 
-      string temp_content = rr.content;
-      if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-        temp_content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
       try {
-        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, temp_content));
+        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
         string tmp = drc->serialize(rr.qname);
       }
       catch(std::exception& e)
@@ -570,20 +564,6 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
       if(rr.qtype.getCode() == QType::SOA)
         seenSOA=true;
 
-      rr.priority = 0;
-
-      if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
-        int prio;
-        prio=atoi(rr.content.c_str());
-
-        string::size_type pos = rr.content.find_first_not_of("0123456789");
-        if(pos != string::npos)
-          boost::erase_head(rr.content, pos);
-        trim_left(rr.content);
-        rr.priority = prio;
-      }
-
-
       rr.qname = stripDot(rr.qname);
       new_records.push_back(rr);
     }
@@ -661,7 +641,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     rr.qname = zonename;
     rr.auth = 1;
     rr.ttl = ::arg().asNum("default-ttl");
-    rr.priority = 0;
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
       // synthesize a SOA record so the zone "really" exists
@@ -847,8 +826,6 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
       break;
     case QType::MX:
     case QType::SRV:
-      content = lexical_cast<string>(rr.priority) + "\t" + makeDotted(content);
-      break;
     case QType::CNAME:
     case QType::NS:
     case QType::AFSDB:
@@ -912,7 +889,6 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->priority = 0;
   ptr->content = rr.qname;
 }
 
@@ -1016,7 +992,6 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       rr.domain_id = di.id;
       rr.auth = 1;
       rr.ttl = sd.ttl;
-      rr.priority = 0;
       editSOARecord(rr, soa_edit_api_kind);
 
       if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {

@@ -212,9 +212,6 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const set<string, CIStringCompa
     signPlace = (DNSPacketWriter::Place) pos->d_place;
     if(pos->auth || pos->qtype.getCode() == QType::DS) {
       string content = pos->content;
-      if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
-        content = lexical_cast<string>(pos->priority) + " " + pos->content;
-      }
       if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
         content="\""+pos->content+"\"";
       }
