@@ -68,7 +68,7 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_stuff = 0;
   d_rollbackmarker=d_content.size();
 
-  if(compress && pdns_iequals(d_qname, d_recordqname)) {  // don't do the whole label compression thing if we *know* we can get away with "see question"
+  if(compress && !d_recordqname.empty() && pdns_iequals(d_qname, d_recordqname)) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
     static unsigned char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
