@@ -77,7 +77,7 @@ COMMIT;
 
 
 BEGIN TRANSACTION;
-  CREATE TABLE domainmetadata__backup (
+  CREATE TABLE domainmetadata_backup (
     id INTEGER PRIMARY KEY,
     domain_id INT NOT NULL,
     kind VARCHAR(32) COLLATE NOCASE,
