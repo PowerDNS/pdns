@@ -44,6 +44,146 @@ PowerDNS Authoritative Server is available through Homebrew:
 ## From source
 See the [Compiling PowerDNS](../appendix/compiling-powerdns.md) chapter
 
+# Basic setup: configuring database connectivity
+This chapter shows you how to configure the Generic MySQL backend, which we like a lot. But feel free to use any of the myriad other backends. This backend is called 'gmysql', and needs to be configured in `pdns.conf`. Add the following lines, adjusted for your local setup:
+
+```
+    launch=gmysql
+    gmysql-host=127.0.0.1
+    gmysql-user=root
+    gmysql-dbname=pdns
+    gmysql-password=mysecretpassword
+```
+
+Remove any earlier [`launch`](settings.md#launch) statements. Also remove the **bind-example-zones** statement as the **bind** module is no longer launched.
+
+**Warning**: Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply an IP address here to prevent chicken/egg problems!
+
+**Warning**: Be very very sure that you configure the \*g\*mysql backend and not the mysql backend. See the [Generic MySQL and PostGresql Backends](backend-generic-mypgsql.md). If you use the 'mysql' backend things will only appear to work. (The 'mysql' backend was removed in version 3.1).
+
+Now start PDNS using the monitor command:
+
+```
+    # /etc/init.d/pdns monitor
+    (...)
+    15:31:30 About to create 3 backend threads
+    15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+    15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+    15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+      
+```
+
+This is as to be expected - we did not yet add anything to MySQL for PDNS to read from. At this point you may also see other errors which indicate that PDNS either could not find your MySQL server or was unable to connect to it. Fix these before proceeding.
+
+General MySQL knowledge is assumed in this chapter, please do not interpret these commands as DBA advice!
+
+## Example: configuring MySQL
+Connect to MySQL as a user with sufficient privileges and issue the following commands:
+
+``` {include=../../modules/gmysqlbackend/schema.mysql.sql}
+```
+
+Now we have a database and an empty table. PDNS should now be able to launch in monitor mode and display no errors:
+
+```
+      # /etc/init.d/pdns monitor
+      (...)
+      15:31:30 PowerDNS 1.99.0 (Mar 12 2002, 15:00:28) starting up
+      15:31:30 About to create 3 backend threads
+      15:39:55 [gMySQLbackend] MySQL connection succeeded
+      15:39:55 [gMySQLbackend] MySQL connection succeeded
+      15:39:55 [gMySQLbackend] MySQL connection succeeded
+```
+
+A sample query sent to the database should now return quickly without data:
+
+```
+      $ host www.example.com 127.0.0.1
+      www.example.com A record currently not present at localhost
+```
+
+And indeed, the control console now shows:
+
+```
+      Mar 12 15:41:12 We're not authoritative for 'www.example.com', sending unauth normal response
+```
+
+Now we need to add some records to our database:
+
+```
+# mysql pdnstest
+mysql> INSERT INTO domains (name, type) values ('example.com', 'NATIVE');
+INSERT INTO records (domain_id, name, content, type,ttl,prio) 
+VALUES (1,'example.com','localhost ahu@ds9a.nl 1','SOA',86400,NULL);
+INSERT INTO records (domain_id, name, content, type,ttl,prio)
+VALUES (1,'example.com','dns-us1.powerdns.net','NS',86400,NULL);
+INSERT INTO records (domain_id, name, content, type,ttl,prio)
+VALUES (1,'example.com','dns-eu1.powerdns.net','NS',86400,NULL);
+INSERT INTO records (domain_id, name, content, type,ttl,prio)
+VALUES (1,'www.example.com','192.0.2.10','A',120,NULL);
+INSERT INTO records (domain_id, name, content, type,ttl,prio)
+VALUES (1,'mail.example.com','192.0.2.12','A',120,NULL);
+INSERT INTO records (domain_id, name, content, type,ttl,prio)
+VALUES (1,'localhost.example.com','127.0.0.1','A',120,NULL);
+INSERT INTO records (domain_id, name, content, type,ttl,prio)
+VALUES (1,'example.com','mail.example.com','MX',120,25);
+```
+
+**Warning**: Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present it will inevitably cause problems, problems that may be hard to debug.
+
+If we now requery our database, **www.example.com** should be present:
+
+```
+$ host www.example.com 127.0.0.1
+www.example.com           A   192.0.2.10
+
+$ host -v -t mx example.com 127.0.0.1
+Address: 127.0.0.1
+Aliases: localhost
+
+Query about example.com for record types MX
+Trying example.com ...
+Query done, 1 answer, authoritative status: no error
+example.com               120 IN  MX  25 mail.example.com
+Additional information:
+mail.example.com          120 IN  A   192.0.2.12
+```
+
+To confirm what happened, issue the command `SHOW *` to the control console:
+
+```
+      % show *
+      corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
+      qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
+      timedout-packets=0,udp-answers=7,udp-queries=7,
+      % 
+```
+
+The actual numbers will vary somewhat. Now enter `QUIT` and start PDNS as a regular daemon, and check launch status:
+
+```
+      # /etc/init.d/pdns start 
+      pdns: started
+      # /etc/init.d/pdns status
+      pdns: 8239: Child running
+      # /etc/init.d/pdns dump  
+      pdns: corrupt-packets=0,latency=0,packetcache-hit=0,packetcache-miss=0,
+      packetcache-size=0,qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,
+      tcp-queries=0,timedout-packets=0,udp-answers=0,udp-queries=0,
+```
+
+You now have a working database driven nameserver! To convert other zones already present, use the **zone2sql** described in Appendix A.
+
+## Common problems
+Most problems involve PDNS not being able to connect to the database.
+
+### Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)  
+Your MySQL installation is probably defaulting to another location for its socket. Can be resolved by figuring out this location (often `/var/run/mysqld.sock`), and specifying it in the configuration file with the **gmysql-socket** parameter.
+
+Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying **gmysql-host=127.0.0.1**.
+
+### Host 'x.y.z.w' is not allowed to connect to this MySQL server
+These errors are generic MySQL errors. Solve them by trying to connect to your MySQL database with the MySQL console utility **mysql** with the parameters specified to PDNS. Consult the MySQL documentation.
 # Running PowerDNS
 PDNS is normally controlled via a SysV-style init.d script, often located in `/etc/init.d` or `/etc/rc.d/init.d`. This script accepts the following commands:
 
@@ -83,5 +223,5 @@ You must be superuser in order to be able to bind to port 53. If this is not a p
 ### Unable to launch, no backends configured for querying
 PDNS did not find the `launch=bind` instruction in pdns.conf.
 
-# Multiple IP addresses on your server, PDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
+### Multiple IP addresses on your server, PDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
 If you have multiple IP addresses on the internet on one machine, UNIX often sends out answers over another interface than which the packet came in on. In such cases, use `local-address` to bind to specific IP addresses, which can be comma separated. The second error comes from remotes disregarding answers to questions it didn't ask to that IP address and sending back ICMP errors.

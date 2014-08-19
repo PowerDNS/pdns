@@ -12,396 +12,32 @@ If custom queries are in use, they probably need an update.
 
 ### gmysql backend with nodnssec schema
 
-```
-/* Uncomment next line for versions <= 3.1 */
-/* DROP INDEX rec_name_index ON records; */
-
-ALTER TABLE records ADD disabled TINYINT(1) DEFAULT 0;
-ALTER TABLE records MODIFY content VARCHAR(64000) DEFAULT NULL;
-ALTER TABLE records ADD ordername VARCHAR(255) BINARY DEFAULT NULL;
-ALTER TABLE records ADD auth TINYINT(1) DEFAULT 1;
-ALTER TABLE records MODIFY type VARCHAR(10);
-ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
-ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
-
-CREATE INDEX recordorder ON records (domain_id, ordername);
-
-
-CREATE TABLE domainmetadata (
-  id                    INT AUTO_INCREMENT,
-  domain_id             INT NOT NULL,
-  kind                  VARCHAR(32),
-  content               TEXT,
-  PRIMARY KEY(id)
-) Engine=InnoDB;
-
-CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);
-
-
-CREATE TABLE cryptokeys (
-  id                    INT AUTO_INCREMENT,
-  domain_id             INT NOT NULL,
-  flags                 INT NOT NULL,
-  active                TINYINT(1),
-  content               TEXT,
-  PRIMARY KEY(id)
-) Engine=InnoDB;
-
-CREATE INDEX domainidindex ON cryptokeys(domain_id);
-
-
-CREATE TABLE tsigkeys (
-  id                    INT AUTO_INCREMENT,
-  name                  VARCHAR(255),
-  algorithm             VARCHAR(50),
-  secret                VARCHAR(255),
-  PRIMARY KEY(id)
-) Engine=InnoDB;
-
-CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
-
-
-CREATE TABLE comments (
-  id                    INT AUTO_INCREMENT,
-  domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) NOT NULL,
-  comment               VARCHAR(64000) NOT NULL,
-  PRIMARY KEY(id)
-) Engine=InnoDB;
-
-CREATE INDEX comments_domain_id_idx ON comments (domain_id);
-CREATE INDEX comments_name_type_idx ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```{include=../../modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql}
 ```
 
 ### gmysql backend with dnssec schema
 
-```
-/* Uncomment next 3 lines for versions <= 3.1 */
-/* DROP INDEX rec_name_index ON records; */
-/* DROP INDEX orderindex ON records; */
-/* CREATE INDEX recordorder ON records (domain_id, ordername); */
-
-ALTER TABLE records ADD disabled TINYINT(1) DEFAULT 0 AFTER change_date;
-ALTER TABLE records MODIFY content VARCHAR(64000) DEFAULT NULL;
-ALTER TABLE records MODIFY ordername VARCHAR(255) BINARY DEFAULT NULL;
-ALTER TABLE records MODIFY auth TINYINT(1) DEFAULT 1;
-ALTER TABLE records MODIFY type VARCHAR(10);
-ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
-ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
-ALTER TABLE domainmetadata MODIFY kind VARCHAR(32);
-ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
-
-DROP INDEX domainmetaidindex ON domainmetadata;
-CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);
-
-CREATE TABLE comments (
-  id                    INT AUTO_INCREMENT,
-  domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) NOT NULL,
-  comment               VARCHAR(64000) NOT NULL,
-  PRIMARY KEY(id)
-) Engine=InnoDB;
-
-CREATE INDEX comments_domain_id_idx ON comments (domain_id);
-CREATE INDEX comments_name_type_idx ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```{include=../../modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql}
 ```
 
 ### gpgsql backend with nodnssec schema
 
-```
-/* Uncomment next line for versions <= 3.3 */
-/* ALTER TABLE domains ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
-
-ALTER TABLE records ADD disabled BOOL DEFAULT 'f';
-ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
-ALTER TABLE records ADD ordername VARCHAR(255);
-ALTER TABLE records ADD auth BOOL DEFAULT 't';
-ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
-ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
-ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
-
-CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
-
-
-CREATE TABLE domainmetadata (
- id                     SERIAL PRIMARY KEY,
- domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
- kind                   VARCHAR(32),
- content                TEXT
-);
-
-CREATE INDEX domainidmetaindex ON domainmetadata(domain_id);
-
-
-CREATE TABLE cryptokeys (
- id                     SERIAL PRIMARY KEY,
- domain_id              INT REFERENCES domains(id) ON DELETE CASCADE,
- flags                  INT NOT NULL,
- active                 BOOL,
- content                TEXT
-);
-
-CREATE INDEX domainidindex ON cryptokeys(domain_id);
-
-
-CREATE TABLE tsigkeys (
- id                     SERIAL PRIMARY KEY,
- name                   VARCHAR(255),
- algorithm              VARCHAR(50),
- secret                 VARCHAR(255),
- constraint c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
-);
-
-CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
-
-
-CREATE TABLE comments (
-  id                    SERIAL PRIMARY KEY,
-  domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
-  comment               VARCHAR(65535) NOT NULL,
-  CONSTRAINT domain_exists
-  FOREIGN KEY(domain_id) REFERENCES domains(id)
-  ON DELETE CASCADE,
-  CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
-);
-
-CREATE INDEX comments_domain_id_idx ON comments (domain_id);
-CREATE INDEX comments_name_type_idx ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```{include=../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql}
 ```
 
 ### gpgsql backend with dnssec schema:
 
-``` {.programlisting}
-/* Uncomment next 2 lines for versions <= 3.3 */
-/* ALTER TABLE domains ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
-/* ALTER TABLE tsigkeys ADD CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT))); */
-
-ALTER TABLE records ADD disabled BOOL DEFAULT 'f';
-ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
-ALTER TABLE records ALTER COLUMN auth SET DEFAULT 't';
-ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
-ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
-ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
-ALTER TABLE domainmetadata ALTER COLUMN kind TYPE VARCHAR(32);
-ALTER TABLE tsigkeys ALTER COLUMN algorithm TYPE VARCHAR(50);
-
-CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
-DROP INDEX IF EXISTS orderindex;
-
-
-CREATE TABLE comments (
-  id                    SERIAL PRIMARY KEY,
-  domain_id             INT NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
-  comment               VARCHAR(65535) NOT NULL,
-  CONSTRAINT domain_exists
-  FOREIGN KEY(domain_id) REFERENCES domains(id)
-  ON DELETE CASCADE,
-  CONSTRAINT c_lowercase_name CHECK (((name)::TEXT = LOWER((name)::TEXT)))
-);
-
-CREATE INDEX comments_domain_id_idx ON comments (domain_id);
-CREATE INDEX comments_name_type_idx ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
+```{include=../../modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql}
 ```
 
 ### gsqlite3 backend with nodnssec schema
 
-```
-ALTER TABLE records ADD disabled BOOL DEFAULT 0;
-ALTER TABLE records ADD ordername VARCHAR(255);
-ALTER TABLE records ADD auth BOOL DEFAULT 1;
-
-CREATE INDEX orderindex ON records(ordername);
-
-
-CREATE TABLE domainmetadata (
-  id                    INTEGER PRIMARY KEY,
-  domain_id             INT NOT NULL,
-  kind                  VARCHAR(32) COLLATE NOCASE,
-  content               TEXT
-);
-
-CREATE INDEX domainmetaidindex on domainmetadata(domain_id);
-
-
-CREATE TABLE cryptokeys (
-  id                    INTEGER PRIMARY KEY,
-  domain_id             INT NOT NULL,
-  flags                 INT NOT NULL,
-  active                BOOL,
-  content               TEXT
-);
-
-CREATE INDEX domainidindex ON cryptokeys(domain_id);
-
-
-CREATE TABLE tsigkeys (
-  id                    INTEGER PRIMARY KEY,
-  name                  VARCHAR(255) COLLATE NOCASE,
-  algorithm             VARCHAR(50) COLLATE NOCASE,
-  secret                VARCHAR(255)
-);
-
-CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
-
-
-CREATE TABLE comments (
-  id                    INTEGER PRIMARY KEY,
-  domain_id             INTEGER NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
-  comment               VARCHAR(65535) NOT NULL
-);
-
-CREATE INDEX comments_domain_id_index ON comments (domain_id);
-CREATE INDEX comments_nametype_index ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
-
-
-BEGIN TRANSACTION;
-  CREATE TEMPORARY TABLE supermasters_backup (
-    ip                  VARCHAR(64) NOT NULL,
-    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
-    account             VARCHAR(40) DEFAULT NULL
-  );
-
-  INSERT INTO supermasters_backup SELECT ip, nameserver, account FROM supermasters;
-  DROP TABLE supermasters;
-
-  CREATE TABLE supermasters (
-    ip                  VARCHAR(64) NOT NULL,
-    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
-    account             VARCHAR(40) DEFAULT NULL
-  );
-  CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
-
-  INSERT INTO supermasters SELECT ip, nameserver, account FROM supermasters_backup;
-  DROP TABLE supermasters_backup;
-COMMIT;
+```{include=../../modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql}
 ```
 
 ### gsqlite3 backend with dnssec schema:
 
-```
-CREATE TABLE comments (
-  id                    INTEGER PRIMARY KEY,
-  domain_id             INTEGER NOT NULL,
-  name                  VARCHAR(255) NOT NULL,
-  type                  VARCHAR(10) NOT NULL,
-  modified_at           INT NOT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
-  comment               VARCHAR(65535) NOT NULL
-);
-
-CREATE INDEX comments_domain_id_index ON comments (domain_id);
-CREATE INDEX comments_nametype_index ON comments (name, type);
-CREATE INDEX comments_order_idx ON comments (domain_id, modified_at);
-
-
-BEGIN TRANSACTION;
-  CREATE TEMPORARY TABLE records_backup(
-    id                  INTEGER PRIMARY KEY,
-    domain_id           INTEGER DEFAULT NULL,
-    name                VARCHAR(255) DEFAULT NULL,
-    type                VARCHAR(10) DEFAULT NULL,
-    content             VARCHAR(65535) DEFAULT NULL,
-    ttl                 INTEGER DEFAULT NULL,
-    prio                INTEGER DEFAULT NULL,
-    change_date         INTEGER DEFAULT NULL,
-    ordername           VARCHAR(255),
-    auth                BOOL DEFAULT 1
-  );
-
-  INSERT INTO records_backup SELECT id,domain_id,name,type,content,ttl,prio,change_date,ordername,auth FROM records;
-  DROP TABLE records;
-
-  CREATE TABLE records (
-    id                  INTEGER PRIMARY KEY,
-    domain_id           INTEGER DEFAULT NULL,
-    name                VARCHAR(255) DEFAULT NULL,
-    type                VARCHAR(10) DEFAULT NULL,
-    content             VARCHAR(65535) DEFAULT NULL,
-    ttl                 INTEGER DEFAULT NULL,
-    prio                INTEGER DEFAULT NULL,
-    change_date         INTEGER DEFAULT NULL,
-    disabled            BOOLEAN DEFAULT 0,
-    ordername           VARCHAR(255),
-    auth                BOOL DEFAULT 1
-  );
-
-  CREATE INDEX rec_name_index ON records(name);
-  CREATE INDEX nametype_index ON records(name,type);
-  CREATE INDEX domain_id ON records(domain_id);
-  CREATE INDEX orderindex ON records(ordername);
-
-  INSERT INTO records SELECT id,domain_id,name,type,content,ttl,prio,change_date,0,ordername,auth FROM records_backup;
-  DROP TABLE records_backup;
-COMMIT;
-
-
-BEGIN TRANSACTION;
-  CREATE TEMPORARY TABLE supermasters_backup (
-    ip                  VARCHAR(64) NOT NULL,
-    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
-    account             VARCHAR(40) DEFAULT NULL
-  );
-
-  INSERT INTO supermasters_backup SELECT ip,nameserver,account FROM supermasters;
-  DROP TABLE supermasters;
-
-  CREATE TABLE supermasters (
-    ip                  VARCHAR(64) NOT NULL,
-    nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
-    account             VARCHAR(40) DEFAULT NULL
-  );
-  CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
-
-  INSERT INTO supermasters SELECT ip,nameserver,account FROM supermasters_backup;
-  DROP TABLE supermasters_backup;
-COMMIT;
-
-
-BEGIN TRANSACTION;
-  CREATE TABLE domainmetadata__backup (
-    id INTEGER PRIMARY KEY,
-    domain_id INT NOT NULL,
-    kind VARCHAR(32) COLLATE NOCASE,
-    content TEXT
-  );
-
-  INSERT INTO domainmetadata_backup SELECT id,domain_id,kind,content FROM domainmetadata;
-  DROP TABLE domainmetadata;
-
-  CREATE TABLE domainmetadata (
-    id INTEGER PRIMARY KEY,
-    domain_id INT NOT NULL,
-    kind VARCHAR(32) COLLATE NOCASE,
-    content TEXT
-  );
-  CREATE INDEX domainmetaidindex ON domainmetadata(domain_id);
-
-  INSERT INTO domainmetadata SELECT id,domain_id,kind,content FROM domainmetadata_backup;
-  DROP TABLE domainmetadata_backup;
-COMMIT;
+```{include=../../modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql}
 ```
 
 ### goracle backend:
@@ -411,6 +47,8 @@ ALTER TABLE records ADD disabled INT DEFAULT 0;
 ALTER TABLE records MODIFY auth INT DEFAULT 1;
 
 UPDATE records SET auth=1 WHERE auth IS NULL;
+
+ALTER TABLE domainmetadata MODIFY kind VARCHAR2(32);
 ```
 
 ## Configuration option changes

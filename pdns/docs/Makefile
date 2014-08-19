@@ -10,11 +10,13 @@ clean:
 
 manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
-html-new:
+html-new/index.html: markdown/** mkdocs.yml
 	rm -rf html-new
 	mkdir html-new
-
-html-new/index.html: html-new markdown/** mkdocs.yml
+	rm -rf doc-build
+	mkdir doc-build
+	rsync -a --delete markdown/. doc-build/.
+	./process-md.sh
 	mkdocs build
 
 html/index.html: pdns-expanded.xml

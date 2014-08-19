@@ -5,4 +5,4 @@ To generate additional PDNS instances, copy the init.d script `pdns` to `pdns-na
 
 When you launch PDNS via this renamed script, it will seek configuration instructions not in `pdns.conf` but in `pdns-name.conf`, allowing for separate specification of parameters.
 
-**Warninge**: Be aware however that the init.d `force-stop` will kill all PDNS instances!
+**Warning**: Be aware however that the init.d `force-stop` will kill all PDNS instances!
