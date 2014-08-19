@@ -22,6 +22,8 @@ pages:
   - [authoritative/dnssec.md, 'Authoritative', 'Serve DNSSEC Signed Data']
   - [authoritative/backend-bind.md, 'Authoritative', 'Backend: BIND']
   - [authoritative/backend-db2.md, 'Authoritative', 'Backend: DB2']
+  - [authoritative/backend-deprecated.md, 'Authoritative', 'Deprecated Backends']
+  - [authoritative/backend-ldap.md, 'Authoritative', 'Backend: LDAP']
   - [authoritative/backend-random.md, 'Authoritative', 'Backend: Random']
   - [authoritative/backend-pipe.md, 'Authoritative', 'Backend: Pipe']
   - [authoritative/backend-lmdb.md, 'Authoritative', 'Backend: LMDB']
