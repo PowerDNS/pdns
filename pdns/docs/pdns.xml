@@ -13259,6 +13259,18 @@ ALTER TABLE domainmetadata MODIFY kind VARCHAR2(32);
       </para>
     </sect2>
     <sect2 id="from3.3.1to3.4.0-options"><title>Configuration option changes</title>
+      <sect3><title>Changed options</title>
+        <variablelist>
+          <varlistentry>
+            <term>gpgsql-dbname, gpgsql-user</term>
+            <listitem>
+              <para>
+                These now default to empty, instead of 'powerdns'.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </sect3>
       <sect3><title>New options</title>
         <variablelist>
         <varlistentry>
