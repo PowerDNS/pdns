@@ -14,7 +14,7 @@ AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability sub
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
-: ${CXXFLAGS="-Wall -O2 -D_FORTIY_SOURCE=2"}
+: ${CXXFLAGS="-Wall -g -O2"}
 
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -32,6 +32,8 @@ AC_LANG([C++])
 
 AC_CC_PIE
 AC_CC_STACK_PROTECTOR
+AC_CC_PARAM_SSP_SIZE([4])
+AC_CC_D_FORTIFY_SOURCE
 
 AC_CHECK_FUNC([socket], [], [
  AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
