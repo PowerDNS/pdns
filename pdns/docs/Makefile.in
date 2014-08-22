@@ -1,6 +1,15 @@
 # $Id$ 
 
-all: pdns.txt pdns.pdf html/index.html html.tar.gz pdns-expanded.html manpages
+ASCIIDOC=@ASCIIDOC@
+XMLTO=@XMLTO@
+
+all: check pdns.txt pdns.pdf html/index.html html.tar.gz pdns-expanded.html manpages
+
+check:
+	if test !-x $(XMLTO) || test ! -x $(ASCIIDOC); then \
+		echo "asciidoc or xmlto missing - cannot build docs" \
+		exit 0 \
+	fi        
 
 pdns-expanded.xml: pdns.xml
 	./expand < $< > $@
@@ -12,31 +21,31 @@ manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
 html/index.html: pdns-expanded.xml
 	rm -rf html
-	xmlto xhtml -m config.xsl -o html $<
+	$(XMLTO) xhtml -m config.xsl -o html $<
 	cp docbook.css html
 
 pdns-expanded.html: pdns-expanded.xml
-	xmlto xhtml-nochunks -m config.xsl $<
+	$(XMLTO) xhtml-nochunks -m config.xsl $<
 	
 html.tar.gz: html/index.html
 	tar czf html.tar.gz html/
 
 %.txt: %-expanded.xml
-	xmlto txt -m config.xsl  $<
+	$(XMLTO) txt -m config.xsl  $<
 	mv pdns-expanded.txt pdns.txt
 
 %.pdf: %-expanded.xml
-	xmlto --with-dblatex pdf $<
+	$(XMLTO) --with-dblatex pdf $<
 	mv pdns-expanded.pdf pdns.pdf
 
 %1.xml: %1.txt
-	asciidoc -b docbook -d manpage  $<
+	$(ASCIIDOC) -b docbook -d manpage  $<
         
 %.1: %.1.xml
-	xmlto man $<
+	$(XMLTO) man $<
                 
 %.html: %1.txt
-	asciidoc -b xhtml11 -d manpage  $<
+	$(ASCIIDOC) -b xhtml11 -d manpage  $<
                         
 publish:
 	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.gz \

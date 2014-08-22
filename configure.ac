@@ -58,6 +58,8 @@ PKG_PROG_PKG_CONFIG
 
 AC_CHECK_PROG([RAGEL], [ragel], [ragel])
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
+AC_CHECK_PROG([XMLTO], [xmlto], [xmlto])
+
 
 PDNS_WITH_LUA
 
@@ -338,6 +340,7 @@ AC_CONFIG_FILES([
   pdns/Makefile
   codedocs/Makefile
   pdns/pdns
+  pdns/docs/Makefile
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
