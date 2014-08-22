@@ -13254,7 +13254,7 @@ ALTER TABLE records MODIFY auth INT DEFAULT 1;
 
 UPDATE records SET auth=1 WHERE auth IS NULL;
 
-ALTER TABLE domainmetadata MODIFY kind VARCHAR2(32);
+ALTER TABLE domainmetadata MODIFY kind VARCHAR(32);
         </screen>
       </para>
     </sect2>
