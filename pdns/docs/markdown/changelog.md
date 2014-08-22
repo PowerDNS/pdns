@@ -1,4 +1,4 @@
-Note: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
+**Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
 # PowerDNS Authoritative Server 3.4.0
 RC1 released August 1st, 2014
