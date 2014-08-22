@@ -56,7 +56,7 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
-AC_CHECK_PROG([RAGEL], [ragel], [ragel])
+PDNS_CHECK_RAGEL
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 PDNS_WITH_LUA
