@@ -147,6 +147,9 @@ If PDNS should log DNS non-erroneous details
 #### module-dir
 The default location has changed from libdir to pkglibdir. pkglibdir is defined as '\$(libdir)/pdns'
 
+#### gpgsql-dbname, gpgsql-user
+These are now empty instead of "powerdns"
+
 # 3.3 to 3.3.1
 Constraints were added to the PostgreSQL schema:
 
