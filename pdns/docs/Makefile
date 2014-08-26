@@ -7,16 +7,13 @@ clean:
 
 manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
-html-new/index.html: process-md mkdocs.yml
-	mkdocs build
-
-process-md: markdown/** process-md.sh dirs
-	rsync -a --delete markdown/. doc-build/.
-	./process-md.sh
-
-dirs: html-new doc-build
+html-new/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
+	rm -rf html-new/*
 	mkdir -p html-new
 	mkdir -p doc-build
+	rsync -a --delete markdown/. doc-build/.
+	./process-md.sh
+	mkdocs build
 
 pdns-expanded.html: pdns-expanded.xml
 	xmlto xhtml-nochunks -m config.xsl $<
