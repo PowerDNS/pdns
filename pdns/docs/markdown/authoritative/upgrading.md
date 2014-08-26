@@ -195,7 +195,7 @@ You can test the BINARY change with the new and experimental 'pdnssec test-schem
 drop index orderindex;
 create index recordorder on records (domain_id, ordername text_pattern_ops);
 ```
-Additionally, with 3.2 supporting empty non-terminals (see [XXX](XXX)), your frontend may need some changes.
+Additionally, with 3.2 supporting empty non-terminals (see [Rules for filling out fields in Database Backends](dnssec.md#rules-for-filling-out-fields-in-database-backends)), your frontend may need some changes.
 
 Due to a bug, in 3.1 and earlier releases, the pipebackend would default to a 1000 second timeout for responses from scripts, instead of the intended and documented 1000 milliseconds (1 second). In 3.2, pipe-timeout is in fact in milliseconds. To avoid some surprise, the default is now 2000 (2 seconds). If you have slow pipebackend scripts, make sure to increase [`pipe-timeout`](backend-pipe.md#pipe-timeout).
 
@@ -218,7 +218,7 @@ postgres=# ALTER TABLE records ALTER COLUMN content TYPE VARCHAR(65535);
 postgres=# ALTER TABLE tsigkeys alter column algorithm type VARCHAR(50);
 ```
 
-The definition of 'auth' and 'ordername' in backends has changed slightly, see [XXX](XXX).
+The definition of 'auth' and 'ordername' in backends has changed slightly, see [Rules for filling out fields in Database Backends](dnssec.md#rules-for-filling-out-fields-in-database-backends).
 
 PowerDNS 3.0 and 3.1 will only fetch DNSSEC metadata and key material from the first DNSSEC-capable backend in the launch line. In 3.1, the bindbackend supports DNSSEC storage. This means that setups using `launch=bind,gsqlite3` or `launch=gsqlite3,bind` may break. Please tread carefully!
 
@@ -255,7 +255,7 @@ A: Yes. If the '-dnssec' setting is enabled, PowerDNS expects the 'auth' field t
 Q: I want to fill out the 'auth' and 'ordername' fields directly, how do I do this?
 A: The 'auth' field should be '1' or 'true' for all records that are within your zone. For a zone without delegations, this means 'auth' should always be set. If you have delegations, both the NS records for that delegation and possible glue records for it should not have 'auth' set.
 
-For more details on 'auth' and 'ordername', please see [XXX](XXX).
+For more details on 'auth' and 'ordername', please see [Rules for filling out fields in Database Backends](dnssec.md#rules-for-filling-out-fields-in-database-backends).
 
 Q: If I don't update to the new DNSSEC schema, will 3.0 give identical answers as 2.9.x?
 A: Not always. The core DNS logic of 3.0 was changed, so even if no changes are made to the database, you may get different answers. This might happen for zones without SOA records for example, which used to (more or less) work. An upgrade from 2.9.x to 3.0 should always be monitored carefully.

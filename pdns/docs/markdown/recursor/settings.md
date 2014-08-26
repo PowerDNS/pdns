@@ -20,16 +20,16 @@ Authoritative zones can transmit a TTL value that is lower than that specified i
 Comma separated list of 'zonename=filename' pairs. Zones read from these files (in BIND format) are served authoritatively. Example: `auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com`. Available since version 3.1.
 
 ## `carbon-ourname`
-If sending carbon updates, if set, this will override our hostname. See [XXX](XXX). Available beyond 3.5.3.
+If sending carbon updates, if set, this will override our hostname. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.5.3.
 
 ## `carbon-server=...`
-If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome. See [XXX](XXX). Available beyond 3.5.3.
+If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.5.3.
 
 ## `carbon-interval=...`
-If sending carbon updates, this is the interval between them in seconds. See [XXX](XXX). Available beyond 3.5.3.
+If sending carbon updates, this is the interval between them in seconds. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.5.3.
 
 ## `chroot`
-If set, chroot to this directory for more security. See [XXX](XXX).
+If set, chroot to this directory for more security. See [Security](../common/security.md).
 
 Make sure that `/dev/log` is available from within the chroot. Logging will silently fail over time otherwise (on logrotate).
 
