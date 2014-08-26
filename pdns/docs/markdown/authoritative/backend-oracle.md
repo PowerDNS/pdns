@@ -1,5 +1,5 @@
 # Oracle backend
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|Yes|

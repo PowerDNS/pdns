@@ -1,7 +1,7 @@
 # DB2 Backend
 **Note**: This backend is unsupported.
 
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|No|

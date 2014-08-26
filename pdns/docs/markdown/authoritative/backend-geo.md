@@ -3,7 +3,7 @@
 
 The main author for this module is Mark Bergsma.
 
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Partial|
 |Master|No|

@@ -1,5 +1,5 @@
 # Pipe Backend
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|No|
@@ -19,7 +19,7 @@ The PipeBackend is primarily meant for allowing rapid development of new backend
 
 ## Configuration Parameters
 ### `pipe-command`
-| | |
+|&nbsp;|&nbsp;|
 |:-|:-|
 |Type|String|
 |Mandatory|Yes|
@@ -27,7 +27,7 @@ The PipeBackend is primarily meant for allowing rapid development of new backend
 Command to launch as backend or the path to a unix domain socket file. The socket should already be open and listening before pdns starts. Using the socket is supported since PowerDNS 3.3.
 
 ### `pipe-timeout`
-| | |
+|&nbsp;|&nbsp;|
 |:-|:-|
 |Type|Integer|
 |Default|2000|
@@ -35,7 +35,7 @@ Command to launch as backend or the path to a unix domain socket file. The socke
 Number of milliseconds to wait for an answer from the backend. If this time is ever exceeded, the backend is declared dead and a new process is spawned.
 
 ### `pipe-regex`
-| | |
+|&nbsp;|&nbsp;|
 |:-|:-|
 |Type|String (a regex)|
 

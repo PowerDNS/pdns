@@ -11,7 +11,7 @@ He also maintains the [LDAP backends documentation](http://wiki.linuxnetworks.de
 
 **Warning**: Host names and the MNAME of a SOA records are NEVER terminated with a '.' in PowerDNS storage! If a trailing '.' is present it will inevitably cause problems, problems that may be hard to debug.
 
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|No|

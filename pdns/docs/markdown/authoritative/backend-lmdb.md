@@ -1,5 +1,5 @@
 # LMDB (high performance) backend
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|No|

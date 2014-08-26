@@ -3,7 +3,7 @@ This page contains some information about deprecated backends.
 # ODBC backend
 **Note**: This backend was removed in version 3.1.
 
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|Yes (experimental)|

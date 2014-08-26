@@ -1,5 +1,5 @@
 # Generic SQLite backend (2 and 3)
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|Yes|

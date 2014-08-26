@@ -190,7 +190,7 @@ Allow this many incoming TCP DNS connections simultaneously.
 Default directory for modules. See ["Modules and Backends"](#XXX).
 
 ## `negquery-cache-ttl`
-| | |
+|&nbsp;|&nbsp;|
 |:-|:-|
 |Type|Integer|
 |Default|60|
@@ -225,7 +225,7 @@ ABI version to use for the pipe backend. See ["PipeBackend protocol"](backend-pi
 Boolean, available as of 3.3. PowerDNS Authoritative Server attempts to not send out notifications to itself in master mode. In very complicated situations we could guess wrong and not notify a server that should be notified. In that case, set prevent-self-notification to "no".
 
 ## `query-cache-ttl`
-| | |
+|&nbsp;|&nbsp;|
 |:-|:-|
 |Type|Integer|
 |Default|20|

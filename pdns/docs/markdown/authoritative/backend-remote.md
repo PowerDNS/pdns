@@ -1,7 +1,7 @@
 # Remote Backend
 **Warning**: The Remote Backend is available since PowerDNS Authoritative Server 3.2. This backend is stable on version 3.3, not before.
 
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|Yes\*|

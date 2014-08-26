@@ -1,5 +1,5 @@
 # Generic MySQL and PgSQL backends
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|Yes|

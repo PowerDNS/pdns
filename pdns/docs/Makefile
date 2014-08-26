@@ -3,22 +3,20 @@
 all: pdns.txt pdns.pdf html/index.html html.tar.bz2 pdns-expanded.html manpages
 
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.bz2 html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.bz2 html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1 html-new doc-build
 
 manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
-html-new: html-new/index.html
+html-new/index.html: process-md mkdocs.yml
+	mkdocs build
 
-html-new/process: markdown/** markdown/*/** mkdocs.yml
-	rm -rf html-new
-	mkdir html-new
-	rm -rf doc-build
-	mkdir doc-build
+process-md: markdown/** process-md.sh dirs
 	rsync -a --delete markdown/. doc-build/.
 	./process-md.sh
 
-html-new/index.html: html-new/process
-	mkdocs build
+dirs: html-new doc-build
+	mkdir -p html-new
+	mkdir -p doc-build
 
 pdns-expanded.html: pdns-expanded.xml
 	xmlto xhtml-nochunks -m config.xsl $<

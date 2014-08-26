@@ -1,6 +1,6 @@
 # Bind zone file backend
 
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
 |Master|Yes|
