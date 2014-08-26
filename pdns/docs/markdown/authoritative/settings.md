@@ -26,25 +26,25 @@ When notifying a domain, also notify these nameservers. Example: `also-notify=19
 Boolean value (`yes` or `no`). Answer questions for the ANY and RRSIG types on UDP with a truncated packet that refers the remote server to TCP. Useful for mitigating reflection attacks. Defaults to `no`. Available since 3.3.
 
 ## `cache-ttl`
-Seconds to store packets in the PacketCache. See ["Packet Cache"](#XXX).
+Seconds to store packets in the PacketCache. See ["Packet Cache"](performance.md#packet-cache).
 
 ## `carbon-ourname`
-If sending carbon updates, if set, this will override our hostname. See ["PowerDNS Metrics"](#XXX "PowerDNS Metrics"). Available beyond 3.3.1.
+If sending carbon updates, if set, this will override our hostname. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.3.1.
 
 ## `carbon-server`
-If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome. See ["PowerDNS Metrics"](#XXX "PowerDNS Metrics"). Available beyond 3.3.1.
+If set to an IP or IPv6 address, will send all available metrics to this server via the carbon protocol, which is used by graphite and metronome. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.3.1.
 
 ## `carbon-interval`
-If sending carbon updates, this is the interval between them in seconds. See ["PowerDNS Metrics"](#XXX "PowerDNS Metrics"). Available beyond 3.3.1.
+If sending carbon updates, this is the interval between them in seconds. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.3.1.
 
 ## `chroot`
-If set, chroot to this directory for more security. See ["Security settings & considerations"](#XXX "Security settings & considerations").
+If set, chroot to this directory for more security. See ["Security settings & considerations"](../common/security.md).
 
 ## `config-dir`
 Location of configuration directory (`pdns.conf`)
 
 ## `config-name`
-Name of this virtual configuration - will rename the binary image. See ["Virtual hosting"](#XXX "Virtual hosting").
+Name of this virtual configuration - will rename the binary image. See ["Virtual hosting"](virtual.md).
 
 ## `control-console`
 Debugging switch - don't use.
@@ -74,7 +74,7 @@ Disable the rectify step during an outgoing AXFR. Only required for regression t
 Do not listen to TCP queries. Breaks RFC compliance.
 
 ## `distributor-threads`
-Number of Distributor (backend) threads to start per receiver thread. See ["Authoritative Server Performance"](#XXX).
+Number of Distributor (backend) threads to start per receiver thread. See ["Authoritative Server Performance"](performance.md).
 
 ## `do-ipv6-additional-processing`
 Perform AAAA additional processing.
@@ -101,7 +101,7 @@ Synthesise CNAME records from DNAME records as required. This approximately doub
 Enable/Disable DNS update (RFC2136) support.
 
 ## `fancy-records`
-Process URL and MBOXFW records. See ["Fancy Records"](#XXX).
+Process URL and MBOXFW records. See ["Fancy Records"](fancy-records.md).
 
 ## `forward-dnsupdates`
 * Boolean
@@ -109,7 +109,7 @@ Process URL and MBOXFW records. See ["Fancy Records"](#XXX).
 Forward DNS updates sent to a slave to the master.
 
 ## `guardian`
-Boolean, run within a guardian process. See ["Guardian"](#XXX).
+Boolean, run within a guardian process. See ["Guardian"](internals.md#guardian).
 
 ## `help`
 Provide a helpful message
@@ -118,13 +118,13 @@ Provide a helpful message
 Directory to scan for additional config files. All files that end with .conf are loaded in order.
 
 ## `launch`
-Which backends to launch and order to query them in. See ["Modules & Backends"](#XXX).
+Which backends to launch and order to query them in. See ["Modules & Backends"](internals.md#modules-backends).
 
 ## `lazy-recursion`
-Boolean, on by default as of 2.1. Checks local data first before recursing. See ["Recursion"](#XXX). Removed in 3.2.
+Boolean, on by default as of 2.1. Checks local data first before recursing. See ["Recursion"](recursion.md). Removed in 3.2.
 
 ## `load-modules`
-Load this module - supply absolute or relative path. See ["Modules & Backends"](#XXX).
+Load this module - supply absolute or relative path. See ["Modules & Backends"](internals.md#modules-backends).
 
 ## `local-address`
 Local IP address to which we bind. You can specify multiple addresses separated by commas or whitespace. It is highly advised to bind to specific interfaces and not use the default 'bind to any'. This causes big problems if you have multiple IP addresses. Unix does not provide a way of figuring out what IP address a packet was sent to when binding to any.
@@ -151,7 +151,7 @@ The port on which we listen. Only one port possible.
 If set to 'no', informative-only DNS details will not even be sent to syslog, improving performance. Available from 2.5 and onwards.
 
 ## `logging-facility`
-If set to a digit, logging is performed under this LOCAL facility. See ["Operational logging using syslog"](#XXX). Available from 1.99.9 and onwards. Do not pass names like 'local0'!
+If set to a digit, logging is performed under this LOCAL facility. See ["Operational logging using syslog"](../common/logging.md#logging). Available from 1.99.9 and onwards. Do not pass names like 'local0'!
 
 ## `loglevel`
 Amount of logging. Higher is more. Do not set below 3
@@ -187,7 +187,7 @@ Maximum number of signatures cache entries
 Allow this many incoming TCP DNS connections simultaneously.
 
 ## `module-dir`
-Default directory for modules. See ["Modules and Backends"](#XXX).
+Default directory for modules. See ["Modules and Backends"](internals.md#modules-backends).
 
 ## `negquery-cache-ttl`
 |&nbsp;|&nbsp;|
@@ -242,16 +242,16 @@ Source IP address for sending IPv6 queries.
 Boolean, hints to a backend that it should log a textual representation of queries it performs. Can be set at runtime.
 
 ## `queue-limit`
-Maximum number of milliseconds to queue a query. See ["Authoritative Server Performance"](#XXX).
+Maximum number of milliseconds to queue a query. See ["Authoritative Server Performance"](performance.md).
 
 ## `receiver-threads`
-Number of receiver (listening) threads to start. See ["Authoritative Server Performance"](#XXX) for tuning details.
+Number of receiver (listening) threads to start. See ["Authoritative Server Performance"](performance.md) for tuning details.
 
 ## `recursive-cache-ttl`
-Seconds to store recursive packets in the PacketCache. See ["Packet Cache"](#XXX).
+Seconds to store recursive packets in the PacketCache. See ["Packet Cache"](internals.md#packet-cache).
 
 ## `recursor`
-If set, recursive queries will be handed to the recursor specified here. See ["Recursion"](#XXX).
+If set, recursive queries will be handed to the recursor specified here. See ["Recursion"](recursion.md).
 
 ## `retrieval-threads`
 Number of AXFR slave threads to start.
@@ -262,10 +262,10 @@ Boolean or `lean`, if set, PowerDNS will send out old-fashioned root-referrals w
 Since version 2.9.21, it is possible to specify 'lean' root referrals, which waste less bandwidth.
 
 ## `setgid`
-If set, change group id to this gid for more security. See ["Security settings & considerations"](#XXX).
+If set, change group id to this gid for more security. See ["Security settings & considerations"](../common/security.md).
 
 ## `setuid`
-If set, change user id to this uid for more security. See ["Security settings & considerations"](#XXX).
+If set, change user id to this uid for more security. See ["Security settings & considerations](../common/security.md).
 
 ## `slave`
 Turn on slave support. Boolean.
@@ -280,25 +280,25 @@ Boolean, this setting will make PowerDNS renotify the slaves after an AXFR is *r
 Tell PowerDNS how many threads to use for signing. It might help improve signing speed by changing this number.
 
 ## `smtpredirector`
-Our smtpredir MX host. See ["Fancy Records"](#XXX).
+Our smtpredir MX host. See ["Fancy Records"](fancy-records.md).
 
 ## `soa-expire-default`
-604800 Default [SOA](#XXX) expire.
+604800 Default [SOA](../types.md#soa) expire.
 
 ## `soa-minimum-ttl`
-3600 Default [SOA](#XXX) minimum ttl.
+3600 Default [SOA](../types.md#soa) minimum ttl.
 
 ## `soa-refresh-default`
-10800 Default [SOA](#XXX) refresh.
+10800 Default [SOA](../types.md#soa) refresh.
 
 ## `soa-retry-default`
-3600 Default [SOA](#XXX) retry.
+3600 Default [SOA](../types.md#soa) retry.
 
 ## `soa-serial-offset`
 If your database contains single-digit SOA serials and you need to host .DE domains, this setting can help placate their 6-digit SOA serial requirements. Suggested value is to set this to 1000000 which adds 1000000 to all SOA Serials under that offset.
 
 ## `socket-dir`
-Where the controlsocket will live. See ["Controlsocket"](#XXX).
+Where the controlsocket will live. See ["Controlsocket"](internals.md#controlsocket).
 
 ## `strict-rfc-axfrs`
 Boolean, perform strictly RFC-conforming AXFRs, which are slow, but may be necessary to placate some old client tools.
@@ -327,7 +327,7 @@ IP address of incoming notification proxy
 EDNS0 allows for large UDP response datagrams, which can potentially raise performance. Large responses however also have downsides in terms of reflection attacks. Up till PowerDNS Authoritative Server 3.3, the truncation limit was set at 1680 bytes, regardless of EDNS0 buffer size indications from the client. Beyond 3.3, this setting makes our truncation limit configurable. Maximum value is 65535, but values above 4096 should probably not be attempted.
 
 ## `urlredirector`
-Where we send hosts to that need to be url redirected. See ["Fancy Records"](#XXX).
+Where we send hosts to that need to be url redirected. See ["Fancy Records"](fancy-records.md).
 
 ## `version-string`
   * `anonymous`
