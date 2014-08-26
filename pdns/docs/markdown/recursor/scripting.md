@@ -78,7 +78,7 @@ The function `matchnetmask(ip, netmask1, netmask2..)` (or `matchnetmask(ip, {net
 
 To log messages with the main PowerDNS Recursor process, use `pdnslog(message)`. Available since version 3.2. pdnslog can also write out to a syslog loglevel if specified. Use `pdnslog(message, pdns.loglevels.LEVEL)` with the correct pdns.loglevels entry. Entries are listed in the following table:
 
-| | |
+|&nbsp;|&nbsp;|
 |:--||:--|
 |All|pdns.loglevels.All|
 |NTLog|pdns.loglevels.NTLog|

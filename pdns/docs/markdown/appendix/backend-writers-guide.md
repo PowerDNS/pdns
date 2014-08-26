@@ -164,7 +164,7 @@ Please note that a RandomBackend is actually in most PDNS releases. By default i
 ### Classes
 
 #### DNSResourceRecord
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |QType qtype|QType of this record|
 |string qname|name of this record|
@@ -177,7 +177,7 @@ Please note that a RandomBackend is actually in most PDNS releases. By default i
 |bool disabled|If set, this record is not to be served to DNS clients. Backends should not make these records available to PowerDNS unless indicated otherwise.|
 
 #### SOAData
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |string nameserver|Name of the master nameserver of this zone|
 |string hostmaster|Hostmaster of this domain. May contain an @|
@@ -314,7 +314,7 @@ The following excerpt from the DNSBackend shows the relevant functions:
 The mentioned DomainInfo struct looks like this:
 
 ### DomainInfo struct
-| | |
+|&nbsp;|&nbsp;|
 |:--|:--|
 |uint32\_t id|ID of this zone within this backend|
 |string master|IP address of the master of this domain, if any|
