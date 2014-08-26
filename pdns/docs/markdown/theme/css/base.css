@@ -92,6 +92,10 @@ div.source-links {
     font-size: 90%;
 }
 
+.navbar-nav > li > a {
+  padding: 15px 7px;
+}
+
 /* Show and affix the side nav when space allows it */
 @media (min-width: 1200px) {
     .bs-sidebar .nav > .active > ul {
