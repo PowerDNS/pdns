@@ -13,6 +13,4 @@ Another prime goal is security. By the use of language features, the PDNS source
 Finally, PowerDNS is able to give a lot of statistics on its operation which is both helpful in determining the scalability of an installation as well as for spotting problems.
 
 # About this document
-If you are reading this document from disk, you may want to check <http://doc.powerdns.com> for updates. The PDF version is available on <http://doc.powerdns.com/pdf>, a text file is on [http://doc.powerdns.com/txt/](http://doc.powerdns.com/txt).
-
-The most up to date version of the HTML documentation can be downloaded as a tar archive from <http://doc.powerdns.com/html.tar.gz>.
+If you are reading this document from disk, you may want to check <http://doc.powerdns.com> for updates.
