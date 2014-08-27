@@ -543,10 +543,9 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   // Replace the message ID with the original message ID from the TSIG record.
   // This is needed for forwarded DNS Update as they get a new ID when forwarding (section 6.1 of RFC2136). The TSIG record stores the original ID and the
   // signature was created with the original ID, so we replace it here to get the originally signed message.
-  char lo = trc.d_origID & 0xFF;
-  char hi = trc.d_origID >> 8;
-  packet[1] = lo;  
-  packet[0] = hi;
+  // If the message is not forwarded, we simply override it with the same id.
+  uint16_t origID = htons(trc.d_origID);
+  packet.replace(0, 2, (char*)&origID, 2);
 
   if(!previous.empty()) {
     uint16_t len = htons(previous.length());
