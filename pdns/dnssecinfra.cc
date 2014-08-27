@@ -539,10 +539,18 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   packet.resize(tsigOffset); // remove the TSIG record at the end as per RFC2845 3.4.1
   packet[(dnsHeaderOffset + sizeof(struct dnsheader))-1]--; // Decrease ARCOUNT because we removed the TSIG RR in the previous line.
   
+
+  // Replace the message ID with the original message ID from the TSIG record.
+  // This is needed for forwarded DNS Update as they get a new ID when forwarding (section 6.1 of RFC2136). The TSIG record stores the original ID and the
+  // signature was created with the original ID, so we replace it here to get the originally signed message.
+  char lo = trc.d_origID & 0xFF;
+  char hi = trc.d_origID >> 8;
+  packet[1] = lo;  
+  packet[0] = hi;
+
   if(!previous.empty()) {
     uint16_t len = htons(previous.length());
     message.append((char*)&len, 2);
-    
     message.append(previous);
   }
   
