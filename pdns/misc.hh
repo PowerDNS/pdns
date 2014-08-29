@@ -311,16 +311,16 @@ inline bool pdns_ilexicographical_compare(const std::string& a, const std::strin
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
 {
   const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
-
-  while(*aPtr && *bPtr) {
+  const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
+  while(aPtr != aEptr && bPtr != bEptr) {
     if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
       return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
     aPtr++;
     bPtr++;
   }
-  if(!*aPtr && !*bPtr) // strings are equal (in length)
+  if(aPtr == aEptr && bPtr == bEptr) // strings are equal (in length)
     return false;
-  return !*aPtr; // true if first string was shorter
+  return aPtr == aEptr; // true if first string was shorter
 }
 
 inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
