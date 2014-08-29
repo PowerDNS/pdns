@@ -23,6 +23,7 @@
 #include "responsestats.hh"
 
 #include "namespaces.hh"
+pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
@@ -245,6 +246,26 @@ string doWipeCache(T begin, T end)
 
   return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
 }
+
+template<typename T>
+string doSetCarbonServer(T begin, T end)
+{
+  Lock l(&g_carbon_config_lock);
+  if(begin==end) {
+    ::arg().set("carbon-server").clear();
+    return "cleared carbon-server setting\n";
+  }
+  string ret;
+  ::arg().set("carbon-server")=*begin;
+  ret="set carbon-server to '"+::arg()["carbon-server"]+"'\n";
+  if(begin != end) {
+    ++begin;
+    ::arg().set("carbon-ourname")=*begin;
+    ret+="set carbon-ourname to '"+*begin+"'\n";
+  }
+  return ret;
+}
+
 
 template<typename T>
 string setMinimumTTL(T begin, T end)
@@ -638,6 +659,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-zones                     reload all auth and forward zones\n"
 "set-minimum-ttl value            set mininum-ttl-override\n"
+"set-carbon-server                set a carbon server for telemetry\n"
 "trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
 "top-remotes                      show top remotes\n"
 "unload-lua-script                unload Lua script\n"
@@ -676,6 +698,9 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="reload-lua-script") 
     return doQueueReloadLuaScript(begin, end);
+
+  if(cmd=="set-carbon-server") 
+    return doSetCarbonServer(begin, end);
 
   if(cmd=="trace-regex") 
     return doTraceRegex(begin, end);

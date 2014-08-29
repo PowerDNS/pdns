@@ -4,16 +4,25 @@
 #include "iputils.hh"
 #include "logger.hh"
 #include "arguments.hh"
+#include "lock.hh"
 #include <boost/foreach.hpp>
 
 void doCarbonDump(void*)
 try
 {
-  if(arg()["carbon-server"].empty())
+  string hostname, carbonServer;
+
+  {
+    Lock l(&g_carbon_config_lock);
+    carbonServer=arg()["carbon-server"];
+    hostname=arg()["carbon-ourname"];
+  }
+
+  if(carbonServer.empty())
     return;
 
   RecursorControlParser rcp; // inits if needed
-  ComboAddress remote(arg()["carbon-server"], 2003);
+  ComboAddress remote(carbonServer, 2003);
   Socket s(remote.sin4.sin_family, SOCK_STREAM);
 
   s.setNonBlocking();
@@ -24,7 +33,7 @@ try
 
   ostringstream str;
   time_t now=time(0);
-  string hostname=arg()["carbon-ourname"];
+
   if(hostname.empty()) {
     char tmp[80];
     memset(tmp, 0, sizeof(tmp));
