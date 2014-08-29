@@ -894,7 +894,6 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     return 0;
   }
   
-  
   if(MT->numProcesses() > g_maxMThreads) {
     g_stats.overCapacityDrops++;
     return 0;
