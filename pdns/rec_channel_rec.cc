@@ -20,6 +20,7 @@
 #include "arguments.hh"
 #include <sys/resource.h>
 #include <sys/time.h>
+#include "lock.hh"
 #include "responsestats.hh"
 
 #include "namespaces.hh"
