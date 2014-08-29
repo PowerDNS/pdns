@@ -20,7 +20,8 @@ before_script:
  - unzip top-1m.csv.zip
  - cd ..
  - cd modules/remotebackend
- - travis_retry ruby -S bundle install
+ - for n in vendor/cache/*.gem; do gem install $n; done
+ - travis_retry ruby -S bundle install --deployment
  - cd ../..
  - sudo mkdir -p /etc/pkcs11/modules/
  - sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm
