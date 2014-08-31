@@ -62,6 +62,9 @@ try
   shs.d_csp->worker(shs.d_id, shs.d_fd);
   return 0;
 }
+catch(PDNSException& pe) {
+  L<<Logger::Error<<"Signing thread died with error "<<pe.reason<<endl;
+}
 catch(std::exception& e) {
   L<<Logger::Error<<"Signing thread died with error "<<e.what()<<endl;
   return 0;
