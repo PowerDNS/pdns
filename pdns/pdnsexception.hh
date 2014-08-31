@@ -34,11 +34,11 @@ class PDNSException: public std::exception
 {
 public:
   PDNSException() noexcept {reason="Unspecified";};
-  PDNSException(string r) noexcept {reason=r;};
+  PDNSException(string r) noexcept {reason=std::move(r);};
   PDNSException(const char *r) noexcept {reason=std::string(r);};
   ~PDNSException() noexcept {};
  
-  virtual const char* what() noexcept { return reason.c_str(); };
+  virtual override const char* what() const noexcept { return reason.c_str(); };
   string reason; //! Print this to tell the user what went wrong
 };
 
@@ -49,11 +49,11 @@ class PDNSException: public std::exception
 {
 public:
   PDNSException() throw() {reason="Unspecified";};
-  PDNSException(string r) throw() {reason=r;};
+  PDNSException(string r) throw() {reason=std::move(r);};
   PDNSException(const char *r) throw() {reason=std::string(r);};
   ~PDNSException() throw() {};
 
-  virtual const char* what() throw() { return reason.c_str(); };
+  virtual const char* what() const throw() { return reason.c_str(); };
   string reason; //! Print this to tell the user what went wrong
 };
 
