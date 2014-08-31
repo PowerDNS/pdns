@@ -1,6 +1,7 @@
 [Unit]
 Description=PowerDNS Authoritative Server
-After=network.target mysqld.service postgresql.service slapd.service
+Wants=network-online.target
+After=network-online.target mysqld.service postgresql.service slapd.service
 
 [Service]
 Type=forking
