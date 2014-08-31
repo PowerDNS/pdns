@@ -195,8 +195,6 @@ void *DynListener::theListenerHelper(void *p)
   DynListener *us=static_cast<DynListener *>(p);
   us->theListener();
   L<<Logger::Error<<"Control listener aborted, please file a bug!"<<endl;
-  L<<Logger::Error<<"Taking down the Parent PGRP ("<<getpgid(us->d_ppid)<<") with it"<<endl;
-  kill(-getpgid(us->d_ppid),SIGKILL);
   return 0;
 }
 
