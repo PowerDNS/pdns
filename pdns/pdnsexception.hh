@@ -27,15 +27,37 @@
 
 #include "namespaces.hh"
 
+#ifdef HAVE_CXX11
+
 //! Generic Exception thrown 
-class PDNSException
+class PDNSException: public std::exception
 {
 public:
-  PDNSException(){reason="Unspecified";};
-  PDNSException(string r){reason=r;};
-  
+  PDNSException() noexcept {reason="Unspecified";};
+  PDNSException(string r) noexcept {reason=r;};
+  PDNSException(const char *r) noexcept {reason=std::string(r);};
+  ~PDNSException() noexcept {};
+ 
+  virtual const char* what() noexcept { return reason.c_str(); };
   string reason; //! Print this to tell the user what went wrong
 };
+
+#else
+
+//! Generic Exception thrown
+class PDNSException: public std::exception
+{
+public:
+  PDNSException() throw() {reason="Unspecified";};
+  PDNSException(string r) throw() {reason=r;};
+  PDNSException(const char *r) throw() {reason=std::string(r);};
+  ~PDNSException() throw() {};
+
+  virtual const char* what() throw() { return reason.c_str(); };
+  string reason; //! Print this to tell the user what went wrong
+};
+
+#endif
 
 class TimeoutException : public PDNSException
 {
