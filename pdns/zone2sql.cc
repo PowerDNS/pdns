@@ -405,17 +405,17 @@ try
 	    }
             num_domainsdone++;
           }
-          catch(std::exception &ae) {
-            if(!::arg().mustDo("on-error-resume-next"))
-              throw;
-            else
-              cerr<<endl<<ae.what()<<endl;
-          }
           catch(PDNSException &ae) {
             if(!::arg().mustDo("on-error-resume-next"))
               throw;
             else
               cerr<<ae.reason<<endl;
+          }
+          catch(std::exception &ae) {
+            if(!::arg().mustDo("on-error-resume-next"))
+              throw;
+            else
+              cerr<<endl<<ae.what()<<endl;
           }
 
           
