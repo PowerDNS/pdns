@@ -12,7 +12,7 @@ AC_DEFUN([PDNS_WITH_LUA],[
          PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
            AC_DEFINE([HAVE_LUA], [1], [liblua])
            AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-         ])
+         ], [with_lua=yes]) # otherwise pkg_check will fail
        done
       ],       
       [LUAPC="$with_lua"
