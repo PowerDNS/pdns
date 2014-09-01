@@ -7,29 +7,22 @@ AC_DEFUN([PDNS_WITH_LUA],[
 
   AS_IF([test "x$with_lua" != "xno"],[
     AS_IF([test "x$with_lua" = "xyes"],
-      [LUAPC=lua],
-      [LUAPC=$with_lua])
-
-    PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-      AC_DEFINE([HAVE_LUA], [1], [liblua])
-      AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-      with_lua=yes
-    ],[
-      LUAPC=lua5.1
-      PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-        AC_DEFINE([HAVE_LUA], [1], [liblua])
-        AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
-        with_lua=yes
-      ],[
-        LUAPC=lua-5.1
+      [for LUAPC in lua5.2 lua-5.2 lua5.1 lua-5.1 lua; do
+         if test "x$LUA_LIBS" != "x"; then break; fi
+         PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
+           AC_DEFINE([HAVE_LUA], [1], [liblua])
+           AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
+         ], [with_lua=yes]) # otherwise pkg_check will fail
+       done
+      ],       
+      [LUAPC="$with_lua"
         PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
           AC_DEFINE([HAVE_LUA], [1], [liblua])
           AC_DEFINE([HAVE_LUA_H], [1], [lua.h])
           with_lua=yes
-        ],[
-          with_lua=no
         ])
-      ])
     ])
+    AC_MSG_CHECKING([for chosen LUA])
+    AC_MSG_RESULT([$LUAPC])
   ])
 ])
