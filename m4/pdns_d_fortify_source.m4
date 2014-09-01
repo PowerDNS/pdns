@@ -1,5 +1,5 @@
 dnl
-dnl Check for support for position independent executables
+dnl Check for support D_FORTIFY_SOURCE
 dnl
 dnl Copyright (C) 2013 Red Hat, Inc.
 dnl
@@ -19,8 +19,10 @@ dnl <http://www.gnu.org/licenses/>.
 dnl
 
 AC_DEFUN([AC_CC_D_FORTIFY_SOURCE],[
+      OLD_CXXFLAGS="$CXXFLAGS"
+      CXXFLAGS="-Wall -W -Werror $CXXFLAGS"
       gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=2], [
         CFLAGS="$CFLAGS -D_FORTIFY_SOURCE=2"
-        CXXFLAGS="$CXXFLAGS -D_FORTIFY_SOURCE=2"
-      ])
+        CXXFLAGS="$OLD_CXXFLAGS -D_FORTIFY_SOURCE=2"
+      ], [CXXFLAGS="$OLD_CXXFLAGS"], [AC_LANG_PROGRAM([[#include <stdio.h>]],[])])
 ]) 
