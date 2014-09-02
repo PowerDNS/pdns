@@ -118,11 +118,9 @@ static void takedown(int i)
 {
   if(cpid) {
     L<<Logger::Error<<"Guardian is killed, taking down children with us"<<endl;
-  } else {
-    L<<Logger::Error<<"PDNS instance is going down, taking children with us"<<endl;
+    kill(cpid,SIGKILL);
+    exit(0);
   }
-  kill(-getpgid(cpid),SIGKILL);
-  exit(0);
 }
 
 static void writePid(void)
@@ -142,7 +140,8 @@ pthread_mutex_t g_guardian_lock = PTHREAD_MUTEX_INITIALIZER;
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>&parts, pid_t ppid)
 {
-  kill(-getpgid(cpid), SIGKILL);
+  kill(cpid, SIGKILL); // why?
+  kill(cpid, SIGKILL); // why?
   sleep(1);
   return "ok";
 }
@@ -196,6 +195,7 @@ static int guardian(int argc, char **argv)
   string progname=argv[0];
 
   bool first=true;
+  cpid=0;
 
   pthread_mutex_lock(&g_guardian_lock);
 
@@ -215,14 +215,11 @@ static int guardian(int argc, char **argv)
     setbuf(g_fp,0); // no buffering please, confuses select
 
     if(!(pid=fork())) { // child
+      signal(SIGTERM, SIG_DFL);
+
       signal(SIGHUP, SIG_DFL);
       signal(SIGUSR1, SIG_DFL);
       signal(SIGUSR2, SIG_DFL);
-
-      // Set different pgrp for this child,
-      // so we could kill all of it's children
-      // with one kill call
-      setpgid(getpid(), 0);
 
       char **const newargv=new char*[argc+2];
       int n;
@@ -268,6 +265,8 @@ static int guardian(int argc, char **argv)
 
       if(first) {
         first=false;
+        signal(SIGTERM, takedown);
+
         signal(SIGHUP, SIG_IGN);
         signal(SIGUSR1, SIG_IGN);
         signal(SIGUSR2, SIG_IGN);
@@ -312,7 +311,8 @@ static int guardian(int argc, char **argv)
         L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
         L<<Logger::Error<<"Respawning"<<endl;
 
-        goto respawn;
+        sleep(1);
+        continue;
       }
       if(WIFSIGNALED(status)) {
         int sig=WTERMSIG(status);
@@ -324,15 +324,10 @@ static int guardian(int argc, char **argv)
 #endif
 
         L<<Logger::Error<<"Respawning"<<endl;
-        goto respawn;
+        sleep(1);
+        continue;
       }
       L<<Logger::Error<<"No clue what happened! Respawning"<<endl;
-respawn:
-      if (cpid) {
-        L<<Logger::Error<<"Cleaning up any remaining children with PGRP "<<cpid<<endl;
-        kill(-cpid, SIGKILL);
-      }
-      sleep(1);
     }
     else {
       L<<Logger::Error<<"Unable to fork: "<<strerror(errno)<<endl;
@@ -406,19 +401,6 @@ int main(int argc, char **argv)
 {
   versionSetProduct(ProductAuthoritative);
   reportAllTypes(); // init MOADNSParser
-
-  // Even if PDNS is not deamonized it must be
-  // the leader of the process group
-  setpgid(getpid(), 0);
-
-  // Initialize child PID var. It will remain 0 for pdns instance.
-  // It will have child value in the PDNS guardian instance.
-  // cpid is needed to properly terminate PDNS process in
-  // takedown function, and in Guardian's Cycle handler.
-  cpid=0;
-
-  signal(SIGINT, takedown);
-  signal(SIGTERM, takedown);
 
   s_programname="pdns";
   s_starttime=time(0);
