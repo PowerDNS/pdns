@@ -330,7 +330,8 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
     return false;
 
   const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  while(*aPtr) {
+  const char *aEptr = aPtr + a.length();
+  while(aPtr != aEptr) {
     if((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
       return false;
     aPtr++;
