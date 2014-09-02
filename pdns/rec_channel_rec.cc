@@ -259,8 +259,8 @@ string doSetCarbonServer(T begin, T end)
   string ret;
   ::arg().set("carbon-server")=*begin;
   ret="set carbon-server to '"+::arg()["carbon-server"]+"'\n";
+  ++begin;
   if(begin != end) {
-    ++begin;
     ::arg().set("carbon-ourname")=*begin;
     ret+="set carbon-ourname to '"+*begin+"'\n";
   }
