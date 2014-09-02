@@ -1,5 +1,5 @@
 dnl
-dnl Check for support for position independent executables
+dnl Check for support for enabling stack protector
 dnl
 dnl Copyright (C) 2013 Red Hat, Inc.
 dnl
