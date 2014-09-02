@@ -135,9 +135,9 @@ void RecordTextReader::xfrIP6(std::string &val)
   skipSpaces();
   
   size_t len;
-  // lookup end of value
+  // lookup end of value - think of ::ffff encoding too, has dots in it!
   for(len=0; 
-    d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');
+      d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':' || d_string.at(d_pos+len)=='.');
     len++);
 
   if(!len)
