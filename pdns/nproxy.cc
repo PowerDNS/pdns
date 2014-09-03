@@ -272,7 +272,7 @@ try
 
   if(g_vm.count("setgid")) {
     if(setgid(g_vm["setgid"].as<int>()) < 0)
-      throw runtime_error("while changing gid to "+g_vm["setgid"].as<int>());
+      throw runtime_error("while changing gid to "+boost::lexical_cast<std::string>(g_vm["setgid"].as<int>()));
     syslogFmt(boost::format("Changed gid to %d") % g_vm["setgid"].as<int>());
     if(setgroups(0, NULL) < 0)
       throw runtime_error("while dropping supplementary groups");
@@ -280,7 +280,7 @@ try
 
   if(g_vm.count("setuid")) {
     if(setuid(g_vm["setuid"].as<int>()) < 0)
-      throw runtime_error("while changing uid to "+g_vm["setuid"].as<int>());
+      throw runtime_error("while changing uid to "+boost::lexical_cast<std::string>(g_vm["setuid"].as<int>()));
     syslogFmt(boost::format("Changed uid to %d") % g_vm["setuid"].as<int>());
   }
 
