@@ -332,43 +332,56 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 
 void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disabled) 
 {
-  ReadLock rl(&s_state_lock);
   SOAData soadata;
 
-  for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    soadata.db=(DNSBackend *)-1; // makes getSOA() skip the cache. 
-    this->getSOA(i->d_name, soadata);
-    DomainInfo di;
-    di.id=i->d_id;
-    di.serial=soadata.serial;
-    di.zone=i->d_name;
-    di.last_check=i->d_lastcheck;
-    di.backend=this;
-    di.kind=i->d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave; //TODO: what about Native?
+  // prevent deadlock by using getSOA() later on
+  {
+    ReadLock rl(&s_state_lock);
 
-    domains->push_back(di);
+    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
+      DomainInfo di;
+      di.id=i->d_id;
+      di.zone=i->d_name;
+      di.last_check=i->d_lastcheck;
+      di.kind=i->d_masters.empty() ? DomainInfo::Master : DomainInfo::Slave; //TODO: what about Native?
+      di.backend=this;
+      domains->push_back(di);
+    };
+  }
+ 
+  BOOST_FOREACH(DomainInfo &di, *domains) {
+    soadata.db=(DNSBackend *)-1; // makes getSOA() skip the cache. 
+    this->getSOA(di.zone, soadata);
+    di.serial=soadata.serial;
   }
 }
 
 void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 {
-  ReadLock rl(&s_state_lock);
-  for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(i->d_masters.empty())
-      continue;
-    DomainInfo sd;
-    sd.id=i->d_id;
-    sd.zone=i->d_name;
-    sd.masters=i->d_masters;
-    sd.last_check=i->d_lastcheck;
-    sd.backend=this;
-    sd.kind=DomainInfo::Slave;
+  vector<DomainInfo> domains;
+  {
+    ReadLock rl(&s_state_lock);
+    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
+      if(i->d_masters.empty())
+        continue;
+      DomainInfo sd;
+      sd.id=i->d_id;
+      sd.zone=i->d_name;
+      sd.masters=i->d_masters;
+      sd.last_check=i->d_lastcheck;
+      sd.backend=this;
+      sd.kind=DomainInfo::Slave;
+      domains.push_back(sd);
+    }
+  }
+
+  BOOST_FOREACH(DomainInfo &sd, domains) {
     SOAData soadata;
     soadata.refresh=0;
     soadata.serial=0;
     soadata.db=(DNSBackend *)-1; // not sure if this is useful, inhibits any caches that might be around
     try {
-      getSOA(i->d_name,soadata); // we might not *have* a SOA yet
+      getSOA(sd.zone,soadata); // we might not *have* a SOA yet
     }
     catch(...){}
     sd.serial=soadata.serial;
