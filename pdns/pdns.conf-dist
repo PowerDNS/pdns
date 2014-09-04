@@ -514,4 +514,8 @@
 #
 # webserver-print-arguments=no
 
+#################################
+# passthru-notify       IP address we send notifications to
+#
+# passthru-notify=127.0.0.1, ::1
 

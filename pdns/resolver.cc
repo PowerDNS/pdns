@@ -215,6 +215,26 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
   return 0;
 }
 
+
+void Resolver::relayNotification(const string& domain, const ComboAddress& remote, uint16_t id)
+{
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
+  pw.getHeader()->id = id;
+  pw.getHeader()->aa = true;
+
+  int sock;
+
+  ComboAddress local;
+  local.sin4.sin_family = 0;
+
+  sock = remote.sin4.sin_family == AF_INET ? locals["default4"] : locals["default6"];
+
+  if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
+    throw ResolverException("Unable to send notify to "+remote.toStringWithPort()+": "+stringerror());
+  }
+}
+
 bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   struct pollfd *fds = new struct pollfd[locals.size()];

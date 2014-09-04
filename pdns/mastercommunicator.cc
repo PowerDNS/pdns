@@ -47,24 +47,33 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
   DNSResourceRecord rr;
   FindNS fns;
 
-  B->lookup(QType(QType::NS),domain);
-  while(B->get(rr))
-    nsset.insert(rr.content);
-
-  for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-    vector<string> nsips=fns.lookup(*j, B);
-    if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
-    else
-      for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+  if(!::arg()["passthru-notify"].empty()) {
+    vector<string>passthrus;
+    stringtok(passthrus,::arg()["passthru-notify"]," ,");
+    for(vector<string>::const_iterator k=passthrus.begin();k!=passthrus.end();++k)
+      if (!testIPv4addr(*k) || !testIPv6addr(*k)) {
         const ComboAddress caIp(*k, 53);
-        if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-          if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
-          else
-            ips.insert(caIp.toStringWithPort());
-        }
+        ips.insert(caIp.toStringWithPort());
       }
+  } else {
+    B->lookup(QType(QType::NS),domain);
+    while(B->get(rr))
+      nsset.insert(rr.content);
+    for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
+      vector<string> nsips=fns.lookup(*j, B);
+      if(nsips.empty())
+        L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+      else
+        for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
+          const ComboAddress caIp(*k, 53);
+          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
+            if(!d_onlyNotify.match(&caIp))
+              L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            else
+              ips.insert(caIp.toStringWithPort());
+          }
+        }
+    }
   }
 
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {

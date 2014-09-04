@@ -72,6 +72,9 @@ public:
   
   //! convenience function that calls resolve above
   void getSoaSerial(const string &, const string &, uint32_t *);
+
+  void relayNotification(const string &, const ComboAddress &, uint16_t);
+
   
 private:
   std::map<std::string, int> locals;

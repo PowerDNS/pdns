@@ -759,8 +759,10 @@ int PacketHandler::processNotify(DNSPacket *p)
      if master is higher -> do stuff
   */
   if(!::arg().mustDo("slave")) {
-    L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
-    return RCode::NotImp;
+    if(::arg()["passthru-notify"].empty()) {
+      L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
+      return RCode::NotImp;
+    }
   }
   DNSBackend *db=0;
   DomainInfo di;
@@ -769,7 +771,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
     return trySuperMaster(p);
   }
-    
+
   if(::arg().contains("trusted-notification-proxy", p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
@@ -781,10 +783,29 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" which is not a master"<<endl;
     return RCode::Refused;
   }
-    
+
   // ok, we've done our checks
   di.backend = 0;
-  Communicator.addSlaveCheckRequest(di, p->d_remote);
+
+  if(!::arg()["passthru-notify"].empty()) {
+    vector<string>passthrus;
+    stringtok(passthrus,::arg()["passthru-notify"]," ,");
+    for(vector<string>::const_iterator k=passthrus.begin();k!=passthrus.end();++k) {
+      if (!testIPv4addr(*k) || !testIPv6addr(*k)) {
+        L<<Logger::Warning<<"Relaying notification of domain '"<<p->qdomain<<"' from "<<p->getRemote()<<" to "<<*k<<endl;
+        try {
+          static Resolver passthruResolver;
+          ComboAddress remote(*k, 53);
+          passthruResolver.relayNotification(p->qdomain, remote, p->d.id);
+        }
+        catch(ResolverException &re) {
+          L<<Logger::Error<<"Error trying to renotify '"+p->qdomain+"' to '"+*k+"' reason: "+re.reason<<endl;
+        }
+      }
+    }
+  }
+
+  if(::arg().mustDo("slave")) Communicator.addSlaveCheckRequest(di, p->d_remote);
   return 0;
 }
 
