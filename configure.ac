@@ -63,6 +63,16 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
+AC_CHECK_HEADERS(
+	[sys/mman.h],
+	[AC_CHECK_FUNC(
+		[mmap],
+		[AC_DEFINE(HAVE_MMAP, [1], [Define to 1 if you have mmap])],
+		[have_mmap=no]
+	)],
+	[have_mmap=no]
+)
+
 PDNS_CHECK_RAGEL
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
@@ -284,6 +294,9 @@ for a in $modules $dynmodules; do
     tinydns)
       PDNS_CHECK_CDB
       ;;
+    geoip)
+      PDNS_CHECK_GEOIP
+      ;;
   esac
 done
 
@@ -358,6 +371,7 @@ AC_CONFIG_FILES([
   modules/bindbackend/Makefile
   modules/db2backend/Makefile
   modules/geobackend/Makefile
+  modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
   modules/goraclebackend/Makefile
   modules/gpgsqlbackend/Makefile
