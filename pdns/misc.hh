@@ -371,6 +371,10 @@ public:
       return atomic_exchange_and_add( &value_, val );
     }
 
+    native_t operator-=(native_t val)
+    {
+      return atomic_exchange_and_add( &value_, -val );
+    }
 
     native_t operator--()
     {
