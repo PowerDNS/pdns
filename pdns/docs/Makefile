@@ -15,8 +15,9 @@ html-new/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
 	mkdir -p html-new
 	mkdir -p doc-build
 	rsync -a --delete markdown/. doc-build/.
-	./process-md.sh
+	./process-md.sh pre
 	mkdocs build
+	./process-md.sh post
 
 pdns-expanded.html: pdns-expanded.xml
 	xmlto xhtml-nochunks -m config.xsl $<
