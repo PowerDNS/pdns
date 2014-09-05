@@ -1,5 +1,5 @@
 site_name: PowerDNS
-#repo_url: https://github.com/PowerDNS/pdns
+repo_url: https://github.com/PowerDNS/pdns
 docs_dir: doc-build
 site_dir: html-new
 theme_dir: markdown/theme
