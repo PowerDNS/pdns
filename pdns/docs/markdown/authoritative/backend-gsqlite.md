@@ -15,7 +15,7 @@ Launch name|gsqlite and gsqlite3|
 
 This backend retrieves all data from a SQLite database, which is an RDBMS that's embedded into the application itself, so you won't need to be running a separate server process. It also reduces overhead, and simplifies installation. At [www.sqlite.org](http://www.sqlite.org) you can find more information about SQLite.
 
-As this is a generic backend, built on top of the gSql framework, you can specify all queries as documented in [Generic MySQL and PgSQL backends](backend-generic-mypgsql.md).
+As this is a generic backend, built on top of the gSql framework, you can specify all queries as documented in [Generic MySQL and PgSQL backends](backend-generic-mypgsql.md#queries-and-settings).
 
 SQLite exists in two incompatible versions, numbered 2 and 3, and from 2.9.21 onwards, PowerDNS supports both. It is recommended to go with version 3 as it is newer, has better performance and is actively maintained. To use version 3, choose `launch=gsqlite3`.
 
