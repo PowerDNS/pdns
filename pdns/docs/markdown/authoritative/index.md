@@ -5,7 +5,7 @@ Examples of backends include relational databases, other DNS data formats and co
 
 # Backends
 PowerDNS has the concepts of 'backends'. A backend is a datastore that the server will consult that contains DNS records (and some meta-data).
-The backends range from database backends (Mysql, PostGreSQL, Oracle) and Bind-zonefiles to co-processes and JSON API's.
+The backends range from database backends (Mysql, PostgreSQL, Oracle) and Bind-zonefiles to co-processes and JSON API's.
 For more in-depth information, see [Modules & Backends](internals.md#modules-backends) in the documentation on internals.
 
 Multiple backends can be enabled in the configuration by using the [`launch`](settings.md#launch) option. Each backend can be configured separetly.
@@ -23,7 +23,7 @@ The following table describes the capabilities of the backends.
 | [MySQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
 | [Oracle](backend-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Unknown (No) | No | `oracle` |
 | [Pipe](backend-pipe.md) | Supported | Yes | No | No | No | No | Partial (no delegation, no key storage) | No | No | `pipe` |
-| [PostGreSQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
+| [PostgreSQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
 | [Random](backend-random.md) | Supported | Yes | No | No | No | No | Yes (no key storage) | No | No | `random` |
 | [Remote](backend-remote.md) | Supported | Yes | Yes\* | Yes\* | Yes\* | Yes\* | Yes\* | Unknown (No) | Unknown(No) | `remote` |
 | [SQLite](backend-gsqlite.md) 2 | Supported (not recommended) | Yes | Yes | Yes | Yes | No | No | No | `gsqlite` |
