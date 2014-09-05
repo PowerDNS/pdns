@@ -1,12 +1,11 @@
 # Performance and Tuning
-## General advice
 In general, best performance is achieved on recent Linux 3.x kernels and using MySQL, although many of the largest PowerDNS installations are based on PostgreSQL. FreeBSD also performs very well.
 
 Database servers can require configuration to achieve decent performance. It is especially worth noting that several vendors ship PostgreSQL with a slow default configuration.
 
 **Warning**: When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values. Please check and if necessary raise `sysctl net.ipv6.route.max_size`.
 
-## Performance related settings
+# Performance related settings
 When PowerDNS starts up it creates a number of threads to listen for packets. This is configurable with the [`receiver-threads`](settings.md#receiver-threads) setting which defines how many sockets will be opened by the powerdns process. In versions of linux before kernel 3.9 having too many receiver threads set up resulted in decreased performance due to socket contention between multiple CPUs - the typical sweet spot was 3 or 4. For optimal performance on kernel 3.9 and following with [`reuseport`](settings.md#reuseport) enabled you'll typically want a receiver thread for each core on your box if backend latency/performance is not an issue and you want top performance.
 
 Different backends will have different characteristics - some will want to have more parallel instances than others. In general, if your backend is latency bound, like most relational databases are, it pays to open more backends.
