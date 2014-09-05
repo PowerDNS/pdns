@@ -1,13 +1,24 @@
 #!/bin/sh
+# prerm script for pdns
 
 set -e
 
-update_docbase() {
-	if command -v install-docs >/dev/null 2>&1 ; then
-		install-docs -r pdns
-	fi
-}
+case "$1" in
+    remove)
+        if command -v install-docs >/dev/null 2>&1 ; then
+            install-docs -r pdns
+        fi
+    ;;
 
-if [ "$1" = "remove" ] ; then
-	update_docbase
-fi
+    failed-upgrade|upgrade|deconfigure)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0
