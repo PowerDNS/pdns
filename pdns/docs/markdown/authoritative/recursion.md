@@ -1,19 +1,17 @@
 # Recursion with the Authoritative Server
-(only available from 1.99.8 and onwards, recursing component available since 2.9.5)
-
-From 2.9.5 onwards, PowerDNS offers both authoritative nameserving capabilities and a recursive nameserver component. These two halves are normally separate but many users insist on combining both recursion and authoritative service on one IP address. This can be likened to running Apache and Squid both on port 80.
+From 2.9.5 onwards, PowerDNS offers both authoritative nameserving capabilities and a [recursive nameserver](../recursor/index.md) component. These two halves are normally separate but many users insist on combining both recursion and authoritative service on one IP address. This can be likened to running Apache and Squid both on port 80.
 
 However, many sites want to do this anyhow and some with good reason. For example, a setup like this allows the creation of fake domains which only exist for local users. Such domains often don't end on ".com" or ".org" but on ".intern" or ".name-of-isp".
 
 PowerDNS can cooperate with either its own recursor or any other you have available to deliver recursive service on its port.
 
-By specifying the [`recursor`](settings.md#recursor) option in the configuration file, questions requiring recursive treatment will be handed over to the IP address specified. An example configuration might be `recursor=130.161.180.1`, which designates 130.161.180.1 as the nameserver to handle recursive queries.
+By specifying the [`recursor`](settings.md#recursor) option in the configuration file, questions requiring recursive treatment will be handed over to the IP address specified. An example configuration might be `recursor=203.0.113.7`, which designates 203.0.113.7 as the nameserver to handle recursive queries.
 
 **Warning**:Using `recursor` is NOT RECOMMENDED as it comes with many potentially nasty surprises.
 
-Take care not to point `recursor` to the PowerDNS Authoritative Server itself, which leads to a very tight packet loop!
+Take care not to point [`recursor`](settings.md#recursor) to the PowerDNS Authoritative Server itself, which leads to a very tight packet loop!
 
-By specifying [`allow-recursion`](settings.md#allow-recursion), recursion can be restricted to netmasks specified. The default is to allow recursion from everywhere. Example: `allow-recursion=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4`.
+By specifying [`allow-recursion`](settings.md#allow-recursion), recursion can be restricted to netmasks specified. The default is to allow recursion from everywhere. Example: `allow-recursion=203.0.113.0/24, 198.51.100.0/26, 192.0.2.4`.
 
 ## Details
 Questions carry a number of flags. One of these is called 'Recursion Desired'. If PDNS is configured to allow recursion, AND such a flag is seen, AND the IP address of the client is allowed to recurse via PDNS, then the packet may be handed to the recursing backend.
