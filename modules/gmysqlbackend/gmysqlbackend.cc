@@ -70,7 +70,7 @@ public:
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
-    declare(suffix,"supermaster-name-to-ips", "", "select ip from supermasters where nameserver='%s'");
+    declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver='%s' and account='%s'");
 
     declare(suffix,"insert-zone-query","", "insert into domains (type,name) values('NATIVE','%s')");
     declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')");

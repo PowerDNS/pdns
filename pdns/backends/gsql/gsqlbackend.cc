@@ -918,13 +918,14 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
     if (!nameserver.empty()) {
       // figure out all IP addresses for the master
       format = d_GetSuperMasterIPs;
-      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(nameserver).c_str()); 
+      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(nameserver).c_str(),sqlEscape(account).c_str());
       d_db->doQuery(output, d_result);
       if (!d_result.empty()) {
         // collect all IP addresses
         vector<string> tmp;
         BOOST_FOREACH(SSql::row_t& row, d_result) {
-          tmp.push_back(row[0]);
+          if (account == row[1])
+            tmp.push_back(row[0]);
         }
         // set them as domain's masters, comma separated
         masters = boost::join(tmp, ", ");

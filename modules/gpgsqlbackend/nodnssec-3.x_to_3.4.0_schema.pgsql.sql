@@ -7,6 +7,7 @@ ALTER TABLE records ADD ordername VARCHAR(255);
 ALTER TABLE records ADD auth BOOL DEFAULT 't';
 ALTER TABLE records ALTER COLUMN type TYPE VARCHAR(10);
 ALTER TABLE supermasters ALTER COLUMN ip TYPE INET USING ip::INET;
+ALTER TABLE supermasters ALTER COLUMN account SET DEFAULT NOT NULL;
 ALTER TABLE supermasters ADD CONSTRAINT supermasters_pkey PRIMARY KEY (ip, nameserver);
 
 CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);

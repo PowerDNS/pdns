@@ -37,7 +37,7 @@ CREATE INDEX records$recordorder ON records (domain_id, ordername);
 CREATE TABLE supermasters (
   ip              VARCHAR2(64) NOT NULL,
   nameserver      VARCHAR2(255) NOT NULL,
-  account         VARCHAR2(40) DEFAULT NULL,
+  account         VARCHAR2(40) NOT NULL,
   PRIMARY KEY (ip, nameserver)
 );
 

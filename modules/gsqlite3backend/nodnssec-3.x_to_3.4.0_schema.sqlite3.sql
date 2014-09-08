@@ -59,12 +59,13 @@ BEGIN TRANSACTION;
   );
 
   INSERT INTO supermasters_backup SELECT ip, nameserver, account FROM supermasters;
+  UPDATE supermasters_backup SET account='' WHERE account IS NULL;
   DROP TABLE supermasters;
 
   CREATE TABLE supermasters (
     ip                  VARCHAR(64) NOT NULL,
     nameserver          VARCHAR(255) NOT NULL COLLATE NOCASE,
-    account             VARCHAR(40) DEFAULT NULL
+    account             VARCHAR(40) NOT NULL
   );
   CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);
 
