@@ -934,7 +934,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               
 	    if(resolveret != 1) {
               if(resolveret==0) {
-                LOG(prefix<<qname<<": timeout resolving "<< (doTCP ? "over TCP" : "")<<endl);
+                LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
                 d_timeouts++;
                 s_outgoingtimeouts++;
               }
