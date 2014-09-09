@@ -22,6 +22,7 @@
 #include <sys/time.h>
 #include "lock.hh"
 #include "responsestats.hh"
+#include "version_generated.h"
 
 #include "namespaces.hh"
 pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
@@ -664,6 +665,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
 "top-remotes                      show top remotes\n"
 "unload-lua-script                unload Lua script\n"
+"version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
 
   if(cmd=="get-all")
@@ -678,6 +680,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   if(cmd=="quit") {
     *command=&doExit;
     return "bye\n";
+  }
+
+  if(cmd=="version") {
+    return string(PDNS_VERSION)+"\n";
   }
   
   if(cmd=="quit-nicely") {

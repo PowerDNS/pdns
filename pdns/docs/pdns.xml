@@ -15923,6 +15923,15 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </listitem>
 	    </varlistentry>	  
 	    <varlistentry>
+	      <term>version</term>
+	      <listitem>
+		<para>
+		  Available after 3.6.1, report currently running version
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+
+	    <varlistentry>
 	      <term>wipe-cache domain0. [domain1. domain2.]</term>
 	      <listitem>
 		<para>
