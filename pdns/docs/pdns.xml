@@ -11963,7 +11963,7 @@ name         IN            A        192.0.2.4
       </para>
     </sect1>
     <sect1 id="powerdns-advisory-2014-01">
-      <title>PowerDNS Security Advisory 2014-01: PowerDNS Recursor 3.6.1 can be crashed remotely</title>
+      <title>PowerDNS Security Advisory 2014-01: PowerDNS Recursor 3.6.0 can be crashed remotely</title>
       <para>
 	<table>
 	  <title>PowerDNS Security Advisory</title>
