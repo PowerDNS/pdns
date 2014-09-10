@@ -34,7 +34,7 @@ How often to check for zone changes. See 'Operation' section.
 Filename to store and access our DNSSEC metadatabase, empty for none.
 
 ### `bind-hybrid`
-Store DNSSEC keys and metadata storage in an other backend. See the [hybrid BIND-mode operation](dnssec.md#powerdnssec-bind-mode-operation)
+Store DNSSEC keys and metadata storage in an other backend. See the [hybrid BIND-mode operation](dnssec.md#powerdnssec-hybrid-bind-mode-operation)
 
 ## Operation
 On launch, the BindBackend first parses the `named.conf` to determine which zones need to be loaded. These will then be parsed and made available for serving, as they are parsed. So a `named.conf` with 100.000 zones may take 20 seconds to load, but after 10 seconds, 50.000 zones will already be available. While a domain is being loaded, it is not yet available, to prevent incomplete answers.
