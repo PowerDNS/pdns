@@ -45,10 +45,10 @@ If [`bind-check-interval`](#bind-check-interval) is specified as zero, no checks
 
 ## pdns\_control commands
 ### `bind-add-zone <domain> <filename>`
-Add zone &lt;domain> from &lt;filename> to PDNS's bind backend. Zone will be loaded at first request.
+Add zone `domain` from `filename` to PDNS's bind backend. Zone will be loaded at first request.
 
 ### `bind-domain-status <domain> [domain]`
-Output status of domain or domains. Can be one of 'seen in named.conf, not parsed', 'parsed successfully at \<time;\>' or 'error parsing at line ... at \<time\>'.
+Output status of domain or domains. Can be one of `seen in named.conf, not parsed`, `parsed successfully at <time>` or `error parsing at line ... at <time>`.
 
 ### `bind-list-rejects`
 Lists all zones that have problems, and what those problems are.
