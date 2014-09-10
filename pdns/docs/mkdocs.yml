@@ -15,7 +15,7 @@ pages:
   - [httpapi/features.md, 'PowerDNS Server', 'HTTP API - Design and Features']
   - [authoritative/index.md, 'Authoritative', 'Introduction']
   - [authoritative/installation.md, 'Authoritative', 'Installing and Running']
-  - [authoritative/upgrading.md, 'Authoritative', 'Upgrading']
+  - [authoritative/upgrading.md, 'Authoritative', 'Upgrade Notes']
   - [authoritative/modes-of-operation.md, 'Authoritative', 'Modes of Operation']
   - [authoritative/internals.md, 'Authoritative', 'Internals']
   - [authoritative/virtual.md, 'Authoritative', 'Virtual Hosting']
