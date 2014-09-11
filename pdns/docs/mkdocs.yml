@@ -17,6 +17,8 @@ pages:
   - [authoritative/installation.md, 'Authoritative', 'Installing and Running']
   - [authoritative/upgrading.md, 'Authoritative', 'Upgrade Notes']
   - [authoritative/modes-of-operation.md, 'Authoritative', 'Modes of Operation']
+  - [authoritative/domainmetadata.md, 'Authoritative', 'Domain metadata']
+  - [authoritative/dnsupdate.md, 'Authoritative', 'Dynamic DNS Update']
   - [authoritative/internals.md, 'Authoritative', 'Internals']
   - [authoritative/virtual.md, 'Authoritative', 'Virtual Hosting']
   - [authoritative/fancy-records.md, 'Authoritative', 'Fancy Records']

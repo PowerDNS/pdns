@@ -455,3 +455,46 @@ The method is not only used when adding records, but also to correct ENT-records
 
 ### `virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)`
 This method should remove all the records with `qname` of type `qt`. `qt` might also be ANY, which means all the records with that `qname` need to be removed. After removal, the records in `rrset` must be added to the zone. `rrset` can be empty in which case the method is used to remove a RRset.
+
+# DNS update support
+To make your backend DNS update compatible, it needs to implement a number of new functions and functions already used for slave-operation. The new functions are not DNS update specific and might be used for other update/remove functionality at a later stage.
+
+``` {.programlisting}
+class DNSBackend {
+public:
+  /* ... */
+  virtual bool startTransaction(const string &qname, int id);
+  virtual bool commitTransaction();
+  virtual bool abortTransaction();
+  virtual bool feedRecord(const DNSResourceRecord &rr, string *ordername);
+  virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+  virtual bool listSubZone(const string &zone, int domain_id);
+  /* ... */
+}
+```
+
+## `virtual bool startTransaction(const string &qname, int id);`
+See [Read/write slave-capable backends](#read-write-slave-capable-backends). Please note that this function now receives a negative number (-1), which indicates that the current zone data should NOT be deleted.
+
+## `virtual bool commitTransaction();`
+See [Read/write slave-capable backends](#read-write-slave-capable-backends).
+
+## `virtual bool abortTransaction();`
+See [Read/write slave-capable backends](#read-write-slave-capable-backends). Method is called when an exception is received.
+
+## `virtual bool feedRecord(const DNSResourceRecord &rr, string *ordername);`
+See [Read/write slave-capable backends](#read-write-slave-capable-backends). Please keep in mind that the zone is not empty because `startTransaction()` was called different.
+
+virtual bool listSubZone(const string &name, int domain\_id);  
+This method is needed for rectification of a zone after NS-records have been added. For DNSSEC, we need to know which records are below the currently added record. `listSubZone()` is used like `list()` which means PowerDNS will call `get()` after this method. The default SQL query looks something like this:
+
+``` {.programlisting}
+// First %s is 'sub.zone.com', second %s is '*.sub.zone.com'
+select content,ttl,prio,type,domain_id,name from records where (name='%s' OR name like '%s') and domain_id=%d
+```
+
+The method is not only used when adding records, but also to correct ENT-records in powerdns. Make sure it returns every record in the tree below the given record.
+
+## virtual bool replaceRRSet(uint32\_t domain\_id, const string& qname, const QType& qt, const vector\<DNSResourceRecord\>& rrset);
+
+This method should remove all the records with `qname` of type `qt`. `qt` might also be ANY, which means all the records with that `qname` need to be removed. After removal, the records in `rrset` must be added to the zone. `rrset` can be empty in which case the method is used to remove a RRset.
