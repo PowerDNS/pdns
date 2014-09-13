@@ -22,12 +22,15 @@
 #include "lmdbbackend.hh"
 #include <pdns/arguments.hh>
 #include <pdns/base32.hh>
+#include <pdns/lock.hh>
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
 #else
 #define DEBUGLOG(msg) do {} while(0)
 #endif
+
+pthread_mutex_t LMDBBackend::s_initlock = PTHREAD_MUTEX_INITIALIZER;
 
 LMDBBackend::LMDBBackend(const string &suffix)
 {
@@ -51,6 +54,8 @@ void LMDBBackend::open_db() {
     string verstring( mdb_version( &major, &minor, &patch ) );
     if( MDB_VERINT( major, minor, patch ) < MDB_VERINT( 0, 9, 8 ) )
         throw PDNSException( "LMDB Library version too old (" + verstring + "). Needs to be 0.9.8 or greater" );
+
+    Lock l(&s_initlock);
 
     if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));

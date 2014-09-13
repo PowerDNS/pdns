@@ -4,6 +4,7 @@
  */
 
 #include <lmdb.h>
+#include <pthread.h>
 #include <pdns/dnsbackend.hh>
 
 class LMDBBackend : public DNSReversedBackend
@@ -39,6 +40,7 @@ private:
     void open_db();
     void close_db();
     inline bool get_finished();
+    static pthread_mutex_t s_initlock;
 
 public:
     LMDBBackend(const string &suffix="");
