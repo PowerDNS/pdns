@@ -315,6 +315,11 @@
 # overload-queue-length=0
 
 #################################
+# passthru-notify	IP address we send notifications to
+#
+# passthru-notify=127.0.0.1,::1
+
+#################################
 # pipebackend-abi-version	Version of the pipe backend ABI
 #
 # pipebackend-abi-version=1
@@ -514,8 +519,4 @@
 #
 # webserver-print-arguments=no
 
-#################################
-# passthru-notify       IP address we send notifications to
-#
-# passthru-notify=127.0.0.1, ::1
 
