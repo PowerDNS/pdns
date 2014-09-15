@@ -8,7 +8,7 @@ case "$1" in
         update-rc.d pdns remove
     ;;
 
-    |upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
 
     *)
