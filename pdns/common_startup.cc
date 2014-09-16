@@ -256,7 +256,12 @@ void *qthread(void *number)
   // other than the first one.
   if( number != NULL && NS->canReusePort() ) {
     L<<Logger::Notice<<"Starting new listen thread on the same IPs/ports using SO_REUSEPORT"<<endl;
-    NS = new UDPNameserver( true );
+    try {
+      NS = new UDPNameserver( true );
+    } catch(PDNSException &e) {
+      L<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
+      NS = N;
+    }
   }
 
   for(;;) {

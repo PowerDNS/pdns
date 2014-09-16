@@ -135,12 +135,13 @@ void UDPNameserver::bindIPv4()
         g_localaddresses.push_back(locala);
 
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
+      string binderror = strerror(errno);
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
         L<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+": "<<strerror(errno)<<endl;
+        L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
     }
