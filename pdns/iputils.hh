@@ -304,6 +304,14 @@ public:
   {
     return d_bits;
   }
+  bool isIpv6() const 
+  {
+    return d_network.sin6.sin6_family == AF_INET6;
+  }
+  bool isIpv4() const
+  {
+    return d_network.sin4.sin_family == AF_INET;
+  }
 private:
   ComboAddress d_network;
   uint32_t d_mask;

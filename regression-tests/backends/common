@@ -4,7 +4,9 @@ start_master ()
 			bind*)
 				source ./backends/bind-master
 				;;
-
+			geoip*)
+				source ./backends/geoip-master
+				;;
 			gmysql*)
 				source ./backends/gmysql-master
 				;;

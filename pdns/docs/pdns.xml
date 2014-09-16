@@ -21441,6 +21441,132 @@ VALUES (:zoneid, :ip)
 	<filename>modules/geobackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
+    <sect1 id="geoip"><title>GeoIP backend</title>
+      <para>
+        <table>
+          <title>GeoIP backend capabilities</title>
+          <tgroup cols="2">
+            <tbody>
+              <row><entry>Native</entry><entry>Yes</entry></row>
+              <row><entry>Master</entry><entry>No</entry></row>
+              <row><entry>Slave</entry><entry>No</entry></row>
+              <row><entry>Superslave</entry><entry>No</entry></row>
+              <row><entry>Autoserial</entry><entry>No</entry></row>
+              <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+            </tbody>
+          </tgroup>
+        </table>
+      </para>
+      <para>
+        The GeoIP backend can be used to distribute queries globally using an MaxMind IP-address/country mapping table, currently avaible for debian and ubuntu for free. Other formats
+        are not yet supported but will be in the future. The only format supported at the moment is country listing. 
+      </para>
+      <para>
+        This allows visitors to be sent to a server close to them, with no appreciable delay, as would otherwise be incurred with a protocol level redirect.
+        Additionally, the Geo Backend can be used to provide service over several clusters, any of which can be taken out of use easily, for example
+        for maintenance purposes.
+      </para>
+      <sect2 id="geoipbackend-prerequisites"><title>Prerequisites</title>
+        <para>
+         To compile the backend, you need libyaml-cpp 0.5 or later and libgeoip. 
+        </para>
+        <para>
+          You must have geoip database available. As of writing, on debian/ubuntu systems, you can use apt-get install geoip-database to get one, and the backend is
+          configured to use the location where these files are installed as source. On other systems you might need to alter the database-file and database-file6 attribute.
+          If you don't need ipv4 or ipv6 support, set the respective setting to "". Leaving it unset leaves it pointing to default location, preventing the software from 
+          starting up. 
+        </para>
+      </sect2>
+      <sect2 id="geoipbackend-parameters"><title>Configuration Parameters</title>
+        <para>
+          These are the configuration file parameters that are available for the GeoIP backend. geoip-zones-files is the only thing you must set, if the defaults suite you.
+          <variablelist>
+            <varlistentry>
+              <term>geoip-database-file</term>
+              <listitem>
+                <para>Specifies the full path of the data file for IPv4 to use.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>geoip-database-file6</term>
+              <listitem>
+                <para>Specifies the full path of the data file for IPv6 to use.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>geoip-zones-file</term>
+              <listitem>
+                <para>Specifies the full path of the zone configuration file to use.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>geoip-dnssec-keydir</term>
+              <listitem>
+                <para>Specifies the full path of a directory that will contain DNSSEC keys.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+      </sect2>
+      <sect2 id="geoipbackend-zonefile"><title>Zonefile format</title>
+        <para>
+          Zone configuration file uses YAML syntax. Here is simple example. Note that the &dash; before certain keys is part of the syntax.
+          <programlisting>
+domains:
+- domain: geo.example.com
+  ttl: 30
+  records:
+    geo.example.com:
+      - soa: ns1.example.com hostmaster.example.com 2014090125 7200 3600 1209600 3600
+      - ns: ns1.example.com
+      - ns: ns2.example.com
+      - mx: 10 mx.example.com
+    fin.eu.service.geo.example.com:
+      - a: 62.236.200.4
+      - txt: hello world
+  services:
+    service.geo.example.com: '%co.%cn.service.geo.example.com'
+          </programlisting>
+        </para>
+
+        <para>
+          Keys explained
+          <variablelist>
+            <varlistentry>
+              <term>domains</term>
+              <listitem>
+                <para>Mandatory root key. All configuration is below this</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>domain</term>
+              <listitem>
+                <para>Defines a domain. You need ttl, records, services under this.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>ttl</term>
+              <listitem>
+                <para>TTL value for all records</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>records</term>
+              <listitem>
+                <para>Put fully qualified name as subkey, under which you must define at least soa: key. Note that this is an array of records, so &dash; is needed for the values.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>services</term>
+              <listitem>
+                <para>Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+      </sect2>
+    </sect1>
+
  <sect1 id="luabackend"><title>Lua Backend</title>
       <para>
 	<warning>
