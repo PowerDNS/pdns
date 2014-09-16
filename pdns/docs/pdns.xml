@@ -21437,7 +21437,7 @@ VALUES (:zoneid, :ip)
 	The Geo Backend is in wide use, for example by the Wikimedia foundation, which uses it to power the Wikipedia global load balancing.
       </para>
       <para>
-	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/geobackend/README">here</ulink>, or in
+	More details can be found <ulink url="https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/geobackend/README"></ulink>, or in
 	<filename>modules/geobackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
