@@ -138,7 +138,7 @@ bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind,
     string key_str, cur_value;
     vector<string> valparts;
 
-    key_str=d_querykey = string( name.rbegin(), name.rend() );
+    key_str=bitFlip(labelReverse(toLower(name)))+"\xff";
     key.mv_data = (char *)key_str.c_str();
     key.mv_size = key_str.length();
 
@@ -273,16 +273,15 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
   return true;
 }
 
-// Get the zone name and value of the requested zone (reversed) OR the entry
-// just before where it should have been
+// Get the zone name of the requested zone (labelReversed) OR the name of the closest parrent zone
 bool LMDBBackend::getAuthZone( string &rev_zone )
 {
     MDB_val key, data;
     // XXX can do this just using char *
 
-    string orig = rev_zone;
-    key.mv_data = (char *)rev_zone.c_str();
-    key.mv_size = rev_zone.length();
+    string key_str=bitFlip(rev_zone+" ");
+    key.mv_data = (char *)key_str.c_str();
+    key.mv_size = key_str.length();
 
     // Release our transaction and cursors in order to get latest data
     mdb_txn_reset( txn );
@@ -295,29 +294,23 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
       mdb_cursor_renew( txn, nsecx_cursor );
     }
 
-    // Find the nearest record, or the last record if none
-    if( mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_RANGE) )
-        mdb_cursor_get(zone_cursor, &key, &data, MDB_LAST);
+    // Find the best record
+    if( mdb_cursor_get( zone_cursor, &key, &data, MDB_SET_RANGE ) == 0 && key.mv_size <= key_str.length() ) {
+      // Found a shorter match. Now look if the zones are equal up to key-length-1. If they are check
+      // if position key-length in key_str is a label separator. If all this is true we have a match.
+      if( key_str.compare( 0, key.mv_size-1, (const char *) key.mv_data, key.mv_size-1  ) == 0 && key.mv_size && key_str[key.mv_size-1] == ~' ') {
+        rev_zone.resize( key.mv_size-1 );
 
-    rev_zone.assign( (const char *)key.mv_data, key.mv_size );
+        DEBUGLOG("Auth key: " << rev_zone <<endl);
 
-    /* Only skip this bit if we got an exact hit on the SOA or if the key is a shoter
-     * version of rev_zone. Otherwise we have to go back to the previous record */
-    if( orig.compare( rev_zone ) != 0 ) { // FIXME detect shorter version
-        /* Skip back 1 entry to what should be a substring of what was searched
-         * for (or a totally different entry) */
-        if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {
-            // At beginning of database; therefore didn't actually hit the
-            // record. Return false
-            return false;
-        }
-
-        rev_zone.assign( (const char *)key.mv_data, key.mv_size );
+        return true;
+      }
     }
 
-    DEBUGLOG("Auth key: " << rev_zone <<endl);
+    //reset the cursor the data in it is invallid
+    mdb_cursor_renew( txn, zone_cursor );
 
-    return true;
+    return false;
 }
 
 bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )

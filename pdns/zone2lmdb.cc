@@ -164,7 +164,7 @@ void emitData(string zone, ZoneParserTNG &zpt){
       mdb_put(txn_zone, data_db, &key, &data, 0);
   }
   if (hasSOA) {
-    string keyStr=(reverse(stripDot(zone)));
+    string keyStr=bitFlip(labelReverse(zone))+"\xff";
     string dataStr=itoa(g_numZones+1)+"\t"+itoa(sd.ttl)+"\t"+serializeSOAData(sd);
 
     if (isPresigned)
