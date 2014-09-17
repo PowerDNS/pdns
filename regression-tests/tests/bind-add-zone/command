@@ -12,6 +12,4 @@ sleep 1
 ../pdns/pdns_control --config-name=bind --socket-dir=. --no-config bind-add-zone addzone.com zones/addzone.com
 sleep 1
 cleandig ns1.addzone.com A
-sleep 1
-cleandig ns1.addzone.com A
 cleandig ns1.test.com A

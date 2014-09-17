@@ -681,7 +681,7 @@ void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
 
 void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr)
 {
-  shared_ptr<recordstorage_t> records = bbd.d_records.getWRITABLE();
+  shared_ptr<const recordstorage_t> records = bbd.d_records.get();
   bool auth, doent=true;
   set<string> qnames;
   map<string, bool> nonterm;
@@ -1076,7 +1076,8 @@ void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pk
   if(!bbd.current()) {
     L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
     queueReloadAndStore(bbd.d_id);
-    throw DBException("Zone for '"+bbd.d_name+"' in '"+bbd.d_filename+"' being reloaded"); // if we don't throw here, we crash for some reason
+    if (!safeGetBBDomainInfo(domain, &bbd))
+      throw DBException("Zone '"+bbd.d_name+"' ("+bbd.d_filename+") gone after reload"); // if we don't throw here, we crash for some reason
   }
 
   d_handle.d_records = bbd.d_records.get();
