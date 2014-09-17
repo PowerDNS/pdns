@@ -296,19 +296,16 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
 
     for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
       if(!i->d_masters.empty() && this->alsoNotify.empty() && i->d_also_notify.empty())
-	continue;
-    
+        continue;
+
       DomainInfo di;
       di.id=i->d_id;
-
       di.zone=i->d_name;
       di.last_check=i->d_lastcheck;
-      di.notified_serial = i->d_lastnotified;
+      di.notified_serial=i->d_lastnotified;
       di.backend=this;
       di.kind=DomainInfo::Master;
-      if(!i->d_lastnotified)  {          // don't do notification storm on startup 
-	consider.push_back(di);
-      }
+      consider.push_back(di);
     }
   }
 
@@ -318,15 +315,20 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
     try {
       this->getSOA(di.zone, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
     }
-    catch(...){}
-    BB2DomainInfo bbd;
-    if(safeGetBBDomainInfo(di.id, &bbd)) { 
-      bbd.d_lastnotified=soadata.serial; 
-      safePutBBDomainInfo(bbd);
+    catch(...) {
+      continue;
     }
-    di.serial=soadata.serial;    
-    if(soadata.serial != di.notified_serial)
-      changedDomains->push_back(di);
+    if(di.notified_serial != soadata.serial) {
+      BB2DomainInfo bbd;
+      if(safeGetBBDomainInfo(di.id, &bbd)) {
+        bbd.d_lastnotified=soadata.serial;
+        safePutBBDomainInfo(bbd);
+      }
+      if(di.notified_serial)  { // don't do notification storm on startup
+        di.serial=soadata.serial;
+        changedDomains->push_back(di);
+      }
+    }
   }
 }
 
