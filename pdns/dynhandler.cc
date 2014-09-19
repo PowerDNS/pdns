@@ -275,13 +275,23 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  UeberBackend::rediscover_all();
-  return "Ok";
+  PacketHandler P;
+  try {
+    L<<Logger::Error<<"Rediscovery was requested"<<endl;
+    string status="Ok";
+    P.getBackend()->rediscover(&status);
+    return status;
+  }
+  catch(PDNSException &ae) {
+    return ae.reason;
+  }
+
 }
 
 string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  UeberBackend::reload_all();
+  PacketHandler P;
+  P.getBackend()->reload();
   L<<Logger::Error<<"Reload was requested"<<endl;
   return "Ok";
 }
