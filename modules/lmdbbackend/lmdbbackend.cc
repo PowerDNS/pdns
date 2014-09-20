@@ -30,6 +30,7 @@
 #define DEBUGLOG(msg) do {} while(0)
 #endif
 
+int LMDBBackend::s_reloadcount=0;
 pthread_mutex_t LMDBBackend::s_initlock = PTHREAD_MUTEX_INITIALIZER;
 
 LMDBBackend::LMDBBackend(const string &suffix)
@@ -41,6 +42,7 @@ LMDBBackend::LMDBBackend(const string &suffix)
     catch (ArgException e) {
       d_doDnssec = false;
     }
+    d_lastreload = s_reloadcount;
     open_db();
 }
 
@@ -123,14 +125,23 @@ LMDBBackend::~LMDBBackend()
 }
 
 void LMDBBackend::reload() {
+  ++s_reloadcount;
+}
+
+void LMDBBackend::needReload() {
+  if (s_reloadcount > d_lastreload) {
+    d_lastreload = s_reloadcount;
     close_db();
     open_db();
+  }
 }
 
 bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
 {
   if (!d_doDnssec)
     return false;
+
+  needReload();
 
   if (kind == "PRESIGNED" || kind == "NSEC3PARAM") {
     int rc;
@@ -165,6 +176,8 @@ bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType 
 {
   if (!d_doDnssec)
     return false;
+
+  needReload();
 
   MDB_val key, data;
   string key_str, cur_key, cur_value;
@@ -236,6 +249,8 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
   if (!d_doDnssec)
     return false;
 
+  needReload();
+
   int rc;
   MDB_val key, data;
   string key_str, cur_value;
@@ -276,6 +291,8 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
 // Get the zone name of the requested zone (labelReversed) OR the name of the closest parrent zone
 bool LMDBBackend::getAuthZone( string &rev_zone )
 {
+    needReload();
+
     MDB_val key, data;
     // XXX can do this just using char *
 
@@ -315,6 +332,8 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 
 bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
 {
+    needReload();
+
     MDB_val key, value;
     if( mdb_cursor_get(zone_cursor, &key, &value, MDB_GET_CURRENT) )
         return false;
@@ -357,6 +376,8 @@ bool LMDBBackend::list(const string &target, int zoneId, bool include_disabled) 
 void LMDBBackend::lookup(const QType &type, const string &inQdomain, DNSPacket *p, int zoneId)
 {
     DEBUGLOG("lookup: " <<inQdomain << " " << type.getName() << endl);
+
+    needReload();
 
     d_first = true;
     d_origdomain = inQdomain;
