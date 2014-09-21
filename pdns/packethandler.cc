@@ -970,6 +970,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
   vector<DNSResourceRecord> rrset;
   bool weDone=0, weRedirected=0, weHaveUnauth=0;
+  string haveAlias;
 
   DNSPacket *r=0;
   bool noCache=false;
@@ -1159,6 +1160,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     // see what we get..
     B.lookup(QType(QType::ANY), target, p, sd.domain_id);
     rrset.clear();
+    haveAlias.clear();
     weDone = weRedirected = weHaveUnauth =  false;
     
     while(B.get(rr)) {
@@ -1179,6 +1181,10 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
         weRedirected=1;
 
+      if(DP && rr.qtype.getCode() == QType::ALIAS) {
+	haveAlias=rr.content;
+      }
+
       // Filter out all SOA's and add them in later
       if(rr.qtype.getCode() == QType::SOA)
         continue;
@@ -1198,11 +1204,17 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
 
-    DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
+    DLOG(L<<"After first ANY query for '"<<target<<"', id="<<sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
     if(p->qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected && d_dk.isSecuredZone(sd.qname)) {
       DLOG(L<<"Q for DS of a name for which we do have NS, but for which we don't have on a zone with DNSSEC need to provide an AUTH answer that proves we don't"<<endl);
       makeNOError(p, r, target, "", sd, 1);
       goto sendit;
+    }
+
+    if(!haveAlias.empty() && !weDone) {
+      DLOG(L<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
+      DP->completePacket(r, haveAlias, target);
+      return 0;
     }
 
     if(rrset.empty()) {
@@ -1217,7 +1229,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         }
       }
 
-      
+
       DLOG(L<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
       bool wereRetargeted(false), nodata(false);
       string wildcard;

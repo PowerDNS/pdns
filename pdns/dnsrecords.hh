@@ -84,7 +84,6 @@ public:
 
   includeboilerplate(MX)
 
-private:
   uint16_t d_preference;
   string d_mxname;
 };
@@ -132,7 +131,6 @@ public:
 
   includeboilerplate(SRV)
 
-private:
   uint16_t d_preference, d_weight, d_port;
   string d_target;
 };
@@ -200,6 +198,16 @@ public:
 private:
   string d_content;
 };
+
+class ALIASRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(ALIAS)
+
+private:
+  string d_content;
+};
+
 
 class DNAMERecordContent : public DNSRecordContent
 {
