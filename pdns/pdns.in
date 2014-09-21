@@ -21,6 +21,7 @@ exec_prefix=@exec_prefix@
 BINARYPATH=@bindir@
 SBINARYPATH=@sbindir@
 SOCKETPATH=@socketdir@
+DAEMON_ARGS=""
 
 [ -f "$SBINARYPATH/pdns_server" ] || exit 0
 
@@ -36,7 +37,7 @@ else
 	PROGNAME=pdns
 fi
 
-pdns_server="$SBINARYPATH/pdns_server $EXTRAOPTS"
+pdns_server="$SBINARYPATH/pdns_server $DAEMON_ARGS $EXTRAOPTS"
 
 doPC()
 {
