@@ -22,9 +22,17 @@ BINARYPATH=@bindir@
 SBINARYPATH=@sbindir@
 SOCKETPATH=@socketdir@
 
+DAEMON_ARGS=""
+START="yes"
+
 [ -f "$SBINARYPATH/pdns_server" ] || exit 0
 
 [ -r /etc/default/pdns ] && . /etc/default/pdns
+
+if [ "X${START}" != "Xyes" ]; then
+    echo "Not starting Powerdns authoritative server, it is disabled in /etc/default/pdns"
+    exit 0
+fi
 
 cd $SOCKETPATH
 suffix=$(basename $0 | cut -d- -f2- -s)
@@ -36,7 +44,7 @@ else
 	PROGNAME=pdns
 fi
 
-pdns_server="$SBINARYPATH/pdns_server $EXTRAOPTS"
+pdns_server="$SBINARYPATH/pdns_server $EXTRAOPTS $DAEMON_ARGS"
 
 doPC()
 {
