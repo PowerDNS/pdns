@@ -13,7 +13,7 @@ ALIAS record will return A or AAAA records with addresses belonging to the
 target of the ALIAS.
 
 Similarly, if an ANY query arrives for the name, all records from the local store
-for that name are returned, plus the any A and AAAA types associated with the ALIAS
+for that name are returned, plus the A and AAAA types associated with the ALIAS
 record's target.
 
 As an example:
@@ -35,8 +35,9 @@ based on the IPv4 address of www.powerdns.com which was retrieved earlier.
 
 The same applies, mutatis mutandis, for a query for the AAAA record of example.com.
 
-It should be noted that if www.powerdns.com is itself a CNAME chain to A or AAAA records,
-the data returned should be the eventual A and AAAA records, and not the CNAMEs themselves.
+It should be noted that if www.powerdns.com is itself a CNAME chain to A or
+AAAA records, the data returned should be sourced from the eventual A and
+AAAA records. The intermediate CNAMEs should not be returned.
 
 A query for the A of serv.example.com gets normal CNAME processing, and then similarly
 hits the ALIAS record, and returns the synthesized A record for example.com.
