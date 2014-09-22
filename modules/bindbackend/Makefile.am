@@ -8,7 +8,7 @@ BUILT_SOURCES=../../pdns/bind-dnssec.schema.sqlite3.sql.h ../../pdns/bindparser.
 
 EXTRA_DIST=OBJECTFILES OBJECTLIBS
 
-libbindbackend_la_SOURCES=bindbackend2.cc bindbackend2.hh binddnssec.cc ../../pdns/bindparser.yy ../../pdns/bindlexer.l
+libbindbackend_la_SOURCES=bindbackend2.cc bindbackend2.hh binddnssec.cc
 
 libbindbackend_la_LDFLAGS=-module -avoid-version
 
