@@ -43,9 +43,9 @@ A query for the A of serv.example.com gets normal CNAME processing, and then sim
 hits the ALIAS record, and returns the synthesized A record for example.com.
 
 A query for the SRV record of example.com will return NODATA, since ALIAS records do
-not syntesize to anything but A and AAAA records.
+not synthesize to anything but A and AAAA records.
 
-Finaly, a query for ANY for example.com will return the SOA, NS and ALIAS records, 
+Finally, a query for ANY for example.com will return the SOA, NS and ALIAS records, 
 in addition to any synthesized A and AAAA records matching the IPv4 and IPv6 addresses
 of www.powerdns.com.
 
@@ -53,7 +53,7 @@ The TTL of the synthesized record is the minimum of the TTL on the ALIAS record 
 the origin IPv4 or IPv6 addresses. 
 
 ## NXDOMAIN and NODATA handling
-If the server encounters a NODATA response when retrievin the target's IPv4 or IPv6 addresses,
+If the server encounters a NODATA response when retrieving the target's IPv4 or IPv6 addresses,
 a similar NODATA response should be synthesized, in other words, we pretend the ALIAS record 
 was not even present.
 
