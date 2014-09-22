@@ -173,6 +173,8 @@ void declareStats(void)
   S.declare("udp6-answers","Number of IPv6 answers sent out over UDP");
   S.declare("udp6-queries","Number of IPv6 UDP queries received");
 
+  S.declare("rd-queries", "Number of recursion desired questions");
+  S.declare("recursion-unanswered", "Number of packets unanswered by configured recursor");
   S.declare("recursing-answers","Number of recursive answers sent out");
   S.declare("recursing-questions","Number of questions sent to recursor");
   S.declare("corrupt-packets","Number of corrupt packets received");

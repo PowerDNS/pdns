@@ -17750,6 +17750,25 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem><para>Number of packets waiting for database attention</para></listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term>rd-queries</term>
+	  <listitem><para>Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>recursing-questions</term>
+	  <listitem><para>Number of packets we supplied an answer to after recursive processing</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>recursing-questions</term>
+	  <listitem><para>Number of packets we performed recursive processing for</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>recursion-unanswered</term>
+	  <listitem><para>Number of packets we sent to our recursor, but did not get a timely answer for. Since 3.4.0.</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
 	  <term>servfail-packets</term>
 	  <listitem><para>Amount of packets that could not be answered due to database problems</para></listitem>
 	</varlistentry>
@@ -17770,9 +17789,26 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem><para>Number of answers sent out over UDP</para></listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>udp-questions</term>
+	  <term>udp-queries</term>
 	  <listitem><para>Number of questions received over UDP</para></listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term>udp4-answers</term>
+	  <listitem><para>Number of answers sent out over UDPv4</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp4-queries</term>
+	  <listitem><para>Number of questions received over UDPv4</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp6-answers</term>
+	  <listitem><para>Number of answers sent out over UDPv6</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp6-queries</term>
+	  <listitem><para>Number of questions received over UDPv6</para></listitem>
+	</varlistentry>
+
       </variablelist>
     </para>
     </sect2>

@@ -807,6 +807,12 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       return ret;
   }
 
+
+  if(p->d.rd) {
+    static unsigned int &rdqueries=*S.getPointer("rd-queries");  
+    rdqueries++;
+  }
+
   bool shouldRecurse=false;
   ret=questionOrRecurse(p, &shouldRecurse);
   if(shouldRecurse) {

@@ -130,11 +130,12 @@ int DNSProxy::getID_locked()
       return n;
     }
     else if(i->second.created<time(0)-60) {
-      if(i->second.created)
+      if(i->second.created) {
         L<<Logger::Warning<<"Recursive query for remote "<<
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
           " was not answered by backend within timeout, reusing id"<<endl;
-      
+	S.inc("recursion-unanswered");
+      }
       return n;
     }
   }
