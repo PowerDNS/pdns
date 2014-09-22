@@ -81,7 +81,7 @@
       </para>
       <para>
 	The most up to date version of the HTML documentation can be downloaded as a tar archive from 
-	<ulink url="http://doc.powerdns.com/html.tar.gz">http://doc.powerdns.com/html.tar.gz</ulink>.
+	<ulink url="http://doc.powerdns.com/html.tar.bz2">http://doc.powerdns.com/html.tar.bz2</ulink>.
       </para>
     </sect1>
     <sect1 id="changelog">
