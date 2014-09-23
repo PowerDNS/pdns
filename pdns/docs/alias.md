@@ -1,15 +1,23 @@
 # The ALIAS record
 
+## Rationale
+It is frequent practice to use CNAME records to direct Internet traffic, 
+for example to a CDN. This works well for 'www.example.com', but it does not
+work at the apex of a zone. Currently there are many ad-hoc solutions for this
+problem. This document attempts to document the solution we chose, in hopes
+that interoperability might be achieved.
+
+## Semantics
 The ALIAS record leads authoritative servers to synthesize A or AAAA records
 in case these are not present.  The source of the synthesized A or AAAA
 record is specified by the target of the ALIAS record.
 
 ALIAS records, like wildcards, synthesize responses, and are not returned themselves
-unless explicitly queried for.
+unless explicitly queried for. 
 
 If a query comes in for the A or AAAA type of a label, but no such type is
 matched, but there is an ALIAS type for that name, a server supporting the
-ALIAS record will return A or AAAA records with addresses belonging to the
+ALIAS record will return A or AAAA records with addresses associated with the
 target of the ALIAS.
 
 Similarly, if an ANY query arrives for the name, all records from the local store
@@ -74,6 +82,26 @@ and IPv6 records associated with the target of the ALIAS record.
 ## Implementation details
 Authoritative servers can either periodically refresh the ALIAS records, or they can look them
 up and cache them as queries come in. 
+
+In the PowerDNS implementation, a query with an ALIAS record inside is stored, and a query
+is sent to a defined resolver to gather the A and/or AAAA records. Normal PowerDNS operations
+then resume, until the resolver returns an answer, which is added to the stored packet, 
+which is then returned to the original requestor. The result is also cached.
+
+Other implementations might employ periodic 'flattening' to achieve the same effect statically.
+
+## AXFR of ALIAS records
+ALIAS records are AXFRed without further processing, where it should be noted that
+this only makes sense if the retrieving server is also capable of doing ALIAS processing.
+
+## EDNS Subnet
+Authoritative servers sometimes give out different answers based on the IP
+address of the resolver asking.  As a further refinement, some resolvers can
+pass along (part) of the actual stub-resolver asking the question, and base
+its answer on that 'real' address. 
+
+For ALIAS processing, implementors are encourage to pass along or use all
+knowledge of the remote client IP address when retrieving A or AAAA records.
 
 ## Resolver processing
 Resolvers are not expected to perform processing on ALIAS records. In fact, except when
