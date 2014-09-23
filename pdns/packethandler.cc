@@ -260,6 +260,7 @@ vector<DNSResourceRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData
       rr.qtype = QType::CNAME;
       rr.qname = prefix + rr.qname;
       rr.content = prefix + rr.content;
+      rr.auth = 0; // don't sign CNAME
       target= rr.content;
       ret.push_back(rr); 
     }
