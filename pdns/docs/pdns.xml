@@ -11156,9 +11156,12 @@ name         IN            A        192.0.2.4
       </para>
 
       <para>
-	As of the 9th of January 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about.  This page 
+	As of the 25th of September 2014, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about, with the exception of Recursor 3.6.0 specifically.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailing lists.
+      </para>
+      <para>
+      Version 3.6.0 of the Recursor (but not 3.5.x) can be crashed remotely with a specific packet sequence. For more detail, see <xref linkend="powerdns-advisory-2014-01"/>.
       </para>
       <para>
 	Versions 2.9.22 and lower and 3.0 of the PowerDNS Authoritative Server were vulnerable to a temporary denial of service attack. For more detail,
@@ -11174,7 +11177,7 @@ name         IN            A        192.0.2.4
       </para>
       <para>
 	Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered
-	by remote users. One of the issues might lead be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"/> and
+	by remote users. One of the issues might be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"/> and
 	<xref linkend="powerdns-advisory-2006-02"/>.
       </para>
       <para>
