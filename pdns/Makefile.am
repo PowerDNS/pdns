@@ -32,7 +32,7 @@ noinst_SCRIPTS = pdns
 sysconf_DATA = pdns.conf-dist 
 
 sbin_PROGRAMS = pdns_server 
-bin_PROGRAMS = pdns_control pdnssec zone2sql zone2ldap zone2json
+bin_PROGRAMS = pdns_control pdnssec zone2sql zone2ldap zone2json pdnsutil
 
 if TOOLS
   bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy dnsdist nsec3dig saxfr
@@ -115,6 +115,23 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) @LIBDL@ $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
 pdnssec_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
 
+pdnsutil_SOURCES=pdnsutil.cc pdnsutil.hh dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnswriter.hh \
+        misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
+        logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc dnssecinfra.cc dnssecinfra.hh \
+        base32.cc  ueberbackend.cc dnsbackend.cc arguments.cc packetcache.cc dnspacket.cc  \
+        bindparser.cc bindlexer.c \
+        backends/gsql/gsqlbackend.cc \
+        backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh zoneparser-tng.cc \
+        dynlistener.cc dns.cc dnssecsigner.cc polarrsakeyinfra.cc \
+        signingpipe.cc dnslabeltext.cc ednssubnet.cc cachecleaner.hh \
+        aes/aescpp.h \
+        aes/aescrypt.c aes/aes.h aes/aeskey.c aes/aes_modes.c aes/aesopt.h \
+        aes/aestab.c aes/aestab.h aes/brg_endian.h aes/brg_types.h aes/dns_random.cc json.cc \
+        serialtweaker.cc randomhelper.cc pdnsutil-help.cc pdnsutil-meta.cc
+
+pdnsutil_LDFLAGS=@moduleobjects@ @modulelibs@ @DYNLINKFLAGS@ @LIBDL@ @THREADFLAGS@ $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS)
+pdnsutil_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(LIBCURL_LIBS)
+
 zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	arguments.cc logger.cc zone2sql.cc statbag.cc misc.cc \
 	unix_utility.cc qtype.cc dns.cc \
@@ -162,24 +179,32 @@ endif
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
 pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
+pdnsutil_SOURCES += botan110signers.cc botansigners.cc
+pdnsutil_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
 endif
 
 if BOTAN18
 pdnssec_SOURCES += botan18signers.cc botansigners.cc
 pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
+pdnsutil_SOURCES += botan18signers.cc botansigners.cc
+pdnsutil_LDADD += $(BOTAN18_LIBS) -lgmp
 endif
 
 if CRYPTOPP
 pdnssec_SOURCES += cryptoppsigners.cc
 pdnssec_LDADD += -lcryptopp
+pdnsutil_SOURCES += cryptoppsigners.cc
+pdnsutil_LDADD += -lcryptopp
 endif
 
 if SQLITE3
 pdnssec_SOURCES += ssqlite3.cc ssqlite3.hh
+pdnsutil_SOURCES += ssqlite3.cc ssqlite3.hh
 endif
 
 if ORACLE
 pdnssec_LDADD += $(ORACLE_LIBS)
+pdnsutil_LDADD += $(ORACLE_LIBS)
 endif
 
 if PKCS11
