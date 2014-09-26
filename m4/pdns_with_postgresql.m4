@@ -3,8 +3,8 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
     AS_HELP_STRING([--with-pgsql=<path>],
       [root directory path of PgSQL installation]
    ),
-   [PGSQL_lib_check="$withval/lib/pgsql $with_pgsql/lib"
-    PGSQL_inc_check="$withval/include/pgsql"
+   [PGSQL_lib_check="$withval/lib/pgsql $withval/lib"
+    PGSQL_inc_check="$withval/include/pgsql $withval/include"
    ]
   )
 
