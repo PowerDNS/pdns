@@ -183,6 +183,7 @@ string SPgSQL::escape(const string &name)
     throw sPerrorException("PQescapeStringConn() error: " + itoa(pg_err));
   }
   string a;
+  tmp[len]=0; // ensure it ends with nul byte
   a.assign(tmp, len);
   delete [] tmp;
   return a;
