@@ -6,6 +6,7 @@
 	echo "START ../modules/oraclebackend/schema.oracle.sql;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe >> oracle2.log
 
 	cat > pdns-oracle2.conf << __EOF__
+module-dir=./modules
 launch=oracle
 oracle-home=$ORACLE_HOME
 oracle-sid=$ORACLE_SID
