@@ -140,12 +140,11 @@ bool SMySQL::getRow(row_t &row)
 
 string SMySQL::escape(const string &name)
 {
+  char *tmp = new char[name.size()*2+1];
+  unsigned long len;
+  len = mysql_real_escape_string(&d_db, tmp, name.c_str(), name.size());
   string a;
-
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='\'' || *i=='\\')
-      a+='\\';
-    a+=*i;
-  }
+  a.assign(tmp, len);
+  delete [] tmp;
   return a;
 }
