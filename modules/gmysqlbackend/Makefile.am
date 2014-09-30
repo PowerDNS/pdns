@@ -9,4 +9,5 @@ dist_doc_DATA = schema.mysql.sql nodnssec-3.x_to_3.4.0_schema.mysql.sql dnssec-3
 libgmysqlbackend_la_SOURCES=gmysqlbackend.cc gmysqlbackend.hh \
 	smysql.hh smysql.cc
 
-libgmysqlbackend_la_LDFLAGS=-module -avoid-version $(MYSQL_lib)
+libgmysqlbackend_la_LDFLAGS = -module -avoid-version
+libgmysqlbackend_la_LIBADD = $(MYSQL_lib)

@@ -7,5 +7,5 @@ EXTRA_DIST=OBJECTFILES OBJECTLIBS schema.oracle.sql drop-schema.oracle.sql
 dist_doc_DATA=schema.oracle.sql drop-schema.oracle.sql
 
 liboraclebackend_la_SOURCES=oraclebackend.cc oraclebackend.hh
-liboraclebackend_la_LDFLAGS=-module -avoid-version $(ORACLE_LIBS)
-liboraclebackend_la_LIBADD=-lclntsh
+liboraclebackend_la_LDFLAGS = -module -avoid-version
+liboraclebackend_la_LIBADD = $(ORACLE_LIBS) -lclntsh
