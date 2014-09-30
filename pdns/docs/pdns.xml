@@ -152,6 +152,41 @@
         A list of changes since 3.3.1 follows.
       </para>
       <para>
+        Changes between RC2 and 3.4.0:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gad189c9, g445d93c: also distribute the dnsdist manual page
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gb5a276d, g0b346e9, g74caf87, g642fd2e: Make sure all backends actually work as dynamic modules
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g14b11c4: raise log level on dlerror(), fixes t1734, thanks @James-TR
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g016d810: improve postgresql detection during ./configure
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdce1e90: DNAME: don't sign the synthesised CNAME
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g25e7af3: send empty SERVFAIL after a backend throws a DBException, instead of including useless content
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
         Changes between RC1 and RC2:
       </para>
       <itemizedlist>
