@@ -11,5 +11,5 @@ dist_doc_DATA=schema.pgsql.sql nodnssec-3.x_to_3.4.0_schema.pgsql.sql \
 libgpgsqlbackend_la_SOURCES=gpgsqlbackend.cc gpgsqlbackend.hh \
 	spgsql.hh spgsql.cc
 
-libgpgsqlbackend_la_LDFLAGS=-module -avoid-version $(PGSQL_lib)
-libgpgsqlbackend_la_LIBADD=-lssl $(LIBCRYPT) -lcrypto
+libgpgsqlbackend_la_LDFLAGS = -module -avoid-version
+libgpgsqlbackend_la_LIBADD = $(PGSQL_lib) -lssl $(LIBCRYPT) -lcrypto
