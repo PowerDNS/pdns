@@ -105,43 +105,10 @@
       </warning>
       <note>
         <para>
-          RC2 released September 23rd, 2014
+          Released September 30th, 2014
         </para>
         <para>
-          Downloads:
-          <itemizedlist>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-3.4.0-rc2.tar.bz2">tar.bz2 source</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc2-1.i386.rpm">i386 RPM</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc2-1.x86_64.rpm">x86_64 RPM</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc2-1_i386.deb">i386 deb</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc2-1_amd64.deb">x86_64 deb</ulink>
-              </para>
-            </listitem>
-
-            <listitem>
-              <para>
-                <ulink url="https://www.monshouwer.eu/download/3rd_party/pdns/">native RHEL5/6/7 packages from Kees Monshouwer</ulink>
-              </para>
-            </listitem>
-          </itemizedlist>
+          Find the downloads <ulink url="https://www.powerdns.com/downloads.html">on our download page</ulink>.
         </para>
       </note>
       <para>
