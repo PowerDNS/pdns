@@ -315,7 +315,7 @@ bool PacketHandler::getBestWildcard(DNSPacket *p, SOAData& sd, const string &tar
 }
 
 /** dangling is declared true if we were unable to resolve everything */
-int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& soadata)
+int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& soadata, bool retargeted)
 {
   DNSResourceRecord rr;
   SOAData sd;
@@ -335,7 +335,7 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 
     // we now have a copy, push_back on packet might reallocate!
     for(vector<DNSResourceRecord>::const_iterator i=crrs.begin(); i!=crrs.end(); ++i) {
-      if(r->d.aa && !i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p)) { // drop AA in case of non-SOA-level NS answer, except for root referral
+      if(r->d.aa && !i->qname.empty() && i->qtype.getCode()==QType::NS && !B.getSOA(i->qname,sd,p) && !retargeted) { // drop AA in case of non-SOA-level NS answer, except for root referral
         r->setA(false);
         //        i->d_place=DNSResourceRecord::AUTHORITY; // XXX FIXME
       }
@@ -877,7 +877,7 @@ bool PacketHandler::addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const st
   return gotOne;
 }
 
-bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target)
+bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target, bool retargeted)
 {
   vector<DNSResourceRecord> rrset = getBestReferralNS(p, sd, target);
   if(rrset.empty())
@@ -889,7 +889,8 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const st
     rr.d_place=DNSResourceRecord::AUTHORITY;
     r->addRecord(rr);
   }
-  r->setA(false);
+  if(!retargeted)
+    r->setA(false);
 
   if(d_dk.isSecuredZone(sd.qname) && !addDSforNS(p, r, sd, rrset.begin()->qname))
     addNSECX(p, r, rrset.begin()->qname, "", sd.qname, 1);
@@ -1158,7 +1159,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     DLOG(L<<"Checking for referrals first, unless this is a DS query"<<endl);
-    if(p->qtype.getCode() != QType::DS && tryReferral(p, r, sd, target))
+    if(p->qtype.getCode() != QType::DS && tryReferral(p, r, sd, target, retargetcount))
       goto sendit;
 
     DLOG(L<<"Got no referrals, trying ANY"<<endl);
@@ -1217,7 +1218,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if(p->qtype.getCode() == QType::DS)
       {
         DLOG(L<<"DS query found no direct result, trying referral now"<<endl);
-        if(tryReferral(p, r, sd, target))
+        if(tryReferral(p, r, sd, target, retargetcount))
         {
           DLOG(L<<"got referral for DS query"<<endl);
           goto sendit;
@@ -1281,7 +1282,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     else if(weHaveUnauth) {
       DLOG(L<<"Have unauth data, so need to hunt for best NS records"<<endl);
-      if(tryReferral(p, r, sd, target))
+      if(tryReferral(p, r, sd, target, retargetcount))
         goto sendit;
       // check whether this could be fixed easily
       if (*(rr.qname.rbegin()) == '.') {
@@ -1296,7 +1297,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     
   sendit:;
-    if(doAdditionalProcessingAndDropAA(p, r, sd)<0) {
+    if(doAdditionalProcessingAndDropAA(p, r, sd, retargetcount)<0) {
       delete r;
       return 0;
     }
