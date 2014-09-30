@@ -148,3 +148,13 @@ function prequery ( dnspacket )
 	pdnslog ("returning false")
 	return false
 end
+
+
+-- rename this function to 'postresolve' (and make sure you remove the other one!) to implement djb dnscache-like TTL hiding
+function hidettl ( remoteip, domain, qtype, records, origrcode )
+	for key,val in ipairs(records)
+	do
+		val.ttl=0
+	end
+	return origrcode, records
+end
