@@ -194,11 +194,6 @@
         </listitem>
         <listitem>
           <para>
-            g882ca9d: revert setpgrp changes
-          </para>
-        </listitem>
-        <listitem>
-          <para>
             g2e6bbd8: Catch PDNSException in Signingpiper::helperWorker to avoid abort
           </para>
         </listitem>
@@ -678,11 +673,6 @@
         <listitem>
           <para>
             Implement udp-truncation-threshold to override the previous 1680 byte maximum response datagram size - no matter what EDNS0 said.
-          </para>
-        </listitem>
-        <listitem>
-          <para>
-            On shutdown, PowerDNS now attempts to stop all processes in its process group, especially useful for pipe/remotebackend users. Feature donated by Spotify.
           </para>
         </listitem>
         <listitem>
