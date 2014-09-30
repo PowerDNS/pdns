@@ -331,6 +331,7 @@ EOF
 for dir in $PREFIX.*
 do
     cat > $dir/pdns.conf <<EOF
+module-dir=../../../regression-tests/modules
 launch=bind
 daemon=no
 local-address=$dir

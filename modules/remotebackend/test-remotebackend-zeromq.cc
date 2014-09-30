@@ -45,7 +45,7 @@ struct RemotebackendSetup {
 	be = 0; 
 	try {
 		// setup minimum arguments
-		::arg().set("module-dir")="";
+		::arg().set("module-dir")="./.libs";
                 new RemoteLoader();
 		BackendMakers().launch("remote");
                 // then get us a instance of it 

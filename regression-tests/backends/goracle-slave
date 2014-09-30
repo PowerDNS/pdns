@@ -6,6 +6,7 @@
 	echo "START ../modules/goraclebackend/schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 
 	cat > pdns-goracle2.conf << __EOF__
+module-dir=./modules
 launch=goracle
 goracle-home=$ORACLE_HOME
 goracle-sid=$ORACLE_SID
