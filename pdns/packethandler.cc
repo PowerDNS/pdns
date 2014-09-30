@@ -260,6 +260,7 @@ vector<DNSResourceRecord> PacketHandler::getBestDNAMESynth(DNSPacket *p, SOAData
       rr.qtype = QType::CNAME;
       rr.qname = prefix + rr.qname;
       rr.content = prefix + rr.content;
+      rr.auth = 0; // don't sign CNAME
       target= rr.content;
       ret.push_back(rr); 
     }
@@ -807,6 +808,12 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       return ret;
   }
 
+
+  if(p->d.rd) {
+    static unsigned int &rdqueries=*S.getPointer("rd-queries");  
+    rdqueries++;
+  }
+
   bool shouldRecurse=false;
   ret=questionOrRecurse(p, &shouldRecurse);
   if(shouldRecurse) {
@@ -1323,18 +1330,20 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   }
   catch(DBException &e) {
     L<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
+    delete r;
+    r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);
   }
   catch(PDNSException &e) {
-    L<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+") sending out servfail"<<endl;
+    L<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
     throw; // we WANT to die at this point
   }
   catch(std::exception &e) {
     L<<Logger::Error<<"Exception building answer packet ("<<e.what()<<") sending out servfail"<<endl;
     delete r;
-    r=p->replyPacket();  // generate an empty reply packet    
+    r=p->replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",p->qdomain);

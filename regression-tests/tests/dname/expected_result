@@ -13,6 +13,7 @@
 1	.	IN	NS	518400	k.root-servers.net.
 1	.	IN	NS	518400	l.root-servers.net.
 1	.	IN	NS	518400	m.root-servers.net.
+2	.	IN	OPT	32768	
 2	a.root-servers.net.	IN	A	3600000	198.41.0.4
 2	b.root-servers.net.	IN	A	3600000	192.228.79.201
 2	c.root-servers.net.	IN	A	3600000	192.33.4.12
@@ -25,5 +26,6 @@
 2	j.root-servers.net.	IN	A	3600000	192.58.128.30
 2	k.root-servers.net.	IN	A	3600000	193.0.14.129
 2	l.root-servers.net.	IN	A	3600000	199.7.83.42
+2	m.root-servers.net.	IN	A	3600000	202.12.27.33
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.d.test.com.', qtype=A

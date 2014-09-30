@@ -1674,7 +1674,7 @@ void parseACLs()
     cleanSlashes(configname);
     
     if(!::arg().preParseFile(configname.c_str(), "allow-from-file")) 
-      L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
+      throw runtime_error("Unable to re-parse configuration file '"+configname+"'");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
     ::arg().preParseFile(configname.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
@@ -1684,8 +1684,10 @@ void parseACLs()
     ::arg().gatherIncludes(extraConfigs);
 
     BOOST_FOREACH(const std::string& fn, extraConfigs) {
-      ::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]);
-      ::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]);
+      if(!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
+	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
+      if(!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
+	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
     }
 
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
@@ -2149,7 +2151,7 @@ int main(int argc, char **argv)
 //    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no"; 
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
-    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
+    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";

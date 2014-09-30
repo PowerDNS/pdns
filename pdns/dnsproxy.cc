@@ -171,8 +171,8 @@ int DNSProxy::getID_locked()
         L<<Logger::Warning<<"Recursive query for remote "<<
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
           " was not answered by backend within timeout, reusing id"<<endl;
-	
 	delete i->second.complete;
+	S.inc("recursion-unanswered");
       }
       return n;
     }

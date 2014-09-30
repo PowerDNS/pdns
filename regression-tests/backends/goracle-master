@@ -10,6 +10,7 @@ case $context in
 		tosql goracle | sqlplus -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
 
 		cat > pdns-goracle.conf << __EOF__
+module-dir=./modules
 launch=goracle
 goracle-home=$ORACLE_HOME
 goracle-sid=$ORACLE_SID

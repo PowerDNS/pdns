@@ -34,7 +34,7 @@ CREATE INDEX orderindex ON records(ordername);
 CREATE TABLE supermasters (
   ip                    VARCHAR(64) NOT NULL,
   nameserver            VARCHAR(255) NOT NULL COLLATE NOCASE,
-  account               VARCHAR(40) DEFAULT NULL
+  account               VARCHAR(40) NOT NULL
 );
 
 CREATE UNIQUE INDEX ip_nameserver_pk ON supermasters(ip, nameserver);

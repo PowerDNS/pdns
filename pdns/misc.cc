@@ -907,3 +907,10 @@ uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t initval)
   /*-------------------------------------------- report the result */
   return c;
 }
+
+void setSocketTimestamps(int fd)
+{
+  int on=1;
+  if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
+    L<<Logger::Error<<"Warning: unable to enable timestamp reporting for socket"<<endl;
+}

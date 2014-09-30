@@ -53,6 +53,7 @@ EOF
 
 		# generate pdns.conf for pdnssec
 		cat > pdns-geoip.conf <<EOF
+module-dir=./modules
 launch=geoip
 geoip-zones-file=$testsdir/geo.yaml
 EOF
@@ -68,7 +69,7 @@ EOF
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral --distributor-threads=1 \
-                        --geoip-zones-file=$testsdir/geo.yaml \
+                        --geoip-zones-file=$testsdir/geo.yaml --module-dir=./modules \
 			$geoipkeydir &
 		;;
 

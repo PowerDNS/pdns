@@ -39,7 +39,7 @@ CREATE INDEX recordorder ON records (domain_id, ordername text_pattern_ops);
 CREATE TABLE supermasters (
   ip                    INET NOT NULL,
   nameserver            VARCHAR(255) NOT NULL,
-  account               VARCHAR(40) DEFAULT NULL,
+  account               VARCHAR(40) NOT NULL,
   PRIMARY KEY(ip, nameserver)
 );
 

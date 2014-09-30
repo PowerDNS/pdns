@@ -81,7 +81,7 @@
       </para>
       <para>
 	The most up to date version of the HTML documentation can be downloaded as a tar archive from 
-	<ulink url="http://doc.powerdns.com/html.tar.gz">http://doc.powerdns.com/html.tar.gz</ulink>.
+	<ulink url="http://doc.powerdns.com/html.tar.bz2">http://doc.powerdns.com/html.tar.bz2</ulink>.
       </para>
     </sect1>
     <sect1 id="changelog">
@@ -93,52 +93,6 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
-      <sect2 id="changelog-recursor-3.6.1"><title>PowerDNS Recursor 3.6.1</title>
-      <warning>
-        <para>
-          Version 3.6.1 is a mandatory security upgrade to 3.6.0! Released on the 10th of September 2014.
-	</para>
-      </warning>
-      <para>
-	PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets. For more details, see
-	<xref linkend="powerdns-advisory-2014-01"/>. PowerDNS Recursor 3.6.1 was very well tested, and is in full
-	production already, so it should be a safe upgrade. 
-      </para>
-      <para>
-        Downloads:
-        <itemizedlist>
-          <listitem>
-            <para>
-              <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
-            </para>
-          </listitem>
-	</itemizedlist>
-      </para>
-      <para>
-	In addition to various fixes related to this potential crash, 3.6.1 fixes a few minor issues and adds
-	a debugging feature:
-	<itemizedlist>
-	  <listitem>
-	    <para>
-	      We could not encode IPv6 AAAA records that mapped to IPv4 addresses in some cases (:ffff.1.2.3.4).
-	      Fixed in gc90fcbd , closing t1663.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      Improve systemd startup timing with respect to network availability (gcf86c6a), thanks to Morten Stevens.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      Realtime telemetry can now be enabled at runtime, for example with 'rec_control carbon-server 82.94.213.34 ourname1234'.
-	      This ties in to our existing carbon-server and carbon-ourname settings, but now at runtime. This specific 
-	      invocation will make your stats appear automatically on our <ulink url="http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&amp;beginTime=-3600">public telemetry server</ulink>.
-	    </para>
-	  </listitem>
-	</itemizedlist>
-      </para>
-      </sect2>
       <sect2 id="changelog-auth-3.4.0"><title>PowerDNS Authoritative Server 3.4.0</title>
       <warning>
         <para>
@@ -151,43 +105,10 @@
       </warning>
       <note>
         <para>
-          RC1 released August 1st, 2014
+          Released September 30th, 2014
         </para>
         <para>
-          Downloads:
-          <itemizedlist>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-3.4.0-rc1.tar.bz2">tar.bz2 source</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.i386.rpm">i386 RPM</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.x86_64.rpm">x86_64 RPM</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_i386.deb">i386 deb</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_amd64.deb">x86_64 deb</ulink>
-              </para>
-            </listitem>
-
-            <listitem>
-              <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
-              </para>
-            </listitem>
-          </itemizedlist>
+          Find the downloads <ulink url="https://www.powerdns.com/downloads.html">on our download page</ulink>.
         </para>
       </note>
       <para>
@@ -196,6 +117,129 @@
       </para>
       <para>
         A list of changes since 3.3.1 follows.
+      </para>
+      <para>
+        Changes between RC2 and 3.4.0:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gad189c9, g445d93c: also distribute the dnsdist manual page
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gb5a276d, g0b346e9, g74caf87, g642fd2e: Make sure all backends actually work as dynamic modules
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g14b11c4: raise log level on dlerror(), fixes t1734, thanks @James-TR
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g016d810: improve postgresql detection during ./configure
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdce1e90: DNAME: don't sign the synthesised CNAME
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g25e7af3: send empty SERVFAIL after a backend throws a DBException, instead of including useless content
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        Changes between RC1 and RC2:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gbb6e54f: document udp6-queries, udp4-queries, add rd-queries, recursion-unanswered metrics &amp; document. Closes t1400.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4a23af7: init script: support DAEMON_ARGS; g7e5b3a0: init script: ensure socket dir exists
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdd930ed: don't import supermaster ips from other accounts
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            ged3afdf: fall back to central bind if reuseport bind fails; improves t1715
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g709ca59: GeoIP backend implementation. This is a new backend, still experimental!
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gbf5a484: support EVERY future version of OS X, fixes t1702
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4dbaec6: Check for  __FreeBSD_kernel__ as per https://lists.debian.org/debian-bsd/2006/03/msg00127.html, fixes t1684; g74f389d: __FreeBSD_kernel__ is defined but empty on systems with FreeBSD kernels, breaking compile. Thanks pawal
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g2e6bbd8: Catch PDNSException in Signingpiper::helperWorker to avoid abort
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g0ffd51d: improve error reporting on malformed labels
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gc48dec7: Fix forwarded TSIG message issue
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdad70f2: skip TCP_DEFER_ACCEPT on platforms that do not have it (like FreeBSD); fixes t1658
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gc7287b6: should fix t1662, reloading while checking for domains that need to be notified in BIND, causing lock
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g3e67ea8: allow OPT pseudo record type in IXFR query
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            ga1caa8b: webserver: htmlescape VERSION and config name
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdf9d980: Remove "log-failed-updates" leftover
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            ga1fe72a: Remove unused "soa-serial-offset" option
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        Changes between 3.3.1 and 3.4.0-RC1 follow.
       </para>
       <para>
         DNSSEC changes:
@@ -633,11 +677,6 @@
         </listitem>
         <listitem>
           <para>
-            On shutdown, PowerDNS now attempts to stop all processes in its process group, especially useful for pipe/remotebackend users. Feature donated by Spotify.
-          </para>
-        </listitem>
-        <listitem>
-          <para>
             Removed settings related to fancy records, as we haven't supported those since version 3.0
           </para>
         </listitem>
@@ -648,6 +687,53 @@
         </listitem>
       </itemizedlist>
       </sect2>
+      <sect2 id="changelog-recursor-3.6.1"><title>PowerDNS Recursor 3.6.1</title>
+      <warning>
+        <para>
+          Version 3.6.1 is a mandatory security upgrade to 3.6.0! Released on the 10th of September 2014.
+  </para>
+      </warning>
+      <para>
+  PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets. For more details, see
+  <xref linkend="powerdns-advisory-2014-01"/>. PowerDNS Recursor 3.6.1 was very well tested, and is in full
+  production already, so it should be a safe upgrade. 
+      </para>
+      <para>
+        Downloads:
+        <itemizedlist>
+          <listitem>
+            <para>
+              <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
+            </para>
+          </listitem>
+  </itemizedlist>
+      </para>
+      <para>
+  In addition to various fixes related to this potential crash, 3.6.1 fixes a few minor issues and adds
+  a debugging feature:
+  <itemizedlist>
+    <listitem>
+      <para>
+        We could not encode IPv6 AAAA records that mapped to IPv4 addresses in some cases (:ffff.1.2.3.4).
+        Fixed in gc90fcbd , closing t1663.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+        Improve systemd startup timing with respect to network availability (gcf86c6a), thanks to Morten Stevens.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+        Realtime telemetry can now be enabled at runtime, for example with 'rec_control carbon-server 82.94.213.34 ourname1234'.
+        This ties in to our existing carbon-server and carbon-ourname settings, but now at runtime. This specific 
+        invocation will make your stats appear automatically on our <ulink url="http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&amp;beginTime=-3600">public telemetry server</ulink>.
+      </para>
+    </listitem>
+  </itemizedlist>
+      </para>
+      </sect2>
+
       <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
       <note>
         <para>
@@ -660,7 +746,7 @@
             </listitem>
             <listitem>
               <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="https://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6/7 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
@@ -11062,9 +11148,12 @@ name         IN            A        192.0.2.4
       </para>
 
       <para>
-	As of the 9th of January 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about.  This page 
+	As of the 25th of September 2014, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about, with the exception of Recursor 3.6.0 specifically.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailing lists.
+      </para>
+      <para>
+      Version 3.6.0 of the Recursor (but not 3.5.x) can be crashed remotely with a specific packet sequence. For more detail, see <xref linkend="powerdns-advisory-2014-01"/>.
       </para>
       <para>
 	Versions 2.9.22 and lower and 3.0 of the PowerDNS Authoritative Server were vulnerable to a temporary denial of service attack. For more detail,
@@ -11080,7 +11169,7 @@ name         IN            A        192.0.2.4
       </para>
       <para>
 	Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered
-	by remote users. One of the issues might lead be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"/> and
+	by remote users. One of the issues might be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"/> and
 	<xref linkend="powerdns-advisory-2006-02"/>.
       </para>
       <para>
@@ -14610,6 +14699,11 @@ pdnssec hsm create-key zone key-id
     <listitem><para>Justin Clift</para></listitem>
     <listitem><para>Kees Monshouwer</para></listitem>
     <listitem><para>Aki Tuomi</para></listitem>
+    <listitem><para>Ruben Kerkhof</para></listitem>
+    <listitem><para>Christian Hofstaedtler</para></listitem>
+    <listitem><para>Ruben d'Arco</para></listitem>
+    <listitem><para>Morten Stevens</para></listitem>
+    <listitem><para>Pieter Lexis</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
   </para>
@@ -16391,7 +16485,7 @@ user-msec           number of CPU milliseconds spent in 'user' mode
 	graphs of all these numbers. Use <command>rec_control get-all</command> to get all statistics in one go.
       </para>
       <para>
-	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops + policy-drops = questions.
+	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + answers-slow + packetcache-hits + over-capacity-drops + policy-drops = questions.
       </para>
       <para>
 	Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count. 
@@ -17750,6 +17844,25 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem><para>Number of packets waiting for database attention</para></listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term>rd-queries</term>
+	  <listitem><para>Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>recursing-questions</term>
+	  <listitem><para>Number of packets we supplied an answer to after recursive processing</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>recursing-questions</term>
+	  <listitem><para>Number of packets we performed recursive processing for</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>recursion-unanswered</term>
+	  <listitem><para>Number of packets we sent to our recursor, but did not get a timely answer for. Since 3.4.0.</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
 	  <term>servfail-packets</term>
 	  <listitem><para>Amount of packets that could not be answered due to database problems</para></listitem>
 	</varlistentry>
@@ -17770,9 +17883,26 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem><para>Number of answers sent out over UDP</para></listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>udp-questions</term>
+	  <term>udp-queries</term>
 	  <listitem><para>Number of questions received over UDP</para></listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term>udp4-answers</term>
+	  <listitem><para>Number of answers sent out over UDPv4</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp4-queries</term>
+	  <listitem><para>Number of questions received over UDPv4</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp6-answers</term>
+	  <listitem><para>Number of answers sent out over UDPv6</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp6-queries</term>
+	  <listitem><para>Number of questions received over UDPv6</para></listitem>
+	</varlistentry>
+
       </variablelist>
     </para>
     </sect2>

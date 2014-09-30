@@ -4,6 +4,7 @@ EXTRA_DIST=README INSTALL NOTICE debian-pdns pdns.spec  \
 codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1 \
+pdns/docs/dnsdist.1 \
 build-scripts/redhat/pdns-server-test.spec \
 pdns/named.conf.parsertest regression-tests/zones/unit.test
 
@@ -14,11 +15,14 @@ man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdnssec.8 pdns/docs/pdns_server.8 \
 
 if TOOLS
   man8_MANS += pdns/docs/dnsreplay.8 pdns/docs/dnsscope.8 pdns/docs/dnswasher.8
-  man1_MANS = pdns/docs/dnstcpbench.1
+  man1_MANS = pdns/docs/dnstcpbench.1 pdns/docs/dnsdist.1
 endif
 
 pdns/docs/dnstcpbench.1:
 	cd pdns/docs && $(MAKE) dnstcpbench.1
+
+pdns/docs/dnsdist.1:
+	cd pdns/docs && $(MAKE) dnsdist.1
 
 install-exec-local: 
 	-@chmod +x pdns/pdns

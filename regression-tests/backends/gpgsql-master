@@ -12,6 +12,7 @@ case $context in
 		tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
 
 		cat > pdns-gpgsql.conf << __EOF__
+module-dir=./modules
 launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER

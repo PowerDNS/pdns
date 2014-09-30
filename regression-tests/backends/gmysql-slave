@@ -12,6 +12,7 @@
 		"$GMYSQL2DB" < ../modules/gmysqlbackend/schema.mysql.sql
 
 	cat > pdns-gmysql2.conf << __EOF__
+module-dir=./modules
 launch=gmysql
 gmysql-dbname=$GMYSQL2DB
 gmysql-user=$GMYSQL2USER

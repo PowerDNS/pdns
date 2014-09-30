@@ -4,6 +4,7 @@ AM_CPPFLAGS=$(THREADFLAGS) $(BOOST_CPPFLAGS) -I../../pdns/ext/rapidjson/include 
 #       install .lib/libremotebackend.so.0.0.0 @libdir@
 #endif
 
+SUBDIRS=../../pdns/ext/yahttp
 EXTRA_DIST=OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_zeromq.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock
 EXTRA_PROGRAMS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
 EXTRA_LTLIBRARIES=libtestremotebackend.la
@@ -16,7 +17,7 @@ pkglib_LTLIBRARIES = libremotebackend.la
 libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
 libremotebackend_la_LDFLAGS=-module -avoid-version
-libremotebackend_la_LIBADD=$(LIBZMQ_LIBS) 
+libremotebackend_la_LIBADD=$(LIBZMQ_LIBS) ../../pdns/ext/yahttp/yahttp/libyahttp.la
 
 if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh 
