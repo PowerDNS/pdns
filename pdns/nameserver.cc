@@ -121,6 +121,8 @@ void UDPNameserver::bindIPv4()
     if(localname=="0.0.0.0")
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
+    setSocketTimestamps(s);
+
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
@@ -232,6 +234,8 @@ void UDPNameserver::bindIPv6()
       setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
     }
 
+    setSocketTimestamps(s);
+
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
@@ -330,6 +334,19 @@ void UDPNameserver::send(DNSPacket *p)
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
+}
+
+static bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
+{
+  struct cmsghdr *cmsg;
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP) && 
+	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
+      memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
+      return true;
+    }
+  }
+  return false;
 }
 
 static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination)
@@ -431,7 +448,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     packet=prefilled;
   else
     packet=new DNSPacket; // don't forget to free it!
-  packet->d_dt.set(); // timing
+
   packet->setSocket(sock);
   packet->setRemote(&remote);
 
@@ -440,6 +457,13 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 //    cerr<<"Setting d_anyLocal to '"<<dest.toString()<<"'"<<endl;
     packet->d_anyLocal = dest;
   }            
+
+  struct timeval recvtv;
+  if(HarvestTimestamp(&msgh, &recvtv)) {
+    packet->d_dt.setTimeval(recvtv);
+  }
+  else
+    packet->d_dt.set(); // timing    
 
   if(packet->parse(mesg, len)<0) {
     S.inc("corrupt-packets");
