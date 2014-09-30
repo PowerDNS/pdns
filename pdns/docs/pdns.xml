@@ -14742,6 +14742,11 @@ pdnssec hsm create-key zone key-id
     <listitem><para>Justin Clift</para></listitem>
     <listitem><para>Kees Monshouwer</para></listitem>
     <listitem><para>Aki Tuomi</para></listitem>
+    <listitem><para>Ruben Kerkhof</para></listitem>
+    <listitem><para>Christian Hofstaedtler</para></listitem>
+    <listitem><para>Ruben d'Arco</para></listitem>
+    <listitem><para>Morten Stevens</para></listitem>
+    <listitem><para>Pieter Lexis</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
   </para>
