@@ -32,7 +32,7 @@ before_script:
  - p11-kit -l # ensure it's ok
 script:
  - ./bootstrap
- - ./configure --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --with-modules='' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11
+ - ./configure --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --with-modules='' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11 --disable-silent-rules
  - make -k dist
  - make -k -j 4
  - make -k install DESTDIR=/tmp/pdns-install-dir
