@@ -1,11 +1,11 @@
-AM_CXXFLAGS += -DSYSCONFDIR=\"$(sysconfdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"$(socketdir)\" $(THREADFLAGS) $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS) -I$(top_srcdir)/pdns/ext/rapidjson/include -I$(top_srcdir)/pdns/ext/yahttp
+AM_CPPFLAGS += $(BOOST_CPPFLAGS) $(THREADFLAGS) -I$(top_srcdir)/pdns/ext/rapidjson/include -I$(top_srcdir)/pdns/ext/yahttp
+AM_CXXFLAGS = -DSYSCONFDIR=\"$(sysconfdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"$(socketdir)\" $(THREADFLAGS) $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS)
 
 YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
 
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
-AM_CPPFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS)
 if BOTAN110
 AM_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
