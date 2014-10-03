@@ -564,7 +564,7 @@ public:
         LdapLoader()
         {
         	BackendMakers().report( &factory );
-		L << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+		L << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION " reporting" << endl;
         }
 };
 

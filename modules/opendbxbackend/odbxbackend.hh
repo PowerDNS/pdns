@@ -164,7 +164,7 @@ public:
         OdbxLoader()
         {
         	BackendMakers().report( &factory );
-		L.log( "[opendbxbackend] This is the opendbx backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting", Logger::Info );
+		L.log( "[opendbxbackend] This is the opendbx backend version " VERSION " reporting", Logger::Info );
         }
 };
 

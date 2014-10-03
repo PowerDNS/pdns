@@ -137,7 +137,7 @@ public:
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
     BackendMakers().report(new gPgSQLFactory("gpgsql2"));
-    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION " reporting" << endl;
   }
 };
 static gPgSQLLoader gpgsqlloader;

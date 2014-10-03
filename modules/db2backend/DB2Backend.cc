@@ -616,7 +616,7 @@ class DB2Loader
       Loader()
       {
          BackendMakers().report(new DB2Factory);
-         L << Logger::Info << "[db2backend] This is the db2 backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+         L << Logger::Info << "[db2backend] This is the db2 backend version " VERSION " reporting" << endl;
       }
 };
 

@@ -2279,7 +2279,7 @@ public:
   OracleLoader()
   {
     BackendMakers().report(new OracleFactory);
-    L << Logger::Info << "[oraclebackend] This is the oracle backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[oraclebackend] This is the oracle backend version " VERSION " reporting" << endl;
   }
 
 };

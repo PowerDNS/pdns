@@ -334,7 +334,7 @@ class TinyDNSLoader
 public:
 	TinyDNSLoader() {
 		BackendMakers().report(new TinyDNSFactory);
-		L << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+		L << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION " reporting" << endl;
 	}
 };
 
