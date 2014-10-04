@@ -1,4 +1,4 @@
-AM_CPPFLAGS=$(THREADFLAGS) $(BOOST_CPPFLAGS) -I../../pdns/ext/rapidjson/include -I../../pdns/ext/yahttp $(POLARSSL_CFLAGS) -I../../pdns
+AM_CPPFLAGS=$(THREADFLAGS) $(BOOST_CPPFLAGS) -I../../pdns/ext/rapidjson/include -I../../pdns/ext/yahttp -I../../pdns
 #if !ALLSTATIC
 #install-exec-local:
 #       install .lib/libremotebackend.so.0.0.0 @libdir@
@@ -45,8 +45,8 @@ libtestremotebackend_la_SOURCES += ../../pdns/pkcs11signers.hh ../../pdns/pkcs11
 libtestremotebackend_la_LIBADD+=$(P11KIT1_LIBS)
 endif
 
-libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) $(POLARSSL_CFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS) -g -O0 -I../../pdns
-libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) $(POLARSSL_CFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS) -g -O0 -I../../pdns
+libtestremotebackend_la_CFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS) -g -O0 -I../../pdns
+libtestremotebackend_la_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS) -g -O0 -I../../pdns
 
 test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
 test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh

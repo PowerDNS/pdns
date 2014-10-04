@@ -188,7 +188,7 @@ AC_SUBST(THREADFLAGS)
 AC_SUBST(DYNLINKFLAGS)
 
 PDNS_ENABLE_VERBOSE_LOGGING
-PDNS_WITH_SYSTEM_POLARSSL
+PDNS_CHECK_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
@@ -365,8 +365,6 @@ AC_CONFIG_FILES([
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
-  pdns/ext/polarssl-1.3.2/Makefile
-  pdns/ext/polarssl-1.3.2/library/Makefile
   pdns/ext/rapidjson/Makefile
   modules/bindbackend/Makefile
   modules/db2backend/Makefile
