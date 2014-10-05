@@ -42,10 +42,10 @@ libtestremotebackend_la_LIBADD=-L../../pdns/ext/yahttp/yahttp -lyahttp
 
 if PKCS11
 libtestremotebackend_la_SOURCES += ../../pdns/pkcs11signers.hh ../../pdns/pkcs11signers.cc
-libtestremotebackend_la_LIBADD+=$(P11KIT1_LIBS)
+libtestremotebackend_la_LIBADD += $(P11KIT1_LIBS)
+libtestremotebackend_la_CPPFLAGS = $(P11KIT1_CFLAGS) $(AM_CPPFLAGS)
 endif
 
-libtestremotebackend_la_CXXFLAGS=$(P11KIT1_CFLAGS)
 
 test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
 test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh
