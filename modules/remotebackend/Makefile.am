@@ -54,28 +54,27 @@ libtestremotebackend_la_LIBADD += $(P11KIT1_LIBS)
 libtestremotebackend_la_CPPFLAGS = $(P11KIT1_CFLAGS) $(AM_CPPFLAGS)
 endif
 
-test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
-test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh
-test_remotebackend_http_SOURCES=test-remotebackend.cc test-remotebackend-http.cc test-remotebackend-keys.hh
-test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc test-remotebackend-keys.hh
-test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc test-remotebackend-keys.hh
-test_remotebackend_zeromq_SOURCES=test-remotebackend.cc test-remotebackend-zeromq.cc test-remotebackend-keys.hh
-
-test_remotebackend_pipe_LDADD = libtestremotebackend.la $(LIBDL)
-test_remotebackend_pipe_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
-
-test_remotebackend_unix_LDADD = libtestremotebackend.la $(LIBDL)
-test_remotebackend_unix_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
-
+test_remotebackend_http_SOURCES = test-remotebackend.cc test-remotebackend-http.cc test-remotebackend-keys.hh
 test_remotebackend_http_LDADD = libtestremotebackend.la $(LIBDL)
 test_remotebackend_http_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
-test_remotebackend_post_LDADD = libtestremotebackend.la $(LIBDL)
-test_remotebackend_post_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
-
+test_remotebackend_json_SOURCES = test-remotebackend.cc test-remotebackend-json.cc test-remotebackend-keys.hh
 test_remotebackend_json_LDADD = libtestremotebackend.la $(LIBDL)
 test_remotebackend_json_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
+test_remotebackend_pipe_SOURCES = test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
+test_remotebackend_pipe_LDADD = libtestremotebackend.la $(LIBDL)
+test_remotebackend_pipe_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+
+test_remotebackend_post_SOURCES = test-remotebackend.cc test-remotebackend-post.cc test-remotebackend-keys.hh
+test_remotebackend_post_LDADD = libtestremotebackend.la $(LIBDL)
+test_remotebackend_post_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+
+test_remotebackend_unix_SOURCES = test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh
+test_remotebackend_unix_LDADD = libtestremotebackend.la $(LIBDL)
+test_remotebackend_unix_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+
+test_remotebackend_zeromq_SOURCES = test-remotebackend.cc test-remotebackend-zeromq.cc test-remotebackend-keys.hh
 test_remotebackend_zeromq_LDADD = libtestremotebackend.la $(LIBDL)
-test_remotebackend_zeromq_LDADD = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+test_remotebackend_zeromq_LDFLAGS = $(AM_LDFLAGS) $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
