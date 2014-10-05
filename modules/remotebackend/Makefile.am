@@ -17,7 +17,11 @@ pkglib_LTLIBRARIES = libremotebackend.la
 libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
 libremotebackend_la_LDFLAGS=-module -avoid-version
-libremotebackend_la_LIBADD=$(LIBZMQ_LIBS) ../../pdns/ext/yahttp/yahttp/libyahttp.la
+libremotebackend_la_LIBADD = ../../pdns/ext/yahttp/yahttp/libyahttp.la
+
+if REMOTEBACKEND_ZEROMQ
+libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
+endif
 
 if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh 
@@ -38,7 +42,11 @@ libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.c
         ../../pdns/dns.hh ../../pdns/dns.cc ../../pdns/json.hh ../../pdns/json.cc \
         remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
-libtestremotebackend_la_LIBADD=-L../../pdns/ext/yahttp/yahttp -lyahttp $(LIBZMQ_LIBS) $(POLARSSL_LIBS)
+libtestremotebackend_la_LIBADD = -L../../pdns/ext/yahttp/yahttp -lyahttp $(POLARSSL_LIBS)
+
+if REMOTEBACKEND_ZEROMQ
+libtestremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
+endif
 
 if PKCS11
 libtestremotebackend_la_SOURCES += ../../pdns/pkcs11signers.hh ../../pdns/pkcs11signers.cc
