@@ -1,8 +1,4 @@
 AM_CPPFLAGS=$(THREADFLAGS) $(BOOST_CPPFLAGS) -I../../pdns/ext/rapidjson/include -I../../pdns/ext/yahttp $(POLARSSL_CFLAGS) $(LIBZMQ_CFLAGS) -I../../pdns
-#if !ALLSTATIC
-#install-exec-local:
-#       install .lib/libremotebackend.so.0.0.0 @libdir@
-#endif
 
 SUBDIRS=../../pdns/ext/yahttp
 EXTRA_DIST=OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_zeromq.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock
