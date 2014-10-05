@@ -136,11 +136,14 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
-
+  ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
+  ::arg().set("loglevel","Amount of logging. Higher is more.")="0";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().laxFile(configname.c_str());
+
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
 
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
   ::arg().laxFile(configname.c_str());    
@@ -164,7 +167,6 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
-  ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
   ::arg().set("soa-minimum-ttl","Default SOA minimum ttl")="3600";    
 
   UeberBackend::go();
@@ -1325,8 +1327,9 @@ try
       SSQLite3 db(cmds[1], true); // create=ok
       vector<string> statements;
       stringtok(statements, sqlCreate, ";");
-      BOOST_FOREACH(const string& statement, statements)
-        db.doCommand(statement);
+      BOOST_FOREACH(const string& statement, statements) {
+        db.execute(statement);
+      }
     }
     catch(SSqlException& se) {
       throw PDNSException("Error creating database in BIND backend: "+se.txtReason());
