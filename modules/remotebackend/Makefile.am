@@ -45,7 +45,7 @@ libtestremotebackend_la_SOURCES += ../../pdns/pkcs11signers.hh ../../pdns/pkcs11
 libtestremotebackend_la_LIBADD+=$(P11KIT1_LIBS)
 endif
 
-libtestremotebackend_la_CXXFLAGS=$(POLARSSL_CFLAGS) $(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS)
+libtestremotebackend_la_CXXFLAGS=$(LIBZMQ_CFLAGS) $(P11KIT1_CFLAGS)
 
 test_remotebackend_pipe_SOURCES=test-remotebackend.cc test-remotebackend-pipe.cc test-remotebackend-keys.hh 
 test_remotebackend_unix_SOURCES=test-remotebackend.cc test-remotebackend-unix.cc test-remotebackend-keys.hh
