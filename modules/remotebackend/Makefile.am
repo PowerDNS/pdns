@@ -1,18 +1,18 @@
 AM_CPPFLAGS += $(THREADFLAGS) -I../../pdns/ext/rapidjson/include -I../../pdns/ext/yahttp $(BOOST_CPPFLAGS) $(POLARSSL_CFLAGS) $(LIBZMQ_CFLAGS)
 
-SUBDIRS=../../pdns/ext/yahttp
-EXTRA_DIST=OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_zeromq.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock
-EXTRA_PROGRAMS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
-EXTRA_LTLIBRARIES=libtestremotebackend.la
+SUBDIRS = ../../pdns/ext/yahttp
+EXTRA_DIST = OBJECTFILES OBJECTLIBS testrunner.sh unittest_http.rb unittest_json.rb unittest_pipe.rb unittest_zeromq.rb unittest_post.rb unittest.rb Gemfile Gemfile.lock
+EXTRA_PROGRAMS = test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
+EXTRA_LTLIBRARIES = libtestremotebackend.la
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 
 pkglib_LTLIBRARIES = libremotebackend.la
 
-libremotebackend_la_SOURCES=remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
+libremotebackend_la_SOURCES = remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
-libremotebackend_la_LDFLAGS=-module -avoid-version
+libremotebackend_la_LDFLAGS = -module -avoid-version
 libremotebackend_la_LIBADD = ../../pdns/ext/yahttp/yahttp/libyahttp.la
 
 if REMOTEBACKEND_ZEROMQ
@@ -20,16 +20,16 @@ libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
 endif
 
 if UNIT_TESTS
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh 
-TESTS=test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh
+TESTS = test_remotebackend_pipe test_remotebackend_unix test_remotebackend_http test_remotebackend_post test_remotebackend_json test_remotebackend_zeromq
 endif
 
-BUILT_SOURCES=../../pdns/dnslabeltext.cc
+BUILT_SOURCES = ../../pdns/dnslabeltext.cc
 
 ../../pdns/dnslabeltext.cc: ../../pdns/dnslabeltext.rl
 	$(MAKE) -C ../../pdns dnslabeltext.cc
 
-libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc ../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
+libtestremotebackend_la_SOURCES = ../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc ../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
         ../../pdns/nameserver.cc ../../pdns/misc.cc ../../pdns/arguments.hh \
         ../../pdns/unix_utility.cc ../../pdns/logger.cc ../../pdns/statbag.cc ../../pdns/arguments.hh ../../pdns/arguments.cc ../../pdns/qtype.cc ../../pdns/dnspacket.cc \
         ../../pdns/dnswriter.cc ../../pdns/base64.cc ../../pdns/base32.cc ../../pdns/dnsrecords.cc ../../pdns/dnslabeltext.cc ../../pdns/dnsparser.cc \
