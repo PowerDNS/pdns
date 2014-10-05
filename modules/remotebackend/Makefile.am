@@ -73,38 +73,38 @@ BUILT_SOURCES = ../../pdns/dnslabeltext.cc
 	$(MAKE) -C ../../pdns dnslabeltext.cc
 
 libtestremotebackend_la_SOURCES = \
-	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
-	../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
-        ../../pdns/nameserver.cc \
-	../../pdns/misc.cc \
-	../../pdns/arguments.hh \
-        ../../pdns/unix_utility.cc \
-	../../pdns/logger.cc \
-	../../pdns/statbag.cc \
-	../../pdns/arguments.hh \
 	../../pdns/arguments.cc \
-	../../pdns/qtype.cc \
-	../../pdns/dnspacket.cc \
-        ../../pdns/dnswriter.cc \
-	../../pdns/base64.cc \
+	../../pdns/arguments.hh \
+	../../pdns/arguments.hh \
 	../../pdns/base32.cc \
-	../../pdns/dnsrecords.cc \
+	../../pdns/base64.cc \
+	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
 	../../pdns/dnslabeltext.cc \
+	../../pdns/dnspacket.cc \
 	../../pdns/dnsparser.cc \
-        ../../pdns/rcpgenerator.cc \
-	../../pdns/ednssubnet.cc \
-	../../pdns/nsecrecords.cc \
-	../../pdns/sillyrecords.cc \
+	../../pdns/dnsrecords.cc \
 	../../pdns/dnssecinfra.cc \
-        ../../pdns/dns_random.cc \
-	../../pdns/packetcache.hh ../../pdns/packetcache.cc \
-        ../../pdns/dns.hh ../../pdns/dns.cc \
+	../../pdns/ednssubnet.cc \
 	../../pdns/json.hh ../../pdns/json.cc \
-        remotebackend.hh remotebackend.cc \
-	unixconnector.cc \
+	../../pdns/logger.cc \
+	../../pdns/misc.cc \
+	../../pdns/nsecrecords.cc \
+	../../pdns/packetcache.hh ../../pdns/packetcache.cc \
+	../../pdns/qtype.cc \
+	../../pdns/sillyrecords.cc \
+	../../pdns/statbag.cc \
+	../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
+        ../../pdns/dns.hh ../../pdns/dns.cc \
+        ../../pdns/dns_random.cc \
+        ../../pdns/dnswriter.cc \
+        ../../pdns/nameserver.cc \
+        ../../pdns/rcpgenerator.cc \
+        ../../pdns/unix_utility.cc \
 	httpconnector.cc \
 	pipeconnector.cc \
+	unixconnector.cc \
 	zmqconnector.cc
+        remotebackend.hh remotebackend.cc \
 
 libtestremotebackend_la_LIBADD = \
 	-L../../pdns/ext/yahttp/yahttp -lyahttp \
