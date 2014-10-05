@@ -38,7 +38,7 @@ libtestremotebackend_la_SOURCES=../../pdns/dnsbackend.hh ../../pdns/dnsbackend.c
         ../../pdns/dns.hh ../../pdns/dns.cc ../../pdns/json.hh ../../pdns/json.cc \
         remotebackend.hh remotebackend.cc unixconnector.cc httpconnector.cc pipeconnector.cc zmqconnector.cc
 
-libtestremotebackend_la_LIBADD=-L../../pdns/ext/yahttp/yahttp -lyahttp $(LIBZMQ_LIBS)
+libtestremotebackend_la_LIBADD=-L../../pdns/ext/yahttp/yahttp -lyahttp $(LIBZMQ_LIBS) $(POLARSSL_LIBS)
 
 if PKCS11
 libtestremotebackend_la_SOURCES += ../../pdns/pkcs11signers.hh ../../pdns/pkcs11signers.cc
@@ -53,10 +53,10 @@ test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc
 test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc test-remotebackend-keys.hh
 test_remotebackend_zeromq_SOURCES=test-remotebackend.cc test-remotebackend-zeromq.cc test-remotebackend-keys.hh
 
-test_remotebackend_pipe_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS)
-test_remotebackend_unix_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS)
-test_remotebackend_http_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS)
-test_remotebackend_post_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS)
-test_remotebackend_json_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS)
-test_remotebackend_zeromq_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS)
+test_remotebackend_pipe_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL)
+test_remotebackend_unix_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL)
+test_remotebackend_http_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL)
+test_remotebackend_post_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL)
+test_remotebackend_json_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL)
+test_remotebackend_zeromq_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL)
 
