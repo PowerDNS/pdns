@@ -96,7 +96,7 @@ binary-main-prepare:
 	mv "$(tmpdir)"/etc/powerdns/pdns.conf-dist "$(tmpdir)"/etc/powerdns/pdns.conf
 
 	install -d -m 755 -o root -g root "$(tmpdir)"/etc/init.d
-	install -p -m 755 -o root -g root pdns/pdns \
+	install -p -m 755 -o root -g root pdns/pdns.init \
 		"$(tmpdir)"/etc/init.d/pdns
 
 	install -d -m 755 -o root -g root \
