@@ -1,3 +1,6 @@
+if [ "x$NLS_LANG" = "x" ]; then
+  NLS_LANG="AMERICAN_AMERICA.AL32UTF8"
+fi
 	context=${context}-presigned-goracle
 	[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
 	[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
