@@ -73,9 +73,7 @@ BUILT_SOURCES = ../../pdns/dnslabeltext.cc
 	$(MAKE) -C ../../pdns dnslabeltext.cc
 
 libtestremotebackend_la_SOURCES = \
-	../../pdns/arguments.cc \
-	../../pdns/arguments.hh \
-	../../pdns/arguments.hh \
+	../../pdns/arguments.hh ../../pdns/arguments.cc \
 	../../pdns/base32.cc \
 	../../pdns/base64.cc \
 	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
@@ -94,17 +92,17 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/sillyrecords.cc \
 	../../pdns/statbag.cc \
 	../../pdns/ueberbackend.hh ../../pdns/ueberbackend.cc \
-        ../../pdns/dns.hh ../../pdns/dns.cc \
-        ../../pdns/dns_random.cc \
-        ../../pdns/dnswriter.cc \
-        ../../pdns/nameserver.cc \
-        ../../pdns/rcpgenerator.cc \
-        ../../pdns/unix_utility.cc \
+	../../pdns/dns.hh ../../pdns/dns.cc \
+	../../pdns/dns_random.cc \
+	../../pdns/dnswriter.cc \
+	../../pdns/nameserver.cc \
+	../../pdns/rcpgenerator.cc \
+	../../pdns/unix_utility.cc \
 	httpconnector.cc \
 	pipeconnector.cc \
 	unixconnector.cc \
-	zmqconnector.cc
-        remotebackend.hh remotebackend.cc \
+	zmqconnector.cc \
+	remotebackend.hh remotebackend.cc
 
 libtestremotebackend_la_LIBADD = \
 	-L../../pdns/ext/yahttp/yahttp -lyahttp \
