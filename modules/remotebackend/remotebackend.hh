@@ -15,7 +15,7 @@
 #include <rapidjson/document.h>
 #include "pdns/json.hh"
 #include "yahttp/yahttp.hpp"
-#include "sstuff.hh"
+#include "pdns/sstuff.hh"
 
 #ifdef REMOTEBACKEND_ZEROMQ
 #include <zmq.hpp>
