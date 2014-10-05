@@ -54,21 +54,21 @@ test_remotebackend_post_SOURCES=test-remotebackend.cc test-remotebackend-post.cc
 test_remotebackend_json_SOURCES=test-remotebackend.cc test-remotebackend-json.cc test-remotebackend-keys.hh
 test_remotebackend_zeromq_SOURCES=test-remotebackend.cc test-remotebackend-zeromq.cc test-remotebackend-keys.hh
 
-test_remotebackend_pipe_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
+test_remotebackend_pipe_CXXFLAGS=-I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
 test_remotebackend_pipe_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS) $(LIBZMQ_LIBS) 
 
-test_remotebackend_unix_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
+test_remotebackend_unix_CXXFLAGS=-I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
 test_remotebackend_unix_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS) $(LIBZMQ_LIBS) 
 
-test_remotebackend_http_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
+test_remotebackend_http_CXXFLAGS=-I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
 test_remotebackend_http_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS) $(LIBZMQ_LIBS) 
 
-test_remotebackend_post_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
+test_remotebackend_post_CXXFLAGS=-I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
 test_remotebackend_post_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS) $(LIBZMQ_LIBS) 
 
-test_remotebackend_json_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
+test_remotebackend_json_CXXFLAGS=-I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
 test_remotebackend_json_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS) $(LIBZMQ_LIBS) 
 
-test_remotebackend_zeromq_CXXFLAGS=$(BOOST_CPPFLAGS) $(THREADFLAGS) -I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
+test_remotebackend_zeromq_CXXFLAGS=-I../../pdns/ext/yahttp $(LIBZMQ_CFLAGS) -I../../pdns
 test_remotebackend_zeromq_LDADD=libtestremotebackend.la $(DYNLINKFLAGS) $(THREADFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(BOOST_SERIALIZATION_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(LIBDL) $(POLARSSL_LIBS) $(LIBZMQ_LIBS)
 
