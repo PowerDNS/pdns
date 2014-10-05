@@ -236,12 +236,7 @@ AC_ARG_ENABLE([pdns-server],
   [enable_pdns_server=yes]
 )
 AC_MSG_RESULT([$enable_pdns_server])
-
-AS_IF([test "x$enable_pdns_server" = "xyes"],
-  [programdescend=pdns]
-)
-
-AC_SUBST(programdescend)
+AM_CONDITIONAL([WITH_PDNS_SERVER],[test "x$enable_pdns_server" != "xno"])
 
 AC_ARG_ENABLE([gcc-skip-locking],
   [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking @<:@default=no@:>@])],
