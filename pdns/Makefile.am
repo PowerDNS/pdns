@@ -279,6 +279,35 @@ pdnssec_LDADD = \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(YAHTTP_LIBS)
 
+if BOTAN110
+pdnssec_SOURCES += botan110signers.cc botansigners.cc
+pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
+endif
+
+if BOTAN18
+pdnssec_SOURCES += botan18signers.cc botansigners.cc
+pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
+endif
+
+if CRYPTOPP
+pdnssec_SOURCES += cryptoppsigners.cc
+pdnssec_LDADD += -lcryptopp
+endif
+
+if SQLITE3
+pdnssec_SOURCES += ssqlite3.cc ssqlite3.hh
+pdnssec_LDADD += $(SQLITE3_LIBS)
+endif
+
+if ORACLE
+pdnssec_LDADD += $(ORACLE_LIBS)
+endif
+
+if PKCS11
+pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+pdnssec_LDADD += $(P11KIT1_LIBS)
+endif
+
 zone2sql_SOURCES = \
 	arguments.cc \
 	base32.cc \
@@ -393,35 +422,6 @@ zone2lmdb_LDFLAGS = $(THREADFLAGS)
 zone2lmdb_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(LMDB_LIBS)
-endif
-
-if BOTAN110
-pdnssec_SOURCES += botan110signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
-endif
-
-if BOTAN18
-pdnssec_SOURCES += botan18signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
-endif
-
-if CRYPTOPP
-pdnssec_SOURCES += cryptoppsigners.cc
-pdnssec_LDADD += -lcryptopp
-endif
-
-if SQLITE3
-pdnssec_SOURCES += ssqlite3.cc ssqlite3.hh
-pdnssec_LDADD += $(SQLITE3_LIBS)
-endif
-
-if ORACLE
-pdnssec_LDADD += $(ORACLE_LIBS)
-endif
-
-if PKCS11
-pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
-pdnssec_LDADD += $(P11KIT1_LIBS)
 endif
 
 sdig_SOURCES = \
