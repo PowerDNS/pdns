@@ -352,7 +352,6 @@ LDFLAGS="$LDFLAGS $RELRO_LDFLAGS"
 AC_SUBST(LIBS)
 
 AC_SUBST([AM_CPPFLAGS], ['-I$(top_builddir) -I$(top_srcdir)'])
-AC_SUBST([AM_CXXFLAGS], ['-I$(top_builddir) -I$(top_srcdir)'])
 
 export moduledirs moduleobjects modulelibs
 
