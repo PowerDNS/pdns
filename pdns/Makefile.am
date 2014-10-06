@@ -618,9 +618,7 @@ dnswasher_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnswasher_LDFLAGS= \
-	$(DYNLINKFLAGS) \
-	$(THREADFLAGS)
+dnswasher_LDFLAGS = $(THREADFLAGS)
 
 dnsbulktest_SOURCES = \
 	base32.cc \
@@ -640,7 +638,6 @@ dnsbulktest_SOURCES = \
 	unix_utility.cc
 
 dnsbulktest_LDFLAGS = \
-	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
@@ -687,7 +684,6 @@ dnsreplay_SOURCES = \
 	utility.hh
 
 dnsreplay_LDFLAGS = \
-	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
@@ -713,7 +709,6 @@ nproxy_SOURCES = \
 	unix_utility.cc
 
 nproxy_LDFLAGS = \
-	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
@@ -740,7 +735,6 @@ notify_SOURCES = \
 	unix_utility.cc
 
 notify_LDFLAGS = \
-	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
@@ -768,7 +762,6 @@ dnsscope_SOURCES = \
 	utility.hh
 
 dnsscope_LDFLAGS = \
-	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
@@ -863,7 +856,6 @@ testrunner_SOURCES = \
         zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
-	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
