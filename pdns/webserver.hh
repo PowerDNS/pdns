@@ -32,6 +32,8 @@
 #include "namespaces.hh"
 #include "sstuff.hh"
 
+class WebServer;
+
 class HttpRequest : public YaHTTP::Request {
 public:
   HttpRequest() : YaHTTP::Request(), accept_json(false), accept_html(false), complete(false) { };
@@ -40,6 +42,10 @@ public:
   bool accept_html;
   bool complete;
   void json(rapidjson::Document& document);
+
+  // checks password _only_.
+  bool compareAuthorization(const string &expected_password);
+  bool compareHeader(const string &header_name, const string &expected_value);
 };
 
 class HttpResponse: public YaHTTP::Response {
@@ -125,7 +131,7 @@ protected:
 class WebServer : public boost::noncopyable
 {
 public:
-  WebServer(const string &listenaddress, int port, const string &password="");
+  WebServer(const string &listenaddress, int port);
   void bind();
   void go();
 
@@ -133,12 +139,13 @@ public:
   HttpResponse handleRequest(HttpRequest request);
 
   typedef boost::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  void registerHandler(const string& url, HandlerFunction handler);
   void registerApiHandler(const string& url, HandlerFunction handler);
+  void registerWebHandler(const string& url, HandlerFunction handler);
 
 protected:
   static char B64Decode1(char cInChar);
   static int B64Decode(const std::string& strInput, std::string& strOutput);
+  void registerBareHandler(const string& url, HandlerFunction handler);
 
   virtual Server* createServer() {
     return new Server(d_listenaddress, d_port);
