@@ -242,22 +242,6 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   }
 }
 
-
-string GSQLBackend::sqlEscape(const string &name)
-{
-  string a;
-
-  for(string::const_iterator i=name.begin();i!=name.end();++i)
-    if(*i=='\'' || *i=='\\'){
-      a+='\\';
-      a+=*i;
-    }
-    else
-      a+=*i;
-  return a;
-}
-
-
 GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
   setArgPrefix(mode+suffix);

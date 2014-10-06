@@ -7,6 +7,7 @@
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"
 #include "pdns/namespaces.hh"
+#include "pdns/misc.hh"
 
 bool SPgSQL::s_dolog;
 
@@ -174,12 +175,16 @@ bool SPgSQL::getRow(row_t &row)
 
 string SPgSQL::escape(const string &name)
 {
-  string a;
-
-  for(string::const_iterator i=name.begin();i!=name.end();++i) {
-    if(*i=='\'' || *i=='\\')
-      a+='\\';
-    a+=*i;
+  char *tmp = new char[name.size()*2+1];
+  int pg_err;
+  size_t len = PQescapeStringConn(d_db, tmp, name.c_str(), name.size(), &pg_err);
+  if (pg_err) {
+    delete [] tmp;
+    throw sPerrorException("PQescapeStringConn() error: " + itoa(pg_err));
   }
+  string a;
+  tmp[len]=0; // ensure it ends with nul byte
+  a.assign(tmp, len);
+  delete [] tmp;
   return a;
 }

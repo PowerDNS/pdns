@@ -12,6 +12,7 @@
 #include "pdns/logger.hh"
 #include "misc.hh"
 #include <unistd.h>
+#include <boost/algorithm/string.hpp>
 
 // Constructor.
 SSQLite3::SSQLite3( const std::string & database, bool creat )
@@ -151,16 +152,6 @@ bool SSQLite3::getRow( row_t & row )
 // Escape a SQL query.
 std::string SSQLite3::escape( const std::string & name)
 {
-  std::string a;
-
-  for( std::string::const_iterator i = name.begin(); i != name.end(); ++i ) 
-  {
-    if( *i == '\'' || *i == '\\' )
-      a += '\\';
-
-    a += *i;
-  }
-
-  return a;
+  return boost::replace_all_copy(name, "'", "''");
 }
 

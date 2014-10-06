@@ -158,12 +158,6 @@ public:
   }
 };
 
-string gSQLite3Backend::sqlEscape(const string &name)
-{
-  return boost::replace_all_copy(name, "'", "''");
-}
-
-
 //! Reports the backendloader to the UeberBackend.
 static gSQLite3Loader gsqlite3loader;
 
