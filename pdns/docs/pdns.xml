@@ -13624,6 +13624,14 @@ ALTER TABLE domainmetadata MODIFY kind VARCHAR2(32);
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>experimental-api-key</term>
+          <listitem>
+            <para>
+              Static API authentication key, must be sent in the X-API-Key header. Required for any API usage.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>experimental-dname-processing</term>
           <listitem>
             <para>

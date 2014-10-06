@@ -2101,6 +2101,7 @@ int main(int argc, char **argv)
     ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
     ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
+    ::arg().set("experimental-api-key", "REST API Static authentication key (required for API use)") = "";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
     ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";

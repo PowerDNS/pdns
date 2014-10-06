@@ -61,7 +61,7 @@ AuthWebServer::AuthWebServer()
   d_ws = 0;
   d_tid = 0;
   if(arg().mustDo("webserver")) {
-    d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"),arg()["webserver-password"]);
+    d_ws = new WebServer(arg()["webserver-address"], arg().asNum("webserver-port"));
     d_ws->bind();
   }
 }
@@ -1255,8 +1255,8 @@ void AuthWebServer::webThread()
       // legacy dispatch
       d_ws->registerApiHandler("/jsonstat", boost::bind(&AuthWebServer::jsonstat, this, _1, _2));
     }
-    d_ws->registerHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
-    d_ws->registerHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
+    d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
+    d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
     d_ws->go();
   }
   catch(...) {

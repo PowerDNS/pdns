@@ -53,11 +53,12 @@ For interactions that do not directly map onto CRUD, we use these:
 Authentication
 --------------
 
-Clients SHOULD support:
+The PowerDNS daemons accept a static API Key, which has to be sent in the
+`X-API-Key` header.
 
-* HTTP Basic Auth (used by pdns, pdnsmgrd)
-* OAuth (used by pdnscontrol)
-  * **TODO**: Not implemented yet.
+Note: Authoritative Server 3.4.0 and Recursor 3.6.0 and 3.6.1 use HTTP
+Basic Authentication instead.
+
 
 Errors
 ------
