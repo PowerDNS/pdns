@@ -111,7 +111,7 @@ pdns_server_SOURCES = \
 	base32.cc base32.hh \
 	base64.cc base64.hh \
 	bind-dnssec.schema.sqlite3.sql.h \
-	bindlexer.c \
+	bindlexer.l \
 	bindparser.cc \
 	cachecleaner.hh \
 	comment.hh \
@@ -226,8 +226,8 @@ pdnssec_SOURCES = \
 	backends/gsql/ssql.hh \
 	base32.cc \
 	base64.cc base64.hh \
-	bindlexer.c \
-	bindparser.cc \
+	bindlexer.l \
+	bindparser.yy \
 	cachecleaner.hh \
 	dbdnsseckeeper.cc \
 	dnsbackend.cc \
@@ -823,8 +823,8 @@ testrunner_SOURCES = \
 	arguments.cc \
 	base32.cc \
 	base64.cc \
-	bindlexer.c \
-	bindparser.cc \
+	bindlexer.l \
+	bindparser.yy \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
