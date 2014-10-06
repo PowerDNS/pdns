@@ -33,3 +33,4 @@ install-exec-local:
 	@echo
 	@echo "***********************************************************"
 
+dvi: # do nothing to build dvi
