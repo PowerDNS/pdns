@@ -69,7 +69,7 @@ version.hh version.cc rfc2136handler.cc responsestats.cc responsestats.hh \
 comment.hh auth-carbon.cc
 
 
-pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) @LIBDL@ $(THREADFLAGS)  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
+pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) $(LIBDL) $(THREADFLAGS)  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
 pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
 
 if BOTAN110
@@ -112,7 +112,7 @@ pdnssec_SOURCES=pdnssec.cc dbdnsseckeeper.cc sstuff.hh dnsparser.cc dnsparser.hh
 	dns_random.cc json.cc \
 	serialtweaker.cc randomhelper.cc
 
-pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) @LIBDL@ $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
+pdnssec_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) $(LIBDL) $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_SERIALIZATION_LDFLAGS) 
 pdnssec_LDADD= $(POLARSSL_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SERIALIZATION_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
 
 zone2sql_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
