@@ -1,6 +1,5 @@
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
-#include <sha.hh>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
@@ -8,10 +7,11 @@
 #include <boost/foreach.hpp>
 #include <p11-kit/p11-kit.h>
 
-#include "dnssecinfra.hh"
+#include "pdns/dnssecinfra.hh"
+#include "pdns/logger.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/sha.hh"
 #include "pkcs11signers.hh"
-#include "pdnsexception.hh"
-#include "logger.hh"
 
 /* TODO
 
