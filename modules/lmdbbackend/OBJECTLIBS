@@ -1,1 +1,1 @@
--l$(LIBLMDB)
+$(LMDB_LIBS)

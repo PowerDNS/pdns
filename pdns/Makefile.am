@@ -156,7 +156,7 @@ zone2lmdb_SOURCES=bindparser.yy bindlexer.l bind-dnssec.schema.sqlite3.sql.h \
 	dns_random.cc dns.cc
 
 zone2lmdb_LDFLAGS=$(THREADFLAGS)
-zone2lmdb_LDADD= $(POLARSSL_LIBS) -llmdb
+zone2lmdb_LDADD= $(POLARSSL_LIBS) $(LMDB_LIBS)
 endif
 
 if BOTAN110
