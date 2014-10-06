@@ -7,7 +7,6 @@ AM_CXXFLAGS = \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
 	-DLOCALSTATEDIR=\"$(socketdir)\" \
 	$(LUA_CFLAGS) \
-	$(SQLITE3_CFLAGS) \
 	$(POLARSSL_CFLAGS)
 
 YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
@@ -25,6 +24,10 @@ endif
 
 if PKCS11
 AM_CPPFLAGS += $(P11KIT1_CFLAGS)
+endif
+
+if SQLITE3
+AM_CPPFLAGS += $(SQLITE3_CFLAGS)
 endif
 
 EXTRA_DIST = \
@@ -189,7 +192,6 @@ pdns_server_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(LUA_LIBS) \
-	$(SQLITE3_LIBS) \
 	$(YAHTTP_LIBS)
 
 if BOTAN110
@@ -209,6 +211,7 @@ endif
 
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
+pdns_server_LDADD += $(SQLITE3_LIBS)
 endif
 
 if ORACLE
@@ -274,7 +277,6 @@ pdnssec_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
-	$(SQLITE3_LIBS) \
 	$(YAHTTP_LIBS)
 
 zone2sql_SOURCES = \
@@ -410,6 +412,7 @@ endif
 
 if SQLITE3
 pdnssec_SOURCES += ssqlite3.cc ssqlite3.hh
+pdnssec_LDADD += $(SQLITE3_LIBS)
 endif
 
 if ORACLE
