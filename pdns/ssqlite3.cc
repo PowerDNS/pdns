@@ -97,7 +97,7 @@ int SSQLite3::doQuery( const std::string & query )
 
 int SSQLite3::busyHandler(void*, int)
 {
-  usleep(1000);
+  Utility::usleep(1000);
   return 1;
 }
 
