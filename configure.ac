@@ -291,6 +291,14 @@ for a in $modules $dynmodules; do
     geoip)
       PDNS_CHECK_GEOIP
       ;;
+    lua)
+      AS_IF([test "x$with_lua" = "xno"],
+        AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
+      )
+      AS_IF([test "x$LUAPC" = "x"],
+        AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
+      )
+      ;;
   esac
 done
 
