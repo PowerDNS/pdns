@@ -204,14 +204,14 @@ endif
 dnstcpbench_SOURCES=dnstcpbench.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc
-dnstcpbench_LDFLAGS=$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnstcpbench_LDFLAGS=$(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnstcpbench_LDADD=$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 
 dnsdist_SOURCES=dnsdist.cc sstuff.hh dnsparser.cc dnsparser.hh dnsrecords.cc dnswriter.cc dnslabeltext.cc dnswriter.hh \
 	misc.cc misc.hh rcpgenerator.cc rcpgenerator.hh base64.cc base64.hh unix_utility.cc \
 	logger.cc statbag.cc qtype.cc sillyrecords.cc nsecrecords.cc base32.cc iputils.cc
-dnsdist_LDFLAGS=$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnsdist_LDFLAGS=$(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnsdist_LDADD=$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 
@@ -342,7 +342,7 @@ ws-recursor.cc ws-recursor.hh ws-api.cc ws-api.hh webserver.cc webserver.hh \
 json.cc json.hh version.hh version.cc responsestats.cc rec-carbon.cc ext/yahttp/yahttp/reqresp.cpp \
 ext/yahttp/yahttp/router.cpp
 
-pdns_recursor_LDFLAGS= $(LUA_LIBS)
+pdns_recursor_LDFLAGS=$(THREADFLAGS) $(LUA_LIBS)
 pdns_recursor_LDADD= $(POLARSSL_LIBS) $(YAHTTP_LIBS)
 
 pdns_control_SOURCES=dynloader.cc dynmessenger.cc  arguments.cc logger.cc statbag.cc \
