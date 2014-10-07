@@ -1,5 +1,5 @@
 pkglib_LTLIBRARIES = libbindbackend.la
-AM_CPPFLAGS=-I../../pdns $(BOOST_CPPFLAGS) $(POLARSSL_CFLAGS) $(THREADFLAGS)
+AM_CPPFLAGS += -I../../pdns $(POLARSSL_CFLAGS)
 
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug

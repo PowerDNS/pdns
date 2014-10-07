@@ -1,5 +1,5 @@
-AM_CPPFLAGS += $(BOOST_CPPFLAGS) $(THREADFLAGS) -I$(top_srcdir)/pdns/ext/rapidjson/include -I$(top_srcdir)/pdns/ext/yahttp
-AM_CXXFLAGS = -DSYSCONFDIR=\"$(sysconfdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"$(socketdir)\" $(THREADFLAGS) $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS)
+AM_CPPFLAGS += -I$(top_srcdir)/pdns/ext/rapidjson/include -I$(top_srcdir)/pdns/ext/yahttp
+AM_CXXFLAGS = -DSYSCONFDIR=\"$(sysconfdir)\" -DPKGLIBDIR=\"$(pkglibdir)\" -DLOCALSTATEDIR=\"$(socketdir)\" $(LUA_CFLAGS) $(SQLITE3_CFLAGS) $(POLARSSL_CFLAGS)
 
 YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
 
