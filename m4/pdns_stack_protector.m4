@@ -20,7 +20,7 @@ dnl
 
 AC_DEFUN([AC_CC_STACK_PROTECTOR],[
       gl_COMPILER_OPTION_IF([-fstack-protector], [
-        CFLAGS="$CFLAGS -fstack-protector"
-        CXXFLAGS="$CXXFLAGS -fstack-protector"
+        CFLAGS="-fstack-protector $CFLAGS"
+        CXXFLAGS="-fstack-protector $CXXFLAGS"
       ])
 ]) 
