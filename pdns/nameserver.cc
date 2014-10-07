@@ -338,6 +338,7 @@ void UDPNameserver::send(DNSPacket *p)
 
 static bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
 {
+#ifdef SO_TIMESTAMP
   struct cmsghdr *cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
     if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP) && 
@@ -346,6 +347,7 @@ static bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
       return true;
     }
   }
+#endif
   return false;
 }
 

@@ -20,7 +20,7 @@ dnl
 
 AC_DEFUN([AC_CC_PARAM_SSP_BUFFER_SIZE],[
       gl_COMPILER_OPTION_IF([--param ssp-buffer-size=$1], [
-        CFLAGS="$CFLAGS --param ssp-buffer-size=$1"
-        CXXFLAGS="$CXXFLAGS --param ssp-buffer-size=$1"
+        CFLAGS="--param ssp-buffer-size=$1 $CFLAGS"
+        CXXFLAGS="--param ssp-buffer-size=$1 $CXXFLAGS"
       ])
 ]) 

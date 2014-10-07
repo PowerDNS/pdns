@@ -291,6 +291,14 @@ for a in $modules $dynmodules; do
     geoip)
       PDNS_CHECK_GEOIP
       ;;
+    lua)
+      AS_IF([test "x$with_lua" = "xno"],
+        AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
+      )
+      AS_IF([test "x$LUAPC" = "x"],
+        AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
+      )
+      ;;
   esac
 done
 
@@ -339,9 +347,9 @@ for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
 
-CFLAGS="$CFLAGS $PIE_CFLAGS"
-CXXFLAGS="$CXXFLAGS $PIE_CFLAGS"
-LDFLAGS="$LDFLAGS $RELRO_LDFLAGS"
+CFLAGS="$PIE_CFLAGS $CFLAGS"
+CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 AC_SUBST(LIBS)
 
@@ -354,7 +362,7 @@ AC_CONFIG_FILES([
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
-  pdns/pdns
+  pdns/pdns.init
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile

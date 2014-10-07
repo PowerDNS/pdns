@@ -3,7 +3,7 @@
 /buildroot.sh
 /config.h
 /mkbindist
-/pdns
+/pdns.init
 /showvar
 /stamp-h
 /pdns_control

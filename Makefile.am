@@ -1,6 +1,6 @@
 SUBDIRS=modules codedocs @programdescend@
 DIST_SUBDIRS=modules codedocs pdns
-EXTRA_DIST=README INSTALL NOTICE debian-pdns pdns.spec  \
+EXTRA_DIST=README INSTALL NOTICE debian pdns.spec \
 codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
 contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
 bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1 \
@@ -25,10 +25,10 @@ pdns/docs/dnsdist.1:
 	cd pdns/docs && $(MAKE) dnsdist.1
 
 install-exec-local: 
-	-@chmod +x pdns/pdns
+	-@chmod +x pdns/pdns.init
 	@echo "***********************************************************"
 	@echo
-	@echo An init.d startup script has been made for you in pdns/pdns.
+	@echo An init.d startup script has been made for you in pdns/pdns.init.
 	@echo You may want to copy this to /etc/init.d or equivalent.
 	@echo
 	@echo "***********************************************************"

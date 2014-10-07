@@ -19832,7 +19832,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	<para>
 	  To configure a supermaster with IP address 10.0.0.11 which lists this installation as 'autoslave.powerdns.com', issue the following:
 	  <programlisting>
-	    insert into supermasters ('10.0.0.11','autoslave.powerdns.com','internal');
+	    insert into supermasters values ('10.0.0.11','autoslave.powerdns.com','internal');
 	  </programlisting>
 	  From now on, valid notifies from 10.0.0.11 that list a NS record containing 'autoslave.powerdns.com' will lead to the
 	  provisioning of a slave domain under the account 'internal'. See <xref linkend="supermaster"/> for details.
