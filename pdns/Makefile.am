@@ -28,7 +28,7 @@ SUBDIRS= ext
 BUILT_SOURCES=bind-dnssec.schema.sqlite3.sql.h version_generated.h bindparser.h
 CLEANFILES=version_generated.h
 
-noinst_SCRIPTS = pdns
+noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist 
 
 sbin_PROGRAMS = pdns_server 
