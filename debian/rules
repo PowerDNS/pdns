@@ -1,47 +1,12 @@
 #!/usr/bin/make -f
+# This rules file is usable only for PowerDNS.COM static builds.
+# If you want a Debian-downstream-style package, please use the packaging from Debian.
 
 tmpdir		:= $(shell pwd)/debian/tmp
-be_tmpdir	:= $(shell pwd)/debian/tmp-backend
-tools_tmpdir:= $(shell pwd)/debian/tmp-tools
-backends	:= bind opendbx ldap pipe gmysql gpgsql gsqlite3 random
-debs		:= bind opendbx ldap pipe pgsql sqlite sqlite3 random
-
-binary-doc:
-	-make -C pdns/docs html/index.html
-
-	rm -rf "$(tmpdir)"
-
-	install -d -m 755 -o root -g root \
-		"$(tmpdir)"/usr/share/doc/pdns/html
-	set -e ; for i in pdns/docs/html/* ; do \
-		install -p -m 644 -o root -g root "$$i" \
-			"$(tmpdir)"/usr/share/doc/pdns/html/ ; \
-		done
-
-	install -d -m 755 -o root -g root \
-		"$(tmpdir)"/usr/share/doc/pdns-doc
-	install -p -m 644 -o root -g root debian/changelog \
-			"$(tmpdir)"/usr/share/doc/pdns-doc/changelog.Debian
-	gzip -9 "$(tmpdir)"/usr/share/doc/pdns-doc/*
-	install -p -m 644 -o root -g root debian/copyright \
-			"$(tmpdir)"/usr/share/doc/pdns-doc/
-
-	install -d -m 755 -o root -g root "$(tmpdir)"/usr/share/doc-base
-	install -p -m 644 -o root -g root debian/doc-base \
-			"$(tmpdir)"/usr/share/doc-base/pdns
-
-	install -d -m 755 -o root -g root "$(tmpdir)"/DEBIAN
-	install -p -m 755 -o root -g root debian/pdns-doc.prerm \
-			"$(tmpdir)"/DEBIAN/prerm
-	install -p -m 755 -o root -g root debian/pdns-doc.postinst \
-			"$(tmpdir)"/DEBIAN/postinst
-
-	dpkg-gencontrol -fdebian/files -cdebian/control -ldebian/changelog -isp -ppdns-doc -P"$(tmpdir)"
-	dpkg --build "$(tmpdir)" ..
-
+tools_tmpdir	:= $(shell pwd)/debian/tmp-tools
 
 build-static stamp-build-static:
-		./configure \
+	./configure \
 		CXX=$(shell pwd)/build-scripts/semistaticg++ \
 		PKG_CONFIG_PATH=/opt/botan-1.10/lib/pkgconfig/ \
 		--prefix=/usr \
@@ -57,23 +22,7 @@ build-static stamp-build-static:
 		--enable-static-binaries \
 		--enable-tools
 	make -j4
-
 	touch stamp-build-static
-
-
-build stamp-build: configure
-	./configure \
-		--prefix=/usr \
-		--libexecdir='$${prefix}/lib' \
-		--libdir='$${prefix}/lib' \
-		--sysconfdir=/etc/powerdns \
-		--infodir='$${datadir}/info' \
-		--mandir='$${datadir}/man' \
-		--with-dynmodules="$(backends)" \
-		--with-modules="geo" \
-		--enable-tools
-	make
-	touch stamp-build
 
 
 binary-main-prepare: 
@@ -148,59 +97,18 @@ binary-main-prepare:
 	done
 
 
-
-binary-main: stamp-build binary-main-prepare
-	dpkg-shlibdeps -Tdebian/substvars "$(tmpdir)"/usr/bin/zone2sql \
-		"$(tmpdir)"/usr/sbin/pdns_server \
-		"$(tmpdir)"/usr/bin/pdns_control
-	dpkg-gencontrol -fdebian/files -cdebian/control -ldebian/changelog  -isp -ppdns -P"$(tmpdir)"
-	dpkg --build "$(tmpdir)" ..
-
-
 binary-static: stamp-build-static binary-main-prepare
 	dpkg-gencontrol -fdebian/files -cdebian/control -ldebian/changelog  -isp -ppdns-static -P"$(tmpdir)"
 	dpkg-gencontrol -fdebian/files -cdebian/control -ldebian/changelog  -isp -ppdns-tools -P"$(tools_tmpdir)"
 	dpkg --build "$(tmpdir)" ..
 	dpkg --build "$(tools_tmpdir)" ..
 
-binary-backend: stamp-build
-	rm -rf "$(tmpdir)"
-
-	install -d -m 755 -o root -g root "$(tmpdir)"
-	make DESTDIR="$(tmpdir)" install
-
-	chmod 644 "$(tmpdir)"/usr/lib/powerdns/*
-
-	set -e ; for be in $(debs) ; do \
-		rm -f debian/substvars ; \
-		rm -rf "$(be_tmpdir)" ; \
-		pkg=pdns-backend-$$be ; \
-		\
-		for file in $$(cd "$(tmpdir)" ; find . -name "*$$be*") ; do \
-			install -d -m 755 -o root -g root "$(be_tmpdir)"/$$(dirname "$$file") ; \
-			mv "$(tmpdir)"/"$$file" "$(be_tmpdir)"/"$$file" ; \
-		done ; \
-		\
-		install -d -m 755 -o root -g root "$(be_tmpdir)"/usr/share/doc ; \
-		ln -s pdns "$(be_tmpdir)"/usr/share/doc/$$pkg ; \
-		\
-		install -d -m 755 -o root -g root "$(be_tmpdir)"/DEBIAN ; \
-		dpkg-shlibdeps -Tdebian/substvars "$(be_tmpdir)"/usr/lib/powerdns/*.so ; \
-		dpkg-gencontrol -fdebian/files -cdebian/control -ldebian/changelog  -isp -p$$pkg -P"$(be_tmpdir)" ; \
-		dpkg --build "$(be_tmpdir)" .. ; \
-	done
-
-
-binary: binary-indep binary-arch
-binary-indep: binary-doc
-binary-arch: binary-main binary-backend
 
 clean:
 	-make distclean
 	-make -C pdns/docs clean
 	rm -f debian/files debian/substvars stamp-build stamp-build-static
-	rm -rf "$(tmpdir)" "$(be_tmpdir)"
+	rm -rf "$(tmpdir)"
 
-.PHONY: clean build binary binary-arch binary-indep
-.PHONY: binary-doc binary-main binary-backend
+.PHONY: clean
 
