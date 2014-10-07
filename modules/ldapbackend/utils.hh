@@ -2,8 +2,8 @@
 #include <vector>
 #include <time.h>
 #include <stdlib.h>
-#include <pdns/misc.hh>
-#include <pdns/utility.hh>
+#include "pdns/misc.hh"
+#include "pdns/utility.hh"
 
 
 #ifndef LDAPBACKEND_UTILS_HH
