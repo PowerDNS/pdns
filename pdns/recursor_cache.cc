@@ -187,7 +187,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResou
 void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth)
 {
   d_cachecachevalid=false;
-  tuple<string, uint16_t> key=make_tuple(qname, qt.getCode());
+  boost::tuple<string, uint16_t> key=boost::make_tuple(qname, qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
   uint32_t maxTTD=UINT_MAX;
 
