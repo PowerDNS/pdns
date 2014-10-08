@@ -1,1 +1,1 @@
-$(MYSQL_lib)
+../modules/gmysqlbackend/smysql.lo $(MYSQL_lib)
