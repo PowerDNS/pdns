@@ -1,4 +1,3 @@
-AM_CPPFLAGS=$(THREADFLAGS) $(BOOST_CPPFLAGS)
 #if !ALLSTATIC
 #install-exec-local:
 #	install .lib/libpipebackend.so.0.0.0 @libdir@

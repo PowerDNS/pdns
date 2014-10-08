@@ -353,7 +353,9 @@ LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 AC_SUBST(LIBS)
 
-AC_SUBST([AM_CPPFLAGS], ['-I$(top_builddir) -I$(top_srcdir)'])
+AC_SUBST([AM_CPPFLAGS],
+  ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
+)
 
 export moduledirs moduleobjects modulelibs
 
