@@ -172,8 +172,7 @@ linux*)
 darwin*)
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
   AM_CONDITIONAL([OS_MACOSX], true)
   ;;
 *)
