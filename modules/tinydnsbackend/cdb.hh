@@ -1,7 +1,7 @@
 #ifndef CDB_HH
 #define CDB_HH
 
-#include <pdns/logger.hh>
+#include "pdns/logger.hh"
 #include <cdb.h>
 #include <sys/types.h>
 #include <sys/stat.h>

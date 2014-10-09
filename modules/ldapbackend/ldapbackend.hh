@@ -25,14 +25,14 @@
 #include <cstdlib>
 #include <cctype>
 #include <inttypes.h>
-#include <pdns/dns.hh>
-#include <pdns/utility.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/ueberbackend.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/arguments.hh>
-#include <pdns/logger.hh>
+#include "pdns/dns.hh"
+#include "pdns/utility.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/arguments.hh"
+#include "pdns/logger.hh"
 #include "powerldap.hh"
 #include "utils.hh"
 

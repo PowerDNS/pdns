@@ -26,7 +26,7 @@
 #include "logger.hh"
 
 #include <sys/types.h>
-#include <pdns/packetcache.hh>
+#include "pdns/packetcache.hh"
 #include "dnspacket.hh"
 #include "dns.hh"
 

@@ -12,17 +12,17 @@
  * script which generates a simple zone.
  */
 
-#include <pdns/utility.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/dns.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
+#include "pdns/utility.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
 #include <signal.h>
 #include "lmdbbackend.hh"
-#include <pdns/arguments.hh>
-#include <pdns/base32.hh>
-#include <pdns/lock.hh>
+#include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/lock.hh"
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
