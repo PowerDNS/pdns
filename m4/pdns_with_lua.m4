@@ -31,4 +31,5 @@ AC_DEFUN([PDNS_WITH_LUA],[
       ), AC_MSG_RESULT([$LUAPC])
     )
   ])
+  AM_CONDITIONAL([LUA], [test "x$with_lua" = "xyes"])
 ])
