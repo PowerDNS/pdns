@@ -204,7 +204,7 @@ AC_MSG_RESULT([$static])
 AM_CONDITIONAL([ALLSTATIC], [test "x$static" != "xno"])
 AS_IF([test "x$static" != "xno"],
   [LDFLAGS="-all-static $LDFLAGS"]
-])
+)
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
