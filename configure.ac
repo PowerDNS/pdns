@@ -165,7 +165,6 @@ solaris2.6 | solaris2.7)
 linux*)
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="$LDFLAGS -lrt"
   THREADFLAGS="-pthread"
   CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
