@@ -47,7 +47,8 @@ EXTRA_DIST = \
 	docs/zone2ldap.8 \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
-	named.conf.parsertest
+	named.conf.parsertest \
+	pdns.conf-dist
 
 SUBDIRS = ext
 
