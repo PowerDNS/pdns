@@ -138,7 +138,6 @@ bool GeoBackend::get(DNSResourceRecord &r) {
         	r.qtype = ir->qtype;
         	r.qname = ir->qname;
         	r.content = ir->content;
-        	r.priority = ir->priority;
         	r.ttl = ir->ttl;
         	r.domain_id = ir->domain_id;
         	r.last_modified = ir->last_modified;
@@ -224,7 +223,6 @@ void GeoBackend::answerLocalhostRecord(const string &qdomain, DNSPacket *p) {
         rr->qtype = QType::A;
         rr->qname = qdomain;
         rr->content = target.str();
-        rr->priority = 0;
         rr->ttl = geoTTL;
         rr->domain_id = 1;
         rr->last_modified = 0;
@@ -240,7 +238,6 @@ void GeoBackend::queueNSRecords(const string &qname) {
         	rr->qtype = QType::NS;
         	rr->qname = qname;
         	rr->content = *i;
-        	rr->priority = 0;
         	rr->ttl = nsTTL;
         	rr->domain_id = 1;
         	rr->last_modified = 0;
@@ -263,7 +260,6 @@ void GeoBackend::fillGeoResourceRecord(const string &qdomain, const string &targ
         rr->qtype = QType::CNAME;
         rr->qname = qdomain;
         rr->content = target;
-        rr->priority = 0;
         rr->ttl = geoTTL;
         rr->domain_id = 1;
         rr->last_modified = 0;
