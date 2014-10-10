@@ -54,7 +54,6 @@ bool LUABackend::superMasterBackend(const string &ip, const string &domain, cons
 	
 	rr.qtype = i->qtype;
 	rr.qclass = i->qclass;
-	rr.priority = i->priority;
 	rr.ttl = i->ttl;
 	rr.auth = i->auth;
 	rr.content = i->content;
