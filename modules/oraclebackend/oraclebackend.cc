@@ -994,22 +994,13 @@ bool OracleBackend::get (DNSResourceRecord &rr)
   rr.qname = mResultName;
   rr.ttl = mResultTTL;
   rr.qtype = mResultType;
+  rr.content = mResultContent;
   rr.domain_id = mResultZoneId;
   rr.last_modified = mResultLastChange;
   if (d_dnssecQueries)
     rr.auth = mResultIsAuth > 0;
   else
     rr.auth = 1;
-
-  if ((rr.qtype.getCode() == QType::MX) || (rr.qtype.getCode() == QType::SRV)) {
-    unsigned priority = 0;
-    int skip = 0;
-    sscanf(mResultContent, "%u %n", &priority, &skip);
-    rr.priority = priority;
-    rr.content = mResultContent + skip;
-  } else {
-    rr.content = mResultContent;
-  }
 
   rc = OCIStmtFetch2(curStmtHandle, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
