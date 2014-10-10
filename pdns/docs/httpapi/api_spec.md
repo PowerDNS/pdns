@@ -411,7 +411,6 @@ Client body for PATCH:
               {
                 "content": <string>,
                 "name": <string>,
-                "priority": <int>,
                 "ttl": <int>,
                 "type": <string>,
                 "disabled": <bool>

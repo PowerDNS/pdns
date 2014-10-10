@@ -17,8 +17,8 @@ To get you started, try on the Authoritative Server:
 
     $ curl 'http://127.0.0.1:8081/jsonstat?command=get-zone&zone=unsigned.workbench.sidnlabs.nl'
     [{"content":"nsd.sidnlabs.nl. hostmaster.sidnlabs.nl. 2013061100 3600 600 1814400 3600",
-    "name":"unsigned.workbench.sidnlabs.nl","priority":"0","ttl":"86400","type":"SOA"}, 
-    {"content":"nsd.sidnlabs.nl","name":"unsigned.workbench.sidnlabs.nl","priority":"0","ttl":"3600","type":"NS"},...
+    "name":"unsigned.workbench.sidnlabs.nl","ttl":"86400","type":"SOA"},
+    {"content":"nsd.sidnlabs.nl","name":"unsigned.workbench.sidnlabs.nl","ttl":"3600","type":"NS"},...
 
 
 Common API calls
