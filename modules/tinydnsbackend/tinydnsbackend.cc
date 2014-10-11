@@ -1,10 +1,10 @@
 #include "tinydnsbackend.hh"
 #include "pdns/lock.hh"
 #include <cdb.h>
-#include <pdns/misc.hh>
-#include <pdns/iputils.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/dnsrecords.hh>
+#include "pdns/misc.hh"
+#include "pdns/iputils.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/dnsrecords.hh"
 #include <utility>
 #include <boost/foreach.hpp>
 

@@ -1,8 +1,6 @@
 AM_CPPFLAGS += \
-	$(THREADFLAGS) \
 	-I../../pdns/ext/rapidjson/include \
 	-I../../pdns/ext/yahttp \
-	$(BOOST_CPPFLAGS) \
 	$(POLARSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 

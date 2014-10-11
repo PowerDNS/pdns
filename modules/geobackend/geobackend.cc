@@ -15,9 +15,9 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#include <pdns/misc.hh>
-#include <pdns/lock.hh>
-#include <pdns/dnspacket.hh>
+#include "pdns/misc.hh"
+#include "pdns/lock.hh"
+#include "pdns/dnspacket.hh"
 #include <boost/algorithm/string.hpp>
 #include "geobackend.hh"
 

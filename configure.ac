@@ -165,15 +165,13 @@ solaris2.6 | solaris2.7)
 linux*)
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="$LDFLAGS -lrt"
   THREADFLAGS="-pthread"
   CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
 darwin*)
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
   AM_CONDITIONAL([OS_MACOSX], true)
   ;;
 *)
@@ -205,7 +203,7 @@ AC_MSG_RESULT([$static])
 AM_CONDITIONAL([ALLSTATIC], [test "x$static" != "xno"])
 AS_IF([test "x$static" != "xno"],
   [LDFLAGS="-all-static $LDFLAGS"]
-])
+)
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
@@ -353,7 +351,9 @@ LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 AC_SUBST(LIBS)
 
-AC_SUBST([AM_CPPFLAGS], ['-I$(top_builddir) -I$(top_srcdir)'])
+AC_SUBST([AM_CPPFLAGS],
+  ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
+)
 
 export moduledirs moduleobjects modulelibs
 

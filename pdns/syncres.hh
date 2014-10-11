@@ -402,7 +402,7 @@ public:
   typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
   
 
-  typedef Throttle<tuple<ComboAddress,string,uint16_t> > throttle_t;
+  typedef Throttle<boost::tuple<ComboAddress,string,uint16_t> > throttle_t;
 
   typedef Counters<ComboAddress> fails_t;
   

@@ -169,7 +169,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   }
   if(somedata) {
     LOG(prefix<<qname<<": found record in '"<<authdomain<<"', but nothing of the right type, sending SOA"<<endl);
-    ziter=iter->second.d_records.find(make_tuple(authdomain, QType(QType::SOA)));
+    ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType(QType::SOA)));
     if(ziter!=iter->second.d_records.end()) {
       DNSResourceRecord rr=*ziter;
       rr.d_place=DNSResourceRecord::AUTHORITY;
@@ -185,7 +185,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   string wcarddomain(qname);
   while(!pdns_iequals(wcarddomain, iter->first) && chopOffDotted(wcarddomain)) {
     LOG(prefix<<qname<<": trying '*."+wcarddomain+"' in "<<authdomain<<endl);
-    range=iter->second.d_records.equal_range(make_tuple("*."+wcarddomain)); 
+    range=iter->second.d_records.equal_range(boost::make_tuple("*."+wcarddomain)); 
     if(range.first==range.second)
       continue;
 
@@ -205,7 +205,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   string nsdomain(qname);
 
   while(chopOffDotted(nsdomain) && !pdns_iequals(nsdomain, iter->first)) {
-    range=iter->second.d_records.equal_range(make_tuple(nsdomain,QType(QType::NS))); 
+    range=iter->second.d_records.equal_range(boost::make_tuple(nsdomain,QType(QType::NS))); 
     if(range.first==range.second)
       continue;
 
@@ -217,7 +217,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
   }
   if(ret.empty()) { 
     LOG(prefix<<qname<<": no NS match in zone '"<<authdomain<<"' either, handing out SOA"<<endl);
-    ziter=iter->second.d_records.find(make_tuple(authdomain, QType(QType::SOA)));
+    ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType(QType::SOA)));
     if(ziter!=iter->second.d_records.end()) {
       DNSResourceRecord rr=*ziter;
       rr.d_place=DNSResourceRecord::AUTHORITY;
@@ -906,12 +906,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
           extern NetmaskGroup* g_dontQuery;
           
-          if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, "", 0))) {
+          if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0))) {
             LOG(prefix<<qname<<": server throttled "<<endl);
             s_throttledqueries++; d_throttledqueries++;
             continue;
           }
-          else if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()))) {
+          else if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()))) {
             LOG(prefix<<qname<<": query throttled "<<endl);
             s_throttledqueries++; d_throttledqueries++;
             continue;
@@ -953,18 +953,18 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 		// code below makes sure we don't filter COM or the root
                 if (s_serverdownmaxfails > 0 && (auth.find('.')+1 != auth.size()) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
                   LOG(prefix<<qname<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for 1 minute" <<endl);
-                  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
+                  t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
                 } else if(resolveret==-1)
-                  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
+                  t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
                 else
-                  t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
+                  t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 10, 5);  // timeout
               }
               continue;
             }
 
             if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
               LOG(prefix<<qname<<": "<<*tns<<" returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
-              t_sstorage->throttle.throttle(d_now.tv_sec,make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail or refused
+              t_sstorage->throttle.throttle(d_now.tv_sec,boost::make_tuple(*remoteIP, qname, qtype.getCode()),60,3); // servfail or refused
               continue;
             }
             
@@ -974,7 +974,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             break;  // this IP address worked!
           wasLame:; // well, it didn't
             LOG(prefix<<qname<<": status=NS "<<*tns<<" ("<< remoteIP->toString() <<") is lame for '"<<auth<<"', trying sibling IP or NS"<<endl);
-            t_sstorage->throttle.throttle(d_now.tv_sec, make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // lame
+            t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // lame
           }
         }
         
