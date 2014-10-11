@@ -27,7 +27,7 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
     [have_system_polarssl=no]
   )
 
-  POLARSSL_SUBDIR=polarssl-1.3.2
+  POLARSSL_SUBDIR=polarssl
   POLARSSL_CFLAGS=-I\$\(top_srcdir\)/pdns/ext/$POLARSSL_SUBDIR/include/
   POLARSSL_LIBS="-L\$(top_builddir)/pdns/ext/$POLARSSL_SUBDIR/library/ -lpolarssl"
 
