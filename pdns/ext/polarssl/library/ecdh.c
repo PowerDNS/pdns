@@ -1,7 +1,7 @@
 /*
  *  Elliptic curve Diffie-Hellman
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2014, Brainspark B.V.
  *
  *  This file is part of PolarSSL (http://www.polarssl.org)
  *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
@@ -30,7 +30,11 @@
  * RFC 4492
  */
 
+#if !defined(POLARSSL_CONFIG_FILE)
 #include "polarssl/config.h"
+#else
+#include POLARSSL_CONFIG_FILE
+#endif
 
 #if defined(POLARSSL_ECDH_C)
 
@@ -97,13 +101,13 @@ void ecdh_free( ecdh_context *ctx )
         return;
 
     ecp_group_free( &ctx->grp );
-    mpi_free      ( &ctx->d   );
     ecp_point_free( &ctx->Q   );
     ecp_point_free( &ctx->Qp  );
-    mpi_free      ( &ctx->z   );
     ecp_point_free( &ctx->Vi  );
     ecp_point_free( &ctx->Vf  );
-    mpi_free      ( &ctx->_d  );
+    mpi_free( &ctx->d  );
+    mpi_free( &ctx->z  );
+    mpi_free( &ctx->_d );
 }
 
 /*
@@ -140,7 +144,7 @@ int ecdh_make_params( ecdh_context *ctx, size_t *olen,
         return( ret );
 
     *olen = grp_len + pt_len;
-    return 0;
+    return( 0 );
 }
 
 /*
@@ -162,7 +166,33 @@ int ecdh_read_params( ecdh_context *ctx,
                 != 0 )
         return( ret );
 
-    return 0;
+    return( 0 );
+}
+
+/*
+ * Get parameters from a keypair
+ */
+int ecdh_get_params( ecdh_context *ctx, const ecp_keypair *key,
+                     ecdh_side side )
+{
+    int ret;
+
+    if( ( ret = ecp_group_copy( &ctx->grp, &key->grp ) ) != 0 )
+        return( ret );
+
+    /* If it's not our key, just import the public part as Qp */
+    if( side == POLARSSL_ECDH_THEIRS )
+        return( ecp_copy( &ctx->Qp, &key->Q ) );
+
+    /* Our key: import public (as Q) and private parts */
+    if( side != POLARSSL_ECDH_OURS )
+        return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
+
+    if( ( ret = ecp_copy( &ctx->Q, &key->Q ) ) != 0 ||
+        ( ret = mpi_copy( &ctx->d, &key->d ) ) != 0 )
+        return( ret );
+
+    return( 0 );
 }
 
 /*
@@ -192,10 +222,19 @@ int ecdh_make_public( ecdh_context *ctx, size_t *olen,
 int ecdh_read_public( ecdh_context *ctx,
                       const unsigned char *buf, size_t blen )
 {
+    int ret;
+    const unsigned char *p = buf;
+
     if( ctx == NULL )
         return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
 
-    return ecp_tls_read_point( &ctx->grp, &ctx->Qp, &buf, blen );
+    if( ( ret = ecp_tls_read_point( &ctx->grp, &ctx->Qp, &p, blen ) ) != 0 )
+        return( ret );
+
+    if( (size_t)( p - buf ) != blen )
+        return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
+
+    return( 0 );
 }
 
 /*
@@ -220,7 +259,7 @@ int ecdh_calc_secret( ecdh_context *ctx, size_t *olen,
     if( mpi_size( &ctx->z ) > blen )
         return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
 
-    *olen = ctx->grp.nbits / 8 + ( ( ctx->grp.nbits % 8 ) != 0 );
+    *olen = ctx->grp.pbits / 8 + ( ( ctx->grp.pbits % 8 ) != 0 );
     return mpi_write_binary( &ctx->z, buf, *olen );
 }
 
@@ -232,9 +271,10 @@ int ecdh_calc_secret( ecdh_context *ctx, size_t *olen,
  */
 int ecdh_self_test( int verbose )
 {
-    return( verbose++ );
+    ((void) verbose );
+    return( 0 );
 }
 
-#endif
+#endif /* POLARSSL_SELF_TEST */
 
-#endif /* defined(POLARSSL_ECDH_C) */
+#endif /* POLARSSL_ECDH_C */

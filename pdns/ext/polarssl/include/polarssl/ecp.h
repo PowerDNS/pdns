@@ -39,6 +39,7 @@
 #define POLARSSL_ERR_ECP_MALLOC_FAILED                     -0x4D80  /**< Memory allocation failed. */
 #define POLARSSL_ERR_ECP_RANDOM_FAILED                     -0x4D00  /**< Generation of random value, such as (ephemeral) key, failed. */
 #define POLARSSL_ERR_ECP_INVALID_KEY                       -0x4C80  /**< Invalid private or public key. */
+#define POLARSSL_ERR_ECP_SIG_LEN_MISMATCH                  -0x4C00  /**< Signature is valid but shorter than the user-supplied length. */
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,12 +65,21 @@ typedef enum
     POLARSSL_ECP_DP_BP256R1,        /*!< 256-bits Brainpool curve */
     POLARSSL_ECP_DP_BP384R1,        /*!< 384-bits Brainpool curve */
     POLARSSL_ECP_DP_BP512R1,        /*!< 512-bits Brainpool curve */
+    POLARSSL_ECP_DP_M221,           /*!< (not implemented yet)    */
+    POLARSSL_ECP_DP_M255,           /*!< Curve25519               */
+    POLARSSL_ECP_DP_M383,           /*!< (not implemented yet)    */
+    POLARSSL_ECP_DP_M511,           /*!< (not implemented yet)    */
+    POLARSSL_ECP_DP_SECP192K1,      /*!< 192-bits "Koblitz" curve */
+    POLARSSL_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
+    POLARSSL_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
 } ecp_group_id;
 
 /**
- * Number of supported curves (plus one for NONE)
+ * Number of supported curves (plus one for NONE).
+ *
+ * (Montgomery curves excluded for now.)
  */
-#define POLARSSL_ECP_DP_MAX     9
+#define POLARSSL_ECP_DP_MAX     12
 
 /**
  * Curve information for use by other modules
@@ -102,10 +112,19 @@ ecp_point;
 /**
  * \brief           ECP group structure
  *
- * The curves we consider are defined by y^2 = x^3 + A x + B mod P,
- * and a generator for a large subgroup of order N is fixed.
+ * We consider two types of curves equations:
+ * 1. Short Weierstrass y^2 = x^3 + A x + B     mod P   (SEC1 + RFC 4492)
+ * 2. Montgomery,       y^2 = x^3 + A x^2 + x   mod P   (M255 + draft)
+ * In both cases, a generator G for a prime-order subgroup is fixed. In the
+ * short weierstrass, this subgroup is actually the whole curve, and its
+ * cardinal is denoted by N.
  *
- * pbits and nbits must be the size of P and N in bits.
+ * In the case of Short Weierstrass curves, our code requires that N is an odd
+ * prime. (Use odd in ecp_mul() and prime in ecdsa_sign() for blinding.)
+ *
+ * In the case of Montgomery curves, we don't store A but (A + 2) / 4 which is
+ * the quantity actually used in the formulas. Also, nbits is not the size of N
+ * but the required size for private keys.
  *
  * If modp is NULL, reduction modulo P is done using a generic algorithm.
  * Otherwise, it must point to a function that takes an mpi in the range
@@ -118,18 +137,18 @@ typedef struct
 {
     ecp_group_id id;    /*!<  internal group identifier                     */
     mpi P;              /*!<  prime modulus of the base field               */
-    mpi A;              /*!<  linear term in the equation                   */
-    mpi B;              /*!<  constant term in the equation                 */
-    ecp_point G;        /*!<  generator of the subgroup used                */
-    mpi N;              /*!<  the order of G                                */
+    mpi A;              /*!<  1. A in the equation, or 2. (A + 2) / 4       */
+    mpi B;              /*!<  1. B in the equation, or 2. unused            */
+    ecp_point G;        /*!<  generator of the (sub)group used              */
+    mpi N;              /*!<  1. the order of G, or 2. unused               */
     size_t pbits;       /*!<  number of bits in P                           */
-    size_t nbits;       /*!<  number of bits in N                           */
-    unsigned int h;     /*!<  cofactor (unused now: assume 1)               */
+    size_t nbits;       /*!<  number of bits in 1. P, or 2. private keys    */
+    unsigned int h;     /*!<  internal: 1 if the constants are static       */
     int (*modp)(mpi *); /*!<  function for fast reduction mod P             */
-    int (*t_pre)(ecp_point *, void *);  /*!< currently unused               */
-    int (*t_post)(ecp_point *, void *); /*!< currently unused               */
-    void *t_data;                       /*!< currently unused               */
-    ecp_point *T;       /*!<  pre-computed points for ecp_mul()             */
+    int (*t_pre)(ecp_point *, void *);  /*!< unused                         */
+    int (*t_post)(ecp_point *, void *); /*!< unused                         */
+    void *t_data;                       /*!< unused                         */
+    ecp_point *T;       /*!<  pre-computed points for ecp_mul_comb()        */
     size_t T_size;      /*!<  number for pre-computed points                */
 }
 ecp_group;
@@ -150,23 +169,63 @@ typedef struct
 ecp_keypair;
 
 /**
+ * \name SECTION: Module settings
+ *
+ * The configuration options you can set for this module are in this section.
+ * Either change them in config.h or define them on the compiler command line.
+ * \{
+ */
+
+#if !defined(POLARSSL_ECP_MAX_BITS)
+/**
  * Maximum size of the groups (that is, of N and P)
  */
-#define POLARSSL_ECP_MAX_BITS     521
+#define POLARSSL_ECP_MAX_BITS     521   /**< Maximum bit size of groups */
+#endif
+
 #define POLARSSL_ECP_MAX_BYTES    ( ( POLARSSL_ECP_MAX_BITS + 7 ) / 8 )
 #define POLARSSL_ECP_MAX_PT_LEN   ( 2 * POLARSSL_ECP_MAX_BYTES + 1 )
 
+#if !defined(POLARSSL_ECP_WINDOW_SIZE)
 /*
- * Maximum window size (actually, NAF width) used for point multipliation.
- * Default: 8.
- * Minimum value: 2. Maximum value: 8.
+ * Maximum "window" size used for point multiplication.
+ * Default: 6.
+ * Minimum value: 2. Maximum value: 7.
  *
  * Result is an array of at most ( 1 << ( POLARSSL_ECP_WINDOW_SIZE - 1 ) )
- * points used for point multiplication.
+ * points used for point multiplication. This value is directly tied to EC
+ * peak memory usage, so decreasing it by one should roughly cut memory usage
+ * by two (if large curves are in use).
  *
- * Reduction in size may reduce speed for big curves.
+ * Reduction in size may reduce speed, but larger curves are impacted first.
+ * Sample performances (in ECDHE handshakes/s, with FIXED_POINT_OPTIM = 1):
+ *      w-size:     6       5       4       3       2
+ *      521       145     141     135     120      97
+ *      384       214     209     198     177     146
+ *      256       320     320     303     262     226
+
+ *      224       475     475     453     398     342
+ *      192       640     640     633     587     476
  */
-#define POLARSSL_ECP_WINDOW_SIZE    8   /**< Maximum NAF width used. */
+#define POLARSSL_ECP_WINDOW_SIZE    6   /**< Maximum window size used */
+#endif /* POLARSSL_ECP_WINDOW_SIZE */
+
+#if !defined(POLARSSL_ECP_FIXED_POINT_OPTIM)
+/*
+ * Trade memory for speed on fixed-point multiplication.
+ *
+ * This speeds up repeated multiplication of the generator (that is, the
+ * multiplication in ECDSA signatures, and half of the multiplications in
+ * ECDSA verification and ECDHE) by a factor roughly 3 to 4.
+ *
+ * The cost is increasing EC peak memory usage by a factor roughly 2.
+ *
+ * Change this value to 0 to reduce peak memory usage.
+ */
+#define POLARSSL_ECP_FIXED_POINT_OPTIM  1   /**< Enable fixed-point speed-up */
+#endif /* POLARSSL_ECP_FIXED_POINT_OPTIM */
+
+/* \} name SECTION: Module settings */
 
 /*
  * Point formats, from RFC 4492's enum ECPointFormat
@@ -180,11 +239,21 @@ ecp_keypair;
 #define POLARSSL_ECP_TLS_NAMED_CURVE    3   /**< ECCurveType's named_curve */
 
 /**
- * \brief           Return the list of supported curves with associated info
+ * \brief           Get the list of supported curves in order of preferrence
+ *                  (full information)
  *
  * \return          A statically allocated array, the last entry is 0.
  */
 const ecp_curve_info *ecp_curve_list( void );
+
+/**
+ * \brief           Get the list of supported curves in order of preferrence
+ *                  (grp_id only)
+ *
+ * \return          A statically allocated array,
+ *                  terminated with POLARSSL_ECP_DP_NONE.
+ */
+const ecp_group_id *ecp_grp_id_list( void );
 
 /**
  * \brief           Get curve information from an internal group identifier
@@ -198,11 +267,20 @@ const ecp_curve_info *ecp_curve_info_from_grp_id( ecp_group_id grp_id );
 /**
  * \brief           Get curve information from a TLS NamedCurve value
  *
- * \param grp_id    A POLARSSL_ECP_DP_XXX value
+ * \param tls_id    A POLARSSL_ECP_DP_XXX value
  *
  * \return          The associated curve information or NULL
  */
 const ecp_curve_info *ecp_curve_info_from_tls_id( uint16_t tls_id );
+
+/**
+ * \brief           Get curve information from a human-readable name
+ *
+ * \param name      The name
+ *
+ * \return          The associated curve information or NULL
+ */
+const ecp_curve_info *ecp_curve_info_from_name( const char *name );
 
 /**
  * \brief           Initialize a point (as zero)
@@ -315,8 +393,10 @@ int ecp_point_write_binary( const ecp_group *grp, const ecp_point *P,
  * \param ilen      Actual length of input
  *
  * \return          0 if successful,
- *                  POLARSSL_ERR_ECP_BAD_INPUT_DATA if input is invalid
- *                  POLARSSL_ERR_MPI_MALLOC_FAILED if memory allocation failed
+ *                  POLARSSL_ERR_ECP_BAD_INPUT_DATA if input is invalid,
+ *                  POLARSSL_ERR_MPI_MALLOC_FAILED if memory allocation failed,
+ *                  POLARSSL_ERR_ECP_FEATURE_UNAVAILABLE if the point format
+ *                  is not implemented.
  *
  * \note            This function does NOT check that the point actually
  *                  belongs to the given group, see ecp_check_pubkey() for
@@ -429,6 +509,9 @@ int ecp_tls_write_group( const ecp_group *grp, size_t *olen,
  *
  * \return          0 if successful,
  *                  POLARSSL_ERR_MPI_MALLOC_FAILED if memory allocation failed
+ *
+ * \note            This function does not support Montgomery curves, such as
+ *                  Curve25519.
  */
 int ecp_add( const ecp_group *grp, ecp_point *R,
              const ecp_point *P, const ecp_point *Q );
@@ -443,6 +526,9 @@ int ecp_add( const ecp_group *grp, ecp_point *R,
  *
  * \return          0 if successful,
  *                  POLARSSL_ERR_MPI_MALLOC_FAILED if memory allocation failed
+ *
+ * \note            This function does not support Montgomery curves, such as
+ *                  Curve25519.
  */
 int ecp_sub( const ecp_group *grp, ecp_point *R,
              const ecp_point *P, const ecp_point *Q );
@@ -459,27 +545,23 @@ int ecp_sub( const ecp_group *grp, ecp_point *R,
  * \param p_rng     RNG parameter
  *
  * \return          0 if successful,
+ *                  POLARSSL_ERR_ECP_INVALID_KEY if m is not a valid privkey
+ *                  or P is not a valid pubkey,
  *                  POLARSSL_ERR_MPI_MALLOC_FAILED if memory allocation failed
- *                  POLARSSL_ERR_ECP_BAD_INPUT_DATA if m < 0 of m has greater
- *                  bit length than N, the number of points in the group.
  *
- * \note            In order to prevent simple timing attacks, this function
- *                  executes a constant number of operations (that is, point
- *                  doubling and addition of distinct points) for random m in
- *                  the allowed range.
+ * \note            In order to prevent timing attacks, this function
+ *                  executes the exact same sequence of (base field)
+ *                  operations for any valid m. It avoids any if-branch or
+ *                  array index depending on the value of m.
  *
- * \note            If f_rng is not NULL, it is used to randomize projective
- *                  coordinates of indermediate results, in order to prevent
- *                  more elaborate timing attacks relying on intermediate
- *                  operations. (This is a prophylactic measure since no such
- *                  attack has been published yet.) Since this contermeasure
- *                  has very low overhead, it is recommended to always provide
- *                  a non-NULL f_rng parameter when using secret inputs.
+ * \note            If f_rng is not NULL, it is used to randomize intermediate
+ *                  results in order to prevent potential timing attacks
+ *                  targeting these results. It is recommended to always
+ *                  provide a non-NULL f_rng (the overhead is negligible).
  */
 int ecp_mul( ecp_group *grp, ecp_point *R,
              const mpi *m, const ecp_point *P,
              int (*f_rng)(void *, unsigned char *, size_t), void *p_rng );
-
 
 /**
  * \brief           Check that a point is a valid public key on this curve
@@ -540,14 +622,30 @@ int ecp_gen_keypair( ecp_group *grp, mpi *d, ecp_point *Q,
                      void *p_rng );
 
 /**
+ * \brief           Generate a keypair
+ *
+ * \param grp_id    ECP group identifier
+ * \param key       Destination keypair
+ * \param f_rng     RNG function
+ * \param p_rng     RNG parameter
+ *
+ * \return          0 if successful,
+ *                  or a POLARSSL_ERR_ECP_XXX or POLARSSL_MPI_XXX error code
+ */
+int ecp_gen_key( ecp_group_id grp_id, ecp_keypair *key,
+                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng );
+
+#if defined(POLARSSL_SELF_TEST)
+/**
  * \brief          Checkup routine
  *
- * \return         0 if successful, or 1 if the test failed
+ * \return         0 if successful, or 1 if a test failed
  */
 int ecp_self_test( int verbose );
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* ecp.h */

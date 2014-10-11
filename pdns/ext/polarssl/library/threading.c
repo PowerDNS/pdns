@@ -1,7 +1,7 @@
 /*
  *  Threading abstraction layer
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2014, Brainspark B.V.
  *
  *  This file is part of PolarSSL (http://www.polarssl.org)
  *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
@@ -23,42 +23,15 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#if !defined(POLARSSL_CONFIG_FILE)
 #include "polarssl/config.h"
+#else
+#include POLARSSL_CONFIG_FILE
+#endif
 
 #if defined(POLARSSL_THREADING_C)
 
 #include "polarssl/threading.h"
-
-#if defined(POLARSSL_THREADING_DUMMY)
-static int threading_mutex_init_dummy( threading_mutex_t *mutex )
-{
-    ((void) mutex );
-    return( 0 );
-}
-
-static int threading_mutex_free_dummy( threading_mutex_t *mutex )
-{
-    ((void) mutex );
-    return( 0 );
-}
-
-static int threading_mutex_lock_dummy( threading_mutex_t *mutex )
-{
-    ((void) mutex );
-    return( 0 );
-}
-
-static int threading_mutex_unlock_dummy( threading_mutex_t *mutex )
-{
-    ((void) mutex );
-    return( 0 );
-}
-
-int (*polarssl_mutex_init)( threading_mutex_t * ) = threading_mutex_init_dummy;
-int (*polarssl_mutex_free)( threading_mutex_t * ) = threading_mutex_free_dummy;
-int (*polarssl_mutex_lock)( threading_mutex_t * ) = threading_mutex_lock_dummy;
-int (*polarssl_mutex_unlock)( threading_mutex_t * ) = threading_mutex_unlock_dummy;
-#endif /* POLARSSL_THREADING_DUMMY */
 
 #if defined(POLARSSL_THREADING_PTHREAD)
 static int threading_mutex_init_pthread( threading_mutex_t *mutex )
@@ -112,10 +85,16 @@ int (*polarssl_mutex_unlock)( threading_mutex_t * ) = threading_mutex_unlock_pth
 #endif /* POLARSSL_THREADING_PTHREAD */
 
 #if defined(POLARSSL_THREADING_ALT)
-int (*polarssl_mutex_init)( threading_mutex_t * ) = NULL;
-int (*polarssl_mutex_free)( threading_mutex_t * ) = NULL;
-int (*polarssl_mutex_lock)( threading_mutex_t * ) = NULL;
-int (*polarssl_mutex_unlock)( threading_mutex_t * ) = NULL;
+static int threading_mutex_fail( threading_mutex_t *mutex )
+{
+    ((void) mutex );
+    return( POLARSSL_ERR_THREADING_BAD_INPUT_DATA );
+}
+
+int (*polarssl_mutex_init)( threading_mutex_t * ) = threading_mutex_fail;
+int (*polarssl_mutex_free)( threading_mutex_t * ) = threading_mutex_fail;
+int (*polarssl_mutex_lock)( threading_mutex_t * ) = threading_mutex_fail;
+int (*polarssl_mutex_unlock)( threading_mutex_t * ) = threading_mutex_fail;
 
 int threading_set_alt( int (*mutex_init)( threading_mutex_t * ),
                        int (*mutex_free)( threading_mutex_t * ),
