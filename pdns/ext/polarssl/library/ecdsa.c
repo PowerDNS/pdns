@@ -1,7 +1,7 @@
 /*
  *  Elliptic curve DSA
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2014, Brainspark B.V.
  *
  *  This file is part of PolarSSL (http://www.polarssl.org)
  *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
@@ -29,12 +29,48 @@
  * SEC1 http://www.secg.org/index.php?action=secg,docs_secg
  */
 
+#if !defined(POLARSSL_CONFIG_FILE)
 #include "polarssl/config.h"
+#else
+#include POLARSSL_CONFIG_FILE
+#endif
 
 #if defined(POLARSSL_ECDSA_C)
 
 #include "polarssl/ecdsa.h"
 #include "polarssl/asn1write.h"
+
+#if defined(POLARSSL_ECDSA_DETERMINISTIC)
+#include "polarssl/hmac_drbg.h"
+#endif
+
+#if defined(POLARSSL_ECDSA_DETERMINISTIC)
+/*
+ * This a hopefully temporary compatibility function.
+ *
+ * Since we can't ensure the caller will pass a valid md_alg before the next
+ * interface change, try to pick up a decent md by size.
+ *
+ * Argument is the minimum size in bytes of the MD output.
+ */
+static const md_info_t *md_info_by_size( size_t min_size )
+{
+    const md_info_t *md_cur, *md_picked = NULL;
+    const int *md_alg;
+
+    for( md_alg = md_list(); *md_alg != 0; md_alg++ )
+    {
+        if( ( md_cur = md_info_from_type( *md_alg ) ) == NULL ||
+            (size_t) md_cur->size < min_size ||
+            ( md_picked != NULL && md_cur->size > md_picked->size ) )
+            continue;
+
+        md_picked = md_cur;
+    }
+
+    return( md_picked );
+}
+#endif /* POLARSSL_ECDSA_DETERMINISTIC */
 
 /*
  * Derive a suitable integer for group grp from a buffer of length len
@@ -43,8 +79,20 @@
 static int derive_mpi( const ecp_group *grp, mpi *x,
                        const unsigned char *buf, size_t blen )
 {
-    size_t n_size = (grp->nbits + 7) / 8;
-    return( mpi_read_binary( x, buf, blen > n_size ? n_size : blen ) );
+    int ret;
+    size_t n_size = ( grp->nbits + 7 ) / 8;
+    size_t use_size = blen > n_size ? n_size : blen;
+
+    MPI_CHK( mpi_read_binary( x, buf, use_size ) );
+    if( use_size * 8 > grp->nbits )
+        MPI_CHK( mpi_shift_r( x, use_size * 8 - grp->nbits ) );
+
+    /* While at it, reduce modulo N */
+    if( mpi_cmp_mpi( x, &grp->N ) >= 0 )
+        MPI_CHK( mpi_sub_mpi( x, x, &grp->N ) );
+
+cleanup:
+    return( ret );
 }
 
 /*
@@ -55,13 +103,16 @@ int ecdsa_sign( ecp_group *grp, mpi *r, mpi *s,
                 const mpi *d, const unsigned char *buf, size_t blen,
                 int (*f_rng)(void *, unsigned char *, size_t), void *p_rng )
 {
-    int ret, key_tries, sign_tries;
+    int ret, key_tries, sign_tries, blind_tries;
     ecp_point R;
-    mpi k, e;
+    mpi k, e, t;
+
+    /* Fail cleanly on curves such as Curve25519 that can't be used for ECDSA */
+    if( grp->N.p == NULL )
+        return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
 
     ecp_point_init( &R );
-    mpi_init( &k );
-    mpi_init( &e );
+    mpi_init( &k ); mpi_init( &e ); mpi_init( &t );
 
     sign_tries = 0;
     do
@@ -90,10 +141,30 @@ int ecdsa_sign( ecp_group *grp, mpi *r, mpi *s,
         MPI_CHK( derive_mpi( grp, &e, buf, blen ) );
 
         /*
-         * Step 6: compute s = (e + r * d) / k mod n
+         * Generate a random value to blind inv_mod in next step,
+         * avoiding a potential timing leak.
+         */
+        blind_tries = 0;
+        do
+        {
+            size_t n_size = ( grp->nbits + 7 ) / 8;
+            MPI_CHK( mpi_fill_random( &t, n_size, f_rng, p_rng ) );
+            MPI_CHK( mpi_shift_r( &t, 8 * n_size - grp->nbits ) );
+
+            /* See ecp_gen_keypair() */
+            if( ++blind_tries > 30 )
+                return( POLARSSL_ERR_ECP_RANDOM_FAILED );
+        }
+        while( mpi_cmp_int( &t, 1 ) < 0 ||
+               mpi_cmp_mpi( &t, &grp->N ) >= 0 );
+
+        /*
+         * Step 6: compute s = (e + r * d) / k = t (e + rd) / (kt) mod n
          */
         MPI_CHK( mpi_mul_mpi( s, r, d ) );
         MPI_CHK( mpi_add_mpi( &e, &e, s ) );
+        MPI_CHK( mpi_mul_mpi( &e, &e, &t ) );
+        MPI_CHK( mpi_mul_mpi( &k, &k, &t ) );
         MPI_CHK( mpi_inv_mod( s, &k, &grp->N ) );
         MPI_CHK( mpi_mul_mpi( s, s, &e ) );
         MPI_CHK( mpi_mod_mpi( s, s, &grp->N ) );
@@ -108,11 +179,54 @@ int ecdsa_sign( ecp_group *grp, mpi *r, mpi *s,
 
 cleanup:
     ecp_point_free( &R );
-    mpi_free( &k );
-    mpi_free( &e );
+    mpi_free( &k ); mpi_free( &e ); mpi_free( &t );
 
     return( ret );
 }
+
+#if defined(POLARSSL_ECDSA_DETERMINISTIC)
+/*
+ * Deterministic signature wrapper
+ */
+int ecdsa_sign_det( ecp_group *grp, mpi *r, mpi *s,
+                    const mpi *d, const unsigned char *buf, size_t blen,
+                    md_type_t md_alg )
+{
+    int ret;
+    hmac_drbg_context rng_ctx;
+    unsigned char data[2 * POLARSSL_ECP_MAX_BYTES];
+    size_t grp_len = ( grp->nbits + 7 ) / 8;
+    const md_info_t *md_info;
+    mpi h;
+
+    /* Temporary fallback */
+    if( md_alg == POLARSSL_MD_NONE )
+        md_info = md_info_by_size( blen );
+    else
+        md_info = md_info_from_type( md_alg );
+
+    if( md_info == NULL )
+        return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
+
+    mpi_init( &h );
+    memset( &rng_ctx, 0, sizeof( hmac_drbg_context ) );
+
+    /* Use private key and message hash (reduced) to initialize HMAC_DRBG */
+    MPI_CHK( mpi_write_binary( d, data, grp_len ) );
+    MPI_CHK( derive_mpi( grp, &h, buf, blen ) );
+    MPI_CHK( mpi_write_binary( &h, data + grp_len, grp_len ) );
+    hmac_drbg_init_buf( &rng_ctx, md_info, data, 2 * grp_len );
+
+    ret = ecdsa_sign( grp, r, s, d, buf, blen,
+                      hmac_drbg_random, &rng_ctx );
+
+cleanup:
+    hmac_drbg_free( &rng_ctx );
+    mpi_free( &h );
+
+    return( ret );
+}
+#endif /* POLARSSL_ECDSA_DETERMINISTIC */
 
 /*
  * Verify ECDSA signature of hashed message (SEC1 4.1.4)
@@ -128,6 +242,10 @@ int ecdsa_verify( ecp_group *grp,
 
     ecp_point_init( &R ); ecp_point_init( &P );
     mpi_init( &e ); mpi_init( &s_inv ); mpi_init( &u1 ); mpi_init( &u2 );
+
+    /* Fail cleanly on curves such as Curve25519 that can't be used for ECDSA */
+    if( grp->N.p == NULL )
+        return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
 
     /*
      * Step 1: make sure r and s are in range 1..n-1
@@ -218,24 +336,15 @@ cleanup:
 #define MAX_SIG_LEN ( 3 + 2 * ( 2 + POLARSSL_ECP_MAX_BYTES ) )
 
 /*
- * Compute and write signature
+ * Convert a signature (given by context) to ASN.1
  */
-int ecdsa_write_signature( ecdsa_context *ctx,
-                           const unsigned char *hash, size_t hlen,
-                           unsigned char *sig, size_t *slen,
-                           int (*f_rng)(void *, unsigned char *, size_t),
-                           void *p_rng )
+static int ecdsa_signature_to_asn1( ecdsa_context *ctx,
+                                    unsigned char *sig, size_t *slen )
 {
     int ret;
     unsigned char buf[MAX_SIG_LEN];
     unsigned char *p = buf + sizeof( buf );
     size_t len = 0;
-
-    if( ( ret = ecdsa_sign( &ctx->grp, &ctx->r, &ctx->s, &ctx->d,
-                            hash, hlen, f_rng, p_rng ) ) != 0 )
-    {
-        return( ret );
-    }
 
     ASN1_CHK_ADD( len, asn1_write_mpi( &p, buf, &ctx->s ) );
     ASN1_CHK_ADD( len, asn1_write_mpi( &p, buf, &ctx->r ) );
@@ -249,6 +358,47 @@ int ecdsa_write_signature( ecdsa_context *ctx,
 
     return( 0 );
 }
+
+/*
+ * Compute and write signature
+ */
+int ecdsa_write_signature( ecdsa_context *ctx,
+                           const unsigned char *hash, size_t hlen,
+                           unsigned char *sig, size_t *slen,
+                           int (*f_rng)(void *, unsigned char *, size_t),
+                           void *p_rng )
+{
+    int ret;
+
+    if( ( ret = ecdsa_sign( &ctx->grp, &ctx->r, &ctx->s, &ctx->d,
+                            hash, hlen, f_rng, p_rng ) ) != 0 )
+    {
+        return( ret );
+    }
+
+    return( ecdsa_signature_to_asn1( ctx, sig, slen ) );
+}
+
+#if defined(POLARSSL_ECDSA_DETERMINISTIC)
+/*
+ * Compute and write signature deterministically
+ */
+int ecdsa_write_signature_det( ecdsa_context *ctx,
+                               const unsigned char *hash, size_t hlen,
+                               unsigned char *sig, size_t *slen,
+                               md_type_t md_alg )
+{
+    int ret;
+
+    if( ( ret = ecdsa_sign_det( &ctx->grp, &ctx->r, &ctx->s, &ctx->d,
+                                hash, hlen, md_alg ) ) != 0 )
+    {
+        return( ret );
+    }
+
+    return( ecdsa_signature_to_asn1( ctx, sig, slen ) );
+}
+#endif /* POLARSSL_ECDSA_DETERMINISTIC */
 
 /*
  * Read and check signature
@@ -276,11 +426,14 @@ int ecdsa_read_signature( ecdsa_context *ctx,
         ( ret = asn1_get_mpi( &p, end, &ctx->s ) ) != 0 )
         return( POLARSSL_ERR_ECP_BAD_INPUT_DATA + ret );
 
-    if( p != end )
-        return( POLARSSL_ERR_ECP_BAD_INPUT_DATA +
-                POLARSSL_ERR_ASN1_LENGTH_MISMATCH );
+    if( ( ret = ecdsa_verify( &ctx->grp, hash, hlen,
+                              &ctx->Q, &ctx->r, &ctx->s ) ) != 0 )
+        return( ret );
 
-    return( ecdsa_verify( &ctx->grp, hash, hlen, &ctx->Q, &ctx->r, &ctx->s ) );
+    if( p != end )
+        return( POLARSSL_ERR_ECP_SIG_LEN_MISMATCH );
+
+    return( 0 );
 }
 
 /*
@@ -341,9 +494,10 @@ void ecdsa_free( ecdsa_context *ctx )
  */
 int ecdsa_self_test( int verbose )
 {
-    return( verbose++ );
+    ((void) verbose );
+    return( 0 );
 }
 
-#endif
+#endif /* POLARSSL_SELF_TEST */
 
-#endif /* defined(POLARSSL_ECDSA_C) */
+#endif /* POLARSSL_ECDSA_C */

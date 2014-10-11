@@ -1,7 +1,7 @@
 /*
  *  NIST SP800-38D compliant GCM implementation
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2014, Brainspark B.V.
  *
  *  This file is part of PolarSSL (http://www.polarssl.org)
  *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
@@ -22,14 +22,36 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 /*
- *  http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf
+ * http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf
+ *
+ * See also:
+ * [MGV] http://csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf
+ *
+ * We use the algorithm described as Shoup's method with 4-bit tables in
+ * [MGV] 4.1, pp. 12-13, to enhance speed without using too much memory.
  */
+
+#if !defined(POLARSSL_CONFIG_FILE)
 #include "polarssl/config.h"
+#else
+#include POLARSSL_CONFIG_FILE
+#endif
 
 #if defined(POLARSSL_GCM_C)
 
 #include "polarssl/gcm.h"
+
+#if defined(POLARSSL_AESNI_C)
+#include "polarssl/aesni.h"
+#endif
+
+#if defined(POLARSSL_PLATFORM_C)
+#include "polarssl/platform.h"
+#else
+#define polarssl_printf printf
+#endif
 
 /*
  * 32-bit integer manipulation macros (big endian)
@@ -54,6 +76,19 @@
 }
 #endif
 
+/* Implementation that should never be optimized out by the compiler */
+static void polarssl_zeroize( void *v, size_t n ) {
+    volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+}
+
+/*
+ * Precompute small multiples of H, that is set
+ *      HH[i] || HL[i] = H times i,
+ * where i is seen as a field element as in [MGV], ie high-order bits
+ * correspond to low powers of P. The result is stored in the same way, that
+ * is the high-order bit of HH corresponds to P^0 and the low-order bit of HL
+ * corresponds to P^127.
+ */
 static int gcm_gen_table( gcm_context *ctx )
 {
     int ret, i, j;
@@ -66,9 +101,7 @@ static int gcm_gen_table( gcm_context *ctx )
     if( ( ret = cipher_update( &ctx->cipher_ctx, h, 16, h, &olen ) ) != 0 )
         return( ret );
 
-    ctx->HH[0] = 0;
-    ctx->HL[0] = 0;
-
+    /* pack h as two 64-bits ints, big-endian */
     GET_UINT32_BE( hi, h,  0  );
     GET_UINT32_BE( lo, h,  4  );
     vh = (uint64_t) hi << 32 | lo;
@@ -77,8 +110,19 @@ static int gcm_gen_table( gcm_context *ctx )
     GET_UINT32_BE( lo, h,  12 );
     vl = (uint64_t) hi << 32 | lo;
 
+    /* 8 = 1000 corresponds to 1 in GF(2^128) */
     ctx->HL[8] = vl;
     ctx->HH[8] = vh;
+
+#if defined(POLARSSL_AESNI_C) && defined(POLARSSL_HAVE_X86_64)
+    /* With CLMUL support, we need only h, not the rest of the table */
+    if( aesni_supports( POLARSSL_AESNI_CLMUL ) )
+        return( 0 );
+#endif
+
+    /* 0 corresponds to 0 in GF(2^128) */
+    ctx->HH[0] = 0;
+    ctx->HL[0] = 0;
 
     for( i = 4; i > 0; i >>= 1 )
     {
@@ -90,7 +134,7 @@ static int gcm_gen_table( gcm_context *ctx )
         ctx->HH[i] = vh;
     }
 
-    for (i = 2; i < 16; i <<= 1 )
+    for( i = 2; i < 16; i <<= 1 )
     {
         uint64_t *HiL = ctx->HL + i, *HiH = ctx->HH + i;
         vh = *HiH;
@@ -112,6 +156,8 @@ int gcm_init( gcm_context *ctx, cipher_id_t cipher, const unsigned char *key,
     const cipher_info_t *cipher_info;
 
     memset( ctx, 0, sizeof(gcm_context) );
+
+    cipher_init( &ctx->cipher_ctx );
 
     cipher_info = cipher_info_from_values( cipher, keysize, POLARSSL_MODE_ECB );
     if( cipher_info == NULL )
@@ -135,6 +181,11 @@ int gcm_init( gcm_context *ctx, cipher_id_t cipher, const unsigned char *key,
     return( 0 );
 }
 
+/*
+ * Shoup's method for multiplication use this table with
+ *      last4[x] = x times P^128
+ * where x and last4[x] are seen as elements of GF(2^128) as in [MGV]
+ */
 static const uint64_t last4[16] =
 {
     0x0000, 0x1c20, 0x3840, 0x2460,
@@ -143,15 +194,30 @@ static const uint64_t last4[16] =
     0x9180, 0x8da0, 0xa9c0, 0xb5e0
 };
 
+/*
+ * Sets output to x times H using the precomputed tables.
+ * x and output are seen as elements of GF(2^128) as in [MGV].
+ */
 static void gcm_mult( gcm_context *ctx, const unsigned char x[16],
                       unsigned char output[16] )
 {
     int i = 0;
-    unsigned char z[16];
     unsigned char lo, hi, rem;
     uint64_t zh, zl;
 
-    memset( z, 0x00, 16 );
+#if defined(POLARSSL_AESNI_C) && defined(POLARSSL_HAVE_X86_64)
+    if( aesni_supports( POLARSSL_AESNI_CLMUL ) ) {
+        unsigned char h[16];
+
+        PUT_UINT32_BE( ctx->HH[8] >> 32, h,  0 );
+        PUT_UINT32_BE( ctx->HH[8],       h,  4 );
+        PUT_UINT32_BE( ctx->HL[8] >> 32, h,  8 );
+        PUT_UINT32_BE( ctx->HL[8],       h, 12 );
+
+        aesni_gcm_mult( output, x, h );
+        return;
+    }
+#endif /* POLARSSL_AESNI_C && POLARSSL_HAVE_X86_64 */
 
     lo = x[15] & 0xf;
     hi = x[15] >> 4;
@@ -201,6 +267,13 @@ int gcm_starts( gcm_context *ctx,
     size_t i;
     const unsigned char *p;
     size_t use_len, olen = 0;
+
+    /* IV and AD are limited to 2^64 bits, so 2^61 bytes */
+    if( ( (uint64_t) iv_len  ) >> 61 != 0 ||
+        ( (uint64_t) add_len ) >> 61 != 0 )
+    {
+        return( POLARSSL_ERR_GCM_BAD_INPUT );
+    }
 
     memset( ctx->y, 0x00, sizeof(ctx->y) );
     memset( ctx->buf, 0x00, sizeof(ctx->buf) );
@@ -278,6 +351,14 @@ int gcm_update( gcm_context *ctx,
     if( output > input && (size_t) ( output - input ) < length )
         return( POLARSSL_ERR_GCM_BAD_INPUT );
 
+    /* Total length is restricted to 2^39 - 256 bits, ie 2^36 - 2^5 bytes
+     * Also check for possible overflow */
+    if( ctx->len + length < ctx->len ||
+        (uint64_t) ctx->len + length > 0x03FFFFE0llu )
+    {
+        return( POLARSSL_ERR_GCM_BAD_INPUT );
+    }
+
     ctx->len += length;
 
     p = input;
@@ -323,7 +404,7 @@ int gcm_finish( gcm_context *ctx,
     uint64_t orig_len = ctx->len * 8;
     uint64_t orig_add_len = ctx->add_len * 8;
 
-    if( tag_len > 16 )
+    if( tag_len > 16 || tag_len < 4 )
         return( POLARSSL_ERR_GCM_BAD_INPUT );
 
     if( tag_len != 0 )
@@ -387,11 +468,17 @@ int gcm_auth_decrypt( gcm_context *ctx,
                       const unsigned char *input,
                       unsigned char *output )
 {
+    int ret;
     unsigned char check_tag[16];
     size_t i;
     int diff;
 
-    gcm_crypt_and_tag( ctx, GCM_DECRYPT, length, iv, iv_len, add, add_len, input, output, tag_len, check_tag );
+    if( ( ret = gcm_crypt_and_tag( ctx, GCM_DECRYPT, length,
+                                   iv, iv_len, add, add_len,
+                                   input, output, tag_len, check_tag ) ) != 0 )
+    {
+        return( ret );
+    }
 
     /* Check tag in "constant-time" */
     for( diff = 0, i = 0; i < tag_len; i++ )
@@ -399,7 +486,7 @@ int gcm_auth_decrypt( gcm_context *ctx,
 
     if( diff != 0 )
     {
-        memset( output, 0, length );
+        polarssl_zeroize( output, length );
         return( POLARSSL_ERR_GCM_AUTH_FAILED );
     }
 
@@ -408,8 +495,8 @@ int gcm_auth_decrypt( gcm_context *ctx,
 
 void gcm_free( gcm_context *ctx )
 {
-    (void) cipher_free_ctx( &ctx->cipher_ctx );
-    memset( ctx, 0, sizeof( gcm_context ) );
+    cipher_free( &ctx->cipher_ctx );
+    polarssl_zeroize( ctx, sizeof( gcm_context ) );
 }
 
 #if defined(POLARSSL_SELF_TEST) && defined(POLARSSL_AES_C)
@@ -658,7 +745,8 @@ int gcm_self_test( int verbose )
         for( i = 0; i < MAX_TESTS; i++ )
         {
             if( verbose != 0 )
-                printf( "  AES-GCM-%3d #%d (%s): ", key_len, i, "enc" );
+                polarssl_printf( "  AES-GCM-%3d #%d (%s): ",
+                                 key_len, i, "enc" );
 
             gcm_init( &ctx, cipher, key[key_index[i]], key_len );
 
@@ -673,7 +761,7 @@ int gcm_self_test( int verbose )
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    printf( "failed\n" );
+                    polarssl_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -681,10 +769,11 @@ int gcm_self_test( int verbose )
             gcm_free( &ctx );
 
             if( verbose != 0 )
-                printf( "passed\n" );
+                polarssl_printf( "passed\n" );
 
             if( verbose != 0 )
-                printf( "  AES-GCM-%3d #%d (%s): ", key_len, i, "dec" );
+                polarssl_printf( "  AES-GCM-%3d #%d (%s): ",
+                                 key_len, i, "dec" );
 
             gcm_init( &ctx, cipher, key[key_index[i]], key_len );
 
@@ -699,7 +788,7 @@ int gcm_self_test( int verbose )
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    printf( "failed\n" );
+                    polarssl_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -707,10 +796,11 @@ int gcm_self_test( int verbose )
             gcm_free( &ctx );
 
             if( verbose != 0 )
-                printf( "passed\n" );
+                polarssl_printf( "passed\n" );
 
             if( verbose != 0 )
-                printf( "  AES-GCM-%3d #%d split (%s): ", key_len, i, "enc" );
+                polarssl_printf( "  AES-GCM-%3d #%d split (%s): ",
+                                 key_len, i, "enc" );
 
             gcm_init( &ctx, cipher, key[key_index[i]], key_len );
 
@@ -720,7 +810,7 @@ int gcm_self_test( int verbose )
             if( ret != 0 )
             {
                 if( verbose != 0 )
-                    printf( "failed\n" );
+                    polarssl_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -732,16 +822,17 @@ int gcm_self_test( int verbose )
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        printf( "failed\n" );
+                        polarssl_printf( "failed\n" );
 
                     return( 1 );
                 }
 
-                ret = gcm_update( &ctx, rest_len, pt[pt_index[i]] + 32, buf + 32 );
+                ret = gcm_update( &ctx, rest_len, pt[pt_index[i]] + 32,
+                                  buf + 32 );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        printf( "failed\n" );
+                        polarssl_printf( "failed\n" );
 
                     return( 1 );
                 }
@@ -752,7 +843,7 @@ int gcm_self_test( int verbose )
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        printf( "failed\n" );
+                        polarssl_printf( "failed\n" );
 
                     return( 1 );
                 }
@@ -764,7 +855,7 @@ int gcm_self_test( int verbose )
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    printf( "failed\n" );
+                    polarssl_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -772,10 +863,11 @@ int gcm_self_test( int verbose )
             gcm_free( &ctx );
 
             if( verbose != 0 )
-                printf( "passed\n" );
+                polarssl_printf( "passed\n" );
 
             if( verbose != 0 )
-                printf( "  AES-GCM-%3d #%d split (%s): ", key_len, i, "dec" );
+                polarssl_printf( "  AES-GCM-%3d #%d split (%s): ",
+                                 key_len, i, "dec" );
 
             gcm_init( &ctx, cipher, key[key_index[i]], key_len );
 
@@ -785,7 +877,7 @@ int gcm_self_test( int verbose )
             if( ret != 0 )
             {
                 if( verbose != 0 )
-                    printf( "failed\n" );
+                    polarssl_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -797,16 +889,17 @@ int gcm_self_test( int verbose )
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        printf( "failed\n" );
+                        polarssl_printf( "failed\n" );
 
                     return( 1 );
                 }
 
-                ret = gcm_update( &ctx, rest_len, ct[j * 6 + i] + 32, buf + 32 );
+                ret = gcm_update( &ctx, rest_len, ct[j * 6 + i] + 32,
+                                  buf + 32 );
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        printf( "failed\n" );
+                        polarssl_printf( "failed\n" );
 
                     return( 1 );
                 }
@@ -817,7 +910,7 @@ int gcm_self_test( int verbose )
                 if( ret != 0 )
                 {
                     if( verbose != 0 )
-                        printf( "failed\n" );
+                        polarssl_printf( "failed\n" );
 
                     return( 1 );
                 }
@@ -829,7 +922,7 @@ int gcm_self_test( int verbose )
                 memcmp( tag_buf, tag[j * 6 + i], 16 ) != 0 )
             {
                 if( verbose != 0 )
-                    printf( "failed\n" );
+                    polarssl_printf( "failed\n" );
 
                 return( 1 );
             }
@@ -837,13 +930,13 @@ int gcm_self_test( int verbose )
             gcm_free( &ctx );
 
             if( verbose != 0 )
-                printf( "passed\n" );
+                polarssl_printf( "passed\n" );
 
         }
     }
 
     if( verbose != 0 )
-        printf( "\n" );
+        polarssl_printf( "\n" );
 
     return( 0 );
 }
@@ -852,4 +945,4 @@ int gcm_self_test( int verbose )
 
 #endif /* POLARSSL_SELF_TEST && POLARSSL_AES_C */
 
-#endif
+#endif /* POLARSSL_GCM_C */

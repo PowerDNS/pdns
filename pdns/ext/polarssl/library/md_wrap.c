@@ -5,7 +5,7 @@
  *
  * \author Adriaan de Jong <dejong@fox-it.com>
  *
- *  Copyright (C) 2006-2013, Brainspark B.V.
+ *  Copyright (C) 2006-2014, Brainspark B.V.
  *
  *  This file is part of PolarSSL (http://www.polarssl.org)
  *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
@@ -27,7 +27,11 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#if !defined(POLARSSL_CONFIG_FILE)
 #include "polarssl/config.h"
+#else
+#include POLARSSL_CONFIG_FILE
+#endif
 
 #if defined(POLARSSL_MD_C)
 
@@ -45,6 +49,10 @@
 #include "polarssl/md5.h"
 #endif
 
+#if defined(POLARSSL_RIPEMD160_C)
+#include "polarssl/ripemd160.h"
+#endif
+
 #if defined(POLARSSL_SHA1_C)
 #include "polarssl/sha1.h"
 #endif
@@ -57,14 +65,19 @@
 #include "polarssl/sha512.h"
 #endif
 
-#if defined(POLARSSL_MEMORY_C)
-#include "polarssl/memory.h"
+#if defined(POLARSSL_PLATFORM_C)
+#include "polarssl/platform.h"
 #else
 #define polarssl_malloc     malloc
 #define polarssl_free       free
 #endif
 
 #include <stdlib.h>
+
+/* Implementation that should never be optimized out by the compiler */
+static void polarssl_zeroize( void *v, size_t n ) {
+    volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+}
 
 #if defined(POLARSSL_MD2_C)
 
@@ -73,7 +86,8 @@ static void md2_starts_wrap( void *ctx )
     md2_starts( (md2_context *) ctx );
 }
 
-static void md2_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void md2_update_wrap( void *ctx, const unsigned char *input,
+                             size_t ilen )
 {
     md2_update( (md2_context *) ctx, input, ilen );
 }
@@ -90,16 +104,18 @@ static int md2_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void md2_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void md2_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                  size_t keylen )
 {
     md2_hmac_starts( (md2_context *) ctx, key, keylen );
 }
 
-static void md2_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void md2_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                  size_t ilen )
 {
     md2_hmac_update( (md2_context *) ctx, input, ilen );
 }
@@ -121,6 +137,7 @@ static void * md2_ctx_alloc( void )
 
 static void md2_ctx_free( void *ctx )
 {
+    polarssl_zeroize( ctx, sizeof( md2_context ) );
     polarssl_free( ctx );
 }
 
@@ -150,7 +167,7 @@ const md_info_t md2_info = {
     md2_process_wrap,
 };
 
-#endif
+#endif /* POLARSSL_MD2_C */
 
 #if defined(POLARSSL_MD4_C)
 
@@ -159,7 +176,8 @@ static void md4_starts_wrap( void *ctx )
     md4_starts( (md4_context *) ctx );
 }
 
-static void md4_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void md4_update_wrap( void *ctx, const unsigned char *input,
+                             size_t ilen )
 {
     md4_update( (md4_context *) ctx, input, ilen );
 }
@@ -176,16 +194,18 @@ static int md4_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void md4_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void md4_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                  size_t keylen )
 {
     md4_hmac_starts( (md4_context *) ctx, key, keylen );
 }
 
-static void md4_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void md4_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                  size_t ilen )
 {
     md4_hmac_update( (md4_context *) ctx, input, ilen );
 }
@@ -207,6 +227,7 @@ static void *md4_ctx_alloc( void )
 
 static void md4_ctx_free( void *ctx )
 {
+    polarssl_zeroize( ctx, sizeof( md4_context ) );
     polarssl_free( ctx );
 }
 
@@ -234,7 +255,7 @@ const md_info_t md4_info = {
     md4_process_wrap,
 };
 
-#endif
+#endif /* POLARSSL_MD4_C */
 
 #if defined(POLARSSL_MD5_C)
 
@@ -243,7 +264,8 @@ static void md5_starts_wrap( void *ctx )
     md5_starts( (md5_context *) ctx );
 }
 
-static void md5_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void md5_update_wrap( void *ctx, const unsigned char *input,
+                             size_t ilen )
 {
     md5_update( (md5_context *) ctx, input, ilen );
 }
@@ -260,16 +282,18 @@ static int md5_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void md5_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void md5_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                  size_t keylen )
 {
     md5_hmac_starts( (md5_context *) ctx, key, keylen );
 }
 
-static void md5_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void md5_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                  size_t ilen )
 {
     md5_hmac_update( (md5_context *) ctx, input, ilen );
 }
@@ -291,6 +315,7 @@ static void * md5_ctx_alloc( void )
 
 static void md5_ctx_free( void *ctx )
 {
+    polarssl_zeroize( ctx, sizeof( md5_context ) );
     polarssl_free( ctx );
 }
 
@@ -318,7 +343,103 @@ const md_info_t md5_info = {
     md5_process_wrap,
 };
 
+#endif /* POLARSSL_MD5_C */
+
+#if defined(POLARSSL_RIPEMD160_C)
+
+static void ripemd160_starts_wrap( void *ctx )
+{
+    ripemd160_starts( (ripemd160_context *) ctx );
+}
+
+static void ripemd160_update_wrap( void *ctx, const unsigned char *input,
+                                   size_t ilen )
+{
+    ripemd160_update( (ripemd160_context *) ctx, input, ilen );
+}
+
+static void ripemd160_finish_wrap( void *ctx, unsigned char *output )
+{
+    ripemd160_finish( (ripemd160_context *) ctx, output );
+}
+
+static int ripemd160_file_wrap( const char *path, unsigned char *output )
+{
+#if defined(POLARSSL_FS_IO)
+    return ripemd160_file( path, output );
+#else
+    ((void) path);
+    ((void) output);
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
+}
+
+static void ripemd160_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                        size_t keylen )
+{
+    ripemd160_hmac_starts( (ripemd160_context *) ctx, key, keylen );
+}
+
+static void ripemd160_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                        size_t ilen )
+{
+    ripemd160_hmac_update( (ripemd160_context *) ctx, input, ilen );
+}
+
+static void ripemd160_hmac_finish_wrap( void *ctx, unsigned char *output )
+{
+    ripemd160_hmac_finish( (ripemd160_context *) ctx, output );
+}
+
+static void ripemd160_hmac_reset_wrap( void *ctx )
+{
+    ripemd160_hmac_reset( (ripemd160_context *) ctx );
+}
+
+static void * ripemd160_ctx_alloc( void )
+{
+    ripemd160_context *ctx;
+    ctx = (ripemd160_context *) polarssl_malloc( sizeof( ripemd160_context ) );
+
+    if( ctx == NULL )
+        return( NULL );
+
+    ripemd160_init( ctx );
+
+    return( ctx );
+}
+
+static void ripemd160_ctx_free( void *ctx )
+{
+    ripemd160_free( (ripemd160_context *) ctx );
+    polarssl_free( ctx );
+}
+
+static void ripemd160_process_wrap( void *ctx, const unsigned char *data )
+{
+    ripemd160_process( (ripemd160_context *) ctx, data );
+}
+
+const md_info_t ripemd160_info = {
+    POLARSSL_MD_RIPEMD160,
+    "RIPEMD160",
+    20,
+    ripemd160_starts_wrap,
+    ripemd160_update_wrap,
+    ripemd160_finish_wrap,
+    ripemd160,
+    ripemd160_file_wrap,
+    ripemd160_hmac_starts_wrap,
+    ripemd160_hmac_update_wrap,
+    ripemd160_hmac_finish_wrap,
+    ripemd160_hmac_reset_wrap,
+    ripemd160_hmac,
+    ripemd160_ctx_alloc,
+    ripemd160_ctx_free,
+    ripemd160_process_wrap,
+};
+
+#endif /* POLARSSL_RIPEMD160_C */
 
 #if defined(POLARSSL_SHA1_C)
 
@@ -327,7 +448,8 @@ static void sha1_starts_wrap( void *ctx )
     sha1_starts( (sha1_context *) ctx );
 }
 
-static void sha1_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha1_update_wrap( void *ctx, const unsigned char *input,
+                              size_t ilen )
 {
     sha1_update( (sha1_context *) ctx, input, ilen );
 }
@@ -344,16 +466,18 @@ static int sha1_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void sha1_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void sha1_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                   size_t keylen )
 {
     sha1_hmac_starts( (sha1_context *) ctx, key, keylen );
 }
 
-static void sha1_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha1_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                   size_t ilen )
 {
     sha1_hmac_update( (sha1_context *) ctx, input, ilen );
 }
@@ -370,11 +494,20 @@ static void sha1_hmac_reset_wrap( void *ctx )
 
 static void * sha1_ctx_alloc( void )
 {
-    return polarssl_malloc( sizeof( sha1_context ) );
+    sha1_context *ctx;
+    ctx = (sha1_context *) polarssl_malloc( sizeof( sha1_context ) );
+
+    if( ctx == NULL )
+        return( NULL );
+
+    sha1_init( ctx );
+
+    return( ctx );
 }
 
 static void sha1_ctx_free( void *ctx )
 {
+    sha1_free( (sha1_context *) ctx );
     polarssl_free( ctx );
 }
 
@@ -402,7 +535,7 @@ const md_info_t sha1_info = {
     sha1_process_wrap,
 };
 
-#endif
+#endif /* POLARSSL_SHA1_C */
 
 /*
  * Wrappers for generic message digests
@@ -414,7 +547,8 @@ static void sha224_starts_wrap( void *ctx )
     sha256_starts( (sha256_context *) ctx, 1 );
 }
 
-static void sha224_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha224_update_wrap( void *ctx, const unsigned char *input,
+                                size_t ilen )
 {
     sha256_update( (sha256_context *) ctx, input, ilen );
 }
@@ -437,16 +571,18 @@ static int sha224_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void sha224_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void sha224_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                     size_t keylen )
 {
     sha256_hmac_starts( (sha256_context *) ctx, key, keylen, 1 );
 }
 
-static void sha224_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha224_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                     size_t ilen )
 {
     sha256_hmac_update( (sha256_context *) ctx, input, ilen );
 }
@@ -475,6 +611,7 @@ static void * sha224_ctx_alloc( void )
 
 static void sha224_ctx_free( void *ctx )
 {
+    polarssl_zeroize( ctx, sizeof( sha256_context ) );
     polarssl_free( ctx );
 }
 
@@ -507,7 +644,8 @@ static void sha256_starts_wrap( void *ctx )
     sha256_starts( (sha256_context *) ctx, 0 );
 }
 
-static void sha256_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha256_update_wrap( void *ctx, const unsigned char *input,
+                                size_t ilen )
 {
     sha256_update( (sha256_context *) ctx, input, ilen );
 }
@@ -530,16 +668,18 @@ static int sha256_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void sha256_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void sha256_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                     size_t keylen )
 {
     sha256_hmac_starts( (sha256_context *) ctx, key, keylen, 0 );
 }
 
-static void sha256_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha256_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                     size_t ilen )
 {
     sha256_hmac_update( (sha256_context *) ctx, input, ilen );
 }
@@ -563,11 +703,20 @@ static void sha256_hmac_wrap( const unsigned char *key, size_t keylen,
 
 static void * sha256_ctx_alloc( void )
 {
-    return polarssl_malloc( sizeof( sha256_context ) );
+    sha256_context *ctx;
+    ctx = (sha256_context *) polarssl_malloc( sizeof( sha256_context ) );
+
+    if( ctx == NULL )
+        return( NULL );
+
+    sha256_init( ctx );
+
+    return( ctx );
 }
 
 static void sha256_ctx_free( void *ctx )
 {
+    sha256_free( (sha256_context *) ctx );
     polarssl_free( ctx );
 }
 
@@ -595,7 +744,7 @@ const md_info_t sha256_info = {
     sha256_process_wrap,
 };
 
-#endif
+#endif /* POLARSSL_SHA256_C */
 
 #if defined(POLARSSL_SHA512_C)
 
@@ -604,7 +753,8 @@ static void sha384_starts_wrap( void *ctx )
     sha512_starts( (sha512_context *) ctx, 1 );
 }
 
-static void sha384_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha384_update_wrap( void *ctx, const unsigned char *input,
+                                size_t ilen )
 {
     sha512_update( (sha512_context *) ctx, input, ilen );
 }
@@ -627,16 +777,18 @@ static int sha384_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void sha384_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void sha384_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                     size_t keylen )
 {
     sha512_hmac_starts( (sha512_context *) ctx, key, keylen, 1 );
 }
 
-static void sha384_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha384_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                     size_t ilen )
 {
     sha512_hmac_update( (sha512_context *) ctx, input, ilen );
 }
@@ -665,6 +817,7 @@ static void * sha384_ctx_alloc( void )
 
 static void sha384_ctx_free( void *ctx )
 {
+    polarssl_zeroize( ctx, sizeof( sha512_context ) );
     polarssl_free( ctx );
 }
 
@@ -697,7 +850,8 @@ static void sha512_starts_wrap( void *ctx )
     sha512_starts( (sha512_context *) ctx, 0 );
 }
 
-static void sha512_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha512_update_wrap( void *ctx, const unsigned char *input,
+                                size_t ilen )
 {
     sha512_update( (sha512_context *) ctx, input, ilen );
 }
@@ -720,16 +874,18 @@ static int sha512_file_wrap( const char *path, unsigned char *output )
 #else
     ((void) path);
     ((void) output);
-    return POLARSSL_ERR_MD_FEATURE_UNAVAILABLE;
+    return( POLARSSL_ERR_MD_FEATURE_UNAVAILABLE );
 #endif
 }
 
-static void sha512_hmac_starts_wrap( void *ctx, const unsigned char *key, size_t keylen )
+static void sha512_hmac_starts_wrap( void *ctx, const unsigned char *key,
+                                     size_t keylen )
 {
     sha512_hmac_starts( (sha512_context *) ctx, key, keylen, 0 );
 }
 
-static void sha512_hmac_update_wrap( void *ctx, const unsigned char *input, size_t ilen )
+static void sha512_hmac_update_wrap( void *ctx, const unsigned char *input,
+                                     size_t ilen )
 {
     sha512_hmac_update( (sha512_context *) ctx, input, ilen );
 }
@@ -753,11 +909,20 @@ static void sha512_hmac_wrap( const unsigned char *key, size_t keylen,
 
 static void * sha512_ctx_alloc( void )
 {
-    return polarssl_malloc( sizeof( sha512_context ) );
+    sha512_context *ctx;
+    ctx = (sha512_context *) polarssl_malloc( sizeof( sha512_context ) );
+
+    if( ctx == NULL )
+        return( NULL );
+
+    sha512_init( ctx );
+
+    return( ctx );
 }
 
 static void sha512_ctx_free( void *ctx )
 {
+    sha512_free( (sha512_context *) ctx );
     polarssl_free( ctx );
 }
 
@@ -785,6 +950,6 @@ const md_info_t sha512_info = {
     sha512_process_wrap,
 };
 
-#endif
+#endif /* POLARSSL_SHA512_C */
 
-#endif
+#endif /* POLARSSL_MD_C */

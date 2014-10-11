@@ -1,6 +1,6 @@
 /**
  * \file md_wrap.h
- * 
+ *
  * \brief Message digest wrappers.
  *
  * \author Adriaan de Jong <dejong@fox-it.com>
@@ -29,7 +29,11 @@
 #ifndef POLARSSL_MD_WRAP_H
 #define POLARSSL_MD_WRAP_H
 
+#if !defined(POLARSSL_CONFIG_FILE)
 #include "config.h"
+#else
+#include POLARSSL_CONFIG_FILE
+#endif
 #include "md.h"
 
 #ifdef __cplusplus
@@ -44,6 +48,9 @@ extern const md_info_t md4_info;
 #endif
 #if defined(POLARSSL_MD5_C)
 extern const md_info_t md5_info;
+#endif
+#if defined(POLARSSL_RIPEMD160_C)
+extern const md_info_t ripemd160_info;
 #endif
 #if defined(POLARSSL_SHA1_C)
 extern const md_info_t sha1_info;
