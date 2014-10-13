@@ -6,7 +6,6 @@ AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
 	-DLOCALSTATEDIR=\"$(socketdir)\" \
-	$(LUA_CFLAGS) \
 	$(POLARSSL_CFLAGS)
 
 AM_LFLAGS = -i
@@ -26,6 +25,10 @@ endif
 
 if SQLITE3
 AM_CPPFLAGS += $(SQLITE3_CFLAGS)
+endif
+
+if LUA
+AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
 EXTRA_DIST = \
@@ -190,7 +193,6 @@ pdns_server_LDADD = \
 	$(LIBDL) \
 	$(POLARSSL_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
-	$(LUA_LIBS) \
 	$(YAHTTP_LIBS)
 
 if BOTAN110
@@ -220,6 +222,10 @@ endif
 if PKCS11
 pdns_server_SOURCES += pkcs11signers.cc pkcs11signers.hh
 pdns_server_LDADD += $(P11KIT1_LIBS)
+endif
+
+if LUA
+pdns_server_LDADD += $(LUA_LIBS)
 endif
 
 pdnssec_SOURCES = \
@@ -911,10 +917,14 @@ pdns_recursor_SOURCES = \
 	ws-recursor.cc ws-recursor.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
-pdns_recursor_LDFLAGS = $(THREADFLAGS) $(LUA_LIBS)
+pdns_recursor_LDFLAGS = $(THREADFLAGS)
 pdns_recursor_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(YAHTTP_LIBS)
+
+if LUA
+pdns_recursor_LDADD += $(LUA_LIBS)
+endif
 
 pdns_control_SOURCES = \
 	arguments.cc \
