@@ -4,8 +4,8 @@ PowerDNS API
 PowerDNS features a built-in API. For the Authoritative Server, starting with
 version 3.4, for the Recursor starting with version 3.6.
 
-At the time of writing this, these versions were not released, but preliminary
-support is available in git.
+The released versions use the standard webserver password for authentication,
+while newer versions use a static API key mechanism (shown below).
 
 You can get suitable packages for testing (RPM or DEB) from these links:
 
@@ -23,18 +23,18 @@ PostgreSQL or SQLite3).
 Then configure as follows:
 
     experimental-json-interface=yes
+    experimental-api-key=changeme
     webserver=yes
-    webserver-password=changeme
 
 
 After restarting `pdns_server`, the following examples should start working:
 
     # List zones
-    curl -v http://a:changeme@127.0.0.1:8081/servers/localhost/zones | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones | jq .
     # Create new zone "example.org" with nameservers ns1.example.org, ns2.example.org
-    curl -X POST --data '{"name":"example.org", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org", "ns2.example.org"]}' -v http://a:changeme@127.0.0.1:8081/servers/localhost/zones | jq .
+    curl -X POST --data '{"name":"example.org", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org", "ns2.example.org"]}' -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones | jq .
     # Show the new zone
-    curl -v http://a:changeme@127.0.0.1:8081/servers/localhost/zones/example.org | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones/example.org | jq .
 
 `jq` is a highly recommended tool for pretty-printing JSON. If you don't have
 `jq`, try `json_pp` or `python -mjson.tool` instead.
@@ -46,7 +46,7 @@ Try it (Recursor edition)
 Install PowerDNS Recursor, configured as follows:
 
     experimental-webserver=yes
-    experimental-webserver-password=changeme
+    experimental-api-key=changeme
     auth-zones=
     forward-zones=
     forward-zones-recurse=
@@ -54,8 +54,8 @@ Install PowerDNS Recursor, configured as follows:
 
 After restarting `pdns_recursor`, the following examples should start working:
 
-    curl -v http://a:changeme@127.0.0.1:8082/servers/localhost | jq .
-    curl -v http://a:changeme@127.0.0.1:8082/servers/localhost/zones | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/servers/localhost | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/servers/localhost/zones | jq .
 
 
 API Specification

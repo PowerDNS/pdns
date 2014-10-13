@@ -421,7 +421,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
 
-  d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"), arg()["experimental-webserver-password"]);
+  d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"));
   d_ws->bind();
 
   // legacy dispatch
