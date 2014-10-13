@@ -3,5 +3,9 @@ CMakeFiles
 CTestTestfile.cmake
 cmake_install.cmake
 Testing
+Coverage
+*.gcno
+*.gcda
+library/polarssl.info
 Makefile
 Makefile.in
