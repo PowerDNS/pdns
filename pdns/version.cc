@@ -23,6 +23,7 @@
 #include "logger.hh"
 #include "version.hh"
 #include "version_generated.h"
+#include <polarssl/version.h>
 
 static ProductType productType;
 
@@ -98,6 +99,9 @@ void showBuildConfiguration()
 #ifdef PDNS_MODULES
   // Auth only
   theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
+#endif
+#ifndef POLARSSL_SYSTEM
+  theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
 #endif
 }
 
