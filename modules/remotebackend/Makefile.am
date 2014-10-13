@@ -1,6 +1,6 @@
 AM_CPPFLAGS += \
 	-I../../pdns/ext/rapidjson/include \
-	-I../../pdns/ext/yahttp \
+	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
@@ -46,7 +46,7 @@ libremotebackend_la_SOURCES = \
 
 libremotebackend_la_LDFLAGS = -module -avoid-version
 
-libremotebackend_la_LIBADD = ../../pdns/ext/yahttp/yahttp/libyahttp.la
+libremotebackend_la_LIBADD = $(YAHTTP_LIBS)
 
 if REMOTEBACKEND_ZEROMQ
 libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
@@ -103,7 +103,7 @@ libtestremotebackend_la_SOURCES = \
 	remotebackend.hh remotebackend.cc
 
 libtestremotebackend_la_LIBADD = \
-	-L../../pdns/ext/yahttp/yahttp -lyahttp \
+	$(YAHTTP_LIBS) \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \

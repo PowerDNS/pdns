@@ -1,6 +1,6 @@
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/pdns/ext/rapidjson/include \
-	-I$(top_srcdir)/pdns/ext/yahttp
+	$(YAHTTP_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -8,8 +8,6 @@ AM_CXXFLAGS = \
 	-DLOCALSTATEDIR=\"$(socketdir)\" \
 	$(LUA_CFLAGS) \
 	$(POLARSSL_CFLAGS)
-
-YAHTTP_LIBS = -Lext/yahttp/yahttp -lyahttp
 
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
@@ -881,8 +879,6 @@ pdns_recursor_SOURCES = \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
 	epollmplexer.cc \
-	ext/yahttp/yahttp/reqresp.cpp \
-	ext/yahttp/yahttp/router.cpp \
 	htimer.cc htimer.hh \
 	json.cc json.hh \
 	logger.cc \
