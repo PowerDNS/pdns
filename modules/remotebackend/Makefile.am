@@ -102,6 +102,8 @@ libtestremotebackend_la_SOURCES = \
 	zmqconnector.cc \
 	remotebackend.hh remotebackend.cc
 
+libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
+
 libtestremotebackend_la_LIBADD = \
 	$(YAHTTP_LIBS) \
 	$(POLARSSL_LIBS) \
@@ -126,9 +128,8 @@ libtestremotebackend_la_LIBADD += \
 	$(P11KIT1_LIBS) \
 	$(LIBDL)
 
-libtestremotebackend_la_CPPFLAGS = \
-	$(P11KIT1_CFLAGS) \
-	$(AM_CPPFLAGS)
+libtestremotebackend_la_CPPFLAGS += \
+	$(P11KIT1_CFLAGS)
 endif
 
 test_remotebackend_http_SOURCES = \
