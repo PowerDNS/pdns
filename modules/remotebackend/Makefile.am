@@ -109,7 +109,8 @@ libtestremotebackend_la_LIBADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS)
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(LIBDL)
 
 libtestremotebackend_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -125,8 +126,7 @@ libtestremotebackend_la_SOURCES += \
 	../../pdns/pkcs11signers.cc
 
 libtestremotebackend_la_LIBADD += \
-	$(P11KIT1_LIBS) \
-	$(LIBDL)
+	$(P11KIT1_LIBS)
 
 libtestremotebackend_la_CPPFLAGS += \
 	$(P11KIT1_CFLAGS)
