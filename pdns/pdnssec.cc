@@ -612,7 +612,10 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
   }
   rrs[0].content = serializeSOAData(sd);
 
+  sd.db->startTransaction("", -1);
+
   if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
+   sd.db->abortTransaction();
    cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
    return -1;
   }
@@ -637,6 +640,8 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
       sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, rrs[0].qname, 1);
     }
   }
+
+  sd.db->commitTransaction();
 
   cout<<"SOA serial for zone "<<zone<<" set to "<<sd.serial<<endl;
   return 0;
