@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts3) {
    BOOST_TEST_MESSAGE("Testing feedEnts3 method");
    be->startTransaction("example.com",2);
    map<string, bool> nonterm = boost::assign::map_list_of("_udp", true)("_sip._udp", true);
-   BOOST_CHECK(be->feedEnts3(2, "example.com", nonterm, 1, "\xaa\xbb\xcc\xdd", 0));
+   BOOST_CHECK(be->feedEnts3(2, "example.com", nonterm, 1, "\u00aa\u00bb\u00cc\u00dd", 0));
    be->commitTransaction();
 }
 
