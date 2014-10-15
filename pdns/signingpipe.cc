@@ -107,22 +107,15 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
 }
 
 namespace {
-bool dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
+bool
+dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
 {
-  if(tie(a.content, a.ttl) < tie(b.content, b.ttl))
-    return true;
-  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
-    return a.priority < b.priority;
-  return false;
+  return (tie(a.content, a.ttl) < tie(b.content, b.ttl));
 }
 
 bool dedupEqual(const DNSResourceRecord& a, const DNSResourceRecord &b)
 {
-  if(tie(a.content, a.ttl) != tie(b.content, b.ttl))
-    return false;
-  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
-    return a.priority == b.priority;
-  return true;
+  return(tie(a.content, a.ttl) == tie(b.content, b.ttl));
 }
 }
 

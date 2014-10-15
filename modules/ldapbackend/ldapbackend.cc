@@ -400,7 +400,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 {
         QType qt;
         vector<string> parts;
-        string attrname, content, qstr;
+        string attrname, qstr;
 
 
         try
@@ -417,41 +417,15 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
         				while( m_value != m_attribute->second.end() )
         				{
-        					content = *m_value;
 
         					rr.qtype = qt;
         					rr.qname = *m_adomain;
-        					rr.priority = 0;
         					rr.ttl = m_ttl;
         					rr.last_modified = m_last_modified;
-
-        					if( qt.getCode() == QType::MX || qt.getCode() == QType::SRV )   // Priority, e.g. 10 smtp.example.com
-        					{
-        						char* endptr;
-        						string::size_type first = content.find_first_of( " " );
-
-        						if( first == string::npos )
-        						{
-        							L << Logger::Warning << m_myname << " Invalid " << attrname << " without priority for " << m_qname << ": " << content << endl;
-        							m_value++;
-        							continue;
-        						}
-
-        						rr.priority = (uint16_t) strtoul( (content.substr( 0, first )).c_str(), &endptr, 10 );
-        						if( *endptr != '\0' )
-        						{
-        							L << Logger::Warning << m_myname << " Invalid " << attrname << " without priority for " << m_qname << ": " << content << endl;
-        							m_value++;
-        							continue;
-        						}
-
-        						content = content.substr( first + 1, content.length() - first - 1 );
-        					}
-
-        					rr.content = content;
+        					rr.content = *m_value;
         					m_value++;
 
-        					DLOG( L << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", priority: " << rr.priority << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
+        					DLOG( L << Logger::Debug << m_myname << " Record = qname: " << rr.qname << ", qtype: " << (rr.qtype).getName() << ", ttl: " << rr.ttl << ", content: " << rr.content << endl );
         					return true;
         				}
 

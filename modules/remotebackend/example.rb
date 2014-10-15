@@ -110,7 +110,7 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
        return [ 
           record("SOA","example.com", "sns.dns.icann.org noc.dns.icann.org 2013012485 7200 3600 1209600 3600"),
           record("NS","example.com","sns.dns.icann.org"),
-          record_prio("MX","example.com","test.example.com",10)
+          record("MX","example.com","10 test.example.com")
               ]
      elsif args["qname"] == "test.example.com" and args["qtype"].downcase == "any"
        return [
@@ -137,7 +137,7 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
        return [
           record("SOA","example.com", "sns.dns.icann.org noc.dns.icann.org 2013012485 7200 3600 1209600 3600"),
           record("NS","example.com","sns.dns.icann.org"),
-          record_prio("MX","example.com","test.example.com",10),
+          record("MX","example.com","10 test.example.com"),
           record("A","test.example.com","127.0.0.1")
        ]
      end
@@ -149,16 +149,12 @@ Coefficient: 5lP9IFknvFgaXKCs8MproehHSFhFTWac4557HIn03KrnlGOKDcY6DC/vgu1e42bEZ4J
 
   ## Some helpers after this 
 
-  def record_prio_ttl(qtype,qname,content,prio,ttl)
-    {:qtype => qtype, :qname => qname, :content => content, :priority => prio, :ttl => ttl, :auth => 1}
-  end
-
-  def record_prio(qtype,qname,content,prio)
-    record_prio_ttl(qtype,qname,content,prio,@default_ttl)
+  def record_ttl(qtype,qname,content,ttl)
+    {:qtype => qtype, :qname => qname, :content => content, :ttl => ttl, :auth => 1}
   end
 
   def record(qtype,qname,content)
-    record_prio_ttl(qtype,qname,content,0,@default_ttl)
+    record_ttl(qtype,qname,content,@default_ttl,)
   end
 
   def log(message)

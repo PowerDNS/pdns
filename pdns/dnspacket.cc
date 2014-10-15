@@ -164,9 +164,6 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
-        if(rr.qtype.getCode()!=QType::MX && rr.qtype.getCode()!=QType::SRV)
-          return;
-        if(rr.priority==i->priority)
           return;
       }
 
@@ -300,10 +297,6 @@ void DNSPacket::wrapup()
       uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
-        // this needs to deal with the 'prio' mismatch:
-        if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
-          pos->content = lexical_cast<string>(pos->priority) + " " + pos->content;
-        }
 
         if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
           pos->content="\""+pos->content+"\"";

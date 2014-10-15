@@ -167,7 +167,6 @@ static void fillZone(const string& zonename, HttpResponse* resp)
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
     object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-    object.AddMember("priority", rr.priority, doc.GetAllocator());
     Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
     object.AddMember("content", jcontent, doc.GetAllocator());
     records.PushBack(object, doc.GetAllocator());
@@ -510,7 +509,6 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
         Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
         object.AddMember("type", jtype, doc.GetAllocator());
         object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-        object.AddMember("priority", rr.priority, doc.GetAllocator());
         Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
         object.AddMember("content", jcontent, doc.GetAllocator());
         records.PushBack(object, doc.GetAllocator());

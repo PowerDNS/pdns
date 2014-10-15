@@ -391,9 +391,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       rr.content=o.str();
     }
 
-    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";
 
@@ -717,7 +714,6 @@ void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int c
   rr.auth=1;
   rr.qclass = QClass::IN;
   rr.d_place=DNSResourceRecord::ANSWER;
-  rr.priority=0;
   
   UeberBackend db("key-only");
   

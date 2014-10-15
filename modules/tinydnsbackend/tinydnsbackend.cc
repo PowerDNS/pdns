@@ -277,19 +277,11 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				dr.d_class = 1;
 				dr.d_type = rr.qtype.getCode();
 				dr.d_clen = val.size()-pr.d_pos;
-				DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
 
-				string content = drc->getZoneRepresentation();
-				// cerr<<"CONTENT: "<<content<<endl;
+				DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
+				rr.content = drc->getZoneRepresentation();
+				// cerr<<"CONTENT: "<<rr.content<<endl;
 				delete drc;
-				if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
-					vector<string>parts;
-					stringtok(parts,content," ");
-					rr.priority=atoi(parts[0].c_str());
-					rr.content=content.substr(parts[0].size()+1);
-				} else {
-					rr.content = content;
-				}
 			}
 			catch (...) {
 				if (d_ignorebogus) {

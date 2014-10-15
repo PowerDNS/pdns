@@ -199,30 +199,15 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
     rr.qtype = i->first.d_type;
     rr.ttl = i->first.d_ttl;
     rr.content = i->first.d_content->getZoneRepresentation();
-    rr.priority = 0;
-
-    uint16_t qtype=rr.qtype.getCode();
-
-    if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
-      boost::erase_tail(rr.content, 1);
-
-    if(rr.qtype.getCode() == QType::MX) {
-      vector<string> parts;
-      stringtok(parts, rr.content);
-      rr.priority = atoi(parts[0].c_str());
-      if(parts.size() > 1)
-        rr.content=parts[1];
-      else
-        rr.content=".";
-    } else if(rr.qtype.getCode() == QType::SRV) {
-      rr.priority = atoi(rr.content.c_str());
-      vector<pair<string::size_type, string::size_type> > fields;
-      vstringtok(fields, rr.content, " ");
-      if(fields.size()==4) {
-        if(fields[3].second - fields[3].first > 1) // strip dot, unless root
-          fields[3].second--;
-        rr.content=string(rr.content.c_str() + fields[1].first, fields[3].second - fields[1].first);
-      }
+    switch(rr.qtype.getCode()) {
+      case QType::SRV:
+      case QType::MX:
+        if (rr.content.size() >= 2 && *(rr.content.rbegin()+1) == ' ')
+          break;
+      case QType::CNAME:
+      case QType::NS:
+        if(!rr.content.empty())
+          boost::erase_tail(rr.content, 1);
     }
     result->push_back(rr);
   }

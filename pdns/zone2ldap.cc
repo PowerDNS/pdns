@@ -43,7 +43,7 @@ string g_basedn;
 string g_zonename;
 map<string,bool> g_objects;
 
-static void callback_simple( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
+static void callback_simple( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl )
 {
         string host;
         string::size_type pos;
@@ -82,14 +82,12 @@ static void callback_simple( unsigned int domain_id, const string &domain, const
                 cout << "add: " << qtype << "Record" << endl;
         }
 
-        cout << qtype << "Record: ";
-        if( prio != 0 ) { cout << prio << " "; }
-        cout << stripDot( content ) << endl << endl;
+        cout << qtype << "Record: " << stripDot( content ) << endl << endl;
 }
 
 
 
-static void callback_tree( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl, int prio )
+static void callback_tree( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl )
 {
         unsigned int i;
         string dn, net;
@@ -138,9 +136,7 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
                 cout << "add: " << qtype << "Record" << endl;
         }
 
-        cout << qtype << "Record: ";
-        if( prio != 0 ) { cout << prio << " "; }
-        cout << stripDot( content ) << endl << endl;
+        cout << qtype << "Record: " << stripDot( content ) << endl << endl;
 }
 
 
@@ -185,7 +181,7 @@ int main( int argc, char* argv[] )
 
                 g_basedn = args["basedn"];
                 g_dnsttl = args.mustDo( "dnsttl" );
-                typedef boost::function<void(unsigned int, const string &, const string &, const string &, int, int)> callback_t;
+                typedef boost::function<void(unsigned int, const string &, const string &, const string &, int)> callback_t;
                 callback_t callback = callback_simple;
                 if( args["layout"] == "tree" )
                 {
@@ -214,7 +210,7 @@ int main( int argc, char* argv[] )
                                                 ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
                                                 DNSResourceRecord rr;
                                                 while(zpt.get(rr))
-                                                        callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+                                                        callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);
                                         }
                                 }
                                 catch( PDNSException &ae )
@@ -239,7 +235,7 @@ int main( int argc, char* argv[] )
                         ZoneParserTNG zpt(args["zone-file"], args["zone-name"]);
                         DNSResourceRecord rr;
                         while(zpt.get(rr))
-                                callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority);
+                                callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);
                 }
         }
         catch( PDNSException &ae )

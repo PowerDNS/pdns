@@ -26,25 +26,15 @@
 
 void DNSResourceRecord::setContent(const string &cont) {
   content = cont;
-  if(!content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
-    boost::erase_tail(content, 1);
-
-  if(qtype.getCode() == QType::MX) {
-    vector<string> parts;
-    stringtok(parts, content);
-    priority = atoi(parts[0].c_str());
-    if(parts.size() > 1)
-      content=parts[1];
-    else
-      content=".";
-  } else if(qtype.getCode() == QType::SRV) {
-    priority = atoi(content.c_str());
-    vector<pair<string::size_type, string::size_type> > fields;
-    vstringtok(fields, content, " ");
-    if(fields.size()==4) {
-      content=string(content.c_str() + fields[1].first, fields[3].second - fields[1].first);
-      content=stripDot(content);
-    }
+  switch(qtype.getCode()) {
+    case QType::SRV:
+    case QType::MX:
+      if (content.size() >= 2 && *(content.rbegin()+1) == ' ')
+        return;
+    case QType::CNAME:
+    case QType::NS:
+      if(!content.empty())
+        boost::erase_tail(content, 1);
   }
 }
 
@@ -53,15 +43,11 @@ string DNSResourceRecord::getZoneRepresentation() const {
   switch(qtype.getCode()) {
     case QType::SRV:
     case QType::MX:
-      ret<<priority;
-      ret<<" "<<content;
-      if (*(content.rbegin()) != '.') ret<<".";
-    break;
     case QType::CNAME:
     case QType::NS:
-      ret<<content;
-      if (*(content.rbegin()) != '.') ret<<".";
-    break;
+      if (*(content.rbegin()) != '.')
+        ret<<content<<".";
+      break;
     default:
       ret<<content;
     break;
@@ -78,8 +64,8 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
   string rlabel=toLower(rhs.qname);
 
   return
-    tie(llabel, qtype, lcontent, ttl, priority) ==
-    tie(rlabel, rhs.qtype, rcontent, rhs.ttl, rhs.priority);
+    tie(llabel, qtype, lcontent, ttl) ==
+    tie(rlabel, rhs.qtype, rcontent, rhs.ttl);
 }
 
 
@@ -93,7 +79,6 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
 
   qtype = p.d_type;
   ttl = p.d_ttl;
-  priority=0;
   setContent(p.d_content->getZoneRepresentation());
 }
 
