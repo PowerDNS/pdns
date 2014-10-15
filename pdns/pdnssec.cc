@@ -612,10 +612,37 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
   }
   rrs[0].content = serializeSOAData(sd);
 
+  sd.db->startTransaction("", -1);
+
   if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
+   sd.db->abortTransaction();
    cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
    return -1;
   }
+
+  if (sd.db->doesDNSSEC()) {
+    NSEC3PARAMRecordContent ns3pr;
+    bool narrow;
+    bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  
+    if(haveNSEC3)
+    {
+      if(!narrow) {
+        string hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rrs[0].qname));
+        if(g_verbose)
+          cerr<<"'"<<rrs[0].qname<<"' -> '"<< hashed <<"'"<<endl;
+        sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, rrs[0].qname, hashed, 1);
+      }
+      else {
+        sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, rrs[0].qname, 1);
+      }
+    } else {
+      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, rrs[0].qname, 1);
+    }
+  }
+
+  sd.db->commitTransaction();
+
   cout<<"SOA serial for zone "<<zone<<" set to "<<sd.serial<<endl;
   return 0;
 }
