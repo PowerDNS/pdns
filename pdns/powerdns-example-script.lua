@@ -5,7 +5,7 @@ end
 
 function preresolve ( remoteip, domain, qtype )
 
-	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
+	print ("prequery handler called for: ", remoteip, "local: ", getlocaladdress(), domain, qtype)
 	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress(), pdns.loglevels.Info);
 
 	if endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
