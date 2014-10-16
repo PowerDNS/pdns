@@ -60,9 +60,9 @@ mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
 cp -a ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
 mkdir -p $DIRNAME/ext/polarssl/include/polarssl
-cp -a ext/polarssl/include/polarssl/config.h ext/polarssl/include/polarssl/check_config.h ext/polarssl/include/polarssl/aes.h ext/polarssl/include/polarssl/padlock.h ext/polarssl/include/polarssl/platform.h ext/polarssl/include/polarssl/version.h $DIRNAME/ext/polarssl/include/polarssl
+cp -a ext/polarssl/include/polarssl/config.h ext/polarssl/include/polarssl/check_config.h ext/polarssl/include/polarssl/aes.h ext/polarssl/include/polarssl/platform.h ext/polarssl/include/polarssl/version.h $DIRNAME/ext/polarssl/include/polarssl
 mkdir -p $DIRNAME/ext/polarssl/library
-cp -a ext/polarssl/library/aes.c ext/polarssl/library/padlock.c $DIRNAME/ext/polarssl/library
+cp -a ext/polarssl/library/aes.c $DIRNAME/ext/polarssl/library
 cp -a ext/yahttp/ $DIRNAME/ext/yahttp
 echo '#include "../../../config.h"' > $DIRNAME/ext/yahttp/yahttp/yahttp-config.h
 mkdir $DIRNAME/rrd
