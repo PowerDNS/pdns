@@ -119,7 +119,8 @@ tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is f
 int g_tcpTimeout;
 unsigned int g_maxMThreads;
 struct timeval g_now; // timestamp, updated (too) frequently
-map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
+typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
+listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 
 __thread MT_t* MT; // the big MTasker
 
@@ -507,7 +508,8 @@ void startDoResolve(void *p)
     if(getEDNSOpts(dc->d_mdp, &edo) && !dc->d_tcp) {
       maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
     }
-    
+    ComboAddress local;    
+    listenSocketsAddresses_t::const_iterator lociter;
     vector<DNSResourceRecord> ret;
     vector<uint8_t> packet;
 
@@ -548,8 +550,19 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+    local.sin4.sin_family = dc->d_remote.sin4.sin_family;
+
+    lociter = g_listenSocketsAddresses.find(dc->d_socket);
+    if(lociter != g_listenSocketsAddresses.end()) {
+      local = lociter->second;
+    }
+    else {
+      socklen_t len = local.getSocklen();
+      getsockname(dc->d_socket, (sockaddr*)&local, &len); // if this fails, we're ok with it
+    }
+
+    // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve      
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
 
       if(t_pdl->get()) {
@@ -559,12 +572,12 @@ void startDoResolve(void *p)
                   if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
                 if(i == ret.end())
-                  (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+                  (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
               }
               else if(res == RCode::NXDomain)
-          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+          (*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       
-      (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+      (*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
     
@@ -1022,7 +1035,8 @@ void makeTCPServerSockets()
     listen(fd, 128);
     deferredAdd.push_back(make_pair(fd, handleNewTCPQuestion));
     g_tcpListenSockets.push_back(fd);
-
+    // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
+    //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
