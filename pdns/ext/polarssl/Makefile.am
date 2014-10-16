@@ -1,4 +1,4 @@
-SUBDIRS=library
+SUBDIRS = library
 
 EXTRA_DIST = LICENSE README.rst include/polarssl
 

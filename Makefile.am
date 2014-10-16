@@ -4,22 +4,41 @@ if WITH_PDNS_SERVER
   SUBDIRS += pdns
 endif
 
-EXTRA_DIST=README INSTALL NOTICE debian pdns.spec  \
-codedocs/doxygen.conf contrib/powerdns.solaris.init.d \
-contrib/systemd-pdns.service contrib/systemd-pdns-recursor.service \
-bootstrap build-scripts/semistaticg++ pdns/docs/dnstcpbench.1 \
-pdns/docs/dnsdist.1 \
-build-scripts/redhat/pdns-server-test.spec \
-pdns/named.conf.parsertest regression-tests/zones/unit.test
+EXTRA_DIST = \
+	INSTALL \
+	NOTICE \
+	README \
+	build-scripts/redhat/pdns-server-test.spec \
+	build-scripts/semistaticg++ \
+	codedocs/doxygen.conf \
+	contrib/powerdns.solaris.init.d \
+	contrib/systemd-pdns-recursor.service \
+	contrib/systemd-pdns.service \
+	debian \
+	pdns.spec \
+	pdns/docs/dnsdist.1 \
+	pdns/docs/dnstcpbench.1 \
+	pdns/named.conf.parsertest \
+	regression-tests/zones/unit.test
 
 ACLOCAL_AMFLAGS = -I m4
 
-man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdnssec.8 pdns/docs/pdns_server.8 \
-  pdns/docs/zone2ldap.8 pdns/docs/zone2sql.8
+man8_MANS = \
+	pdns/docs/pdns_control.8 \
+	pdns/docs/pdns_server.8 \
+	pdns/docs/pdnssec.8 \
+	pdns/docs/zone2ldap.8 \
+	pdns/docs/zone2sql.8
 
 if TOOLS
-  man8_MANS += pdns/docs/dnsreplay.8 pdns/docs/dnsscope.8 pdns/docs/dnswasher.8
-  man1_MANS = pdns/docs/dnstcpbench.1 pdns/docs/dnsdist.1
+man8_MANS += \
+	pdns/docs/dnsreplay.8 \
+	pdns/docs/dnsscope.8 \
+	pdns/docs/dnswasher.8
+
+man1_MANS = \
+	pdns/docs/dnsdist.1 \
+	pdns/docs/dnstcpbench.1
 endif
 
 pdns/docs/dnstcpbench.1:
