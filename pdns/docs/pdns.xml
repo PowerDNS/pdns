@@ -13581,6 +13581,14 @@ ALTER TABLE domainmetadata MODIFY kind VARCHAR2(32);
           </listitem>
         </varlistentry>
         <varlistentry>
+          <term>experimental-api-key</term>
+          <listitem>
+            <para>
+              Static API authentication key, must be sent in the X-API-Key header. Required for any API usage.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
           <term>experimental-dname-processing</term>
           <listitem>
             <para>
@@ -21899,7 +21907,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
         To compile this backend, you need to configure --with-modules="remote". 
       </para>
       <para>
-        If you want to use http connector, you need libcurl and use --enable-remotebackend-http.
+        For versions prior to 3.4.0, if you want to use http connector, you need libcurl and use --enable-remotebackend-http.
       </para>
       <para>
         If you want to use ZeroMQ connector, you need libzmq-dev or libzmq3-dev and use --enable-remotebackend-zeromq. 
@@ -22066,7 +22074,7 @@ Response:
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
-   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,priority,scopeMask,auth&gt;</para></listitem>
+   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,scopeMask,auth&gt;</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Optional values:</term>
@@ -22137,7 +22145,7 @@ Content-Type: text/javascript; charset=utf-8
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
-   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,priority,scopeMask,auth&gt;</para></listitem>
+   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,scopeMask,auth&gt;</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Optional values:</term>
@@ -22165,7 +22173,7 @@ to appropriate value, otherwise things can go wrong.
 {"result":[
   {"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},
   {"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},
-  {"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},
+  {"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},
   {"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},
   {"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},
   {"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60} 
@@ -22190,7 +22198,7 @@ X-RemoteBackend-domain-id: -1
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
+{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
 </programlisting>
    </para>
   </listitem>
@@ -23062,7 +23070,7 @@ Creates new domain with given record(s) as master servers. IP address is the add
    <para>
     Query:
 <programlisting>
-{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"priority":0,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"priority":0,"auth":true}]}}
+{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"auth":true}]}}
 </programlisting>
    </para>
    <para>
@@ -23087,7 +23095,7 @@ POST /dnsapi/supermasterbackend/10.0.0.1/example.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 317
 
-nsset[1][qtype]=NS&amp;nsset[1][qname]=example.com&amp;nsset[1][qclass]=1&amp;nsset[1][content]=ns1.example.com&amp;nsset[1][ttl]=300&amp;nsset[1][priority]=0&amp;nsset[1][auth]=true&amp;nsset[2][qtype]=NS&amp;nsset[2][qname]=example.com&amp;nsset[2][qclass]=1&amp;nsset[2][content]=ns2.example.com&amp;nsset[2][ttl]=300&amp;nsset[2][priority]=0&amp;nsset[2][auth]=true
+nsset[1][qtype]=NS&amp;nsset[1][qname]=example.com&amp;nsset[1][qclass]=1&amp;nsset[1][content]=ns1.example.com&amp;nsset[1][ttl]=300&amp;nsset[1][auth]=true&amp;nsset[2][qtype]=NS&amp;nsset[2][qname]=example.com&amp;nsset[2][qclass]=1&amp;nsset[2][content]=ns2.example.com&amp;nsset[2][ttl]=300&amp;nsset[2][auth]=true
 </programlisting>
    </para>
    <para>
@@ -23204,7 +23212,7 @@ This method replaces a given resource record with new set. The new qtype can be 
    <para>
     Query:
 <programlisting>
-{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"priority":0,"auth":true}]}}
+{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"auth":true}]}}
 </programlisting>
    </para>
    <para>
@@ -23225,7 +23233,7 @@ PATCH /dnsapi/replacerrset/2/replace.example.com/A
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 135
 
-trxid=1370416133&amp;rrset[qtype]=A&amp;rrset[qname]=replace.example.com&amp;rrset[qclass]=1&amp;rrset[content]=1.1.1.1&amp;rrset[priority]=0&amp;rrset[auth]=1
+trxid=1370416133&amp;rrset[qtype]=A&amp;rrset[qname]=replace.example.com&amp;rrset[qclass]=1&amp;rrset[content]=1.1.1.1&amp;rrset[auth]=1
 </programlisting>
    </para>
    <para>
@@ -23268,7 +23276,7 @@ Asks to feed new record into system. If startTransaction was called, trxId ident
    <para>
     Query:
 <programlisting>
-{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"priority":0,"auth":true},"trxid":1370416133}}
+{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"auth":true},"trxid":1370416133}}
 </programlisting>
    </para>
    <para>
@@ -23289,7 +23297,7 @@ PATCH /dnsapi/feedrecord/1370416133
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 117
 
-rr[qtype]=A&amp;rr[qname]=replace.example.com&amp;rr[qclass]=1&amp;rr[content]=127.0.0.1&amp;rr[ttl]=300&amp;rr[priority]=0&amp;rr[auth]=true
+rr[qtype]=A&amp;rr[qname]=replace.example.com&amp;rr[qclass]=1&amp;rr[content]=127.0.0.1&amp;rr[ttl]=300&amp;rr[auth]=true
 </programlisting>
    </para>
    <para>
@@ -23715,7 +23723,6 @@ Reply:
        "qname": "example.com", 
        "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
        "ttl": 3600,
-       "priority": 0,
        "domain_id": -1
      }
    ]
@@ -23739,7 +23746,6 @@ Reply:
        "qname": "example.com",
        "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
        "ttl": 3600,
-       "priority": 0,
        "domain_id": -1
      }
    ]
@@ -24313,9 +24319,6 @@ static RandomLoader randomloader;
 	      </row>
 	      <row>
 		<entry>string content</entry><entry>ASCII representation of right hand side</entry>
-	      </row>
-	      <row>
-		<entry>uint16_t priority</entry><entry>priority of an MX record.</entry>
 	      </row>
 	      <row>
 		<entry>uint32_t ttl</entry><entry>Time To Live of this record</entry>

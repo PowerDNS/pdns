@@ -236,12 +236,7 @@ AC_ARG_ENABLE([pdns-server],
   [enable_pdns_server=yes]
 )
 AC_MSG_RESULT([$enable_pdns_server])
-
-AS_IF([test "x$enable_pdns_server" = "xyes"],
-  [programdescend=pdns]
-)
-
-AC_SUBST(programdescend)
+AM_CONDITIONAL([WITH_PDNS_SERVER],[test "x$enable_pdns_server" != "xno"])
 
 AC_ARG_ENABLE([gcc-skip-locking],
   [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking @<:@default=no@:>@])],
@@ -355,6 +350,9 @@ AC_SUBST([AM_CPPFLAGS],
   ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
 )
 
+AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
+AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
+
 export moduledirs moduleobjects modulelibs
 
 AC_CONFIG_FILES([
@@ -366,8 +364,8 @@ AC_CONFIG_FILES([
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
-  pdns/ext/polarssl-1.3.2/Makefile
-  pdns/ext/polarssl-1.3.2/library/Makefile
+  pdns/ext/polarssl/Makefile
+  pdns/ext/polarssl/library/Makefile
   pdns/ext/rapidjson/Makefile
   modules/bindbackend/Makefile
   modules/db2backend/Makefile

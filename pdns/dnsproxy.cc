@@ -253,19 +253,7 @@ void DNSProxy::mainloop(void)
 		rr.qtype = j->first.d_type;
 		rr.ttl=j->first.d_ttl;
 		rr.d_place= (DNSResourceRecord::Place)j->first.d_place;
-		shared_ptr<MXRecordContent> mx=boost::dynamic_pointer_cast<MXRecordContent>(j->first.d_content);
-		shared_ptr<SRVRecordContent> srv=boost::dynamic_pointer_cast<SRVRecordContent>(j->first.d_content);
-		if(mx) {
-		  rr.content=mx->d_mxname;
-		  rr.priority=mx->d_preference;
-		}
-		else if(srv) {
-		  rr.content = lexical_cast<string>(srv->d_weight)+" "+lexical_cast<string>(srv->d_port)+" "+srv->d_target;
-		  rr.priority=srv->d_preference;
-		}
-		else {
-		  rr.content=j->first.d_content->getZoneRepresentation();
-		}
+		rr.content=j->first.d_content->getZoneRepresentation();
 		i->second.complete->addRecord(rr);
 	      }
 	    }

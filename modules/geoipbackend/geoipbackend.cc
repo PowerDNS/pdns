@@ -106,14 +106,6 @@ void GeoIPBackend::initialize() {
           rr.content = "";
         } else {
           string content=rec->second.as<string>();
-          if (rr.qtype == QType::MX || rr.qtype == QType::SRV) {
-            // extract priority
-            rr.priority=atoi(content.c_str());
-            string::size_type pos = content.find_first_not_of("0123456789");
-            if(pos != string::npos)
-               boost::erase_head(content, pos);
-            trim_left(content);
-          }
           rr.content = content;
         } 
                 

@@ -341,6 +341,12 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
       }
 
       string content = stripDot(i->content);
+      if(i->qtype == QType::MX || i->qtype == QType::SRV) {
+        string::size_type pos = content.find_first_not_of("0123456789");
+        if(pos != string::npos)
+          boost::erase_head(content, pos);
+        trim_left(content);
+      }
 
       QType qtypes[2];
       qtypes[0]="A"; qtypes[1]="AAAA";

@@ -105,10 +105,6 @@ void LUABackend::dnsrr_to_table(lua_State *lua, const DNSResourceRecord *rr) {
     lua_pushliteral(lua, "qclass");
     lua_pushnumber(lua, rr->qclass);
     lua_settable(lua, -3);
-    
-    lua_pushliteral(lua, "priority");
-    lua_pushnumber(lua, rr->priority);
-    lua_settable(lua, -3);
 
     lua_pushliteral(lua, "ttl");
     lua_pushnumber(lua, rr->ttl);

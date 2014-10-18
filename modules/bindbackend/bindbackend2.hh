@@ -53,8 +53,7 @@ struct Bind2DNSRecord
   string nsec3hash;
   uint32_t ttl;
   uint16_t qtype;
-  uint16_t priority;
-  mutable bool auth; 
+  mutable bool auth;
   bool operator<(const Bind2DNSRecord& rhs) const
   {
     if(qname < rhs.qname)
@@ -226,7 +225,7 @@ public:
   static pthread_rwlock_t s_state_lock;
 
   void parseZoneFile(BB2DomainInfo *bbd);
-  void insertRecord(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl=300, int prio=25, const std::string& hashed=string(), bool *auth=0);
+  void insertRecord(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
   bool isMaster(const string &name, const string &ip);

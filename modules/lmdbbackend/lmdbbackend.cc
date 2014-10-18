@@ -519,16 +519,7 @@ next_record:
 
     rr.domain_id = domain_id;
     rr.ttl = atoi( valparts[1].c_str() );
-
-    if( rr.qtype.getCode() != QType::MX && rr.qtype.getCode() != QType::SRV )
-        rr.content = valparts[2];
-    else {
-        // split out priority field
-        string::size_type pos = valparts[2].find_first_of(" ", 0);
-
-        rr.priority = atoi( valparts[2].substr(0, pos).c_str() );
-        rr.content = valparts[2].substr(pos+1, valparts[2].length());
-    }
+    rr.content = valparts[2];
 
     return true;
 }

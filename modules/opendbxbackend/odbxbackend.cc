@@ -340,7 +340,7 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
 bool OdbxBackend::get( DNSResourceRecord& rr )
 {
         const char* tmp;
-
+        string priority;
 
         try
         {
@@ -348,8 +348,8 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
         	if( getRecord( READ ) )
         	{
+
         		rr.content = "";
-        		rr.priority = 0;
         		rr.domain_id = 0;
         		rr.last_modified = 0;
         		rr.ttl = m_default_ttl;
@@ -377,13 +377,16 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
         		if( ( tmp = odbx_field_value( m_result, 4 ) ) != NULL )
         		{
-        			rr.priority = (uint16_t) strtoul( tmp, NULL, 10 );
+        			priority = string( tmp, odbx_field_length( m_result, 4 ) );
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 5 ) ) != NULL )
         		{
         			rr.content = string( tmp, odbx_field_length( m_result, 5 ) );
         		}
+
+        		if (rr.qtype==QType::MX || rr.qtype==QType::SRV)
+        			rr.content = priority + " " + rr.content;
 
         		return true;
         	}
@@ -659,9 +662,22 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
         	}
 
         	string tmp = rr.qname;
+
+        	int priority=0;
+        	string content(rr.content);
+
+        	if(rr.qtype == QType::MX || rr.qtype == QType::SRV) {
+        		priority=atoi(content.c_str());
+
+        		string::size_type pos = content.find_first_not_of("0123456789");
+        		if(pos != string::npos)
+        			boost::erase_head(content, pos);
+        		trim_left(content);
+        	}
+
         	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, getArg( "sql-insert-record" ).c_str(), rr.domain_id,
-        		escape( toLowerByRef( tmp ), WRITE ).c_str(), rr.qtype.getName().c_str(), rr.ttl, rr.priority,
-        		escape( rr.content, WRITE ).c_str() );
+        		escape( toLowerByRef( tmp ), WRITE ).c_str(), rr.qtype.getName().c_str(), rr.ttl, priority,
+        		escape( content, WRITE ).c_str() );
 
         	if( len < 0 )
         	{

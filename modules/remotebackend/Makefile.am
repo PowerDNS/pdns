@@ -1,6 +1,6 @@
 AM_CPPFLAGS += \
 	-I../../pdns/ext/rapidjson/include \
-	-I../../pdns/ext/yahttp \
+	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
@@ -46,7 +46,7 @@ libremotebackend_la_SOURCES = \
 
 libremotebackend_la_LDFLAGS = -module -avoid-version
 
-libremotebackend_la_LIBADD = ../../pdns/ext/yahttp/yahttp/libyahttp.la
+libremotebackend_la_LIBADD = $(YAHTTP_LIBS)
 
 if REMOTEBACKEND_ZEROMQ
 libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
@@ -102,12 +102,15 @@ libtestremotebackend_la_SOURCES = \
 	zmqconnector.cc \
 	remotebackend.hh remotebackend.cc
 
+libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
+
 libtestremotebackend_la_LIBADD = \
-	-L../../pdns/ext/yahttp/yahttp -lyahttp \
+	$(YAHTTP_LIBS) \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS)
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(LIBDL)
 
 libtestremotebackend_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -123,12 +126,10 @@ libtestremotebackend_la_SOURCES += \
 	../../pdns/pkcs11signers.cc
 
 libtestremotebackend_la_LIBADD += \
-	$(P11KIT1_LIBS) \
-	$(LIBDL)
+	$(P11KIT1_LIBS)
 
-libtestremotebackend_la_CPPFLAGS = \
-	$(P11KIT1_CFLAGS) \
-	$(AM_CPPFLAGS)
+libtestremotebackend_la_CPPFLAGS += \
+	$(P11KIT1_CFLAGS)
 endif
 
 test_remotebackend_http_SOURCES = \
