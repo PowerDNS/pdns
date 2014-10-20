@@ -22,21 +22,21 @@ PowerDNS software periodically tries to resolve
 
 The data returned is in one of the following forms:
 
- * NXDOMAIN or resolution failure -> -1
- * "0 Ok" -> 0
- * "1 Upgrade recommended for security reasons, see http://powerdns.com/..." -> 1
- * "2 Upgrade mandatory for security reasons, see http://powerdns.com/..." -> 2
+ * NXDOMAIN or resolution failure -> 0
+ * "1 Ok" -> 1
+ * "2 Upgrade recommended for security reasons, see http://powerdns.com/..." -> 2
+ * "3 Upgrade mandatory for security reasons, see http://powerdns.com/..." -> 3
 
-In cases 1 or 2, periodic logging commences. The metric security-status is
-set to 1 or 2 respectively. If at a later date, resolution fails, the
-security-status is not reset to 0. It could be lowered however if we
+In cases 2 or 3, periodic logging commences. The metric security-status is
+set to 2 or 3 respectively. If at a later date, resolution fails, the
+security-status is not reset to 1. It could be lowered however if we
 discover the security status is less urgent than we thought.
 
-If resolution fails, and the previous security-status was 0, the new
-security-status becomes -1 ('no data'). If the security-status was higher
-than 0, it will remain that way, and not get set to -1.
+If resolution fails, and the previous security-status was 1, the new
+security-status becomes 0 ('no data'). If the security-status was higher
+than 1, it will remain that way, and not get set to 0.
 
-In this way, security-status of -1 really means 'no data', and can not mask
+In this way, security-status of 0 really means 'no data', and can not mask
 a known problem.
 
 ## Distributions
