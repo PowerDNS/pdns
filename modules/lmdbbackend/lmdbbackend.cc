@@ -12,17 +12,17 @@
  * script which generates a simple zone.
  */
 
-#include <pdns/utility.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/dns.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
+#include "pdns/utility.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
 #include <signal.h>
 #include "lmdbbackend.hh"
-#include <pdns/arguments.hh>
-#include <pdns/base32.hh>
-#include <pdns/lock.hh>
+#include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/lock.hh"
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
@@ -519,16 +519,7 @@ next_record:
 
     rr.domain_id = domain_id;
     rr.ttl = atoi( valparts[1].c_str() );
-
-    if( rr.qtype.getCode() != QType::MX && rr.qtype.getCode() != QType::SRV )
-        rr.content = valparts[2];
-    else {
-        // split out priority field
-        string::size_type pos = valparts[2].find_first_of(" ", 0);
-
-        rr.priority = atoi( valparts[2].substr(0, pos).c_str() );
-        rr.content = valparts[2].substr(pos+1, valparts[2].length());
-    }
+    rr.content = valparts[2];
 
     return true;
 }

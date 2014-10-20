@@ -48,6 +48,37 @@ void HttpRequest::json(rapidjson::Document& document)
   }
 }
 
+bool HttpRequest::compareAuthorization(const string &expected_password)
+{
+  // validate password
+  YaHTTP::strstr_map_t::iterator header = headers.find("authorization");
+  bool auth_ok = false;
+  if (header != headers.end() && toLower(header->second).find("basic ") == 0) {
+    string cookie = header->second.substr(6);
+
+    string plain;
+    B64Decode(cookie, plain);
+
+    vector<string> cparts;
+    stringtok(cparts, plain, ":");
+
+    // this gets rid of terminating zeros
+    auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), expected_password.c_str())));
+  }
+  return auth_ok;
+}
+
+bool HttpRequest::compareHeader(const string &header_name, const string &expected_value)
+{
+  YaHTTP::strstr_map_t::iterator header = headers.find(header_name);
+  if (header == headers.end())
+    return false;
+
+  // this gets rid of terminating zeros
+  return (0==strcmp(header->second.c_str(), expected_value.c_str()));
+}
+
+
 void HttpResponse::setBody(rapidjson::Document& document)
 {
   this->body = makeStringFromDocument(document);
@@ -58,19 +89,30 @@ int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
   return ::B64Decode(strInput, strOutput);
 }
 
-static void handlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
+static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses
   handler(static_cast<HttpRequest*>(req), static_cast<HttpResponse*>(resp));
 }
 
-void WebServer::registerHandler(const string& url, HandlerFunction handler)
+void WebServer::registerBareHandler(const string& url, HandlerFunction handler)
 {
-  YaHTTP::THandlerFunction f = boost::bind(&handlerWrapper, handler, _1, _2);
+  YaHTTP::THandlerFunction f = boost::bind(&bareHandlerWrapper, handler, _1, _2);
   YaHTTP::Router::Any(url, f);
 }
 
 static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
+  const string& api_key = arg()["experimental-api-key"];
+  if (api_key.empty()) {
+    L<<Logger::Debug<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
+    throw HttpUnauthorizedException();
+  }
+  bool auth_ok = req->compareHeader("x-api-key", api_key);
+  if (!auth_ok) {
+    L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
+    throw HttpUnauthorizedException();
+  }
+
   resp->headers["Access-Control-Allow-Origin"] = "*";
   resp->headers["Content-Type"] = "application/json";
 
@@ -108,7 +150,25 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 
 void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
   HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
-  registerHandler(url, f);
+  registerBareHandler(url, f);
+}
+
+static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
+  const string& web_password = arg()["webserver-password"];
+  if (!web_password.empty()) {
+    bool auth_ok = req->compareAuthorization(web_password);
+    if (!auth_ok) {
+      L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
+      throw HttpUnauthorizedException();
+    }
+  }
+
+  handler(req, resp);
+}
+
+void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
+  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2);
+  registerBareHandler(url, f);
 }
 
 static void *WebServerConnectionThreadStart(void *p) {
@@ -145,28 +205,6 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
         req.accept_json = true;
       } else if (header->second.find("text/html") != std::string::npos) {
         req.accept_html = true;
-      }
-    }
-
-    if (!d_password.empty()) {
-      // validate password
-      header = req.headers.find("authorization");
-      bool auth_ok = false;
-      if (header != req.headers.end() && toLower(header->second).find("basic ") == 0) {
-        string cookie = header->second.substr(6);
-
-        string plain;
-        B64Decode(cookie, plain);
-
-        vector<string> cparts;
-        stringtok(cparts, plain, ":");
-
-        // this gets rid of terminating zeros
-        auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), d_password.c_str())));
-      }
-      if (!auth_ok) {
-        L<<Logger::Debug<<"HTTP Request \"" << req.url.path << "\": Authentication failed" << endl;
-        throw HttpUnauthorizedException();
       }
     }
 
@@ -268,11 +306,10 @@ catch(...) {
   L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
-WebServer::WebServer(const string &listenaddress, int port, const string &password) : d_server(NULL)
+WebServer::WebServer(const string &listenaddress, int port) : d_server(NULL)
 {
   d_listenaddress=listenaddress;
   d_port=port;
-  d_password=password;
 }
 
 void WebServer::bind()

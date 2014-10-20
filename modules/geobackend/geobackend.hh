@@ -10,8 +10,8 @@
 #include <map>
 #include <pthread.h>
 
-#include <pdns/dnsbackend.hh>
-#include <pdns/logger.hh>
+#include "pdns/dnsbackend.hh"
+#include "pdns/logger.hh"
 
 #include "ippreftree.hh"
 

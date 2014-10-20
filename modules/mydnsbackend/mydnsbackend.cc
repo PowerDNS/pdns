@@ -27,14 +27,14 @@
 
 #include "pdns/namespaces.hh"
 
-#include <pdns/dns.hh>
-#include <pdns/dnsbackend.hh>
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
 #include "mydnsbackend.hh"
-#include <pdns/dnspacket.hh>
-#include <pdns/ueberbackend.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
-#include <pdns/arguments.hh>
+#include "pdns/dnspacket.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 
 #include <modules/gmysqlbackend/smysql.hh>
 
@@ -324,7 +324,8 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         	}
         }
 
-        rr.priority = atol(rrow[2].c_str());
+        if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+          rr.content=rrow[2]+" "+rr.content;
         rr.ttl = atol(rrow[3].c_str());
         if (d_useminimalttl && rr.ttl < d_minimum)
         	rr.ttl = d_minimum;

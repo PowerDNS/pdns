@@ -266,15 +266,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
   // SOA needs stripping too! XXX FIXME - also, this should not be here I think
   switch(r.qtype.getCode()) {
   case QType::MX:
-    if(!stripDomainSuffix(&content, domain))
-      content+=".";
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<content<<endl;
-    break;
   case QType::SRV:
-    if(!stripDomainSuffix(&content, domain))
-      content+=".";
-    *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.priority<<"\t"<<content<<endl;
-    break;
   case QType::CNAME:
   case QType::NS:
     if(!stripDomainSuffix(&content, domain))
@@ -460,7 +452,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
       else
         hashed="";
     }
-    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed);
+    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed);
   }
   fixupAuth(bbd->d_records.getWRITABLE());
   doEmptyNonTerminals(*bbd, nsec3zone, ns3pr);
@@ -472,7 +464,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const QType &qtype, const string &content, int ttl, int prio, const std::string& hashed, bool *auth)
+void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const QType &qtype, const string &content, int ttl, const std::string& hashed, bool *auth)
 {
   Bind2DNSRecord bdr;
   shared_ptr<recordstorage_t> records = bb2.d_records.getWRITABLE();
@@ -507,20 +499,10 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const 
   else
     bdr.auth=true;
 
-  if(bdr.qtype == QType::MX || bdr.qtype == QType::SRV) { 
-    prio=atoi(bdr.content.c_str());
-    
-    string::size_type pos = bdr.content.find_first_not_of("0123456789");
-    if(pos != string::npos)
-      boost::erase_head(bdr.content, pos);
-    trim_left(bdr.content);
-  }
-  
   if(bdr.qtype==QType::CNAME || bdr.qtype==QType::MX || bdr.qtype==QType::NS || bdr.qtype==QType::AFSDB)
     bdr.content=toLowerCanonic(bdr.content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
 
   bdr.ttl=ttl;
-  bdr.priority=prio;  
   records->insert(bdr);
 }
 
@@ -728,14 +710,13 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   rr.qtype="#0";
   rr.content="";
   rr.ttl=0;
-  rr.priority=0;
   pair<string, bool> nt;
   BOOST_FOREACH(nt, nonterm)
   {
     rr.qname=nt.first+"."+bbd.d_name+".";
     if(nsec3zone)
       hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-    insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, rr.priority, hashed, &nt.second);
+    insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
   }
 }
 
@@ -1133,7 +1114,7 @@ bool Bind2Backend::get(DNSResourceRecord &r)
     return false;
   }
   if(d_handle.mustlog)
-    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"', prio: "<<r.priority<<endl;
+    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"'"<<endl;
   return true;
 }
 
@@ -1177,7 +1158,6 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
   //  r.domain_id=(d_iter)->domain_id;
   r.qtype=(d_iter)->qtype;
   r.ttl=(d_iter)->ttl;
-  r.priority=(d_iter)->priority;
 
   //if(!d_iter->auth && r.qtype.getCode() != QType::A && r.qtype.getCode()!=QType::AAAA && r.qtype.getCode() != QType::NS)
   //  cerr<<"Warning! Unauth response for qtype "<< r.qtype.getName() << " for '"<<r.qname<<"'"<<endl;
@@ -1215,7 +1195,6 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
     r.content=(d_qname_iter)->content;
     r.qtype=(d_qname_iter)->qtype;
     r.ttl=(d_qname_iter)->ttl;
-    r.priority=(d_qname_iter)->priority;
     r.auth = d_qname_iter->auth;
     d_qname_iter++;
     return true;

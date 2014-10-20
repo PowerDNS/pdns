@@ -5,7 +5,7 @@
 
 #include <lmdb.h>
 #include <pthread.h>
-#include <pdns/dnsbackend.hh>
+#include "pdns/dnsbackend.hh"
 
 class LMDBBackend : public DNSReversedBackend
 {

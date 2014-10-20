@@ -143,8 +143,9 @@ static void emitDomain(const string& domain, const vector<string> *masters = 0) 
 }
 
 bool g_doJSONComments;
-static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio, const string& comment="")
+static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, const string& comment="")
 {
+  int prio=0;
   int disabled=0;
   string recordcomment;
 
@@ -401,7 +402,7 @@ try
 		continue;
 	      if(rr.qtype.getCode() == QType::SOA)
 		seenSOA=true;
-              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority, comment);
+              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
 	    }
             num_domainsdone++;
           }
@@ -438,7 +439,7 @@ try
 	if(rr.qtype.getCode() == QType::SOA)
 	  seenSOA=true;
 
-        emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority, comment);
+        emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
       }
       num_domainsdone=1;
     }

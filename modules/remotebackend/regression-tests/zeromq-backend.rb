@@ -14,7 +14,7 @@ f.sync = true
 begin
   context = ZeroMQ::Context.new
   socket = context.socket ZMQ::REP
-  socket.bind("ipc:///tmp/pdns.0")
+  socket.bind("ipc:///tmp/pdns.0") or raise "Cannot bind to IPC socket"
 
   while(true) do
     line = ""

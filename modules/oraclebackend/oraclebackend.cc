@@ -994,22 +994,13 @@ bool OracleBackend::get (DNSResourceRecord &rr)
   rr.qname = mResultName;
   rr.ttl = mResultTTL;
   rr.qtype = mResultType;
+  rr.content = mResultContent;
   rr.domain_id = mResultZoneId;
   rr.last_modified = mResultLastChange;
   if (d_dnssecQueries)
     rr.auth = mResultIsAuth > 0;
   else
     rr.auth = 1;
-
-  if ((rr.qtype.getCode() == QType::MX) || (rr.qtype.getCode() == QType::SRV)) {
-    unsigned priority = 0;
-    int skip = 0;
-    sscanf(mResultContent, "%u %n", &priority, &skip);
-    rr.priority = priority;
-    rr.content = mResultContent + skip;
-  } else {
-    rr.content = mResultContent;
-  }
 
   rc = OCIStmtFetch2(curStmtHandle, oraerr, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT);
 
@@ -1071,7 +1062,6 @@ OracleBackend::feedRecord (const DNSResourceRecord &rr, string *ordername)
   OCIStmt *stmt;
 
   uint32_t ttl;
-  char content[4001];
 
   stmt = prepare_query(masterSvcCtx, insertRecordQuerySQL, insertRecordQueryKey);
   bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
@@ -1079,17 +1069,13 @@ OracleBackend::feedRecord (const DNSResourceRecord &rr, string *ordername)
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
   bind_str(stmt, ":type", mQueryType, sizeof(mQueryType));
   bind_uint32(stmt, ":ttl", &ttl);
-  bind_str(stmt, ":content", content, sizeof(content));
+  bind_str(stmt, ":content", mQueryContent, sizeof(mQueryContent));
 
   mQueryZoneId = rr.domain_id;
   string_to_cbuf(mQueryName, rr.qname, sizeof(mQueryName));
   ttl = rr.ttl;
   string_to_cbuf(mQueryType, rr.qtype.getName(), sizeof(mQueryType));
-  if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
-    snprintf(content, sizeof(content), "%d %s", rr.priority, rr.content.c_str());
-  } else {
-    string_to_cbuf(content, rr.content, sizeof(content));
-  }
+  string_to_cbuf(mQueryContent, rr.content, sizeof(mQueryContent));
 
   rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 

@@ -75,7 +75,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : qclass(1), priority(0), signttl(0), last_modified(0), d_place(ANSWER), auth(1), disabled(0), scopeMask(0) {};
+  DNSResourceRecord() : qclass(1), signttl(0), last_modified(0), d_place(ANSWER), auth(1), disabled(0), scopeMask(0) {};
   DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
 
@@ -89,7 +89,6 @@ public:
   string qname; //!< the name of this record, for example: www.powerdns.com
   string wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
-  uint16_t priority; //!< For qtypes that support a priority or preference (MX, SRV)
   uint32_t ttl; //!< Time To Live of this record
   uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG
   int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
@@ -109,7 +108,6 @@ public:
     ar & qname;
     ar & wildcardname;
     ar & content;
-    ar & priority;
     ar & ttl;
     ar & domain_id;
     ar & last_modified;
