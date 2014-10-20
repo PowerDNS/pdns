@@ -15062,6 +15062,25 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
         </varlistentry>
 
       </variablelist>
+      <para>
+      	The semantics are that first a dynamic update has to be allowed
+      	either by the global allow-dnsupdate-from setting, or by a per-zone
+      	ALLOW-DNSUPDATE-FROM metadata setting.
+      </para>
+      <para>
+        Secondly, if a zone has a TSIG-ALLOW-DNSUPDATE metadata setting,
+        that must match too. 
+      </para>
+      <para>
+      	So to only allow dynamic DNS updates to a zone based on TSIG key, and
+      	regardless of IP address, set allow-dns-update-from to empty, set
+      	ALLOW-DNSUPDATE-FROM to "0.0.0.0/0" and "::/0" and set the
+      	TSIG-ALLOW-DNSUPDATE to the proper key name.
+      </para>
+      <para>
+        Further information can be found in <xref
+        linkend="dnsupdate-how-it-works"/>.
+       </para>
     </sect1>
 
     <sect1 id="dnsupdate-domainmetadata"><title>Per zone settings</title>
