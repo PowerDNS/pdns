@@ -1911,7 +1911,9 @@ int serviceMain(int argc, char*argv[])
   }
 
   Utility::dropUserPrivs(newuid);
-  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
+  g_numThreads = ::arg().asNum("threads");
+  if(g_numThreads > 1)
+    g_numThreads += ::arg().mustDo("pdns-distributes-queries"); 
   
   makeThreadPipes();
   
