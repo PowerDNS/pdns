@@ -26,7 +26,7 @@ sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
 mplexer.hh \
 dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
-ws-recursor.hh ws-api.hh \
+ws-recursor.hh ws-api.hh secpoll-recursor.hh \
 responsestats.hh webserver.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
@@ -37,7 +37,7 @@ selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
 sillyrecords.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
 dnslabeltext.cc json.cc ws-recursor.cc ws-api.cc version.cc dns_random.cc \
-responsestats.cc webserver.cc rec-carbon.cc"
+responsestats.cc webserver.cc rec-carbon.cc secpoll-recursor.cc"
 
 cd docs
 make pdns_recursor.1 rec_control.1

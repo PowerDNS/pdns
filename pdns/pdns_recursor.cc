@@ -66,7 +66,7 @@
 #include "lua-recursor.hh"
 #include "version.hh"
 #include "responsestats.hh"
-
+#include "secpoll-recursor.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
@@ -1175,7 +1175,7 @@ void doStats(void)
 static void houseKeeping(void *)
 try
 {
-  static __thread time_t last_stat, last_rootupdate, last_prune;
+  static __thread time_t last_stat, last_rootupdate, last_prune, last_secpoll;
   static __thread int cleanCounter=0;
   struct timeval now;
   Utility::gettimeofday(&now, 0);
@@ -1202,13 +1202,6 @@ try
     last_prune=time(0);
   }
   
-  if(!t_id) {
-    if(now.tv_sec - last_stat >= 1800) { 
-      doStats();
-      last_stat=time(0);
-    }
-  }
-  
   if(now.tv_sec - last_rootupdate > 7200) {
     SyncRes sr(now);
     sr.setDoEDNS0(true);
@@ -1223,6 +1216,19 @@ try
     else
       L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
   }
+
+  if(!t_id) {
+    if(now.tv_sec - last_stat >= 1800) { 
+      doStats();
+      last_stat=time(0);
+    }
+
+    if(now.tv_sec - last_secpoll >= 1800) {
+      doSecPoll(&last_secpoll);
+    }
+  }
+  
+
 }
 catch(PDNSException& ae)
 {
@@ -2174,6 +2180,7 @@ int main(int argc, char **argv)
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
+    ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");

@@ -23,6 +23,7 @@
 #include "lock.hh"
 #include "responsestats.hh"
 #include "version_generated.h"
+#include "secpoll-recursor.hh"
 
 #include "namespaces.hh"
 pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
@@ -537,6 +538,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("failed-host-entries", boost::bind(getFailedHostsSize));
 
   addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
+  addGetStat("security-status", &g_security_status);
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
