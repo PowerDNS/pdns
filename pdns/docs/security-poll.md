@@ -43,7 +43,7 @@ which will move the security polls from:
 'auth-x.y.z-n.security-status.debian.secpoll.powerdns.com
 
 Note two things, one, there is a separate namespace for debian, and
-secondly, we include the sub-version of this release. This allows us to know
+secondly, we use the package version of this release. This allows us to know
 that 3.6.0-1 (say) is insecure, but that 3.6.0-2 is not.
 
 ## Details
@@ -51,7 +51,10 @@ The configuration setting 'security-poll-suffix' is by default set to
 'secpoll.powerdns.com'. If empty, nothing is polled. This can be moved to
 'secpoll.yourorganization.com'.
 
-If compiled with DISTRIBUTION=dist SUBVERSION=abcde, queries will be sent to
-"auth-x.y.z-abcde.dist.security-poll-suffix".
+If compiled with DISTRIBUTION=dist PACKAGEVERSION=3.1.6-abcde, queries will be sent to
+"auth-3.1.6-abcde.dist.security-poll-suffix".
 
+## Delegation
+If a distribution wants to host its own file with version information, we
+can delegate dist.secpoll.powerdns.com to their nameservers directly.
 
