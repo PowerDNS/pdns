@@ -2,9 +2,11 @@
 #include "syncres.hh"
 #include "logger.hh"
 #include "arguments.hh"
+#include "version.hh"
+#include "version_generated.h"
 
 #ifndef PACKAGEVERSION 
-#define PACKAGEVERSION VERSION
+#define PACKAGEVERSION PDNS_VERSION
 #endif
 
 uint32_t g_security_status;
@@ -21,7 +23,9 @@ void doSecPoll(time_t* last_secpoll)
   
   vector<DNSResourceRecord> ret;
 
-  int res=sr.beginResolve("recursor-" PACKAGEVERSION ".security-status."+::arg()["security-poll-suffix"], QType(QType::TXT), 1, ret);
+  string query = "recursor-" PACKAGEVERSION ".security-status."+::arg()["security-poll-suffix"];
+
+  int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
   if(!res && !ret.empty()) {
     string content=ret.begin()->content;
     if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
@@ -36,7 +40,7 @@ void doSecPoll(time_t* last_secpoll)
     *last_secpoll=now.tv_sec;
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" PACKAGEVERSION "', RCODE = "<< RCode::to_s(res)<<endl;
+    L<<Logger::Warning<<"Could not retrieve security status update for '" PACKAGEVERSION "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     if(g_security_status == 1)
       g_security_status = 0;
   }
