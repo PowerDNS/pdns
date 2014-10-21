@@ -2198,6 +2198,9 @@ int main(int argc, char **argv)
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 
+    if(::arg().asNum("threads")==1)
+      ::arg().set("pdns-distributes-queries")="no";
+
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;
       cout<<::arg().helpstring(::arg()["help"])<<endl;
