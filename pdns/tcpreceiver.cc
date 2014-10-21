@@ -1008,7 +1008,10 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     sendPacket(outpacket,outsock);
     return 0;
   }
-  if (!rfc1982LessThan(serial, sd.serial)) {
+
+  string soaedit;
+  dk.getFromMeta(target, "SOA-EDIT", soaedit);
+  if (!rfc1982LessThan(serial, calculateEditSOA(sd, soaedit))) {
     TSIGRecordContent trc;
     string tsigkeyname, tsigsecret;
 
