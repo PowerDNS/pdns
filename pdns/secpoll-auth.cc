@@ -12,6 +12,7 @@
 #include "dns_random.hh"
 #include "namespaces.hh"
 #include "statbag.hh"
+#include <stdint.h>
 #ifndef PACKAGEVERSION 
 #define PACKAGEVERSION PDNS_VERSION
 #endif
