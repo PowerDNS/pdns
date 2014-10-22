@@ -16,6 +16,8 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "common_startup.hh"
+#include "secpoll-auth.hh"
+
 bool g_anyToTcp;
 bool g_addSuperfluousNSEC3;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
@@ -147,6 +149,7 @@ void declareArguments()
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
 
   ::arg().set("include-dir","Include *.conf files from this directory");
+  ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 }
 
 void declareStats(void)
@@ -178,7 +181,7 @@ void declareStats(void)
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("latency","Average number of microseconds needed to answer a question");
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
-
+  S.declare("security-status", "Security status based on regular polling");
   S.declareRing("queries","UDP Queries Received");
   S.declareRing("nxdomain-queries","Queries for non-existent records within existent domains");
   S.declareRing("noerror-queries","Queries for existing records, but for type we don't have");
@@ -338,6 +341,9 @@ void mainthread()
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
    
 #ifndef WIN32
+
+   doSecPoll(true); // this must be BEFORE chroot
+
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
@@ -377,8 +383,10 @@ void mainthread()
   for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
-  void *p;
-  pthread_join(qtid, &p);
+  for(;;) {
+    sleep(1800);
+    doSecPoll(false);
+  }
   
   L<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
 }
