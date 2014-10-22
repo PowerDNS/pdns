@@ -83,9 +83,9 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
 }
 
 
-boilerplate_conv(A, ns_t_a, conv.xfrIP(d_ip));
+boilerplate_conv(A, QType::A, conv.xfrIP(d_ip));
 
-ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(ns_t_a)
+ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(QType::A)
 {
   d_ip = ip;
 }
@@ -101,26 +101,26 @@ void ARecordContent::doRecordCheck(const DNSRecord& dr)
     throw MOADNSException("Wrong size for A record ("+lexical_cast<string>(dr.d_clen)+")");
 }
 
-boilerplate_conv(AAAA, ns_t_aaaa, conv.xfrIP6(d_ip6); );
+boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );
 
-boilerplate_conv(NS, ns_t_ns, conv.xfrLabel(d_content, true));
-boilerplate_conv(PTR, ns_t_ptr, conv.xfrLabel(d_content, true));
-boilerplate_conv(CNAME, ns_t_cname, conv.xfrLabel(d_content, true));
+boilerplate_conv(NS, QType::NS, conv.xfrLabel(d_content, true));
+boilerplate_conv(PTR, QType::PTR, conv.xfrLabel(d_content, true));
+boilerplate_conv(CNAME, QType::CNAME, conv.xfrLabel(d_content, true));
 boilerplate_conv(ALIAS, QType::ALIAS, conv.xfrLabel(d_content, true));
-boilerplate_conv(DNAME, ns_t_dname, conv.xfrLabel(d_content));
-boilerplate_conv(MR, ns_t_mr, conv.xfrLabel(d_alias, true));
-boilerplate_conv(MINFO, ns_t_minfo, conv.xfrLabel(d_rmailbx, true); conv.xfrLabel(d_emailbx, true));
-boilerplate_conv(TXT, ns_t_txt, conv.xfrText(d_text, true));
+boilerplate_conv(DNAME, QType::DNAME, conv.xfrLabel(d_content));
+boilerplate_conv(MR, QType::MR, conv.xfrLabel(d_alias, true));
+boilerplate_conv(MINFO, QType::MINFO, conv.xfrLabel(d_rmailbx, true); conv.xfrLabel(d_emailbx, true));
+boilerplate_conv(TXT, QType::TXT, conv.xfrText(d_text, true));
 boilerplate_conv(SPF, 99, conv.xfrText(d_text, true));
-boilerplate_conv(HINFO, ns_t_hinfo,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
+boilerplate_conv(HINFO, QType::HINFO,  conv.xfrText(d_cpu);   conv.xfrText(d_host));
 
-boilerplate_conv(RP, ns_t_rp,
+boilerplate_conv(RP, QType::RP,
                  conv.xfrLabel(d_mbox);   
                  conv.xfrLabel(d_info)
                  );
 
 
-boilerplate_conv(OPT, ns_t_opt, 
+boilerplate_conv(OPT, QType::OPT, 
                    conv.xfrBlob(d_data)
                  );
 
@@ -142,7 +142,7 @@ void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
   }
 }
 
-boilerplate_conv(TSIG, ns_t_tsig,
+boilerplate_conv(TSIG, QType::TSIG,
                  conv.xfrLabel(d_algoName);
                  conv.xfr48BitInt(d_time);
                  conv.xfr16BitInt(d_fudge);
@@ -156,21 +156,21 @@ boilerplate_conv(TSIG, ns_t_tsig,
                  if (size>0) conv.xfrBlob(d_otherData, size);
                  );
 
-MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(ns_t_mx), d_preference(preference), d_mxname(mxname)
+MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(QType::MX), d_preference(preference), d_mxname(mxname)
 {
 }
 
-boilerplate_conv(MX, ns_t_mx, 
+boilerplate_conv(MX, QType::MX, 
                  conv.xfr16BitInt(d_preference);
                  conv.xfrLabel(d_mxname, true);
                  )
 
-boilerplate_conv(KX, ns_t_kx, 
+boilerplate_conv(KX, QType::KX, 
                  conv.xfr16BitInt(d_preference);
                  conv.xfrLabel(d_exchanger, false);
                  )
 
-boilerplate_conv(IPSECKEY, ns_t_ipseckey,
+boilerplate_conv(IPSECKEY, QType::IPSECKEY,
    conv.xfr8BitInt(d_preference);
    conv.xfr8BitInt(d_gatewaytype);
    conv.xfr8BitInt(d_algorithm);
@@ -209,13 +209,13 @@ boilerplate_conv(DHCID, 49,
                  )
 
 
-boilerplate_conv(AFSDB, ns_t_afsdb, 
+boilerplate_conv(AFSDB, QType::AFSDB, 
                  conv.xfr16BitInt(d_subtype);
                  conv.xfrLabel(d_hostname);
                  )
 
 
-boilerplate_conv(NAPTR, ns_t_naptr,
+boilerplate_conv(NAPTR, QType::NAPTR,
                  conv.xfr16BitInt(d_order);    conv.xfr16BitInt(d_preference);
                  conv.xfrText(d_flags);        conv.xfrText(d_services);         conv.xfrText(d_regexp);
                  conv.xfrLabel(d_replacement);
@@ -223,21 +223,21 @@ boilerplate_conv(NAPTR, ns_t_naptr,
 
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
-  : DNSRecordContent(ns_t_srv), d_preference(preference), d_weight(weight), d_port(port), d_target(target)
+: DNSRecordContent(QType::SRV), d_preference(preference), d_weight(weight), d_port(port), d_target(target)
 {}
 
-boilerplate_conv(SRV, ns_t_srv, 
+boilerplate_conv(SRV, QType::SRV, 
                  conv.xfr16BitInt(d_preference);   conv.xfr16BitInt(d_weight);   conv.xfr16BitInt(d_port);
                  conv.xfrLabel(d_target); 
                  )
 
 SOARecordContent::SOARecordContent(const string& mname, const string& rname, const struct soatimes& st) 
-  : DNSRecordContent(ns_t_soa), d_mname(mname), d_rname(rname)
+: DNSRecordContent(QType::SOA), d_mname(mname), d_rname(rname)
 {
   d_st=st;
 }
 
-boilerplate_conv(SOA, ns_t_soa, 
+boilerplate_conv(SOA, QType::SOA, 
                  conv.xfrLabel(d_mname, true);
                  conv.xfrLabel(d_rname, true);
                  conv.xfr32BitInt(d_st.serial);
@@ -247,7 +247,7 @@ boilerplate_conv(SOA, ns_t_soa,
                  conv.xfr32BitInt(d_st.minimum);
                  );
 #undef KEY
-boilerplate_conv(KEY, ns_t_key, 
+boilerplate_conv(KEY, QType::KEY, 
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -326,7 +326,7 @@ RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
 /* EUI48 start */
 void EUI48RecordContent::report(void) 
 {
-    regist(1, ns_t_eui48, &make, &make, "EUI48");
+  regist(1, QType::EUI48, &make, &make, "EUI48");
 }
 DNSRecordContent* EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
@@ -369,7 +369,7 @@ string EUI48RecordContent::getZoneRepresentation() const
 
 void EUI64RecordContent::report(void)
 {
-    regist(1, ns_t_eui64, &make, &make, "EUI64");
+  regist(1, QType::EUI64, &make, &make, "EUI64");
 }
 DNSRecordContent* EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
 {
@@ -474,7 +474,7 @@ void reportBasicTypes()
   SOARecordContent::report();
   SRVRecordContent::report();
   PTRRecordContent::report();
-  DNSRecordContent::regist(QClass::CHAOS, ns_t_txt, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
+  DNSRecordContent::regist(QClass::CHAOS, QType::TXT, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
   DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
 }

@@ -471,7 +471,7 @@ class LOCRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  LOCRecordContent() : DNSRecordContent(ns_t_loc)
+  LOCRecordContent() : DNSRecordContent(QType::LOC)
   {}
   LOCRecordContent(const string& content, const string& zone="");
 
@@ -491,7 +491,7 @@ class WKSRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  WKSRecordContent() : DNSRecordContent(ns_t_wks)
+  WKSRecordContent() : DNSRecordContent(QType::WKS)
   {}
   WKSRecordContent(const string& content, const string& zone="");
 
@@ -525,7 +525,7 @@ private:
 class EUI48RecordContent : public DNSRecordContent 
 {
 public:
-  EUI48RecordContent() : DNSRecordContent(ns_t_eui48) {};
+  EUI48RecordContent() : DNSRecordContent(QType::EUI48) {};
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone);
@@ -539,7 +539,7 @@ private:
 class EUI64RecordContent : public DNSRecordContent
 {
 public:
-  EUI64RecordContent() : DNSRecordContent(ns_t_eui64) {};
+  EUI64RecordContent() : DNSRecordContent(QType::EUI64) {};
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone);

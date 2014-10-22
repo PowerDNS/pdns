@@ -270,8 +270,8 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   vector<uint8_t> pak;
   vector<pair<uint16_t,string > > opts;
 
-  DNSPacketWriter pw(pak, "www.powerdns.com", ns_t_a);
-  pw.startRecord("www.powerdns.com", ns_t_a, 16, 1, DNSPacketWriter::ANSWER);
+  DNSPacketWriter pw(pak, "www.powerdns.com", QType::A);
+  pw.startRecord("www.powerdns.com", QType::A, 16, 1, DNSPacketWriter::ANSWER);
   pw.xfrIP(htonl(0x7f000001));
   opts.push_back(pair<uint16_t,string>(3, "powerdns"));
   pw.addOpt(1280, 0, 0, opts);

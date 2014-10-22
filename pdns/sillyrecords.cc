@@ -149,8 +149,8 @@ latlon2ul(const char **latlonstrptr, int *which)
 
 void LOCRecordContent::report(void)
 {
-  regist(1, ns_t_loc, &make, &make, "LOC");
-  regist(254, ns_t_loc, &make, &make, "LOC");
+  regist(1, QType::LOC, &make, &make, "LOC");
+  regist(254, QType::LOC, &make, &make, "LOC");
 }
 
 DNSRecordContent* LOCRecordContent::make(const string& content)
@@ -186,7 +186,7 @@ LOCRecordContent::DNSRecordContent* LOCRecordContent::make(const DNSRecord &dr, 
   return ret;
 }
 
-LOCRecordContent::LOCRecordContent(const string& content, const string& zone) : DNSRecordContent(ns_t_loc)
+LOCRecordContent::LOCRecordContent(const string& content, const string& zone) : DNSRecordContent(QType::LOC)
 {
   // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
   // convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude

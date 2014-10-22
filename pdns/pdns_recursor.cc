@@ -1917,9 +1917,7 @@ int serviceMain(int argc, char*argv[])
   }
 
   Utility::dropUserPrivs(newuid);
-  g_numThreads = ::arg().asNum("threads");
-  if(g_numThreads > 1)
-    g_numThreads += ::arg().mustDo("pdns-distributes-queries"); 
+  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   
   makeThreadPipes();
   
@@ -2206,6 +2204,9 @@ int main(int argc, char **argv)
     ::arg().parse(argc,argv);
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
+
+    if(::arg().asNum("threads")==1)
+      ::arg().set("pdns-distributes-queries")="no";
 
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;
