@@ -133,7 +133,7 @@ void doSecPoll(bool first)
 
   int res=doResolve(query, QType::TXT, ret);
 
-  int security_status;
+  int security_status=0;
 
   if(!res && !ret.empty()) {
     string content=ret.begin()->content;
