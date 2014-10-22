@@ -47,7 +47,7 @@ insecure to be secure in reality.
 To solve this issue, PowerDNS can be compiled with a distribution setting
 which will move the security polls from:
 'auth-x.y.z.security-status.secpoll.powerdns.com' to
-'auth-x.y.z-n.security-status.debian.secpoll.powerdns.com
+'auth-x.y.z-n.debian.security-status.secpoll.powerdns.com
 
 Note two things, one, there is a separate namespace for debian, and
 secondly, we use the package version of this release. This allows us to know
@@ -58,10 +58,10 @@ The configuration setting 'security-poll-suffix' is by default set to
 'secpoll.powerdns.com'. If empty, nothing is polled. This can be moved to
 'secpoll.yourorganization.com'.
 
-If compiled with DISTRIBUTION=dist PACKAGEVERSION=3.1.6-abcde, queries will be sent to
-"auth-3.1.6-abcde.dist.security-poll-suffix".
+If compiled with PACKAGEVERSION=3.1.6-abcde.debian, queries will be sent to
+"auth-3.1.6-abcde.debian.security-status.security-poll-suffix".
 
 ## Delegation
 If a distribution wants to host its own file with version information, we
-can delegate dist.secpoll.powerdns.com to their nameservers directly.
+can delegate dist.security-status.secpoll.powerdns.com to their nameservers directly.
 
