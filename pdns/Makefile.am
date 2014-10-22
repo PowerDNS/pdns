@@ -908,7 +908,7 @@ pdns_recursor_SOURCES = \
 	resolver.hh \
 	responsestats.cc \
 	secpoll-recursor.cc \
-	secpoll-recuersor.hh \
+	secpoll-recursor.hh \
 	selectmplexer.cc \
 	sillyrecords.cc \
 	statbag.cc \
