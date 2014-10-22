@@ -25,6 +25,11 @@ void doSecPoll(time_t* last_secpoll)
 
   string query = "recursor-" PACKAGEVERSION ".security-status."+::arg()["security-poll-suffix"];
 
+  if(*query.rbegin()!='.')
+    query+='.';
+
+  boost::replace_all(query, "+", "_");
+
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
   if(!res && !ret.empty()) {
     string content=ret.begin()->content;
@@ -41,8 +46,10 @@ void doSecPoll(time_t* last_secpoll)
   }
   else {
     L<<Logger::Warning<<"Could not retrieve security status update for '" PACKAGEVERSION "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
-    if(g_security_status == 1)
+    if(g_security_status == 1) // it was ok, not it is unknown
       g_security_status = 0;
+    if(res == RCode::NXDomain) // if we had servfail, keep on trying more more frequently
+      *last_secpoll=now.tv_sec; 
   }
 
   if(g_security_status == 2) {

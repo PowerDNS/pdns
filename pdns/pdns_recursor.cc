@@ -1223,19 +1223,16 @@ try
       last_stat=time(0);
     }
 
-    if(now.tv_sec - last_secpoll >= 1800) {
+    if(now.tv_sec - last_secpoll >= 3600) {
       doSecPoll(&last_secpoll);
     }
   }
-  
-
 }
 catch(PDNSException& ae)
 {
-  L<<Logger::Error<<"Fatal error: "<<ae.reason<<endl;
+  L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
   throw;
 }
-;
 
 void makeThreadPipes()
 {
