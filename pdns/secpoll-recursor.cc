@@ -4,7 +4,7 @@
 #include "arguments.hh"
 #include "version.hh"
 #include "version_generated.h"
-
+#include <stdint.h>
 #ifndef PACKAGEVERSION 
 #define PACKAGEVERSION PDNS_VERSION
 #endif
