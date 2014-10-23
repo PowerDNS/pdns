@@ -403,13 +403,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       di.backend->abortTransaction();
     }
   }
-  catch(std::exception &re) {
-    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"' (std::exception): "<<re.what()<<endl;
-    if(di.backend && transaction) {
-      L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
-      di.backend->abortTransaction();
-    }
-  }
   catch(ResolverException &re) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (resolver): "<<re.reason<<endl;
     if(di.backend && transaction) {
@@ -419,6 +412,13 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   }
   catch(PDNSException &ae) {
     L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (PDNSException): "<<ae.reason<<endl;
+    if(di.backend && transaction) {
+      L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
+      di.backend->abortTransaction();
+    }
+  }
+  catch(std::exception &re) {
+    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"' (std::exception): "<<re.what()<<endl;
     if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
@@ -623,11 +623,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       ifl.run();
       break;
     }
-    catch(std::exception& e) {
-      L<<Logger::Error<<"While checking domain freshness: " << e.what()<<endl;
-    }
     catch(PDNSException &re) {
       L<<Logger::Error<<"While checking domain freshness: " << re.reason<<endl;
+    }
+    catch(std::exception& e) {
+      L<<Logger::Error<<"While checking domain freshness: " << e.what()<<endl;
     }
   }
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones, had "<<ifl.getTimeouts()<<" timeouts"<<endl;

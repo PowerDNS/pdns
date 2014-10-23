@@ -211,17 +211,17 @@ try
             cout << "},";
             num_domainsdone++;
           } 
-          catch(std::exception &ae) {
-            if(!::arg().mustDo("on-error-resume-next"))
-              throw;
-            else
-              cerr<<endl<<ae.what()<<endl;
-          }
           catch(PDNSException &ae) {
             if(!::arg().mustDo("on-error-resume-next"))
               throw;
             else
               cerr<<ae.reason<<endl;
+          }
+          catch(std::exception &ae) {
+            if(!::arg().mustDo("on-error-resume-next"))
+              throw;
+            else
+              cerr<<endl<<ae.what()<<endl;
           }
           if(!tick || !((count++)%tick))
             cerr<<"\r"<<count*100/numdomains<<"% done ("<<i->filename<<")\033\133\113";

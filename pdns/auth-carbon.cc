@@ -64,14 +64,14 @@ try
   }
   return 0;
 }
-catch(std::exception& e)
-{
-  L<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
-  return 0;
-}
 catch(PDNSException& e)
 {
   L<<Logger::Error<<"Carbon thread died, PDNSException: "<<e.reason<<endl;
+  return 0;
+}
+catch(std::exception& e)
+{
+  L<<Logger::Error<<"Carbon thread died: "<<e.what()<<endl;
   return 0;
 }
 catch(...)
