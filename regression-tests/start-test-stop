@@ -117,6 +117,13 @@ kill_process ()
 	set +e
 	trap - EXIT INT TERM
 
+	if [ $1 -gt 1 ]
+	then
+		echo "exitvalue$1" >> failed_tests
+		./toxml
+		./totar
+	fi
+
 	pids=$(cat pdns*.pid)
 
 	if [ -n "$pids" ]
