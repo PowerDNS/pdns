@@ -388,7 +388,10 @@ void mainthread()
 
   for(;;) {
     sleep(1800);
-    doSecPoll(false);
+    try {
+      doSecPoll(false);
+    }
+    catch(...){}
   }
   
   L<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
