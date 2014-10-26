@@ -82,6 +82,16 @@ Error responses have a JSON body of this format:
 Where `errors` is optional, and the contents are error-specific.
 
 
+Common Error Causes
+-------------------
+
+##### 400 Bad Request
+
+1. The client body was not a JSON document, or it could not be parsed, or the root element of the JSON document was not a hash.
+2. The client did not send an `Accept:` header, or it was set to `*/*`.
+3. For requests that operate on a zone, the `zone_id` URL part was invalid. To get a valid `zone_id`, list the zones with the `/servers/:server_id/zones` endpoint.
+
+
 URL: /
 ------
 
