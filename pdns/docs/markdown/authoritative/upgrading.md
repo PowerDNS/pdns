@@ -75,6 +75,9 @@ Disable the rectify step during an outgoing AXFR. Only required for regression t
 #### `experimental-api-readonly`
 If the JSON API should disallow data modification
 
+#### `experimental-api-key`
+Static API authentication key, must be sent in the X-API-Key header. Required for any API usage.
+
 #### `experimental-dname-processing`
 If we should support DNAME records
 

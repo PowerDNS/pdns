@@ -4,7 +4,9 @@ If you have a security problem to report, please email us at both `<security@net
 
 We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. This license is included in this documentation.
 
-As of the 9th of January 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+As of the 25th of September 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about, with the exception of Recursor 3.6.0 specifically. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+
+Version 3.6.0 of the Recursor (but not 3.5.x) can be crashed remotely with a specific packet sequence. For more detail, see [PowerDNS Security Advisory 2014-01](powerdns-advisory-2014-01.md)
 
 Versions 2.9.22 and lower and 3.0 of the PowerDNS Authoritative Server were vulnerable to a temporary denial of service attack. For more detail, see [PowerDNS Security Advisory 2012-01](powerdns-advisory-2012-01.md).
 
@@ -12,7 +14,7 @@ Version 3.1.7.1 and earlier of the PowerDNS Recursor were vulnerable to a probab
 
 Version 3.1.4 and earlier of the PowerDNS recursor were vulnerable to a spoofing attack. For more detail, see [PowerDNS Security Advisory 2008-01](powerdns-advisory-2008-01.md "System random generator can be predicted, leading to the potential to 'spoof' PowerDNS Recursor").
 
-Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered by remote users. One of the issues might lead be exploited and lead to a system compromise. For more detail, see [PowerDNS Security Advisory 2006-01](powerdns-advisory-2006-01.md "Malformed TCP queries can lead to a buffer overflow which might be exploitable") and [PowerDNS Security Advisory 2006-02](powerdns-advisory-2006-02.md "Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash").
+Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered by remote users. One of the issues might be exploited and ead to a system compromise. For more detail, see [PowerDNS Security Advisory 2006-01](powerdns-advisory-2006-01.md "Malformed TCP queries can lead to a buffer overflow which might be exploitable") and [PowerDNS Security Advisory 2006-02](powerdns-advisory-2006-02.md "Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash").
 
 Version 3.0 of the PowerDNS recursor contains a denial of service bug which can be exploited remotely. This bug, which we believe to only lead to a crash, has been fixed in 3.0.1. There are no guarantees however, so an upgrade from 3.0 is highly recommended.
 

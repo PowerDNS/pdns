@@ -50,12 +50,20 @@ A number of counters and variables are set during PDNS Authoritative Server oper
 * **packetcache-size**: Amount of packets in the packetcache
 * **qsize-a**: Size of the queue before the transmitting socket.
 * **qsize-q**: Number of packets waiting for database attention
+* **rd-queries**:Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.
+* **recursing-questions**: Number of packets we supplied an answer to after recursive processing
+* **recursing-questions**: Number of packets we performed recursive processing for
+* **recursion-unanswered**: Number of packets we sent to our recursor, but did not get a timely answer for. Since 3.4.0.
 * **servfail-packets**: Amount of packets that could not be answered due to database problems
 * **tcp-answers**: Number of answers sent out over TCP
 * **tcp-questions**: Number of questions received over TCP
 * **timedout-questions**: Amount of packets that were dropped because they had to wait too long internally
 * **udp-answers**: Number of answers sent out over UDP
-* **udp-questions**: Number of questions received over UDP
+* **udp-queries**: Number of questions received over UDP
+* **udp4-answers**: Number of answers sent out over UDPv4
+* **udp4-queries**: Number of questions received over UDPv4
+* **udp6-answers**: Number of answers sent out over UDPv6
+* **udp6-queries**: Number of questions received over UDPv6
 
 ### Ring buffers
 Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.

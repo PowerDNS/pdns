@@ -23,6 +23,14 @@ A list of IP ranges that are allowed to perform updates on any domain. The defau
 ## `forward-dnsupdate`
 Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table. The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the **allow-dnsupdate-from** and **TSIG-2136-ALLOW** are processed first, so those permissions apply before the **forward-dnsupdate** is used. It will try all masters that you have configured until one is successful.
 
+The semantics are that first a dynamic update has to be allowed either by the global allow-dnsupdate-from setting, or by a per-zone ALLOW-DNSUPDATE-FROM metadata setting.
+
+Secondly, if a zone has a TSIG-ALLOW-DNSUPDATE metadata setting, that must match too.
+
+So to only allow dynamic DNS updates to a zone based on TSIG key, and regardless of IP address, set allow-dns-update-from to empty, set ALLOW-DNSUPDATE-FROM to "0.0.0.0/0" and "::/0" and set the TSIG-ALLOW-DNSUPDATE to the proper key name.
+
+Further information can be found [below](#how-it-works).
+
 # Per zone settings
 For permissions, a number of per zone settings are available via the domain metadata (See [Chapter 15, *Per zone settings aka Domain Metadata*](domainmetadata.html "Chapter 15. Per zone settings aka Domain Metadata")).
 

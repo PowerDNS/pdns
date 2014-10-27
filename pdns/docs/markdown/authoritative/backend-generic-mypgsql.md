@@ -318,7 +318,7 @@ Periodically, PDNS schedules checks to see if domains are still fresh. The defau
 To configure a supermaster with IP address 10.0.0.11 which lists this installation as 'autoslave.powerdns.com', issue the following:
 
 ```
-        insert into supermasters ('10.0.0.11','autoslave.powerdns.com','internal');
+        insert into supermasters values ('10.0.0.11','autoslave.powerdns.com','internal');
 ```
 
 From now on, valid notifies from 10.0.0.11 that list a NS record containing 'autoslave.powerdns.com' will lead to the provisioning of a slave domain under the account 'internal'. See [Supermaster](modes-of-operation.md#supermaster-automatic-provisioning-of-slaves) for details.

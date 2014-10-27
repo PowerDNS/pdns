@@ -364,42 +364,47 @@ Please see [Large Scale DNSSEC Best Current Practices](http://wiki.powerdns.com/
 # Thanks to, acknowledgements
 PowerDNSSEC has been made possible by the help & contributions of many people. We would like to thank:
 
--   Peter Koch (DENIC)
--   Olaf Kolkman (NLNetLabs)
--   Wouter Wijngaards (NLNetLabs)
--   Marco Davids (SIDN)
--   Markus Travaille (SIDN)
--   Antoin Verschuren (SIDN)
--   Olafur Guðmundsson (IETF)
--   Dan Kaminsky (Recursion Ventures)
--   Roy Arends (Nominet)
--   Miek Gieben
--   Stephane Bortzmeyer (AFNIC)
--   Michael Braunoeder (nic.at)
--   Peter van Dijk
--   Maik Zumstrull
--   Jose Arthur Benetasso Villanova
--   Stefan Schmidt (CCC ;-))
--   Roland van Rijswijk (Surfnet)
--   Paul Bakker (Brainspark/Fox-IT)
--   Mathew Hennessy
--   Johannes Kuehrer (Austrian World4You GmbH)
--   Marc van de Geijn (bHosted.nl)
--   Stefan Arentz
--   Martin van Hensbergen (Fox-IT)
--   Christoph Meerwald
--   Leen Besselink
--   Detlef Peeters
--   Christof Meerwald
--   Jack Lloyd
--   Frank Altpeter
--   Fredrik Danerklint
--   Vasiliy G Tolstov
--   Brielle Bruns
--   Evan Hunt (ISC)
--   Ralf van der Enden
--   Jan-Piet Mens
--   Justin Clift
--   Kees Monshouwer
--   Aki Tuomi
+- Peter Koch (DENIC)
+- Olaf Kolkman (NLNetLabs)
+- Wouter Wijngaards (NLNetLabs)
+- Marco Davids (SIDN)
+- Markus Travaille (SIDN)
+- Antoin Verschuren (SIDN)
+- Olafur Guðmundsson (IETF)
+- Dan Kaminsky (Recursion Ventures)
+- Roy Arends (Nominet)
+- Miek Gieben
+- Stephane Bortzmeyer (AFNIC)
+- Michael Braunoeder (nic.at)
+- Peter van Dijk
+- Maik Zumstrull
+- Jose Arthur Benetasso Villanova
+- Stefan Schmidt (CCC ;-))
+- Roland van Rijswijk (Surfnet)
+- Paul Bakker (Brainspark/Fox-IT)
+- Mathew Hennessy
+- Johannes Kuehrer (Austrian World4You GmbH)
+- Marc van de Geijn (bHosted.nl)
+- Stefan Arentz
+- Martin van Hensbergen (Fox-IT)
+- Christoph Meerwald
+- Leen Besselink
+- Detlef Peeters
+- Christof Meerwald
+- Jack Lloyd
+- Frank Altpeter
+- Fredrik Danerklint
+- Vasiliy G Tolstov
+- Brielle Bruns
+- Evan Hunt (ISC)
+- Ralf van der Enden
+- Jan-Piet Mens
+- Justin Clift
+- Kees Monshouwer
+- Aki Tuomi
+- Ruben Kerkhof
+- Christian Hofstaedtler
+- Ruben d'Arco
+- Morten Stevens
+- Pieter Lexis
 -   .. this list is far from complete yet ..

@@ -1,22 +1,44 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
 # PowerDNS Authoritative Server 3.4.0
-RC1 released August 1st, 2014
+Released September 30th, 2014
 
 This is a performance, feature, bugfix and conformity update to 3.3.1 and any earlier version. It contains a huge amount of work by various contributors, to whom we are very grateful.
 
 **Warning**: Version 3.4.0 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
 
 ## Downloads
-
- * [tar.bz2 source](http://powerdnssec.org/downloads/pdns-3.4.0-rc1.tar.bz2)
- * [i386 RPM](http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.i386.rpm)
- * [x86\_64 RPM](http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.x86_64.rpm)
- * [i386 deb](http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_i386.deb)
- * [x86\_64 deb](http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_amd64.deb)
- * [native RHEL5/6 packages from Kees Monshouwer](http://www.monshouwer.eu/download/3rd_party/pdns-server/)
+Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
 
 A list of changes since 3.3.1 follows.
+
+Changes between RC2 and 3.4.0:
+-   [commit ad189c9](https://github.com/PowerDNS/pdns/commit/ad189c9), [commit 445d93c](https://github.com/PowerDNS/pdns/commit/445d93c): also distribute the dnsdist manual page
+-   [commit b5a276d](https://github.com/PowerDNS/pdns/commit/b5a276d), [commit 0b346e9](https://github.com/PowerDNS/pdns/commit/0b346e9), [commit 74caf87](https://github.com/PowerDNS/pdns/commit/74caf87), [commit 642fd2e](https://github.com/PowerDNS/pdns/commit/642fd2e): Make sure all backends actually work as dynamic modules
+-   [commit 14b11c4](https://github.com/PowerDNS/pdns/commit/14b11c4): raise log level on dlerror(), fixes [ticket 1734](https://github.com/PowerDNS/pdns/issues/1734), thanks @James-TR
+-   [commit 016d810](https://github.com/PowerDNS/pdns/commit/016d810): improve postgresql detection during ./configure
+-   [commit dce1e90](https://github.com/PowerDNS/pdns/commit/dce1e90): DNAME: don't sign the synthesised CNAME
+-   [commit 25e7af3](https://github.com/PowerDNS/pdns/commit/25e7af3): send empty SERVFAIL after a backend throws a DBException, instead of including useless content
+
+Changes between RC1 and RC2:
+-   [commit bb6e54f](https://github.com/PowerDNS/pdns/commit/bb6e54f): document udp6-queries, udp4-queries, add rd-queries, recursion-unanswered metrics & document. Closes [ticket 1400](https://github.com/PowerDNS/pdns/issues/1400).
+-   [commit 4a23af7](https://github.com/PowerDNS/pdns/commit/4a23af7): init script: support DAEMON\_ARGS; [commit 7e5b3a0](https://github.com/PowerDNS/pdns/commit/7e5b3a0): init script: ensure socket dir exists
+-   [commit dd930ed](https://github.com/PowerDNS/pdns/commit/dd930ed): don't import supermaster ips from other accounts
+-   [commit ed3afdf](https://github.com/PowerDNS/pdns/commit/ed3afdf): fall back to central bind if reuseport bind fails; improves [ticket 1715](https://github.com/PowerDNS/pdns/issues/1715)
+-   [commit 709ca59](https://github.com/PowerDNS/pdns/commit/709ca59): GeoIP backend implementation. This is a new backend, still experimental!
+-   [commit bf5a484](https://github.com/PowerDNS/pdns/commit/bf5a484): support EVERY future version of OS X, fixes [ticket 1702](https://github.com/PowerDNS/pdns/issues/1702)
+-   [commit 4dbaec6](https://github.com/PowerDNS/pdns/commit/4dbaec6): Check for \_\_FreeBSD\_kernel\_\_ as per https://lists.debian.org/debian-bsd/2006/03/msg00127.html, fixes [ticket 1684](https://github.com/PowerDNS/pdns/issues/1684); [commit 74f389d](https://github.com/PowerDNS/pdns/commit/74f389d): \_\_FreeBSD\_kernel\_\_ is defined but empty on systems with FreeBSD kernels, breaking compile. Thanks pawal
+-   [commit 2e6bbd8](https://github.com/PowerDNS/pdns/commit/2e6bbd8): Catch PDNSException in Signingpiper::helperWorker to avoid abort
+-   [commit 0ffd51d](https://github.com/PowerDNS/pdns/commit/0ffd51d): improve error reporting on malformed labels
+-   [commit c48dec7](https://github.com/PowerDNS/pdns/commit/c48dec7): Fix forwarded TSIG message issue
+-   [commit dad70f2](https://github.com/PowerDNS/pdns/commit/dad70f2): skip TCP\_DEFER\_ACCEPT on platforms that do not have it (like FreeBSD); fixes [ticket 1658](https://github.com/PowerDNS/pdns/issues/1658)
+-   [commit c7287b6](https://github.com/PowerDNS/pdns/commit/c7287b6): should fix [ticket 1662](https://github.com/PowerDNS/pdns/issues/1662), reloading while checking for domains that need to be notified in BIND, causing lock
+-   [commit 3e67ea8](https://github.com/PowerDNS/pdns/commit/3e67ea8): allow OPT pseudo record type in IXFR query
+-   [commit a1caa8b](https://github.com/PowerDNS/pdns/commit/a1caa8b): webserver: htmlescape VERSION and config name
+-   [commit df9d980](https://github.com/PowerDNS/pdns/commit/df9d980): Remove "log-failed-updates" leftover
+-   [commit a1fe72a](https://github.com/PowerDNS/pdns/commit/a1fe72a): Remove unused "soa-serial-offset" option
+
+Changes between 3.3.1 and 3.4.0-RC1 follow.
 
 ## DNSSEC changes
 -   [commit bba8413](https://github.com/PowerDNS/pdns/commit/bba8413): add option (max-signature-cache-entries) to limit the maximum number of cached signatures.
@@ -109,16 +131,29 @@ A list of changes since 3.3.1 follows.
 -   [commit 5631b44](https://github.com/PowerDNS/pdns/commit/5631b44): gpsqlbackend: use empty defaults for dbname and user; libpq will use the current user name for both by default
 -   [commit d87ded3](https://github.com/PowerDNS/pdns/commit/d87ded3): implement udp-truncation-threshold to override the previous 1680 byte maximum response datagram size - no matter what EDNS0 said. Plus document it.
 -   Implement udp-truncation-threshold to override the previous 1680 byte maximum response datagram size - no matter what EDNS0 said.
--   On shutdown, PowerDNS now attempts to stop all processes in its process group, especially useful for pipe/remotebackend users. Feature donated by Spotify.
 -   Removed settings related to fancy records, as we haven't supported those since version 3.0
 -   Based on earlier work by Mark Zealey, Kees Monshouwer increased our packet cache performance between 200% and 500% depending on the situation, by simplifying some code in [commit 801812e](https://github.com/PowerDNS/pdns/commit/801812e) and [commit 8403ade](https://github.com/PowerDNS/pdns/commit/8403ade).
+
+# PowerDNS Recursor 3.6.1
+**Warning**: Version 3.6.1 is a mandatory security upgrade to 3.6.0! Released on the 10th of September 2014.
+
+PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets. For more details, see [the advisory](powerdns-advisory-2014-01.html). PowerDNS Recursor 3.6.1 was very well tested, and is in full production already, so it should be a safe upgrade.
+
+## Downloads
+-   [Official download page](https://www.powerdns.com/downloads.html)
+
+In addition to various fixes related to this potential crash, 3.6.1 fixes a few minor issues and adds a debugging feature:
+
+-   We could not encode IPv6 AAAA records that mapped to IPv4 addresses in some cases (:ffff.1.2.3.4). Fixed in [commit c90fcbd](https://github.com/PowerDNS/pdns/commit/c90fcbd) , closing [ticket 1663](https://github.com/PowerDNS/pdns/issues/1663).
+-   Improve systemd startup timing with respect to network availability ([commit cf86c6a](https://github.com/PowerDNS/pdns/commit/cf86c6a)), thanks to Morten Stevens.
+-   Realtime telemetry can now be enabled at runtime, for example with 'rec\_control carbon-server 82.94.213.34 ourname1234'. This ties in to our existing carbon-server and carbon-ourname settings, but now at runtime. This specific invocation will make your stats appear automatically on our [public telemetry server](http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&beginTime=-3600).
 
 # PowerDNS Recursor version 3.6.0
 This is a performance, feature and bugfix update to 3.5/3.5.3. It contains important fixes for slightly broken domain names, which your users expect to work anyhow. It also brings robust resilience against certain classes of attacks.
 
 ## Downloads
 -   [Official download page](https://www.powerdns.com/downloads.html)
--   [native RHEL5/6 packages from Kees Monshouwer](http://www.monshouwer.eu/download/3rd_party/pdns-recursor/)
+-   [native RHEL5/6 packages from Kees Monshouwer](https://www.monshouwer.eu/download/3rd_party/pdns-recursor/)
 
 ## Changes between RC1 and release
 -   [commit 30b13ef](https://github.com/PowerDNS/pdns/commit/30b13ef): do not apply some of our filters to root and gtlds, plus remove some useless {}

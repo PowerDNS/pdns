@@ -169,7 +169,6 @@ Please note that a RandomBackend is actually in most PDNS releases. By default i
 |QType qtype|QType of this record|
 |string qname|name of this record|
 |string content|ASCII representation of right hand side|
-|uint16\_t priority| priority of an MX record.|
 |uint32\_t ttl|Time To Live of this record|
 |int domain\_id| ID of the domain this record belongs to|
 |time\_t last\_modified| If unzero, last time\_t this record was changed|

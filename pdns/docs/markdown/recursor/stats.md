@@ -53,7 +53,7 @@ user-msec           number of CPU milliseconds spent in 'user' mode
 
 In the `rrd/` subdirectory a number of rrdtool scripts is provided to make nice graphs of all these numbers. Use **rec\_control get-all** to get all statistics in one go.
 
-It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops + policy-drops = questions.
+It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + answers-slow + packetcache-hits + over-capacity-drops + policy-drops = questions.
 
 Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count.
 

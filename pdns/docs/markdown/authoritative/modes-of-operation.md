@@ -122,7 +122,7 @@ Upon an incoming AXFR, PowerDNS calls our `axfrfilter` function for each record.
 
 TSIG, as defined in [RFC 2845](http://tools.ietf.org/html/rfc2845), is a method for signing DNS messages using shared secrets. Each TSIG shared secret has a name, and PowerDNS can be told to allow zone transfer of a domain if the request is signed with an authorized name.
 
-In PowerDNS, TSIG shared secrets are stored by the various backends. In case of the popular Generic backends, they can be found in the 'tsigkeys' table. The name can be chosen freely, but the algorithm name will typically be 'hmac-md5'. The content is a Base64-encoded secret.
+In PowerDNS, TSIG shared secrets are stored by the various backends. In case of the popular Generic backends, they can be found in the 'tsigkeys' table. The name can be chosen freely, but the algorithm name will typically be 'hmac-md5'. Other supported algorithms are 'hmac-sha1', 'hmac-shaX' where X is 224, 256, 384 or 512. The content is a Base64-encoded secret.
 
 **Note**: Most backends require DNSSEC support enabled to support TSIG. For the Generic SQL Backend make sure to use the DNSSEC enabled schema and to turn on the relevant '-dnssec' flag (for example, gmysql-dnssec)!
 

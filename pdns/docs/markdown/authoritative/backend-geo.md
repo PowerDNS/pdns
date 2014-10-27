@@ -18,4 +18,4 @@ This allows visitors to be sent to a server close to them, with no appreciable d
 
 The Geo Backend is in wide use, for example by the Wikimedia foundation, which uses it to power the Wikipedia global load balancing.
 
-More details can be found [here](http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/geobackend/README), or in `modules/geobackend/README`, part of the PowerDNS Authoritative Server distribution.
+More details can be found [here](https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/geobackend/README), or in `modules/geobackend/README`, part of the PowerDNS Authoritative Server distribution.

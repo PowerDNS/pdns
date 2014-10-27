@@ -21,7 +21,7 @@ Please do not use remotebackend shipped before version 3.3. This version has sev
 ## Compiling
 To compile this backend, you need to configure `--with-modules="remote"`.
 
-If you want to use http connector, you need libcurl and use `--enable-remotebackend-http`.
+For versions prior to 3.4.0, if you want to use http connector, you need libcurl and use `--enable-remotebackend-http`.
 
 If you want to use ZeroMQ connector, you need libzmq-dev or libzmq3-dev and use `--enable-remotebackend-zeromq`.
 
@@ -106,7 +106,7 @@ This method is used to do the basic query. You can omit auth, but if you are usi
 * Mandatory: Yes
 * Parameters: qtype, qname, zone\_id
 * Optional parameters: remote, local, real-remote
-* Reply: array of `qtype,qname,content,ttl,domain\_id,priority,scopeMask,auth`
+* Reply: array of `qtype,qname,content,ttl,domain\_id,scopeMask,auth`
 * Optional values: domain\_id, scopeMask and auth
 
 #### Example JSON/RPC
@@ -141,11 +141,11 @@ Content-Type: text/javascript; charset=utf-8
 ### `list`
 Lists all records for the zonename. If you are running dnssec, you should take care of setting auth to appropriate value, otherwise things can go wrong.
 
-Mandatory: No (Gives AXFR support)
-Parameters: zonename, domain\_id
-Optional parameters: domain\_id
-Reply: array of `qtype,qname,content,ttl,domain\_id,priority,scopeMask,auth`
-Optional values: domain\_id, scopeMask and auth
+* Mandatory: No (Gives AXFR support)
+* Parameters: zonename, domain\_id
+* Optional parameters: domain\_id
+* Reply: array of `qtype,qname,content,ttl,domain\_id,scopeMask,auth`
+* Optional values: domain\_id, scopeMask and auth
 
 #### Example JSON/RPC
 Query:
@@ -158,7 +158,7 @@ Response (split into lines for ease of reading)
 {"result":[
   {"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},
   {"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},
-  {"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},
+  {"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},
   {"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},
   {"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},
   {"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60} 
@@ -177,7 +177,7 @@ Response:
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
+{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
 ```
 
 ### `getBeforeAndAfterNamesAbsolute`
@@ -651,7 +651,7 @@ Creates new domain with given record(s) as master servers. IP address is the add
 #### Example JSON/RPC
 Query:
 ```
-{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"priority":0,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"priority":0,"auth":true}]}}
+{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"auth":true}]}}
 ```
 
 Response:
@@ -671,7 +671,7 @@ POST /dnsapi/supermasterbackend/10.0.0.1/example.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 317
 
-nsset[1][qtype]=NS&nsset[1][qname]=example.com&nsset[1][qclass]=1&nsset[1][content]=ns1.example.com&nsset[1][ttl]=300&nsset[1][priority]=0&nsset[1][auth]=true&nsset[2][qtype]=NS&nsset[2][qname]=example.com&nsset[2][qclass]=1&nsset[2][content]=ns2.example.com&nsset[2][ttl]=300&nsset[2][priority]=0&nsset[2][auth]=true
+nsset[1][qtype]=NS&nsset[1][qname]=example.com&nsset[1][qclass]=1&nsset[1][content]=ns1.example.com&nsset[1][ttl]=300&nsset[1][auth]=true&nsset[2][qtype]=NS&nsset[2][qname]=example.com&nsset[2][qclass]=1&nsset[2][content]=ns2.example.com&nsset[2][ttl]=300&nsset[2][auth]=true
 ```
 
 Response:
@@ -735,7 +735,7 @@ This method replaces a given resource record with new set. The new qtype can be 
 #### Example JSON/RPC
 Query:
 ```
-{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"priority":0,"auth":true}]}}
+{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"auth":true}]}}
 ```
 
 Response:
@@ -750,7 +750,7 @@ PATCH /dnsapi/replacerrset/2/replace.example.com/A
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 135
 
-trxid=1370416133&rrset[qtype]=A&rrset[qname]=replace.example.com&rrset[qclass]=1&rrset[content]=1.1.1.1&rrset[priority]=0&rrset[auth]=1
+trxid=1370416133&rrset[qtype]=A&rrset[qname]=replace.example.com&rrset[qclass]=1&rrset[content]=1.1.1.1&rrset[auth]=1
 ```
 
 Response:
@@ -771,7 +771,7 @@ Asks to feed new record into system. If startTransaction was called, trxId ident
 #### Example JSON/RPC
 Query:
 ```
-{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"priority":0,"auth":true},"trxid":1370416133}}
+{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"auth":true},"trxid":1370416133}}
 ```
 
 Response:
@@ -786,7 +786,7 @@ PATCH /dnsapi/feedrecord/1370416133
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 117
 
-rr[qtype]=A&rr[qname]=replace.example.com&rr[qclass]=1&rr[content]=127.0.0.1&rr[ttl]=300&rr[priority]=0&rr[auth]=true
+rr[qtype]=A&rr[qname]=replace.example.com&rr[qclass]=1&rr[content]=127.0.0.1&rr[ttl]=300&rr[auth]=true
 ```
 
 Response:
@@ -1032,7 +1032,6 @@ Reply:
        "qname": "example.com", 
        "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
        "ttl": 3600,
-       "priority": 0,
        "domain_id": -1
      }
    ]
@@ -1054,7 +1053,6 @@ Reply:
        "qname": "example.com",
        "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
        "ttl": 3600,
-       "priority": 0,
        "domain_id": -1
      }
    ]
