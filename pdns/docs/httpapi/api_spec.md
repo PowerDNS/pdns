@@ -423,7 +423,8 @@ Client body for PATCH:
                 "name": <string>,
                 "ttl": <int>,
                 "type": <string>,
-                "disabled": <bool>
+                "disabled": <bool>,
+                "set-ptr": <bool>
               }, ...
             ],
           "comments":
@@ -457,6 +458,13 @@ Having `type` inside an RR differ from `type` at the top level is an error.
 * `records`
   List of new records (replacing the old ones). Must be empty when `changetype` is set to `DELETE`.
   An empty list results in deletion of all records (and comments).
+  A record consists of these fields:
+  * `type`: DNS type (MUST match outer `type`)
+  * `name`: full name (MUST match outer `name`)
+  * `ttl`: DNS TTL in seconds
+  * `content`: the record content. Must confirm to the DNS content rules for the specified `type`. (PowerDNS hint: includes the backend's `priority` field.)
+  * `disabled`: if this record will be hidden from DNS. (true: hidden, false: visible (the default)).
+  * `set-ptr`: If set to true, the server will find the matching reverse zone and create a `PTR` there. Existing `PTR` records are replaced. If no matching reverse Zone, an error is thrown. Only valid in client bodies, only valid for `A` and `AAAA` types. Not returned by the server. Only valid for the Authoritative server.
 
 * `comments`
   List of new comments (replacing the old ones). Must be empty when `changetype` is set to `DELETE`.
