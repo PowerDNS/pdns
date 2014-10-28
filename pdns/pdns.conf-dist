@@ -375,6 +375,11 @@
 # reuseport=no
 
 #################################
+# security-poll-suffix	Domain name from which to query security update notifications
+#
+# security-poll-suffix=secpoll.powerdns.com.
+
+#################################
 # send-root-referral	Send out old-fashioned root-referral instead of ServFail in case of no authority
 #
 # send-root-referral=no
