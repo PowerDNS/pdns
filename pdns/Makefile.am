@@ -58,7 +58,7 @@ bind-dnssec.schema.sqlite3.sql.h \
 bindparser.cc bindlexer.c \
 backends/gsql/gsqlbackend.cc \
 backends/gsql/gsqlbackend.hh backends/gsql/ssql.hh \
-base64.cc sillyrecords.cc \
+base64.cc sillyrecords.cc secpoll-auth.cc secpoll-auth.hh \
 base64.hh zoneparser-tng.cc dnsrecords.cc dnswriter.cc \
 rcpgenerator.cc	dnsparser.cc dns_random.hh dns_random.cc\
 randomhelper.cc namespaces.hh nsecrecords.cc base32.cc dbdnsseckeeper.cc dnssecinfra.cc \
