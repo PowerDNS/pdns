@@ -20,6 +20,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "utility.hh"
+#include "arguments.hh"
 #include "webserver.hh"
 #include "misc.hh"
 #include <vector>
@@ -28,6 +29,7 @@
 #include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
+#include <yahttp/router.hpp>
 
 struct connectionThreadData {
   WebServer* webServer;
@@ -36,10 +38,46 @@ struct connectionThreadData {
 
 void HttpRequest::json(rapidjson::Document& document)
 {
+  if(this->body.empty()) {
+    L<<Logger::Debug<<"HTTP: JSON document expected in request body, but body was empty" << endl;
+    throw HttpBadRequestException();
+  }
   if(document.Parse<0>(this->body.c_str()).HasParseError()) {
+    L<<Logger::Debug<<"HTTP: parsing of JSON document failed" << endl;
     throw HttpBadRequestException();
   }
 }
+
+bool HttpRequest::compareAuthorization(const string &expected_password)
+{
+  // validate password
+  YaHTTP::strstr_map_t::iterator header = headers.find("authorization");
+  bool auth_ok = false;
+  if (header != headers.end() && toLower(header->second).find("basic ") == 0) {
+    string cookie = header->second.substr(6);
+
+    string plain;
+    B64Decode(cookie, plain);
+
+    vector<string> cparts;
+    stringtok(cparts, plain, ":");
+
+    // this gets rid of terminating zeros
+    auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), expected_password.c_str())));
+  }
+  return auth_ok;
+}
+
+bool HttpRequest::compareHeader(const string &header_name, const string &expected_value)
+{
+  YaHTTP::strstr_map_t::iterator header = headers.find(header_name);
+  if (header == headers.end())
+    return false;
+
+  // this gets rid of terminating zeros
+  return (0==strcmp(header->second.c_str(), expected_value.c_str()));
+}
+
 
 void HttpResponse::setBody(rapidjson::Document& document)
 {
@@ -51,63 +89,44 @@ int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
   return ::B64Decode(strInput, strOutput);
 }
 
-// url is supposed to start with a slash.
-// url can contain variable names, marked as <variable>; such variables
-// are parsed out during routing and are put into the "pathArgs" map.
-// route() makes no assumptions about the contents of variables except
-// that the following URL segment can't be part of the variable.
-//
-// Note: ORDER of registration MATTERS:
-// URLs that do a more specific match should come FIRST.
-//
-// Examples:
-//   registerHandler("/foo/<bar>/<baz>", &foobarbaz);
-//   registerHandler("/foo/<bar>", &foobar);
-//   registerHandler("/foo", &foo);
-//   registerHandler("/", &index);
-void WebServer::registerHandler(const string& url, HandlerFunction handler)
+static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
-  std::size_t pos = 0, lastpos = 0;
-
-  HandlerRegistration reg;
-  while ((pos = url.find('<', lastpos)) != std::string::npos) {
-    std::string part = url.substr(lastpos, pos-lastpos);
-    lastpos = pos;
-    pos = url.find('>', pos);
-
-    if (pos == std::string::npos) {
-      throw std::logic_error("invalid url given");
-    }
-
-    std::string paramName = url.substr(lastpos+1, pos-lastpos-1);
-    lastpos = pos+1;
-
-    reg.urlParts.push_back(part);
-    reg.paramNames.push_back(paramName);
-  }
-  std::string remainder = url.substr(lastpos);
-  if (!remainder.empty()) {
-    reg.urlParts.push_back(remainder);
-    reg.paramNames.push_back("");
-  }
-  reg.handler = handler;
-  d_handlers.push_back(reg);
+  // wrapper to convert from YaHTTP::* to our subclasses
+  handler(static_cast<HttpRequest*>(req), static_cast<HttpResponse*>(resp));
 }
 
-static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler, HttpRequest* req, HttpResponse* resp) {
+void WebServer::registerBareHandler(const string& url, HandlerFunction handler)
+{
+  YaHTTP::THandlerFunction f = boost::bind(&bareHandlerWrapper, handler, _1, _2);
+  YaHTTP::Router::Any(url, f);
+}
+
+static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
+  const string& api_key = ::arg()["experimental-api-key"];
+  if (api_key.empty()) {
+    L<<Logger::Debug<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
+    throw HttpUnauthorizedException();
+  }
+  bool auth_ok = req->compareHeader("x-api-key", api_key);
+  if (!auth_ok) {
+    L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
+    throw HttpUnauthorizedException();
+  }
+
   resp->headers["Access-Control-Allow-Origin"] = "*";
   resp->headers["Content-Type"] = "application/json";
 
   string callback;
 
-  if(req->parameters.count("callback")) {
-    callback=req->parameters["callback"];
-    req->parameters.erase("callback");
+  if(req->getvars.count("callback")) {
+    callback=req->getvars["callback"];
+    req->getvars.erase("callback");
   }
 
-  req->parameters.erase("_"); // jQuery cache buster
+  req->getvars.erase("_"); // jQuery cache buster
 
   try {
+    resp->status = 200;
     handler(req, resp);
   } catch (ApiException &e) {
     resp->body = returnJsonError(e.what());
@@ -131,47 +150,25 @@ static void apiWrapper(boost::function<void(HttpRequest*,HttpResponse*)> handler
 
 void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
   HandlerFunction f = boost::bind(&apiWrapper, handler, _1, _2);
-  registerHandler(url, f);
+  registerBareHandler(url, f);
 }
 
-bool WebServer::route(const std::string& url, std::map<std::string, std::string>& pathArgs, HandlerFunction** handler)
-{
-  for (std::list<HandlerRegistration>::iterator reg=d_handlers.begin(); reg != d_handlers.end(); ++reg) {
-    bool matches = true;
-    size_t lastpos = 0, pos = 0;
-    string lastParam;
-    pathArgs.clear();
-    for (std::list<string>::iterator urlPart = reg->urlParts.begin(), param = reg->paramNames.begin();
-         urlPart != reg->urlParts.end() && param != reg->paramNames.end();
-         urlPart++, param++) {
-      if (!urlPart->empty()) {
-        pos = url.find(*urlPart, lastpos);
-        if (pos == std::string::npos) {
-          matches = false;
-          break;
-        }
-        if (!lastParam.empty()) {
-          // store
-          pathArgs[lastParam] = url.substr(lastpos, pos-lastpos);
-        }
-        lastpos = pos + urlPart->size();
-        lastParam = *param;
-      }
-    }
-    if (matches) {
-      if (!lastParam.empty()) {
-        // store trailing parameter
-        pathArgs[lastParam] = url.substr(lastpos, pos-lastpos);
-      } else if (lastpos != url.size()) {
-        matches = false;
-        continue;
-      }
-
-      *handler = &reg->handler;
-      return true;
+static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
+  const string& web_password = arg()["webserver-password"];
+  if (!web_password.empty()) {
+    bool auth_ok = req->compareAuthorization(web_password);
+    if (!auth_ok) {
+      L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
+      throw HttpUnauthorizedException();
     }
   }
-  return false;
+
+  handler(req, resp);
+}
+
+void WebServer::registerWebHandler(const string& url, HandlerFunction handler) {
+  HandlerFunction f = boost::bind(&webWrapper, handler, _1, _2);
+  registerBareHandler(url, f);
 }
 
 static void *WebServerConnectionThreadStart(void *p) {
@@ -187,13 +184,14 @@ static void *WebServerConnectionThreadStart(void *p) {
 
 HttpResponse WebServer::handleRequest(HttpRequest req)
 {
-  HttpResponse resp(req);
+  HttpResponse resp;
 
   // set default headers
   resp.headers["Content-Type"] = "text/html; charset=utf-8";
 
   try {
     if (!req.complete) {
+      L<<Logger::Debug<<"HTTP: Incomplete request" << endl;
       throw HttpBadRequestException();
     }
 
@@ -210,37 +208,18 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
       }
     }
 
-    if (!d_password.empty()) {
-      // validate password
-      header = req.headers.find("authorization");
-      bool auth_ok = false;
-      if (header != req.headers.end() && toLower(header->second).find("basic ") == 0) {
-        string cookie = header->second.substr(6);
-
-        string plain;
-        B64Decode(cookie, plain);
-
-        vector<string> cparts;
-        stringtok(cparts, plain, ":");
-
-        // this gets rid of terminating zeros
-        auth_ok = (cparts.size()==2 && (0==strcmp(cparts[1].c_str(), d_password.c_str())));
-      }
-      if (!auth_ok) {
-        L<<Logger::Debug<<"HTTP Request \"" << req.url.path << "\": Authentication failed" << endl;
-        throw HttpUnauthorizedException();
-      }
-    }
-
-    HandlerFunction *handler;
-    if (!route(req.url.path, req.path_parameters, &handler)) {
+    YaHTTP::THandlerFunction handler;
+    if (!YaHTTP::Router::Route(&req, handler)) {
       L<<Logger::Debug<<"HTTP: No route found for \"" << req.url.path << "\"" << endl;
       throw HttpNotFoundException();
     }
 
     try {
-      (*handler)(&req, &resp);
+      handler(&req, &resp);
       L<<Logger::Debug<<"HTTP: Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
+    }
+    catch(HttpException) {
+      throw;
     }
     catch(PDNSException &e) {
       L<<Logger::Error<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl;
@@ -281,7 +260,8 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
 void WebServer::serveConnection(Socket *client)
 try {
   HttpRequest req;
-  YaHTTP::AsyncRequestLoader yarl(&req);
+  YaHTTP::AsyncRequestLoader yarl;
+  yarl.initialize(&req);
   int timeout = 5;
   client->setNonBlocking();
 
@@ -298,6 +278,7 @@ try {
         break;
       }
     }
+    yarl.finalize();
   } catch (YaHTTP::ParseError &e) {
     // request stays incomplete
   }
@@ -319,11 +300,10 @@ catch(...) {
   L<<Logger::Error<<"HTTP: Unknown exception"<<endl;
 }
 
-WebServer::WebServer(const string &listenaddress, int port, const string &password) : d_server(NULL)
+WebServer::WebServer(const string &listenaddress, int port) : d_server(NULL)
 {
   d_listenaddress=listenaddress;
   d_port=port;
-  d_password=password;
 }
 
 void WebServer::bind()

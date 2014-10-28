@@ -155,6 +155,11 @@
 # entropy-source=/dev/urandom
 
 #################################
+# experimental-api-key	REST API Static authentication key (required for API use)
+#
+# experimental-api-key=
+
+#################################
 # experimental-api-readonly	If the JSON API should disallow data modification
 #
 # experimental-api-readonly=no

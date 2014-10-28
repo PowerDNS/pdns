@@ -23,7 +23,7 @@ rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
 dns_random.o ext/polarssl-1.3.2/library/aes.o ext/polarssl-1.3.2/library/padlock.o dnslabeltext.o \
 lua-pdns.o lua-recursor.o randomhelper.o recpacketcache.o dns.o \
 reczones.o base32.o nsecrecords.o json.o ws-recursor.o ws-api.o \
-version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o \
+version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yahttp/router.o \
 rec-carbon.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
