@@ -563,7 +563,14 @@ void startDoResolve(void *p)
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve      
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
-      res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+      try {
+        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+      }
+      catch(ImmediateServFailException &e) {
+        L<<Logger::Error<<"Sending SERVFAIL during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+
+        res = RCode::ServFail;
+      }
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
