@@ -593,6 +593,13 @@ private:
   static AtomicCounter s_currentConnections; //!< total number of current TCP connections
 };
 
+class ImmediateServFailException
+{
+public:
+  ImmediateServFailException(string r){reason=r;};
+
+  string reason; //! Print this to tell the user what went wrong
+};
 
 struct RemoteKeeper
 {

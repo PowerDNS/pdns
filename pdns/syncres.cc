@@ -923,6 +923,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           }
           else {
             s_outqueries++; d_outqueries++;
+            if(d_outqueries > 50) throw ImmediateServFailException("more than 50 queries sent while resolving "+qname);
           TryTCP:
             if(doTCP) {
               LOG(prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);
