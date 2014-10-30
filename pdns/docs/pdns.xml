@@ -143,7 +143,7 @@
           upgrade if you are coming from 2.9.x. Additionally, if you are coming from
           any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade.
           Please refer to <xref linkend="from3.3.1to3.4.0"/> and any relevant sections
-          before it, before deploying this version.
+          before it, before deploying this version. There are no 3.4.1 upgrade notes.
         </para>
       </warning>
       <note>
