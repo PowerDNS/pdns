@@ -12967,6 +12967,30 @@ local0.err                        /var/log/pdns.err
 	</para>
       </sect2>
     </sect1>
+    <sect1 id="secpoll"><title>Security polling</title>
+      <para>
+	As of Authoritative Server 3.4.1 and Recursor 3.6.2, PowerDNS products can poll the security status
+	of their respective versions. This polling, naturally, happens over DNS. If the result is that a given
+	version has a security problem, the software will report this at level 'Error' during startup, and
+	repeatedly during operations.
+      </para>
+      <para>
+	By default, security polling happens on the domain 'secpoll.powerdns.com', but this can be changed with the
+	security-poll-suffix. If this setting is made empty, no polling will take place. Organizations
+	wanting to host their own security zones can do so by changing this setting to a domain name under their control.
+      </para>
+      <para>
+	To make this easier, the zone used to host secpoll.powerdns.com is available <ulink url="https://github.com/PowerDNS/pdns/blob/master/pdns/docs/secpoll.zone">here</ulink>.
+      </para>
+      <para>
+	To enable distributors of PowerDNS to signal that they have backported versions, the PACKAGEVERSION compilation-time
+	macro can be used to set a distributor suffix.
+      </para>
+      <para>
+	Further implementation detail on this feature can be found <ulink url="https://github.com/PowerDNS/pdns/blob/master/pdns/docs/security-poll.md">here</ulink>. Furthermore, there is a post about it on our <ulink url="http://blog.powerdns.com/2014/10/22/powerdns-security-status-polling/">blog</ulink>.
+      </para>
+    </sect1>
+
     <sect1 id="considerations"><title>Considerations</title>
       <para>
 	In general, make sure that the PDNS process is unable to execute commands on your backend database. 
