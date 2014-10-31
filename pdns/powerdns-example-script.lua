@@ -84,7 +84,7 @@ function nxdomain ( remoteip, domain, qtype )
 	end
 end
 
-function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
+function axfrfilter(remoteip, zone, qname, qtype, ttl, content)
 	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
 	then
 		ret = {}
