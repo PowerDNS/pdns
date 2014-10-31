@@ -60,7 +60,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
   lua_pushnumber(d_lua,  in.ttl );
   lua_pushstring(d_lua,  in.content.c_str() );
 
-  if(lua_pcall(d_lua,  7, 2, 0)) { // error 
+  if(lua_pcall(d_lua,  6, 2, 0)) { // error
     string error=string("lua error in axfrfilter: ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);
