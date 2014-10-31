@@ -52,6 +52,9 @@ static vector<ComboAddress> parseResolveConf()
     }
 
   }
+  if(ret.empty()) {
+    ret.push_back(ComboAddress("127.0.0.1", 53));
+  }
 
   return ret;
 }
