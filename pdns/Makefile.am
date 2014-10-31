@@ -79,8 +79,9 @@ bin_PROGRAMS += \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
-	nproxy \
 	dnsdist \
+	notify \
+	nproxy \
 	nsec3dig \
 	saxfr
 endif
