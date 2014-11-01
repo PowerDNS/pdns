@@ -428,7 +428,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     // cerr<<"got backend and SOA"<<endl;
     DNSBackend *B=sd.db;
     vector<string> acl;
-    B->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
+    s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
     for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
       // cerr<<"matching against "<<*i<<endl;
       if(pdns_iequals(*i, "AUTO-NS")) {
