@@ -225,6 +225,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
      (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+     (case_t(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120", zone, false)) // too long serial
 ;
 
   int n=0;
