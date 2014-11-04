@@ -919,6 +919,9 @@ void setSocketTimestamps(int fd)
 
 uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
 {
+#if ULONG_MAX == 4294967295
+  return strtoul(nptr, endptr, base);
+#else
   unsigned long val = strtoul(nptr, endptr, base);
   if (val > UINT_MAX) {
    errno = ERANGE;
@@ -926,4 +929,5 @@ uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
   } 
 
   return val;
+#endif
 }
