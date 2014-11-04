@@ -917,7 +917,7 @@ void setSocketTimestamps(int fd)
 #endif
 }
 
-uint32_t strtoui(const char *nptr, char **endptr, int base)
+uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
 {
   unsigned long val = strtoul(nptr, endptr, base);
   if (val > UINT_MAX) {

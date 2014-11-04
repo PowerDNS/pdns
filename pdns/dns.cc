@@ -197,7 +197,7 @@ void fillSOAData(const string &content, SOAData &data)
   if(pleft>1) 
     data.hostmaster=attodot(parts[1]); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
 
-  data.serial = pleft > 2 ? strtoui(parts[2].c_str(), NULL, 10) : 0;
+  data.serial = pleft > 2 ? pdns_strtoui(parts[2].c_str(), NULL, 10) : 0;
   if (data.serial == UINT_MAX && errno == ERANGE) throw PDNSException("serial number too large in '"+parts[2]+"'");
 
   data.refresh = pleft > 3 ? atoi(parts[3].c_str())
