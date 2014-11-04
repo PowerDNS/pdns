@@ -25,6 +25,7 @@
 #include <cstring>
 #include <cstdio>
 #include <regex.h>
+#include <limits.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -86,6 +87,8 @@ uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
+uint32_t pdns_strtoui(const char *nptr, char **endptr, int base);
+
 int logFacilityToLOG(unsigned int facility);
 
 struct ServiceTuple

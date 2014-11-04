@@ -916,3 +916,14 @@ void setSocketTimestamps(int fd)
     L<<Logger::Error<<"Warning: unable to enable timestamp reporting for socket"<<endl;
 #endif
 }
+
+uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
+{
+  unsigned long val = strtoul(nptr, endptr, base);
+  if (val > UINT_MAX) {
+   errno = ERANGE;
+   return UINT_MAX;
+  } 
+
+  return val;
+}
