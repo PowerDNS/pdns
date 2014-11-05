@@ -1,4 +1,4 @@
-#ifndef REMOTEBACKEND_REMOTEBACKEND_HH
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -16,6 +16,7 @@
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 #include "yahttp/yahttp.hpp"
+#include "pdns/sslsocket.hh"
 
 #ifdef REMOTEBACKEND_ZEROMQ
 #include <zmq.h>
@@ -81,6 +82,11 @@ class HTTPConnector: public Connector {
     void post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
     Socket* d_socket;
+    x509_crt d_cacerts;
+    bool d_ssl_validate;
+    ComboAddress d_addr;
+    bool d_ssl;
+    ssl_cache_context d_cache;
 };
 
 #ifdef REMOTEBACKEND_ZEROMQ
@@ -183,4 +189,3 @@ class RemoteBackend : public DNSBackend
     bool send(rapidjson::Document &value);
     bool recv(rapidjson::Document &value);
 };
-#endif

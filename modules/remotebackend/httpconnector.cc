@@ -6,11 +6,13 @@
 #include <sstream>
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "polarssl/ssl.h"
+#include "pdns/lock.hh"
 
 #ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
 #endif
+
+static pthread_rwlock_t calock;
 
 HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     this->d_url = options.find("url")->second;
@@ -22,6 +24,9 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     this->timeout = 2;
     this->d_post = false;
     this->d_post_json = false;
+    this->d_ssl_validate = false;
+    this->d_socket = NULL;
+    ssl_cache_init(&d_cache);
 
     if (options.find("timeout") != options.end()) {
       this->timeout = boost::lexical_cast<int>(options.find("timeout")->second)/1000;
@@ -40,9 +45,26 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     }
     if (options.find("capath") != options.end()) this->d_capath = options.find("capath")->second;
     if (options.find("cafile") != options.end()) this->d_cafile = options.find("cafile")->second;
+
+    x509_crt_init(&this->d_cacerts);
+
+    if (this->d_cafile.empty() == false) {
+      if (x509_crt_parse_file(&this->d_cacerts, this->d_cafile.c_str()) != 0) 
+        throw PDNSException("Could not parse certificate(s) from file " + this->d_cafile);
+      this->d_ssl_validate = true;
+    } else if (this->d_capath.empty() == false) {
+      WriteLock wl(&calock);
+      if (x509_crt_parse_file(&this->d_cacerts, this->d_capath.c_str()) != 0)
+        throw PDNSException("Could not parse certificate(s) from path " + this->d_capath);
+      this->d_ssl_validate = true;
+    }
 }
 
 HTTPConnector::~HTTPConnector() {
+    x509_crt_free(&this->d_cacerts);
+    if (d_socket != NULL)
+      delete d_socket;
+    ssl_cache_free(&d_cache);
 }
 
 // converts json value into string
@@ -289,7 +311,7 @@ void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP
 }
 
 int HTTPConnector::send_message(const rapidjson::Document &input) {
-    int rv,ec;
+    int rv,ec,fd;
     
     std::vector<std::string> members;
     std::string method;
@@ -304,34 +326,87 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
       restful_requestbuilder(input["method"].GetString(), input["parameters"], req);
 
     rv = -1;
-    req.headers["connection"] = "close"; // make sure the other ends knows we are not going to hang around
+    req.headers["connection"] = "Keep-Alive"; // see if we can streamline requests (not needed, strictly speaking)
 
     out << req;
+
+    // try sending with current socket, if it fails retry with new socket
+    if (this->d_socket != NULL) {
+      fd = this->d_socket->getHandle();
+      // there should be no data waiting
+      if (waitForRWData(fd, true, 0, 1000) < 1) {
+        try {
+          d_socket->writenWithTimeout(out.str().c_str(), out.str().size(), timeout);
+          rv = 1;
+        } catch (NetworkError& ne) {
+          L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl;
+        } catch (...) {
+          L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
+        }
+      }
+    }
+
+    if (rv == 1) return rv;
+
+    delete this->d_socket;
+    this->d_socket = NULL;
 
     if (req.url.protocol == "unix") {
       // connect using unix socket
     } else {
       // connect using tcp
-      struct addrinfo *gAddr, *gAddrPtr;
+      struct addrinfo *gAddr, *gAddrPtr, hints;
       std::string sPort = boost::lexical_cast<std::string>(req.url.port);
-      if ((ec = getaddrinfo(req.url.host.c_str(), sPort.c_str(), NULL, &gAddr)) == 0) {
+      memset(&hints,0,sizeof hints);
+      hints.ai_family = AF_UNSPEC;
+      hints.ai_flags = AI_ADDRCONFIG; 
+      hints.ai_protocol = 6; // tcp
+      if ((ec = getaddrinfo(req.url.host.c_str(), sPort.c_str(), &hints, &gAddr)) == 0) {
         // try to connect to each address. 
         gAddrPtr = gAddr;
+        this->d_ssl = (req.url.protocol=="https");
+  
         while(gAddrPtr) {
-          d_socket = new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
+          struct SSLOptions sslopts;
+          memset(&sslopts, 0, sizeof(struct SSLOptions));
+          sslopts.ssl_endpoint_mode = SSL_IS_CLIENT;
+          if (d_ssl_validate) {
+            sslopts.ssl_authmode = SSL_VERIFY_REQUIRED;
+            sslopts.ssl_ca_chain = &d_cacerts;
+          } else sslopts.ssl_authmode = SSL_VERIFY_NONE;
+
+          sslopts.ssl_hostname = req.url.host.c_str();
+
+#if defined(POLARSSL_SSL_SESSION_TICKETS)
+          ssl_cache_get((void*)&d_cache, &sslopts.ssl_session_data);
+#endif
+
           try {
-            ComboAddress addr = *reinterpret_cast<ComboAddress*>(gAddrPtr->ai_addr);
-            d_socket->connect(addr);
-            d_socket->setNonBlocking();
+            if (this->d_ssl) {
+              d_socket = new SSLSocket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
+            } else {
+              d_socket = new Socket(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
+            }
+            d_addr.setSockaddr(gAddrPtr->ai_addr, gAddrPtr->ai_addrlen);
+            d_socket->connect(d_addr);
+            if (this->d_ssl) {
+              dynamic_cast<SSLSocket*>(d_socket)->initSSL(&sslopts);
+            } else {
+              d_socket->setNonBlocking();
+            }
             d_socket->writenWithTimeout(out.str().c_str(), out.str().size(), timeout);
             rv = 1;
           } catch (NetworkError& ne) {
-            L<<Logger::Error<<"While writing to HTTP endpoint: "<<ne.what()<<std::endl;
+            L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl;
+          } catch (...) {
+            L<<Logger::Error<<"While writing to HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
           }
+
           if (rv > -1) break;
           delete d_socket;
           d_socket = NULL;
           gAddrPtr = gAddrPtr->ai_next;
+          
         }
         freeaddrinfo(gAddr);
       } else {
@@ -349,19 +424,39 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
     if (d_socket == NULL ) return -1; // cannot receive :(
     char buffer[4096];
     int rd = -1;
+    bool fail = false;
 
     arl.initialize(&resp);
 
-    while(arl.ready() == false) {
-       rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
-       if (rd<0) {
-         delete d_socket;
-         d_socket = NULL;
-         return -1;
-       }
-       buffer[rd] = 0;
-       arl.feed(std::string(buffer, rd));
+    try {
+      while(arl.ready() == false) {
+        rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
+        if (rd<0) {
+          delete d_socket;
+          d_socket = NULL;
+          fail = true;
+          break;
+        }
+        buffer[rd] = 0;
+        arl.feed(std::string(buffer, rd));
+      }
+    } catch (NetworkError &ne) {
+      L<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl; 
+      delete d_socket;
+      d_socket = NULL;
+      fail = true;
+    } catch (...) {
+      L<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": exception caught"<<std::endl;
+      delete d_socket;
+      fail = true;
     }
+
+    if (fail) {
+      ssl_cache_set((void*)&d_cache, 0);
+      return -1;
+    }
+
+    ssl_cache_set((void*)&d_cache, dynamic_cast<SSLSocket*>(d_socket)->getSession());
 
     arl.finalize();
 
@@ -380,8 +475,5 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
     else
        rv = -1;
 
-    delete d_socket;
-    d_socket = NULL;
- 
     return rv;
 }
