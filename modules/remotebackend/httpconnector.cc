@@ -312,9 +312,12 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
       // connect using unix socket
     } else {
       // connect using tcp
-      struct addrinfo *gAddr, *gAddrPtr;
+      struct addrinfo *gAddr, *gAddrPtr, gHints;
       std::string sPort = boost::lexical_cast<std::string>(req.url.port);
-      if ((ec = getaddrinfo(req.url.host.c_str(), sPort.c_str(), NULL, &gAddr)) == 0) {
+      memset(&gHints, 0, sizeof(gHints));
+      gHints.ai_socktype = SOCK_STREAM;
+      gHints.ai_protocol = 6; // TCP
+      if ((ec = getaddrinfo(req.url.host.c_str(), sPort.c_str(), &gHints, &gAddr)) == 0) {
         // try to connect to each address. 
         gAddrPtr = gAddr;
         while(gAddrPtr) {
