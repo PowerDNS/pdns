@@ -81,6 +81,7 @@ class HTTPConnector: public Connector {
     void post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req);
     void addUrlComponent(const rapidjson::Value &parameters, const char *element, std::stringstream& ss);
     Socket* d_socket;
+    ComboAddress d_addr;
 };
 
 #ifdef REMOTEBACKEND_ZEROMQ
