@@ -63,6 +63,7 @@ These are the tools
 "/usr/bin/dnsdist"
 "/usr/bin/dnstcpbench"
 "/usr/bin/dnswasher"
+"/usr/bin/notify"
 "/usr/bin/nproxy"
 "/usr/bin/nsec3dig"
 "/usr/bin/saxfr"
