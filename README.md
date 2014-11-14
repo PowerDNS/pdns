@@ -64,8 +64,7 @@ build the recursor is first running `dist-recursor` and compiling from the `pdns
 
 SOLARIS NOTES
 -------------
-You need gcc 3.x, preferably 3.2! The "Sunpro" compiler is currently not
-supported (patches are welcome if not too intrusive).
+Use a recent gcc. OpenCSW is a good source, as is Solaris 11 IPS.
 
 If you encounter problems with the Solaris make, gmake is advised.
 
