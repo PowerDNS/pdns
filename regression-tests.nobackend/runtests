@@ -1,5 +1,6 @@
 #!/bin/sh
 set -ex
+cp -f ../regression-tests/zones/test.dyndns.orig ../regression-tests/zones/test.dyndns
 export testsdir=$(pwd)
 ../regression-tests/runtests
 ../regression-tests/toxml
