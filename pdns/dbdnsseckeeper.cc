@@ -294,7 +294,7 @@ bool DNSSECKeeper::unsetPresigned(const std::string& zname)
 }
 
 
-DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone) 
+DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tribool allOrKeyOrZone, bool useCache)
 {
   unsigned int now = time(0);
 
@@ -302,7 +302,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const std::string& zone, boost::tri
     cleanup();
   }
 
-  {
+  if (useCache) {
     ReadLock l(&s_keycachelock);
     keycache_t::const_iterator iter = s_keycache.find(zone);
       
