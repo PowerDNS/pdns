@@ -1,5 +1,36 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 3.6.2
+
+**Note**: Version 3.6.2 is a bugfix update to 3.6.1. Released on the 30th of October 2014.
+
+[Official download page](https://www.powerdns.com/downloads.html)
+
+A list of changes since 3.6.1 follows.
+-   [commit ab14b4f](https://github.com/PowerDNS/pdns/commit/ab14b4f): expedite servfail generation for ezdns-like failures (fully abort query resolving if we hit more than 50 outqueries)
+-   [commit 42025be](https://github.com/PowerDNS/pdns/commit/42025be): PowerDNS now polls the security status of a release at startup and periodically. More detail on this feature, and how to turn it off, can be found in [Section 2, “Security polling”](secpoll.html "2. Security polling").
+-   [commit 5027429](https://github.com/PowerDNS/pdns/commit/5027429): We did not transmit the right 'local' socket address to Lua for TCP/IP queries in the recursor. In addition, we would attempt to lookup a filedescriptor that wasn't there in an unlocked map which could conceivably lead to crashes. Closes [ticket 1828](https://github.com/PowerDNS/pdns/issues/1828), thanks Winfried for reporting
+-   [commit 752756c](https://github.com/PowerDNS/pdns/commit/752756c): Sync embedded yahttp copy. API: Replace HTTP Basic auth with static key in custom header
+-   [commit 6fdd40d](https://github.com/PowerDNS/pdns/commit/6fdd40d): add missing \#include \<pthread.h\> to rec-channel.hh (this fixes building on OS X).
+
+# PowerDNS Authoritative Server 3.4.1
+
+**Warning**: Version 3.4.1 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
+
+Released October 30th, 2014
+
+Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
+
+This is a bugfix update to 3.4.0 and any earlier version.
+
+A list of changes since 3.4.0 follows.
+
+-   [commit dcd6524](https://github.com/PowerDNS/pdns/commit/dcd6524), [commit a8750a5](https://github.com/PowerDNS/pdns/commit/a8750a5), [commit 7dc86bf](https://github.com/PowerDNS/pdns/commit/7dc86bf), [commit 2fda71f](https://github.com/PowerDNS/pdns/commit/2fda71f): PowerDNS now polls the security status of a release at startup and periodically. More detail on this feature, and how to turn it off, can be found in [Section 2, “Security polling”](secpoll.html "2. Security polling").
+-   [commit 5fe6dc0](https://github.com/PowerDNS/pdns/commit/5fe6dc0): API: Replace HTTP Basic auth with static key in custom header (X-API-Key)
+-   [commit 4a95ab4](https://github.com/PowerDNS/pdns/commit/4a95ab4): Use transaction for pdnssec increase-serial
+-   [commit 6e82a23](https://github.com/PowerDNS/pdns/commit/6e82a23): Don't empty ordername during pdnssec increase-serial
+-   [commit 535f4e3](https://github.com/PowerDNS/pdns/commit/535f4e3): honor SOA-EDIT while considering "empty IXFR" fallback, fixes [ticket 1835](https://github.com/PowerDNS/pdns/issues/1835). This fixes slaving of signed zones to IXFR-aware slaves like NSD or BIND.
+
 # PowerDNS Authoritative Server 3.4.0
 Released September 30th, 2014
 
