@@ -10,6 +10,11 @@ clean:
 
 manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
+html/index.html: pdns-expanded.xml
+	rm -rf html
+	xmlto xhtml -m config.xsl -o html $<
+	cp docbook.css html
+
 html-new/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
 	rm -rf html-new/*
 	mkdir -p html-new
