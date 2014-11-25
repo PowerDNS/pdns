@@ -483,9 +483,6 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
-  if(!dk.isSecuredZone(zonename))
-    throw ApiException("Zone '"+zonename+"' is not secured");
-
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename, boost::indeterminate, false);
 
   if (keyset.empty())
