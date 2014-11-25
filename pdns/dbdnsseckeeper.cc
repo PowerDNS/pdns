@@ -53,21 +53,7 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
 {
   if(isPresigned(zone))
     return true;
-  
-  if(!((++s_ops) % 100000)) {
-    cleanup();
-  }
 
-  {
-    ReadLock l(&s_keycachelock);
-    keycache_t::const_iterator iter = s_keycache.find(zone);
-    if(iter != s_keycache.end() && iter->d_ttd > (unsigned int)time(0)) { 
-      if(iter->d_keys.empty())
-        return false;
-      else
-        return true;
-    }
-  }  
   keyset_t keys = getKeys(zone, true); // does the cache
   
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
