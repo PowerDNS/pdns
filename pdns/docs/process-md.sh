@@ -7,7 +7,10 @@ pre() {
 }
 
 post() {
-  find html-new -type f -name '*.html' -exec sed -i 's/<table>/<table class="table-bordered">/' {} +
+  find html-new -type f -name '*.html' -exec sed -i \
+    -e 's/<table>/<table class="table-bordered">/' \
+    -e 's/\\&\(gt\|lt\)/\&\1/' \
+    {} +
 }
 
 $1
