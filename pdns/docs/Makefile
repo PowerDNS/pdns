@@ -6,7 +6,7 @@ pdns-expanded.xml: pdns.xml
 	./expand < $< > $@
 
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.bz2 html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.bz2 html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1 html-new/index.html
 
 manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
@@ -15,9 +15,18 @@ html/index.html: pdns-expanded.xml
 	xmlto xhtml -m config.xsl -o html $<
 	cp docbook.css html
 
+html-new/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
+	rm -rf html-new/*
+	mkdir -p html-new
+	mkdir -p doc-build
+	rsync -a --delete markdown/. doc-build/.
+	./process-md.sh pre
+	mkdocs build
+	./process-md.sh post
+
 pdns-expanded.html: pdns-expanded.xml
 	xmlto xhtml-nochunks -m config.xsl $<
-	
+
 html.tar.bz2: html/index.html
 	tar cjf html.tar.bz2 html/
 

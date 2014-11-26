@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+
+        <title>HTTP API -- Discussion - PowerDNS</title>
+
+        <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../../css/prettify-1.0.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="../..">PowerDNS</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            <!-- Main navigation -->
+            <ul class="nav navbar-nav">
+            
+            
+                <li class="dropdown active">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">PowerDNS Server <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../..">Introduction</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../changelog/">Changelogs</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../types/">Supported DNS Record Types</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../common/logging/">Logging and Performance Monitoring</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../common/security/">Security settings & considerations</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../README/">HTTP API -- Introduction</a>
+                        </li>
+                    
+                        <li class="active">
+                            <a href="./">HTTP API -- Discussion</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../api_spec/">HTTP API -- API Specification</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../features/">HTTP API -- Design and Features</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Authoritative <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../../authoritative/">Introduction</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/installation/">Installing and Running</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/upgrading/">Upgrading</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/modes-of-operation/">Modes of Operation</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/internals/">Internals</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/virtual/">Virtual Hosting</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/fancy-records/">Fancy Records</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/performance/">Performance Tuning and Monitoring</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/migration/">Migrating to PowerDNS</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/recursion/">Recursion with the Authoritative Server</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/dnssec/">Serve DNSSEC Signed Data</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-bind/">Backend: BIND</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-db2/">Backend: DB2</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-generic-mypgsql/">Backend: Generic MySQL and PostGreSQL</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-gsqlite/">Backend: Generic SQLite</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-ldap/">Backend: LDAP</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-lmdb/">Backend: LMDB</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-oracle/">Backend: Oracle</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-pipe/">Backend: Pipe</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-random/">Backend: Random</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-remote/">Backend: Remote</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-tinydns/">Backend: TinyDNS</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/backend-deprecated/">Deprecated Backends</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../authoritative/settings/">List of Settings</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Recursor <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../../recursor/">Introduction</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/security/">Security of the Recursor</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/stats/">Recursor Statistics</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/performance/">Performance Tuning</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/scripting/">Scripting</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/dns64/">DNS64 support</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/internals/">Internals</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../recursor/settings/">List of Settings</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Security <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../../security/">Security Policy</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2012-01/">Advisory 2012-01</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2010-02/">Advisory 2010-02</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2010-01/">Advisory 2010-01</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2008-03/">Advisory 2008-03</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2008-02/">Advisory 2008-02</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2008-01/">Advisory 2008-01</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2006-02/">Advisory 2006-02</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../security/powerdns-advisory-2006-01/">Advisory 2006-01</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tools and Appendices <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                    
+                        <li >
+                            <a href="../../appendix/backend-writers-guide/">Backend Writer's Guide</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../appendix/compiling-powerdns/">Compiling PowerDNS</a>
+                        </li>
+                    
+                        <li >
+                            <a href="../../tools/analysis/">DNS Analysis Tools</a>
+                        </li>
+                    
+                    </ul>
+                </li>
+            
+            
+            </ul>
+
+            <!-- Search, Navigation and Repo links -->
+            <ul class="nav navbar-nav navbar-right">
+                
+<!--                <li >
+                    <a rel="next" href="../README/">
+                        <i class="fa fa-arrow-left"></i> Previous
+                    </a>
+                </li>
+                <li >
+                    <a rel="prev" href="../api_spec/">
+                        Next <i class="fa fa-arrow-right"></i>
+                    </a>
+                </li> -->
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#big-picture">Big Picture</a></li>
+        
+    
+        <li class="main "><a href="#secondary-goals">“Secondary” goals</a></li>
+        
+    
+    </ul>
+</div></div>
+            <div class="col-md-9" role="main">
+
+<p>Everything open for discussion.</p>
+<p>TODO:</p>
+<ul>
+<li>Everything marked as <strong>TODO</strong></li>
+<li>Finish data management (tsigkeys, …)</li>
+<li>Incorporate applicable ideas from http://mailman.powerdns.com/pipermail/pdns-users/2013-February/009613.html</li>
+</ul>
+<h1 id="big-picture">Big Picture</h1>
+<ul>
+<li>HTTP with SSL in-process in Auth &amp; Recursor</li>
+<li>JSON API</li>
+<li>make it really great for us and other consumers</li>
+<li>“unified” API across Daemons and Console</li>
+<li>pdnsmgrd</li>
+<li>cease to do SSL proxying</li>
+<li>become completely optional component</li>
+<li>only for “meta” features</li>
+<li>Console</li>
+<li>get rid of all the API hacks</li>
+<li>new features as detailed below</li>
+<li>CLI tool</li>
+<li>should talk to daemons and Console (if there)</li>
+<li>“Pure” OOTB install</li>
+<li>miniature single page js app for users not installing pdnscontrol</li>
+</ul>
+<h1 id="secondary-goals">“Secondary” goals</h1>
+<ul>
+<li>keep everything lean</li>
+<li>minimal intrusions into existing code</li>
+</ul>
+</div>
+        </div>
+
+        
+
+        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="../../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../../js/prettify-1.0.min.js"></script>
+        <script src="../../js/base.js"></script>
+    </body>
+</html>

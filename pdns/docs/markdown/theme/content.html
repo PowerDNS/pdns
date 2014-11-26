@@ -1,0 +1,9 @@
+{% if source %}
+<div class="source-links">
+{% for filename in source %}
+    <span class="label label-primary">{{ filename }}</span>
+{% endfor %}
+</div>
+{% endif %}
+
+{{ content }}
