@@ -24,45 +24,9 @@ At startup, the recursing nameserver reads the file `recursor.conf` from the con
 A switch can be set to on simply by passing it, like '--daemon', and turned off explicitly by '--daemon=off' or '--daemon=no'.
 
 All settings can be found [here](settings.md)
-2. pdns\_recursor command line
 
-[Prev](built-in-recursor.html) 
-
-Chapter 18. PowerDNS Recursor: a high performance resolving nameserver
-
- [Next](rec-control.html)
-
-* * * * *
-
-2. pdns\_recursor command line
-------------------------------
-
+# `pdns_recursor` command line
 All configuration settings from the previous section can also be passed on the command line, and will override the configuration file. In addition, the following options make sense on the command line:
 
---config  
-Emit a default configuration file.
-
---help  
-Output all configuration settings and command line flags.
-
-* * * * *
-
-<table>
-<colgroup>
-<col width="33%" />
-<col width="33%" />
-<col width="33%" />
-</colgroup>
-<tbody>
-<tr class="odd">
-<td align="left"><a href="built-in-recursor.html">Prev</a> 
-<a href="built-in-recursor.html">Up</a>
- <a href="rec-control.html">Next</a></td>
-<td align="left">Chapter 18. PowerDNS Recursor: a high performance resolving nameserver 
-<a href="index.html">Home</a>
- 3. Controlling and querying the recursor</td>
-</tr>
-</tbody>
-</table>
-
-
+* --config: Emit a default configuration file.
+* --help: Output all configuration settings and command line flags.
