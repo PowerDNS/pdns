@@ -356,7 +356,6 @@ AC_CONFIG_FILES([
   pdns/ext/polarssl/library/Makefile
   pdns/ext/rapidjson/Makefile
   modules/bindbackend/Makefile
-  modules/db2backend/Makefile
   modules/geobackend/Makefile
   modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
