@@ -7,11 +7,11 @@ export testsdir=$(pwd)
 failed_tests=`wc -l failed_tests | cut -f 1 -d ' '`
 if [ $failed_tests = 0 ];
 then
-    exit 0;
+	exit 0;
 else
-    for t in `cat failed_tests`; do
-        cat $t/diff
-    done
+	for t in `cat failed_tests`; do
+		cat $t/diff
+	done
 
-    exit 1;
+	exit 1;
 fi

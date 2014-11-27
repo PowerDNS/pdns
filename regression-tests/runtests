@@ -61,11 +61,11 @@ do
 		$a/command > $a/real_result
 		expected=$a/expected_result
 
-        diffopts="-u"
-        if [ -e $a/expected_result.i ]; then
-            expected=$a/expected_result.i
-            diffopts="${diffopts} -i"
-        fi
+		diffopts="-u"
+		if [ -e $a/expected_result.i ]; then
+			expected=$a/expected_result.i
+			diffopts="${diffopts} -i"
+		fi
 
 		for extracontext in $extracontexts
 		do
