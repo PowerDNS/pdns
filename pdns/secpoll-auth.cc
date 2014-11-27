@@ -131,6 +131,7 @@ void doSecPoll(bool first)
     query+='.';
 
   boost::replace_all(query, "+", "_");
+  boost::replace_all(query, "~", "_");
 
   vector<DNSResourceRecord> ret;
 
