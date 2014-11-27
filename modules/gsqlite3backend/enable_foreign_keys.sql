@@ -127,7 +127,7 @@ BEGIN TRANSACTION;
     );
 
     CREATE INDEX domainidindex ON cryptokeys(domain_id);
-    INSERT INTO cryptokeys_backup SELECT id,domain_id,flags,active,content FROM cryptokeys;
+    INSERT INTO cryptokeys SELECT id,domain_id,flags,active,content FROM cryptokeys_backup;
     DROP TABLE cryptokeys_backup;
 COMMIT;
 
