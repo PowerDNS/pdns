@@ -243,12 +243,12 @@ void *qthread(void *number)
   DNSPacket question;
   DNSPacket cached;
 
-  unsigned int &numreceived=*S.getPointer("udp-queries");
-  unsigned int &numreceiveddo=*S.getPointer("udp-do-queries");
+  AtomicCounter &numreceived=*S.getPointer("udp-queries");
+  AtomicCounter &numreceiveddo=*S.getPointer("udp-do-queries");
 
-  unsigned int &numreceived4=*S.getPointer("udp4-queries");
+  AtomicCounter &numreceived4=*S.getPointer("udp4-queries");
 
-  unsigned int &numreceived6=*S.getPointer("udp6-queries");
+  AtomicCounter &numreceived6=*S.getPointer("udp6-queries");
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");

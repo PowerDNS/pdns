@@ -188,7 +188,7 @@ int PacketCache::purge()
   WriteLock l(&d_mut);
   int delcount=d_map.size();
   d_map.clear();
-  *d_statnumentries=0;
+  *d_statnumentries=AtomicCounter(0);
   return delcount;
 }
 
@@ -222,7 +222,7 @@ int PacketCache::purge(const string &match)
     pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(qname));
     d_map.erase(range.first, range.second);
   }
-  *d_statnumentries=d_map.size();
+  *d_statnumentries=AtomicCounter(d_map.size());
   return delcount;
 }
 // called from ueberbackend
@@ -310,12 +310,12 @@ void PacketCache::cleanup()
 {
   WriteLock l(&d_mut);
 
-  *d_statnumentries=d_map.size();
+  *d_statnumentries=AtomicCounter(d_map.size());
 
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
   
-  unsigned int cacheSize=*d_statnumentries;
+  AtomicCounter::native_t cacheSize=*d_statnumentries;
 
   if(maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
@@ -354,6 +354,6 @@ void PacketCache::cleanup()
       break;
   }
   //  cerr<<"erased: "<<erased<<endl;
-  *d_statnumentries=d_map.size();
+  *d_statnumentries=AtomicCounter(d_map.size());
   DLOG(L<<"Done with cache clean"<<endl);
 }

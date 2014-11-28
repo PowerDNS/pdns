@@ -284,10 +284,10 @@ ResponseStats g_rs;
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
-  static unsigned int &numanswered=*S.getPointer("udp-answers");
-  static unsigned int &numanswered4=*S.getPointer("udp4-answers");
-  static unsigned int &numanswered6=*S.getPointer("udp6-answers");
-  static unsigned int &bytesanswered=*S.getPointer("udp-answers-bytes");
+  static AtomicCounter &numanswered=*S.getPointer("udp-answers");
+  static AtomicCounter &numanswered4=*S.getPointer("udp4-answers");
+  static AtomicCounter &numanswered6=*S.getPointer("udp6-answers");
+  static AtomicCounter &bytesanswered=*S.getPointer("udp-answers-bytes");
 
   g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
 
