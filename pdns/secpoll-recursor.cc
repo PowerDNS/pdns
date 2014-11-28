@@ -29,6 +29,7 @@ void doSecPoll(time_t* last_secpoll)
     query+='.';
 
   boost::replace_all(query, "+", "_");
+  boost::replace_all(query, "~", "_");
 
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
   if(!res && !ret.empty()) {

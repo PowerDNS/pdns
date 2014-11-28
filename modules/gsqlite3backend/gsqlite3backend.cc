@@ -32,6 +32,8 @@ gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & 
       SSQLite3::result_t res;
       ptr->doQuery("PRAGMA synchronous="+getArg("pragma-synchronous"), res);
     }
+    SSQLite3::result_t res;
+    ptr->doQuery("PRAGMA foreign_keys = 1", res);
   }  
   catch( SSqlException & e ) 
   {

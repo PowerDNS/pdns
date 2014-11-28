@@ -60,11 +60,10 @@ private:
 //! use this to gather and query statistics
 class StatBag
 {
-  map<string, unsigned int *> d_stats;
+  map<string, AtomicCounter *> d_stats;
   map<string, string> d_keyDescrips;
   map<string,StatRing>d_rings;
   bool d_doRings;
-  pthread_mutex_t d_lock;
 
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
@@ -96,26 +95,19 @@ public:
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
   inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one
-  void set(const string &key, unsigned int value); //!< set this key's value
-  unsigned int read(const string &key); //!< read the value behind this key
-  unsigned int readZero(const string &key); //!< read the value behind this key, and zero it afterwards
-  unsigned int *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
+  void set(const string &key, AtomicCounter::native_t value); //!< set this key's value
+  AtomicCounter::native_t read(const string &key); //!< read the value behind this key
+  AtomicCounter::native_t readZero(const string &key); //!< read the value behind this key, and zero it afterwards
+  AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   string getValueStrZero(const string &key); //!< read a value behind a key, and return it as a string, and zero afterwards
-
-private:
-  void lock(){pthread_mutex_lock(&d_lock);}
-  void unlock(){pthread_mutex_unlock(&d_lock);}
 };
 
 inline void StatBag::deposit(const string &key, int value)
 {
-  lock();
   exists(key);
 
   *d_stats[key]+=value;
-
-  unlock();
 }
 
 inline void StatBag::inc(const string &key)

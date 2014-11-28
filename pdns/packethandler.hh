@@ -74,7 +74,7 @@ private:
   bool addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
-  int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd);
+  int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd, bool retargeted);
   bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
   void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string &auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, int mode);
@@ -94,7 +94,7 @@ private:
   vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
   vector<DNSResourceRecord> getBestDNAMESynth(DNSPacket *p, SOAData& sd, string &target);
   bool tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target);
-  bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
+  bool tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target, bool retargeted);
 
   bool getBestWildcard(DNSPacket *p, SOAData& sd, const string &target, string &wildcard, vector<DNSResourceRecord>* ret);
   bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, string &wildcard, bool& retargeted, bool& nodata);
