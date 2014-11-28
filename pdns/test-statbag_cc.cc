@@ -88,6 +88,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
     s.inc("c");
     BOOST_CHECK_EQUAL(s.read("c"), 0 );
 #else
+    BOOST_CHECK_EQUAL(~0UL, 0xffffffffUL);
     s.set("c", ~0UL);
     BOOST_CHECK_EQUAL(s.read("c"), 0xffffffffUL );
     s.inc("c");
