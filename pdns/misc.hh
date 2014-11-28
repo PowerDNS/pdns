@@ -369,7 +369,7 @@ public:
       return atomic_exchange_and_add( &value_, +1 );
     }
 
-    native_t operator+=(int val)
+    native_t operator+=(native_t val)
     {
       return atomic_exchange_and_add( &value_, val );
     }
@@ -394,13 +394,13 @@ private:
     
     // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5. 
 #if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
-    static int atomic_exchange_and_add( native_t * pw, int dv )
+    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
         // int r = *pw;
         // *pw += dv;
         // return r;
 
-        int r;
+        native_t r;
 
         __asm__ __volatile__
         (
@@ -414,7 +414,7 @@ private:
         return r;
     }
     #else 
-    static int atomic_exchange_and_add( native_t * pw, int dv )
+    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
       return __sync_fetch_and_add(pw, dv);
     }
