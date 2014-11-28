@@ -19,6 +19,16 @@ static void *threadMangler(void* a)
   return 0;
 }
 
+static void *threadMangler2(void* a)
+{
+  StatBag* S = (StatBag*)a;
+  for(unsigned int n=0; n < 10000000; ++n)
+    S->inc("c");
+  return 0;
+}
+
+
+
 BOOST_AUTO_TEST_SUITE(misc_hh)
 
 BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
@@ -50,6 +60,40 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
     pthread_join(tid[i], &res);
 
   BOOST_CHECK_EQUAL(s.read("c"), 40000000U);
+ 
+  s.set("c", 0);
+
+  for(int i=0; i < 4; ++i) 
+    pthread_create(&tid[i], 0, threadMangler2, (void*)&s);
+
+  for(int i=0; i < 4 ; ++i)
+    pthread_join(tid[i], &res);
+
+  BOOST_CHECK_EQUAL(s.read("c"), 40000000U);
+
+
+  s.set("c", 1ULL<<31);
+  BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<31) );
+  s.inc("c");
+  BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<31) +1 );
+  
+#if UINTPTR_MAX > 0xffffffffULL
+    s.set("c", 1ULL<<33);
+    BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<33) );
+    s.inc("c");
+    BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<33) +1 );
+
+    s.set("c", ~0ULL);
+    BOOST_CHECK_EQUAL(s.read("c"), 0xffffffffffffffffULL );
+    s.inc("c");
+    BOOST_CHECK_EQUAL(s.read("c"), 0 );
+#else
+    s.set("c", ~0UL);
+    BOOST_CHECK_EQUAL(s.read("c"), 0xffffffffUL );
+    s.inc("c");
+    BOOST_CHECK_EQUAL(s.read("c"), 0 );
+#endif
+
 }
 
 
