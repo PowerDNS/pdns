@@ -66,9 +66,9 @@ public:
 private:
   NetmaskGroup d_ng;
   int d_sock;
-  unsigned int* d_resanswers;
-  unsigned int* d_udpanswers;
-  unsigned int* d_resquestions;
+  AtomicCounter* d_resanswers;
+  AtomicCounter* d_udpanswers;
+  AtomicCounter* d_resquestions;
   pthread_mutex_t d_lock;
   uint16_t d_xor;
   int getID_locked();

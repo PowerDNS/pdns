@@ -123,9 +123,9 @@ private:
   int d_ttl;
   int d_recursivettl;
   bool d_doRecursion;
-  unsigned int *d_statnumhit;
-  unsigned int *d_statnummiss;
-  unsigned int *d_statnumentries;
+  AtomicCounter *d_statnumhit;
+  AtomicCounter *d_statnummiss;
+  AtomicCounter *d_statnumentries;
 };
 
 
