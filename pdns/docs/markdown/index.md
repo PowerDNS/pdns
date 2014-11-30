@@ -12,5 +12,9 @@ Another prime goal is security. By the use of language features, the PDNS source
 
 Finally, PowerDNS is able to give a lot of statistics on its operation which is both helpful in determining the scalability of an installation as well as for spotting problems.
 
-# About this document
+# About this document
 If you are reading this document from disk, you may want to check <http://doc.powerdns.com> for updates.
+
+> It is a book about a Spanish guy called Manual. You should read it.  
+
+>       -- Dilbert
