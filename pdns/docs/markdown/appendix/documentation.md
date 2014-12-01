@@ -12,7 +12,7 @@ entirely from GitHub. Simply fork PowerDNS, find the Markdown file you want to c
 edit in place, commit, and create a pull request.
 
 To test-build the documentation, run `pip install mkdocs`, `pip install pandoc`
-nd `pip install pandocfilters`, followed by `make html-new/index.html` in the
+and `pip install pandocfilters`, followed by `make html-new/index.html` in the
 pdns/docs directory.
 
 To test your changes live, use `mkdocs serve --dev-addr=0.0.0.0:8000`, and the new version
