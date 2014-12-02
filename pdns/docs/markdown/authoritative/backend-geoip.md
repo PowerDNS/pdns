@@ -47,8 +47,9 @@ domains:
       - ns: ns2.example.com
       - mx: 10 mx.example.com
     fin.eu.service.geo.example.com:
-      - a: 62.236.200.4
+      - a: 198.51.100.221
       - txt: hello world
+      - aaaa: 2001:DB8::12:34DE:3
   services:
     service.geo.example.com: '%co.%cn.service.geo.example.com'
 ```

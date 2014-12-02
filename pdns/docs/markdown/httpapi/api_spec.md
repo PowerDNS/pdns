@@ -837,7 +837,7 @@ override\_type
       "override": "replace",
       "domain": "www.cnn.com",
       "rrtype": "AAAA",
-      "values": ["1.1.1.1", "2.2.2.2"],
+      "values": ["203.0.113.4", "203.0.113..2"],
       "until": <timestamp>,
       "created": <timestamp>
     }

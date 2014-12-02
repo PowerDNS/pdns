@@ -292,10 +292,10 @@ insert into domains (name,type) values ('powerdns.com','NATIVE');
 The records table can now be filled by with the domain\_id set to the id of the domains table row just inserted.
 
 ## Slave operation
-These backends are fully slave capable. To become a slave of the 'powerdns.com' domain, execute this:
+These backends are fully slave capable. To become a slave of the 'example.com' domain, execute this:
 
 ```
-        insert into domains (name,master,type) values ('powerdns.com','213.244.168.217','SLAVE');
+        insert into domains (name,master,type) values ('example.com','198.51.100.6','SLAVE');
 ```
 
 And wait a while for PDNS to pick up the addition - which happens within one minute. There is no need to inform PDNS that a new domain was added. Typical output is:
@@ -315,13 +315,13 @@ From now on, PDNS is authoritative for the 'powerdns.com' zone and will respond 
 Periodically, PDNS schedules checks to see if domains are still fresh. The default [`slave-cycle-interval`](settings.md#slave-cycle-interval) is 60 seconds, large installations may need to raise this value. Once a domain has been checked, it will not be checked before its SOA refresh timer has expired. Domains whose status is unknown get checked every 60 seconds by default.
 
 ## Superslave operation
-To configure a supermaster with IP address 10.0.0.11 which lists this installation as 'autoslave.powerdns.com', issue the following:
+To configure a supermaster with IP address 203.0.113.53 which lists this installation as 'autoslave.example.com', issue the following:
 
 ```
-        insert into supermasters values ('10.0.0.11','autoslave.powerdns.com','internal');
+        insert into supermasters values ('203.0.113.53','autoslave.example.com','internal');
 ```
 
-From now on, valid notifies from 10.0.0.11 that list a NS record containing 'autoslave.powerdns.com' will lead to the provisioning of a slave domain under the account 'internal'. See [Supermaster](modes-of-operation.md#supermaster-automatic-provisioning-of-slaves) for details.
+From now on, valid notifies from 203.0.113.53 that list a NS record containing 'autoslave.example.com' will lead to the provisioning of a slave domain under the account 'internal'. See [Supermaster](modes-of-operation.md#supermaster-automatic-provisioning-of-slaves) for details.
 
 ## 3.13. Master operation
 The PostgreSQL backend is fully master capable with automatic discovery of serial changes. Raising the serial number of a domain suffices to trigger PDNS to send out notifications. To configure a domain for master operation instead of the default native replication, issue:

@@ -18,7 +18,7 @@ There are two configuration parameters that can be used within the powerdns conf
 A setting to enable/disable DNS update support completely. The default is no, which means that DNS updates are ignored by PowerDNS (no message is logged about this!). Change the setting to **experimental-dnsupdate=yes** to enable DNS update support. Default is **no**.
 
 ## `allow-dnsupdate-from`
-A list of IP ranges that are allowed to perform updates on any domain. The default is 0.0.0.0/0, which means that all ranges are accepted. Multiple entries can be used on this line (**allow-dnsupdate-from=10.0.0.0/8 192.168.1.2/32**). The option can be left empty to disallow everything, this then should be used in combination with the **allow-dnsupdate-from** domainmetadata setting per zone.
+A list of IP ranges that are allowed to perform updates on any domain. The default is 0.0.0.0/0, which means that all ranges are accepted. Multiple entries can be used on this line (**allow-dnsupdate-from=198.51.100.0/8 203.0.113.2/32**). The option can be left empty to disallow everything, this then should be used in combination with the **allow-dnsupdate-from** domainmetadata setting per zone.
 
 ## `forward-dnsupdate`
 Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table. The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the **allow-dnsupdate-from** and **TSIG-2136-ALLOW** are processed first, so those permissions apply before the **forward-dnsupdate** is used. It will try all masters that you have configured until one is successful.
@@ -38,20 +38,20 @@ For permissions, a number of per zone settings are available via the domain meta
 This setting has the same function as described in the configuration options (See [above](#configuration-options)). Only one item is allowed per row, but multiple rows can be added. An example:
 
 ``` {.programlisting}
-sql> select id from domains where name='powerdnssec.org';
+sql> select id from domains where name='example.org';
 5
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’10.0.0.0/8’);
-sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’192.168.1.2/32’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’198.51.100.0/8’);
+sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’203.0.113.2/32’);
 ```
 
-This will allow 10.0.0.0/8 and 192.168.1.2/32 to send DNS update messages for the powerdnssec.org domain.
+This will allow 198.51.100.0/8 and 203.0.113.2/32 to send DNS update messages for the example.org domain.
 
 ## TSIG-ALLOW-DNSUPDATE
 This setting allows you to set the TSIG key required to do an DNS update. An example:
 
 ``` {.programlisting}
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
-sql> select id from domains where name='powerdnssec.org';
+sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'test');
 ```
@@ -61,8 +61,8 @@ An example of how to use a TSIG key with the **nsupdate** command:
 ``` {.programlisting}
 nsupdate <<!
 server <ip> <port>
-zone powerdnssec.org
-update add test1.powerdnssec.org 3600 A 192.168.1.1
+zone example.org
+update add test1.example.org 3600 A 203.0.113.1
 key test kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=
 send
 !
@@ -74,7 +74,7 @@ If a TSIG key is set for the domain, it is required to be used for the update. T
 See [Section 1, “Configuration options”](dnsupdate.html#dnsupdate-configuration "1. Configuration options") for what it does, but per domain.
 
 ``` {.programlisting}
-sql> select id from domains where name='powerdnssec.org';
+sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-DNSUPDATE’,’’);
 ```
@@ -94,7 +94,7 @@ RFC2136 (Section 3.6) defines some specific behaviour for updates of SOA records
 An example:
 
 ``` {.programlisting}
-sql> select id from domains where name='powerdnssec.org';
+sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-DNSUPDATE’,’INCREASE’);
 ```
@@ -161,10 +161,10 @@ For more information on this, consult the dhcpd.conf manual.
 Per subnet, you also have to tell **dhcpd** which (reverse-)domain it should update and on which master domain server it is running.
 
 ``` {.programlisting}
-ddns-domainname "powerdnssec.org";
+ddns-domainname "example.org";
 ddns-rev-domainname "in-addr.arpa.";
 
-zone powerdnssec.org {
+zone example.org {
     primary 127.0.0.1;
     key dhcpdupdate;
 }
@@ -177,7 +177,7 @@ zone 1.168.192.in-addr.arpa. {
 
 This tells **dhcpd** a number of things:
 
-1.  Which domain to use (**ddns-domainname "powerdnssec.org";**)
+1.  Which domain to use (**ddns-domainname "example.org";**)
 2.  Which reverse-domain to use (**dnssec-rev-domainname "in-addr.arpa.";**)
 3.  For the zones, where the primary master is located (**primary 127.0.0.1;**)
 4.  Which TSIG key to use (**key dhcpdupdate;**). We defined the key earlier.
@@ -196,13 +196,13 @@ allow-dnsupdate-from=
 
 This tells PowerDNS to:
 
-1.  Enable DNS update support(**experimental-dnsupdate**)
-2.  Allow updates from NO ip-address (**allow-dnsupdate-from=**)
+1.  Enable DNS update support([`experimental-dnsupdate`](settings.md#experimental-dnsupdate))
+2.  Allow updates from NO ip-address ([`allow-dnsupdate-from=`](settings.md#allow-dnsupdate-from))
 
-We just told powerdns (via the configuration file) that we accept updates from nobody via the **allow-dnsupdate-from** parameter. That's not very useful, so we're going to give permissions per zone, via the domainmetadata table.
+We just told powerdns (via the configuration file) that we accept updates from nobody via the [`allow-dnsupdate-from`](settings.md#allow-dnsupdate-from) parameter. That's not very useful, so we're going to give permissions per zone, via the domainmetadata table.
 
 ``` {.programlisting}
-sql> select id from domains where name='powerdnssec.org';
+sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’127.0.0.1’);
 ```
@@ -213,7 +213,7 @@ Another thing we want to do, is add TSIG security. This can only be done via the
 
 ``` {.programlisting}
 sql> insert into tsigkeys (name, algorithm, secret) values ('dhcpdupdate', 'hmac-md5', 'FYhvwsW1ZtFZqWzsMpqhbg==');
-sql> select id from domains where name='powerdnssec.org';
+sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLOW-DNSUPDATE', 'dhcpdupdate');
 sql> select id from domains where name='1.168.192.in-addr.arpa';
