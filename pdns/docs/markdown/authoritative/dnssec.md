@@ -211,6 +211,7 @@ The following pdnssec commands are available:
 * `check-zone ZONE`: Check a zone for DNSSEC correctness. Main goals is to check if the auth flag is set correctly.
 * `check-all-zones`: Check all zones for DNSSEC correctness. Added in 3.1.
 * `deactivate-zone-key ZONE KEY-ID`: Deactivate a key with id KEY-ID within a zone called ZONE.
+* `disable-dnssec ZONE`: Deactivate all keys and unset PRESIGNED in ZONE.
 * `export-zone-dnskey ZONE KEY-ID`: Export to standard output DNSKEY and DS of key with key id KEY-ID within zone called ZONE.
 * `export-zone-key ZONE KEY-ID`: Export to standard output full (private) key with key id KEY-ID within zone called ZONE. The format used is compatible with BIND and NSD/LDNS.
 * `hash-zone-record ZONE RECORDNAME`:
@@ -295,7 +296,7 @@ pdnssec remove-zone-key ZONE prev-key-id
 ```
 
 ## Going insecure
-`pdnssec disable-dnssec`
+`pdnssec disable-dnssec ZONE`
 
 ## NSEC(3) change
 This section describes how to change NSEC(3) parameters when they are already set.

@@ -36,16 +36,6 @@ EXTRA_DIST = \
 	dnslabeltext.cc \
 	mtasker.cc \
 	inflighter.cc \
-	docs/pdns_control.8  \
-	docs/pdns_server.8 \
-	docs/zone2sql.8 \
-	docs/zone2ldap.8 \
-	docs/pdnssec.8 \
-	docs/dnsreplay.8 \
-	docs/dnsscope.8 \
-	docs/dnswasher.8 \
-	docs/pdnssec.8 \
-	docs/zone2ldap.8 \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \

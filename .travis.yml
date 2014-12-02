@@ -8,7 +8,7 @@ before_script:
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update --quiet --quiet
- - sudo apt-get install --quiet --quiet --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils libgeoip-dev geoip-database faketime
+ - sudo apt-get install --quiet --quiet --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils libgeoip-dev geoip-database faketime
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
  - sudo apt-get update --quiet --quiet
  - sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev pandoc
@@ -49,7 +49,6 @@ script:
  - make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
- - make -k -C docs html-new/index.html manpages
  - cd ../regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh

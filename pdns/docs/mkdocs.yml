@@ -1,7 +1,7 @@
 site_name: PowerDNS
 repo_url: https://github.com/PowerDNS/pdns
 docs_dir: doc-build
-site_dir: html-new
+site_dir: html
 theme_dir: markdown/theme
 pages:
   - [index.md, 'PowerDNS Server', 'Introduction']
