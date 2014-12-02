@@ -20,7 +20,7 @@ From 3.4 onward. Allow DNS updates from these IP ranges.
 By specifying `allow-recursion`, recursion can be restricted to netmasks specified. The default is to allow recursion from everywhere. Example: `allow-recursion=198.51.100.0/24, 10.0.0.0/8, 192.0.2.4`.
 
 ## `also-notify`
-When notifying a domain, also notify these nameservers. Example: `also-notify=192.0.2.1, 203.0.113.167`. The IP adresses listed in `also-notify` always receive a notification. Even if they do not match the list in `only-notify`.
+When notifying a domain, also notify these nameservers. Example: `also-notify=192.0.2.1, 203.0.113.167`. The IP adresses listed in `also-notify` always receive a notification. Even if they do not match the list in `only-notify`. Available since 3.4.0.
 
 ## `any-to-tcp`
 Boolean value (`yes` or `no`). Answer questions for the ANY and RRSIG types on UDP with a truncated packet that refers the remote server to TCP. Useful for mitigating reflection attacks. Defaults to `no`. Available since 3.3.
