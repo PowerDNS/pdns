@@ -30,7 +30,7 @@ SQLite is included in most PowerDNS binary releases.
 Before you can use this backend you first have to set it up and fill it with data. The default setup conforms to the following schema:
 
 ```
-!!include=../../modules/gsqlite3backend/schema.sqlite3.sql
+!!include=../modules/gsqlite3backend/schema.sqlite3.sql
 ```
 
 This schema contains all elements needed for master, slave and superslave operation.

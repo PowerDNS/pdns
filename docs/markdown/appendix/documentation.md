@@ -4,7 +4,7 @@ Pieter Lexis contributed a Markdown conversion, which is the basis of the curren
 
 If you note an issue with the new documentation, please open a ticket on
 [GitHub](https://github.com/powerdns/pdns/issues) and tell us about it. Or, even
-better, fork our repo, and edit the files in pdns/docs/markdown to improve things.
+better, fork our repo, and edit the files in docs/markdown to improve things.
 
 If your change is simple (say, a typo or a new paragraph), you can do all this 
 entirely from GitHub. Simply fork PowerDNS, find the Markdown file you want to change, 
@@ -16,11 +16,10 @@ with the required packages to build the documentation.
 [Virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/) can be
 used to easily create and use a virtualenv.
 
-Once you're in a virtualenv, `pip install mkdocs==0.11.1 pandocfilters==1.2.3
-pandoc==1.0.0-alpha.3`.
+Once you're in a virtualenv, `pip install mkdocs==0.11.1 pandocfilters==1.2.3`.
 
-To test-build the documentation, `make html-new/index.html` in the pdns/docs
-directory will build the documentation into `html-new/`.
+To test-build the documentation, `make html/index.html` in the docs
+directory will build the documentation into `html/`.
 
 To test your changes live, use `mkdocs serve --dev-addr=0.0.0.0:8000`, and the
 new version of your documentation will appear on port 8000 of your machine.

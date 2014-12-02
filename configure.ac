@@ -338,8 +338,8 @@ AC_CONFIG_FILES([
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
+  docs/Makefile
   pdns/pdns.init
-  pdns/docs/Makefile
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile

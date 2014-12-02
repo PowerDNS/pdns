@@ -1,4 +1,4 @@
-SUBDIRS = modules codedocs pdns/docs
+SUBDIRS = modules codedocs docs
 
 if WITH_PDNS_SERVER
   SUBDIRS += pdns

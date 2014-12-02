@@ -106,7 +106,7 @@ binary-static: stamp-build-static binary-main-prepare
 
 clean:
 	-make distclean
-	-make -C pdns/docs clean
+	-make -C docs clean
 	rm -f debian/files debian/substvars stamp-build stamp-build-static
 	rm -rf "$(tmpdir)"
 

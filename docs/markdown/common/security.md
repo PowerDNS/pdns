@@ -37,7 +37,7 @@ As of Authoritative Server 3.4.1 and Recursor 3.6.2, PowerDNS products can poll 
 
 By default, security polling happens on the domain 'secpoll.powerdns.com', but this can be changed with the security-poll-suffix. If this setting is made empty, no polling will take place. Organizations wanting to host their own security zones can do so by changing this setting to a domain name under their control.
 
-To make this easier, the zone used to host secpoll.powerdns.com is available [here](https://github.com/PowerDNS/pdns/blob/master/pdns/docs/secpoll.zone).
+To make this easier, the zone used to host secpoll.powerdns.com is available [here](https://github.com/PowerDNS/pdns/blob/master/docs/secpoll.zone).
 
 To enable distributors of PowerDNS to signal that they have backported versions, the PACKAGEVERSION compilation-time macro can be used to set a distributor suffix.
 
