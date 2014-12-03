@@ -4,8 +4,7 @@ Pieter Lexis contributed a Markdown conversion, which is the basis of the curren
 
 If you note an issue with the new documentation, please open a ticket on
 [GitHub](https://github.com/powerdns/pdns/issues) and tell us about it. Or, even
-better, fork our repo, and edit the files in pdns/tree/master/pdns/docs/markdown
-to improve things.
+better, fork our repo, and edit the files in pdns/docs/markdown to improve things.
 
 If your change is simple (say, a typo or a new paragraph), you can do all this 
 entirely from GitHub. Simply fork PowerDNS, find the Markdown file you want to change, 
