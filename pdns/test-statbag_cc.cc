@@ -15,7 +15,7 @@ using std::string;
 static void *threadMangler(void* a)
 {
   AtomicCounter* ac = (AtomicCounter*)a;
-  for(unsigned int n=0; n < 10000000; ++n)
+  for(unsigned int n=0; n < 1000000; ++n)
     (*ac)++;
   return 0;
 }
@@ -23,7 +23,7 @@ static void *threadMangler(void* a)
 static void *threadMangler2(void* a)
 {
   StatBag* S = (StatBag*)a;
-  for(unsigned int n=0; n < 10000000; ++n)
+  for(unsigned int n=0; n < 1000000; ++n)
     S->inc("c");
   return 0;
 }
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   for(int i=0; i < 4 ; ++i)
     pthread_join(tid[i], &res);
 
-  BOOST_CHECK_EQUAL(s.read("c"), 40000000U);
+  BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
  
   s.set("c", 0);
 
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   for(int i=0; i < 4 ; ++i)
     pthread_join(tid[i], &res);
 
-  BOOST_CHECK_EQUAL(s.read("c"), 40000000U);
+  BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
 
 
   s.set("c", 1ULL<<31);
