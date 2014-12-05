@@ -312,7 +312,7 @@ rec_control_SOURCES=rec_channel.cc rec_channel.hh rec_control.cc arguments.cc ar
 	unix_utility.cc logger.cc statbag.cc
 
 testrunner_SOURCES=testrunner.cc test-misc_hh.cc test-nameserver_cc.cc test-dnsrecords_cc.cc test-base32_cc.cc test-md5_hh.cc \
-        test-sha_hh.cc nameserver.cc misc.cc \
+        packetcache.cc test-sha_hh.cc nameserver.cc test-packetcache_cc.cc misc.cc \
 	unix_utility.cc logger.cc statbag.cc arguments.cc qtype.cc dnspacket.cc \
 	dnswriter.cc base64.cc base32.cc dnsrecords.cc dnslabeltext.cc dnsparser.cc \
 	rcpgenerator.cc ednssubnet.cc nsecrecords.cc sillyrecords.cc dnssecinfra.cc \
