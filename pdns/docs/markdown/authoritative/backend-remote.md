@@ -112,21 +112,21 @@ This method is used to do the basic query. You can omit auth, but if you are usi
 #### Example JSON/RPC
 Query:
 ```
-{"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com", "remote":"192.168.0.24", "local":"192.168.0.1", "real-remote":"192.168.0.24", "zone-id":-1}}
+{"method":"lookup", "parameters":{"qtype":"ANY", "qname":"www.example.com", "remote":"192.0.2.24", "local":"192.0.2.1", "real-remote":"192.0.2.24", "zone-id":-1}}
 ```
 
 Response:
 ```
-{"result":[{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60}]}
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 ```
 
 #### Example HTTP/RPC
 Query:
 ```
 GET /dnsapi/lookup/www.example.com/ANY HTTP/1.1
-X-RemoteBackend-remote: 192.168.0.24
-X-RemoteBackend-local: 192.168.0.1
-X-RemoteBackend-real-remote: 192.168.0.24
+X-RemoteBackend-remote: 192.0.2.24
+X-RemoteBackend-local: 192.0.2.1
+X-RemoteBackend-real-remote: 192.0.2.24
 X-RemoteBackend-zone-id: -1
 ```
 
@@ -135,7 +135,7 @@ Response:
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":[{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60}]}
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 ```
 
 ### `list`
@@ -159,9 +159,9 @@ Response (split into lines for ease of reading)
   {"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},
   {"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},
   {"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},
-  {"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},
-  {"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},
-  {"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60} 
+  {"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60},
+  {"qtype":"A", "qname":"ns1.example.com", "content":"192.0.2.2", "ttl": 60},
+  {"qtype":"A", "qname":"mx1.example.com", "content":"192.0.2.3", "ttl": 60} 
 ]}
 ```
 
@@ -177,7 +177,7 @@ Response:
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
+{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.0.2.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.0.2.3", "ttl": 60}]}
 ```
 
 ### `getBeforeAndAfterNamesAbsolute`
@@ -619,7 +619,7 @@ Determines whether given IP is master for given domain name.
 #### Example JSON/RPC
 Query:
 ```
-{"method":"isMaster","parameters":{"name":"example.com","ip":"10.0.0.1"}}
+{"method":"isMaster","parameters":{"name":"example.com","ip":"198.51.100.0.1"}}
 ```
 
 Response:
@@ -630,7 +630,7 @@ Response:
 #### Example HTTP/RPC
 Query:
 ```
-GET /dnsapi/isMaster/example.com/10.0.0.1
+GET /dnsapi/isMaster/example.com/198.51.100.0.1
 ```
 
 Response:
@@ -651,7 +651,7 @@ Creates new domain with given record(s) as master servers. IP address is the add
 #### Example JSON/RPC
 Query:
 ```
-{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"auth":true}]}}
+{"method":"superMasterBackend","parameters":{"ip":"198.51.100.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"auth":true}]}}
 ```
 
 Response:
@@ -667,7 +667,7 @@ Alternative response:
 #### Example HTTP/RPC
 Query:
 ```
-POST /dnsapi/supermasterbackend/10.0.0.1/example.com
+POST /dnsapi/supermasterbackend/198.51.100.0.1/example.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 317
 
@@ -701,7 +701,7 @@ Reply: true for success, false for failure
 #### Example JSON/RPC
 Query:
 ```
-{"method":"createSlaveDomain","parameters":{"ip":"10.0.0.1","domain":"pirate.unit.test"}}
+{"method":"createSlaveDomain","parameters":{"ip":"198.51.100.0.1","domain":"pirate.example.net"}}
 ```
 
 Response:
@@ -712,7 +712,7 @@ Response:
 #### Example HTTP/RPC
 Query:
 ```
-POST /dnsapi/createslavedomain/10.0.0.1/pirate.unit.test
+POST /dnsapi/createslavedomain/198.51.100.0.1/pirate.example.net
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 0
 ```

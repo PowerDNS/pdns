@@ -58,9 +58,9 @@ If the length of the value that you wish to insert into [the section called “d
 # perl dumpdb.pl /var/tmp/lmdb zone
 key: moc.elpmaxe; value: 1      300     ns.example.com. hostmaster.example.com. 2012021101 86400 7200 604800 86400
 # perl dumpdb.pl /var/tmp/lmdb data
-key: moc.elpmaxe        MX; value: 1    300     10 mail.hotmail.com
+key: moc.elpmaxe        MX; value: 1    300     10 mail.example.com
 key: moc.elpmaxe        NS; value: 1    300     ns.example.com
-key: moc.elpmaxe.tset   A; value: 1     300     1.2.3.4
+key: moc.elpmaxe.tset   A; value: 1     300     192.0.2.66
 key: moc.elpmaxe.txet   TXT; value: 1   300     test\010123
 key: moc.elpmaxe.txetgnol       TXT; value: REF 1
 # perl dumpdb.pl /var/tmp/lmdb extended_data

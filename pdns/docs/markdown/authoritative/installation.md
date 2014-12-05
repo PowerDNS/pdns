@@ -111,11 +111,11 @@ Now we have a database and an empty table. PDNS should now be able to launch in 
 15:39:55 [gMySQLbackend] MySQL connection succeeded
 ```
 
-A sample query sent to the database should now return quickly without data:
+In a different shell, a sample query sent to the server should now return quickly without data:
 
 ```
-$ host www.example.com 127.0.0.1
-www.example.com A record currently not present at localhost
+$ dig +short www.example.com @127.0.0.1
+$
 ```
 
 **Warning**: When debugging DNS problems, don't use `host`. Please use `dig`  or `drill`.
@@ -126,7 +126,7 @@ And indeed, the control console now shows:
 Mar 12 15:41:12 We're not authoritative for 'www.example.com', sending unauth normal response
 ```
 
-Now we need to add some records to our database:
+Now we need to add some records to our database (in a separate shell):
 
 ```
 # mysql pdnstest
@@ -152,29 +152,21 @@ VALUES (1,'example.com','mail.example.com','MX',120,25);
 If we now requery our database, `www.example.com` should be present:
 
 ```
-$ host www.example.com 127.0.0.1
-www.example.com           A   192.0.2.10
+$ dig +short www.example.com @127.0.0.1
+192.0.2.10
 
-$ host -v -t mx example.com 127.0.0.1
-Address: 127.0.0.1
-Aliases: localhost
-
-Query about example.com for record types MX
-Trying example.com ...
-Query done, 1 answer, authoritative status: no error
-example.com               120 IN  MX  25 mail.example.com
-Additional information:
-mail.example.com          120 IN  A   192.0.2.12
+$ dig +short example.com MX @127.0.0.1
+25 mail.example.com
 ```
 
 To confirm what happened, issue the command [`SHOW *`](internals.md#show-variable) to the control console:
 
 ```
- % show *
- corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
- qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
- timedout-packets=0,udp-answers=7,udp-queries=7,
- % 
+% show *
+corrupt-packets=0,latency=0,packetcache-hit=2,packetcache-miss=5,packetcache-size=0,
+qsize-a=0,qsize-q=0,servfail-packets=0,tcp-answers=0,tcp-queries=0,
+timedout-packets=0,udp-answers=7,udp-queries=7,
+%
 ```
 
 The actual numbers will vary somewhat. Now enter `QUIT` and start PDNS as a regular daemon, and check launch status:
@@ -196,12 +188,12 @@ You now have a working database driven nameserver! To convert other zones alread
 Most problems involve PDNS not being able to connect to the database.
 
 ### Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)
-Your MySQL installation is probably defaulting to another location for its socket. Can be resolved by figuring out this location (often `/var/run/mysqld.sock`), and specifying it in the configuration file with the **gmysql-socket** parameter.
+Your MySQL installation is probably defaulting to another location for its socket. Can be resolved by figuring out this location (often `/var/run/mysqld.sock`), and specifying it in the configuration file with the [`gmysql-socket`](backend-generic-mypgsql.md#gmysql-socket) parameter.
 
-Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying **gmysql-host=127.0.0.1**.
+Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying [`gmysql-host=127.0.0.1`](backend-generic-mypgsql.md#gmysql-host).
 
 ### Host 'x.y.z.w' is not allowed to connect to this MySQL server
-These errors are generic MySQL errors. Solve them by trying to connect to your MySQL database with the MySQL console utility **mysql** with the parameters specified to PDNS. Consult the MySQL documentation.
+These errors are generic MySQL errors. Solve them by trying to connect to your MySQL database with the MySQL console utility `mysql` with the parameters specified to PDNS. Consult the MySQL documentation.
 
 ## Typical Errors after Installing
 At this point some things may have gone wrong. Typical errors include:

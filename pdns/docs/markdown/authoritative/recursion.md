@@ -20,7 +20,7 @@ If a Recursion Desired packet arrives and PDNS is configured to allow recursion,
 
 It is also possible to use a resolver living on a different port. To do so, specify a recursor like this: `recursor=192.0.2.1:5300`
 
-If the backend does not answer a question within a large amount of time, this is logged as 'Recursive query for remote 10.96.0.2 with internal id 0 was not answered by backend within timeout, reusing id'. This may happen when using 'BIND' as a recursor as it is prone to drop queries which it can't answer immediately.
+If the backend does not answer a question within a large amount of time, this is logged as 'Recursive query for remote 198.51.100.15 with internal id 0 was not answered by backend within timeout, reusing id'. This may happen when using 'BIND' as a recursor as it is prone to drop queries which it can't answer immediately.
 
 To make sure that the local authoritative database overrides recursive information, PowerDNS first tries to answer a question from its own database. If that succeeds, the answer packet is sent back immediately without involving the recursor in any way. This means that for questions for which there is no answer, PowerDNS will consult the recursor for an recursive query, even if PowerDNS is authoritative for a domain! This will only cause problems if you 'fake' domains which don't really exist.
 

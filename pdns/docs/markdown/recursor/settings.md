@@ -64,9 +64,9 @@ If set, all hostnames in the export-etc-hosts file are loaded in canonical form,
 If running on an SMP system with enough memory, this feature forks PowerDNS so it benefits from two processors. Experimental. Renames controlsockets, so care is needed to connect to the right one using `rec_control`, using `socket-pid`. Available in versions of the Recursor before 3.2, replaced by the 'threads' setting.
 
 ## `forward-zones`
-Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed. `forward-zones=example.org=203.0.113.210, powerdns.com=127.0.0.1`. Available since version 3.1.
+Comma separated list of 'zonename=IP' pairs. Queries for zones listed here will be forwarded to the IP address listed. `forward-zones=example.org=203.0.113.210, powerdns.com=2001:DB8::BEEF:5`. Available since version 3.1.
 
-Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured. Sample syntax: `forward-zones=example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;198.51.100.10:530`, or on the command line: `--forward-zones="example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530"`,
+Since version 3.1.5, multiple IP addresses can be specified. Additionally, port numbers other than 53 can be configured. Sample syntax: `forward-zones=example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;198.51.100.10:530;[2001:DB8::1:3]:5300`, or on the command line: `--forward-zones="example.org=203.0.113.210:5300;127.0.0.1, powerdns.com=127.0.0.1;9.8.7.6:530;[2001:DB8::1:3]:5300"`.
 
 Forwarded queries have the 'recursion desired' bit set to 0, meaning that this setting is intended to forward queries to authoritative servers.
 
