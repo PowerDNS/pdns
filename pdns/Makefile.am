@@ -855,11 +855,13 @@ testrunner_SOURCES = \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
+	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
         test-sha_hh.cc \
+        packetcache.cc \
 	unix_utility.cc \
         zoneparser-tng.cc zoneparser-tng.hh
 
