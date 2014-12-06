@@ -350,6 +350,20 @@ void *qthread(void *number)
   return 0;
 }
 
+static void* dummyThread(void *)
+{
+  void* ignore=0;
+  pthread_exit(ignore);
+}
+
+static void triggerLoadOfLibraries()
+{
+  pthread_t tid;
+  pthread_create(&tid, 0, dummyThread, 0);
+  void* res;
+  pthread_join(tid, &res);
+}
+
 void mainthread()
 {
   Utility::srandom(time(0));
@@ -369,6 +383,7 @@ void mainthread()
    doSecPoll(true); // this must be BEFORE chroot
 
    if(!::arg()["chroot"].empty()) {  
+     triggerLoadOfLibraries();
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
