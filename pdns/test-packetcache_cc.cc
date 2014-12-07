@@ -123,8 +123,6 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
 
     BOOST_CHECK(S.read("deferred-cache-inserts") + S.read("deferred-cache-lookup") >= g_missing);
     //    BOOST_CHECK_EQUAL(S.read("deferred-cache-lookup"), 0); // cache cleaning invalidates this
-
-  
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
@@ -180,6 +178,71 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheClean) {
     throw;
   }
 }
-  
+
+BOOST_AUTO_TEST_CASE(test_PacketCachePacket) {
+  try {
+    ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
+
+    PacketCache PC;
+    vector<uint8_t> pak;
+    vector<pair<uint16_t,string > > opts;
+
+    DNSPacketWriter pw(pak, "www.powerdns.com", QType::A);
+    DNSPacket q, r, r2;
+    q.parse((char*)&pak[0], pak.size());
+
+    pak.clear();
+    DNSPacketWriter pw2(pak, "www.powerdns.com", QType::A);
+    pw2.startRecord("www.powerdns.com", QType::A, 16, 1, DNSPacketWriter::ANSWER);
+    pw2.xfrIP(htonl(0x7f000001));
+    pw2.commit();
+
+    q.parse((char*)&pak[0], pak.size());
+
+
+    PC.insert(&q, &r, false, 3600);
+
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+
+    PC.purge("www.powerdns.com");
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+
+    PC.insert(&q, &r, false, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    PC.purge("com$");
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+
+    PC.insert(&q, &r, false, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    PC.purge("powerdns.com$");
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+
+    PC.insert(&q, &r, false, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    PC.purge("www.powerdns.com$");
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+
+    PC.insert(&q, &r, false, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 0);
+    PC.purge("www.powerdns.com$");
+
+    PC.insert(&q, &r, true, 3600);
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
+    PC.purge("www.powerdns.com$");
+
+    PC.insert(&q, &r, true, 3600);
+    PC.purge("www.powerdns.net");
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 1);
+    PC.purge("net$");
+    BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 1);
+
+    PC.purge("www.powerdns.com$");
+    BOOST_CHECK_EQUAL(PC.size(), 0);
+  }
+  catch(PDNSException& e) {
+    cerr<<"Had error in threadReader: "<<e.reason<<endl;
+    throw;
+  }
+} 
 
 BOOST_AUTO_TEST_SUITE_END()
