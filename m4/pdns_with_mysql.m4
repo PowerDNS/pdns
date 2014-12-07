@@ -2,12 +2,12 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
   AC_ARG_WITH([mysql],
     [AS_HELP_STRING([--with-mysql=<path>], [root directory path of MySQL installation])],
     [
-      MYSQL_lib_check="$withval/lib/mysql $with_mysql/lib"
+      MYSQL_LIBS_check="$withval/lib/mysql $with_mysql/lib"
       MYSQL_CFLAGS_check="$withval/include/mysql"
       MYSQL_config_check="$withval/bin/mysql_config"
     ],
     [
-      MYSQL_lib_check="/usr/local/mysql/lib/mysql /usr/local/lib/mysql /opt/mysql/lib/mysql \
+      MYSQL_LIBS_check="/usr/local/mysql/lib/mysql /usr/local/lib/mysql /opt/mysql/lib/mysql \
         /usr/lib/mysql /usr/lib64/mysql /usr/local/mysql/lib /usr/local/lib /opt/mysql/lib /usr/lib \
         /usr/sfw/lib/ $full_libdir"
       MYSQL_CFLAGS_check="/usr/local/mysql/include/mysql /usr/local/include/mysql \
@@ -23,7 +23,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
   AC_ARG_WITH([mysql-lib],
     [AS_HELP_STRING([--with-mysql-lib=<path>], [directory path of MySQL library installation])],
     [
-      MYSQL_lib_check="$withval/lib/mysql $withval/mysql $withval"
+      MYSQL_LIBS_check="$withval/lib/mysql $withval/mysql $withval"
       MYSQL_config_check="skip"
     ]
   )
@@ -66,12 +66,12 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
 
   if test "x$MYSQL_config" != "x"; then
     # use this to configure everything
-    MYSQL_lib=`$MYSQL_config --libs`
+    MYSQL_LIBS=`$MYSQL_config --libs`
     MYSQL_CFLAGS=`$MYSQL_config --include`
   else
     AC_MSG_CHECKING([for MySQL library directory])
     MYSQL_libdir=
-    for m in $MYSQL_lib_check; do
+    for m in $MYSQL_LIBS_check; do
       if test -d "$m" && \
         (test -f "$m/libmysqlclient.so" || test -f "$m/libmysqlclient.a")
       then
@@ -80,16 +80,16 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
       fi
     done
     if test -z "$MYSQL_libdir"; then
-      AC_MSG_ERROR([Did not find the mysql library dir in '$MYSQL_lib_check'])
+      AC_MSG_ERROR([Did not find the mysql library dir in '$MYSQL_LIBS_check'])
     fi
     case "$MYSQL_libdir" in
-      /*) MYSQL_lib="-L$MYSQL_libdir -lmysqlclient"
+      /*) MYSQL_LIBS="-L$MYSQL_libdir -lmysqlclient"
           ;;
       *)  AC_MSG_ERROR([The MySQL library directory ($MYSQL_libdir) must be an absolute path.])
           ;;
     esac
     AC_MSG_RESULT([$MYSQL_libdir])
-    AC_SUBST(MYSQL_lib)
+    AC_SUBST(MYSQL_LIBS)
     AC_MSG_CHECKING([for MySQL include directory])
     MYSQL_CFLAGS=
     for m in $MYSQL_CFLAGS_check; do
@@ -111,7 +111,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
     esac
     MYSQL_CFLAGS="-I$MYSQL_CFLAGS"
   fi
-  AC_SUBST(MYSQL_lib)
+  AC_SUBST(MYSQL_LIBS)
   AC_SUBST(MYSQL_CFLAGS)
 ])
 

@@ -14,4 +14,4 @@ libmydnsbackend_la_SOURCES = \
 libmydnsbackend_la_LDFLAGS = -module -avoid-version
 libmydnsbackend_la_LIBADD = \
 	../gmysqlbackend/smysql.lo \
-	$(MYSQL_lib)
+	$(MYSQL_LIBS)
