@@ -337,7 +337,6 @@ int PacketCache::size()
 /** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-
   *d_statnumentries=AtomicCounter(0);
   BOOST_FOREACH(MapCombo& mc, d_maps) {
     ReadLock l(&mc.d_mut);
@@ -364,7 +363,9 @@ void PacketCache::cleanup()
   //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
   time_t now=time(0);
   DLOG(L<<"Starting cache clean"<<endl);
+  //unsigned int totErased=0;
   BOOST_FOREACH(MapCombo& mc, d_maps) {
+    WriteLock wl(&mc.d_mut);
     typedef cmap_t::nth_index<1>::type sequence_t;
     sequence_t& sidx=mc.d_map.get<1>();
     unsigned int erased=0, lookedAt=0;
@@ -373,8 +374,9 @@ void PacketCache::cleanup()
 	sidx.erase(i++);
 	erased++;
       }
-      else
+      else {
 	++i;
+      }
 
       if(toTrim && erased > toTrim / d_maps.size())
 	break;
@@ -382,9 +384,11 @@ void PacketCache::cleanup()
       if(lookedAt > lookAt / d_maps.size())
 	break;
     }
+    //totErased += erased;
   }
-  //  cerr<<"erased: "<<erased<<endl;
-
+  //  if(totErased)
+  //  cerr<<"erased: "<<totErased<<endl;
+  
   *d_statnumentries=AtomicCounter(0);
   BOOST_FOREACH(MapCombo& mc, d_maps) {
     ReadLock l(&mc.d_mut);
