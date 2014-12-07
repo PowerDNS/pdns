@@ -197,28 +197,31 @@ BOOST_AUTO_TEST_CASE(test_PacketCachePacket) {
     pw2.xfrIP(htonl(0x7f000001));
     pw2.commit();
 
-    q.parse((char*)&pak[0], pak.size());
-
+    r.parse((char*)&pak[0], pak.size());
 
     PC.insert(&q, &r, false, 3600);
 
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
 
     PC.purge("www.powerdns.com");
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
 
     PC.insert(&q, &r, false, 3600);
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("com$");
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
 
     PC.insert(&q, &r, false, 3600);
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("powerdns.com$");
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
 
     PC.insert(&q, &r, false, 3600);
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 1);
+    BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("www.powerdns.com$");
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, false), 0);
 
@@ -233,9 +236,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCachePacket) {
     PC.insert(&q, &r, true, 3600);
     PC.purge("www.powerdns.net");
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 1);
+    BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("net$");
     BOOST_CHECK_EQUAL(PC.get(&q, &r2, true), 1);
-
+    BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
     PC.purge("www.powerdns.com$");
     BOOST_CHECK_EQUAL(PC.size(), 0);
   }
