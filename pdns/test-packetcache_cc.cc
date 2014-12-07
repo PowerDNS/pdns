@@ -101,6 +101,7 @@ catch(PDNSException& e) {
 }
 
 
+
 BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
   try {
     PacketCache PC;
@@ -120,9 +121,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     for(int i=0; i < 4 ; ++i)
       pthread_join(tid[i], &res);
 
-    BOOST_CHECK_EQUAL(S.read("deferred-cache-inserts"), g_missing);
-    BOOST_CHECK_EQUAL(S.read("deferred-cache-lookup"), 0);
+    BOOST_CHECK(S.read("deferred-cache-inserts") + S.read("deferred-cache-lookup") >= g_missing);
+    //    BOOST_CHECK_EQUAL(S.read("deferred-cache-lookup"), 0); // cache cleaning invalidates this
 
+  
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
@@ -131,5 +133,53 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
   
 }
 
+bool g_stopCleaning;
+static void *cacheCleaner(void*)
+try
+{
+  while(!g_stopCleaning) {
+    g_PC->cleanup();
+  }
+
+  return 0;
+}
+catch(PDNSException& e) {
+  cerr<<"Had error in threadReader: "<<e.reason<<endl;
+  throw;
+}
+
+BOOST_AUTO_TEST_CASE(test_PacketCacheClean) {
+  try {
+    PacketCache PC;
+
+    for(unsigned int counter = 0; counter < 1000000; ++counter) {
+      PC.insert("hello "+boost::lexical_cast<string>(counter), QType(QType::A), PacketCache::QUERYCACHE, "something", 1, 1);
+    }
+
+    sleep(1);
+    
+    g_PC=&PC;
+    pthread_t tid[4];
+
+    ::arg().set("max-cache-entries")="10000";
+
+    pthread_create(&tid[0], 0, threadReader, (void*)(0*1000000UL));
+    pthread_create(&tid[1], 0, threadReader, (void*)(1*1000000UL));
+    pthread_create(&tid[2], 0, threadReader, (void*)(2*1000000UL));
+    //    pthread_create(&tid[2], 0, threadMangler, (void*)(0*1000000UL));
+    pthread_create(&tid[3], 0, cacheCleaner, 0);
+
+    void *res;
+    for(int i=0; i < 3 ; ++i)
+      pthread_join(tid[i], &res);
+    g_stopCleaning=true;
+    pthread_join(tid[3], &res);
+  }
+  catch(PDNSException& e) {
+    cerr<<"Had error in threadReader: "<<e.reason<<endl;
+    throw;
+  }
+}
+  
 
 BOOST_AUTO_TEST_SUITE_END()
