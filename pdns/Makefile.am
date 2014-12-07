@@ -1,12 +1,12 @@
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/pdns/ext/rapidjson/include \
-	$(YAHTTP_CFLAGS)
+	$(YAHTTP_CFLAGS) \
+	$(POLARSSL_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
-	-DLOCALSTATEDIR=\"$(socketdir)\" \
-	$(POLARSSL_CFLAGS)
+	-DLOCALSTATEDIR=\"$(socketdir)\"
 
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
