@@ -57,6 +57,7 @@ These are the tools
 %files -n pdns-tools
 %defattr(-,root,root)
 "/usr/bin/dnsbulktest"
+"/usr/bin/dnsgram"
 "/usr/bin/dnsreplay"
 "/usr/bin/dnsscan"
 "/usr/bin/dnsscope"
