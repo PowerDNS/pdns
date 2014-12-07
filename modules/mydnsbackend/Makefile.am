@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(MYSQL_inc)
+AM_CPPFLAGS += $(MYSQL_CFLAGS)
 pkglib_LTLIBRARIES = libmydnsbackend.la
 
 EXTRA_DIST = \

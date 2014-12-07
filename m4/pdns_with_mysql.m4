@@ -3,14 +3,14 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
     [AS_HELP_STRING([--with-mysql=<path>], [root directory path of MySQL installation])],
     [
       MYSQL_lib_check="$withval/lib/mysql $with_mysql/lib"
-      MYSQL_inc_check="$withval/include/mysql"
+      MYSQL_CFLAGS_check="$withval/include/mysql"
       MYSQL_config_check="$withval/bin/mysql_config"
     ],
     [
       MYSQL_lib_check="/usr/local/mysql/lib/mysql /usr/local/lib/mysql /opt/mysql/lib/mysql \
         /usr/lib/mysql /usr/lib64/mysql /usr/local/mysql/lib /usr/local/lib /opt/mysql/lib /usr/lib \
         /usr/sfw/lib/ $full_libdir"
-      MYSQL_inc_check="/usr/local/mysql/include/mysql /usr/local/include/mysql \
+      MYSQL_CFLAGS_check="/usr/local/mysql/include/mysql /usr/local/include/mysql \
         /opt/mysql/include/mysql /opt/mysql/include /usr/include/mysql /usr/sfw/include/mysql"
     ]
   )
@@ -31,7 +31,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
   AC_ARG_WITH([mysql-includes],
     [AS_HELP_STRING([--with-mysql-includes=<path>], [directory path of MySQL header installation])],
     [
-      MYSQL_inc_check="$withval/include/mysql $withval/mysql $withval"
+      MYSQL_CFLAGS_check="$withval/include/mysql $withval/mysql $withval"
       MYSQL_config_check="skip"
     ]
   )
@@ -67,7 +67,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
   if test "x$MYSQL_config" != "x"; then
     # use this to configure everything
     MYSQL_lib=`$MYSQL_config --libs`
-    MYSQL_inc=`$MYSQL_config --include`
+    MYSQL_CFLAGS=`$MYSQL_config --include`
   else
     AC_MSG_CHECKING([for MySQL library directory])
     MYSQL_libdir=
@@ -91,27 +91,27 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
     AC_MSG_RESULT([$MYSQL_libdir])
     AC_SUBST(MYSQL_lib)
     AC_MSG_CHECKING([for MySQL include directory])
-    MYSQL_inc=
-    for m in $MYSQL_inc_check; do
+    MYSQL_CFLAGS=
+    for m in $MYSQL_CFLAGS_check; do
       if test -d "$m" && test -f "$m/mysql.h"
       then
-        MYSQL_inc="$m"
+        MYSQL_CFLAGS="$m"
         break
       fi
     done
-    if test -z "$MYSQL_inc"; then
-      AC_MSG_ERROR([Did not find the mysql include dir in '$MYSQL_inc_check'])
+    if test -z "$MYSQL_CFLAGS"; then
+      AC_MSG_ERROR([Did not find the mysql include dir in '$MYSQL_CFLAGS_check'])
     fi
 
-    case "$MYSQL_inc" in
-      /*) AC_MSG_RESULT($MYSQL_inc)
+    case "$MYSQL_CFLAGS" in
+      /*) AC_MSG_RESULT($MYSQL_CFLAGS)
           ;;
-      *)  AC_MSG_ERROR([The MySQL include directory ($MYSQL_inc) must be an absolute path.])
+      *)  AC_MSG_ERROR([The MySQL include directory ($MYSQL_CFLAGS) must be an absolute path.])
           ;;
     esac
-    MYSQL_inc="-I$MYSQL_inc"
+    MYSQL_CFLAGS="-I$MYSQL_CFLAGS"
   fi
   AC_SUBST(MYSQL_lib)
-  AC_SUBST(MYSQL_inc)
+  AC_SUBST(MYSQL_CFLAGS)
 ])
 
