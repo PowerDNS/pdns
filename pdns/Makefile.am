@@ -74,6 +74,7 @@ bin_PROGRAMS = \
 if TOOLS
 bin_PROGRAMS += \
 	dnsbulktest \
+	dnsgram \
 	dnsreplay \
 	dnsscan \
 	dnsscope \
