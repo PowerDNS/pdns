@@ -860,10 +860,10 @@ testrunner_SOURCES = \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
-        test-sha_hh.cc \
-        packetcache.cc \
+	test-sha_hh.cc \
+	packetcache.cc \
 	unix_utility.cc \
-        zoneparser-tng.cc zoneparser-tng.hh
+	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
 	$(THREADFLAGS) \
