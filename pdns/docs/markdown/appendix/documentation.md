@@ -10,10 +10,17 @@ If your change is simple (say, a typo or a new paragraph), you can do all this
 entirely from GitHub. Simply fork PowerDNS, find the Markdown file you want to change, 
 edit in place, commit, and create a pull request.
 
-To test-build the documentation, run `pip install mkdocs`, `pip install pandoc`
-and `pip install pandocfilters`, followed by `make html-new/index.html` in the
-pdns/docs directory.
+## Building and testing
+It's recommended to use a [virtualenv](https://virtualenv.pypa.io/en/latest/)
+with the required packages to build the documentation.
+[Virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/) can be
+used to easily create and use a virtualenv.
 
-To test your changes live, use `mkdocs serve --dev-addr=0.0.0.0:8000`, and the new version
-of your documentation will appear on port 8000 of your machine.
+Once you're in a virtualenv, `pip install mkdocs==0.11.1 pandocfilters==1.2.3
+pandoc==1.0.0-alpha.3`.
 
+To test-build the documentation, `make html-new/index.html` in the pdns/docs
+directory will build the documentation into `html-new/`.
+
+To test your changes live, use `mkdocs serve --dev-addr=0.0.0.0:8000`, and the
+new version of your documentation will appear on port 8000 of your machine.
