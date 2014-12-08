@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 pre() {
   for file in `find doc-build -name '*.md' -type f -print`; do
