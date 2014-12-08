@@ -61,6 +61,7 @@ pages:
   - [security/powerdns-advisory-2006-02.md, 'Security', 'Advisory 2006-02']
   - [security/powerdns-advisory-2006-01.md, 'Security', 'Advisory 2006-01']
   - [appendix/backend-writers-guide.md, 'Tools and Appendices', "Backend Writer's Guide"]
+  - [appendix/crypto-notes-export.md, 'Tools and Appendices', "Cryptographic software and export control"]
   - [appendix/documentation.md, 'Tools and Appendices', "Documentation details"]
   - [appendix/compiling-powerdns.md, 'Tools and Appendices', 'Compiling PowerDNS']
   - [tools/analysis.md, 'Tools and Appendices', 'DNS Analysis Tools']
