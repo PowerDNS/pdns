@@ -7,7 +7,7 @@
 [Official download page](https://www.powerdns.com/downloads.html)
 
 A list of changes since 3.6.1 follows.
--   [commit ab14b4f](https://github.com/PowerDNS/pdns/commit/ab14b4f): expedite servfail generation for ezdns-like failures (fully abort query resolving if we hit more than 50 outqueries)
+-   [commit ab14b4f](https://github.com/PowerDNS/pdns/commit/ab14b4f): expedite servfail generation for ezdns-like failures (fully abort query resolving if we hit more than 50 outqueries). This also prevents the issue documented in [PowerDNS Security Advisory 2014-02](security/powerdns-advisory-2014-02/) (CVE-2014-8601)
 -   [commit 42025be](https://github.com/PowerDNS/pdns/commit/42025be): PowerDNS now polls the security status of a release at startup and periodically. More detail on this feature, and how to turn it off, can be found in [Security polling](common/security.md#security-polling).
 -   [commit 5027429](https://github.com/PowerDNS/pdns/commit/5027429): We did not transmit the right 'local' socket address to Lua for TCP/IP queries in the recursor. In addition, we would attempt to lookup a filedescriptor that wasn't there in an unlocked map which could conceivably lead to crashes. Closes [ticket 1828](https://github.com/PowerDNS/pdns/issues/1828), thanks Winfried for reporting
 -   [commit 752756c](https://github.com/PowerDNS/pdns/commit/752756c): Sync embedded yahttp copy. API: Replace HTTP Basic auth with static key in custom header

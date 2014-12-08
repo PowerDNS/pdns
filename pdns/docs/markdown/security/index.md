@@ -4,7 +4,9 @@ If you have a security problem to report, please email us at both `<security@net
 
 We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. This license is included in this documentation.
 
-As of the 25th of September 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about, with the exception of Recursor 3.6.0 specifically. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+As of the 8th of December 2014, no actual security problems with PowerDNS Authoritative Server 2.9.22.5, 3.0.1, Recursor 3.6.2, or later are known about. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+
+All Recursor versions up to and including 3.6.1 can be made to provide degraded service. For more detail, see [PowerDNS Security Advisory 2014-02](powerdns-advisory-2014-02.md)
 
 Version 3.6.0 of the Recursor (but not 3.5.x) can be crashed remotely with a specific packet sequence. For more detail, see [PowerDNS Security Advisory 2014-01](powerdns-advisory-2014-01.md)
 
