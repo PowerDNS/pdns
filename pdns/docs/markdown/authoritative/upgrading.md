@@ -12,32 +12,38 @@ If custom queries are in use, they probably need an update.
 
 ### gmysql backend with nodnssec schema
 
-```{include=../../modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql}
+```
+!!include=../../modules/gmysqlbackend/nodnssec-3.x_to_3.4.0_schema.mysql.sql
 ```
 
 ### gmysql backend with dnssec schema
 
-```{include=../../modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql}
+```
+!!include=../../modules/gmysqlbackend/dnssec-3.x_to_3.4.0_schema.mysql.sql
 ```
 
 ### gpgsql backend with nodnssec schema
 
-```{include=../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql}
+```
+!!include=../../modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
 ```
 
 ### gpgsql backend with dnssec schema:
 
-```{include=../../modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql}
+```
+!!include=../../modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql
 ```
 
 ### gsqlite3 backend with nodnssec schema
 
-```{include=../../modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql}
+```
+!!include=../../modules/gsqlite3backend/nodnssec-3.x_to_3.4.0_schema.sqlite3.sql
 ```
 
 ### gsqlite3 backend with dnssec schema:
 
-```{include=../../modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql}
+```
+!!include=../../modules/gsqlite3backend/dnssec-3.x_to_3.4.0_schema.sqlite3.sql
 ```
 
 ### goracle backend:

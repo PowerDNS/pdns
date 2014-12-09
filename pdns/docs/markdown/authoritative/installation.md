@@ -96,7 +96,8 @@ General MySQL knowledge is assumed in this chapter, please do not interpret thes
 ## Example: configuring MySQL
 Connect to MySQL as a user with sufficient privileges and issue the following commands:
 
-``` {include=../../modules/gmysqlbackend/schema.mysql.sql}
+``` 
+!!include=../../modules/gmysqlbackend/schema.mysql.sql
 ```
 
 Now we have a database and an empty table. PDNS should now be able to launch in monitor mode and display no errors:
