@@ -38,5 +38,5 @@ CREATE TABLE IF NOT EXISTS rr (
   ttl        INT UNSIGNED NOT NULL default '86400',
   type       ENUM('A','AAAA','CNAME','HINFO','MX','NAPTR','NS','PTR','RP','SRV','TXT'),
   active     ENUM('Y', 'N') NOT NULL DEFAULT 'Y',
-  UNIQUE KEY rr (zone,name,type,data,active)
+  UNIQUE KEY rr (zone,name,type,data,aux,active)
 ) Engine=MyISAM;
