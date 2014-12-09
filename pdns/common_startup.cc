@@ -22,6 +22,9 @@
 #include "common_startup.hh"
 #include "ws-auth.hh"
 #include "secpoll-auth.hh"
+#include <sys/time.h>
+#include <sys/resource.h>
+
 
 bool g_anyToTcp;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
@@ -164,6 +167,24 @@ void declareArguments()
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 }
 
+static uint64_t uptimeOfProcess(const std::string& str)
+{
+  static time_t start=time(0);
+  return time(0) - start;
+}
+
+static uint64_t getSysUserTimeMsec(const std::string& str)
+{
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+
+  if(str=="sys-msec")
+    return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+  else
+    return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+
+}
+
 void declareStats(void)
 {
   S.declare("udp-queries","Number of UDP queries received");
@@ -197,6 +218,13 @@ void declareStats(void)
   S.declare("dnsupdate-answers", "DNS update packets successfully answered.");
   S.declare("dnsupdate-refused", "DNS update packets that are refused.");
   S.declare("dnsupdate-changes", "DNS update changes to records in total.");
+
+  S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
+  S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
+  S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
+  S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes);
+  S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes);
+  S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize);
 
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
   S.declare("latency","Average number of microseconds needed to answer a question");

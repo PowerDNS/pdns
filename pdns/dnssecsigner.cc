@@ -121,6 +121,12 @@ typedef map<pair<string, string>, string> signaturecache_t;
 static signaturecache_t g_signatures;
 static int g_cacheweekno;
 
+uint64_t signatureCacheSize(const std::string& str)
+{
+  ReadLock l(&g_signatures_lock);
+  return g_signatures.size();
+}
+
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
   DNSKEYRecordContent drc = dpk.getDNSKEY(); 
