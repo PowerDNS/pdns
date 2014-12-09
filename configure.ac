@@ -144,38 +144,26 @@ THREADFLAGS=""
 AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
-
 solaris2.8 | solaris2.9 )
-  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-  ;;
-solaris2.6 | solaris2.7)
   AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
   AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
   LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
 linux*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   THREADFLAGS="-pthread"
   CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
 darwin*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
   AM_CONDITIONAL([OS_MACOSX], true)
   ;;
 *)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
