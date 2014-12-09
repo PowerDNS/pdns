@@ -567,7 +567,7 @@ void startDoResolve(void *p)
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
       catch(ImmediateServFailException &e) {
-        L<<Logger::Error<<"Sending SERVFAIL during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+        L<<Logger::Error<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
 
         res = RCode::ServFail;
       }
