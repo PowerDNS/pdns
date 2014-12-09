@@ -63,12 +63,16 @@ class StatBag
   map<string, AtomicCounter *> d_stats;
   map<string, string> d_keyDescrips;
   map<string,StatRing>d_rings;
+  typedef boost::function<uint64_t(const std::string&)> func_t;
+  typedef map<string, func_t> funcstats_t;
+  funcstats_t d_funcstats;
   bool d_doRings;
 
 public:
   StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
   ~StatBag();
   void declare(const string &key, const string &descrip=""); //!< Before you can store or access a key, you need to declare it
+  void declare(const string &key, const string &descrip, func_t func); //!< Before you can store or access a key, you need to declare it
 
   void declareRing(const string &name, const string &title, unsigned int size=10000);
   vector<pair<string, unsigned int> >getRing(const string &name);
