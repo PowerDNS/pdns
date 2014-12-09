@@ -28,6 +28,7 @@
 #include <algorithm>
 #include "arguments.hh"
 #include "lock.hh"
+#include <boost/foreach.hpp>
 
 #include "namespaces.hh"
 
@@ -38,7 +39,7 @@ StatBag::StatBag()
 
 void StatBag::exists(const string &key)
 {
-  if(!d_stats.count(key))
+  if(!d_keyDescrips.count(key))
     {
       throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
     }
@@ -56,6 +57,10 @@ string StatBag::directory()
       o<<i->first<<"="<<*(i->second)<<",";
     }
 
+
+  BOOST_FOREACH(const funcstats_t::value_type& val, d_funcstats) {
+    o << val.first<<"="<<val.second(val.first)<<",";
+  }
   dir=o.str();
   return dir;
 }
@@ -69,6 +74,10 @@ vector<string>StatBag::getEntries()
       i!=d_stats.end();
       i++)
       ret.push_back(i->first);
+
+  BOOST_FOREACH(const funcstats_t::value_type& val, d_funcstats) {
+    ret.push_back(val.first);
+  }
 
 
   return ret;
@@ -88,6 +97,12 @@ void StatBag::declare(const string &key, const string &descrip)
   d_keyDescrips[key]=descrip;
 }
 
+void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func)
+{
+
+  d_funcstats[key]=func;
+  d_keyDescrips[key]=descrip;
+}
 
           
 void StatBag::set(const string &key, AtomicCounter::native_t value)
