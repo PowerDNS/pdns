@@ -114,7 +114,9 @@ void StatBag::set(const string &key, AtomicCounter::native_t value)
 AtomicCounter::native_t StatBag::read(const string &key)
 {
   exists(key);
-
+  funcstats_t::const_iterator iter = d_funcstats.find(key);
+  if(iter != d_funcstats.end())
+    return iter->second(iter->first);
   return *d_stats[key];
 }
 
