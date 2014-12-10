@@ -499,9 +499,6 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const string &qnameu, const 
   else
     bdr.auth=true;
 
-  if(bdr.qtype==QType::CNAME || bdr.qtype==QType::MX || bdr.qtype==QType::NS || bdr.qtype==QType::AFSDB)
-    bdr.content=toLowerCanonic(bdr.content); // I think this is wrong, the zoneparser should not come up with . terminated stuff XXX FIXME
-
   bdr.ttl=ttl;
   records->insert(bdr);
 }
