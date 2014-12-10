@@ -27,6 +27,8 @@
 #include "dns_random.hh"
 #include "lock.hh"
 #include "arguments.hh"
+#include "statbag.hh"
+extern StatBag S;
 
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
@@ -121,6 +123,8 @@ typedef map<pair<string, string>, string> signaturecache_t;
 static signaturecache_t g_signatures;
 static int g_cacheweekno;
 
+AtomicCounter* g_signatureCount;
+
 uint64_t signatureCacheSize(const std::string& str)
 {
   ReadLock l(&g_signatures_lock);
@@ -129,6 +133,9 @@ uint64_t signatureCacheSize(const std::string& str)
 
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
+  if(!g_signatureCount)
+    g_signatureCount = S.getPointer("signatures");
+    
   DNSKEYRecordContent drc = dpk.getDNSKEY(); 
   const DNSCryptoKeyEngine* rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
@@ -150,7 +157,7 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   }
   
   rrc.d_signature = rc->sign(msg);
-
+  (*g_signatureCount)++;
   if(doCache) {
     /* we add some jitter here so not all your slaves start pruning their caches at the very same millisecond */
     int weekno = (time(0) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
