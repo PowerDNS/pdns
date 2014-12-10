@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig toroot.test.com CNAME
+
