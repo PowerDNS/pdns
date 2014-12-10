@@ -256,9 +256,7 @@ void declareStats(void)
   S.declareRing("remotes","Remote server IP addresses");
   S.declareRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
   S.declareRing("remotes-corrupt","Remote hosts sending corrupt packets");
-
 }
-
 
 int isGuarded(char **argv)
 {
@@ -315,14 +313,15 @@ void *qthread(void *number)
   }
 
   for(;;) {
+    if(!(P=NS->receive(&question))) { // receive a packet         inline
+      continue;                    // packet was broken, try again
+    }
+
     if (skipfirst)
       skipfirst=false;
     else  
       numreceived++;
 
-    if(!(P=NS->receive(&question))) { // receive a packet         inline
-      continue;                    // packet was broken, try again
-    }
 
     if(P->d_remote.getSocklen()==sizeof(sockaddr_in))
       numreceived4++;
