@@ -219,7 +219,7 @@ void declareStats(void)
   S.declare("recursing-answers","Number of recursive answers sent out");
   S.declare("recursing-questions","Number of questions sent to recursor");
   S.declare("corrupt-packets","Number of corrupt packets received");
-
+  S.declare("signatures", "Number of DNSSEC signatures made");
   S.declare("tcp-queries","Number of TCP queries received");
   S.declare("tcp-answers","Number of answers sent out over TCP");
 
