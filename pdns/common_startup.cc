@@ -24,7 +24,7 @@
 #include "secpoll-auth.hh"
 #include <sys/time.h>
 #include <sys/resource.h>
-
+#include <boost/foreach.hpp>
 
 bool g_anyToTcp;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
@@ -38,6 +38,7 @@ CommunicatorClass Communicator;
 UDPNameserver *N;
 int avg_latency;
 TCPNameserver *TN;
+vector<DNSDistributor*> g_distributors;
 
 ArgvMap &arg()
 {
@@ -185,6 +186,22 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
 
 }
 
+static uint64_t getQCount(const std::string& str)
+{
+  int totcount=0;
+  BOOST_FOREACH(DNSDistributor* d, g_distributors) {
+    int qcount, acount;
+    d->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
+    totcount+=qcount;
+  }
+  return totcount;
+}
+
+static uint64_t getLatency(const std::string& str) 
+{
+  return avg_latency;
+}
+
 void declareStats(void)
 {
   S.declare("udp-queries","Number of UDP queries received");
@@ -206,7 +223,7 @@ void declareStats(void)
   S.declare("tcp-queries","Number of TCP queries received");
   S.declare("tcp-answers","Number of answers sent out over TCP");
 
-  S.declare("qsize-q","Number of questions waiting for database attention");
+  S.declare("qsize-q","Number of questions waiting for database attention", getQCount);
 
   S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
   S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
@@ -227,7 +244,7 @@ void declareStats(void)
   S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize);
 
   S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("latency","Average number of microseconds needed to answer a question");
+  S.declare("latency","Average number of microseconds needed to answer a question", getLatency);
   S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling");
   S.declareRing("queries","UDP Queries Received");
@@ -268,6 +285,7 @@ void *qthread(void *number)
 {
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
+  g_distributors.push_back(distributor);
   DNSPacket question;
   DNSPacket cached;
 
@@ -282,7 +300,6 @@ void *qthread(void *number)
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   bool doRecursion = ::arg().mustDo("recursor");
   bool skipfirst=true;
-  unsigned int maintcount = 0;
   UDPNameserver *NS = N;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
@@ -302,15 +319,6 @@ void *qthread(void *number)
       skipfirst=false;
     else  
       numreceived++;
-
-    if(number==0) { // only run on main thread
-      if(!((maintcount++)%250)) { // maintenance tasks - this can conceivably run infrequently
-        S.set("latency",(int)avg_latency);
-        int qcount, acount;
-        distributor->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
-        S.set("qsize-q",qcount);
-      }
-    }
 
     if(!(P=NS->receive(&question))) { // receive a packet         inline
       continue;                    // packet was broken, try again
