@@ -1125,16 +1125,22 @@ void daemonize(void)
 uint64_t counter;
 bool statsWanted;
 
-void usr1Handler(int)
+static void usr1Handler(int)
 {
   statsWanted=true;
 }
 
-void usr2Handler(int)
+static void usr2Handler(int)
 {
   g_quiet= !g_quiet;
   SyncRes::setDefaultLogMode(g_quiet ? SyncRes::LogNone : SyncRes::Log);
   ::arg().set("quiet")=g_quiet ? "" : "no";
+}
+
+static void shutdownHandler(int)
+{
+  L<<Logger::Error<<"Received shutdown signal, exiting."<<endl;
+  exit(0);
 }
 
 void doStats(void)
@@ -1774,6 +1780,11 @@ int serviceMain(int argc, char*argv[])
 
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
+  signal(SIGSEGV, Utility::log_and_crash);
+  signal(SIGFPE, Utility::log_and_crash);
+  signal(SIGABRT, Utility::log_and_crash);
+  signal(SIGILL, Utility::log_and_crash);
+
   if(!::arg()["logging-facility"].empty()) {
     int val=logFacilityToLOG(::arg().asNum("logging-facility") );
     if(val >= 0)
@@ -1898,9 +1909,12 @@ int serviceMain(int argc, char*argv[])
     L.toConsole(Logger::Critical);
     daemonize();
   }
-  signal(SIGUSR1,usr1Handler);
-  signal(SIGUSR2,usr2Handler);
-  signal(SIGPIPE,SIG_IGN);
+  signal(SIGUSR1, usr1Handler);
+  signal(SIGUSR2, usr2Handler);
+  signal(SIGPIPE, SIG_IGN);
+  signal(SIGHUP, SIG_IGN);
+  signal(SIGTERM, shutdownHandler);
+  signal(SIGINT, shutdownHandler);
   writePid();
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
   
