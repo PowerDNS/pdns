@@ -191,7 +191,10 @@ try
 {
   int totcount=0;
   BOOST_FOREACH(DNSDistributor* d, g_distributors) {
+    if(!d)
+      continue;
     int qcount, acount;
+    
     d->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
     totcount+=qcount;
   }
@@ -451,13 +454,13 @@ void mainthread()
   if(TN)
     TN->go(); // tcp nameserver launch
 
-  pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
-
   //  fork(); (this worked :-))
   unsigned int max_rthreads= ::arg().asNum("receiver-threads", 1);
   g_distributors.resize(max_rthreads);
   for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
+
+  pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
 
   for(;;) {
     sleep(1800);
