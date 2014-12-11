@@ -187,6 +187,7 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
 }
 
 static uint64_t getQCount(const std::string& str)
+try
 {
   int totcount=0;
   BOOST_FOREACH(DNSDistributor* d, g_distributors) {
@@ -195,6 +196,16 @@ static uint64_t getQCount(const std::string& str)
     totcount+=qcount;
   }
   return totcount;
+}
+catch(std::exception& e)
+{
+  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.what()<<endl;
+  return 0;
+}
+catch(PDNSException& e)
+{
+  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.reason<<endl;
+  return 0;
 }
 
 static uint64_t getLatency(const std::string& str) 
@@ -283,7 +294,8 @@ void *qthread(void *number)
 {
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
-  g_distributors.push_back(distributor);
+  int num = (int)(unsigned long)number;
+  g_distributors[num] = distributor;
   DNSPacket question;
   DNSPacket cached;
 
@@ -458,6 +470,7 @@ void mainthread()
 
   //  fork(); (this worked :-))
   unsigned int max_rthreads= ::arg().asNum("receiver-threads", 1);
+  g_distributors.resize(max_rthreads);
   for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
