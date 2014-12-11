@@ -179,8 +179,9 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
   struct rusage ru;
   getrusage(RUSAGE_SELF, &ru);
 
-  if(str=="sys-msec")
+  if(str=="sys-msec") {
     return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+  }
   else
     return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
 
@@ -287,8 +288,7 @@ void sendout(const AnswerData<DNSPacket> &AD)
   N->send(AD.A);
 
   int diff=AD.A->d_dt.udiff();
-  avg_latency=(int)(1023*avg_latency/1024+diff/1024);
-
+  avg_latency=(int)(0.999*avg_latency+0.001*diff);
   delete AD.A;  
 }
 
