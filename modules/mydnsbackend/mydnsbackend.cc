@@ -59,8 +59,8 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
 
         d_rrtable=getArg("rr-table");
         d_soatable=getArg("soa-table");
-        d_rrwhere=(mustDo("rr-active")?"active = 1 and ":"")+getArg("rr-where");
-        d_soawhere=(mustDo("soa-active")?"active = 1 and ":"")+getArg("soa-where");
+        d_rrwhere=(mustDo("rr-active")?"(active = '1' or active = 'Y') and ":"")+getArg("rr-where");
+        d_soawhere=(mustDo("soa-active")?"(active = '1' or active = 'Y') and ":"")+getArg("soa-where");
         d_useminimalttl=mustDo("use-minimal-ttl");
         d_minimum=0;
 
