@@ -8,6 +8,7 @@
 #include <botan/look_pk.h>
 #include <botan/numthry.h>
 #include "dnssecinfra.hh"
+#include <stdlib.h>
 
 using namespace Botan;
 
@@ -253,6 +254,8 @@ struct LoaderBotanStruct
 {
   LoaderBotanStruct()
   {
+    if(getenv("NOBOTAN"))
+      return;
     new Botan::LibraryInitializer("thread_safe=true");
     // this leaks, but is fine
     DNSCryptoKeyEngine::report(5, &BotanRSADNSCryptoKeyEngine::maker);
