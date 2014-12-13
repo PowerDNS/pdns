@@ -50,7 +50,7 @@ public:
 
     declare(suffix,"dnssec","Enable DNSSEC processing","no");
 
-    string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
+    string record_query = "SELECT content, ttl, prio, type, domain_id, disabled, name, auth FROM records WHERE";
 
     declare(suffix, "basic-query", "Basic query", record_query+" disabled=0 AND type='%s' AND name='%s'");
     declare(suffix, "id-query", "Basic with ID query", record_query+" disabled=0 AND type='%s' AND name='%s' AND domain_id=%d");
@@ -61,24 +61,24 @@ public:
     declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=0 AND (name='%s' OR name LIKE '%s') AND domain_id='%d'");
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "DELETE FROM records WHERE domain_id='%d' AND type IS NULL");
-    declare(suffix, "insert-empty-non-terminal-query", "insert empty non-terminal in zone", "INSERT INTO records (domain_id,name,type,disabled,auth) VALUES ('%d','%s',NULL,0,'1')");
+    declare(suffix, "insert-empty-non-terminal-query", "insert empty non-terminal in zone", "INSERT INTO records (domain_id, name, type, disabled, auth) VALUES ('%d', '%s', NULL, 0, '1')");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "DELETE FROM records WHERE domain_id='%d' AND name='%s' AND type IS NULL");
 
     declare(suffix,"master-zone-query","Data", "SELECT master FROM domains WHERE name='%s' AND type='SLAVE'");
 
-    declare(suffix,"info-zone-query","","SELECT id,name,master,last_check,notified_serial,type FROM domains WHERE name='%s'");
+    declare(suffix,"info-zone-query","","SELECT id, name, master, last_check, notified_serial, type FROM domains WHERE name='%s'");
 
-    declare(suffix,"info-all-slaves-query","","SELECT id,name,master,last_check,type FROM domains WHERE type='SLAVE'");
+    declare(suffix,"info-all-slaves-query","","SELECT id, name, master, last_check, type FROM domains WHERE type='SLAVE'");
     declare(suffix,"supermaster-query","", "SELECT account FROM supermasters WHERE ip='%s' AND nameserver='%s'");
-    declare(suffix,"supermaster-name-to-ips", "", "SELECT ip,account FROM supermasters WHERE nameserver='%s' AND account='%s'");
+    declare(suffix,"supermaster-name-to-ips", "", "SELECT ip, account FROM supermasters WHERE nameserver='%s' AND account='%s'");
 
-    declare(suffix,"insert-zone-query","", "INSERT INTO domains (type,name) VALUES ('NATIVE','%s')");
-    declare(suffix,"insert-slave-query","", "INSERT INTO domains (type,name,master,account) VALUES ('SLAVE','%s','%s','%s')");
+    declare(suffix,"insert-zone-query","", "INSERT INTO domains (type, name) VALUES ('NATIVE', '%s')");
+    declare(suffix,"insert-slave-query","", "INSERT INTO domains (type, name, master, account) VALUES ('SLAVE', '%s', '%s', '%s')");
 
-    declare(suffix, "insert-record-query", "", "INSERT INTO records (content,ttl,prio,type,domain_id,disabled,name,auth) VALUES ('%s',%d,%d,'%s',%d,%d,'%s','%d')");
-    declare(suffix, "insert-record-order-query", "", "INSERT INTO records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) VALUES ('%s',%d,%d,'%s',%d,%d,'%s','%s','%d')");
-    declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "INSERT INTO records (type,domain_id,disabled,name,auth) VALUES (NULL,'%d',0,'%s','%d')");
-    declare(suffix, "insert-ent-order-query", "insert empty non-terminal in zone", "INSERT INTO records (type,domain_id,disabled,name,ordername,auth) VALUES (NULL,'%d',0,'%s','%s','%d')");
+    declare(suffix, "insert-record-query", "", "INSERT INTO records (content, ttl, prio, type, domain_id, disabled, name, auth) VALUES ('%s', %d, %d, '%s', %d, %d, '%s', '%d')");
+    declare(suffix, "insert-record-order-query", "", "INSERT INTO records (content, ttl, prio, type, domain_id, disabled, name, ordername, auth) VALUES ('%s', %d, %d, '%s', %d, %d, '%s', '%s', '%d')");
+    declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "INSERT INTO records (type, domain_id, disabled, name, auth) VALUES (NULL, '%d', 0, '%s', '%d')");
+    declare(suffix, "insert-ent-order-query", "insert empty non-terminal in zone", "INSERT INTO records (type, domain_id, disabled, name, ordername, auth) VALUES (NULL, '%d', 0, '%s', '%s', '%d')");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "SELECT ordername, name FROM records WHERE domain_id=%d AND disabled=0 AND ordername IS NOT NULL ORDER BY 1 ASC LIMIT 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "SELECT ordername, name FROM records WHERE ordername <= '%s' AND domain_id=%d AND disabled=0 AND ordername IS NOT NULL ORDER BY 1 DESC LIMIT 1");
@@ -87,19 +87,19 @@ public:
     declare(suffix, "set-order-and-auth-query", "DNSSEC set ordering query", "UPDATE records SET ordername='%s',auth=%d WHERE name='%s' AND domain_id='%d' AND disabled=0");
     declare(suffix, "set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "UPDATE records SET auth=1 WHERE domain_id='%d' AND name='%s' AND type='DS' AND disabled=0");
 
-    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "UPDATE records SET ordername=NULL,auth=%d WHERE domain_id='%d' AND name='%s' AND disabled=0");
-    declare(suffix, "nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "UPDATE records SET ordername=NULL,auth=0 WHERE name='%s' AND type='%s' AND domain_id='%d' AND disabled=0");
+    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "UPDATE records SET ordername=NULL, auth=%d WHERE domain_id='%d' AND name='%s' AND disabled=0");
+    declare(suffix, "nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "UPDATE records SET ordername=NULL, auth=0 WHERE name='%s' AND type='%s' AND domain_id='%d' AND disabled=0");
 
     declare(suffix,"update-master-query","", "UPDATE domains SET master='%s' WHERE name='%s'");
     declare(suffix,"update-kind-query","", "UPDATE domains SET type='%s' WHERE name='%s'");
     declare(suffix,"update-serial-query","", "UPDATE domains SET notified_serial=%d WHERE id=%d");
     declare(suffix,"update-lastcheck-query","", "UPDATE domains SET last_check=%d WHERE id=%d");
     declare(suffix,"zone-lastchange-query", "", "SELECT MAX(change_date) FROM records WHERE domain_id=%d");
-    declare(suffix,"info-all-master-query","", "SELECT id,name,master,last_check,notified_serial,type FROM domains WHERE type='MASTER'");
+    declare(suffix,"info-all-master-query","", "SELECT id, name, master, last_check, notified_serial, type FROM domains WHERE type='MASTER'");
     declare(suffix,"delete-domain-query","", "DELETE FROM domains WHERE name='%s'");
     declare(suffix,"delete-zone-query","", "DELETE FROM records WHERE domain_id=%d");
     declare(suffix,"delete-rrset-query","","DELETE FROM records WHERE domain_id=%d AND name='%s' AND type='%s'");
-    declare(suffix,"delete-names-query","","DELETE FROM records WHERE domain_id = %d AND name='%s'");
+    declare(suffix,"delete-names-query","","DELETE FROM records WHERE domain_id=%d AND name='%s'");
 
     declare(suffix,"add-domain-key-query","", "INSERT INTO cryptokeys (domain_id, flags, active, content) SELECT id, %d, %d, '%s' FROM domains WHERE name='%s'");
     declare(suffix,"list-domain-keys-query","", "SELECT cryptokeys.id, flags, active, content FROM domains, cryptokeys WHERE cryptokeys.domain_id=domains.id AND name='%s'");
@@ -113,13 +113,13 @@ public:
     declare(suffix,"remove-domain-key-query","", "DELETE FROM cryptokeys WHERE domain_id=(SELECT id FROM domains WHERE name='%s') AND cryptokeys.id=%d");
     declare(suffix,"clear-domain-all-keys-query","", "DELETE FROM cryptokeys WHERE domain_id=(SELECT id FROM domains WHERE name='%s')");
     declare(suffix,"get-tsig-key-query","", "SELECT algorithm, secret FROM tsigkeys WHERE name='%s'");
-    declare(suffix,"set-tsig-key-query","", "REPLACE INTO tsigkeys (name,algorithm,secret) VALUES ('%s','%s','%s')");
+    declare(suffix,"set-tsig-key-query","", "REPLACE INTO tsigkeys (name, algorithm, secret) VALUES ('%s', '%s', '%s')");
     declare(suffix,"delete-tsig-key-query","", "DELETE FROM tsigkeys WHERE name='%s'");
-    declare(suffix,"get-tsig-keys-query","", "SELECT name,algorithm, secret FROM tsigkeys");
+    declare(suffix,"get-tsig-keys-query","", "SELECT name, algorithm, secret FROM tsigkeys");
 
     declare(suffix, "get-all-domains-query", "Retrieve all domains", "SELECT domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check FROM domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR %d");
 
-    declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=%d");
+    declare(suffix, "list-comments-query", "", "SELECT domain_id, name, type, modified_at, account, comment FROM comments WHERE domain_id=%d");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (%d, '%s', '%s', %d, '%s', '%s')");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=%d AND name='%s' AND type='%s'");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=%d");
