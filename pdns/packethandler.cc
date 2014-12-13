@@ -730,6 +730,18 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     return RCode::ServFail;
   }
 
+  // check if the returned records are NS records
+  bool haveNS=false;
+  BOOST_FOREACH(const DNSResourceRecord& ns, nsset) {
+    if(ns.qtype.getCode()==QType::NS)
+      haveNS=true;
+  }
+
+  if(!haveNS) {
+    L<<Logger::Error<<"Error resolving NS for "<<p->qdomain<<" at: "<< p->getRemote()<<endl;
+    return RCode::ServFail;
+  }
+
   string nameserver, account;
   DNSBackend *db;
   if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
