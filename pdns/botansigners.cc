@@ -255,6 +255,8 @@ struct LoaderBotanStruct
   {
     new Botan::LibraryInitializer("thread_safe=true");
     // this leaks, but is fine
+    Botan::global_state().set_default_allocator("malloc"); // the other Botan allocator slows down for us
+  
     DNSCryptoKeyEngine::report(5, &BotanRSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(7, &BotanRSADNSCryptoKeyEngine::maker);
     DNSCryptoKeyEngine::report(8, &BotanRSADNSCryptoKeyEngine::maker);
