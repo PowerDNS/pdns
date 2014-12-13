@@ -738,7 +738,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   }
 
   if(!haveNS) {
-    L<<Logger::Error<<"Error resolving NS for "<<p->qdomain<<" at: "<< p->getRemote()<<endl;
+    L<<Logger::Error<<"While checking for supermaster, did not find NS for "<<p->qdomain<<" at: "<< p->getRemote()<<endl;
     return RCode::ServFail;
   }
 
