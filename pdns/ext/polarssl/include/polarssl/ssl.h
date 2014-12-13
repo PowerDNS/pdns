@@ -145,6 +145,7 @@
 #define POLARSSL_ERR_SSL_UNKNOWN_IDENTITY                  -0x6C80  /**< Unknown identity received (eg, PSK identity) */
 #define POLARSSL_ERR_SSL_INTERNAL_ERROR                    -0x6C00  /**< Internal error (eg, unexpected failure in lower-level module) */
 #define POLARSSL_ERR_SSL_COUNTER_WRAPPING                  -0x6B80  /**< A counter would wrap (eg, too many messages exchanged). */
+#define POLARSSL_ERR_SSL_WAITING_SERVER_HELLO_RENEGO       -0x6B00  /**< Unexpected message at ServerHello in renegotiation. */
 
 /*
  * Various constants
@@ -204,6 +205,7 @@
 
 #define SSL_IS_CLIENT                   0
 #define SSL_IS_SERVER                   1
+
 #define SSL_COMPRESS_NULL               0
 #define SSL_COMPRESS_DEFLATE            1
 
@@ -560,8 +562,8 @@ struct _ssl_transform
 
 #if defined(POLARSSL_SSL_PROTO_SSL3)
     /* Needed only for SSL v3.0 secret */
-    unsigned char mac_enc[48];          /*!<  SSL v3.0 secret (enc)   */
-    unsigned char mac_dec[48];          /*!<  SSL v3.0 secret (dec)   */
+    unsigned char mac_enc[20];          /*!<  SSL v3.0 secret (enc)   */
+    unsigned char mac_dec[20];          /*!<  SSL v3.0 secret (dec)   */
 #endif /* POLARSSL_SSL_PROTO_SSL3 */
 
     md_context_t md_ctx_enc;            /*!<  MAC (encryption)        */
@@ -1491,22 +1493,25 @@ void ssl_legacy_renegotiation( ssl_context *ssl, int allow_legacy );
 /**
  * \brief          Enforce server-requested renegotiation.
  *                 (Default: enforced, max_records = 16)
- *                 (No effect on client.)
  *
- *                 When a server requests a renegotiation, the client can
- *                 comply or ignore the request. This function allows the
- *                 server to decide if it should enforce its renegotiation
- *                 requests by closing the connection if the client doesn't
- *                 initiate a renegotiation.
+ *                 When we request a renegotiation, the peer can comply or
+ *                 ignore the request. This function allows us to decide
+ *                 whether to enforce our renegotiation requests by closing
+ *                 the connection if the peer doesn't comply.
  *
- *                 However, records could already be in transit from the
- *                 client to the server when the request is emitted. In order
- *                 to increase reliability, the server can accept a number of
- *                 records containing application data before the ClientHello
- *                 that was requested.
+ *                 However, records could already be in transit from the peer
+ *                 when the request is emitted. In order to increase
+ *                 reliability, we can accept a number of records before the
+ *                 expected handshake records.
  *
  *                 The optimal value is highly dependent on the specific usage
  *                 scenario.
+ *
+ * \warning        On client, the grace period can only happen during
+ *                 ssl_read(), as opposed to ssl_write() and ssl_renegotiate()
+ *                 which always behave as if max_record was 0. The reason is,
+ *                 if we receive application data from the server, we need a
+ *                 place to write it, which only happens during ssl_read().
  *
  * \param ssl      SSL context
  * \param max_records Use SSL_RENEGOTIATION_NOT_ENFORCED if you don't want to
@@ -1632,7 +1637,7 @@ int ssl_renegotiate( ssl_context *ssl );
  *
  * \param ssl      SSL context
  * \param buf      buffer that will hold the data
- * \param len      how many bytes must be read
+ * \param len      maximum number of bytes to read
  *
  * \return         This function returns the number of bytes read, 0 for EOF,
  *                 or a negative error code.

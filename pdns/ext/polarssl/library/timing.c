@@ -283,14 +283,15 @@ unsigned long get_timer( struct hr_time *val, int reset )
 
     gettimeofday( &offset, NULL );
 
-    delta = ( offset.tv_sec  - t->start.tv_sec  ) * 1000
-          + ( offset.tv_usec - t->start.tv_usec ) / 1000;
-
     if( reset )
     {
         t->start.tv_sec  = offset.tv_sec;
         t->start.tv_usec = offset.tv_usec;
+        return( 0 );
     }
+
+    delta = ( offset.tv_sec  - t->start.tv_sec  ) * 1000
+          + ( offset.tv_usec - t->start.tv_usec ) / 1000;
 
     return( delta );
 }
@@ -332,7 +333,7 @@ void m_sleep( int milliseconds )
 #if defined(POLARSSL_SELF_TEST)
 
 /* To test net_usleep against our functions */
-#if defined(POLARSSL_NET_C)
+#if defined(POLARSSL_NET_C) && defined(POLARSSL_HAVE_TIME)
 #include "polarssl/net.h"
 #endif
 
@@ -378,7 +379,7 @@ int timing_self_test( int verbose )
     {
         (void) get_timer( &hires, 1 );
 
-        m_sleep( 500 * secs );
+        m_sleep( (int)( 500 * secs ) );
 
         millisecs = get_timer( &hires, 0 );
 
@@ -401,7 +402,7 @@ int timing_self_test( int verbose )
     {
         (void) get_timer( &hires, 1 );
 
-        set_alarm( secs );
+        set_alarm( (int) secs );
         while( !alarmed )
             ;
 
@@ -464,7 +465,7 @@ hard_test:
     if( verbose != 0 )
         polarssl_printf( "passed\n" );
 
-#if defined(POLARSSL_NET_C)
+#if defined(POLARSSL_NET_C) && defined(POLARSSL_HAVE_TIME)
     if( verbose != 0 )
         polarssl_printf( "  TIMING test #4 (net_usleep/ get_timer): " );
 
