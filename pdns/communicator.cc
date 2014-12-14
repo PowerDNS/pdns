@@ -68,7 +68,7 @@ void CommunicatorClass::go()
   }
   catch(PDNSException &e) {
     L<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
-    exit(0);
+    exit(1);
   }
 
   vector<string> parts;
@@ -80,7 +80,7 @@ void CommunicatorClass::go()
     }
     catch(PDNSException &e) {
       L<<Logger::Error<<"Unparseable IP in also-notify. Error: "<<e.reason<<endl;
-      exit(0);
+      exit(1);
     }
   }
 }
@@ -122,16 +122,16 @@ void CommunicatorClass::mainloop(void)
   catch(PDNSException &ae) {
     L<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
     Utility::sleep(1);
-    exit(0);
+    exit(1);
   }
   catch(std::exception &e) {
     L<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
-    exit(0);
+    exit(1);
   }
   catch( ... )
   {
     L << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
-    exit( 0 );
+    exit(1);
   }
 }
 
