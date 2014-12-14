@@ -1,14 +1,14 @@
-PowerDNS is copyright Ⓒ 2002-2014 by PowerDNS.COM BV & lots of
+PowerDNS is copyright Ⓒ 2002-2014 by PowerDNS.COM BV and lots of
 contributors, using the GNU GPLv2 license (see NOTICE for the
 exact license and exception used).
 
 All documentation can be found on http://doc.powerdns.com/
 
 This file may lag behind at times. For most recent updates, always check
-http://doc.powerdns.com/changelog.html and http://wiki.powerdns.com
+https://doc.powerdns.com/md/changelog/ and http://wiki.powerdns.com
 
 Another good place to look for information is:
-http://doc.powerdns.com/compiling-powerdns.html
+https://doc.powerdns.com/md/appendix/compiling-powerdns/
 
 To file bugs, head towards:
 https://github.com/PowerDNS/pdns/issues
