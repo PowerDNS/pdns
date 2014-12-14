@@ -53,7 +53,10 @@ Same as above but with operator specified IP address as destination, to be used 
 Restart the nameserver so it reloads its configuration.
 .TP
 .B ping
-Check if the server is alive.
+Check if the guardian is alive. Will return 'PONG' when available. Only works when you are running in guardian mode.
+.TP
+.B rping
+Check if the server is alive. Will return 'PONG' when available.
 .TP
 .B purge \fI[<record>]\fR
 Purge entries from the packet cache. If the record name ends with a
