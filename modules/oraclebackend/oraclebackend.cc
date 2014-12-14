@@ -984,8 +984,8 @@ bool OracleBackend::get (DNSResourceRecord &rr)
 
   check_indicator(mResultNameInd, false);
   check_indicator(mResultTTLInd, false);
-  check_indicator(mResultTypeInd, false);
-  check_indicator(mResultContentInd, false);
+  check_indicator(mResultTypeInd, true);
+  check_indicator(mResultContentInd, true);
   check_indicator(mResultZoneIdInd, false);
   check_indicator(mResultLastChangeInd, false);
   if (d_dnssecQueries)
