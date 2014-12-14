@@ -745,9 +745,10 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   string nameserver, account;
   DNSBackend *db;
   if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
-    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". "<<nsset.size()<<" remote nameservers: "<<endl;
+    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". Remote nameservers: "<<endl;
     BOOST_FOREACH(class DNSResourceRecord& rr, nsset) {
-      L<<Logger::Error<<rr.content<<endl;
+      if(rr.qtype.getCode()==QType::NS)
+        L<<Logger::Error<<rr.content<<endl;
     }
     return RCode::Refused;
   }
