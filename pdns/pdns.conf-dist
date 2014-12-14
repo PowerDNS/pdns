@@ -410,7 +410,7 @@
 # slave=no
 
 #################################
-# slave-cycle-interval	Reschedule failed SOA serial checks once every .. seconds
+# slave-cycle-interval	Schedule slave freshness checks once every .. seconds
 #
 # slave-cycle-interval=60
 
