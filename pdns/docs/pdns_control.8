@@ -41,7 +41,19 @@ Where the controlsocket will live
 .SH COMMANDS
 .TP
 .B ccounts
-Show the content of the cache
+Show the content of the cache.
+.TP
+.B current-config
+Retrieve the current configuration.
+.TP
+.B cycle
+Restart the nameserver so it reloads its configuration.
+.TP
+.B help
+Show summary of options.
+.TP
+.B list-zones [\fImaster\fR | \fIslave\fR | \fInative\fR]
+Show list of zones.
 .TP
 .B notify \fI<domain>\fR
 Adds a domain to the notification list, causing PDNS to send out notifications to the nameservers of a domain. Can be used if a slave missed previous notifications or is generally hard of hearing.
@@ -49,25 +61,37 @@ Adds a domain to the notification list, causing PDNS to send out notifications t
 .B notify-host \fI<domain>\fR \fI<host>\fR
 Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
 .TP
-.B cycle
-Restart the nameserver so it reloads its configuration.
-.TP
 .B ping
 Check if the guardian is alive. Will return 'PONG' when available. Only works when you are running in guardian mode.
-.TP
-.B rping
-Check if the server is alive. Will return 'PONG' when available.
 .TP
 .B purge \fI[<record>]\fR
 Purge entries from the packet cache. If the record name ends with a
 dollar ($) all entries that end with that name are removed. If no record is
 specified the entire cache is purged.
 .TP
+.B qtypes
+Get QType statistics.
+.TP
+.B quit
+Tell a running \fBpdns_server\fR to quit.
+.TP
 .B rediscover
 Instructs backends that new domains may have appeared in the database, or, in the case of the Bind backend, in named.conf.
 .TP
+.B reload
+Reload all zones.
+.TP
+.B remotes
+Get top remotes.
+.TP
+.B respsizes
+Get histogram of response sizes.
+.TP
 .B retrieve \fI<domain>\fR
 Retrieve a slave domain from its master. Done nearly immediately.
+.TP
+.B rping
+Check if the server is alive. Will return 'PONG' when available.
 .TP
 .B set \fI<variable> <value>\fR
 Set the configuration parameter \fI<variable>\fR to \fI<value>\fR. Currently
@@ -76,11 +100,8 @@ only the \fIquery\-logging\fR can be set.
 .B show \fI<variable>\fR
 Show a single statistic, as present in the output of the list command.
 .TP
-.B quit
-Tell a running \fBpdns_server\fR to quit.
-.TP
 .B status
-Show usage statistics.
+Show usage statistics. Only works when running under guardian.
 .TP
 .B uptime
 Show the uptime of the running server.
