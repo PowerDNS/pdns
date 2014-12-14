@@ -56,6 +56,14 @@ void CommunicatorClass::retrievalLoopThread(void)
 
 void CommunicatorClass::go()
 {
+  try {
+    PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"] );
+  }
+  catch(PDNSException &e) {
+    L<<Logger::Error<<"Unparseable IP in allow-notify-from. Error: "<<e.reason<<endl;
+    exit(1);
+  }
+
   pthread_t tid;
   pthread_create(&tid,0,&launchhelper,this); // Starts CommunicatorClass::mainloop()
   for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n)

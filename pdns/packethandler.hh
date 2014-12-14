@@ -64,6 +64,7 @@ public:
   DNSBackend *getBackend();
 
   int trySuperMasterSynchronous(DNSPacket *p);
+  static NetmaskGroup s_allowNotifyFrom;
 
 private:
   int trySuperMaster(DNSPacket *p);

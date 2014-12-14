@@ -50,6 +50,7 @@
 #endif 
  
 AtomicCounter PacketHandler::s_count;
+NetmaskGroup PacketHandler::s_allowNotifyFrom;
 extern string s_programname;
 
 enum root_referral {
@@ -756,6 +757,12 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
   }
+
+  if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote )) {
+    L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not in allow-notify-from"<<endl;
+    return RCode::Refused;
+  }
+
   DNSBackend *db=0;
   DomainInfo di;
   di.serial = 0;
