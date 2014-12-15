@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(MYSQL_inc)
+AM_CPPFLAGS += $(MYSQL_CFLAGS)
 
 pkglib_LTLIBRARIES = libgmysqlbackend.la
 
@@ -19,4 +19,4 @@ libgmysqlbackend_la_SOURCES = \
 	smysql.cc smysql.hh
 
 libgmysqlbackend_la_LDFLAGS = -module -avoid-version
-libgmysqlbackend_la_LIBADD = $(MYSQL_lib)
+libgmysqlbackend_la_LIBADD = $(MYSQL_LIBS)

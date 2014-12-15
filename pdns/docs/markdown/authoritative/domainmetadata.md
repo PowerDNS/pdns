@@ -17,6 +17,9 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
 sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
 ```
 
+## AXFR-SOURCE
+The IP address to use as a source address for sending AXFR requests.
+
 ## ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE
 See the documentation on [Dynamic DNS update](dnsupdate.md)
 

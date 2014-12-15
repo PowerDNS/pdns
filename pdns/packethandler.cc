@@ -730,12 +730,25 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
     return RCode::ServFail;
   }
 
+  // check if the returned records are NS records
+  bool haveNS=false;
+  BOOST_FOREACH(const DNSResourceRecord& ns, nsset) {
+    if(ns.qtype.getCode()==QType::NS)
+      haveNS=true;
+  }
+
+  if(!haveNS) {
+    L<<Logger::Error<<"While checking for supermaster, did not find NS for "<<p->qdomain<<" at: "<< p->getRemote()<<endl;
+    return RCode::ServFail;
+  }
+
   string nameserver, account;
   DNSBackend *db;
   if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
-    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". "<<nsset.size()<<" remote nameservers: "<<endl;
+    L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". Remote nameservers: "<<endl;
     BOOST_FOREACH(class DNSResourceRecord& rr, nsset) {
-      L<<Logger::Error<<rr.content<<endl;
+      if(rr.qtype.getCode()==QType::NS)
+        L<<Logger::Error<<rr.content<<endl;
     }
     return RCode::Refused;
   }
@@ -1042,6 +1055,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         return r;
       }
       else if(p->d.opcode==Opcode::Notify) {
+        S.inc("incoming-notifications");
         int res=processNotify(p);
         if(res>=0) {
           r->setRcode(res);

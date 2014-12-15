@@ -126,7 +126,14 @@ __thread MT_t* MT; // the big MTasker
 
 unsigned int g_numThreads;
 
-#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10"
+#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+// Bad Nets taken from both:
+// http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml 
+// and
+// http://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+// where such a network may not be considered a valid destination
+#define BAD_NETS   "0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32"
+#define DONT_QUERY LOCAL_NETS ", " BAD_NETS
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
@@ -2159,7 +2166,7 @@ int main(int argc, char **argv)
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
-    ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=LOCAL_NETS; 
+    ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY; 
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";

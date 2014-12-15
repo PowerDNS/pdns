@@ -251,6 +251,8 @@ void declareStats(void)
   S.declare("dnsupdate-refused", "DNS update packets that are refused.");
   S.declare("dnsupdate-changes", "DNS update changes to records in total.");
 
+  S.declare("incoming-notifications", "NOTIFY packets received.");
+
   S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
   S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
   S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
