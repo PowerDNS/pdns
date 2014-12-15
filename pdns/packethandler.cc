@@ -1055,6 +1055,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         return r;
       }
       else if(p->d.opcode==Opcode::Notify) {
+        S.inc("incoming-notifications");
         int res=processNotify(p);
         if(res>=0) {
           r->setRcode(res);
