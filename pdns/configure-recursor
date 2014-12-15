@@ -68,9 +68,7 @@ test_flags
 
 sed -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g"  -e "s/@CF_STACK@/$CF_STACK/g" -e "s/@LD_RELRO@/$LD_RELRO/g" < Makefile.in > Makefile
 
-set +e
-GMAKE=`which gmake`
-set -e
+GMAKE=$(which gmake || echo "")
 
 if test -z "$GMAKE"
 then
