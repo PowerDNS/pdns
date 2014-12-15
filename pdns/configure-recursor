@@ -17,12 +17,9 @@ CF_STACK=""
 test_flags() {
   # test for relocation
 
-  relro=`$CXX -Wl,-help | grep -om1 -- '-z relro'`
-  now=`$CXX -Wl,-help | grep -om1 -- '-z now'`
-
-  if [ "$relro" = "-z relro" ]; then
+  if $CXX -Wl,-help | grep -q 'z relro'; then
     export LD_RELRO="-Wl,-z -Wl,relro"
-    if [ "$now" = "-z now" ]; then
+    if $CXX -Wl,-help | grep -q 'z now'; then
       export LD_RELRO="$LD_RELRO -Wl,-z -Wl,now"
     fi
   fi
@@ -38,8 +35,8 @@ EOF
 
   # test for PIE
 
-  if $CXX $src -c -o a.out -fPIE -fPIC -DPIE; then 
-    if $CXX -pie -o a2.out a.out; then 
+  if $CXX $src -c -o a.out -fPIE -fPIC -DPIE; then
+    if $CXX -pie -o a2.out a.out; then
       export CF_PIE="-fPIE -fPIC -DPIE"
       export LD_PIE="-pie"
     fi
