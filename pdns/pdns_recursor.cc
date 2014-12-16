@@ -276,9 +276,8 @@ static void setSocketSendBuffer(int fd, uint32_t size)
 class UDPClientSocks
 {
   unsigned int d_numsocks;
-  unsigned int d_maxsocks;
 public:
-  UDPClientSocks() : d_numsocks(0), d_maxsocks(5000)
+  UDPClientSocks() : d_numsocks(0)
   {
   }
 
