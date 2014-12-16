@@ -1870,6 +1870,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverdownmaxfails=::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
   SyncRes::s_serverID=::arg()["server-id"];
+  SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2187,6 +2188,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
+    ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";

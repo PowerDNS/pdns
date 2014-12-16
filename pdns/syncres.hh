@@ -291,6 +291,7 @@ public:
   static uint64_t s_unreachables;
   static unsigned int s_minimumTTL;
   static bool s_doIPv6;
+  static unsigned int s_maxqperq;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
