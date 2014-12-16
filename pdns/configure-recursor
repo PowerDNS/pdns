@@ -1,12 +1,80 @@
 #!/bin/sh
+
+set -e
+
+if [ "$CXX" = "" ]; then
+  CXX="g++"
+fi
+
+set -u
+
+LD_RELRO=""
+CF_PIE=""
+LD_PIE=""
+CF_FORTIFY=""
+CF_STACK=""
+
+test_flags() {
+  # test for relocation
+
+  if $CXX -Wl,-help | grep -q 'z relro'; then
+    export LD_RELRO="-Wl,-z -Wl,relro"
+    if $CXX -Wl,-help | grep -q 'z now'; then
+      export LD_RELRO="$LD_RELRO -Wl,-z -Wl,now"
+    fi
+  fi
+
+  src=conftest.cc
+  cat >$src <<EOF
+int
+main ()
+{
+  return 0;
+}
+EOF
+
+  # test for PIE
+
+  if $CXX $src -c -o a.out -fPIE -fPIC -DPIE; then
+    if $CXX -pie -o a2.out a.out; then
+      export CF_PIE="-fPIE -fPIC -DPIE"
+      export LD_PIE="-pie"
+    fi
+    rm -f a2.out
+    rm -f a.out
+  fi
+
+  # test for fortified source
+  if $CXX $src -c -o a.out -O3 -D_FORTIFY_SOURCE=2; then
+    export CF_FORTIFY="-D_FORTIFY_SOURCE=2"
+    rm -f a.out
+  fi
+
+  # test for stack protector
+  if $CXX $src -c -o a.out -O3 -fstack-protector; then
+    export CF_STACK="-fstack-protector"
+    if $CXX $src -c -o a.out -O3 -fstack-protector --param ssp-buffer-size=4; then
+      export CF_STACK="$CF_STACK --param ssp-buffer-size=4"
+    fi
+    rm -f a.out
+  fi
+
+  rm -f $src
+}
+
 echo Testing dependencies and compiler.
 
-GMAKE=`which gmake`
+test_flags
+
+sed -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g"  -e "s/@CF_STACK@/$CF_STACK/g" -e "s/@LD_RELRO@/$LD_RELRO/g" < Makefile.in > Makefile
+
+GMAKE=$(which gmake || echo "")
+
 if test -z "$GMAKE"
 then
-	make basic_checks
+    make basic_checks
 else
-	echo Using gmake to build
-	gmake basic_checks
+    echo Using gmake to build
+    gmake basic_checks
 fi
 
