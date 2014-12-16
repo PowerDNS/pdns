@@ -270,9 +270,9 @@ void declareStats(void)
   S.declareRing("servfail-queries","Queries that could not be answered due to backend errors");
   S.declareRing("unauth-queries","Queries for domains that we are not authoritative for");
   S.declareRing("logmessages","Log Messages");
-  S.declareRing("remotes","Remote server IP addresses");
-  S.declareRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
-  S.declareRing("remotes-corrupt","Remote hosts sending corrupt packets");
+  S.declareComboRing("remotes","Remote server IP addresses");
+  S.declareComboRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
+  S.declareComboRing("remotes-corrupt","Remote hosts sending corrupt packets");
 }
 
 int isGuarded(char **argv)
@@ -352,7 +352,7 @@ void *qthread(void *number)
        continue;
 
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
-    S.ringAccount("remotes",P->getRemote());
+    S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;
       if(P->hasEDNSSubnet()) 

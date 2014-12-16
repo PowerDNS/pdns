@@ -302,7 +302,7 @@ void UDPNameserver::send(DNSPacket *p)
       S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
   } else if (p->isEmpty()) {
     S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
-    S.ringAccount("remotes-unauth",p->getRemote());
+    S.ringAccount("remotes-unauth",p->d_remote);
   }
 
   /* Count responses (total/v4/v6) and byte counts */
@@ -466,7 +466,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
 
   if(packet->parse(mesg, len)<0) {
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", packet->getRemote());
+    S.ringAccount("remotes-corrupt", packet->d_remote);
 
     if(!prefilled)
       delete packet;
