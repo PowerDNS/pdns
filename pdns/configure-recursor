@@ -1,7 +1,77 @@
 #!/bin/sh
+set -e
+
+if [ "$CXX" = "" ]; then
+  CXX="g++"
+fi
+
+if [ "$STATIC" = "" ]; then
+  STATIC="no"
+fi
+
+set -u
+
+LD_RELRO=""
+CF_PIE=""
+LD_PIE=""
+CF_FORTIFY=""
+CF_STACK=""
+
+test_flags() {
+  # test for relocation
+
+  if $CXX -Wl,-help 2>/dev/null | grep -q 'z relro'; then
+    export LD_RELRO="-Wl,-z -Wl,relro"
+    if $CXX -Wl,-help 2>/dev/null | grep -q 'z now'; then
+      export LD_RELRO="$LD_RELRO -Wl,-z -Wl,now"
+    fi
+  fi
+
+  src=conftest.cc
+  cat >$src <<EOF
+int
+main ()
+{
+  return 0;
+}
+EOF
+  # test for PIE
+
+  if $CXX $src -c -o a.out -fPIE -fPIC -DPIE; then
+    export CF_PIE="-fPIE -fPIC -DPIE"
+    if [ "$STATIC" != "semi" ] && [ "$STATIC" != "full" ] && $CXX -pie -o a2.out a.out; then
+      export LD_PIE="-pie"
+    fi
+    rm -f a2.out
+    rm -f a.out
+  fi
+
+  # test for fortified source
+  if $CXX $src -c -o a.out -O3 -D_FORTIFY_SOURCE=2; then
+    export CF_FORTIFY="-D_FORTIFY_SOURCE=2"
+    rm -f a.out
+  fi
+
+  # test for stack protector
+  if $CXX $src -c -o a.out -O3 -fstack-protector; then
+    export CF_STACK="-fstack-protector"
+    if $CXX $src -c -o a.out -O3 -fstack-protector --param ssp-buffer-size=4; then
+      export CF_STACK="$CF_STACK --param ssp-buffer-size=4"
+    fi
+    rm -f a.out
+  fi
+
+  rm -f $src
+}
+
+test_flags
+
+sed -e "s/@LD_RELRO@/$LD_RELRO/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g" -e "s/@CF_STACK@/$CF_STACK/g" < Makefile.in > Makefile 
+
 echo Testing dependencies and compiler.
 
-GMAKE=`which gmake`
+GMAKE=`which gmake || echo ""`
+
 if test -z "$GMAKE"
 then
 	make basic_checks
