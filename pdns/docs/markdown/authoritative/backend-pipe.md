@@ -162,7 +162,7 @@ This is a typical zone transfer.
 
 For abi-version 3, DATA-responses get two extra fields:
 
-``` {.screen}
+```
 DATA    scopebits   auth    qname       qclass  qtype   ttl id  content
 ```
 
