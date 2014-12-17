@@ -20,11 +20,16 @@ CF_STACK=""
 test_flags() {
   # test for relocation
 
-  if $CXX -Wl,-help 2>/dev/null | grep -q 'z relro'; then
-    export LD_RELRO="-Wl,-z -Wl,relro"
-    if $CXX -Wl,-help 2>/dev/null | grep -q 'z now'; then
-      export LD_RELRO="$LD_RELRO -Wl,-z -Wl,now"
+  if [ `uname -s` = 'SunOS' ]; then
+    return
+  fi
+
+  if $CXX -Wl,-help 2>/dev/null | grep 'z relro' >/dev/null; then
+    LD_RELRO="-Wl,-z -Wl,relro"
+    if $CXX -Wl,-help 2>/dev/null | grep 'z now' >/dev/null; then
+      LD_RELRO="$LD_RELRO -Wl,-z -Wl,now"
     fi
+    export LD_RELRO
   fi
 
   src=conftest.cc
@@ -38,9 +43,11 @@ EOF
   # test for PIE
 
   if $CXX $src -c -o a.out -fPIE -fPIC -DPIE; then
-    export CF_PIE="-fPIE -fPIC -DPIE"
+    CF_PIE="-fPIE -fPIC -DPIE"
+    export CF_PIE
     if [ "$STATIC" != "semi" ] && [ "$STATIC" != "full" ] && $CXX -pie -o a2.out a.out; then
-      export LD_PIE="-pie"
+      LD_PIE="-pie"
+      export LD_PIE
     fi
     rm -f a2.out
     rm -f a.out
@@ -48,16 +55,18 @@ EOF
 
   # test for fortified source
   if $CXX $src -c -o a.out -O3 -D_FORTIFY_SOURCE=2; then
-    export CF_FORTIFY="-D_FORTIFY_SOURCE=2"
+    CF_FORTIFY="-D_FORTIFY_SOURCE=2"
+    export CF_FORTIFY
     rm -f a.out
   fi
 
   # test for stack protector
   if $CXX $src -c -o a.out -O3 -fstack-protector; then
-    export CF_STACK="-fstack-protector"
+    CF_STACK="-fstack-protector"
     if $CXX $src -c -o a.out -O3 -fstack-protector --param ssp-buffer-size=4; then
-      export CF_STACK="$CF_STACK --param ssp-buffer-size=4"
+      CF_STACK="$CF_STACK --param ssp-buffer-size=4"
     fi
+    export CF_STACK
     rm -f a.out
   fi
 
@@ -66,17 +75,11 @@ EOF
 
 test_flags
 
-sed -e "s/@LD_RELRO@/$LD_RELRO/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g" -e "s/@CF_STACK@/$CF_STACK/g" < Makefile.in > Makefile 
+sed -e "s/@LD_RELRO@/$LD_RELRO/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g" -e "s/@CF_STACK@/$CF_STACK/g" < Makefile.in > Makefile
 
 echo Testing dependencies and compiler.
 
-GMAKE=`which gmake || echo ""`
+MAKE=`which gmake || echo make`
 
-if test -z "$GMAKE"
-then
-	make basic_checks
-else
-	echo Using gmake to build
-	gmake basic_checks
-fi
-
+echo Using $MAKE to build
+$MAKE basic_checks
