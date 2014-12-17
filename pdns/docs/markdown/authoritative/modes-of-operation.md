@@ -131,7 +131,7 @@ To actually provision a named secret permission to AXFR a zone, set a metadata i
 
 As an example:
 
-``` {.programlisting}
+```
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
 sql> select id from domains where name='powerdnssec.org';
 5
@@ -142,7 +142,7 @@ $ dig -t axfr powerdnssec.org @127.0.0.1 -y 'test:kp4/24gyYsEzbuTVJRUMoqGFmN3LYg
 
 To ease interoperability, the equivalent configuration above in BIND would look like this:
 
-``` {.programlisting}
+```
 key test. {
         algorithm hmac-md5;
         secret "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=";
@@ -164,7 +164,7 @@ The actual TSIG key must also be provisioned, as outlined in the previous sectio
 
 For the popular Generic SQL backends, configuring the use of TSIG for AXFR requests could be achieved as follows:
 
-``` {.programlisting}
+```
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
 sql> select id from domains where name='powerdnssec.org';
 5
@@ -175,7 +175,7 @@ This setup corresponds to the TSIG-ALLOW-AXFR access rule defined in the previou
 
 In the interest of interoperability, the configuration above is (not quite) similar to the following BIND statements:
 
-``` {.programlisting}
+```
 key test. {
         algorithm hmac-md5;
         secret "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=";

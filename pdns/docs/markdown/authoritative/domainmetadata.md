@@ -10,7 +10,7 @@ Each ACL row can list one subnet (v4 or v6), or the magical value 'AUTO-NS' that
 
 Example:
 
-``` {.programlisting}
+```
 sql> select id from domains where name='example.com';
 7
 sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');

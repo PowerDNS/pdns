@@ -133,7 +133,7 @@ The 'includeboilerplate(TLSA)' generates the four methods that do everything Pow
 
 The [actual parsing code](http://wiki.powerdns.com/trac/browser/trunk/pdns/pdns/dnsrecords.cc?rev=2638#L226):
 
-``` {.screen}
+```
 boilerplate_conv(TLSA, 52,
                  conv.xfr8BitInt(d_certusage);
                  conv.xfr8BitInt(d_selector);

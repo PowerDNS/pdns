@@ -3,7 +3,7 @@ To control and query the PowerDNS recursor, the tool `rec_control` is provided. 
 
 As a sample command, try:
 
-``` {.screen}
+```
 # rec_control ping
 pong
 ```
