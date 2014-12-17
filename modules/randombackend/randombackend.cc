@@ -100,7 +100,7 @@ public:
   RandomLoader()
   {
     BackendMakers().report(new RandomFactory);
-    L << Logger::Info << "[randombackend] This is the random backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[randombackend] This is the random backend version " VERSION " reporting" << endl;
   }  
 };
 
