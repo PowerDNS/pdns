@@ -373,7 +373,7 @@ static void loadModules()
   }
 }
 
-#ifdef __linux__
+#ifdef __GLIBC__
 #include <execinfo.h>
 static void tbhandler(int num)
 {
