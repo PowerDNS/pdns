@@ -5,7 +5,7 @@ export testsdir=$(pwd)
 ../regression-tests/runtests
 ../regression-tests/toxml
 
-failed_tests=`wc -l failed_tests | cut -f 1 -d ' '`
+failed_tests=`cat failed_tests | wc -l`
 if [ $failed_tests = 0 ];
 then
 	exit 0;
