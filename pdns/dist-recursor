@@ -47,7 +47,7 @@ DIRNAME=pdns-recursor-$VERSION
 rm -rf $DIRNAME
 mkdir  $DIRNAME
 cp $INCLUDES $CFILES $DIRNAME
-cp Makefile-recursor $DIRNAME/Makefile
+cp Makefile-recursor $DIRNAME/Makefile.in
 cp README-recursor $DIRNAME/README
 cp ../COPYING ../NOTICE $DIRNAME/
 cp config-recursor.h $DIRNAME/config.h
