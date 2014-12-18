@@ -2,7 +2,7 @@
 set -ex
 cp -f ../regression-tests/zones/test.dyndns.orig ../regression-tests/zones/test.dyndns
 export testsdir=$(pwd)
-../regression-tests/runtests
+../regression-tests/runtests $1
 ../regression-tests/toxml
 
 failed_tests=`cat failed_tests | wc -l`
