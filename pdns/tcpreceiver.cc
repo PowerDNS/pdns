@@ -525,7 +525,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
-      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone.."<<endl;
+      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
