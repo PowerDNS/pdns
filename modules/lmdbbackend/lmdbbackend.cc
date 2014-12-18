@@ -443,7 +443,7 @@ next_record:
     string cur_value((const char *)value.mv_data, value.mv_size);
     string cur_key((const char *)key.mv_data, key.mv_size);
 
-    DEBUGLOG("querykey: " << d_querykey << "; cur_key: " <<cur_key<< "; cur_value: " << cur_value << endl);
+    DEBUGLOG("querykey: " << d_querykey << "; cur_key: " <<cur_key<< "; cur_value: '" << cur_value << "'" << endl);
 
     vector<string> keyparts, valparts;
 
@@ -466,8 +466,11 @@ next_record:
         stringtok(valparts, cur_value, "\t");
     }
 
+    if (valparts.size() != 3) // FIXME
+      valparts.push_back(".");
+
     if( keyparts.size() != 2 || valparts.size() != 3 )
-        throw PDNSException("Invalid record in record table: key: '" + cur_key + "'; value: "+ cur_value);
+        throw PDNSException("Invalid record in record table: key: '" + cur_key + "'; value: '"+ cur_value+"'");
 
     string compare_string = cur_key.substr(0, d_searchkey.length());
     DEBUGLOG( "searchkey: " << d_searchkey << "; compare: " << compare_string << ";" << endl);

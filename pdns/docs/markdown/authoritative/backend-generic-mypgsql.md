@@ -30,7 +30,8 @@ In practice, great results are achieved with the 'InnoDB' tables. PowerDNS will 
 
 The default setup conforms to the following schema:
 
-```{include=../../modules/gmysqlbackend/schema.mysql.sql}
+```
+!!include=../../modules/gmysqlbackend/schema.mysql.sql
 ```
 
 `zone2sql` with the `--gmysql` flag also assumes this layout is in place.
@@ -59,7 +60,8 @@ This automates deletion of records on deletion of a domain from the domains tabl
 
 The default setup conforms to the following schema, which you should add to a PostgreSQL database.
 
-```{include=../../modules/gpgsqlbackend/schema.pgsql.sql}
+```
+!!include=../../modules/gpgsqlbackend/schema.pgsql.sql
 ```
 
 `zone2sql` with the `--gpgsql` flag also assumes this layout is in place.
@@ -73,7 +75,8 @@ With PostgreSQL, you may have to run `createdb powerdns` first and then connect 
 # Oracle specifics
 Generic Oracle support is only available since version 2.9.18. The default setup conforms to the following schema, which you should add to an Oracle database. You may need or want to add `namespace` statements.
 
-```{include=../../modules/gpgsqlbackend/schema.pgsql.sql}
+```
+!!include=../../modules/gpgsqlbackend/schema.pgsql.sql
 ```
 
 This schema contains all elements needed for master, slave and superslave operation.

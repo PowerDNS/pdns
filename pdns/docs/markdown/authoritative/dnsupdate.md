@@ -37,7 +37,7 @@ For permissions, a number of per zone settings are available via the domain meta
 ## ALLOW-DNSUPDATE-FROM
 This setting has the same function as described in the configuration options (See [above](#configuration-options)). Only one item is allowed per row, but multiple rows can be added. An example:
 
-``` {.programlisting}
+```
 sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’198.51.100.0/8’);
@@ -49,7 +49,7 @@ This will allow 198.51.100.0/8 and 203.0.113.2/32 to send DNS update messages fo
 ## TSIG-ALLOW-DNSUPDATE
 This setting allows you to set the TSIG key required to do an DNS update. An example:
 
-``` {.programlisting}
+```
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
 sql> select id from domains where name='example.org';
 5
@@ -58,7 +58,7 @@ sql> insert into domainmetadata (domain_id, kind, content) values (5, 'TSIG-ALLO
 
 An example of how to use a TSIG key with the **nsupdate** command:
 
-``` {.programlisting}
+```
 nsupdate <<!
 server <ip> <port>
 zone example.org
@@ -73,7 +73,7 @@ If a TSIG key is set for the domain, it is required to be used for the update. T
 ## FORWARD-DNSUPDATE
 See [Section 1, “Configuration options”](dnsupdate.html#dnsupdate-configuration "1. Configuration options") for what it does, but per domain.
 
-``` {.programlisting}
+```
 sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘FORWARD-DNSUPDATE’,’’);
@@ -93,7 +93,7 @@ RFC2136 (Section 3.6) defines some specific behaviour for updates of SOA records
 
 An example:
 
-``` {.programlisting}
+```
 sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘SOA-EDIT-DNSUPDATE’,’INCREASE’);
@@ -116,13 +116,13 @@ DNS update is often used with DHCP to automatically provide a hostname whenever 
 ## Setting up dhcpd
 We're going to use a TSIG key for security. We're going to generate a key using the following command:
 
-``` {.programlisting}
+```
 dnssec-keygen -a hmac-md5 -b 128 -n USER dhcpdupdate
 ```
 
 This generates two files (Kdhcpdupdate.\*.key and Kdhcpdupdate.\*.private). You're interested in the .key file:
 
-``` {.programlisting}
+```
 # ls -l Kdhcp*
 -rw------- 1 root root  53 Aug 26 19:29 Kdhcpdupdate.+157+20493.key
 -rw------- 1 root root 165 Aug 26 19:29 Kdhcpdupdate.+157+20493.private
@@ -135,7 +135,7 @@ The important bits are the name of the key (**dhcpdupdate**) and the hash of the
 
 Using the details from the key you've just generated. Add the following to your dhcpd.conf:
 
-``` {.programlisting}
+```
 key "dhcpdupdate" {
         algorithm hmac-md5;
         secret "FYhvwsW1ZtFZqWzsMpqhbg==";
@@ -144,7 +144,7 @@ key "dhcpdupdate" {
 
 You must also tell dhcpd that you want dynamic dns to work, add the following section:
 
-``` {.programlisting}
+```
 ddns-updates on;
 ddns-update-style interim;
 update-static-leases on;
@@ -160,7 +160,7 @@ For more information on this, consult the dhcpd.conf manual.
 
 Per subnet, you also have to tell **dhcpd** which (reverse-)domain it should update and on which master domain server it is running.
 
-``` {.programlisting}
+```
 ddns-domainname "example.org";
 ddns-rev-domainname "in-addr.arpa.";
 
@@ -189,7 +189,7 @@ A number of small changes are needed to powerdns to make it accept dynamic updat
 
 Enabled DNS update (RFC2136) support functionality in PowerDNS by adding the following to the PowerDNS configuration file (pdns.conf).
 
-``` {.programlisting}
+```
 experimental-dnsupdate=yes
 allow-dnsupdate-from=
 ```
@@ -201,7 +201,7 @@ This tells PowerDNS to:
 
 We just told powerdns (via the configuration file) that we accept updates from nobody via the [`allow-dnsupdate-from`](settings.md#allow-dnsupdate-from) parameter. That's not very useful, so we're going to give permissions per zone, via the domainmetadata table.
 
-``` {.programlisting}
+```
 sql> select id from domains where name='example.org';
 5
 sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNSUPDATE-FROM’,’127.0.0.1’);
@@ -211,7 +211,7 @@ This gives the ip '127.0.0.1' access to send update messages. Make sure you use 
 
 Another thing we want to do, is add TSIG security. This can only be done via the domainmetadata table:
 
-``` {.programlisting}
+```
 sql> insert into tsigkeys (name, algorithm, secret) values ('dhcpdupdate', 'hmac-md5', 'FYhvwsW1ZtFZqWzsMpqhbg==');
 sql> select id from domains where name='example.org';
 5

@@ -23,36 +23,36 @@
 #define STATBAG_HH
 #include <pthread.h>
 #include <map>
+#include <functional>
 #include <string>
 #include <vector>
 #include "lock.hh"
 #include "namespaces.hh"
+#include "iputils.hh"
+#include <boost/circular_buffer.hpp>
 
+template<typename T, typename Comp=std::less<T> >
 class StatRing
 {
 public:
   StatRing(unsigned int size=10000);
-  ~StatRing();
-  void account(const string &item)
-  {
-    Lock l(d_lock);
-    d_items[d_pos++ % d_size]=item;
-  }
+  void account(const T &item);
 
-  unsigned int getSize()
-  {
-    return d_size;
-  }
+  unsigned int getSize();
   void resize(unsigned int newsize);  
   void reset();
   void setHelp(const string &str);
   string getHelp();
-  vector<pair<string,unsigned int> >get() const;
+
+  vector<pair<T, unsigned int> > get() const;
 private:
-  unsigned int d_size;
-  unsigned int d_pos;
-  vector<string> d_items;
-  pthread_mutex_t *d_lock;
+  static bool popisort(const pair<T,int> &a, const pair<T,int> &b) 
+  {
+    return (a.second > b.second);
+  }
+
+  boost::circular_buffer<T> d_items;
+  mutable pthread_mutex_t d_lock;
   string d_help;
 };
 
@@ -62,7 +62,8 @@ class StatBag
 {
   map<string, AtomicCounter *> d_stats;
   map<string, string> d_keyDescrips;
-  map<string,StatRing>d_rings;
+  map<string,StatRing<string> >d_rings;
+  map<string,StatRing<ComboAddress, ComboAddress::addressOnlyLessThan> >d_comborings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
@@ -75,13 +76,27 @@ public:
   void declare(const string &key, const string &descrip, func_t func); //!< Before you can store or access a key, you need to declare it
 
   void declareRing(const string &name, const string &title, unsigned int size=10000);
+  void declareComboRing(const string &name, const string &help, unsigned int size=10000);
   vector<pair<string, unsigned int> >getRing(const string &name);
   string getRingTitle(const string &name);
-  void ringAccount(const string &name, const string &item)
+  void ringAccount(const char* name, const string &item)
   {
-    if(d_doRings)
+    if(d_doRings)  {
+      if(!d_rings.count(name))
+	throw runtime_error("Attempting to account to non-existent ring");
+
       d_rings[name].account(item);
+    }
   }
+  void ringAccount(const char* name, const ComboAddress &item)
+  {
+    if(d_doRings) {
+      if(!d_comborings.count(name))
+	throw runtime_error("Attempting to account to non-existent comboring");
+      d_comborings[name].account(item);
+    }
+  }
+
   void doRings()
   {
     d_doRings=true;

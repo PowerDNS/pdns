@@ -4,9 +4,9 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
-CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread
-LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread
+LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @LD_PIE@
 STRIP_BINARIES?=1
 
 LINKCC=$(CXX)
@@ -16,7 +16,7 @@ CC?=gcc
 
 # static dependencies
 
-PDNS_RECURSOR_OBJECTS=syncres.o  misc.o unix_utility.o qtype.o logger.o  \
+PDNS_RECURSOR_OBJECTS=syncres.o misc.o unix_utility.o qtype.o logger.o \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
@@ -56,7 +56,7 @@ else
 	STATICFLAGS=-lstdc++ $(LUALIBS) -ldl -lm -static 
 	LINKCC=$(CC)
    else
-	LDFLAGS +=  $(LUALIBS)
+	LDFLAGS += $(LUALIBS)
    endif
 endif
 
@@ -91,7 +91,7 @@ message:
 
 basic_checks: 
 	@-rm -f pdns_hw
-	-$(CXX) $(CXXFLAGS)  pdns_hw.cc -o pdns_hw 
+	-$(CXX) $(CXXFLAGS) pdns_hw.cc -o pdns_hw
 	@echo
 	@if test -x ./pdns_hw ; \
 		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; fi; \

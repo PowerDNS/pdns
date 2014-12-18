@@ -373,7 +373,7 @@ static void loadModules()
   }
 }
 
-#ifdef __linux__
+#ifdef __GLIBC__
 #include <execinfo.h>
 static void tbhandler(int num)
 {
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
   s_programname="pdns";
   s_starttime=time(0);
 
-#ifdef __linux__
+#ifdef __GLIBC__
   signal(SIGSEGV,tbhandler);
   signal(SIGFPE,tbhandler);
   signal(SIGABRT,tbhandler);
@@ -470,7 +470,7 @@ int main(int argc, char **argv)
     
     // we really need to do work - either standalone or as an instance
 
-#ifdef __linux__
+#ifdef __GLIBC__
     if(!::arg().mustDo("traceback-handler")) {
       L<<Logger::Warning<<"Disabling traceback handler"<<endl;
       signal(SIGSEGV,SIG_DFL);
@@ -554,7 +554,7 @@ int main(int argc, char **argv)
     DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
     DynListener::registerFunc("SET",&DLSettingsHandler, "set config variables", "<var> <value>");
     DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler, "retrieve slave domain", "<domain>");
-    DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "Retrieve the current configuration");
+    DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "retrieve the current configuration");
     DynListener::registerFunc("LIST-ZONES",&DLListZones, "show list of zones", "[master|slave|native]");
 
     if(!::arg()["tcp-control-address"].empty()) {

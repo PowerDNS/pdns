@@ -300,7 +300,8 @@ catch(PDNSException &e) {
   L<<Logger::Error<<"HTTP Exception: "<<e.reason<<endl;
 }
 catch(std::exception &e) {
-  L<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
+  if(strstr(e.what(), "timeout")==0)
+    L<<Logger::Error<<"HTTP STL Exception: "<<e.what()<<endl;
 }
 catch(...) {
   L<<Logger::Error<<"HTTP: Unknown exception"<<endl;

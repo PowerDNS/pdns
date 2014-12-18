@@ -162,7 +162,7 @@ This is a typical zone transfer.
 
 For abi-version 3, DATA-responses get two extra fields:
 
-``` {.screen}
+```
 DATA    scopebits   auth    qname       qclass  qtype   ttl id  content
 ```
 
@@ -171,5 +171,6 @@ DATA    scopebits   auth    qname       qclass  qtype   ttl id  content
 For api-versions 1 and 2, the two new fields fall back to default values. The default value for scopebits is 0. The default for auth is 1 (meaning authoritative).
 
 ## Sample perl backend
-```{include=../../modules/pipebackend/backend.pl}
+```
+!!include=../../modules/pipebackend/backend.pl
 ```

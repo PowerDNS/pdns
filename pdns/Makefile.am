@@ -498,8 +498,10 @@ dnstcpbench_LDFLAGS = $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 dnstcpbench_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsdist_SOURCES = \
+	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	dns.cc \
 	dnsdist.cc \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \

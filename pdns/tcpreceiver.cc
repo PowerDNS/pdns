@@ -183,7 +183,7 @@ void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
         S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
     } else if(p->isEmpty()) {
       S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
-      S.ringAccount("remotes-unauth",p->getRemote());
+      S.ringAccount("remotes-unauth",p->d_remote);
     }
   }
 

@@ -1,4 +1,4 @@
-AM_CPPFLAGS += $(MYSQL_inc)
+AM_CPPFLAGS += $(MYSQL_CFLAGS)
 pkglib_LTLIBRARIES = libmydnsbackend.la
 
 EXTRA_DIST = \
@@ -14,4 +14,4 @@ libmydnsbackend_la_SOURCES = \
 libmydnsbackend_la_LDFLAGS = -module -avoid-version
 libmydnsbackend_la_LIBADD = \
 	../gmysqlbackend/smysql.lo \
-	$(MYSQL_lib)
+	$(MYSQL_LIBS)

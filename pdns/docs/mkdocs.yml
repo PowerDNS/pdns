@@ -34,6 +34,7 @@ pages:
   - [authoritative/backend-geoip.md, 'Authoritative Backends', 'GeoIP']
   - [authoritative/backend-gsqlite.md, 'Authoritative Backends', 'Generic SQLite']
   - [authoritative/backend-ldap.md, 'Authoritative Backends', 'LDAP']
+  - [authoritative/backend-lua.md, 'Authoritative Backends', 'LUA']
   - [authoritative/backend-lmdb.md, 'Authoritative Backends', 'LMDB']
   - [authoritative/backend-oracle.md, 'Authoritative Backends', 'Oracle']
   - [authoritative/backend-pipe.md, 'Authoritative Backends', 'Pipe']

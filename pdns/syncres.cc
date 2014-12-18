@@ -62,7 +62,7 @@ uint64_t SyncRes::s_unreachables;
 unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
-
+unsigned int SyncRes::s_maxqperq;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 
@@ -923,7 +923,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           }
           else {
             s_outqueries++; d_outqueries++;
-            if(d_outqueries > 50) throw ImmediateServFailException("more than 50 queries sent while resolving "+qname);
+            if(d_outqueries > s_maxqperq) throw ImmediateServFailException("more than "+lexical_cast<string>(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname);
           TryTCP:
             if(doTCP) {
               LOG(prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);

@@ -12,7 +12,7 @@ To get the best out of the PowerDNS recursor, which is important if you are doin
 -   A busy server may need hundreds of file descriptors on startup, and deals with spikes better if it has that many available later on. Linux by default restricts processes to 1024 file descriptors, which should suffice most of the time, but Solaris has a default limit of 256. This can be raised using the ulimit command. FreeBSD has a default limit that is high enough for even very heavy duty use.
 -   When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values. Please check and if necessary raise 'sysctl net.ipv6.route.max\_size'.
 -   For older versions \<3.2: If you need it, try **--fork**, this will fork the daemon into two halves, allowing it to benefit from a second CPU. This feature almost doubles performance, but is a bit of a hack.
--   for 3.2 and higher, set 'threads' to your number of CPUs.
+-   for 3.2 and higher, set 'threads' to your number of CPU cores (but values above 8 rarely improve performance).
 -   For best PowerDNS Recursor performance, use a recent version of your operating system, since this generally offers the best event multiplexer implementation available (kqueue, epoll, ports or /dev/poll).
 -   A Recursor under high load puts a severe stress on any stateful (connection tracking) firewall, so much so that the firewall may fail.
 

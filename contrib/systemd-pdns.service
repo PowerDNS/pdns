@@ -1,5 +1,6 @@
 [Unit]
 Description=PowerDNS Authoritative Server
+Documentation=man:pdns_server(8) man:pdns_control(8)
 Wants=network-online.target
 After=network-online.target mysqld.service postgresql.service slapd.service
 
