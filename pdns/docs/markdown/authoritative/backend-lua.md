@@ -1,5 +1,7 @@
 # Lua Backend
-The most up to date version of this backend can be found at [Fredrik's github](https://github.com/fredan/luabackend).
+**Warning**: The status of this backend is unknown, it compiles and works, but
+is different from the original, updated version at
+[Fredrik's github](https://github.com/fredan/luabackend).
 
 The main author for this module is Fredrik Danerklint.
 
@@ -12,7 +14,8 @@ The main author for this module is Fredrik Danerklint.
 |Autoserial|No|
 |DNSSEC|Yes|
 
-**Warning**: The Lua Backend is available since PowerDNS Authoritative Server 3.0. In 3.0 and 3.1, this backend is marked as Experimental!
+**Warning**: The Lua Backend is available since PowerDNS Authoritative Server
+3.0. In 3.0 and 3.1, this backend is marked as Experimental!
 
 This backend is just a "glue" between PowerDNS and your own Lua application.
 
