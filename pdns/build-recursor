@@ -9,7 +9,6 @@ then
 else
 	DEBPKGNAME=pdns-recursor_$1
 fi
-./configure
 dh_make -e powerdns.support@powerdns.com -s -f ../pdns-recursor-$1.tar.bz2 -p $DEBPKGNAME < /dev/null
 cp pdns-recursor.init.d debian/init.d
 #[ -e debian/control ] || dh_make -e powerdns.support@powerdns.com -s -r cdbs  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
