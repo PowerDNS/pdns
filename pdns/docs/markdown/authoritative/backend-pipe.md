@@ -39,9 +39,9 @@ Number of milliseconds to wait for an answer from the backend. If this time is e
 |:-|:-|
 |Type|String (a regex)|
 
-If set, only questions matching this regular expression are even sent to the backend. This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend. A query for the A record of 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com;A'. A matching regex would be '\^www.powerdns.com;.\*\$'.
+If set, only questions matching this regular expression are even sent to the backend. This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend. A query for the A record of 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com;A'. A matching regex would be '^www.powerdns.com;.*$'.
 
-To match only ANY and A queries for www.powerdns.com, use `\^www.powerdns.com;(A|ANY)\$`.
+To match only ANY and A queries for www.powerdns.com, use `^www.powerdns.com;(A|ANY)$`.
 
 ### `pipebackend-abi-version`
 This is the version of the question format that is sent to the co-process ([`pipe-command`](#pipe-command)) for the pipe backend.
@@ -100,7 +100,7 @@ Type is the tag above, `qname` is the domain the question is about. `qclass` is 
 
 `edns-subnet-address` is the actual client subnet as provided via edns-subnet support. Note that for the SOA query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
 
-**Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "\*.powerdns.com", it should only answer with data if there is an actual "\*.powerdns.com" name
+**Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name
 
 AXFR-queries look like this:
 

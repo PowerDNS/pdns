@@ -25,12 +25,12 @@ The following table describes the capabilities of the backends.
 | [Pipe](backend-pipe.md) | Supported | Yes | No | No | No | No | Partial (no delegation, no key storage) | No | No | `pipe` |
 | [PostgreSQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
 | [Random](backend-random.md) | Supported | Yes | No | No | No | No | Yes (no key storage) | No | No | `random` |
-| [Remote](backend-remote.md) | Supported | Yes | Yes\* | Yes\* | Yes\* | Yes\* | Yes\* | Unknown (No) | Unknown(No) | `remote` |
+| [Remote](backend-remote.md) | Supported | Yes | Yes* | Yes* | Yes* | Yes* | Yes* | Unknown (No) | Unknown(No) | `remote` |
 | [SQLite](backend-gsqlite.md) 2 | Supported (not recommended) | Yes | Yes | Yes | Yes | No | No | No | `gsqlite` |
 | [SQLite](backend-gsqlite.md) 3 | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | `gsqlite3` |
 | [TinyDNS](backend-tinydns.md) | Experimental | Yes | Yes | No | No | No | No | Unknown (No) | Unknown (No) | `tinydns` |
 
-\*: Please read the backend-specific documentation.
+*: Please read the backend-specific documentation.
 
 ### Native, Master, Slave, Superslave
 Which [Mode of Operation](modes-of-operation.md) (DNS data replication) is supported.

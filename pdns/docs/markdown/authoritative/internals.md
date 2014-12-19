@@ -60,7 +60,7 @@ Set a configuration parameter. Currently only the 'query-logging' parameter can 
 Reports the uptime of the daemon in human readable form.
 
 ## `show VARIABLE`
-Show a specific statistic. Use \* for all. (You may need to quote as '\*' or \\\*).
+Show a specific statistic. Use * for all. (You may need to quote as '*' or \\*).
 
 ## `version`
 Returns the version of a running pdns daemon.

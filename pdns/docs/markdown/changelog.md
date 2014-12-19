@@ -110,7 +110,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 
 ## Bugfixes
 -   We verify the algorithm used for TSIG queries, and use the right algorithm in signing if there is possible confusion. Plus a few minor TSIG-related fixes.
--   [commit ff99a74](https://github.com/PowerDNS/pdns/commit/ff99a74): making \*-threads settings empty now yields a default of one instead of zero.
+-   [commit ff99a74](https://github.com/PowerDNS/pdns/commit/ff99a74): making *-threads settings empty now yields a default of one instead of zero.
 -   [commit 9215e60](https://github.com/PowerDNS/pdns/commit/9215e60): we had a deadly embrace in getUpdatedMasters in bindbackend reimplementation, thanks to Winfried for detailed debugging!
 -   [commit 9245fd9](https://github.com/PowerDNS/pdns/commit/9245fd9): don't addSuckRequest after supermaster zone creation to avoid one cause of simultaneous AXFR for the same zone
 -   [commit 719f902](https://github.com/PowerDNS/pdns/commit/719f902): fix dual-stack superslave when multiple namservers share a ip
@@ -130,7 +130,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 -   Mark Schouten at Tuxis contributed a zone importer.
 
 ## Other changes
--   Our tarballs and packages now include \*.sql schema files for the SQL backends.
+-   Our tarballs and packages now include *.sql schema files for the SQL backends.
 -   The webserver (including API) now has an ACL (webserver-allow-from).
 -   Webserver (including API) is now powered by YaHTTP.
 -   Various autotools usage improvements from Ruben Kerkhof.
@@ -254,7 +254,7 @@ This is a bugfix update to 3.3.
 -   [commit 3506cc6](https://github.com/PowerDNS/pdns/commit/3506cc6): gpsqlbackend: don't append empty dbname=/user= values to connect string
 -   gpgsql queries were simplified through the use of casting ([commit 9a6e39c](https://github.com/PowerDNS/pdns/commit/9a6e39c)).
 -   [commit a7aa9be](https://github.com/PowerDNS/pdns/commit/a7aa9be): Replace hardcoded make with variable
--   [commit e4fe901](https://github.com/PowerDNS/pdns/commit/e4fe901): make sure to run PKG\_PROG\_PKG\_CONFIG before the first PKG\_\* usage
+-   [commit e4fe901](https://github.com/PowerDNS/pdns/commit/e4fe901): make sure to run PKG\_PROG\_PKG\_CONFIG before the first PKG\_* usage
 -   [commit 29bf169](https://github.com/PowerDNS/pdns/commit/29bf169): fix hmac-md5 TSIG key lookup
 -   [commit c4e348b](https://github.com/PowerDNS/pdns/commit/c4e348b): fix 64+ character TSIG keys
 -   [commit 00a7b25](https://github.com/PowerDNS/pdns/commit/00a7b25): Fix comparison between signed and unsigned by using uint32\_t for inception on INCEPTION-EPOCH
@@ -630,7 +630,7 @@ Changes below are in 3.2-RC1 and up.
 -   pdnssec show-zone now works on a zone that has any number of keys, instead of requiring active keys. Reported by Jeroen Tushuizen of myH2Oservers, code in [commit 2769](http://wiki.powerdns.com/projects/trac/changeset/2769), closes [ticket 586](https://github.com/PowerDNS/pdns/issues/586).
 -   pdns-control notify-host now accepts v6 literals. Reported by Christof Meerwald, fixed in [commit 2704](http://wiki.powerdns.com/projects/trac/changeset/2704).
 -   The tinydnsbackend no longer chokes on questions longer than 64 bytes. Code in [commit 2622](http://wiki.powerdns.com/projects/trac/changeset/2622).
--   \*-all-domains commands in pdnssec now work with Postgres (gpgsql) too. Code in [commit 2645](http://wiki.powerdns.com/projects/trac/changeset/2645), closing [ticket 472](https://github.com/PowerDNS/pdns/issues/472).
+-   *-all-domains commands in pdnssec now work with Postgres (gpgsql) too. Code in [commit 2645](http://wiki.powerdns.com/projects/trac/changeset/2645), closing [ticket 472](https://github.com/PowerDNS/pdns/issues/472).
 -   We would sometimes leave the opcode of an outgoing packet uninitialized. Fixed in [commit 2680](http://wiki.powerdns.com/projects/trac/changeset/2680), closing [ticket 532](https://github.com/PowerDNS/pdns/issues/532).
 -   nproxy can now listen on a configurable port. Code in [commit 2684](http://wiki.powerdns.com/projects/trac/changeset/2684), fixes [ticket 534](https://github.com/PowerDNS/pdns/issues/534).
 -   Improve mydnsbackend for SOA queries. Code in [commit 2751](http://wiki.powerdns.com/projects/trac/changeset/2751), fixes [ticket 439](https://github.com/PowerDNS/pdns/issues/439), by Ruben d'Arco.
@@ -683,7 +683,7 @@ Additionally, we would like to thank Ruben d'Arco, Jose Arthur Benetasso Villano
 -   SOA records no longer disappear during incoming transfers. Fix by Ruben d'Arco in [commit 2540](http://wiki.powerdns.com/projects/trac/changeset/2540).
 -   PowerDNS compiles on OS X (and other platforms that support our auth server but not the recursor) again, fix in [commit 2566](http://wiki.powerdns.com/projects/trac/changeset/2566).
 -   Cleanups related to warnings from gcc and valgrind in [commit 2561](http://wiki.powerdns.com/projects/trac/changeset/2561), [commit 2562](http://wiki.powerdns.com/projects/trac/changeset/2562), [commit 2565](http://wiki.powerdns.com/projects/trac/changeset/2565).
--   Solaris compatibility fixes by Ruben d'Arco, Juraj Lutter and others in [commit 2548](http://wiki.powerdns.com/projects/trac/changeset/2548), [commit 2552](http://wiki.powerdns.com/projects/trac/changeset/2552), [commit 2553](http://wiki.powerdns.com/projects/trac/changeset/2553), [commit 2560](http://wiki.powerdns.com/projects/trac/changeset/2560). Fixes for \*BSD in [commit 2546](http://wiki.powerdns.com/projects/trac/changeset/2546).
+-   Solaris compatibility fixes by Ruben d'Arco, Juraj Lutter and others in [commit 2548](http://wiki.powerdns.com/projects/trac/changeset/2548), [commit 2552](http://wiki.powerdns.com/projects/trac/changeset/2552), [commit 2553](http://wiki.powerdns.com/projects/trac/changeset/2553), [commit 2560](http://wiki.powerdns.com/projects/trac/changeset/2560). Fixes for *BSD in [commit 2546](http://wiki.powerdns.com/projects/trac/changeset/2546).
 -   pdns\_control help would report 'version' twice, reported by Gerwin, fix in [commit 2549](http://wiki.powerdns.com/projects/trac/changeset/2549).
 
 ## DNSSEC related fixes
@@ -1085,7 +1085,7 @@ Full release notes follow, including some overlap with the incremental release n
 -   Properly process answers from remote authoritative servers that send error answers without including the original question ([commit 1329](http://wiki.powerdns.com/projects/trac/changeset/1329), [commit 1327](http://wiki.powerdns.com/projects/trac/changeset/1327)).
 -   No longer spontaneously turn on 'export-etc-hosts' after reloading zones. Discovered by Paul Cairney, reported in [ticket 225](https://github.com/PowerDNS/pdns/issues/225), addressed in [commit 1348](http://wiki.powerdns.com/projects/trac/changeset/1348).
 -   Very abrupt server failure of large numbers of high-volume authoritative servers could trigger an out of memory situation. Addressed in [commit 1505](http://wiki.powerdns.com/projects/trac/changeset/1505).
--   Make timeouts for queries to remote authoritative servers configurable with millisecond granularity. In addition, the old code turned out to consider the timeout expired when the integral number of seconds since 1970 increased by 1 - which \*on average\* is after 500ms. This might have caused spurious timeouts! New default timeout is 1500ms. See **network-timeout** setting for more details. Code in [commit 1402](http://wiki.powerdns.com/projects/trac/changeset/1402).
+-   Make timeouts for queries to remote authoritative servers configurable with millisecond granularity. In addition, the old code turned out to consider the timeout expired when the integral number of seconds since 1970 increased by 1 - which *on average* is after 500ms. This might have caused spurious timeouts! New default timeout is 1500ms. See **network-timeout** setting for more details. Code in [commit 1402](http://wiki.powerdns.com/projects/trac/changeset/1402).
 
 # Recursor version 3.1.7.2
 Released on the 6th of January 2010.
@@ -1174,14 +1174,14 @@ Finally, the release candidates of this version have been tested & improved by J
 -   'DPS' discovered there was a rare opportunity for PowerDNS to lock up waiting for new data. Addressed in [1076](http://wiki.powerdns.com/projects/trac/changeset/1076).
 -   Make singlethreaded mode more resilient against errors. [commit 1272](http://wiki.powerdns.com/projects/trac/changeset/1272).
 -   DNSSEC records were part of 2.9.21, but were not actually hooked up. Please note that while PowerDNS can serve most DNSSEC records, it does not do DNSSEC processing. Implemented in [1046](http://wiki.powerdns.com/projects/trac/changeset/1046).
--   Shawn Starr migrated all his domains to PowerDNS in one evening, from an installation that had been used since BIND4. In doing so, he found 3 bugs in as many hours. An **IN** statement in the BIND `named.conf` with a zone with a trailing dot was misparsed, fixed in [commit 1233](http://wiki.powerdns.com/projects/trac/changeset/1233). Secondly, the zone file parser tripped over a line consisting of nothing but comments in the wrong place. Finally '\$ORIGIN .' was misparsed. Last two issues fixed in [commit 1234](http://wiki.powerdns.com/projects/trac/changeset/1234).
+-   Shawn Starr migrated all his domains to PowerDNS in one evening, from an installation that had been used since BIND4. In doing so, he found 3 bugs in as many hours. An **IN** statement in the BIND `named.conf` with a zone with a trailing dot was misparsed, fixed in [commit 1233](http://wiki.powerdns.com/projects/trac/changeset/1233). Secondly, the zone file parser tripped over a line consisting of nothing but comments in the wrong place. Finally '$ORIGIN .' was misparsed. Last two issues fixed in [commit 1234](http://wiki.powerdns.com/projects/trac/changeset/1234).
 -   Our statistics counters did not wrap correctly after the 2.15 billion mark. Spotted by Stefan Schmidt, reported in [ticket 179](https://github.com/PowerDNS/pdns/issues/179), fixed in [commit 1284](http://wiki.powerdns.com/projects/trac/changeset/1284).
 -   Bindbackend could sometimes generate very strange error messages while processing a malformed zone file. Sometimes such error messages could cause a crash (reported on HP-UX). Addressed by [commit 1279](http://wiki.powerdns.com/projects/trac/changeset/1279). This could not be triggered remotely. Closes ticket [ticket 203](https://github.com/PowerDNS/pdns/issues/203).
 -   Pipe backend did not clean up killed coprocesses. Found and fixed by Daniel Drown
 -   Installations with tens of thousands of slave domains would never complete the cycle to check the freshness of all zones as each incoming notification disrupted this cycle. Addressed in cooperation with Tyler Hall of EditDNS.
 
 ## Improvements
--   Zone parser improvements mean \$TTL and \$INCLUDES now work a lot better. Implemented in [1056](http://wiki.powerdns.com/projects/trac/changeset/1056), [1062](http://wiki.powerdns.com/projects/trac/changeset/1062).
+-   Zone parser improvements mean $TTL and $INCLUDES now work a lot better. Implemented in [1056](http://wiki.powerdns.com/projects/trac/changeset/1056), [1062](http://wiki.powerdns.com/projects/trac/changeset/1062).
 -   No longer report temporary recvfrom errors, which used to spam the log on many systems. Addressed in [commit 1320](http://wiki.powerdns.com/projects/trac/changeset/1320).
 -   Direct queries for 'fancy records' would lead to errors, such queries now fail early. Spotted by Jorn Ekkelenkamp, implemented in [1051](http://wiki.powerdns.com/projects/trac/changeset/1051).
 -   Fix typo in geobackend, closing [ticket 157](https://github.com/PowerDNS/pdns/issues/157), implemented in [1090](http://wiki.powerdns.com/projects/trac/changeset/1090).
@@ -1311,7 +1311,7 @@ This release was made possible by the help of Wichert Akkerman, Winfried Angele,
 
 ## New features
 -   Implemented **rec\_control** command **get uptime**, as suggested by Niels Bakker ([commit 935](http://wiki.powerdns.com/projects/trac/changeset/935)). Added to default rrdtool scripts in [commit 940](http://wiki.powerdns.com/projects/trac/changeset/940).
--   The Recursor Authoritative component, meant for having the Recursor serve some zones authoritatively, now supports \$INCLUDE and \$GENERATE. Implemented in [commit 951](http://wiki.powerdns.com/projects/trac/changeset/951) and [commit 952](http://wiki.powerdns.com/projects/trac/changeset/952), [commit 967](http://wiki.powerdns.com/projects/trac/changeset/967) (discovered by Thomas Rietz),
+-   The Recursor Authoritative component, meant for having the Recursor serve some zones authoritatively, now supports $INCLUDE and $GENERATE. Implemented in [commit 951](http://wiki.powerdns.com/projects/trac/changeset/951) and [commit 952](http://wiki.powerdns.com/projects/trac/changeset/952), [commit 967](http://wiki.powerdns.com/projects/trac/changeset/967) (discovered by Thomas Rietz),
 -   Implemented **forward-zones-file** option in order to support larger amounts of zones which should be forwarded to another nameserver ([commit 963](http://wiki.powerdns.com/projects/trac/changeset/963)).
 -   Both **forward-zones** and **forward-zones-file** can now specify multiple forwarders per domain, implemented in [commit 1168](http://wiki.powerdns.com/projects/trac/changeset/1168), closing [ticket 81](https://github.com/PowerDNS/pdns/issues/81). Additionally, both these settings can also specify non-standard port numbers, as suggested in ticket [ticket 122](https://github.com/PowerDNS/pdns/issues/122). Patch authored by Aaron Thompson, with additional work by Augie Schwer.
 -   Sten Spans contributed **allow-from-file**, implemented in [commit 1150](http://wiki.powerdns.com/projects/trac/changeset/1150). This feature allows the Recursor to read access rules from a (large) file.
@@ -1633,7 +1633,7 @@ Thanks are due to [XS4ALL](http://www.xs4all.nl) who are supporting continuing d
 -   Incoming zone transfers work reliably again. Fixed in [commit 460](http://wiki.powerdns.com/projects/trac/changeset/460) and beyond. And [commit 523](http://wiki.powerdns.com/projects/trac/changeset/523) - closing Debian bug 330184.
 -   Recent g++ versions exposed a mistake in the PowerDNS recursor cache pruning code, causing random crashes. Fixed in [commit 465](http://wiki.powerdns.com/projects/trac/changeset/465). Reported by several Red Hat users.
 -   PowerDNS recursor, and MTasker in general, did not work on Solaris. Patch by Juergen Ilse, [commit 471](http://wiki.powerdns.com/projects/trac/changeset/471). Also moved most of PowerDNS over to uint32\_t style typedefs, which eases compilation problems on Solaris, [commit 477](http://wiki.powerdns.com/projects/trac/changeset/477).
--   Bindbackend2 did not properly search its include path for \$INCLUDE statements. Noted by Mark Bergsma, [commit 474](http://wiki.powerdns.com/projects/trac/changeset/474).
+-   Bindbackend2 did not properly search its include path for $INCLUDE statements. Noted by Mark Bergsma, [commit 474](http://wiki.powerdns.com/projects/trac/changeset/474).
 -   Bindbackend did not notice changed zones, this problem has been fixed by the move to Bind2.
 -   Pipebackend did not clean up, leading to an additional pipe backend per AXFR or pdns\_control reload. Discovered by Marc Jauvin, fixed by [commit 525](http://wiki.powerdns.com/projects/trac/changeset/525).
 -   Bindbackend (both old and current versions) did not honour 'include' statements in `named.conf` on **pdns\_control rediscover**. Noted by Marc Jauvin, fixed by [commit 526](http://wiki.powerdns.com/projects/trac/changeset/526).
@@ -1793,7 +1793,7 @@ This release fixes up some of the shortcomings in 2.9.14, and adds some new feat
 
 # Version 2.9.14
 
-Big release with the fix for the all important 2\^30 seconds problem and a lot of other news.
+Big release with the fix for the all important 2^30 seconds problem and a lot of other news.
 -   errno problems would cause compilation problems when using LDAP (Norbert Sendetzky)
 -   The Generic SQL backend could cause crashes on PostgreSQL when using pdns\_control notify (Georg Bauer)
 -   Debian compatible init.d script (Wichert Akkerman)
@@ -1959,12 +1959,12 @@ Two new backends - Generic ODBC (windows only) and LDAP. Furthermore, a few impo
 
 -   BIND Backend now honours notifies, code to support this was accidentally left out. Thanks to Christian Laursen for noticing this.
 -   Massive speedup for those of you using the slightly deprecated MBOXFW records. Thanks to Jorn of [ISP Services](http://www.ISP-Services.nl) for helping and testing this improvement.
--   \$GENERATE had an off-by-one bug where it would omit the last record to be generated (Christian Laursen)
+-   $GENERATE had an off-by-one bug where it would omit the last record to be generated (Christian Laursen)
 -   Simultaneous AXFRs may have been problematic on some backends. Thanks to Jorn of ISP-Services again for helping us resolve this issue.
 -   Added LDAP backend by Norbert Sendetzky, see [Section 11, “LDAP backend”](ldap.html "11. LDAP backend").
 -   Added Generic ODBC backend for Windows by Michel Stol.
 -   Simplified 'out of zone data' detection in incoming AXFR support, hopefully removing a case sensitivity bug there. Thanks again to Christian Laursen for reporting this issue.
--   \$include in-zonefile was broken under some circumstances, losing the last character of a file name. Thanks to Joris Vandalon for noticing this.
+-   $include in-zonefile was broken under some circumstances, losing the last character of a file name. Thanks to Joris Vandalon for noticing this.
 -   The zone parser was more case-sensitive than BIND, refusing to accept 'in' as well as 'IN'. Thanks to Joris Vandalon for noticing this.
 
 # Version 2.9.5
@@ -1984,10 +1984,10 @@ Excellent work was also performed by Michel Stol, the Windows guy, in fixing all
 
 ## Other changes
 -   dnspacket.cc was cleaned up by factoring out common operations
--   Heaps of work on the recursing nameserver. Has now achieved \*days\* of uptime!
+-   Heaps of work on the recursing nameserver. Has now achieved *days* of uptime!
 -   Recursor renamed from syncres to `pdns_recursor`
 -   PowerDNS can now serve records it does not know about. To benefit from this slightly undocumented feature, add 1024 to the numerical type of a record and include the record in binary form in your database. Used internally by the recursing nameserver but you can use it too.
--   PowerDNS now knows about SIG and KEY records \*names\*. It does not support them yet but can at least report so now.
+-   PowerDNS now knows about SIG and KEY records *names*. It does not support them yet but can at least report so now.
 -   HINFO records can now be transferred from a master to PowerDNS (thanks to Ueli Heuer for noticing it didn't work).
 -   Yet more UltraSPARC alignment issues fixed (Chris Andrews).
 -   Dropped non-lazy recursion, nobody was using it. Lazy recursion became even more lazy after Dan Bernstein pointed out that additional processing is not vital, so PowerDNS does its best to do additional processing on recursive queries, but does not scream murder if it does not succeed. Due to caching, the next identical query will be successfully additionally processed.
@@ -2022,8 +2022,8 @@ In other news, we now have a security page at [Section 4, “Security”](secur
 -   The migration chapter mentioned the use of deprecated backends.
 
 ## A tremendous number of bugs were discovered and fixed
--   Zone parser would only accept \$include and not \$INCLUDE
--   Zone parser had problems with \$lines with comments on the end
+-   Zone parser would only accept $include and not $INCLUDE
+-   Zone parser had problems with $lines with comments on the end
 -   Wildcard ANY queries were broken (thanks Colemarcus for spotting this)
 -   A connection failure with the Generic backends would lead to a powerdns reload (cast of many)
 -   Generic backends had some semantic problems with slave support. Symptoms were oft-repeated notifications and transfers (thanks to Mark Bergsma for helping resolve this).
@@ -2238,7 +2238,7 @@ Developers: this version needs the pdns-2.5.1 development kit, available on <htt
 ## Bugs fixed
 -   Incidentally, the cache count would show 'unknown' packets, which was harmless but confusing. Thanks to Mike and Simon of NetNation for reporting this.
 -   SOA hostmaster with a . in the local-part would be cached wrongly, leading to a stray backslash in case of multiple successively SOA queries. Thanks to Ascio Technologies for spotting this bug.
--   zone2sql did not parse Verisign zone files correctly as these contained a \$TTL statement in mid-record.
+-   zone2sql did not parse Verisign zone files correctly as these contained a $TTL statement in mid-record.
 -   Sometimes packets would not be accounted, leading to 'udp-queries' and 'udp-answers' divergence.
 
 ## Features
@@ -2435,16 +2435,16 @@ Developers: this version is compatible with 1.99.11 backends.
     This version is distributed as a compressed tar file. You should follow the generic UNIX installation instructions.
 
 ## Bugs fixed
--   Zone2sql PostgreSQL mode neglected to lowercase \$ORIGIN. Thanks to Maikel Verheijen of Ladot for spotting this.
--   Zone2sql PostgreSQL mode neglected to remove a trailing dot from \$ORIGIN if present. Thanks to Thanks to Maikel Verheijen of Ladot for spotting this.
--   Zone file parser was not compatible with bind when \$INCLUDING non-absolute file names. Thanks to Jeff Miller for working out how this should work.
+-   Zone2sql PostgreSQL mode neglected to lowercase $ORIGIN. Thanks to Maikel Verheijen of Ladot for spotting this.
+-   Zone2sql PostgreSQL mode neglected to remove a trailing dot from $ORIGIN if present. Thanks to Thanks to Maikel Verheijen of Ladot for spotting this.
+-   Zone file parser was not compatible with bind when $INCLUDING non-absolute file names. Thanks to Jeff Miller for working out how this should work.
 -   Bind configuration parser was not compatible with bind when including non-absolute file names. Thanks to Jeff Miller for working out how this should work.
 -   Documentation incorrectly listed the Bind backend as 'slave capable'. This is not yet true, now labeled 'experimental'.
 
 Windows changes. We are indebted to Dimitry Andric who educated us in the ways of distributing Windows software.
 
 -   `pdns.conf` is now read if available.
--   Console version responds to \^c now.
+-   Console version responds to ^c now.
 -   Default pdns.conf added to distribution
 -   Uninstaller missed several files, leaving remnants behind
 -   DLLs are now installed locally, with the pdns executable.
@@ -2461,7 +2461,7 @@ Developers: this version is compatible with 1.99.11 backends.
 -   Windows 2000 code base merge completed. This resulted in quite some changes on the Unix end of things, so this may impact reliability.
 -   ODBC backend added for Windows. See [Section 9, “ODBC backend”](odbc.html "9. ODBC backend").
 -   IBM DB2 Universal Database backend available for Linux. See [DB2 backend](authoritative/backend-db2.md "DB2 backend").
--   Zone2sql now understands \$INCLUDE. Thanks to Amaze Internet for nagging about this
+-   Zone2sql now understands $INCLUDE. Thanks to Amaze Internet for nagging about this
 -   The SOA Minimum TTL now has a configurable default (**soa-minimum-ttl**)value to placate the DENIC requirements.
 -   Added a limit on the simultaneous numbers of TCP connections to accept (**max-tcp-connections**). Defaults to 10.
 
@@ -2495,7 +2495,7 @@ PostgreSQL users should be aware that while 1.99.10 works with the schema as pre
 -   Do not disable the packetcache for 'recursion desired' packets unless a recursor was configured. Thanks to Greg Schueler for noticing this.
 -   A failing backend would not be reinstated. Thanks to 'Webspider' for discovering this problem with PostgreSQL connections that die after prolonged inactivity.
 -   Fixed loads of IPv6 transport problems. Thanks to Marco Davids and others for testing. Considered ready for production now.
--   **Zone2sql** printed a debugging statement on range \$GENERATE commands. Thanks to Rene van Valkenburg for spotting this.
+-   **Zone2sql** printed a debugging statement on range $GENERATE commands. Thanks to Rene van Valkenburg for spotting this.
 
 ## Features
 -   PDNS can now act as a master, sending out notifications in case of changes and allowing slaves to AXFR. Big rewording of replication support, domains are now either 'native', 'master' or 'slave'. See [Master/Slave operation & replication](authoritative/modes-of-operation.md "Master/Slave operation & replication") for lots of details.
@@ -2511,7 +2511,7 @@ This is again a feature and an infrastructure release. We are nearly feature com
 ## Bugs fixed
 -   PDNS sometimes sent out duplicate replies for packets passed to the recursing backend. Mostly a problem on SMP systems. Thanks to Mike Benoit for noticing this.
 -   Out-of-bailiwick CNAMEs (ie, a CNAME to a domain not in PDNS) caused a 'ServFail' packet in 1.99.8, indicating failure, leading to hosts not resolving. Thanks to Martin Gillstrom for noticing this.
--   Zone2sql balked at zones edited under operating systems terminating files with \^Z (Windows). Thanks Brian Willcott for reporting this.
+-   Zone2sql balked at zones edited under operating systems terminating files with ^Z (Windows). Thanks Brian Willcott for reporting this.
 -   PostgreSQL backend logged the password used to connect. Now only does so in case of failure to connect. Thanks to 'Webspider' for noticing this.
 -   Debian unstable distribution wrongly depended on home compiled PostgreSQL libraries. Thanks to Konrad Wojas for noticing this.
 
@@ -2651,7 +2651,7 @@ A lot of new named.confs can now be parsed, zone2sql & bindbackend have gained f
 -   Truncated answers were also truncated on the packetcache, leading to truncated TCP answers.
 
 ## Feature enhancements
--   Zone2sql and the bindbackend now understand the Bind \$GENERATE{} syntax.
+-   Zone2sql and the bindbackend now understand the Bind $GENERATE{} syntax.
 -   Zone2sql can optionally gloss over non-existing zones with **--on-error-resume-next**.
 -   Zone2sql and the bindbackend now properly expand @ also on the right hand side of records.
 -   Zone2sql now sets a default TTL.
@@ -2678,7 +2678,7 @@ Zone transfers are now also much improved.
 
 Major bugs fixed
 -   zone2sql leaked file descriptors on each domain, used wrong Bison recursion leading to parser stack overflows. This limited the amount of domains that could be parsed to 1024.
--   zone2sql can now read all known zone files, with the exception of those containing \$GENERATE
+-   zone2sql can now read all known zone files, with the exception of those containing $GENERATE
 -   Guardian relaunching a child lost two file descriptors
 -   Don't die on a connection reset by peer during zone transfer.
 -   Webserver does not crash anymore on ringbuffer resize
@@ -2694,7 +2694,7 @@ Major bugs fixed
 
 ## Known bugs
 - FreeBSD version does not stop when requested to do so.
-- BindBackend cannot parse zones with \$GENERATE statements.
+- BindBackend cannot parse zones with $GENERATE statements.
 
 ## Missing features
 Features present in this document, but disabled or withheld from the current release

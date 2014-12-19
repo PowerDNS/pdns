@@ -54,4 +54,4 @@ Be verbose during conversion.
 Parse only this zone file. Conflicts with `--named-conf` parameter.
 
 ## `--zone-name`
-When parsing a single zone without \$ORIGIN statement, set this as the zone name.
+When parsing a single zone without $ORIGIN statement, set this as the zone name.
