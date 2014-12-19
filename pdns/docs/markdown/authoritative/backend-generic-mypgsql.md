@@ -230,7 +230,7 @@ Called to delete all comments for a zone. Usually called before deleting the ent
 ## Fancy records
 **Warning**: Fancy records are unsupported as of version 3.0
 
-If PDNS is used with so called 'Fancy Records', the 'MBOXFW' record exists which specifies an email address forwarding instruction, wildcard queries are sometimes needed. This is not enabled by default. A wildcard query is an internal concept - it has no relation to \*.domain-type lookups. You can safely leave these queries blank.
+If PDNS is used with so called 'Fancy Records', the 'MBOXFW' record exists which specifies an email address forwarding instruction, wildcard queries are sometimes needed. This is not enabled by default. A wildcard query is an internal concept - it has no relation to *.domain-type lookups. You can safely leave these queries blank.
 
 ### wildcard-query  
 Can be left blank. See above for an explanation. Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s'`

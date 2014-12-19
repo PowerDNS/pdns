@@ -120,7 +120,7 @@ We're going to use a TSIG key for security. We're going to generate a key using 
 dnssec-keygen -a hmac-md5 -b 128 -n USER dhcpdupdate
 ```
 
-This generates two files (Kdhcpdupdate.\*.key and Kdhcpdupdate.\*.private). You're interested in the .key file:
+This generates two files (Kdhcpdupdate.*.key and Kdhcpdupdate.*.private). You're interested in the .key file:
 
 ```
 # ls -l Kdhcp*

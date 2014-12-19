@@ -37,7 +37,7 @@ Note that the first three methods must be implemented. `getSOA()` has a useful d
 
 The semantics are simple. Each instance of your class only handles one (1) query at a time. There is no need for locking as PDNS guarantees that your backend will never be called reentrantly.
 
-**Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "\*.powerdns.com", it should only answer with data if there is an actual "\*.powerdns.com" name
+**Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name
 
 Some examples, a more formal specification is down below. A normal lookup starts like this:
 
@@ -186,7 +186,7 @@ Please note that a RandomBackend is actually in most PDNS releases. By default i
 |u\_int32\_t expire|If zone pulls failed for this long, retire records|
 |u\_int32\_t default\_ttl|Difficult|
 |int domain\_id|The ID of the domain within this backend. Must be filled!|
-|DNSBackend \*db|Pointer to the backend that feels authoritative for a domain and can act as a slave|
+|DNSBackend *db|Pointer to the backend that feels authoritative for a domain and can act as a slave|
 
 ### Methods
 #### `void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt=0, int zoneId=-1)`
@@ -321,14 +321,14 @@ The mentioned DomainInfo struct looks like this:
 |uint32\_t notified\_serial|Last serial number of this zone that slaves have seen|
 |time\_t last\_check|Last time this zone was checked over at the master for changes|
 |enum {Master,Slave,Native} kind|Type of zone|
-|DNSBackend \*backend|Pointer to the backend that feels authoritative for a domain and can act as a slave|
+|DNSBackend *backend|Pointer to the backend that feels authoritative for a domain and can act as a slave|
 
-These functions all have a default implementation that returns false - which explains that these methods can be omitted in simple backends. Furthermore, unlike with simple backends, a slave capable backend must make sure that the 'DNSBackend \*db' field of the SOAData record is filled out correctly - it is used to determine which backend will house this zone.
+These functions all have a default implementation that returns false - which explains that these methods can be omitted in simple backends. Furthermore, unlike with simple backends, a slave capable backend must make sure that the 'DNSBackend *db' field of the SOAData record is filled out correctly - it is used to determine which backend will house this zone.
 
 ### `bool isMaster(const string &name, const string &ip)`
 If a backend considers itself a slave for the domain **name** and if the IP address in **ip** is indeed a master, it should return true. False otherwise. This is a first line of checks to guard against reloading a domain unnecessarily.
 
-### `void getUnfreshSlaveInfos(vector\<DomainInfo\>\* domains)`
+### `void getUnfreshSlaveInfos(vector\<DomainInfo\>* domains)`
 When called, the backend should examine its list of slave domains and add any unfresh ones to the domains vector.
 
 ### `bool getDomainInfo(const string &name, DomainInfo & di)`
@@ -405,7 +405,7 @@ The following excerpt from the DNSBackend shows the relevant functions:
      }
 ```
 
-These functions all have a default implementation that returns false - which explains that these methods can be omitted in simple backends. Furthermore, unlike with simple backends, a slave capable backend must make sure that the 'DNSBackend \*db' field of the SOAData record is filled out correctly - it is used to determine which backend will house this zone.
+These functions all have a default implementation that returns false - which explains that these methods can be omitted in simple backends. Furthermore, unlike with simple backends, a slave capable backend must make sure that the 'DNSBackend *db' field of the SOAData record is filled out correctly - it is used to determine which backend will house this zone.
 
 ### `void getUpdatedMasters(vector<DomainInfo>* domains)`
 When called, the backend should examine its list of master domains and add any changed ones to the DomainInfo vector

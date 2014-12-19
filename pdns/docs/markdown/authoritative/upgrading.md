@@ -154,7 +154,7 @@ If PDNS should log DNS non-erroneous details
 * new value: no
 
 #### module-dir
-The default location has changed from libdir to pkglibdir. pkglibdir is defined as '\$(libdir)/pdns'
+The default location has changed from libdir to pkglibdir. pkglibdir is defined as '$(libdir)/pdns'
 
 #### gpgsql-dbname, gpgsql-user
 These are now empty instead of "powerdns"

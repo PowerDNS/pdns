@@ -4,14 +4,14 @@
 |&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|
-|Master|Yes\*|
-|Slave|Yes\*|
-|Superslave|Yes\*|
-|Autoserial|Yes\*|
-|DNSSEC|Yes\*|
+|Master|Yes*|
+|Slave|Yes*|
+|Superslave|Yes*|
+|Autoserial|Yes*|
+|DNSSEC|Yes*|
 |Multiple instances|Yes|
 
-\* If provided by the responder (your script).
+* If provided by the responder (your script).
 
 This backend provides unix socket / pipe / http remoting for powerdns. You should think this as normal RPC thin client, which converts native C++ calls into JSON/RPC and passes them to you via connector.
 

@@ -178,6 +178,6 @@ However, in other cases (like for example for SOA and CNAME records), new data s
 Note that PowerDNS deviates from RFC 2181 (section 5.4.1) in this respect.
 
 # Some small things
-The server-side part of PowerDNS (`pdns_recursor.cc`), which listens to queries by end-users, is fully IPv6 capable using the ComboAddress class. This class is in fact a union of a `struct sockaddr_in` and a `struct sockaddr_in6`. As long as the `sin_family` (or `sin6_family`) and `sin_port` members are in the same place, this works just fine, allowing us to pass a ComboAddress\*, cast to a `sockaddr*` to the socket functions. For convenience, the ComboAddress also offers a length() method which can be used to indicate the length - either sizeof(sockaddr\_in) or sizeof(sockaddr\_in6).
+The server-side part of PowerDNS (`pdns_recursor.cc`), which listens to queries by end-users, is fully IPv6 capable using the ComboAddress class. This class is in fact a union of a `struct sockaddr_in` and a `struct sockaddr_in6`. As long as the `sin_family` (or `sin6_family`) and `sin_port` members are in the same place, this works just fine, allowing us to pass a ComboAddress*, cast to a `sockaddr*` to the socket functions. For convenience, the ComboAddress also offers a length() method which can be used to indicate the length - either sizeof(sockaddr\_in) or sizeof(sockaddr\_in6).
 
 Access to the recursor is governed through the NetmaskGroup class, which internally contains Netmask, which in turn contain a ComboAddress.
