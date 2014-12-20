@@ -9,6 +9,7 @@ pages:
   - [types.md, 'PowerDNS Server', 'Supported DNS Record Types']
   - [common/logging.md, 'PowerDNS Server', 'Logging and Performance Monitoring']
   - [common/security.md, 'PowerDNS Server', 'Security settings & considerations']
+  - [common/support.md, 'PowerDNS Server', 'Getting support']
   - [httpapi/README.md, 'PowerDNS Server', 'HTTP API - Introduction']
 #  - [httpapi/intro.md, 'PowerDNS Server', 'HTTP API - Discussion']
   - [httpapi/api_spec.md, 'PowerDNS Server', 'HTTP API - API Specification']
