@@ -5,7 +5,7 @@ end
 
 function preresolve ( remoteip, domain, qtype )
 
-	print ("prequery handler called for: ", remoteip, getlocaladdress(), domain, qtype)
+	print ("prequery handler called for: ", remoteip, "local: ", getlocaladdress(), domain, qtype)
 	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress(), pdns.loglevels.Info);
 
 	if endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
@@ -84,7 +84,7 @@ function nxdomain ( remoteip, domain, qtype )
 	end
 end
 
-function axfrfilter(remoteip, zone, qname, qtype, ttl, priority, content)
+function axfrfilter(remoteip, zone, qname, qtype, ttl, content)
 	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
 	then
 		ret = {}
@@ -147,4 +147,14 @@ function prequery ( dnspacket )
 	end
 	pdnslog ("returning false")
 	return false
+end
+
+
+-- rename this function to 'postresolve' (and make sure you remove the other one!) to implement djb dnscache-like TTL hiding
+function hidettl ( remoteip, domain, qtype, records, origrcode )
+	for key,val in ipairs(records)
+	do
+		val.ttl=0
+	end
+	return origrcode, records
 end

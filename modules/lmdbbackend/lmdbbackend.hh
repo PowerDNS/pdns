@@ -4,7 +4,8 @@
  */
 
 #include <lmdb.h>
-#include <pdns/dnsbackend.hh>
+#include <pthread.h>
+#include "pdns/dnsbackend.hh"
 
 class LMDBBackend : public DNSReversedBackend
 {
@@ -36,9 +37,15 @@ private:
     // d_querykey with some additional bits potentially tacked on to make searching faster
     string d_searchkey;
 
+    // d_lastreload last time the db was reloaded
+    int d_lastreload;
+
     void open_db();
     void close_db();
+    void needReload();
     inline bool get_finished();
+    static int s_reloadcount;
+    static pthread_mutex_t s_initlock;
 
 public:
     LMDBBackend(const string &suffix="");

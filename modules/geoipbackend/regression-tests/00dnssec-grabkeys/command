@@ -1,0 +1,16 @@
+#!/bin/sh -e
+set pipefail
+rm -f trustedkeys
+rm -f unbound-host.conf
+for zone in example.com 
+do
+       drill -p $port -o rd -D dnskey $zone @$nameserver | grep -v '^;' | grep -v AwEAAarTiHhPgvD28WCN8UBXcEcf8f >> trustedkeys
+       echo "stub-zone:" >> unbound-host.conf
+       echo "  name: $zone" >> unbound-host.conf
+       echo "  stub-addr: $nameserver@$port" >> unbound-host.conf
+       echo "" >> unbound-host.conf
+done
+
+echo "server:" >> unbound-host.conf
+echo "  do-not-query-address: 192.168.0.0/16" >> unbound-host.conf
+echo '  trust-anchor-file: "trustedkeys"' >> unbound-host.conf

@@ -907,3 +907,27 @@ uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t initval)
   /*-------------------------------------------- report the result */
   return c;
 }
+
+void setSocketTimestamps(int fd)
+{
+#ifdef SO_TIMESTAMP
+  int on=1;
+  if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
+    L<<Logger::Error<<"Warning: unable to enable timestamp reporting for socket"<<endl;
+#endif
+}
+
+uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
+{
+#if ULONG_MAX == 4294967295
+  return strtoul(nptr, endptr, base);
+#else
+  unsigned long val = strtoul(nptr, endptr, base);
+  if (val > UINT_MAX) {
+   errno = ERANGE;
+   return UINT_MAX;
+  } 
+
+  return val;
+#endif
+}

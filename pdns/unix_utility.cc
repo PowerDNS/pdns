@@ -119,7 +119,11 @@ unsigned int Utility::sleep(unsigned int sec)
 
 void Utility::usleep(unsigned long usec)
 {
-  ::usleep(usec);
+  struct timespec ts;
+  ts.tv_sec = usec / 1000000;
+  ts.tv_nsec = (usec % 1000000) * 1000;
+  // POSIX.1 recommends using nanosleep instead of usleep
+  ::nanosleep(&ts, NULL); 
 }
 
 

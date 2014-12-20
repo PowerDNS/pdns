@@ -183,7 +183,7 @@ void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
         S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
     } else if(p->isEmpty()) {
       S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
-      S.ringAccount("remotes-unauth",p->getRemote());
+      S.ringAccount("remotes-unauth",p->d_remote);
     }
   }
 
@@ -428,7 +428,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     // cerr<<"got backend and SOA"<<endl;
     DNSBackend *B=sd.db;
     vector<string> acl;
-    B->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
+    s_P->getBackend()->getDomainMetadata(q->qdomain, "ALLOW-AXFR-FROM", acl);
     for (vector<string>::const_iterator i = acl.begin(); i != acl.end(); ++i) {
       // cerr<<"matching against "<<*i<<endl;
       if(pdns_iequals(*i, "AUTO-NS")) {
@@ -525,7 +525,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
-      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone.."<<endl;
+      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
@@ -1008,7 +1008,10 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     sendPacket(outpacket,outsock);
     return 0;
   }
-  if (!rfc1982LessThan(serial, sd.serial)) {
+
+  string soaedit;
+  dk.getFromMeta(target, "SOA-EDIT", soaedit);
+  if (!rfc1982LessThan(serial, calculateEditSOA(sd, soaedit))) {
     TSIGRecordContent trc;
     string tsigkeyname, tsigsecret;
 
@@ -1113,7 +1116,6 @@ TCPNameserver::TCPNameserver()
     d_prfds.push_back(pfd);
   }
 
-#if HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
 
@@ -1154,7 +1156,6 @@ TCPNameserver::TCPNameserver()
 
     d_prfds.push_back(pfd);
   }
-#endif
 }
 
 

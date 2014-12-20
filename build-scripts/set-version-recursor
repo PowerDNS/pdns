@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+if [ "$#" -ne "3" ] ; then echo "Syntax: set-version-recursor VERSION DEB_VERSION RPM_VERSION"; exit ; fi
+
 VERSION=$1
 DEB_VERSION=$2
 RPM_VERSION=$3

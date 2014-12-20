@@ -21,8 +21,8 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 
-/* 
- //! determine if ip is a supermaster or a domain
+/*
+  //! determine if ip is a supermaster for a domain
   virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 
   //! called by PowerDNS to create a slave record for a superMaster
@@ -54,7 +54,6 @@ bool LUABackend::superMasterBackend(const string &ip, const string &domain, cons
 	
 	rr.qtype = i->qtype;
 	rr.qclass = i->qclass;
-	rr.priority = i->priority;
 	rr.ttl = i->ttl;
 	rr.auth = i->auth;
 	rr.content = i->content;

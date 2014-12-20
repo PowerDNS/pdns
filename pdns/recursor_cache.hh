@@ -65,7 +65,7 @@ private:
 
   struct CacheEntry
   {
-    CacheEntry(const tuple<string, uint16_t>& key, const vector<StoredRecord>& records, bool auth) : 
+    CacheEntry(const boost::tuple<string, uint16_t>& key, const vector<StoredRecord>& records, bool auth) : 
       d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_records(records)
     {}
 

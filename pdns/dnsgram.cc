@@ -112,20 +112,10 @@ try
          pr.d_len > 12) {
         try {
           MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-          if(mdp.d_header.id==htons(4575)) {
-//            cerr << ntohl(*(uint32_t*)&pr.d_ip->ip_src)<<endl;
-            g_skipped++;
-            continue;
-          }
-          if(pdns_iequals(mdp.d_qname,"ycjnakisys1m.post.yamaha.co.jp."))
-            cerr<<"hit: "<<mdp.d_qtype<<", rd="<<mdp.d_header.rd<< ", id="<<mdp.d_header.id<<", qr="<<mdp.d_header.qr<<"\n";
 
           if(lastreport.tv_sec == 0) {
             lastreport = pr.d_pheader.ts;
           }
-          
-          //          if(pr.d_pheader.ts.tv_sec > 1176897290 && pr.d_pheader.ts.tv_sec < 1176897310 ) 
-          //            pw.write();
 
           if(mdp.d_header.rd && !mdp.d_header.qr) {
             g_lastquestionTime=pr.d_pheader.ts;
@@ -151,11 +141,10 @@ try
             g_serverResponses++;
           }
           
-          if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec > 5) {
+          if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec >= 5) {
             makeReport(pr.d_pheader.ts);
             lastreport = pr.d_pheader.ts;
-          }
-          
+          }          
         }
         catch(MOADNSException& mde) {
           //        cerr<<"error parsing packet: "<<mde.what()<<endl;
@@ -176,9 +165,9 @@ try
     cerr<<questions.size()<<" different rd questions, "<< answers.size()<<" different rd answers, diff: "<<diff.size()<<endl;
     cerr<<skipped<<" skipped\n";
 
-
     cerr<<"Generating 'failed' file with failed queries and counts\n";
     ofstream failed("failed");
+    failed<<"name\ttype\tnumber\n";
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
       failed << i->first << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
     }
@@ -188,8 +177,9 @@ try
     set_difference(answers.begin(), answers.end(), questions.begin(), questions.end(), back_inserter(diff));
     cerr<<diff.size()<<" answers w/o questions\n";
 
-    cerr<<"Generating 'succeeded' file with failed queries and counts\n";
+    cerr<<"Generating 'succeeded' file with all unique answers and counts\n";
     ofstream succeeded("succeeded");
+    succeeded<<"name\ttype\tnumber\n";
     for(queries_t::const_iterator i = answers.begin(); i != answers.end() ; ++i) {
       succeeded << i->first << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
     }

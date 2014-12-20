@@ -57,12 +57,14 @@ These are the tools
 %files -n pdns-tools
 %defattr(-,root,root)
 "/usr/bin/dnsbulktest"
+"/usr/bin/dnsgram"
 "/usr/bin/dnsreplay"
 "/usr/bin/dnsscan"
 "/usr/bin/dnsscope"
 "/usr/bin/dnsdist"
 "/usr/bin/dnstcpbench"
 "/usr/bin/dnswasher"
+"/usr/bin/notify"
 "/usr/bin/nproxy"
 "/usr/bin/nsec3dig"
 "/usr/bin/saxfr"
@@ -70,3 +72,4 @@ These are the tools
 "/usr/man/man8/dnsscope.8"
 "/usr/man/man8/dnswasher.8"
 "/usr/man/man1/dnstcpbench.1"
+"/usr/man/man1/dnsdist.1"

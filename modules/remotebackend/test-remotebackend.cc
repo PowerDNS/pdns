@@ -6,13 +6,13 @@
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
 #include "pdns/namespaces.hh"
-#include <pdns/dns.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/ueberbackend.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
-#include <pdns/arguments.hh>
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 #include <boost/lexical_cast.hpp>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts3) {
    BOOST_TEST_MESSAGE("Testing feedEnts3 method");
    be->startTransaction("example.com",2);
    map<string, bool> nonterm = boost::assign::map_list_of("_udp", true)("_sip._udp", true);
-   BOOST_CHECK(be->feedEnts3(2, "example.com", nonterm, 1, "\xaa\xbb\xcc\xdd", 0));
+   BOOST_CHECK(be->feedEnts3(2, "example.com", nonterm, 1, "\u00aa\u00bb\u00cc\u00dd", 0));
    be->commitTransaction();
 }
 

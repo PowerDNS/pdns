@@ -12,13 +12,13 @@
 
 #include "pdns/namespaces.hh"
 
-#include <pdns/dns.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/ueberbackend.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
-#include <pdns/arguments.hh>
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -251,8 +251,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
             throw PDNSException("Format error communicating with coprocess in data section of MX/SRV record");
            }
            
-           r.priority=atoi(parts[6+extraFields].c_str());
-           r.content=parts[7+extraFields];
+           r.content=parts[6+extraFields]+" "+parts[7+extraFields];
          }
          break;
       }

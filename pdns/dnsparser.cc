@@ -466,7 +466,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
               ret.append(1,'.');
       break;
     }
-    if((labellen & 0xc0) == 0xc0) {
+    else if((labellen & 0xc0) == 0xc0) {
       uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //        cout<<"This is an offset, need to go to: "<<offset<<endl;
 
@@ -474,6 +474,8 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
         throw MOADNSException("forward reference during label decompression");
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
+    else if(labellen > 63) 
+      throw MOADNSException("Overly long label during label decompression ("+lexical_cast<string>((unsigned int)labellen)+")");
     else {
       // XXX FIXME THIS MIGHT BE VERY SLOW!
       ret.reserve(ret.size() + labellen + 2);
@@ -554,7 +556,7 @@ string simpleCompress(const string& elabel, const string& root)
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
 {
   unsigned int labellen=0;
-  while((labellen=label.at(frompos++))) {
+  while((labellen=(unsigned char)label.at(frompos++))) {
     ret.append(label.c_str()+frompos, labellen);
     ret.append(1,'.');
     frompos+=labellen;

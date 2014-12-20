@@ -62,6 +62,17 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
     memcpy(&id, queryPacket.c_str(), 2); 
     *responsePacket = iter->d_packet;
     responsePacket->replace(0, 2, (char*)&id, 2);
+    
+    string::size_type i=sizeof(dnsheader);
+
+    for(;;) {
+      int labellen = (unsigned char)queryPacket[i];
+      if(!labellen || i + labellen > responsePacket->size()) break;
+      i++;
+      responsePacket->replace(i, labellen, queryPacket, i, labellen);
+      i = i + labellen;
+    }
+
     d_hits++;
     moveCacheItemToBack(d_packetCache, iter);
 

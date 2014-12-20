@@ -167,7 +167,6 @@ static void fillZone(const string& zonename, HttpResponse* resp)
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
     object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-    object.AddMember("priority", rr.priority, doc.GetAllocator());
     Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
     object.AddMember("content", jcontent, doc.GetAllocator());
     records.PushBack(object, doc.GetAllocator());
@@ -421,7 +420,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
 
-  d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"), arg()["experimental-webserver-password"]);
+  d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"));
   d_ws->bind();
 
   // legacy dispatch
@@ -510,7 +509,6 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
         Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
         object.AddMember("type", jtype, doc.GetAllocator());
         object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-        object.AddMember("priority", rr.priority, doc.GetAllocator());
         Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
         object.AddMember("content", jcontent, doc.GetAllocator());
         records.PushBack(object, doc.GetAllocator());

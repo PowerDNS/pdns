@@ -25,6 +25,7 @@
 #include <cstring>
 #include <cstdio>
 #include <regex.h>
+#include <limits.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -86,6 +87,8 @@ uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
+uint32_t pdns_strtoui(const char *nptr, char **endptr, int base);
+
 int logFacilityToLOG(unsigned int facility);
 
 struct ServiceTuple
@@ -311,16 +314,16 @@ inline bool pdns_ilexicographical_compare(const std::string& a, const std::strin
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
 {
   const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
-
-  while(*aPtr && *bPtr) {
+  const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
+  while(aPtr != aEptr && bPtr != bEptr) {
     if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
       return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
     aPtr++;
     bPtr++;
   }
-  if(!*aPtr && !*bPtr) // strings are equal (in length)
+  if(aPtr == aEptr && bPtr == bEptr) // strings are equal (in length)
     return false;
-  return !*aPtr; // true if first string was shorter
+  return aPtr == aEptr; // true if first string was shorter
 }
 
 inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
@@ -330,7 +333,8 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
     return false;
 
   const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  while(*aPtr) {
+  const char *aEptr = aPtr + a.length();
+  while(aPtr != aEptr) {
     if((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
       return false;
     aPtr++;
@@ -352,25 +356,35 @@ inline bool pdns_iequals_ch(const char a, const char b)
 class AtomicCounter
 {
 public:
+    typedef unsigned long native_t;
+    explicit AtomicCounter( native_t v = 0) : value_( v ) {}
 
-    explicit AtomicCounter( unsigned int v = 0) : value_( v ) {}
-
-    unsigned int operator++()
+    native_t operator++()
     {
       return atomic_exchange_and_add( &value_, +1 ) + 1;
     }
 
-    unsigned int operator++(int)
+    native_t operator++(int)
     {
       return atomic_exchange_and_add( &value_, +1 );
     }
 
-    unsigned int operator--()
+    native_t operator+=(native_t val)
+    {
+      return atomic_exchange_and_add( &value_, val );
+    }
+
+    native_t operator-=(native_t val)
+    {
+      return atomic_exchange_and_add( &value_, -val );
+    }
+
+    native_t operator--()
     {
       return atomic_exchange_and_add( &value_, -1 ) - 1;
     }
 
-    operator unsigned int() const
+    operator native_t() const
     {
       return atomic_exchange_and_add( &value_, 0);
     }
@@ -380,17 +394,17 @@ public:
     }
 
 private:
-    mutable unsigned int value_;
+    mutable native_t value_;
     
     // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5. 
-    #if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
-    static int atomic_exchange_and_add( unsigned int * pw, int dv )
+#if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
+    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
         // int r = *pw;
         // *pw += dv;
         // return r;
 
-        int r;
+        native_t r;
 
         __asm__ __volatile__
         (
@@ -404,7 +418,7 @@ private:
         return r;
     }
     #else 
-    static int atomic_exchange_and_add( unsigned int * pw, int dv )
+    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
       return __sync_fetch_and_add(pw, dv);
     }
@@ -530,4 +544,5 @@ unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
+void setSocketTimestamps(int fd);
 #endif

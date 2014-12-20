@@ -170,12 +170,10 @@ string ArgvMap::configstring(bool current)
   return help;
 }
 
-
 const string & ArgvMap::operator[](const string &arg)
 {
   if(!parmIsset(arg))
     throw ArgException(string("Undefined but needed argument: '")+arg+"'");
-
 
   return params[arg];
 }

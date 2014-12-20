@@ -81,7 +81,7 @@
       </para>
       <para>
 	The most up to date version of the HTML documentation can be downloaded as a tar archive from 
-	<ulink url="http://doc.powerdns.com/html.tar.gz">http://doc.powerdns.com/html.tar.gz</ulink>.
+	<ulink url="http://doc.powerdns.com/html.tar.bz2">http://doc.powerdns.com/html.tar.bz2</ulink>.
       </para>
     </sect1>
     <sect1 id="changelog">
@@ -93,6 +93,104 @@
       <para>
 	Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
       </para>
+
+      <sect2 id="changelog-recursor-3.6.2"><title>PowerDNS Recursor 3.6.2</title>
+      <note>
+        <para>
+          Version 3.6.2 is a bugfix update to 3.6.1. Released on the 30th of October 2014.
+        </para>
+        <para>
+          <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
+        </para>
+      </note>
+      <para>
+          A list of changes since 3.6.1 follows.
+      </para>
+
+        <itemizedlist>
+          <listitem>
+            <para>
+              gab14b4f: expedite servfail generation for ezdns-like failures (fully abort query resolving if we hit more than 50 outqueries)
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g42025be: PowerDNS now polls the security status of a release at startup and periodically. More
+              detail on this feature, and how to turn it off, can be found in <xref linkend="secpoll"/>.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g5027429: We did not transmit the right 'local' socket address to Lua for TCP/IP queries in the recursor. In addition, we would attempt to lookup a filedescriptor that wasn't there in an unlocked map which could conceivably lead to crashes. Closes t1828, thanks Winfried for reporting
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g752756c: Sync embedded yahttp copy. API: Replace HTTP Basic auth with static key in custom header
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              g6fdd40d: add missing #include &lt;pthread.h&gt; to rec-channel.hh (this fixes building on OS X).
+            </para>
+          </listitem>
+        </itemizedlist>
+      </sect2>
+      <sect2 id="changelog-auth-3.4.1"><title>PowerDNS Authoritative Server 3.4.1</title>
+      <warning>
+        <para>
+          Version 3.4.1. of the PowerDNS Authoritative Server is a major
+          upgrade if you are coming from 2.9.x. Additionally, if you are coming from
+          any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade.
+          Please refer to <xref linkend="from3.3.1to3.4.0"/> and any relevant sections
+          before it, before deploying this version. There are no 3.4.1 upgrade notes.
+        </para>
+      </warning>
+      <note>
+        <para>
+          Released October 30th, 2014
+        </para>
+        <para>
+          Find the downloads <ulink url="https://www.powerdns.com/downloads.html">on our download page</ulink>.
+        </para>
+      </note>
+      <para>
+        This is a bugfix update to 3.4.0 and any earlier version.
+      </para>
+      <para>
+        A list of changes since 3.4.0 follows.
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gdcd6524, ga8750a5, g7dc86bf, g2fda71f: PowerDNS now polls the security status of a release
+            at startup and periodically. More detail on this feature, and how to turn it off,
+            can be found in <xref linkend="secpoll"/>.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g5fe6dc0: API: Replace HTTP Basic auth with static key in custom header (X-API-Key)
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4a95ab4: Use transaction for pdnssec increase-serial
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g6e82a23: Don't empty ordername during pdnssec increase-serial
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g535f4e3: honor SOA-EDIT while considering "empty IXFR" fallback, fixes t1835. This fixes
+            slaving of signed zones to IXFR-aware slaves like NSD or BIND.
+          </para>
+        </listitem>
+      </itemizedlist>
+      </sect2>
       <sect2 id="changelog-auth-3.4.0"><title>PowerDNS Authoritative Server 3.4.0</title>
       <warning>
         <para>
@@ -105,43 +203,10 @@
       </warning>
       <note>
         <para>
-          RC1 released August 1st, 2014
+          Released September 30th, 2014
         </para>
         <para>
-          Downloads:
-          <itemizedlist>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/pdns-3.4.0-rc1.tar.bz2">tar.bz2 source</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.i386.rpm">i386 RPM</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static-3.4.0rc1-1.x86_64.rpm">x86_64 RPM</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_i386.deb">i386 deb</ulink>
-              </para>
-            </listitem>
-            <listitem>
-              <para>
-                <ulink url="http://powerdnssec.org/downloads/packages/pdns-static_3.4.0-rc1-1_amd64.deb">x86_64 deb</ulink>
-              </para>
-            </listitem>
-
-            <listitem>
-              <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-server/">native RHEL5/6 packages from Kees Monshouwer</ulink>
-              </para>
-            </listitem>
-          </itemizedlist>
+          Find the downloads <ulink url="https://www.powerdns.com/downloads.html">on our download page</ulink>.
         </para>
       </note>
       <para>
@@ -150,6 +215,129 @@
       </para>
       <para>
         A list of changes since 3.3.1 follows.
+      </para>
+      <para>
+        Changes between RC2 and 3.4.0:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gad189c9, g445d93c: also distribute the dnsdist manual page
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gb5a276d, g0b346e9, g74caf87, g642fd2e: Make sure all backends actually work as dynamic modules
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g14b11c4: raise log level on dlerror(), fixes t1734, thanks @James-TR
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g016d810: improve postgresql detection during ./configure
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdce1e90: DNAME: don't sign the synthesised CNAME
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g25e7af3: send empty SERVFAIL after a backend throws a DBException, instead of including useless content
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        Changes between RC1 and RC2:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <para>
+            gbb6e54f: document udp6-queries, udp4-queries, add rd-queries, recursion-unanswered metrics &amp; document. Closes t1400.
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4a23af7: init script: support DAEMON_ARGS; g7e5b3a0: init script: ensure socket dir exists
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdd930ed: don't import supermaster ips from other accounts
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            ged3afdf: fall back to central bind if reuseport bind fails; improves t1715
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g709ca59: GeoIP backend implementation. This is a new backend, still experimental!
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gbf5a484: support EVERY future version of OS X, fixes t1702
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g4dbaec6: Check for  __FreeBSD_kernel__ as per https://lists.debian.org/debian-bsd/2006/03/msg00127.html, fixes t1684; g74f389d: __FreeBSD_kernel__ is defined but empty on systems with FreeBSD kernels, breaking compile. Thanks pawal
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g2e6bbd8: Catch PDNSException in Signingpiper::helperWorker to avoid abort
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g0ffd51d: improve error reporting on malformed labels
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gc48dec7: Fix forwarded TSIG message issue
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdad70f2: skip TCP_DEFER_ACCEPT on platforms that do not have it (like FreeBSD); fixes t1658
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gc7287b6: should fix t1662, reloading while checking for domains that need to be notified in BIND, causing lock
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            g3e67ea8: allow OPT pseudo record type in IXFR query
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            ga1caa8b: webserver: htmlescape VERSION and config name
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            gdf9d980: Remove "log-failed-updates" leftover
+          </para>
+        </listitem>
+        <listitem>
+          <para>
+            ga1fe72a: Remove unused "soa-serial-offset" option
+          </para>
+        </listitem>
+      </itemizedlist>
+      <para>
+        Changes between 3.3.1 and 3.4.0-RC1 follow.
       </para>
       <para>
         DNSSEC changes:
@@ -587,11 +775,6 @@
         </listitem>
         <listitem>
           <para>
-            On shutdown, PowerDNS now attempts to stop all processes in its process group, especially useful for pipe/remotebackend users. Feature donated by Spotify.
-          </para>
-        </listitem>
-        <listitem>
-          <para>
             Removed settings related to fancy records, as we haven't supported those since version 3.0
           </para>
         </listitem>
@@ -602,6 +785,53 @@
         </listitem>
       </itemizedlist>
       </sect2>
+      <sect2 id="changelog-recursor-3.6.1"><title>PowerDNS Recursor 3.6.1</title>
+      <warning>
+        <para>
+          Version 3.6.1 is a mandatory security upgrade to 3.6.0! Released on the 10th of September 2014.
+  </para>
+      </warning>
+      <para>
+  PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets. For more details, see
+  <xref linkend="powerdns-advisory-2014-01"/>. PowerDNS Recursor 3.6.1 was very well tested, and is in full
+  production already, so it should be a safe upgrade. 
+      </para>
+      <para>
+        Downloads:
+        <itemizedlist>
+          <listitem>
+            <para>
+              <ulink url="https://www.powerdns.com/downloads.html">Official download page</ulink>
+            </para>
+          </listitem>
+  </itemizedlist>
+      </para>
+      <para>
+  In addition to various fixes related to this potential crash, 3.6.1 fixes a few minor issues and adds
+  a debugging feature:
+  <itemizedlist>
+    <listitem>
+      <para>
+        We could not encode IPv6 AAAA records that mapped to IPv4 addresses in some cases (:ffff.1.2.3.4).
+        Fixed in gc90fcbd , closing t1663.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+        Improve systemd startup timing with respect to network availability (gcf86c6a), thanks to Morten Stevens.
+      </para>
+    </listitem>
+    <listitem>
+      <para>
+        Realtime telemetry can now be enabled at runtime, for example with 'rec_control carbon-server 82.94.213.34 ourname1234'.
+        This ties in to our existing carbon-server and carbon-ourname settings, but now at runtime. This specific 
+        invocation will make your stats appear automatically on our <ulink url="http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&amp;beginTime=-3600">public telemetry server</ulink>.
+      </para>
+    </listitem>
+  </itemizedlist>
+      </para>
+      </sect2>
+
       <sect2 id="changelog-recursor-3.6.0"><title>PowerDNS Recursor version 3.6.0</title>
       <note>
         <para>
@@ -614,7 +844,7 @@
             </listitem>
             <listitem>
               <para>
-                <ulink url="http://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6 packages from Kees Monshouwer</ulink>
+                <ulink url="https://www.monshouwer.eu/download/3rd_party/pdns-recursor/">native RHEL5/6/7 packages from Kees Monshouwer</ulink>
               </para>
             </listitem>
           </itemizedlist>
@@ -11016,9 +11246,12 @@ name         IN            A        192.0.2.4
       </para>
 
       <para>
-	As of the 9th of January 2012, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about.  This page 
+	As of the 25th of September 2014, no actual security problems with PowerDNS 2.9.22.5, 3.0.1, Recursor 3.1.7.2, or later are known about, with the exception of Recursor 3.6.0 specifically.  This page 
 	will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications
 	will also be sent to all PowerDNS mailing lists.
+      </para>
+      <para>
+      Version 3.6.0 of the Recursor (but not 3.5.x) can be crashed remotely with a specific packet sequence. For more detail, see <xref linkend="powerdns-advisory-2014-01"/>.
       </para>
       <para>
 	Versions 2.9.22 and lower and 3.0 of the PowerDNS Authoritative Server were vulnerable to a temporary denial of service attack. For more detail,
@@ -11034,7 +11267,7 @@ name         IN            A        192.0.2.4
       </para>
       <para>
 	Version 3.1.3 and earlier of the PowerDNS recursor contain two security issues, both of which can lead to a denial of service, both of which can be triggered
-	by remote users. One of the issues might lead be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"/> and
+	by remote users. One of the issues might be exploited and lead to a system compromise. For more detail, see <xref linkend="powerdns-advisory-2006-01"/> and
 	<xref linkend="powerdns-advisory-2006-02"/>.
       </para>
       <para>
@@ -11485,7 +11718,7 @@ name         IN            A        192.0.2.4
       </para>
     </sect1>
     <sect1 id="powerdns-advisory-2008-03">
-      <title>PowerDNS Security Advisory 2008-02: Some PowerDNS Configurations can be forced to restart remotely</title>
+      <title>PowerDNS Security Advisory 2008-03: Some PowerDNS Configurations can be forced to restart remotely</title>
       <para>
 	<table>
 	  <title>PowerDNS Security Advisory</title>
@@ -11916,6 +12149,134 @@ name         IN            A        192.0.2.4
 	Aki Tuomi for helping us reproduce the problem.
       </para>
     </sect1>
+    <sect1 id="powerdns-advisory-2014-01">
+      <title>PowerDNS Security Advisory 2014-01: PowerDNS Recursor 3.6.0 can be crashed remotely</title>
+      <para>
+	<table>
+	  <title>PowerDNS Security Advisory</title>
+	  <tgroup cols="2">
+	    <tbody>
+	      <row>
+		<entry>
+		  CVE
+		</entry>
+		<entry>
+		  CVE-2014-3614
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Date
+		</entry>
+		<entry>
+		  10th of September 2014
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Credit
+		</entry>
+		<entry>
+		  Dedicated PowerDNS users willing to study a crash that happens once every few months (thanks)
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Affects
+		</entry>
+		<entry>
+		  Only PowerDNS Recursor version 3.6.0.
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Not affected
+		</entry>
+		<entry>
+		  No other versions of PowerDNS Recursor, no versions of PowerDNS Authoritative Server
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Severity 
+		</entry>
+		<entry>
+		  High
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Impact
+		</entry>
+		<entry>
+		  Crash
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Exploit
+		</entry>
+		<entry>
+		  The sequence of packets required is known
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Risk of system compromise
+		</entry>
+		<entry>
+		  No
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Solution
+		</entry>
+		<entry>
+		  Upgrade to PowerDNS Recursor 3.6.1
+		</entry>
+	      </row>
+	      <row>
+		<entry>
+		  Workaround
+		</entry>
+		<entry>
+		  Restrict service using allow-from, install script that restarts PowerDNS
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </para>
+      <para>
+Recently, we've discovered that PowerDNS Recursor 3.6.0 (but NOT earlier)
+can crash when exposed to a specific sequence of malformed packets.  This
+sequence happened spontaneously with one of our largest deployments, and 
+the packets did not appear to have a malicious origin.
+</para><para>
+Yet, this crash can be triggered remotely, leading to a denial of service
+attack. There appears to be no way to use this crash for system compromise
+or stack overflow.
+</para>
+<para>
+Upgrading to 3.6.1 solves the issue.
+</para>
+<para>
+In addition, if you want to apply a minimal fix to your own tree, it can be found 
+<ulink url="https://xs.powerdns.com/tmp/minipatch-3.6.1">here</ulink>
+</para>
+<para>
+As for workarounds, only clients in allow-from are able to trigger the crash,
+so this should be limited to your userbase. Secondly,
+<ulink url="https://github.com/PowerDNS/pdns/blob/master/contrib/upstart-recursor.conf">this</ulink>
+and
+<ulink url="https://github.com/PowerDNS/pdns/blob/master/contrib/systemd-pdns-recursor.service">this</ulink>
+can be used to enable Upstart and Systemd to restart the PowerDNS Recursor
+automatically.
+
+	</para>
+    </sect1>
+
     <sect1 id="thanks-to"><title>Acknowledgements</title>
       <para>
 	PowerDNS is grateful for the help of the following people or institutions:
@@ -12704,6 +13065,30 @@ local0.err                        /var/log/pdns.err
 	</para>
       </sect2>
     </sect1>
+    <sect1 id="secpoll"><title>Security polling</title>
+      <para>
+	As of Authoritative Server 3.4.1 and Recursor 3.6.2, PowerDNS products can poll the security status
+	of their respective versions. This polling, naturally, happens over DNS. If the result is that a given
+	version has a security problem, the software will report this at level 'Error' during startup, and
+	repeatedly during operations.
+      </para>
+      <para>
+	By default, security polling happens on the domain 'secpoll.powerdns.com', but this can be changed with the
+	security-poll-suffix. If this setting is made empty, no polling will take place. Organizations
+	wanting to host their own security zones can do so by changing this setting to a domain name under their control.
+      </para>
+      <para>
+	To make this easier, the zone used to host secpoll.powerdns.com is available <ulink url="https://github.com/PowerDNS/pdns/blob/master/pdns/docs/secpoll.zone">here</ulink>.
+      </para>
+      <para>
+	To enable distributors of PowerDNS to signal that they have backported versions, the PACKAGEVERSION compilation-time
+	macro can be used to set a distributor suffix.
+      </para>
+      <para>
+	Further implementation detail on this feature can be found <ulink url="https://github.com/PowerDNS/pdns/blob/master/pdns/docs/security-poll.md">here</ulink>. Furthermore, there is a post about it on our <ulink url="http://blog.powerdns.com/2014/10/22/powerdns-security-status-polling/">blog</ulink>.
+      </para>
+    </sect1>
+
     <sect1 id="considerations"><title>Considerations</title>
       <para>
 	In general, make sure that the PDNS process is unable to execute commands on your backend database. 
@@ -13314,6 +13699,14 @@ ALTER TABLE domainmetadata MODIFY kind VARCHAR(32);
           <listitem>
             <para>
               If the JSON API should disallow data modification
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>experimental-api-key</term>
+          <listitem>
+            <para>
+              Static API authentication key, must be sent in the X-API-Key header. Required for any API usage.
             </para>
           </listitem>
         </varlistentry>
@@ -14436,6 +14829,11 @@ pdnssec hsm create-key zone key-id
     <listitem><para>Justin Clift</para></listitem>
     <listitem><para>Kees Monshouwer</para></listitem>
     <listitem><para>Aki Tuomi</para></listitem>
+    <listitem><para>Ruben Kerkhof</para></listitem>
+    <listitem><para>Christian Hofstaedtler</para></listitem>
+    <listitem><para>Ruben d'Arco</para></listitem>
+    <listitem><para>Morten Stevens</para></listitem>
+    <listitem><para>Pieter Lexis</para></listitem>
     <listitem><para>.. this list is far from complete yet .. </para></listitem>
     </itemizedlist>
   </para>
@@ -14451,7 +14849,7 @@ pdnssec hsm create-key zone key-id
   <para>
     In PowerDNS, TSIG shared secrets are stored by the various backends. In case of the popular 
     Generic backends, they can be found in the 'tsigkeys' table. The name can be chosen freely, but
-    the algorithm name will typically be 'hmac-md5'. The content is a Base64-encoded secret.
+    the algorithm name will typically be 'hmac-md5'. Other supported algorithms are 'hmac-sha1', 'hmac-shaX' where X is 224, 256, 384 or 512. The content is a Base64-encoded secret.
   </para>
   <para>
   <note><para>Most backends require DNSSEC support enabled to support TSIG. For the Generic SQL Backend make sure to use the DNSSEC enabled schema and to turn on the relevant '-dnssec' flag (for example, gmysql-dnssec)!</para></note>
@@ -14794,6 +15192,25 @@ sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR
         </varlistentry>
 
       </variablelist>
+      <para>
+      	The semantics are that first a dynamic update has to be allowed
+      	either by the global allow-dnsupdate-from setting, or by a per-zone
+      	ALLOW-DNSUPDATE-FROM metadata setting.
+      </para>
+      <para>
+        Secondly, if a zone has a TSIG-ALLOW-DNSUPDATE metadata setting,
+        that must match too. 
+      </para>
+      <para>
+      	So to only allow dynamic DNS updates to a zone based on TSIG key, and
+      	regardless of IP address, set allow-dns-update-from to empty, set
+      	ALLOW-DNSUPDATE-FROM to "0.0.0.0/0" and "::/0" and set the
+      	TSIG-ALLOW-DNSUPDATE to the proper key name.
+      </para>
+      <para>
+        Further information can be found in <xref
+        linkend="dnsupdate-how-it-works"/>.
+       </para>
     </sect1>
 
     <sect1 id="dnsupdate-domainmetadata"><title>Per zone settings</title>
@@ -15923,6 +16340,15 @@ sql> insert into domainmetadata (domain_id, kind, content) values (6, 'TSIG-ALLO
 	      </listitem>
 	    </varlistentry>	  
 	    <varlistentry>
+	      <term>version</term>
+	      <listitem>
+		<para>
+		  Available after 3.6.1, report currently running version
+		</para>
+	      </listitem>
+	    </varlistentry>	  
+
+	    <varlistentry>
 	      <term>wipe-cache domain0. [domain1. domain2.]</term>
 	      <listitem>
 		<para>
@@ -16208,7 +16634,7 @@ user-msec           number of CPU milliseconds spent in 'user' mode
 	graphs of all these numbers. Use <command>rec_control get-all</command> to get all statistics in one go.
       </para>
       <para>
-	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + packetcache-hits + over-capacity-drops + policy-drops = questions.
+	It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + answers-slow + packetcache-hits + over-capacity-drops + policy-drops = questions.
       </para>
       <para>
 	Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count. 
@@ -17567,6 +17993,25 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem><para>Number of packets waiting for database attention</para></listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term>rd-queries</term>
+	  <listitem><para>Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>recursing-questions</term>
+	  <listitem><para>Number of packets we supplied an answer to after recursive processing</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>recursing-questions</term>
+	  <listitem><para>Number of packets we performed recursive processing for</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>recursion-unanswered</term>
+	  <listitem><para>Number of packets we sent to our recursor, but did not get a timely answer for. Since 3.4.0.</para></listitem>
+	</varlistentry>
+
+	<varlistentry>
 	  <term>servfail-packets</term>
 	  <listitem><para>Amount of packets that could not be answered due to database problems</para></listitem>
 	</varlistentry>
@@ -17587,9 +18032,26 @@ This setting will make PowerDNS renotify the slaves after an AXFR is *received* 
 	  <listitem><para>Number of answers sent out over UDP</para></listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>udp-questions</term>
+	  <term>udp-queries</term>
 	  <listitem><para>Number of questions received over UDP</para></listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term>udp4-answers</term>
+	  <listitem><para>Number of answers sent out over UDPv4</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp4-queries</term>
+	  <listitem><para>Number of questions received over UDPv4</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp6-answers</term>
+	  <listitem><para>Number of answers sent out over UDPv6</para></listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>udp6-queries</term>
+	  <listitem><para>Number of questions received over UDPv6</para></listitem>
+	</varlistentry>
+
       </variablelist>
     </para>
     </sect2>
@@ -19519,7 +19981,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 	<para>
 	  To configure a supermaster with IP address 10.0.0.11 which lists this installation as 'autoslave.powerdns.com', issue the following:
 	  <programlisting>
-	    insert into supermasters ('10.0.0.11','autoslave.powerdns.com','internal');
+	    insert into supermasters values ('10.0.0.11','autoslave.powerdns.com','internal');
 	  </programlisting>
 	  From now on, valid notifies from 10.0.0.11 that list a NS record containing 'autoslave.powerdns.com' will lead to the
 	  provisioning of a slave domain under the account 'internal'. See <xref linkend="supermaster"/> for details.
@@ -21254,10 +21716,136 @@ VALUES (:zoneid, :ip)
 	The Geo Backend is in wide use, for example by the Wikimedia foundation, which uses it to power the Wikipedia global load balancing.
       </para>
       <para>
-	More details can be found <ulink url="http://wiki.powerdns.com/cgi-bin/trac.fcgi/browser/trunk/pdns/modules/geobackend/README">here</ulink>, or in
+	More details can be found <ulink url="https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/geobackend/README">here</ulink>, or in
 	<filename>modules/geobackend/README</filename>, part of the PowerDNS Authoritative Server distribution.
       </para>
     </sect1>
+    <sect1 id="geoip"><title>GeoIP backend</title>
+      <para>
+        <table>
+          <title>GeoIP backend capabilities</title>
+          <tgroup cols="2">
+            <tbody>
+              <row><entry>Native</entry><entry>Yes</entry></row>
+              <row><entry>Master</entry><entry>No</entry></row>
+              <row><entry>Slave</entry><entry>No</entry></row>
+              <row><entry>Superslave</entry><entry>No</entry></row>
+              <row><entry>Autoserial</entry><entry>No</entry></row>
+              <row><entry>DNSSEC</entry><entry>Yes</entry></row>
+            </tbody>
+          </tgroup>
+        </table>
+      </para>
+      <para>
+        The GeoIP backend can be used to distribute queries globally using an MaxMind IP-address/country mapping table, currently avaible for debian and ubuntu for free. Other formats
+        are not yet supported but will be in the future. The only format supported at the moment is country listing. 
+      </para>
+      <para>
+        This allows visitors to be sent to a server close to them, with no appreciable delay, as would otherwise be incurred with a protocol level redirect.
+        Additionally, the Geo Backend can be used to provide service over several clusters, any of which can be taken out of use easily, for example
+        for maintenance purposes.
+      </para>
+      <sect2 id="geoipbackend-prerequisites"><title>Prerequisites</title>
+        <para>
+         To compile the backend, you need libyaml-cpp 0.5 or later and libgeoip. 
+        </para>
+        <para>
+          You must have geoip database available. As of writing, on debian/ubuntu systems, you can use apt-get install geoip-database to get one, and the backend is
+          configured to use the location where these files are installed as source. On other systems you might need to alter the database-file and database-file6 attribute.
+          If you don't need ipv4 or ipv6 support, set the respective setting to "". Leaving it unset leaves it pointing to default location, preventing the software from 
+          starting up. 
+        </para>
+      </sect2>
+      <sect2 id="geoipbackend-parameters"><title>Configuration Parameters</title>
+        <para>
+          These are the configuration file parameters that are available for the GeoIP backend. geoip-zones-files is the only thing you must set, if the defaults suite you.
+          <variablelist>
+            <varlistentry>
+              <term>geoip-database-file</term>
+              <listitem>
+                <para>Specifies the full path of the data file for IPv4 to use.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>geoip-database-file6</term>
+              <listitem>
+                <para>Specifies the full path of the data file for IPv6 to use.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>geoip-zones-file</term>
+              <listitem>
+                <para>Specifies the full path of the zone configuration file to use.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>geoip-dnssec-keydir</term>
+              <listitem>
+                <para>Specifies the full path of a directory that will contain DNSSEC keys.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+      </sect2>
+      <sect2 id="geoipbackend-zonefile"><title>Zonefile format</title>
+        <para>
+          Zone configuration file uses YAML syntax. Here is simple example. Note that the &dash; before certain keys is part of the syntax.
+          <programlisting>
+domains:
+- domain: geo.example.com
+  ttl: 30
+  records:
+    geo.example.com:
+      - soa: ns1.example.com hostmaster.example.com 2014090125 7200 3600 1209600 3600
+      - ns: ns1.example.com
+      - ns: ns2.example.com
+      - mx: 10 mx.example.com
+    fin.eu.service.geo.example.com:
+      - a: 62.236.200.4
+      - txt: hello world
+  services:
+    service.geo.example.com: '%co.%cn.service.geo.example.com'
+          </programlisting>
+        </para>
+
+        <para>
+          Keys explained
+          <variablelist>
+            <varlistentry>
+              <term>domains</term>
+              <listitem>
+                <para>Mandatory root key. All configuration is below this</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>domain</term>
+              <listitem>
+                <para>Defines a domain. You need ttl, records, services under this.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>ttl</term>
+              <listitem>
+                <para>TTL value for all records</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>records</term>
+              <listitem>
+                <para>Put fully qualified name as subkey, under which you must define at least soa: key. Note that this is an array of records, so &dash; is needed for the values.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>services</term>
+              <listitem>
+                <para>Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+      </sect2>
+    </sect1>
+
  <sect1 id="luabackend"><title>Lua Backend</title>
       <para>
 	<warning>
@@ -21460,7 +22048,7 @@ record building scripts on his <ulink url="http://anders.com/projects/sysadmin/d
         To compile this backend, you need to configure --with-modules="remote". 
       </para>
       <para>
-        If you want to use http connector, you need libcurl and use --enable-remotebackend-http.
+        For versions prior to 3.4.0, if you want to use http connector, you need libcurl and use --enable-remotebackend-http.
       </para>
       <para>
         If you want to use ZeroMQ connector, you need libzmq-dev or libzmq3-dev and use --enable-remotebackend-zeromq. 
@@ -21627,7 +22215,7 @@ Response:
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
-   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,priority,scopeMask,auth&gt;</para></listitem>
+   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,scopeMask,auth&gt;</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Optional values:</term>
@@ -21698,7 +22286,7 @@ Content-Type: text/javascript; charset=utf-8
  </varlistentry>
  <varlistentry>
    <term>Reply:</term>
-   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,priority,scopeMask,auth&gt;</para></listitem>
+   <listitem><para>array of &lt;qtype,qname,content,ttl,domain_id,scopeMask,auth&gt;</para></listitem>
  </varlistentry>
  <varlistentry>
    <term>Optional values:</term>
@@ -21726,7 +22314,7 @@ to appropriate value, otherwise things can go wrong.
 {"result":[
   {"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},
   {"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},
-  {"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},
+  {"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},
   {"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},
   {"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},
   {"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60} 
@@ -21751,7 +22339,7 @@ X-RemoteBackend-domain-id: -1
 HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
-{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"mx1.example.com.", "ttl": 60, "priority":10},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
+{"result":[{"qtype":"SOA", "qname":"example.com", "content":"dns1.icann.org. hostmaster.icann.org. 2012081600 7200 3600 1209600 3600", "ttl": 3600},{"qtype":"NS", "qname":"example.com", "content":"ns1.example.com", "ttl": 60},{"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},{"qtype":"A", "qname":"www.example.com", "content":"192.168.1.2", "ttl": 60},{"qtype":"A", "qname":"ns1.example.com", "content":"192.168.0.2", "ttl": 60},{"qtype":"A", "qname":"mx1.example.com", "content":"192.168.0.3", "ttl": 60}]}
 </programlisting>
    </para>
   </listitem>
@@ -22623,7 +23211,7 @@ Creates new domain with given record(s) as master servers. IP address is the add
    <para>
     Query:
 <programlisting>
-{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"priority":0,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"priority":0,"auth":true}]}}
+{"method":"superMasterBackend","parameters":{"ip":"10.0.0.1","domain":"example.com","nsset":[{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns1.example.com","ttl":300,"auth":true},{"qtype":"NS","qname":"example.com","qclass":1,"content":"ns2.example.com","ttl":300,"auth":true}]}}
 </programlisting>
    </para>
    <para>
@@ -22648,7 +23236,7 @@ POST /dnsapi/supermasterbackend/10.0.0.1/example.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 317
 
-nsset[1][qtype]=NS&amp;nsset[1][qname]=example.com&amp;nsset[1][qclass]=1&amp;nsset[1][content]=ns1.example.com&amp;nsset[1][ttl]=300&amp;nsset[1][priority]=0&amp;nsset[1][auth]=true&amp;nsset[2][qtype]=NS&amp;nsset[2][qname]=example.com&amp;nsset[2][qclass]=1&amp;nsset[2][content]=ns2.example.com&amp;nsset[2][ttl]=300&amp;nsset[2][priority]=0&amp;nsset[2][auth]=true
+nsset[1][qtype]=NS&amp;nsset[1][qname]=example.com&amp;nsset[1][qclass]=1&amp;nsset[1][content]=ns1.example.com&amp;nsset[1][ttl]=300&amp;nsset[1][auth]=true&amp;nsset[2][qtype]=NS&amp;nsset[2][qname]=example.com&amp;nsset[2][qclass]=1&amp;nsset[2][content]=ns2.example.com&amp;nsset[2][ttl]=300&amp;nsset[2][auth]=true
 </programlisting>
    </para>
    <para>
@@ -22765,7 +23353,7 @@ This method replaces a given resource record with new set. The new qtype can be 
    <para>
     Query:
 <programlisting>
-{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"priority":0,"auth":true}]}}
+{"method":"replaceRRSet","parameters":{"domain_id":2,"qname":"replace.example.com","qtype":"A","trxid":1370416133,"rrset":[{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"1.1.1.1","ttl":300,"auth":true}]}}
 </programlisting>
    </para>
    <para>
@@ -22786,7 +23374,7 @@ PATCH /dnsapi/replacerrset/2/replace.example.com/A
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 135
 
-trxid=1370416133&amp;rrset[qtype]=A&amp;rrset[qname]=replace.example.com&amp;rrset[qclass]=1&amp;rrset[content]=1.1.1.1&amp;rrset[priority]=0&amp;rrset[auth]=1
+trxid=1370416133&amp;rrset[qtype]=A&amp;rrset[qname]=replace.example.com&amp;rrset[qclass]=1&amp;rrset[content]=1.1.1.1&amp;rrset[auth]=1
 </programlisting>
    </para>
    <para>
@@ -22829,7 +23417,7 @@ Asks to feed new record into system. If startTransaction was called, trxId ident
    <para>
     Query:
 <programlisting>
-{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"priority":0,"auth":true},"trxid":1370416133}}
+{"method":"feedRecord","parameters":{"rr":{"qtype":"A","qname":"replace.example.com","qclass":1,"content":"127.0.0.1","ttl":300,"auth":true},"trxid":1370416133}}
 </programlisting>
    </para>
    <para>
@@ -22850,7 +23438,7 @@ PATCH /dnsapi/feedrecord/1370416133
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 117
 
-rr[qtype]=A&amp;rr[qname]=replace.example.com&amp;rr[qclass]=1&amp;rr[content]=127.0.0.1&amp;rr[ttl]=300&amp;rr[priority]=0&amp;rr[auth]=true
+rr[qtype]=A&amp;rr[qname]=replace.example.com&amp;rr[qclass]=1&amp;rr[content]=127.0.0.1&amp;rr[ttl]=300&amp;rr[auth]=true
 </programlisting>
    </para>
    <para>
@@ -23276,7 +23864,6 @@ Reply:
        "qname": "example.com", 
        "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
        "ttl": 3600,
-       "priority": 0,
        "domain_id": -1
      }
    ]
@@ -23300,7 +23887,6 @@ Reply:
        "qname": "example.com",
        "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
        "ttl": 3600,
-       "priority": 0,
        "domain_id": -1
      }
    ]
@@ -23874,9 +24460,6 @@ static RandomLoader randomloader;
 	      </row>
 	      <row>
 		<entry>string content</entry><entry>ASCII representation of right hand side</entry>
-	      </row>
-	      <row>
-		<entry>uint16_t priority</entry><entry>priority of an MX record.</entry>
 	      </row>
 	      <row>
 		<entry>uint32_t ttl</entry><entry>Time To Live of this record</entry>

@@ -291,6 +291,7 @@ public:
   static uint64_t s_unreachables;
   static unsigned int s_minimumTTL;
   static bool s_doIPv6;
+  static unsigned int s_maxqperq;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
@@ -402,7 +403,7 @@ public:
   typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
   
 
-  typedef Throttle<tuple<ComboAddress,string,uint16_t> > throttle_t;
+  typedef Throttle<boost::tuple<ComboAddress,string,uint16_t> > throttle_t;
 
   typedef Counters<ComboAddress> fails_t;
   
@@ -593,6 +594,13 @@ private:
   static AtomicCounter s_currentConnections; //!< total number of current TCP connections
 };
 
+class ImmediateServFailException
+{
+public:
+  ImmediateServFailException(string r){reason=r;};
+
+  string reason; //! Print this to tell the user what went wrong
+};
 
 struct RemoteKeeper
 {

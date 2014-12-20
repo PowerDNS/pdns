@@ -28,7 +28,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-
+#include <boost/foreach.hpp>
 
 extern StatBag S;
 extern PacketCache PC;
@@ -106,6 +106,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
     ce.qtype = p->qtype.getCode();
     ce.qname = p->qdomain;
     ce.anyLocal = p->d_anyLocal;
+    ce.complete=0;
     d_conntrack[id]=ce;
   }
   p->d.id=id^d_xor;
@@ -120,6 +121,42 @@ bool DNSProxy::sendPacket(DNSPacket *p)
   return true;
 
 }
+
+//! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
+bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std::string& aname)
+{
+  uint16_t id;
+  {
+    Lock l(&d_lock);
+    id=getID_locked();
+
+    ConntrackEntry ce;
+    ce.id       = r->d.id;
+    ce.remote =   r->d_remote;
+    ce.outsock  = r->getSocket();
+    ce.created  = time( NULL );
+    ce.qtype = r->qtype.getCode();
+    ce.qname = stripDot(target);
+    ce.anyLocal = r->d_anyLocal;
+    ce.complete = r;
+    ce.aname=aname;
+    d_conntrack[id]=ce;
+  }
+
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, target, r->qtype.getCode());
+  pw.getHeader()->rd=true;
+  pw.getHeader()->id=id ^ d_xor;
+
+  if(send(d_sock,&packet[0], packet.size() , 0)<0) { // zoom
+    L<<Logger::Error<<"Unable to send a packet to our recursing backend: "<<stringerror()<<endl;
+  }
+
+  return true;
+
+}
+
+
 /** This finds us an unused or stale ID. Does not actually clean the contents */
 int DNSProxy::getID_locked()
 {
@@ -130,11 +167,13 @@ int DNSProxy::getID_locked()
       return n;
     }
     else if(i->second.created<time(0)-60) {
-      if(i->second.created)
+      if(i->second.created) {
         L<<Logger::Warning<<"Recursive query for remote "<<
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
           " was not answered by backend within timeout, reusing id"<<endl;
-      
+	delete i->second.complete;
+	S.inc("recursion-unanswered");
+      }
       return n;
     }
   }
@@ -182,6 +221,7 @@ void DNSProxy::mainloop(void)
           L<<Logger::Error<<"Received packet from recursor backend with id "<<(d.id^d_xor)<<" which is a duplicate"<<endl;
           continue;
         }
+	
         d.id=i->second.id;
         memcpy(buffer,&d,sizeof(d));  // commit spoofed id
 
@@ -191,14 +231,44 @@ void DNSProxy::mainloop(void)
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
-            ", qname or qtype mismatch"<<endl;
+            ", qname or qtype mismatch ("<<p.qtype.getCode()<<" v " <<i->second.qtype<<", "<<p.qdomain<<" v "<<i->second.qname<<")"<<endl;
           continue;
         }
 
         /* Set up iov and msgh structures. */
         memset(&msgh, 0, sizeof(struct msghdr));
-        iov.iov_base = buffer;
-        iov.iov_len = len;
+	string reply; // needs to be alive at time of sendmsg!
+	if(i->second.complete) {
+
+	  MOADNSParser mdp(p.getString());
+	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
+	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
+	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
+	    if(j->first.d_place == DNSRecord::Answer || (j->first.d_place == DNSRecord::Nameserver && j->first.d_type == QType::SOA)) {
+	    
+	      DNSResourceRecord rr;
+
+	      if(j->first.d_type == i->second.qtype || j->first.d_type==QType::SOA) {
+		rr.qname=i->second.aname;
+		rr.qtype = j->first.d_type;
+		rr.ttl=j->first.d_ttl;
+		rr.d_place= (DNSResourceRecord::Place)j->first.d_place;
+		rr.content=j->first.d_content->getZoneRepresentation();
+		i->second.complete->addRecord(rr);
+	      }
+	    }
+	  }
+	  i->second.complete->setRcode(mdp.d_header.rcode);
+	  reply=i->second.complete->getString();
+	  iov.iov_base = (void*)reply.c_str();
+	  iov.iov_len = reply.length();
+	  delete i->second.complete;
+	  i->second.complete=0;
+	}
+	else {
+	  iov.iov_base = buffer;
+	  iov.iov_len = len;
+	}
         msgh.msg_iov = &iov;
         msgh.msg_iovlen = 1;
         msgh.msg_name = (struct sockaddr*)&i->second.remote;

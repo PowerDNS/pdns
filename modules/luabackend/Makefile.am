@@ -1,13 +1,19 @@
-AM_CPPFLAGS=$(LUA_CFLAGS) $(THREADFLAGS) $(BOOST_CPPFLAGS)
-#AM_CPPFLAGS=-I/usr/local/include/luajit-2.0 -DUSE_LUAJIT $(THREADFLAGS)
-EXTRA_DIST=OBJECTFILES OBJECTLIBS 
+AM_CPPFLAGS += $(LUA_CFLAGS)
 
+EXTRA_DIST = OBJECTFILES OBJECTLIBS
 
 pkglib_LTLIBRARIES = libluabackend.la
 
-libluabackend_la_SOURCES=luabackend.cc luabackend.hh minimal.cc reload.cc lua_functions.cc master.cc private.cc slave.cc supermaster.cc dnssec.cc \
-	lua_functions.hh 
+libluabackend_la_SOURCES = \
+	dnssec.cc \
+	lua_functions.cc lua_functions.hh \
+	luabackend.cc luabackend.hh \
+	master.cc \
+	minimal.cc \
+	private.cc \
+	reload.cc \
+	slave.cc \
+	supermaster.cc
 
-libluabackend_la_LDFLAGS=-module -avoid-version
-libluabackend_la_LIBADD=$(LUA_LIBS)
-#-lluajit-5.1
+libluabackend_la_LDFLAGS = -module -avoid-version
+libluabackend_la_LIBADD = $(LUA_LIBS)

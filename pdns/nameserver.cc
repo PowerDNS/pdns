@@ -121,6 +121,8 @@ void UDPNameserver::bindIPv4()
     if(localname=="0.0.0.0")
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
+    setSocketTimestamps(s);
+
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
@@ -135,12 +137,13 @@ void UDPNameserver::bindIPv4()
         g_localaddresses.push_back(locala);
 
     if(::bind(s, (sockaddr*)&locala, locala.getSocklen()) < 0) {
+      string binderror = strerror(errno);
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
         L<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+": "<<strerror(errno)<<endl;
+        L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
     }
@@ -200,7 +203,6 @@ bool AddressIsUs(const ComboAddress& remote)
 
 void UDPNameserver::bindIPv6()
 {
-#if HAVE_IPV6
   vector<string> locals;
   stringtok(locals,::arg()["local-ipv6"]," ,");
   int one=1;
@@ -231,6 +233,8 @@ void UDPNameserver::bindIPv6()
       setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
     }
 
+    setSocketTimestamps(s);
+
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
@@ -256,9 +260,7 @@ void UDPNameserver::bindIPv6()
     pfd.revents = 0;
     d_rfds.push_back(pfd);
     L<<Logger::Error<<"UDPv6 server bound to "<<locala.toStringWithPort()<<endl;
-    
   }
-#endif
 }
 
 UDPNameserver::UDPNameserver( bool additional_socket )
@@ -283,10 +285,10 @@ ResponseStats g_rs;
 void UDPNameserver::send(DNSPacket *p)
 {
   const string& buffer=p->getString();
-  static unsigned int &numanswered=*S.getPointer("udp-answers");
-  static unsigned int &numanswered4=*S.getPointer("udp4-answers");
-  static unsigned int &numanswered6=*S.getPointer("udp6-answers");
-  static unsigned int &bytesanswered=*S.getPointer("udp-answers-bytes");
+  static AtomicCounter &numanswered=*S.getPointer("udp-answers");
+  static AtomicCounter &numanswered4=*S.getPointer("udp4-answers");
+  static AtomicCounter &numanswered6=*S.getPointer("udp6-answers");
+  static AtomicCounter &bytesanswered=*S.getPointer("udp-answers-bytes");
 
   g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
 
@@ -300,7 +302,7 @@ void UDPNameserver::send(DNSPacket *p)
       S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
   } else if (p->isEmpty()) {
     S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
-    S.ringAccount("remotes-unauth",p->getRemote());
+    S.ringAccount("remotes-unauth",p->d_remote);
   }
 
   /* Count responses (total/v4/v6) and byte counts */
@@ -329,6 +331,21 @@ void UDPNameserver::send(DNSPacket *p)
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
+}
+
+static bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
+{
+#ifdef SO_TIMESTAMP
+  struct cmsghdr *cmsg;
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP) && 
+	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
+      memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
+      return true;
+    }
+  }
+#endif
+  return false;
 }
 
 static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination)
@@ -430,7 +447,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     packet=prefilled;
   else
     packet=new DNSPacket; // don't forget to free it!
-  packet->d_dt.set(); // timing
+
   packet->setSocket(sock);
   packet->setRemote(&remote);
 
@@ -440,9 +457,16 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     packet->d_anyLocal = dest;
   }            
 
+  struct timeval recvtv;
+  if(HarvestTimestamp(&msgh, &recvtv)) {
+    packet->d_dt.setTimeval(recvtv);
+  }
+  else
+    packet->d_dt.set(); // timing    
+
   if(packet->parse(mesg, len)<0) {
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", packet->getRemote());
+    S.ringAccount("remotes-corrupt", packet->d_remote);
 
     if(!prefilled)
       delete packet;

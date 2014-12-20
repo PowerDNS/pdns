@@ -27,6 +27,8 @@
 #include "dns_random.hh"
 #include "lock.hh"
 #include "arguments.hh"
+#include "statbag.hh"
+extern StatBag S;
 
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
@@ -121,8 +123,19 @@ typedef map<pair<string, string>, string> signaturecache_t;
 static signaturecache_t g_signatures;
 static int g_cacheweekno;
 
+AtomicCounter* g_signatureCount;
+
+uint64_t signatureCacheSize(const std::string& str)
+{
+  ReadLock l(&g_signatures_lock);
+  return g_signatures.size();
+}
+
 void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
+  if(!g_signatureCount)
+    g_signatureCount = S.getPointer("signatures");
+    
   DNSKEYRecordContent drc = dpk.getDNSKEY(); 
   const DNSCryptoKeyEngine* rc = dpk.getKey();
   rrc.d_tag = drc.getTag();
@@ -144,13 +157,13 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
   }
   
   rrc.d_signature = rc->sign(msg);
-
+  (*g_signatureCount)++;
   if(doCache) {
-    WriteLock l(&g_signatures_lock);
     /* we add some jitter here so not all your slaves start pruning their caches at the very same millisecond */
     int weekno = (time(0) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
     const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
-  
+
+    WriteLock l(&g_signatures_lock);
     if(g_cacheweekno < weekno || g_signatures.size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
       L<<Logger::Warning<<"Cleared signature cache."<<endl;
       g_signatures.clear();
@@ -212,9 +225,6 @@ void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const set<string, CIStringCompa
     signPlace = (DNSPacketWriter::Place) pos->d_place;
     if(pos->auth || pos->qtype.getCode() == QType::DS) {
       string content = pos->content;
-      if(pos->qtype.getCode()==QType::MX || pos->qtype.getCode() == QType::SRV) {  
-        content = lexical_cast<string>(pos->priority) + " " + pos->content;
-      }
       if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
         content="\""+pos->content+"\"";
       }

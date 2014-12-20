@@ -9,7 +9,6 @@ then
 else
 	DEBPKGNAME=pdns-recursor_$1
 fi
-
 dh_make -e powerdns.support@powerdns.com -s -f ../pdns-recursor-$1.tar.bz2 -p $DEBPKGNAME < /dev/null
 cp pdns-recursor.init.d debian/init.d
 #[ -e debian/control ] || dh_make -e powerdns.support@powerdns.com -s -r cdbs  -f ../pdns-recursor-$1.tar.bz2  < /dev/null
@@ -18,6 +17,6 @@ perl -i -pe 's/Description: <.*>/Description: extremely powerful and versatile r
 perl -i -pe 's/(Build-Depends: .*)/$1, libboost-dev, libboost-serialization-dev, liblua5.1-0-dev/' debian/control
 export LUA=1
 export STATIC=semi
+./configure
 fakeroot debian/rules binary
 fakeroot rpmbuild -bb ../pdns-recursor.spec
- 

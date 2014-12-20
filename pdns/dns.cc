@@ -101,7 +101,7 @@ bool dnspacketLessThan(const std::string& a, const std::string& b)
     int result=0;
     unsigned int n;
     for(n = 0; n < aLabelLen && n < bLabelLen; ++n) 
-      if((result = aSafe[aPos + n] - bSafe[bPos +n]))   // XXX this should perhaps be dns_tolower
+      if((result = dns_tolower(aSafe[aPos + n]) - dns_tolower(bSafe[bPos +n])))
         break;
     // cerr<<"Done loop, result="<<result<<", n = "<<n<<", aLabelLen="<<aLabelLen<<", bLabelLen="<<bLabelLen<<endl;
     if(result < 0)
@@ -197,7 +197,8 @@ void fillSOAData(const string &content, SOAData &data)
   if(pleft>1) 
     data.hostmaster=attodot(parts[1]); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
 
-  data.serial = pleft > 2 ? strtoul(parts[2].c_str(), NULL, 10) : 0;
+  data.serial = pleft > 2 ? pdns_strtoui(parts[2].c_str(), NULL, 10) : 0;
+  if (data.serial == UINT_MAX && errno == ERANGE) throw PDNSException("serial number too large in '"+parts[2]+"'");
 
   data.refresh = pleft > 3 ? atoi(parts[3].c_str())
         : ::arg().asNum("soa-refresh-default");

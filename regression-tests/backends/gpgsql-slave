@@ -6,7 +6,8 @@
 	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring mysqladmin drop failure
 	psql --user="$GPGSQL2USER" "$GPGSQL2DB" < ../modules/gpgsqlbackend/schema.pgsql.sql
 
-  cat > pdns-gpgsql2.conf << __EOF__
+	cat > pdns-gpgsql2.conf << __EOF__
+module-dir=./modules
 launch=gpgsql
 gpgsql-dbname=$GPGSQL2DB
 gpgsql-user=$GPGSQL2USER

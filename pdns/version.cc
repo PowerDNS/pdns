@@ -23,15 +23,16 @@
 #include "logger.hh"
 #include "version.hh"
 #include "version_generated.h"
+#include <polarssl/version.h>
 
 static ProductType productType;
 
 string compilerVersion()
 {
 #if defined(__clang__)
-  return string("clang "__clang_version__);
+  return string("clang " __clang_version__ );
 #elif defined(__GNUC__)
-  return string("gcc "__VERSION__);
+  return string("gcc " __VERSION__ );
 #else  // add other compilers here
   return string("Unknown compiler");
 #endif
@@ -61,10 +62,10 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  theL()<<Logger::Warning<<productName()<<" "<<PDNS_VERSION<<" ("DIST_HOST") "
+  theL()<<Logger::Warning<<productName()<<" "<< PDNS_VERSION <<" (" DIST_HOST ") "
     "(C) 2001-2014 PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
-    "Built on "BUILD_DATE" by "BUILD_HOST", "<<compilerVersion()<<"."<<endl;
+    "Built on " BUILD_DATE " by " BUILD_HOST ", "<<compilerVersion()<<"."<<endl;
   theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2." << endl;
@@ -99,12 +100,15 @@ void showBuildConfiguration()
   // Auth only
   theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
 #endif
+#ifndef POLARSSL_SYSTEM
+  theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
+#endif
 }
 
 string fullVersionString()
 {
   ostringstream s;
-  s<<productName()<<" "PDNS_VERSION" ("DIST_HOST" built "BUILD_DATE" "BUILD_HOST")";
+  s<<productName()<<" " PDNS_VERSION " (" DIST_HOST " built " BUILD_DATE " " BUILD_HOST ")";
   return s.str();
 }
 

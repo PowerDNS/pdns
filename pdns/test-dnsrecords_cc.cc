@@ -225,6 +225,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
      (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+     (case_t(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120", zone, false)) // too long serial
 ;
 
   int n=0;
@@ -270,8 +271,8 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   vector<uint8_t> pak;
   vector<pair<uint16_t,string > > opts;
 
-  DNSPacketWriter pw(pak, "www.powerdns.com", ns_t_a);
-  pw.startRecord("www.powerdns.com", ns_t_a, 16, 1, DNSPacketWriter::ANSWER);
+  DNSPacketWriter pw(pak, "www.powerdns.com", QType::A);
+  pw.startRecord("www.powerdns.com", QType::A, 16, 1, DNSPacketWriter::ANSWER);
   pw.xfrIP(htonl(0x7f000001));
   opts.push_back(pair<uint16_t,string>(3, "powerdns"));
   pw.addOpt(1280, 0, 0, opts);

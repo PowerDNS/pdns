@@ -5,12 +5,14 @@ compiler:
 before_script:
  - git describe --always --dirty=+
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
- - sudo rm /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
- - sudo apt-get update
- - sudo apt-get install --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time libzmq1 libzmq-dev pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils
+ - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
+ - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
+ - sudo apt-get update --quiet --quiet
+ - sudo apt-get install --quiet --quiet --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils libgeoip-dev geoip-database faketime
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
- - sudo apt-get update
- - sudo apt-get install liblmdb0 liblmdb-dev lmdb-utils
+ - sudo apt-get update --quiet --quiet
+ - sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev pandoc
+ - sudo pip install pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
@@ -31,7 +33,7 @@ before_script:
  - p11-kit -l # ensure it's ok
 script:
  - ./bootstrap
- - ./configure --with-modules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11
+ - ./configure --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua' --with-modules='' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11 --disable-silent-rules --disable-dependency-tracking
  - make -k dist
  - make -k -j 4
  - make -k install DESTDIR=/tmp/pdns-install-dir
@@ -40,9 +42,17 @@ script:
  - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$)
  - cd pdns
  - make -k -j 4 pdns_recursor
+ - rm -f pdns_recursor
  - ./dist-recursor
+ - cd pdns-recursor-*/
+ - ./configure
+ - make -k -j 4
+ - cd ..
+ - ln -s pdns-recursor*/pdns_recursor .
  - make -k -C docs html/index.html manpages
- - cd ../regression-tests.recursor
+ - cd docs
+ - make html-new/index.html
+ - cd ../../regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
  - ./start.sh
@@ -60,6 +70,7 @@ script:
  - touch tests/verify-dnssec-zone/allow-missing
  - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
  - touch tests/verify-dnssec-zone/skip.optout
+ - export geoipregion=oc geoipregionip=1.2.3.4
  - ./timestamp ./start-test-stop 5300 bind-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
@@ -67,6 +78,8 @@ script:
  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
+ - ./timestamp ./start-test-stop 5300 geoipbackend
+ - ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
  - ./timestamp ./start-test-stop 5300 gmysql-both
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both

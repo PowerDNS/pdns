@@ -391,7 +391,7 @@ struct StackMallocTest
   void operator()() const
   {
     char *buffer= new char[200000];
-    delete buffer;
+    delete[] buffer;
   }
 
 };

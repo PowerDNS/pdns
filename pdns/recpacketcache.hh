@@ -62,8 +62,8 @@ inline bool RecursorPacketCache::Entry::operator<(const struct RecursorPacketCac
   const struct dnsheader* 
     dh=(const struct dnsheader*) d_packet.c_str(), 
     *rhsdh=(const struct dnsheader*)rhs.d_packet.c_str();
-  if(make_tuple(dh->opcode, dh->rd, dh->qdcount) < 
-     make_tuple(rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
+  if(boost::make_tuple(dh->opcode, dh->rd, dh->qdcount) < 
+     boost::make_tuple(rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
     return true;
 
   return dnspacketLessThan(d_packet, rhs.d_packet);

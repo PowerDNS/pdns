@@ -1,14 +1,14 @@
-PowerDNS is copyright Ⓒ 2002-2014 by PowerDNS.COM BV & lots of
+PowerDNS is copyright Ⓒ 2002-2014 by PowerDNS.COM BV and lots of
 contributors, using the GNU GPLv2 license (see NOTICE for the
 exact license and exception used).
 
 All documentation can be found on http://doc.powerdns.com/
 
 This file may lag behind at times. For most recent updates, always check
-http://doc.powerdns.com/changelog.html and http://wiki.powerdns.com
+https://doc.powerdns.com/md/changelog/ and http://wiki.powerdns.com
 
 Another good place to look for information is:
-http://doc.powerdns.com/compiling-powerdns.html
+https://doc.powerdns.com/md/appendix/compiling-powerdns/
 
 To file bugs, head towards:
 https://github.com/PowerDNS/pdns/issues
@@ -38,7 +38,7 @@ If you build from git, first build configure:
     $ ./bootstrap
 
 (You may need to do that twice. You also need libtool-1.4, 1.3 won't work.
-Automake 1.6 or newer is required, too.)
+Autoconf 2.69 or newer and Automake 1.11 or newer are required, too.)
 
 To compile a very clean version, use:
 
@@ -64,8 +64,7 @@ build the recursor is first running `dist-recursor` and compiling from the `pdns
 
 SOLARIS NOTES
 -------------
-You need gcc 3.x, preferably 3.2! The "Sunpro" compiler is currently not
-supported (patches are welcome if not too intrusive).
+Use a recent gcc. OpenCSW is a good source, as is Solaris 11 IPS.
 
 If you encounter problems with the Solaris make, gmake is advised.
 

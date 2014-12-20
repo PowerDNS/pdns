@@ -1,12 +1,12 @@
 # $Id$ 
 
-all: pdns.txt pdns.pdf html/index.html html.tar.gz pdns-expanded.html manpages
+all: pdns.txt pdns.pdf html/index.html html.tar.bz2 pdns-expanded.html manpages
 
 pdns-expanded.xml: pdns.xml
 	./expand < $< > $@
 
 clean:
-	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.gz html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1
+	rm -rf *.dvi *.pdf *.tex *.toc *.aux *.ps *.bak *.tmp *~ *.log pdns.txt html.tar.bz2 html pdns pdns-expanded.html pdns-expanded.xml pdns_recursor.1 rec_control.1 html-new/index.html
 
 manpages: dnsdist.1 pdns_recursor.1 rec_control.1 dnstcpbench.1
 
@@ -15,11 +15,20 @@ html/index.html: pdns-expanded.xml
 	xmlto xhtml -m config.xsl -o html $<
 	cp docbook.css html
 
+html-new/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
+	rm -rf html-new/*
+	mkdir -p html-new
+	mkdir -p doc-build
+	rsync -a --delete markdown/. doc-build/.
+	./process-md.sh pre
+	mkdocs build --clean
+	./process-md.sh post
+
 pdns-expanded.html: pdns-expanded.xml
 	xmlto xhtml-nochunks -m config.xsl $<
-	
-html.tar.gz: html/index.html
-	tar czf html.tar.gz html/
+
+html.tar.bz2: html/index.html
+	tar cjf html.tar.bz2 html/
 
 %.txt: %-expanded.xml
 	xmlto txt -m config.xsl  $<
@@ -39,9 +48,8 @@ html.tar.gz: html/index.html
 	asciidoc -b xhtml11 -d manpage  $<
                         
 publish:
-	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.gz \
+	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.bz2 \
 		xs.powerdns.com:/var/www/doc.powerdns.com/
 
 publish3:
-	rsync --exclude "*.png" --copy-links --delete -avrz ./html pdns.txt pdns.pdf html.tar.gz \
-		peter@xs.powerdns.com:doc.powerdns.com/
+	rsync -crv ./html-new/ pdnsdocs@xs.powerdns.com:md/

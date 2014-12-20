@@ -39,6 +39,7 @@ case $context in
 			connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
 			$testsdir/zeromq-backend.rb &
 			echo $! > pdns-remotebackend.pid
+			sleep 20 # just a test
 			;;
 		unix)
 			connstr="unix:path=/tmp/remote.socket"
@@ -80,6 +81,7 @@ case $context in
 
 		# generate pdns.conf for pdnssec
 		cat > pdns-remote.conf <<EOF
+module-dir=./modules
 launch=remote
 remote-connection-string=$connstr,timeout=10000
 EOF
@@ -109,7 +111,7 @@ EOF
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral --distributor-threads=1 \
 			--experimental-dnsupdate=yes \
-			--remote-connection-string="$connstr" $remote_add_param &
+			--remote-connection-string="$connstr" $remote_add_param --module-dir=./modules &
 		;;
 
 	*)

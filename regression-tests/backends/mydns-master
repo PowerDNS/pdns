@@ -15,21 +15,18 @@ case $context in
 			"$MYDNSDB"
 
 		cat > pdns-mydns.conf << __EOF__
+module-dir=./modules
 launch=mydns
 mydns-dbname=$MYDNSDB
 mydns-user=$MYDNSUSER
 mydns-host=$MYDNSHOST
 mydns-password=$MYDNSPASSWD
 __EOF__
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
-			--no-shuffle --launch=mydns \
-			--master --send-root-referral \
-			--cache-ttl=0 --experimental-dname-processing --no-config \
-			--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no \
-			--mydns-dbname="$MYDNSDB" \
-			--mydns-user="$MYDNSUSER" \
-			--mydns-host="$MYDNSHOST" \
-			--mydns-password="$MYDNSPASSWD" &
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
+			--config-dir=. --config-name=mydns \
+			--no-shuffle --master --send-root-referral \
+			--cache-ttl=0 --experimental-dname-processing \
+			--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;
 

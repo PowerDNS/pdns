@@ -918,13 +918,14 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const string &domain, cons
     if (!nameserver.empty()) {
       // figure out all IP addresses for the master
       format = d_GetSuperMasterIPs;
-      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(nameserver).c_str()); 
+      snprintf(output,sizeof(output)-1,format.c_str(),sqlEscape(nameserver).c_str(),sqlEscape(account).c_str());
       d_db->doQuery(output, d_result);
       if (!d_result.empty()) {
         // collect all IP addresses
         vector<string> tmp;
         BOOST_FOREACH(SSql::row_t& row, d_result) {
-          tmp.push_back(row[0]);
+          if (account == row[1])
+            tmp.push_back(row[0]);
         }
         // set them as domain's masters, comma separated
         masters = boost::join(tmp, ", ");
@@ -1020,19 +1021,23 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   // L << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
   SSql::row_t row;
   if(d_db->getRow(row)) {
-    r.content=row[0];
     if (row[1].empty())
         r.ttl = ::arg().asNum( "default-ttl" );
-    else 
+    else
         r.ttl=atol(row[1].c_str());
-    r.priority=atol(row[2].c_str());
     if(!d_qname.empty())
       r.qname=d_qname;
     else
       r.qname=row[6];
     r.qtype=row[3];
+
+    if (r.qtype==QType::MX || r.qtype==QType::SRV)
+      r.content=row[2]+" "+row[0];
+    else
+      r.content=row[0];
+
     r.last_modified=0;
-    
+
     if(d_dnssecQueries)
       r.auth = !row[7].empty() && row[7][0]=='1';
     else
@@ -1092,13 +1097,25 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QT
 
 bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
+  int prio=0;
+  string content(r.content);
+
+  if(r.qtype == QType::MX || r.qtype == QType::SRV) {
+    prio=atoi(content.c_str());
+
+    string::size_type pos = content.find_first_not_of("0123456789");
+    if(pos != string::npos)
+      boost::erase_head(content, pos);
+    trim_left(content);
+ }
+
   string query;
 
   if(d_dnssecQueries && ordername)
     query = (GSQLformat(d_InsertRecordOrderQuery)
-             % sqlEscape(r.content)
+             % sqlEscape(content)
              % r.ttl
-             % r.priority
+             % prio
              % sqlEscape(r.qtype.getName())
              % r.domain_id
              % (int)r.disabled
@@ -1108,9 +1125,9 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
       ).str();
   else
     query = (GSQLformat(d_InsertRecordQuery)
-             % sqlEscape(r.content)
+             % sqlEscape(content)
              % r.ttl
-             % r.priority
+             % prio
              % sqlEscape(r.qtype.getName())
              % r.domain_id
              % (int)r.disabled

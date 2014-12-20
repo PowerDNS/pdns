@@ -1,6 +1,5 @@
 DNSDIST(1)
 ==========
-powerdns.documentation@powerdns.com
 
 NAME
 ----

@@ -19,7 +19,9 @@ SMySQL::SMySQL(const string &database, const string &host, uint16_t port, const 
   int retry=1;
 
   Lock l(&s_myinitlock);
-  mysql_init(&d_db);
+  if (!mysql_init(&d_db))
+    throw sPerrorException("Unable to initialize mysql driver");
+
   do {
 
 #if MYSQL_VERSION_ID >= 50013

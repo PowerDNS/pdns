@@ -4,6 +4,7 @@
 #include <map>
 #include <inttypes.h>
 #include <sys/un.h>
+#include <pthread.h>
 
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
@@ -39,5 +40,5 @@ private:
 };
 
 std::map<std::string, std::string> getAllStatsMap();
-
+extern pthread_mutex_t g_carbon_config_lock;
 #endif 

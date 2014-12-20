@@ -14,6 +14,7 @@
 #include "zoneparser-tng.hh"
 #include "signingpipe.hh"
 #include "dns_random.hh"
+#include <fstream>
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
@@ -339,6 +340,49 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   return true;
 }
 
+void dbBench(const std::string& fname)
+{
+  ::arg().set("query-cache-ttl")="0";
+  ::arg().set("negquery-cache-ttl")="0";
+  UeberBackend B("default");
+
+  vector<string> domains;
+  if(!fname.empty()) {
+    ifstream ifs(fname.c_str());
+    if(!ifs) {
+      cerr<<"Could not open '"<<fname<<"' for reading domain names to query"<<endl;
+    }
+    string line;
+    while(getline(ifs,line)) {
+      trim(line);
+      domains.push_back(line);
+    }
+  }
+  if(domains.empty())
+    domains.push_back("powerdns.com");
+
+  int n=0;
+  DNSResourceRecord rr;
+  DTime dt;
+  dt.set();
+  unsigned int hits=0, misses=0;
+  for(; n < 10000; ++n) {
+    const string& domain = domains[random() % domains.size()];
+    B.lookup(QType(QType::NS), domain);
+    while(B.get(rr)) {
+      hits++;
+    }
+    B.lookup(QType(QType::A), boost::lexical_cast<string>(random())+"."+domain);
+    while(B.get(rr)) {
+    }
+    misses++;
+
+  }
+  cout<<0.001*dt.udiff()/n<<" millisecond/lookup"<<endl;
+  cout<<"Retrieved "<<hits<<" records, did "<<misses<<" queries which should have no match"<<endl;
+  cout<<"Packet cache reports: "<<S.read("query-cache-hit")<<" hits (should be 0) and "<<S.read("query-cache-miss") <<" misses"<<endl;
+}
+
 void rectifyAllZones(DNSSECKeeper &dk) 
 {
   UeberBackend B("default");
@@ -390,9 +434,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       }
       rr.content=o.str();
     }
-
-    if(rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-      rr.content = lexical_cast<string>(rr.priority)+" "+rr.content;
 
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";
@@ -612,10 +653,37 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
   }
   rrs[0].content = serializeSOAData(sd);
 
+  sd.db->startTransaction("", -1);
+
   if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
+   sd.db->abortTransaction();
    cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
    return -1;
   }
+
+  if (sd.db->doesDNSSEC()) {
+    NSEC3PARAMRecordContent ns3pr;
+    bool narrow;
+    bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  
+    if(haveNSEC3)
+    {
+      if(!narrow) {
+        string hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rrs[0].qname));
+        if(g_verbose)
+          cerr<<"'"<<rrs[0].qname<<"' -> '"<< hashed <<"'"<<endl;
+        sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, rrs[0].qname, hashed, 1);
+      }
+      else {
+        sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, rrs[0].qname, 1);
+      }
+    } else {
+      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, rrs[0].qname, 1);
+    }
+  }
+
+  sd.db->commitTransaction();
+
   cout<<"SOA serial for zone "<<zone<<" set to "<<sd.serial<<endl;
   return 0;
 }
@@ -690,7 +758,6 @@ void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int c
   rr.auth=1;
   rr.qclass = QClass::IN;
   rr.d_place=DNSResourceRecord::ANSWER;
-  rr.priority=0;
   
   UeberBackend db("key-only");
   
@@ -1100,6 +1167,7 @@ try
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
+    cerr<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
@@ -1216,6 +1284,9 @@ try
     }
     UeberBackend B("default");
     exit(checkZone(dk, B, cmds[1]));
+  }
+  else if(cmds[0] == "bench-db") {
+    dbBench(cmds.size() > 1 ? cmds[1] : "");
   }
   else if (cmds[0] == "check-all-zones") {
     exit(checkAllZones(dk));

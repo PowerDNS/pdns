@@ -26,6 +26,7 @@
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp>
 #include <limits>
+#include "arguments.hh"
 
 /* syntax: dnsdist 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220
    Added downstream server 8.8.8.8:53
@@ -37,12 +38,18 @@
    And you are in business!
  */
 
+ArgvMap& arg()
+{
+  static ArgvMap a;
+  return a;
+}
 StatBag S;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
 bool g_verbose;
 AtomicCounter g_pos;
+AtomicCounter g_regexBlocks;
 uint16_t g_maxOutstanding;
 bool g_console;
 
@@ -167,6 +174,7 @@ static void daemonize(void)
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 void* udpClientThread(void* p)
+try
 {
   ClientState* cs = (ClientState*) p;
 
@@ -178,10 +186,25 @@ void* udpClientThread(void* p)
   struct dnsheader* dh = (struct dnsheader*) packet;
   int len;
 
+  string qname;
+  uint16_t qtype;
+
+  Regex* re=0;
+  if(g_vm.count("regex-drop"))
+    re=new Regex(g_vm["regex-drop"].as<string>());
+
   for(;;) {
     len = recvfrom(cs->udpFD, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
-    if(len < 0) 
+    if(len < (int)sizeof(struct dnsheader)) 
       continue;
+
+    if(re) {
+      qname=questionExpand(packet, len, qtype); 
+      if(re->match(qname)) {
+	g_regexBlocks++;
+	continue;
+      }
+    }
 
     /* right now, this is our simple round robin downstream selector */
     DownstreamState& ss = getBestDownstream();
@@ -208,6 +231,21 @@ void* udpClientThread(void* p)
 
     infolog("Got query from %s, relayed to %s", remote.toStringWithPort() % ss.remote.toStringWithPort());
   }
+  return 0;
+}
+catch(std::exception &e)
+{
+  errlog("UDP client thread died because of exception: %s", e.what());
+  return 0;
+}
+catch(PDNSException &e)
+{
+  errlog("UDP client thread died because of PowerDNS exception: %s", e.reason);
+  return 0;
+}
+catch(...)
+{
+  errlog("UDP client thread died because of an exception: %s", "unknown");
   return 0;
 }
 
@@ -446,12 +484,14 @@ try
 {
   signal(SIGPIPE, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
+  g_console=true;
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
     ("daemon", po::value<bool>()->default_value(true), "run in background")
-    ("local", po::value<vector<string> >(), "Listen on which address")
+    ("local", po::value<vector<string> >(), "Listen on which addresses")
     ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
+    ("regex-drop", po::value<string>(), "If set, block queries matching this regex. Mind trailing dot!")
     ("verbose,v", "be verbose");
     
   hidden.add_options()
@@ -479,11 +519,13 @@ try
     exit(EXIT_FAILURE);
   }
 
-  if(g_vm["daemon"].as<bool>()) 
+  if(g_vm["daemon"].as<bool>())  {
+    g_console=false;
     daemonize();
+  }
   else {
     infolog("Running in the %s", "foreground");
-    g_console=true;
+
   }
 
   vector<string> remotes = g_vm["remotes"].as<vector<string> >();

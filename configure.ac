@@ -10,11 +10,11 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects no-dependencies 1.11])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects 1.11])
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
-: ${CXXFLAGS="-Wall -O2"}
+: ${CXXFLAGS="-Wall -g -O2"}
 
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -30,6 +30,11 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 
 AC_LANG([C++])
 
+AC_CC_PIE
+AC_CC_STACK_PROTECTOR
+AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+AC_CC_D_FORTIFY_SOURCE
+
 AC_CHECK_FUNC([socket], [], [
  AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
 ])
@@ -44,6 +49,8 @@ AC_PROG_LIBTOOL([disable-static])
 LT_INIT([disable-static])
 ])
 
+AC_LD_RELRO
+
 MC_TM_GMTOFF
 
 AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
@@ -56,7 +63,17 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
-AC_CHECK_PROG([RAGEL], [ragel], [ragel])
+AC_CHECK_HEADERS(
+	[sys/mman.h],
+	[AC_CHECK_FUNC(
+		[mmap],
+		[AC_DEFINE(HAVE_MMAP, [1], [Define to 1 if you have mmap])],
+		[have_mmap=no]
+	)],
+	[have_mmap=no]
+)
+
+PDNS_CHECK_RAGEL
 AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 PDNS_WITH_LUA
@@ -127,40 +144,26 @@ THREADFLAGS=""
 AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
-
 solaris2.8 | solaris2.9 )
-  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-  ;;
-solaris2.6 | solaris2.7)
   AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
   AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
   LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
 linux*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="$LDFLAGS -lrt"
   THREADFLAGS="-pthread"
   CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
-darwin11* | darwin12* | darwin13*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
+darwin*)
   DYNLINKFLAGS="-rdynamic"
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
   AM_CONDITIONAL([OS_MACOSX], true)
   ;;
 *)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
@@ -177,24 +180,18 @@ PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AC_MSG_CHECKING([whether we should build static binaries])
+AC_MSG_CHECKING([whether we will be building static binaries])
 
 AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries])],
-  [case "${enableval}" in
-    yes) static=true ;;
-    no)  static=false ;;
-    *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
-   esac],
-   [debug=false]
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
+  [static=$enableval],
+  [static=no],
 )
 AC_MSG_RESULT([$static])
-
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" = "xtrue"])
-
-if test "x$static" = "xtrue"; then
-  LDFLAGS="-all-static $LDFLAGS"
-fi
+AM_CONDITIONAL([ALLSTATIC], [test "x$static" != "xno"])
+AS_IF([test "x$static" != "xno"],
+  [LDFLAGS="-all-static $LDFLAGS"]
+)
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
@@ -227,12 +224,7 @@ AC_ARG_ENABLE([pdns-server],
   [enable_pdns_server=yes]
 )
 AC_MSG_RESULT([$enable_pdns_server])
-
-AS_IF([test "x$enable_pdns_server" = "xyes"],
-  [programdescend=pdns]
-)
-
-AC_SUBST(programdescend)
+AM_CONDITIONAL([WITH_PDNS_SERVER],[test "x$enable_pdns_server" != "xno"])
 
 AC_ARG_ENABLE([gcc-skip-locking],
   [AS_HELP_STRING([--enable-gcc-skip-locking],[if we should forcefully skip gcc locking @<:@default=no@:>@])],
@@ -276,6 +268,17 @@ for a in $modules $dynmodules; do
       ;;
     tinydns)
       PDNS_CHECK_CDB
+      ;;
+    geoip)
+      PDNS_CHECK_GEOIP
+      ;;
+    lua)
+      AS_IF([test "x$with_lua" = "xno"],
+        AC_MSG_ERROR([Lua backend needs lua, run ./configure --with-lua])
+      )
+      AS_IF([test "x$LUAPC" = "x"],
+        AC_MSG_ERROR([Lua backend needs lua but we cannot find it])
+      )
       ;;
   esac
 done
@@ -325,10 +328,18 @@ for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
 
+CFLAGS="$PIE_CFLAGS $CFLAGS"
+CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
+
 AC_SUBST(LIBS)
 
-AC_SUBST([AM_CPPFLAGS], ['-I$(top_builddir) -I$(top_srcdir)'])
-AC_SUBST([AM_CXXFLAGS], ['-I$(top_builddir) -I$(top_srcdir)'])
+AC_SUBST([AM_CPPFLAGS],
+  ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
+)
+
+AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
+AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
 
 export moduledirs moduleobjects modulelibs
 
@@ -337,16 +348,17 @@ AC_CONFIG_FILES([
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
-  pdns/pdns
+  pdns/pdns.init
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
-  pdns/ext/polarssl-1.3.2/Makefile
-  pdns/ext/polarssl-1.3.2/library/Makefile
+  pdns/ext/polarssl/Makefile
+  pdns/ext/polarssl/library/Makefile
   pdns/ext/rapidjson/Makefile
   modules/bindbackend/Makefile
   modules/db2backend/Makefile
   modules/geobackend/Makefile
+  modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
   modules/goraclebackend/Makefile
   modules/gpgsqlbackend/Makefile

@@ -68,8 +68,9 @@ static void quoteValue(string &value)
 }
 
 
-static string emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, int prio)
+static string emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl)
 {
+  int prio=0;
   string retval;
   g_numRecords++;
   string content(ocontent);
@@ -204,7 +205,7 @@ try
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
             while(zpt.get(rr)) 
-              lines.push_back(emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority));
+              lines.push_back(emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
             cout << "{\"name\":\"" << i->name << "\",\"records\": ";
             emitJson(lines);
             cout << "},";
@@ -234,7 +235,7 @@ try
       string zname; 
       cout << "{\"name\":\"" << ::arg()["zone-name"] << "\",\"records\":";
       while(zpt.get(rr)) 
-        lines.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.getName(), rr.content, rr.ttl, rr.priority));
+        lines.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
       emitJson(lines);
       cout << "}\n";
       num_domainsdone=1;

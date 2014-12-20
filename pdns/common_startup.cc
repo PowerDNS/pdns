@@ -21,6 +21,10 @@
 */
 #include "common_startup.hh"
 #include "ws-auth.hh"
+#include "secpoll-auth.hh"
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <boost/foreach.hpp>
 
 bool g_anyToTcp;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
@@ -34,6 +38,7 @@ CommunicatorClass Communicator;
 UDPNameserver *N;
 int avg_latency;
 TCPNameserver *TN;
+vector<DNSDistributor*> g_distributors;
 
 ArgvMap &arg()
 {
@@ -61,6 +66,7 @@ void declareArguments()
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
   ::arg().setSwitch("experimental-json-interface", "If the webserver should serve JSON data")="no";
   ::arg().setSwitch("experimental-api-readonly", "If the JSON API should disallow data modification")="no";
+  ::arg().set("experimental-api-key", "REST API Static authentication key (required for API use)")="";
   ::arg().setSwitch("experimental-dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
@@ -159,6 +165,56 @@ void declareArguments()
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
 
   ::arg().set("include-dir","Include *.conf files from this directory");
+  ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
+}
+
+static uint64_t uptimeOfProcess(const std::string& str)
+{
+  static time_t start=time(0);
+  return time(0) - start;
+}
+
+static uint64_t getSysUserTimeMsec(const std::string& str)
+{
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+
+  if(str=="sys-msec") {
+    return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+  }
+  else
+    return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+
+}
+
+static uint64_t getQCount(const std::string& str)
+try
+{
+  int totcount=0;
+  BOOST_FOREACH(DNSDistributor* d, g_distributors) {
+    if(!d)
+      continue;
+    int qcount, acount;
+    
+    d->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
+    totcount+=qcount;
+  }
+  return totcount;
+}
+catch(std::exception& e)
+{
+  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.what()<<endl;
+  return 0;
+}
+catch(PDNSException& e)
+{
+  L<<Logger::Error<<"Had error retrieving queue sizes: "<<e.reason<<endl;
+  return 0;
+}
+
+static uint64_t getLatency(const std::string& str) 
+{
+  return avg_latency;
 }
 
 void declareStats(void)
@@ -173,14 +229,16 @@ void declareStats(void)
   S.declare("udp6-answers","Number of IPv6 answers sent out over UDP");
   S.declare("udp6-queries","Number of IPv6 UDP queries received");
 
+  S.declare("rd-queries", "Number of recursion desired questions");
+  S.declare("recursion-unanswered", "Number of packets unanswered by configured recursor");
   S.declare("recursing-answers","Number of recursive answers sent out");
   S.declare("recursing-questions","Number of questions sent to recursor");
   S.declare("corrupt-packets","Number of corrupt packets received");
-
+  S.declare("signatures", "Number of DNSSEC signatures made");
   S.declare("tcp-queries","Number of TCP queries received");
   S.declare("tcp-answers","Number of answers sent out over TCP");
 
-  S.declare("qsize-q","Number of questions waiting for database attention");
+  S.declare("qsize-q","Number of questions waiting for database attention", getQCount);
 
   S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
   S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
@@ -193,22 +251,29 @@ void declareStats(void)
   S.declare("dnsupdate-refused", "DNS update packets that are refused.");
   S.declare("dnsupdate-changes", "DNS update changes to records in total.");
 
-  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("latency","Average number of microseconds needed to answer a question");
-  S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
+  S.declare("incoming-notifications", "NOTIFY packets received.");
 
+  S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
+  S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
+  S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
+  S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes);
+  S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes);
+  S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize);
+
+  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
+  S.declare("latency","Average number of microseconds needed to answer a question", getLatency);
+  S.declare("timedout-packets","Number of packets which weren't answered within timeout set");
+  S.declare("security-status", "Security status based on regular polling");
   S.declareRing("queries","UDP Queries Received");
   S.declareRing("nxdomain-queries","Queries for non-existent records within existent domains");
   S.declareRing("noerror-queries","Queries for existing records, but for type we don't have");
   S.declareRing("servfail-queries","Queries that could not be answered due to backend errors");
   S.declareRing("unauth-queries","Queries for domains that we are not authoritative for");
   S.declareRing("logmessages","Log Messages");
-  S.declareRing("remotes","Remote server IP addresses");
-  S.declareRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
-  S.declareRing("remotes-corrupt","Remote hosts sending corrupt packets");
-
+  S.declareComboRing("remotes","Remote server IP addresses");
+  S.declareComboRing("remotes-unauth","Remote hosts querying domains for which we are not auth");
+  S.declareComboRing("remotes-corrupt","Remote hosts sending corrupt packets");
 }
-
 
 int isGuarded(char **argv)
 {
@@ -225,8 +290,7 @@ void sendout(const AnswerData<DNSPacket> &AD)
   N->send(AD.A);
 
   int diff=AD.A->d_dt.udiff();
-  avg_latency=(int)(1023*avg_latency/1024+diff/1024);
-
+  avg_latency=(int)(0.999*avg_latency+0.001*diff);
   delete AD.A;  
 }
 
@@ -235,48 +299,46 @@ void *qthread(void *number)
 {
   DNSPacket *P;
   DNSDistributor *distributor = DNSDistributor::Create(::arg().asNum("distributor-threads", 1)); // the big dispatcher!
+  int num = (int)(unsigned long)number;
+  g_distributors[num] = distributor;
   DNSPacket question;
   DNSPacket cached;
 
-  unsigned int &numreceived=*S.getPointer("udp-queries");
-  unsigned int &numreceiveddo=*S.getPointer("udp-do-queries");
+  AtomicCounter &numreceived=*S.getPointer("udp-queries");
+  AtomicCounter &numreceiveddo=*S.getPointer("udp-do-queries");
 
-  unsigned int &numreceived4=*S.getPointer("udp4-queries");
+  AtomicCounter &numreceived4=*S.getPointer("udp4-queries");
 
-  unsigned int &numreceived6=*S.getPointer("udp6-queries");
+  AtomicCounter &numreceived6=*S.getPointer("udp6-queries");
 
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   bool doRecursion = ::arg().mustDo("recursor");
   bool skipfirst=true;
-  unsigned int maintcount = 0;
   UDPNameserver *NS = N;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
   // other than the first one.
   if( number != NULL && NS->canReusePort() ) {
     L<<Logger::Notice<<"Starting new listen thread on the same IPs/ports using SO_REUSEPORT"<<endl;
-    NS = new UDPNameserver( true );
+    try {
+      NS = new UDPNameserver( true );
+    } catch(PDNSException &e) {
+      L<<Logger::Error<<"Unable to reuse port, falling back to original bind"<<endl;
+      NS = N;
+    }
   }
 
   for(;;) {
+    if(!(P=NS->receive(&question))) { // receive a packet         inline
+      continue;                    // packet was broken, try again
+    }
+
     if (skipfirst)
       skipfirst=false;
     else  
       numreceived++;
 
-    if(number==0) { // only run on main thread
-      if(!((maintcount++)%250)) { // maintenance tasks - this can conceivably run infrequently
-        S.set("latency",(int)avg_latency);
-        int qcount, acount;
-        distributor->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
-        S.set("qsize-q",qcount);
-      }
-    }
-
-    if(!(P=NS->receive(&question))) { // receive a packet         inline
-      continue;                    // packet was broken, try again
-    }
 
     if(P->d_remote.getSocklen()==sizeof(sockaddr_in))
       numreceived4++;
@@ -290,7 +352,7 @@ void *qthread(void *number)
        continue;
 
     S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
-    S.ringAccount("remotes",P->getRemote());
+    S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;
       if(P->hasEDNSSubnet()) 
@@ -340,6 +402,20 @@ void *qthread(void *number)
   return 0;
 }
 
+static void* dummyThread(void *)
+{
+  void* ignore=0;
+  pthread_exit(ignore);
+}
+
+static void triggerLoadOfLibraries()
+{
+  pthread_t tid;
+  pthread_create(&tid, 0, dummyThread, 0);
+  void* res;
+  pthread_join(tid, &res);
+}
+
 void mainthread()
 {
   Utility::srandom(time(0));
@@ -355,7 +431,11 @@ void mainthread()
 
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+
+   doSecPoll(true); // this must be BEFORE chroot
+
    if(!::arg()["chroot"].empty()) {  
+     triggerLoadOfLibraries();
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
      Utility::dropGroupPrivs(newuid, newgid);
@@ -391,14 +471,21 @@ void mainthread()
   if(TN)
     TN->go(); // tcp nameserver launch
 
-  pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
   //  fork(); (this worked :-))
   unsigned int max_rthreads= ::arg().asNum("receiver-threads", 1);
+  g_distributors.resize(max_rthreads);
   for(unsigned int n=0; n < max_rthreads; ++n)
     pthread_create(&qtid,0,qthread, reinterpret_cast<void *>(n)); // receives packets
 
-  void *p;
-  pthread_join(qtid, &p);
+  pthread_create(&qtid,0,carbonDumpThread, 0); // runs even w/o carbon, might change @ runtime    
+
+  for(;;) {
+    sleep(1800);
+    try {
+      doSecPoll(false);
+    }
+    catch(...){}
+  }
   
   L<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
 }

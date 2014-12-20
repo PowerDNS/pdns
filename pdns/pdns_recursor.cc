@@ -66,7 +66,7 @@
 #include "lua-recursor.hh"
 #include "version.hh"
 #include "responsestats.hh"
-
+#include "secpoll-recursor.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
@@ -119,13 +119,21 @@ tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is f
 int g_tcpTimeout;
 unsigned int g_maxMThreads;
 struct timeval g_now; // timestamp, updated (too) frequently
-map<int, ComboAddress> g_listenSocketsAddresses; // is shared across all threads right now
+typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
+listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 
 __thread MT_t* MT; // the big MTasker
 
 unsigned int g_numThreads;
 
-#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10"
+#define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+// Bad Nets taken from both:
+// http://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml 
+// and
+// http://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+// where such a network may not be considered a valid destination
+#define BAD_NETS   "0.0.0.0/8, 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 240.0.0.0/4, ::/96, ::ffff:0:0/96, 100::/64, 2001:db8::/32"
+#define DONT_QUERY LOCAL_NETS ", " BAD_NETS
 
 //! used to send information to a newborn mthread
 struct DNSComboWriter {
@@ -268,9 +276,8 @@ static void setSocketSendBuffer(int fd, uint32_t size)
 class UDPClientSocks
 {
   unsigned int d_numsocks;
-  unsigned int d_maxsocks;
 public:
-  UDPClientSocks() : d_numsocks(0), d_maxsocks(5000)
+  UDPClientSocks() : d_numsocks(0)
   {
   }
 
@@ -501,13 +508,14 @@ void startDoResolve(void *p)
 
   try {
     loginfo=" (while setting loginfo)";
-    loginfo=" ("+dc->d_mdp.d_qname+"/"+lexical_cast<string>(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
+    loginfo=" ("+dc->d_mdp.d_qname+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
     uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo) && !dc->d_tcp) {
       maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
     }
-    
+    ComboAddress local;    
+    listenSocketsAddresses_t::const_iterator lociter;
     vector<DNSResourceRecord> ret;
     vector<uint8_t> packet;
 
@@ -548,9 +556,27 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
-      res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+    local.sin4.sin_family = dc->d_remote.sin4.sin_family;
+
+    lociter = g_listenSocketsAddresses.find(dc->d_socket);
+    if(lociter != g_listenSocketsAddresses.end()) {
+      local = lociter->second;
+    }
+    else {
+      socklen_t len = local.getSocklen();
+      getsockname(dc->d_socket, (sockaddr*)&local, &len); // if this fails, we're ok with it
+    }
+
+    // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve      
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+      try {
+        res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
+      }
+      catch(ImmediateServFailException &e) {
+        L<<Logger::Error<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+
+        res = RCode::ServFail;
+      }
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
@@ -559,12 +585,12 @@ void startDoResolve(void *p)
                   if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
                 if(i == ret.end())
-                  (*t_pdl)->nodata(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+                  (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
               }
               else if(res == RCode::NXDomain)
-          (*t_pdl)->nxdomain(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+          (*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       
-      (*t_pdl)->postresolve(dc->d_remote, g_listenSocketsAddresses[dc->d_socket], dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+      (*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
     
@@ -894,7 +920,6 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     return 0;
   }
   
-  
   if(MT->numProcesses() > g_maxMThreads) {
     g_stats.overCapacityDrops++;
     return 0;
@@ -1023,7 +1048,8 @@ void makeTCPServerSockets()
     listen(fd, 128);
     deferredAdd.push_back(make_pair(fd, handleNewTCPQuestion));
     g_tcpListenSockets.push_back(fd);
-
+    // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
+    //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET) 
       L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
@@ -1162,7 +1188,7 @@ void doStats(void)
 static void houseKeeping(void *)
 try
 {
-  static __thread time_t last_stat, last_rootupdate, last_prune;
+  static __thread time_t last_stat, last_rootupdate, last_prune, last_secpoll;
   static __thread int cleanCounter=0;
   struct timeval now;
   Utility::gettimeofday(&now, 0);
@@ -1189,13 +1215,6 @@ try
     last_prune=time(0);
   }
   
-  if(!t_id) {
-    if(now.tv_sec - last_stat >= 1800) { 
-      doStats();
-      last_stat=time(0);
-    }
-  }
-  
   if(now.tv_sec - last_rootupdate > 7200) {
     SyncRes sr(now);
     sr.setDoEDNS0(true);
@@ -1210,13 +1229,23 @@ try
     else
       L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
   }
+
+  if(!t_id) {
+    if(now.tv_sec - last_stat >= 1800) { 
+      doStats();
+      last_stat=time(0);
+    }
+
+    if(now.tv_sec - last_secpoll >= 3600) {
+      doSecPoll(&last_secpoll);
+    }
+  }
 }
 catch(PDNSException& ae)
 {
-  L<<Logger::Error<<"Fatal error: "<<ae.reason<<endl;
+  L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
   throw;
 }
-;
 
 void makeThreadPipes()
 {
@@ -1675,7 +1704,7 @@ void parseACLs()
     cleanSlashes(configname);
     
     if(!::arg().preParseFile(configname.c_str(), "allow-from-file")) 
-      L<<Logger::Warning<<"Unable to re-parse configuration file '"<<configname<<"'"<<endl;
+      throw runtime_error("Unable to re-parse configuration file '"+configname+"'");
     ::arg().preParseFile(configname.c_str(), "allow-from", LOCAL_NETS);
     ::arg().preParseFile(configname.c_str(), "include-dir");
     ::arg().preParse(g_argc, g_argv, "include-dir");
@@ -1685,8 +1714,10 @@ void parseACLs()
     ::arg().gatherIncludes(extraConfigs);
 
     BOOST_FOREACH(const std::string& fn, extraConfigs) {
-      ::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]);
-      ::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]);
+      if(!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
+	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
+      if(!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
+	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
     }
 
     ::arg().preParse(g_argc, g_argv, "allow-from-file");
@@ -1838,6 +1869,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverdownmaxfails=::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
   SyncRes::s_serverID=::arg()["server-id"];
+  SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2100,6 +2132,7 @@ int main(int argc, char **argv)
     ::arg().set("experimental-webserver-password", "Password required for accessing the webserver") = "";
     ::arg().set("webserver-allow-from","Webserver access is only allowed from these subnets")="0.0.0.0/0,::/0";
     ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
+    ::arg().set("experimental-api-key", "REST API Static authentication key (required for API use)") = "";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
     ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
@@ -2133,7 +2166,7 @@ int main(int argc, char **argv)
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
-    ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=LOCAL_NETS; 
+    ::arg().set("dont-query", "If set, do not query these netmasks for DNS data")=DONT_QUERY; 
     ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)")="0";
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
@@ -2150,12 +2183,14 @@ int main(int argc, char **argv)
 //    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no"; 
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
-    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads (EXPERIMENTAL)")="no";
+    ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
+    ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
+    ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print version string");
@@ -2181,6 +2216,9 @@ int main(int argc, char **argv)
     ::arg().parse(argc,argv);
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
+
+    if(::arg().asNum("threads")==1)
+      ::arg().set("pdns-distributes-queries")="no";
 
     if(::arg().mustDo("help")) {
       cout<<"syntax:"<<endl<<endl;

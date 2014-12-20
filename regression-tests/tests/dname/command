@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig www.d.test.com A
+cleandig www.d.test.com A dnssec

@@ -148,7 +148,6 @@ bool LUABackend::get(DNSResourceRecord &rr) {
     getValueFromTable(lua, "domain_id", rr.domain_id);
     getValueFromTable(lua, "auth", rr.auth);
     getValueFromTable(lua, "last_modified", rr.last_modified);
-    getValueFromTable(lua, "priority", rr.priority);
 
     getValueFromTable(lua, "ttl", rr.ttl);
     if (rr.ttl == 0) 

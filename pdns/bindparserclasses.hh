@@ -26,6 +26,7 @@
 #include <vector>
 #include <set>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "namespaces.hh"
 

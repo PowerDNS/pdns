@@ -20017,7 +20017,7 @@ Cexternal.example.com:somewhere.else.net.:120
 +host-9998.example.com:192.168.1.14:120
 +host-9999.example.com:192.168.1.15:120
 :hwinfo.example.com:13:\003abc\003def:120
-3ipv6.example.com:200106a80000000102104bfffe4b4c61:120
+:ipv6.example.com:28:\040\001\006\250\000\000\000\001\002\020K\377\376KLa:120
 &italy.example.com::italy-ns1.example.com.:120
 &italy.example.com::italy-ns2.example.com.:120
 +italy-ns1.example.com:192.168.5.1:120
@@ -20145,7 +20145,7 @@ Cwww.example.com:outpost.example.com.:120
 Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 &test.com::ns1.test.com.:3600
 &test.com::ns2.test.com.:3600
-@test.com::smtp-servers.example.com.:10:3600
+@test.com::..:10:3600
 @test.com::smtp-servers.test.com.:15:3600
 :_underscore.test.com:16:\030underscores\040are\040terrible:3600
 :aland.test.com:16:\016\303\205LAND\040ISLANDS:3600
@@ -20169,6 +20169,7 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 C\052.test.test.com:server1.test.com.:3600
 &sub.test.test.com::ns-test.example.net.test.com.:3600
 +www.test.test.com:4.3.2.1:3600
+Ctoroot.test.com:..:3600
 :very-long-txt.test.com:16:\377A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\030\040won\047t\040believe\040how\040long\041:3600
 Cwithin-server.test.com:outpost.example.com.:3600
 Cwww.test.com:server1.test.com.:3600
@@ -20199,8 +20200,8 @@ Ccname2.test.dyndns:host-2.test.dyndns.:3600
 #2005092501 auto axfr-get
 Zwtest.com:ns1.wtest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 +wtest.com:9.9.9.9:3600
+&wtest.com::..:3600
 &wtest.com::ns1.wtest.com.:3600
-&wtest.com::ns2.wtest.com.:3600
 @wtest.com::smtp-servers.example.com.:10:3600
 @wtest.com::smtp-servers.wtest.com.:15:3600
 C\052.wtest.com:server1.wtest.com.:3600
@@ -20211,7 +20212,6 @@ C\052.wtest.com:server1.wtest.com.:3600
 :a.b.c.d.e.wtest.com:16:\011non-empty:3600
 +\052.a.b.c.d.e.wtest.com:6.7.8.9:3600
 +ns1.wtest.com:2.3.4.5:3600
-+ns2.wtest.com:5.6.7.8:3600
 @secure.wtest.com::server1.wtest.com.:10:3600
 +server1.wtest.com:1.2.3.4:3600
 :something.wtest.com:16:\045make\040the\040empty\040non-terminal\040non-empty:3600

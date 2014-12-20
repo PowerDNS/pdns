@@ -1,12 +1,20 @@
-AM_CPPFLAGS=$(ORACLE_CFLAGS) $(THREADFLAGS) $(BOOST_CPPFLAGS)
+AM_CPPFLAGS += $(ORACLE_CFLAGS)
+
 pkglib_LTLIBRARIES = libgoraclebackend.la
 
-EXTRA_DIST=OBJECTFILES OBJECTLIBS \
-	schema.goracle.sql drop-schema.goracle.sql
+EXTRA_DIST = \
+	OBJECTFILES \
+	OBJECTLIBS \
+	drop-schema.goracle.sql \
+	schema.goracle.sql
 
-dist_doc_DATA = schema.goracle.sql drop-schema.goracle.sql
+dist_doc_DATA = \
+	drop-schema.goracle.sql \
+	schema.goracle.sql
 
-libgoraclebackend_la_SOURCES=goraclebackend.cc goraclebackend.hh \
-    soracle.hh soracle.cc
+libgoraclebackend_la_SOURCES = \
+	goraclebackend.cc goraclebackend.hh \
+	soracle.cc soracle.hh
 
-libgoraclebackend_la_LDFLAGS=-module -avoid-version $(ORACLE_LIBS)
+libgoraclebackend_la_LDFLAGS = -module -avoid-version
+libgoraclebackend_la_LIBADD = $(ORACLE_LIBS)

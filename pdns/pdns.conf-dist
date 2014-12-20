@@ -145,6 +145,11 @@
 # entropy-source=/dev/urandom
 
 #################################
+# experimental-api-key	REST API Static authentication key (required for API use)
+#
+# experimental-api-key=
+
+#################################
 # experimental-api-readonly	If the JSON API should disallow data modification
 #
 # experimental-api-readonly=no
@@ -368,6 +373,11 @@
 # reuseport	Enable higher performance on compliant kernels by using SO_REUSEPORT allowing each receiver thread to open its own socket
 #
 # reuseport=no
+
+#################################
+# security-poll-suffix	Domain name from which to query security update notifications
+#
+# security-poll-suffix=secpoll.powerdns.com.
 
 #################################
 # send-root-referral	Send out old-fashioned root-referral instead of ServFail in case of no authority

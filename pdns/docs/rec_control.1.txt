@@ -102,15 +102,18 @@ reload-zones::
 set-minimum-ttl <value>::
 	Set minimum-ttl-override.
 
-trace-regex [regex]::
-	Emit resolution trace for matching queries. Empty regex to disable trace.
-
 top-remotes::
 	Shows the top-20 most active remote hosts. Statistics are over the
 	last 'remotes-ringbuffer-entries' queries, which defaults to 0.
 
+trace-regex [regex]::
+	Emit resolution trace for matching queries. Empty regex to disable trace.
+
 unload-lua-script::
 	Unloads Lua script.
+
+version::
+	Report running version (available after 3.6.1)
 
 wipe-cache <domain0> [domain1]::
 	Wipe entries from the cache. This is useful if, for example, an

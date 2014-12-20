@@ -62,8 +62,8 @@ try
   shs.d_csp->worker(shs.d_id, shs.d_fd);
   return 0;
 }
-catch(std::exception& e) {
-  L<<Logger::Error<<"Signing thread died with error "<<e.what()<<endl;
+catch(...) {
+  L<<Logger::Error<<"unknown exception in signing thread occurred"<<endl;
   return 0;
 }
 
@@ -107,22 +107,15 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
 }
 
 namespace {
-bool dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
+bool
+dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
 {
-  if(tie(a.content, a.ttl) < tie(b.content, b.ttl))
-    return true;
-  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
-    return a.priority < b.priority;
-  return false;
+  return (tie(a.content, a.ttl) < tie(b.content, b.ttl));
 }
 
 bool dedupEqual(const DNSResourceRecord& a, const DNSResourceRecord &b)
 {
-  if(tie(a.content, a.ttl) != tie(b.content, b.ttl))
-    return false;
-  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
-    return a.priority == b.priority;
-  return true;
+  return(tie(a.content, a.ttl) == tie(b.content, b.ttl));
 }
 }
 
@@ -298,6 +291,11 @@ try
     
     writen2(fd, &chunk, sizeof(chunk));
   }
+  close(fd);
+}
+catch(PDNSException& pe)
+{
+  L<<Logger::Error<<"Signing thread died because of PDNSException: "<<pe.reason<<endl;
   close(fd);
 }
 catch(std::exception& e)

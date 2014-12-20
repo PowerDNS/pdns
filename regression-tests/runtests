@@ -60,12 +60,19 @@ do
 	else
 		$a/command > $a/real_result
 		expected=$a/expected_result
+
+		diffopts="-u"
+		if [ -e $a/expected_result.i ]; then
+			expected=$a/expected_result.i
+			diffopts="${diffopts} -i"
+		fi
+
 		for extracontext in $extracontexts
 		do
 			[ -e "$a/expected_result.$extracontext" ] && expected=$a/expected_result.$extracontext
 		done
 		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
-		diff -u $expected $a/real_result > $a/diff 2>&1
+		diff ${diffopts} $expected $a/real_result > $a/diff 2>&1
 		if [ -s $a/diff ] 
 		then
 			result="	Failed test $a"

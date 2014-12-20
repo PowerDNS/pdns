@@ -134,9 +134,6 @@ private:
 
   Semaphore numquestions;
 
-  pthread_mutex_t to_mut;
-  pthread_cond_t to_cond;
-
   int nextid;
   time_t d_last_started;
   int d_num_threads;
@@ -168,9 +165,6 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
   d_last_started=time(0);
 //  sem_init(&numquestions,0,0);
   pthread_mutex_init(&q_lock,0);
-
-  pthread_mutex_init(&to_mut,0);
-  pthread_cond_init(&to_cond,0);
 
   pthread_t tid;
   

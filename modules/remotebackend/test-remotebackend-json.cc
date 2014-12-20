@@ -1,11 +1,11 @@
 #include "pdns/namespaces.hh"
-#include <pdns/dns.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/ueberbackend.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
-#include <pdns/arguments.hh>
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 #include <boost/lexical_cast.hpp>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
@@ -43,7 +43,7 @@ struct RemotebackendSetup {
 	be = 0; 
 	try {
 		// setup minimum arguments
-		::arg().set("module-dir")="";
+		::arg().set("module-dir")="./.libs";
                 new RemoteLoader();
 		BackendMakers().launch("remote");
                 // then get us a instance of it 

@@ -8,8 +8,8 @@ def from32(str)
    str.tr("ybndrfg8ejkmcpqxot1uwisza345h769", "0123456789abcdefghijklmnopqrstuv").to_i(32)
 end
 
-def rr(qname, qtype, content, ttl, priority = 0, auth = 1)
-   {:qname => qname, :qtype => qtype, :content => content, :ttl => ttl, :priority => priority, :auth => auth}
+def rr(qname, qtype, content, ttl, auth = 1)
+   {:qname => qname, :qtype => qtype, :content => content, :ttl => ttl, :auth => auth}
 end
 
 def send_result(*params)

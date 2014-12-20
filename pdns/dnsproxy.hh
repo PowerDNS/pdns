@@ -55,6 +55,7 @@ public:
   void go(); //!< launches the actual thread
   void onlyFrom(const string &ips); //!< Only these netmasks are allowed to recurse via us
   bool sendPacket(DNSPacket *p);    //!< send out a packet and make a conntrack entry to we can send back the answer
+  bool completePacket(DNSPacket *r, const std::string& target,const std::string& aname);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
   static void *launchhelper(void *p)
@@ -66,9 +67,9 @@ public:
 private:
   NetmaskGroup d_ng;
   int d_sock;
-  unsigned int* d_resanswers;
-  unsigned int* d_udpanswers;
-  unsigned int* d_resquestions;
+  AtomicCounter* d_resanswers;
+  AtomicCounter* d_udpanswers;
+  AtomicCounter* d_resquestions;
   pthread_mutex_t d_lock;
   uint16_t d_xor;
   int getID_locked();
@@ -80,6 +81,8 @@ private:
     time_t created;
     string qname;
     uint16_t qtype;
+    DNSPacket* complete;
+    string aname;
     boost::optional<ComboAddress> anyLocal;
   };
 

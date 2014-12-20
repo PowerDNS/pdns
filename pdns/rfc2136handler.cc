@@ -693,7 +693,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
 
     TSIGRecordContent trc;
     string inputkey, message;
-    if (! p->getTSIGDetails(&trc,  &inputkey, &message)) {
+    if (! p->getTSIGDetails(&trc,  &inputkey, 0)) {
       L<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
       return RCode::Refused;
     }
@@ -791,7 +791,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
         return RCode::FormErr;
 
       if (rr->d_class == QClass::IN) {
-        rrSetKey_t key = make_pair(stripDot(rr->d_label), rr->d_type);
+        rrSetKey_t key = make_pair(stripDot(rr->d_label), QType(rr->d_type));
         rrVector_t *vec = &preReqRRsets[key];
         vec->push_back(DNSResourceRecord(*rr));
       }

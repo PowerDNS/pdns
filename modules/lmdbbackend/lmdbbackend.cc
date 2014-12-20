@@ -12,22 +12,26 @@
  * script which generates a simple zone.
  */
 
-#include <pdns/utility.hh>
-#include <pdns/dnsbackend.hh>
-#include <pdns/dns.hh>
-#include <pdns/dnspacket.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
+#include "pdns/utility.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
 #include <signal.h>
 #include "lmdbbackend.hh"
-#include <pdns/arguments.hh>
-#include <pdns/base32.hh>
+#include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/lock.hh"
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
 #else
 #define DEBUGLOG(msg) do {} while(0)
 #endif
+
+int LMDBBackend::s_reloadcount=0;
+pthread_mutex_t LMDBBackend::s_initlock = PTHREAD_MUTEX_INITIALIZER;
 
 LMDBBackend::LMDBBackend(const string &suffix)
 {
@@ -38,6 +42,7 @@ LMDBBackend::LMDBBackend(const string &suffix)
     catch (ArgException e) {
       d_doDnssec = false;
     }
+    d_lastreload = s_reloadcount;
     open_db();
 }
 
@@ -51,6 +56,8 @@ void LMDBBackend::open_db() {
     string verstring( mdb_version( &major, &minor, &patch ) );
     if( MDB_VERINT( major, minor, patch ) < MDB_VERINT( 0, 9, 8 ) )
         throw PDNSException( "LMDB Library version too old (" + verstring + "). Needs to be 0.9.8 or greater" );
+
+    Lock l(&s_initlock);
 
     if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
@@ -118,8 +125,15 @@ LMDBBackend::~LMDBBackend()
 }
 
 void LMDBBackend::reload() {
+  ++s_reloadcount;
+}
+
+void LMDBBackend::needReload() {
+  if (s_reloadcount > d_lastreload) {
+    d_lastreload = s_reloadcount;
     close_db();
     open_db();
+  }
 }
 
 bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
@@ -127,13 +141,15 @@ bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind,
   if (!d_doDnssec)
     return false;
 
+  needReload();
+
   if (kind == "PRESIGNED" || kind == "NSEC3PARAM") {
     int rc;
     MDB_val key, data;
     string key_str, cur_value;
     vector<string> valparts;
 
-    key_str=d_querykey = string( name.rbegin(), name.rend() );
+    key_str=bitFlip(labelReverse(toLower(name)))+"\xff";
     key.mv_data = (char *)key_str.c_str();
     key.mv_size = key_str.length();
 
@@ -160,6 +176,8 @@ bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType 
 {
   if (!d_doDnssec)
     return false;
+
+  needReload();
 
   MDB_val key, data;
   string key_str, cur_key, cur_value;
@@ -231,6 +249,8 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
   if (!d_doDnssec)
     return false;
 
+  needReload();
+
   int rc;
   MDB_val key, data;
   string key_str, cur_value;
@@ -268,16 +288,17 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
   return true;
 }
 
-// Get the zone name and value of the requested zone (reversed) OR the entry
-// just before where it should have been
+// Get the zone name of the requested zone (labelReversed) OR the name of the closest parrent zone
 bool LMDBBackend::getAuthZone( string &rev_zone )
 {
+    needReload();
+
     MDB_val key, data;
     // XXX can do this just using char *
 
-    string orig = rev_zone;
-    key.mv_data = (char *)rev_zone.c_str();
-    key.mv_size = rev_zone.length();
+    string key_str=bitFlip(rev_zone+" ");
+    key.mv_data = (char *)key_str.c_str();
+    key.mv_size = key_str.length();
 
     // Release our transaction and cursors in order to get latest data
     mdb_txn_reset( txn );
@@ -290,33 +311,29 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
       mdb_cursor_renew( txn, nsecx_cursor );
     }
 
-    // Find the nearest record, or the last record if none
-    if( mdb_cursor_get(zone_cursor, &key, &data, MDB_SET_RANGE) )
-        mdb_cursor_get(zone_cursor, &key, &data, MDB_LAST);
+    // Find the best record
+    if( mdb_cursor_get( zone_cursor, &key, &data, MDB_SET_RANGE ) == 0 && key.mv_size <= key_str.length() ) {
+      // Found a shorter match. Now look if the zones are equal up to key-length-1. If they are check
+      // if position key-length in key_str is a label separator. If all this is true we have a match.
+      if( key_str.compare( 0, key.mv_size-1, (const char *) key.mv_data, key.mv_size-1  ) == 0 && key.mv_size && key_str[key.mv_size-1] == ~' ') {
+        rev_zone.resize( key.mv_size-1 );
 
-    rev_zone.assign( (const char *)key.mv_data, key.mv_size );
+        DEBUGLOG("Auth key: " << rev_zone <<endl);
 
-    /* Only skip this bit if we got an exact hit on the SOA or if the key is a shoter
-     * version of rev_zone. Otherwise we have to go back to the previous record */
-    if( orig.compare( rev_zone ) != 0 ) { // FIXME detect shorter version
-        /* Skip back 1 entry to what should be a substring of what was searched
-         * for (or a totally different entry) */
-        if( mdb_cursor_get(zone_cursor, &key, &data, MDB_PREV) ) {
-            // At beginning of database; therefore didn't actually hit the
-            // record. Return false
-            return false;
-        }
-
-        rev_zone.assign( (const char *)key.mv_data, key.mv_size );
+        return true;
+      }
     }
 
-    DEBUGLOG("Auth key: " << rev_zone <<endl);
+    //reset the cursor the data in it is invallid
+    mdb_cursor_renew( txn, zone_cursor );
 
-    return true;
+    return false;
 }
 
 bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
 {
+    needReload();
+
     MDB_val key, value;
     if( mdb_cursor_get(zone_cursor, &key, &value, MDB_GET_CURRENT) )
         return false;
@@ -359,6 +376,8 @@ bool LMDBBackend::list(const string &target, int zoneId, bool include_disabled) 
 void LMDBBackend::lookup(const QType &type, const string &inQdomain, DNSPacket *p, int zoneId)
 {
     DEBUGLOG("lookup: " <<inQdomain << " " << type.getName() << endl);
+
+    needReload();
 
     d_first = true;
     d_origdomain = inQdomain;
@@ -424,7 +443,7 @@ next_record:
     string cur_value((const char *)value.mv_data, value.mv_size);
     string cur_key((const char *)key.mv_data, key.mv_size);
 
-    DEBUGLOG("querykey: " << d_querykey << "; cur_key: " <<cur_key<< "; cur_value: " << cur_value << endl);
+    DEBUGLOG("querykey: " << d_querykey << "; cur_key: " <<cur_key<< "; cur_value: '" << cur_value << "'" << endl);
 
     vector<string> keyparts, valparts;
 
@@ -447,8 +466,11 @@ next_record:
         stringtok(valparts, cur_value, "\t");
     }
 
+    if (valparts.size() != 3) // FIXME
+      valparts.push_back(".");
+
     if( keyparts.size() != 2 || valparts.size() != 3 )
-        throw PDNSException("Invalid record in record table: key: '" + cur_key + "'; value: "+ cur_value);
+        throw PDNSException("Invalid record in record table: key: '" + cur_key + "'; value: '"+ cur_value+"'");
 
     string compare_string = cur_key.substr(0, d_searchkey.length());
     DEBUGLOG( "searchkey: " << d_searchkey << "; compare: " << compare_string << ";" << endl);
@@ -500,16 +522,7 @@ next_record:
 
     rr.domain_id = domain_id;
     rr.ttl = atoi( valparts[1].c_str() );
-
-    if( rr.qtype.getCode() != QType::MX && rr.qtype.getCode() != QType::SRV )
-        rr.content = valparts[2];
-    else {
-        // split out priority field
-        string::size_type pos = valparts[2].find_first_of(" ", 0);
-
-        rr.priority = atoi( valparts[2].substr(0, pos).c_str() );
-        rr.content = valparts[2].substr(pos+1, valparts[2].length());
-    }
+    rr.content = valparts[2];
 
     return true;
 }

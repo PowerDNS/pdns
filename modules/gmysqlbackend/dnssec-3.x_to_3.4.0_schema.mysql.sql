@@ -10,8 +10,12 @@ ALTER TABLE records MODIFY auth TINYINT(1) DEFAULT 1;
 ALTER TABLE records MODIFY type VARCHAR(10);
 ALTER TABLE supermasters MODIFY ip VARCHAR(64) NOT NULL;
 ALTER TABLE supermasters ADD PRIMARY KEY(ip, nameserver);
+ALTER TABLE supermasters MODIFY account VARCHAR(40) NOT NULL;
 ALTER TABLE domainmetadata MODIFY kind VARCHAR(32);
 ALTER TABLE tsigkeys MODIFY algorithm VARCHAR(50);
+ALTER TABLE domainmetadata ENGINE=InnoDB;
+ALTER TABLE cryptokeys ENGINE=InnoDB;
+ALTER TABLE tsigkeys ENGINE=InnoDB;
 
 DROP INDEX domainmetaidindex ON domainmetadata;
 CREATE INDEX domainmetadata_idx ON domainmetadata (domain_id, kind);

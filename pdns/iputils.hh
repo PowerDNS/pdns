@@ -110,6 +110,23 @@ union ComboAddress {
     sin4.sin_port=0;
   }
 
+  ComboAddress(const struct sockaddr *sa, socklen_t salen) {
+    setSockaddr(sa, salen);
+  };
+
+  ComboAddress(const struct sockaddr_in6 *sa) {
+    setSockaddr((const struct sockaddr*)sa, sizeof(struct sockaddr_in6));
+  };
+
+  ComboAddress(const struct sockaddr_in *sa) {
+    setSockaddr((const struct sockaddr*)sa, sizeof(struct sockaddr_in));
+  };
+
+  void setSockaddr(const struct sockaddr *sa, socklen_t salen) {
+    if (salen > sizeof(struct sockaddr_in6)) throw PDNSException("ComboAddress can't handle other than sockaddr_in or sockaddr_in6");
+    memcpy(this, sa, salen);
+  }
+
   // 'port' sets a default value in case 'str' does not set a port
   explicit ComboAddress(const string& str, uint16_t port=0)
   {
@@ -303,6 +320,14 @@ public:
   int getBits() const
   {
     return d_bits;
+  }
+  bool isIpv6() const 
+  {
+    return d_network.sin6.sin6_family == AF_INET6;
+  }
+  bool isIpv4() const
+  {
+    return d_network.sin4.sin_family == AF_INET;
   }
 private:
   ComboAddress d_network;

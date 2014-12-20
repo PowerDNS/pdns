@@ -27,7 +27,7 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
     [have_system_polarssl=no]
   )
 
-  POLARSSL_SUBDIR=polarssl-1.3.2
+  POLARSSL_SUBDIR=polarssl
   POLARSSL_CFLAGS=-I\$\(top_srcdir\)/pdns/ext/$POLARSSL_SUBDIR/include/
   POLARSSL_LIBS="-L\$(top_builddir)/pdns/ext/$POLARSSL_SUBDIR/library/ -lpolarssl"
 
@@ -35,6 +35,7 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
     POLARSSL_CFLAGS=
     POLARSSL_LIBS=-lpolarssl
     POLARSSL_SUBDIR=
+    AC_DEFINE([POLARSSL_SYSTEM], [1], [Defined if system PolarSSL is used])
     ],[
     AS_IF([test "x$with_system_polarssl" = "xyes"],[
       AC_MSG_ERROR([use of system polarssl requested but not found])]

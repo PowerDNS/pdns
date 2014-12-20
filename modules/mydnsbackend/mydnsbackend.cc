@@ -27,14 +27,14 @@
 
 #include "pdns/namespaces.hh"
 
-#include <pdns/dns.hh>
-#include <pdns/dnsbackend.hh>
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
 #include "mydnsbackend.hh"
-#include <pdns/dnspacket.hh>
-#include <pdns/ueberbackend.hh>
-#include <pdns/pdnsexception.hh>
-#include <pdns/logger.hh>
-#include <pdns/arguments.hh>
+#include "pdns/dnspacket.hh"
+#include "pdns/ueberbackend.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include "pdns/arguments.hh"
 
 #include <modules/gmysqlbackend/smysql.hh>
 
@@ -59,8 +59,8 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
 
         d_rrtable=getArg("rr-table");
         d_soatable=getArg("soa-table");
-        d_rrwhere=(mustDo("rr-active")?"active = 1 and ":"")+getArg("rr-where");
-        d_soawhere=(mustDo("soa-active")?"active = 1 and ":"")+getArg("soa-where");
+        d_rrwhere=(mustDo("rr-active")?"(active = '1' or active = 'Y') and ":"")+getArg("rr-where");
+        d_soawhere=(mustDo("soa-active")?"(active = '1' or active = 'Y') and ":"")+getArg("soa-where");
         d_useminimalttl=mustDo("use-minimal-ttl");
         d_minimum=0;
 
@@ -303,34 +303,34 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         	rr.qname=d_qname;
         } else {
         	rr.qname=rrow[5];
-        	if (rr.qname[rr.qname.length()-1] == '.') {
+        	if (!rr.qname.empty() && rr.qname[rr.qname.length()-1] == '.') {
         		rr.qname.erase(rr.qname.length()-1); // Fully qualified, nuke the last .
         	} else {
         		if (!rr.qname.empty())
         			rr.qname += ".";
         		rr.qname += d_origin; // Not fully qualified
         	}
-
         }
 
-        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
-                rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
-        	if (rr.content[rr.content.length()-1] == '.') {
-        		rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
+        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX ||
+        	rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
+        	if (!rr.content.empty() && rr.content[rr.content.length()-1] == '.') {
+        		if (rr.content.length() > 1)
+        			rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
         	} else {
-        		if (!rr.content.empty())
+        		if (rr.content != ".")
         			rr.content += ".";
         		rr.content += d_origin;
         	}
         }
 
-        rr.priority = atol(rrow[2].c_str());
+        if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
+        	rr.content=rrow[2]+" "+rr.content;
         rr.ttl = atol(rrow[3].c_str());
         if (d_useminimalttl && rr.ttl < d_minimum)
         	rr.ttl = d_minimum;
         rr.domain_id=atol(rrow[4].c_str());
 
-  
         rr.last_modified=0;
 
         return true;

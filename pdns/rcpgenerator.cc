@@ -62,7 +62,8 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
     throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
 
   char *endptr;
-  unsigned long ret=strtoul(d_string.c_str() + d_pos, &endptr, 10);
+  unsigned long ret=pdns_strtoui(d_string.c_str() + d_pos, &endptr, 10);
+  if (ret == UINT_MAX && errno == ERANGE) throw RecordTextException("serial number too large in '"+d_string+"'");
   val=ret;
   
   d_pos = endptr - d_string.c_str();
@@ -135,9 +136,9 @@ void RecordTextReader::xfrIP6(std::string &val)
   skipSpaces();
   
   size_t len;
-  // lookup end of value
+  // lookup end of value - think of ::ffff encoding too, has dots in it!
   for(len=0; 
-    d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');
+      d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':' || d_string.at(d_pos+len)=='.');
     len++);
 
   if(!len)
