@@ -903,6 +903,7 @@ pdns_recursor_SOURCES = \
 	mtasker.hh \
 	nsecrecords.cc \
 	pdns_recursor.cc \
+	pubsuffix.cc \
 	qtype.cc \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
@@ -980,6 +981,9 @@ dist_host = $(build_host)
 endif
 
 version.o: version_generated.h
+
+pubsuffix.cc: effective_tld_names.dat
+	./mkpubsuffixcc
 
 .PHONY: version_generated.h
 version_generated.h:

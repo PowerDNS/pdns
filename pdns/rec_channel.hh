@@ -41,4 +41,5 @@ private:
 
 std::map<std::string, std::string> getAllStatsMap();
 extern pthread_mutex_t g_carbon_config_lock;
+void sortPublicSuffixList();
 #endif 

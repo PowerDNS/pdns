@@ -81,7 +81,8 @@ bool g_logCommonErrors;
 bool g_anyToTcp;
 uint16_t g_udpTruncationThreshold;
 __thread shared_ptr<RecursorLua>* t_pdl;
-__thread RemoteKeeper* t_remotes;
+__thread boost::circular_buffer<ComboAddress>* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
+__thread boost::circular_buffer<pair<std::string, uint16_t> >* t_queryring, *t_servfailqueryring;
 __thread shared_ptr<Regex>* t_traceRegex;
 
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -484,10 +485,18 @@ TCPConnection::~TCPConnection()
 AtomicCounter TCPConnection::s_currentConnections; 
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
-void updateRcodeStats(int res)
+// the idea is, only do things that depend on the *response* here. Incoming accounting is on incoming.
+void updateResponseStats(int res, const ComboAddress& remote, unsigned int packetsize, const std::string* query, uint16_t qtype)
 {
+  if(packetsize > 1000 && t_largeanswerremotes)
+    t_largeanswerremotes->push_back(remote);
   switch(res) {
   case RCode::ServFail:
+    if(t_servfailremotes) {
+      t_servfailremotes->push_back(remote);
+      if(query) // packet cache
+	t_servfailqueryring->push_back(make_pair(*query, qtype));
+    }
     g_stats.servFails++;
     break;
   case RCode::NXDomain:
@@ -507,6 +516,8 @@ void startDoResolve(void *p)
   string loginfo="";
 
   try {
+    t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
+
     loginfo=" (while setting loginfo)";
     loginfo=" ("+dc->d_mdp.d_qname+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
     uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
@@ -620,7 +631,7 @@ void startDoResolve(void *p)
     }
     else {
       pw.getHeader()->rcode=res;
-      updateRcodeStats(res);
+
       
       if(ret.size()) {
         orderAndShuffle(ret);
@@ -651,6 +662,7 @@ void startDoResolve(void *p)
     }
   sendit:;
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
+    updateResponseStats(res, dc->d_remote, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
     if(!dc->d_tcp) {
       sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
       if(!SyncRes::s_nopacketcache && !variableAnswer ) {
@@ -862,7 +874,8 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
       return;
     }
 
-    t_remotes->addRemote(addr);
+    if(t_remotes)
+      t_remotes->push_back(addr);
     if(t_allowFrom && !t_allowFrom->match(&addr)) {
       if(!g_quiet) 
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
@@ -901,6 +914,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
         L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+      // t_queryring->push_back("packetcached");
       
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -909,7 +923,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader dh;
         memcpy(&dh, response.c_str(), sizeof(dh));
-        updateRcodeStats(dh.rcode);
+        updateResponseStats(dh.rcode, fromaddr, response.length(), 0, 0);
       }
       g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + 0.0; // we assume 0 usec
       return 0;
@@ -942,7 +956,8 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   socklen_t addrlen=sizeof(fromaddr);
   
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
-    t_remotes->addRemote(fromaddr);
+    if(t_remotes)
+      t_remotes->push_back(fromaddr);
 
     if(t_allowFrom && !t_allowFrom->match(&fromaddr)) {
       if(!g_quiet) 
@@ -1356,6 +1371,13 @@ vector<ComboAddress>& operator+=(vector<ComboAddress>&a, const vector<ComboAddre
   return a;
 }
 
+vector<pair<string, uint16_t> >& operator+=(vector<pair<string, uint16_t> >&a, const vector<pair<string, uint16_t> >& b)
+{
+  a.insert(a.end(), b.begin(), b.end());
+  return a;
+}
+
+
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf)
 {
   unsigned int n = 0;
@@ -1398,6 +1420,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
 template string broadcastAccFunction(const boost::function<string*()>& fun, bool skipSelf); // explicit instantiation
 template uint64_t broadcastAccFunction(const boost::function<uint64_t*()>& fun, bool skipSelf); // explicit instantiation
 template vector<ComboAddress> broadcastAccFunction(const boost::function<vector<ComboAddress> *()>& fun, bool skipSelf); // explicit instantiation
+template vector<pair<string,uint16_t> > broadcastAccFunction(const boost::function<vector<pair<string, uint16_t> > *()>& fun, bool skipSelf); // explicit instantiation
 
 void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
 {
@@ -1793,7 +1816,8 @@ int serviceMain(int argc, char*argv[])
   g_disthashseed=dns_random(0xffffffff);
 
   parseACLs();
-  
+  sortPublicSuffixList();
+
   if(!::arg()["dont-query"].empty()) {
     g_dontQuery=new NetmaskGroup;
     vector<string> ips;
@@ -1985,14 +2009,21 @@ try
   }
   
   t_traceRegex = new shared_ptr<Regex>();
-  
-  
-  t_remotes = new RemoteKeeper();
-  t_remotes->remotes.resize(::arg().asNum("remotes-ringbuffer-entries") / g_numThreads); 
-  
-  if(!t_remotes->remotes.empty())
-    memset(&t_remotes->remotes[0], 0, t_remotes->remotes.size() * sizeof(RemoteKeeper::remotes_t::value_type));
-  
+  unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numThreads;
+  if(ringsize) {
+    t_remotes = new boost::circular_buffer<ComboAddress>();
+    t_remotes->set_capacity(ringsize);   
+    t_servfailremotes = new boost::circular_buffer<ComboAddress>();
+    t_servfailremotes->set_capacity(ringsize);   
+    t_largeanswerremotes = new boost::circular_buffer<ComboAddress>();
+    t_largeanswerremotes->set_capacity(ringsize);   
+
+
+    t_queryring = new boost::circular_buffer<pair<string, uint16_t> >();
+    t_queryring->set_capacity(ringsize);   
+    t_servfailqueryring = new boost::circular_buffer<pair<string, uint16_t> >();
+    t_servfailqueryring->set_capacity(ringsize);   
+  }
   
   MT=new MTasker<PacketID,string>(::arg().asNum("stack-size"));
   
@@ -2161,7 +2192,7 @@ int main(int argc, char **argv)
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache")="500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache")="60";
     ::arg().set("server-id", "Returned when queried for 'server.id' TXT or NSID, defaults to hostname")="";
-    ::arg().set("remotes-ringbuffer-entries", "maximum number of packets to store statistics for")="0";
+    ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for")="10000";
     ::arg().set("version-string", "string reported on version.pdns or version.bind")=fullVersionString();
     ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse")=LOCAL_NETS;
     ::arg().set("allow-from-file", "If set, load allowed netmasks from this file")="";

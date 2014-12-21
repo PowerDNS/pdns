@@ -24,7 +24,7 @@
 #include "responsestats.hh"
 #include "version_generated.h"
 #include "secpoll-recursor.hh"
-
+#include "pubsuffix.hh"
 #include "namespaces.hh"
 pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 
@@ -590,25 +590,87 @@ static void doExitNicely()
   doExitGeneric(true);
 }
 
-vector<ComboAddress>* pleaseGetRemotes()
+vector<pair<string, uint16_t> >* pleaseGetQueryRing()
 {
-  return new vector<ComboAddress>(t_remotes->remotes);
+  typedef pair<string,uint16_t> query_t;
+  vector<query_t >* ret = new vector<query_t>();
+  if(!t_queryring)
+    return ret;
+  ret->reserve(t_queryring->size());
+
+  BOOST_FOREACH(const query_t& q, *t_queryring) {
+    ret->push_back(q);
+  }
+  return ret;
+}
+vector<pair<string,uint16_t> >* pleaseGetServfailQueryRing()
+{
+  typedef pair<string,uint16_t> query_t;
+  vector<query_t>* ret = new vector<query_t>();
+  if(!t_servfailqueryring)
+    return ret;
+  ret->reserve(t_queryring->size());
+  BOOST_FOREACH(const query_t& q, *t_servfailqueryring) {
+    ret->push_back(q);
+  }
+  return ret;
 }
 
-string doTopRemotes()
+
+
+typedef boost::function<vector<ComboAddress>*()> pleaseremotefunc_t;
+typedef boost::function<vector<pair<string,uint16_t> >*()> pleasequeryfunc_t;
+
+vector<ComboAddress>* pleaseGetRemotes()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_remotes)
+    return ret;
+
+  ret->reserve(t_remotes->size());
+  BOOST_FOREACH(const ComboAddress& ca, *t_remotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
+vector<ComboAddress>* pleaseGetServfailRemotes()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_servfailremotes)
+    return ret;
+  ret->reserve(t_remotes->size());
+  BOOST_FOREACH(const ComboAddress& ca, *t_servfailremotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
+vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
+{
+  vector<ComboAddress>* ret = new vector<ComboAddress>();
+  if(!t_largeanswerremotes)
+    return ret;
+  ret->reserve(t_remotes->size());
+  BOOST_FOREACH(const ComboAddress& ca, *t_largeanswerremotes) {
+    ret->push_back(ca);
+  }
+  return ret;
+}
+
+string doGenericTopRemotes(pleaseremotefunc_t func)
 {
   typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
   counts_t counts;
 
-  vector<ComboAddress> remotes=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
+  vector<ComboAddress> remotes=broadcastAccFunction<vector<ComboAddress> >(func);
     
   unsigned int total=0;
-  for(RemoteKeeper::remotes_t::const_iterator i = remotes.begin(); i != remotes.end(); ++i)
-    if(i->sin4.sin_family) {
-      total++;
-      counts[*i]++;
-    }
-
+  BOOST_FOREACH(const ComboAddress& ca, remotes) {
+    total++;
+    counts[ca]++;
+  }
+  
   typedef std::multimap<int, ComboAddress> rcounts_t;
   rcounts_t rcounts;
   
@@ -616,13 +678,107 @@ string doTopRemotes()
     rcounts.insert(make_pair(-i->second, i->first));
 
   ostringstream ret;
-  ret<<"Over last "<<total<<" queries:\n";
+  ret<<"Over last "<<total<<" entries:\n";
   format fmt("%.02f%%\t%s\n");
-  int limit=0;
-  if(total)
-    for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit)
+  int limit=0, accounted=0;
+  if(total) {
+    for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
       ret<< fmt % (-100.0*i->first/total) % i->second.toString();
+      accounted+= -i->first;
+    }
+    ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
+  }
+  return ret.str();
+}
 
+namespace {
+  typedef vector<vector<string> > pubs_t;
+  pubs_t g_pubs;
+}
+
+void sortPublicSuffixList()
+{
+  for(const char** p=&g_pubsuffix; *p; ++p) {
+    string low=toLower(*p);
+
+    vector<string> parts;
+    stringtok(parts, low, ".");
+    reverse(parts.begin(), parts.end());
+    g_pubs.push_back(parts);
+  }
+  sort(g_pubs.begin(), g_pubs.end());
+}
+
+
+static string getRegisteredName(const std::string& dom)
+{
+  vector<string> parts;
+  stringtok(parts, dom, ".");
+  if(parts.size()<=2)
+    return dom;
+  reverse(parts.begin(), parts.end());
+  BOOST_FOREACH(string& str, parts) { str=toLower(str); };
+
+  pubs_t::const_iterator iter = lower_bound(g_pubs.begin(), g_pubs.end(), parts);
+  if(iter != g_pubs.end()) {
+    if(iter != g_pubs.begin())
+      --iter;
+
+    if(iter->size() < parts.size()) {
+      unsigned int n;
+      for(n=0; n < iter->size(); ++n)
+	if((*iter)[n] != parts[n])
+	  break;
+      if(n==iter->size()) {
+	string ret;
+	for(unsigned int n=iter->size()+1;n;++iter,--n) {
+	  ret+=parts[n-1]+".";
+	}
+	return ret;
+      } 
+    }
+  }
+ 
+  return parts[1]+"."+parts[0]+".";
+}
+
+static string nopFilter(const std::string& str)
+{
+  return str;
+}
+
+string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const std::string&)> filter=nopFilter)
+{
+  typedef pair<string,uint16_t> query_t;
+  typedef map<query_t, int> counts_t;
+  counts_t counts;
+  vector<query_t> queries=broadcastAccFunction<vector<query_t> >(func);
+    
+  unsigned int total=0;
+  BOOST_FOREACH(const query_t& q, queries) {
+    total++;
+    counts[make_pair(toLower(filter(q.first)),q.second)]++;
+  }
+
+  typedef std::multimap<int, query_t> rcounts_t;
+  rcounts_t rcounts;
+  
+  for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
+    rcounts.insert(make_pair(-i->second, i->first));
+
+  ostringstream ret;
+  ret<<"Over last "<<total<<" entries:\n";
+  format fmt("%.02f%%\t%s\n");
+  int limit=0, accounted=0;
+  if(total) {
+    for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
+      ret<< fmt % (-100.0*i->first/total) % (i->second.first+"|"+DNSRecordContent::NumberToType(i->second.second));
+      accounted+= -i->first;
+    }
+    ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
+  }
+
+  
   return ret.str();
 }
 
@@ -665,7 +821,11 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "set-minimum-ttl value            set mininum-ttl-override\n"
 "set-carbon-server                set a carbon server for telemetry\n"
 "trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
+"top-largeanswer-remotes          show top remotes receiving large answers\n"
+"top-queries                      show top queries\n"
 "top-remotes                      show top remotes\n"
+"top-servfail-queries             show top queries receiving servfail answers\n"
+"top-servfail-remotes             show top remotes receiving servfail answers\n"
 "unload-lua-script                unload Lua script\n"
 "version                          return Recursor version number\n"
 "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n";
@@ -739,7 +899,28 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
 
   if(cmd=="top-remotes")
-    return doTopRemotes();
+    return doGenericTopRemotes(pleaseGetRemotes);
+
+  if(cmd=="top-queries")
+    return doGenericTopQueries(pleaseGetQueryRing);
+
+  if(cmd=="top-pub-queries")
+    return doGenericTopQueries(pleaseGetQueryRing, getRegisteredName);
+
+
+  if(cmd=="top-servfail-queries")
+    return doGenericTopQueries(pleaseGetServfailQueryRing);
+
+  if(cmd=="top-pub-servfail-queries")
+    return doGenericTopQueries(pleaseGetServfailQueryRing, getRegisteredName);
+
+
+  if(cmd=="top-servfail-remotes")
+    return doGenericTopRemotes(pleaseGetServfailRemotes);
+
+  if(cmd=="top-largeanswer-remotes")
+    return doGenericTopRemotes(pleaseGetLargeAnswerRemotes);
+
 
   if(cmd=="current-queries")
     return doCurrentQueries();

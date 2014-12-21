@@ -11,6 +11,7 @@
 #include <utility>
 #include "misc.hh"
 #include "lwres.hh"
+#include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
 #include "sstuff.hh"
 #include "recursor_cache.hh"
@@ -602,20 +603,9 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
-struct RemoteKeeper
-{
-  typedef vector<ComboAddress> remotes_t;
-  remotes_t remotes;
-  int d_remotepos;
-  void addRemote(const ComboAddress& remote)
-  {
-    if(!remotes.size())
-      return;
 
-    remotes[(d_remotepos++) % remotes.size()]=remote;
-  }
-};
-extern __thread RemoteKeeper* t_remotes;
+extern __thread boost::circular_buffer<ComboAddress>* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
+extern __thread boost::circular_buffer<pair<std::string,uint16_t> >* t_queryring, *t_servfailqueryring;
 extern __thread NetmaskGroup* t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);

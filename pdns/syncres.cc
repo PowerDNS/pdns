@@ -466,8 +466,10 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
   ret_t ret;
 
   QType type;
-  for(int j=1-s_doIPv6; j<2+s_doIPv6; j++)
+
+  for(int j=1; j<2+s_doIPv6; j++)
   {
+    set<GetBestNSAnswer> rbeenthere(beenthere);
     bool done=false;
     // j=0: ANY
     // j=1: A
@@ -485,11 +487,11 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
         break;
     }
 
-    if(!doResolve(qname, type, res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
+    if(!doResolve(qname, type, res,depth+1, rbeenthere) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
           ret.push_back(ComboAddress(i->content, 53));
-          if(!j) done=true;
+          done=true;
         }
       }
     }
@@ -574,7 +576,7 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
       }
     }
     LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
-    if(subdomain==".") { primeHints(); }
+    // if(subdomain==".") { primeHints(); }
   }while(chopOffDotted(subdomain));
 }
 
@@ -880,7 +882,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           pierceDontQuery=true;
         }
         else {
-          remoteIPs=getAddrs(*tns, depth+2, beenthere);
+          remoteIPs=getAddrs(*tns, depth+1, beenthere);
           pierceDontQuery=false;
         }
 
@@ -903,7 +905,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
 
         for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
+          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<" "<<depth<<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
           extern NetmaskGroup* g_dontQuery;
           
           if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0))) {
@@ -962,6 +964,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               }
               continue;
             }
+
+	    if(d_timeouts + 0.5*d_throttledqueries > 6.0 && d_timeouts > 2) throw ImmediateServFailException("Too much work resolving "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries));
 
             if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
               LOG(prefix<<qname<<": "<<*tns<<" returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);

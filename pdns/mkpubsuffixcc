@@ -1,0 +1,8 @@
+#!/bin/sh
+
+(echo "const char* g_pubsuffix[]={"; 
+	for a in $(grep -v "//" effective_tld_names.dat  | grep \\. | egrep "^[.0-9a-z-]*$")
+	do 
+		echo \"$a\",
+	done 
+echo "0};") > pubsuffix.cc
