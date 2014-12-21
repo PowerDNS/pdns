@@ -1,6 +1,6 @@
 // utf-8 UTF-8 utf8 UTF8
 extern "C" {
-#include "ed25519/crypto_sign.h"
+#include "ext/ed25519/crypto_sign.h"
 }
 #include "dnssecinfra.hh"
 #include <boost/scoped_ptr.hpp>
