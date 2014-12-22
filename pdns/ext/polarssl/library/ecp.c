@@ -495,7 +495,7 @@ int ecp_point_read_binary( const ecp_group *grp, ecp_point *pt,
     int ret;
     size_t plen;
 
-    if ( ilen < 1 )
+    if( ilen < 1 )
         return( POLARSSL_ERR_ECP_BAD_INPUT_DATA );
 
     if( buf[0] == 0x00 )
@@ -952,7 +952,9 @@ static int ecp_double_jac( const ecp_group *grp, ecp_point *R,
         MOD_SUB( X3 );
     }
     else
+    {
         MPI_CHK( mpi_mul_mpi( &X3,  &X3,    &grp->A ) ); MOD_MUL( X3 );
+    }
 
     MPI_CHK( mpi_add_mpi( &T3,  &T3,    &X3     ) ); MOD_ADD( T3 );
     MPI_CHK( mpi_mul_mpi( &X3,  &T3,    &T3     ) ); MOD_MUL( X3 );

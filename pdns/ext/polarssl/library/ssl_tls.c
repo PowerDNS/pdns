@@ -991,18 +991,15 @@ static void ssl_mac( md_context_t *md_ctx, unsigned char *secret,
 {
     unsigned char header[11];
     unsigned char padding[48];
-    int padlen = 0;
+    int padlen;
     int md_size = md_get_size( md_ctx->md_info );
     int md_type = md_get_type( md_ctx->md_info );
 
+    /* Only MD5 and SHA-1 supported */
     if( md_type == POLARSSL_MD_MD5 )
         padlen = 48;
-    else if( md_type == POLARSSL_MD_SHA1 )
+    else
         padlen = 40;
-    else if( md_type == POLARSSL_MD_SHA256 )
-        padlen = 32;
-    else if( md_type == POLARSSL_MD_SHA384 )
-        padlen = 16;
 
     memcpy( header, ctr, 8 );
     header[ 8] = (unsigned char)  type;
@@ -2230,10 +2227,6 @@ int ssl_read_record( ssl_context *ssl )
         {
             SSL_DEBUG_MSG( 1, ( "is a fatal alert message (msg %d)",
                            ssl->in_msg[1] ) );
-            /**
-             * Subtract from error code as ssl->in_msg[1] is 7-bit positive
-             * error identifier.
-             */
             return( POLARSSL_ERR_SSL_FATAL_ALERT_MESSAGE );
         }
 
@@ -3345,7 +3338,7 @@ static int ssl_handshake_init( ssl_context *ssl )
             (ssl_session *) polarssl_malloc( sizeof(ssl_session) );
     }
 
-    if( ssl->handshake == NULL)
+    if( ssl->handshake == NULL )
     {
         ssl->handshake = (ssl_handshake_params *)
             polarssl_malloc( sizeof(ssl_handshake_params) );
@@ -4174,8 +4167,6 @@ static int ssl_write_hello_request( ssl_context *ssl )
         return( ret );
     }
 
-    ssl->renegotiation = SSL_RENEGOTIATION_PENDING;
-
     SSL_DEBUG_MSG( 2, ( "<= write hello request" ) );
 
     return( 0 );
@@ -4184,10 +4175,10 @@ static int ssl_write_hello_request( ssl_context *ssl )
 
 /*
  * Actually renegotiate current connection, triggered by either:
- * - calling ssl_renegotiate() on client,
- * - receiving a HelloRequest on client during ssl_read(),
- * - receiving any handshake message on server during ssl_read() after the
- *   initial handshake is completed
+ * - any side: calling ssl_renegotiate(),
+ * - client: receiving a HelloRequest during ssl_read(),
+ * - server: receiving any handshake message on server during ssl_read() after
+ *   the initial handshake is completed.
  * If the handshake doesn't complete due to waiting for I/O, it will continue
  * during the next calls to ssl_renegotiate() or ssl_read() respectively.
  */
@@ -4229,6 +4220,12 @@ int ssl_renegotiate( ssl_context *ssl )
         if( ssl->state != SSL_HANDSHAKE_OVER )
             return( POLARSSL_ERR_SSL_BAD_INPUT_DATA );
 
+        ssl->renegotiation = SSL_RENEGOTIATION_PENDING;
+
+        /* Did we already try/start sending HelloRequest? */
+        if( ssl->out_left != 0 )
+            return( ssl_flush_output( ssl ) );
+
         return( ssl_write_hello_request( ssl ) );
     }
 #endif /* POLARSSL_SSL_SRV_C */
@@ -4267,14 +4264,19 @@ int ssl_renegotiate( ssl_context *ssl )
  */
 int ssl_read( ssl_context *ssl, unsigned char *buf, size_t len )
 {
-    int ret;
+    int ret, record_read = 0;
     size_t n;
 
     SSL_DEBUG_MSG( 2, ( "=> read" ) );
 
     if( ssl->state != SSL_HANDSHAKE_OVER )
     {
-        if( ( ret = ssl_handshake( ssl ) ) != 0 )
+        ret = ssl_handshake( ssl );
+        if( ret == POLARSSL_ERR_SSL_WAITING_SERVER_HELLO_RENEGO )
+        {
+            record_read = 1;
+        }
+        else if( ret != 0 )
         {
             SSL_DEBUG_RET( 1, "ssl_handshake", ret );
             return( ret );
@@ -4283,13 +4285,16 @@ int ssl_read( ssl_context *ssl, unsigned char *buf, size_t len )
 
     if( ssl->in_offt == NULL )
     {
-        if( ( ret = ssl_read_record( ssl ) ) != 0 )
+        if( ! record_read )
         {
-            if( ret == POLARSSL_ERR_SSL_CONN_EOF )
-                return( 0 );
+            if( ( ret = ssl_read_record( ssl ) ) != 0 )
+            {
+                if( ret == POLARSSL_ERR_SSL_CONN_EOF )
+                    return( 0 );
 
-            SSL_DEBUG_RET( 1, "ssl_read_record", ret );
-            return( ret );
+                SSL_DEBUG_RET( 1, "ssl_read_record", ret );
+                return( ret );
+            }
         }
 
         if( ssl->in_msglen  == 0 &&
@@ -4359,14 +4364,22 @@ int ssl_read( ssl_context *ssl, unsigned char *buf, size_t len )
             }
             else
             {
-                if( ( ret = ssl_start_renegotiation( ssl ) ) != 0 )
+                ret = ssl_start_renegotiation( ssl );
+                if( ret == POLARSSL_ERR_SSL_WAITING_SERVER_HELLO_RENEGO )
+                {
+                    record_read = 1;
+                }
+                else if( ret != 0 )
                 {
                     SSL_DEBUG_RET( 1, "ssl_start_renegotiation", ret );
                     return( ret );
                 }
-
-                return( POLARSSL_ERR_NET_WANT_READ );
             }
+
+            /* If a non-handshake record was read during renego, fallthrough,
+             * else tell the user they should call ssl_read() again */
+            if( ! record_read )
+                return( POLARSSL_ERR_NET_WANT_READ );
         }
         else if( ssl->renegotiation == SSL_RENEGOTIATION_PENDING )
         {
@@ -4380,7 +4393,15 @@ int ssl_read( ssl_context *ssl, unsigned char *buf, size_t len )
                 return( POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE );
             }
         }
-        else if( ssl->in_msgtype != SSL_MSG_APPLICATION_DATA )
+
+        /* Fatal and closure alerts handled by ssl_read_record() */
+        if( ssl->in_msgtype == SSL_MSG_ALERT )
+        {
+            SSL_DEBUG_MSG( 2, ( "ignoring non-fatal non-closure alert" ) );
+            return( POLARSSL_ERR_NET_WANT_READ );
+        }
+
+        if( ssl->in_msgtype != SSL_MSG_APPLICATION_DATA )
         {
             SSL_DEBUG_MSG( 1, ( "bad application data message" ) );
             return( POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE );
@@ -4480,11 +4501,8 @@ int ssl_close_notify( ssl_context *ssl )
 
     SSL_DEBUG_MSG( 2, ( "=> write close notify" ) );
 
-    if( ( ret = ssl_flush_output( ssl ) ) != 0 )
-    {
-        SSL_DEBUG_RET( 1, "ssl_flush_output", ret );
-        return( ret );
-    }
+    if( ssl->out_left != 0 )
+        return( ssl_flush_output( ssl ) );
 
     if( ssl->state == SSL_HANDSHAKE_OVER )
     {
@@ -4492,13 +4510,14 @@ int ssl_close_notify( ssl_context *ssl )
                         SSL_ALERT_LEVEL_WARNING,
                         SSL_ALERT_MSG_CLOSE_NOTIFY ) ) != 0 )
         {
+            SSL_DEBUG_RET( 1, "ssl_send_alert_message", ret );
             return( ret );
         }
     }
 
     SSL_DEBUG_MSG( 2, ( "<= write close notify" ) );
 
-    return( ret );
+    return( 0 );
 }
 
 void ssl_transform_free( ssl_transform *transform )
