@@ -24,18 +24,20 @@
 // Connects to the database.
 gSQLite3Backend::gSQLite3Backend( const std::string & mode, const std::string & suffix ) : GSQLBackend( mode, suffix )
 {
-  try 
+  try
   {
-    SSQLite3 *ptr = new SSQLite3( getArg( "database" ));    
+    SSQLite3 *ptr = new SSQLite3( getArg( "database" ));
     setDB( ptr);
     if(!getArg("pragma-synchronous").empty()) {
       SSQLite3::result_t res;
       ptr->doQuery("PRAGMA synchronous="+getArg("pragma-synchronous"), res);
     }
-    SSQLite3::result_t res;
-    ptr->doQuery("PRAGMA foreign_keys = 1", res);
-  }  
-  catch( SSqlException & e ) 
+    if(mustDo("pragma-foreign-keys")) {
+      SSQLite3::result_t res;
+      ptr->doQuery("PRAGMA foreign_keys = ON", res);
+    }
+  }
+  catch( SSqlException & e )
   {
     L << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;
     throw PDNSException( "Unable to launch " + mode + " connection: " + e.txtReason());
@@ -59,6 +61,7 @@ public:
   {
     declare( suffix, "database", "Filename of the SQLite3 database", "powerdns.sqlite" );
     declare( suffix, "pragma-synchronous", "Set this to 0 for blazing speed", "" );
+    declare( suffix, "pragma-foreign-keys", "Enable foreign key constraints", "no" );
 
     declare(suffix, "dnssec", "Enable DNSSEC processing","no");
 

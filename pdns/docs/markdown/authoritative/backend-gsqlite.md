@@ -39,6 +39,21 @@ After you have created the database you probably want to fill it with data. If y
 
 To communicate with a SQLite database, use either the 'sqlite' or 'sqlite3' program, and feed it SQL.
 
+## Configuration Parameters
+These are the configuration file parameters that are available for the gsqlite3 backend.
+
+### `(gsqlite3)-database`
+Filename of the SQLite3 database.
+
+### `(gsqlite3)-pragma-synchronous`
+Set this to 0 for blazing speed.
+
+### `(gsqlite3)-pragma-foreign-keys`
+Enable foreign key constraints.
+
+### `(gsqlite3)-dnssec`
+Enable DNSSEC processing.
+
 ## Using the SQLite backend
 The last thing you need to do is telling PowerDNS to use the SQLite backend.
 
