@@ -2460,7 +2460,7 @@ Developers: this version is compatible with 1.99.11 backends.
 
 -   Windows 2000 code base merge completed. This resulted in quite some changes on the Unix end of things, so this may impact reliability.
 -   ODBC backend added for Windows. See [Section 9, “ODBC backend”](odbc.html "9. ODBC backend").
--   IBM DB2 Universal Database backend available for Linux. See [DB2 backend](authoritative/backend-db2.md "DB2 backend").
+-   IBM DB2 Universal Database backend available for Linux. See [DB2 backend](authoritative/backend-deprecated.md#db2-backend "DB2 backend").
 -   Zone2sql now understands $INCLUDE. Thanks to Amaze Internet for nagging about this
 -   The SOA Minimum TTL now has a configurable default (**soa-minimum-ttl**)value to placate the DENIC requirements.
 -   Added a limit on the simultaneous numbers of TCP connections to accept (**max-tcp-connections**). Defaults to 10.

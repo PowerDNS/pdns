@@ -2,7 +2,6 @@ SUBDIRS= @moduledirs@
 
 DIST_SUBDIRS = \
 	bindbackend \
-	db2backend \
 	geobackend \
 	geoipbackend \
 	gmysqlbackend \
