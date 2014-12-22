@@ -303,22 +303,22 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         	rr.qname=d_qname;
         } else {
         	rr.qname=rrow[5];
-        	if (rr.qname[rr.qname.length()-1] == '.') {
+        	if (!rr.qname.empty() && rr.qname[rr.qname.length()-1] == '.') {
         		rr.qname.erase(rr.qname.length()-1); // Fully qualified, nuke the last .
         	} else {
         		if (!rr.qname.empty())
         			rr.qname += ".";
         		rr.qname += d_origin; // Not fully qualified
         	}
-
         }
 
-        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
-                rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
-        	if (rr.content[rr.content.length()-1] == '.') {
-        		rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
+        if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX ||
+        	rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::PTR) {
+        	if (!rr.content.empty() && rr.content[rr.content.length()-1] == '.') {
+        		if (rr.content.length() > 1)
+        			rr.content.erase(rr.content.length()-1); // Fully qualified, nuke the last .
         	} else {
-        		if (!rr.content.empty())
+        		if (rr.content != ".")
         			rr.content += ".";
         		rr.content += d_origin;
         	}
@@ -330,7 +330,6 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
         	rr.ttl = d_minimum;
         rr.domain_id=atol(rrow[4].c_str());
 
-  
         rr.last_modified=0;
 
         return true;
