@@ -104,6 +104,33 @@ Debugging switch - don't use.
 
 Operate as a daemon.
 
+## `default-ksk-algorithms`
+* String
+* Default: rsasha256
+
+The algorithm that should be used for the KSK when running
+[`pdnssec secure-zone`](internals.md#pdnssec).
+Must be one of:
+* rsamd5
+* dh
+* dsa
+* ecc
+* rsasha1
+* dsa-nsec3-sha1
+* rsasha1-nsec3-sha1
+* rsasha256
+* rsasha512
+* ecc-gost
+* ecdsap256sha256
+* ecdsap384sha384
+
+## `default-ksk-size`
+* Integer
+* Default: whichever is default for `default-ksk-algorithms`
+
+The default keysize for the KSK generated with
+[`pdnssec secure-zone`](internals.md#pdnssec).
+
 ## `default-soa-name`
 * String
 * Default: a.misconfigured.powerdns.server
@@ -120,6 +147,33 @@ Mail address to insert in the SOA record if none set in the backend.
 * Default: 3600
 
 TTL to use when none is provided.
+
+## `default-zsk-algorithms`
+* String
+* Default: rsasha256
+
+The algorithm that should be used for the ZSK when running
+[`pdnssec secure-zone`](internals.md#pdnssec).
+Must be one of:
+* rsamd5
+* dh
+* dsa
+* ecc
+* rsasha1
+* dsa-nsec3-sha1
+* rsasha1-nsec3-sha1
+* rsasha256
+* rsasha512
+* ecc-gost
+* ecdsap256sha256
+* ecdsap384sha384
+
+## `default-zsk-size`
+* Integer
+* Default: whichever is default for `default-zsk-algorithms`
+
+The default keysize for the ZSK generated with
+[`pdnssec secure-zone`](internals.md#pdnssec).
 
 ## `direct-dnskey`
 * Boolean
