@@ -12,8 +12,10 @@ namespace YaHTTP {
       std::string::const_iterator lhi = lhs.begin();
       std::string::const_iterator rhi = rhs.begin();
       for(;lhi != lhs.end() && rhi != rhs.end(); lhi++, rhi++)
-        if ((v = ::tolower(*lhi) - ::tolower(*rhi)) != 0) return v<0;
-      return (::tolower(*lhi) - ::tolower(*rhi))<0;
+        if ((v = ::tolower(*lhi) - ::tolower(*rhi)) != 0) return v<0; 
+      if (lhi == lhs.end() && rhi != rhs.end()) return true;
+      if (lhi != lhs.end() && rhi == rhs.end()) return false;
+      return false; // they are equal
     }
   };
 

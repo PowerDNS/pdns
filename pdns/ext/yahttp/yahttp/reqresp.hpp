@@ -52,7 +52,7 @@ namespace YaHTTP {
           std::string::size_type i,cl;
           for(i=0;i<doc->body.length();i+=1024) {
             cl = std::min(static_cast<std::string::size_type>(1024), doc->body.length()-i); // for less than 1k blocks
-            os << std::hex << cl << "\r\n";
+            os << std::hex << cl << std::dec << "\r\n";
             os << doc->body.substr(i, cl) << "\r\n";
           }
           os << 0 << "\r\n\r\n"; // last chunk
@@ -82,7 +82,7 @@ namespace YaHTTP {
           ifs.read(buf, sizeof buf);
           n += (k = ifs.gcount());
           if (k) {
-            if (chunked) os << std::hex << k << "\r\n";
+            if (chunked) os << std::hex << k << std::dec << "\r\n";
             os.write(buf, k);
             if (chunked) os << "\r\n"; 
           }
