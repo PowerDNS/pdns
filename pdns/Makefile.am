@@ -187,8 +187,7 @@ pdns_server_SOURCES = \
 pdns_server_LDFLAGS = \
 	$(DYNLINKFLAGS) \
 	$(THREADFLAGS) \
-	$(BOOST_SERIALIZATION_LDFLAGS) \
-	-rdynamic
+	$(BOOST_SERIALIZATION_LDFLAGS)
 
 pdns_server_LDADD = \
 	@moduleobjects@ \
