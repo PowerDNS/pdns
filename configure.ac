@@ -85,6 +85,20 @@ BOOST_SERIALIZATION([mt])
 
 PDNS_ENABLE_UNIT_TESTS
 
+AC_MSG_CHECKING([whether we will be building static binaries])
+
+AC_ARG_ENABLE([static-binaries],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
+  [static=$enableval],
+  [static=no],
+)
+AC_MSG_RESULT([$static])
+AS_IF([test "x$static" != "xno"], [
+  AC_REQUIRE([PKG_PROG_PKG_CONFIG])
+  PKG_CONFIG="$PKG_CONFIG --static"
+])
+
+
 dnl Allow user to require SQLite3
 AC_MSG_CHECKING([whether user requires sqlite3])
 AC_ARG_WITH([sqlite3],
@@ -175,18 +189,6 @@ PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
-
-AC_MSG_CHECKING([whether we will be building static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [static=$enableval],
-  [static=no],
-)
-AC_MSG_RESULT([$static])
-AS_IF([test "x$static" != "xno"],
-  [LDFLAGS="-all-static $LDFLAGS"]
-)
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
@@ -335,6 +337,14 @@ AC_SUBST([AM_CPPFLAGS],
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
+
+# please leave this test here and don't move
+# it before other configure checks
+# since the compiler can't handle -all-static,
+# only libtool can
+AS_IF([test "x$static" != "xno"], [
+  LDFLAGS="-all-static $LDFLAGS"
+])
 
 export moduledirs moduleobjects modulelibs
 
