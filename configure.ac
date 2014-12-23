@@ -188,7 +188,6 @@ AC_ARG_ENABLE([static-binaries],
   [static=no],
 )
 AC_MSG_RESULT([$static])
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" != "xno"])
 AS_IF([test "x$static" != "xno"],
   [LDFLAGS="-all-static $LDFLAGS"]
 )
