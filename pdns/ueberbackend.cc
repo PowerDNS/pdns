@@ -449,8 +449,8 @@ void UeberBackend::cleanup()
 int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
 {
   extern PacketCache PC;
-  static unsigned int *qcachehit=S.getPointer("query-cache-hit");
-  static unsigned int *qcachemiss=S.getPointer("query-cache-miss");
+  static AtomicCounter *qcachehit=S.getPointer("query-cache-hit");
+  static AtomicCounter *qcachemiss=S.getPointer("query-cache-miss");
 
   if(!d_cache_ttl && ! d_negcache_ttl) {
     (*qcachemiss)++;

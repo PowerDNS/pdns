@@ -353,25 +353,35 @@ inline bool pdns_iequals_ch(const char a, const char b)
 class AtomicCounter
 {
 public:
+    typedef unsigned long native_t;
+    explicit AtomicCounter( native_t v = 0) : value_( v ) {}
 
-    explicit AtomicCounter( unsigned int v = 0) : value_( v ) {}
-
-    unsigned int operator++()
+    native_t operator++()
     {
       return atomic_exchange_and_add( &value_, +1 ) + 1;
     }
 
-    unsigned int operator++(int)
+    native_t operator++(int)
     {
       return atomic_exchange_and_add( &value_, +1 );
     }
 
-    unsigned int operator--()
+    native_t operator+=(native_t val)
+    {
+      return atomic_exchange_and_add( &value_, val );
+    }
+
+    native_t operator-=(native_t val)
+    {
+      return atomic_exchange_and_add( &value_, -val );
+    }
+
+    native_t operator--()
     {
       return atomic_exchange_and_add( &value_, -1 ) - 1;
     }
 
-    operator unsigned int() const
+    operator native_t() const
     {
       return atomic_exchange_and_add( &value_, 0);
     }
@@ -381,17 +391,17 @@ public:
     }
 
 private:
-    mutable unsigned int value_;
+    mutable native_t value_;
     
     // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5. 
-    #if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
-    static int atomic_exchange_and_add( unsigned int * pw, int dv )
+#if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
+    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
         // int r = *pw;
         // *pw += dv;
         // return r;
 
-        int r;
+        native_t r;
 
         __asm__ __volatile__
         (
@@ -405,7 +415,7 @@ private:
         return r;
     }
     #else 
-    static int atomic_exchange_and_add( unsigned int * pw, int dv )
+    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
       return __sync_fetch_and_add(pw, dv);
     }

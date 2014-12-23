@@ -226,6 +226,19 @@ void DNSSECKeeper::getFromMeta(const std::string& zname, const std::string& key,
   }
 }
 
+uint64_t DNSSECKeeper::dbdnssecCacheSizes(const std::string& str)
+{
+  if(str=="meta-cache-size") {
+    ReadLock l(&s_metacachelock); 
+    return s_metacache.size();
+  }
+  else if(str=="key-cache-size") {
+    ReadLock l(&s_keycachelock);
+    return s_keycache.size();
+  }
+  return (uint64_t)-1;
+}
+
 bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow)
 {
   string value;

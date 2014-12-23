@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
+    Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -26,13 +26,16 @@
 #include "statbag.hh"
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 extern StatBag S;
 
 PacketCache::PacketCache()
 {
-  pthread_rwlock_init(&d_mut, 0);
-  // d_ops = 0;
+  d_maps.resize(1024);
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    pthread_rwlock_init(&mc.d_mut, 0);
+  }
 
   d_ttl=-1;
   d_recursivettl=-1;
@@ -48,8 +51,17 @@ PacketCache::PacketCache()
 
 PacketCache::~PacketCache()
 {
-  WriteLock l(&d_mut);
+  //  WriteLock l(&d_mut);
+  vector<WriteLock*> locks;
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    locks.push_back(new WriteLock(&mc.d_mut));
+  }
+  BOOST_FOREACH(WriteLock* wl, locks) {
+    delete wl;
+  }
 }
+
+
 
 int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
 {
@@ -82,7 +94,8 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   string value;
   bool haveSomething;
   {
-    TryReadLock l(&d_mut); // take a readlock here
+    MapCombo& mc=getMap(pcReverse(p->qdomain));
+    TryReadLock l(&mc.d_mut); // take a readlock here
     if(!l.gotIt()) {
       S.inc("deferred-cache-lookup");
       return 0;
@@ -168,15 +181,15 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
   val.zoneID = zoneID;
   val.hasEDNS = EDNS;
   
-  TryWriteLock l(&d_mut);
+  MapCombo& mc = getMap(val.qname);
+  TryWriteLock l(&mc.d_mut);
   if(l.gotIt()) { 
     bool success;
     cmap_t::iterator place;
-    tie(place, success)=d_map.insert(val);
-    //    cerr<<"Insert succeeded: "<<success<<endl;
+    tie(place, success)=mc.d_map.insert(val);
+
     if(!success)
-      d_map.replace(place, val);
-    
+      mc.d_map.replace(place, val);
   }
   else 
     S.inc("deferred-cache-inserts"); 
@@ -185,44 +198,51 @@ void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType
 /* clears the entire packetcache. */
 int PacketCache::purge()
 {
-  WriteLock l(&d_mut);
-  int delcount=d_map.size();
-  d_map.clear();
-  *d_statnumentries=0;
+  int delcount=0;
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    WriteLock l(&mc.d_mut);
+    delcount+=mc.d_map.size();
+    mc.d_map.clear();
+  }
+  *d_statnumentries=AtomicCounter(0);
   return delcount;
 }
 
 /* purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
 int PacketCache::purge(const string &match)
 {
-  WriteLock l(&d_mut);
   int delcount=0;
 
-  if(ends_with(match, "$")) {
-    string prefix(match);
-    prefix.resize(prefix.size()-1);
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    WriteLock l(&mc.d_mut);
+    
+    if(ends_with(match, "$")) {
+      string prefix(match);
+      prefix.resize(prefix.size()-1);
 
-    string zone = pcReverse(prefix);
+      string zone = pcReverse(prefix);
 
-    cmap_t::const_iterator iter = d_map.lower_bound(tie(zone));
-    cmap_t::const_iterator start=iter;
+      cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(zone));
+      cmap_t::const_iterator start=iter;
 
-    for(; iter != d_map.end(); ++iter) {
-      if(iter->qname.compare(0, zone.size(), zone) != 0) {
-        break;
+      for(; iter != mc.d_map.end(); ++iter) {
+	if(iter->qname.compare(0, zone.size(), zone) != 0) {
+	  break;
+	}
+	delcount++;
       }
-      delcount++;
+      mc.d_map.erase(start, iter);
     }
-    d_map.erase(start, iter);
+  
+    else {
+      string qname = pcReverse(match);
+      
+      delcount+=mc.d_map.count(tie(qname));
+      pair<cmap_t::iterator, cmap_t::iterator> range = mc.d_map.equal_range(tie(qname));
+      mc.d_map.erase(range.first, range.second);
+    }
   }
-  else {
-    string qname = pcReverse(match);
-
-    delcount=d_map.count(tie(qname));
-    pair<cmap_t::iterator, cmap_t::iterator> range = d_map.equal_range(tie(qname));
-    d_map.erase(range.first, range.second);
-  }
-  *d_statnumentries=d_map.size();
+  *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED
   return delcount;
 }
 // called from ueberbackend
@@ -236,7 +256,9 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
     cleanup();
   }
 
-  TryReadLock l(&d_mut); // take a readlock here
+  MapCombo& mc=getMap(pcReverse(qname));
+
+  TryReadLock l(&mc.d_mut); // take a readlock here
   if(!l.gotIt()) {
     S.inc( "deferred-cache-lookup");
     return false;
@@ -252,9 +274,10 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
   string pcqname = pcReverse(qname);
-  cmap_t::const_iterator i=d_map.find(tie(pcqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+  MapCombo& mc=getMap(pcqname);
+  cmap_t::const_iterator i=mc.d_map.find(tie(pcqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
   time_t now=time(0);
-  bool ret=(i!=d_map.end() && i->ttd > now);
+  bool ret=(i!=mc.d_map.end() && i->ttd > now);
   if(ret) {
     if (age)
       *age = now - i->created;
@@ -267,31 +290,41 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 
 string PacketCache::pcReverse(const string &content)
 {
-  string tmp = string(content.rbegin(), content.rend());
-  return toLower(boost::replace_all_copy(tmp, ".", "\t"))+"\t";
+  typedef vector<pair<unsigned int, unsigned int> > parts_t;
+  parts_t parts;
+  vstringtok(parts,toLower(content), ".");
+  string ret;
+  ret.reserve(content.size()+1);
+  for(parts_t::reverse_iterator i=parts.rbegin(); i!=parts.rend(); ++i) {
+    ret.append(1, (char)(i->second - i->first));
+    ret.append(content.c_str() + i->first, i->second - i->first);
+  }
+  return ret;
 }
-
 
 map<char,int> PacketCache::getCounts()
 {
-  ReadLock l(&d_mut);
-
-  map<char,int>ret;
   int recursivePackets=0, nonRecursivePackets=0, queryCacheEntries=0, negQueryCacheEntries=0;
 
-  for(cmap_t::const_iterator iter = d_map.begin() ; iter != d_map.end(); ++iter) {
-    if(iter->ctype == PACKETCACHE)
-      if(iter->meritsRecursion)
-        recursivePackets++;
-      else
-        nonRecursivePackets++;
-    else if(iter->ctype == QUERYCACHE) {
-      if(iter->value.empty())
-        negQueryCacheEntries++;
-      else
-        queryCacheEntries++;
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    ReadLock l(&mc.d_mut);
+    
+    for(cmap_t::const_iterator iter = mc.d_map.begin() ; iter != mc.d_map.end(); ++iter) {
+      if(iter->ctype == PACKETCACHE)
+	if(iter->meritsRecursion)
+	  recursivePackets++;
+	else
+	  nonRecursivePackets++;
+      else if(iter->ctype == QUERYCACHE) {
+	if(iter->value.empty())
+	  negQueryCacheEntries++;
+	else
+	  queryCacheEntries++;
+      }
     }
   }
+  map<char,int> ret;
+
   ret['!']=negQueryCacheEntries;
   ret['Q']=queryCacheEntries;
   ret['n']=nonRecursivePackets;
@@ -301,22 +334,28 @@ map<char,int> PacketCache::getCounts()
 
 int PacketCache::size()
 {
-  ReadLock l(&d_mut);
-  return d_map.size();
+  uint64_t ret=0;
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    ReadLock l(&mc.d_mut);
+    ret+=mc.d_map.size();
+  }
+  return ret;
 }
 
 /** readlock for figuring out which iterators to delete, upgrade to writelock when actually cleaning */
 void PacketCache::cleanup()
 {
-  WriteLock l(&d_mut);
+  *d_statnumentries=AtomicCounter(0);
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    ReadLock l(&mc.d_mut);
 
-  *d_statnumentries=d_map.size();
-
+    *d_statnumentries+=mc.d_map.size();
+  }
   unsigned int maxCached=::arg().asNum("max-cache-entries");
   unsigned int toTrim=0;
   
-  unsigned int cacheSize=*d_statnumentries;
-
+  AtomicCounter::native_t cacheSize=*d_statnumentries;
+  
   if(maxCached && cacheSize > maxCached) {
     toTrim = cacheSize - maxCached;
   }
@@ -331,29 +370,38 @@ void PacketCache::cleanup()
 
   //  cerr<<"cacheSize: "<<cacheSize<<", lookAt: "<<lookAt<<", toTrim: "<<toTrim<<endl;
   time_t now=time(0);
-
   DLOG(L<<"Starting cache clean"<<endl);
-  if(d_map.empty())
-    return; // clean
+  //unsigned int totErased=0;
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    WriteLock wl(&mc.d_mut);
+    typedef cmap_t::nth_index<1>::type sequence_t;
+    sequence_t& sidx=mc.d_map.get<1>();
+    unsigned int erased=0, lookedAt=0;
+    for(sequence_t::iterator i=sidx.begin(); i != sidx.end(); lookedAt++) {
+      if(i->ttd < now) {
+	sidx.erase(i++);
+	erased++;
+      }
+      else {
+	++i;
+      }
 
-  typedef cmap_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=d_map.get<1>();
-  unsigned int erased=0, lookedAt=0;
-  for(sequence_t::iterator i=sidx.begin(); i != sidx.end(); lookedAt++) {
-    if(i->ttd < now) {
-      sidx.erase(i++);
-      erased++;
+      if(toTrim && erased > toTrim / d_maps.size())
+	break;
+      
+      if(lookedAt > lookAt / d_maps.size())
+	break;
     }
-    else
-      ++i;
-
-    if(toTrim && erased > toTrim)
-      break;
-
-    if(lookedAt > lookAt)
-      break;
+    //totErased += erased;
   }
-  //  cerr<<"erased: "<<erased<<endl;
-  *d_statnumentries=d_map.size();
+  //  if(totErased)
+  //  cerr<<"erased: "<<totErased<<endl;
+  
+  *d_statnumentries=AtomicCounter(0);
+  BOOST_FOREACH(MapCombo& mc, d_maps) {
+    ReadLock l(&mc.d_mut);
+    *d_statnumentries+=mc.d_map.size();
+  }
+  
   DLOG(L<<"Done with cache clean"<<endl);
 }
