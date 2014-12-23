@@ -200,13 +200,6 @@ doubles query load. **Do not combine with DNSSEC!**
 
 Enable/Disable DNS update (RFC2136) support.
 
-## `fancy-records`
-* Boolean
-* Default: no
-* Removed in: 3.0
-
-Process URL and MBOXFW records. See ["Fancy Records"](fancy-records.md).
-
 ## `forward-dnsupdates`
 * Boolean
 * Default: no
@@ -557,11 +550,6 @@ from a master. This is useful when using when running a signing-slave.
 Tell PowerDNS how many threads to use for signing. It might help improve signing
 speed by changing this number.
 
-## `smtpredirector`
-* String
-
-Our smtpredir MX host. See ["Fancy Records"](fancy-records.md).
-
 ## `soa-expire-default`
 * Integer
 * Default: 604800
@@ -650,12 +638,6 @@ attacks. Up till PowerDNS Authoritative Server 3.3, the truncation limit was set
 at 1680 bytes, regardless of EDNS0 buffer size indications from the client.
 Beyond 3.3, this setting makes our truncation limit configurable. Maximum value
 is 65535, but values above 4096 should probably not be attempted.
-
-## `urlredirector`
-* String
-
-Where we send hosts to that need to be url redirected. See
-["Fancy Records"](fancy-records.md).
 
 ## `version-string`
 * Any of: `anonymous`, `powerdns`, `full`, String

@@ -22,7 +22,6 @@ pages:
   - [authoritative/dnsupdate.md, 'Authoritative', 'Dynamic DNS Update']
   - [authoritative/internals.md, 'Authoritative', 'Internals']
   - [authoritative/virtual.md, 'Authoritative', 'Virtual Hosting']
-  - [authoritative/fancy-records.md, 'Authoritative', 'Fancy Records']
   - [authoritative/performance.md, 'Authoritative', 'Performance Tuning and Monitoring']
   - [authoritative/migration.md, 'Authoritative', 'Migrating to PowerDNS']
   - [authoritative/recursion.md, 'Authoritative', 'Recursion with the Authoritative Server']

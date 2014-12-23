@@ -90,7 +90,7 @@ insert into domains (id,name,type) values (domains_id_sequence.nextval,'example.
 Furthermore, use the `goracle-tnsname` setting to specify which TNSNAME the Generic Oracle Backend should be connecting to. There are no `goracle-dbname`, `goracle-host` or `goracle-port` settings, their equivalent is in `/etc/tnsnames.ora`.
 
 # Basic functionality
-4 queries are needed for regular lookups, 4 for 'fancy records' which are disabled by default and 1 is needed for zone transfers.
+4 queries are needed for regular lookups and 1 is needed for zone transfers.
 
 The 4+4 regular queries must return the following 6 fields, in this exact order:
 
@@ -104,77 +104,77 @@ The 4+4 regular queries must return the following 6 fields, in this exact order:
 
 Please note that the names of the fields are not relevant, but the order is!
 
-As said earlier, there are 8 SQL queries for regular lookups. To configure them, set `gmysql-basic-query` or `gpgsql-basic-query`, depending on your choice of backend. If so called 'MBOXFW' fancy records are not used, four queries remain:
+As said earlier, there are 8 SQL queries for regular lookups. To configure them, set `gmysql-basic-query` or `gpgsql-basic-query`, depending on your choice of backend.
 
 # Queries and settings
 ## Regular Queries
 ### `basic-query`
 Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'` This is the most used query, needed for doing 1:1 lookups of qtype/name values. First %s is replaced by the ASCII representation of the qtype of the question, the second by the name.
 
-### id-query  
+### id-query
 Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d` Used for doing lookups within a domain. First %s is replaced by the qtype, the %d which should appear after the %s by the numeric domain\_id.
 
-### any-query  
+### any-query
 For doing ANY queries. Also used internally. Default: `select content,ttl,prio,type,domain_id,name from records where name='%s'` The %s is replaced by the qname of the question.
 
-### any-id-query  
+### any-id-query
 For doing ANY queries within a domain. Also used internally. Default: `select content,ttl,prio,type,domain_id,name from records where name='%s' and domain_id=%d` The %s is replaced by the name of the domain, the %d by the numerical domain id.
 
 The last query is for listing the entire contents of a zone. This is needed when performing a zone transfer, but sometimes also internally:
 
-### list-query  
+### list-query
 To list an entire zone. Default: `select content,ttl,prio,type,domain_id,name from records where domain_id=%d`
 
 ## DNSSEC queries
 If DNSSEC is enabled (through the `-dnssec` flag on a gsql backend), many queries are replaced by slightly extended variants that also query the auth column. The auth column is always added as the rightmost column. These are the -auth defaults:
 
-### basic-query-auth  
+### basic-query-auth
 Basic query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name='%s'`
 
-### id-query-auth  
+### id-query-auth
 Basic with ID query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name='%s' and domain_id=%d`
 
-### wildcard-query-auth  
+### wildcard-query-auth
 Wildcard query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name like '%s'`
 
-### wildcard-id-query-auth  
+### wildcard-id-query-auth
 Wildcard with ID query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where type='%s' and name like '%s' and domain_id='%d'`
 
-### any-query-auth  
+### any-query-auth
 Any query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where name='%s'`
 
-### any-id-query-auth  
+### any-id-query-auth
 Any with ID query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where name='%s' and domain_id=%d`
 
-### wildcard-any-query-auth  
+### wildcard-any-query-auth
 Wildcard ANY query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where name like '%s'`
 
-### wildcard-any-id-query-auth  
+### wildcard-any-id-query-auth
 Wildcard ANY with ID query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where name like '%s' and domain_id='%d'`
 
-### list-query-auth  
+### list-query-auth
 AXFR query. Default: `select content,ttl,prio,type,domain_id,name, auth from records where domain_id='%d' order by name, type`
 
 Additionally, there are some new queries to determine NSEC(3) order:
 
-### get-order-first-query  
+### get-order-first-query
 DNSSEC Ordering Query, first. Default: `select ordername, name from records where domain_id=%d and ordername is not null order by 1 asc limit 1`
 
-### get-order-before-query  
+### get-order-before-query
 DNSSEC Ordering Query, before. Default: `select ordername, name from records where ordername &lt;= '%s' and domain_id=%d and ordername is not null order by 1 desc limit 1`
 
-### get-order-after-query  
+### get-order-after-query
 DNSSEC Ordering Query, after. Default: `select min(ordername) from records where ordername &gt; '%s' and domain_id=%d and ordername is not null`
 
-### get-order-last-query  
+### get-order-last-query
 DNSSEC Ordering Query, last. Default: `select ordername, name from records where ordername != '' and domain_id=%d and ordername is not null order by 1 desc limit 1`
 
 Finally, these two queries are used to set ordername and auth correctly in a database:
 
-### set-order-and-auth-query  
+### set-order-and-auth-query
 DNSSEC set ordering query. Default: `update records set ordername='%s',auth=%d where name='%s' and domain_id='%d'`
 
-### nullify-ordername-and-auth-query  
+### nullify-ordername-and-auth-query
 DNSSEC nullify ordername query. Default: `update records set ordername=NULL,auth=0 where name='%s' and type='%s' and domain_id='%d'`
 
 Make sure to read [Rules for filling out fields in database backends](dnssec.md#rules-for-filling-out-fields-in-database-backends) if you wish to calculate ordername and auth without using pdns-rectify.
@@ -182,66 +182,61 @@ Make sure to read [Rules for filling out fields in database backends](dnssec.md#
 ## Master/slave queries
 Most installations will have zero need to change the following settings, but should the need arise, here they are:
 
-### master-zone-query  
+### master-zone-query
 Called to determine the master of a zone. Default: `select master from domains where name='%s' and type='SLAVE'`
 
-### info-zone-query  
+### info-zone-query
 Called to retrieve (nearly) all information for a domain: Default: `select id,name,master,last_check,notified_serial,type from domains where name='%s'`
 
-### info-all-slaves-query  
+### info-all-slaves-query
 Called to retrieve all slave domains Default: `select id,name,master,last_check,type from domains where type='SLAVE'`
 
-### supermaster-query  
+### supermaster-query
 Called to determine if a certain host is a supermaster for a certain domain name. Default: `select account from supermasters where ip='%s' and nameserver='%s';`
 
-### insert-slave-query  
+### insert-slave-query
 Called to add a domain as slave after a supermaster notification. Default: `insert into domains (type,name,master,account) values('SLAVE','%s','%s','%s')`
 
-### insert-record-query  
+### insert-record-query
 Called during incoming AXFR. Default: `insert into records (content,ttl,prio,type,domain_id,name) values ('%s',%d,%d,'%s',%d,'%s')`
 
-### update-serial-query  
+### update-serial-query
 Called to update the last notified serial of a master domain. Default: `update domains set notified_serial=%d where id=%d`
 
-### update-lastcheck-query  
+### update-lastcheck-query
 Called to update the last time a slave domain was checked for freshness. Default: `update domains set last_check=%d where id=%d`
 
-### info-all-master-query  
+### info-all-master-query
 Called to get data on all domains for which the server is master. Default: `select id,name,master,last_check,notified_serial,type from domains where type='MASTER'`
 
-### delete-zone-query  
+### delete-zone-query
 Called to delete all records of a zone. Used before an incoming AXFR. Default: `delete from records where domain_id=%d`
 
 ## Comments queries
 For listing/modifying comments. For defaults, please see `pdns_server --load=BACKEND --config`.
 
-### list-comments-query  
+### list-comments-query
 Called to get all comments in a zone. Returns fields: domain\_id, name, type, modified\_at, account, comment.
 
-### insert-comment-query  
+### insert-comment-query
 Called to create a single comment for a specific RRSet. Given fields: domain\_id, name, type, modified\_at, account, comment
 
-### delete-comment-rrset-query  
+### delete-comment-rrset-query
 Called to delete all comments for a specific RRset. Given fields: domain\_id, name, type
 
-### delete-comments-query  
+### delete-comments-query
 Called to delete all comments for a zone. Usually called before deleting the entire zone. Given fields: domain\_id
 
-## Fancy records
-**Warning**: Fancy records are unsupported as of version 3.0
-
-If PDNS is used with so called 'Fancy Records', the 'MBOXFW' record exists which specifies an email address forwarding instruction, wildcard queries are sometimes needed. This is not enabled by default. A wildcard query is an internal concept - it has no relation to *.domain-type lookups. You can safely leave these queries blank.
-
-### wildcard-query  
+### wildcard-query
 Can be left blank. See above for an explanation. Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s'`
 
-### wildcard-id-query  
+### wildcard-id-query
 Can be left blank. See above for an explanation. Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name like '%s' and domain_id=%d` Used for doing lookups within a domain.
 
-### wildcard-any-query  
+### wildcard-any-query
 For doing wildcard ANY queries. Default: `select content,ttl,prio,type,domain_id,name from records where name like '%s'`
 
-### wildcard-any-id-query  
+### wildcard-any-id-query
 For doing wildcard ANY queries within a domain. Default: `select content,ttl,prio,type,domain_id,name from records where name like '%s' and domain_id=%d`
 
 ## Settings and specifying queries
@@ -270,19 +265,19 @@ Database host to connect to. WARNING: When specified as a hostname a chicken/egg
 
 **Only for postgres**: If host begins with a slash, it specifies Unix-domain communication rather than TCP/IP communication; the value is the name of the directory in which the socket file is stored.
 
-### backend-port  
+### backend-port
 Database port to connect to.
 
-### gmysql-socket (only for MySQL!)  
+### gmysql-socket (only for MySQL!)
 File name where the MySQL connection socket resides. Often `/tmp/mysql.sock` or `/var/run/mysqld/mysqld.sock`.
 
-### backend-password  
+### backend-password
 Password to connect with
 
-### backend-user  
+### backend-user
 User to connect as
 
-### backend-group (MySQL only, since 3.2)  
+### backend-group (MySQL only, since 3.2)
 MySQL 'group' to connect as, defaults to 'client'.
 
 ## Native operation
