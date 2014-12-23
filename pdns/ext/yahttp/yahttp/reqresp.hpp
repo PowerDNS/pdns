@@ -18,6 +18,8 @@ namespace funcptr = boost;
 #include <unistd.h>
 #endif
 
+#include <algorithm>
+
 #ifndef YAHTTP_MAX_REQUEST_SIZE
 #define YAHTTP_MAX_REQUEST_SIZE 2097152
 #endif
@@ -30,8 +32,7 @@ namespace funcptr = boost;
 #define YAHTTP_TYPE_RESPONSE 2
 
 namespace YaHTTP {
-  typedef std::map<std::string,std::string> strstr_map_t; //<! String to String map 
-  typedef std::map<std::string,Cookie> strcookie_map_t; //<! String to Cookie map
+  typedef std::map<std::string,Cookie,ASCIICINullSafeComparator> strcookie_map_t; //<! String to Cookie map
 
   typedef enum {
     urlencoded,
@@ -41,14 +42,23 @@ namespace YaHTTP {
   /*! Base class for request and response */
   class HTTPBase {
   public:
-#ifdef HAVE_CPP_FUNC_PTR
     /*! Default renderer for request/response, simply copies body to response */
     class SendBodyRender {
     public:
       SendBodyRender() {};
 
-      size_t operator()(const HTTPBase *doc, std::ostream& os) const {
-        os << doc->body;
+      size_t operator()(const HTTPBase *doc, std::ostream& os, bool chunked) const {
+        if (chunked) {
+          std::string::size_type i,cl;
+          for(i=0;i<doc->body.length();i+=1024) {
+            cl = std::min(static_cast<std::string::size_type>(1024), doc->body.length()-i); // for less than 1k blocks
+            os << std::hex << cl << "\r\n";
+            os << doc->body.substr(i, cl) << "\r\n";
+          }
+          os << 0 << "\r\n\r\n"; // last chunk
+        } else {
+          os << doc->body;
+        }
         return doc->body.length();
       }; //<! writes body to ostream and returns length 
     };
@@ -59,7 +69,7 @@ namespace YaHTTP {
         this->path = path;
       };
   
-      size_t operator()(const HTTPBase *doc __attribute__((unused)), std::ostream& os) const {
+      size_t operator()(const HTTPBase *doc __attribute__((unused)), std::ostream& os, bool chunked) const {
         char buf[4096];
         size_t n,k;
 #ifdef HAVE_CXX11
@@ -71,17 +81,24 @@ namespace YaHTTP {
         while(ifs && ifs.good()) {
           ifs.read(buf, sizeof buf);
           n += (k = ifs.gcount());
-          if (k)
+          if (k) {
+            if (chunked) os << std::hex << k << "\r\n";
             os.write(buf, k);
+            if (chunked) os << "\r\n"; 
+          }
         }
-
+        if (chunked) os << 0 << "\r\n\r\n";
         return n;
       }; //<! writes file to ostream and returns length
 
       std::string path; //<! File to send
     };
-#endif
+
     HTTPBase() {
+      initialize();
+    };
+
+    virtual void initialize() {
       kind = 0;
       status = 0;
 #ifdef HAVE_CPP_FUNC_PTR
@@ -89,7 +106,17 @@ namespace YaHTTP {
 #endif
       max_request_size = YAHTTP_MAX_REQUEST_SIZE;
       max_response_size = YAHTTP_MAX_RESPONSE_SIZE;
-    };
+      url = "";
+      method = "";
+      statusText = "";
+      jar.clear();
+      headers.clear();
+      parameters.clear();
+      getvars.clear();
+      postvars.clear();
+      body = "";
+      routeName = "";
+    }
 protected:
     HTTPBase(const HTTPBase& rhs) {
       this->url = rhs.url; this->kind = rhs.kind;
@@ -136,7 +163,7 @@ public:
     ssize_t max_response_size;  //<! maximum size of response
  
 #ifdef HAVE_CPP_FUNC_PTR
-    funcptr::function<size_t(const HTTPBase*,std::ostream&)> renderer; //<! rendering function
+    funcptr::function<size_t(const HTTPBase*,std::ostream&,bool)> renderer; //<! rendering function
 #endif
     void write(std::ostream& os) const; //<! writes request to the given output stream
 
@@ -154,7 +181,7 @@ public:
   /*! Response class, represents a HTTP Response document */
   class Response: public HTTPBase { 
   public:
-    Response() { this->kind = YAHTTP_TYPE_RESPONSE; };
+    Response() { initialize(); };
     Response(const HTTPBase& rhs): HTTPBase(rhs) {
       this->kind = YAHTTP_TYPE_RESPONSE;
     };
@@ -163,6 +190,10 @@ public:
       this->kind = YAHTTP_TYPE_RESPONSE;
       return *this;
     };
+    void initialize() {
+      HTTPBase::initialize();
+      this->kind = YAHTTP_TYPE_RESPONSE;
+    }
     friend std::ostream& operator<<(std::ostream& os, const Response &resp);
     friend std::istream& operator>>(std::istream& is, Response &resp);
   };
@@ -170,7 +201,7 @@ public:
   /* Request class, represents a HTTP Request document */
   class Request: public HTTPBase {
   public:
-    Request() { this->kind = YAHTTP_TYPE_REQUEST; };
+    Request() { initialize(); };
     Request(const HTTPBase& rhs): HTTPBase(rhs) {
       this->kind = YAHTTP_TYPE_REQUEST;
     };
@@ -179,7 +210,10 @@ public:
       this->kind = YAHTTP_TYPE_REQUEST;
       return *this;
     };
-
+    void initialize() {
+      HTTPBase::initialize();
+      this->kind = YAHTTP_TYPE_REQUEST;
+    }
     void setup(const std::string& method, const std::string& url) {
       this->url.parse(url);
       this->headers["host"] = this->url.host;
@@ -242,6 +276,8 @@ public:
       bodybuf.str(""); maxbody = 0;
       pos = 0; state = 0; this->target = target; 
       hasBody = false;
+      buffer = "";
+      this->target->initialize();
     }; //<! Initialize the parser for target and clear state
     int feed(const std::string& somedata); //<! Feed data to the parser
     bool ready() {
