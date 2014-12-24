@@ -105,7 +105,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([strcasestr])
+AC_CHECK_FUNCS_ONCE([strcasestr])
 
 # Check for libdl
 my_save_LIBS="$LIBS"
