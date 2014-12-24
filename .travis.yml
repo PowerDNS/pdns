@@ -49,10 +49,8 @@ script:
  - make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
- - make -k -C docs html/index.html manpages
- - cd docs
- - make html-new/index.html
- - cd ../../regression-tests.recursor
+ - make -k -C docs html-new/index.html manpages
+ - cd ../regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
  - ./start.sh

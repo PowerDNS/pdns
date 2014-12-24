@@ -26,16 +26,18 @@ record's target.
 
 As an example:
 
-     $ORIGIN example.com
-     @		IN	SOA	ns1 ahu 2014091619 7200 3600 1209600 3600
-     @		IN	NS	ns1
-     @		IN	NS	ns2
-     www	IN	CNAME	xs.powerdns.com.
-     ns1	IN	A	1.2.3.4
-     ns2	IN	A	4.3.2.1
-     @		IN	ALIAS	www.powerdns.com.
-     @		IN	MX	25 outpost.ds9a.nl.
-     serv	IN	CNAME	@
+```
+$ORIGIN example.com
+@		IN	SOA	ns1 ahu 2014091619 7200 3600 1209600 3600
+@		IN	NS	ns1
+@		IN	NS	ns2
+www	IN	CNAME	xs.powerdns.com.
+ns1	IN	A	1.2.3.4
+ns2	IN	A	4.3.2.1
+@		IN	ALIAS	www.powerdns.com.
+@		IN	MX	25 outpost.ds9a.nl.
+serv	IN	CNAME	@
+```
 
 A query for the A record of example.com has no match in the local store, but there
 is an ALIAS record. In this case, the authoritative server synthesizes an A record
@@ -100,7 +102,7 @@ address of the resolver asking.  As a further refinement, some resolvers can
 pass along (part) of the actual stub-resolver asking the question, and base
 its answer on that 'real' address. 
 
-For ALIAS processing, implementors are encourage to pass along or use all
+For ALIAS processing, implementors are encouraged to pass along or use all
 knowledge of the remote client IP address when retrieving A or AAAA records.
 
 ## Resolver processing
