@@ -286,10 +286,9 @@ AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 AS_IF([test "x$needsqlite3" = "xyes"], [
   PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
-    [HAVE_SQLITE3=yes],
-    [AC_MSG_ERROR([Could not find sqlite3])]
+    [AC_DEFINE([HAVE_SQLITE3], [1], [Define to 1 if you have sqlite3])],
+    [AC_MSG_ERROR([Could not find libsqlite3])]
   )
-  AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
 ])
 
 for a in $modules; do
