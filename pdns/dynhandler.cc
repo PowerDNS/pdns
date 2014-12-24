@@ -300,6 +300,33 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
+uint64_t udpErrorStats(const std::string& str)
+{
+  ifstream ifs("/proc/net/snmp");
+  if(!ifs)
+    return 0;
+  string line;
+  vector<string> parts;
+  while(getline(ifs,line)) {
+    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
+      stringtok(parts, line, " \n\t\r");
+      if(parts.size() < 7)
+	break;
+      if(str=="udp-rcvbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[5]);
+      else if(str=="udp-sndbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[6]);
+      else if(str=="udp-noport-errors")
+	return boost::lexical_cast<uint64_t>(parts[2]);
+      else if(str=="udp-in-errors")
+	return boost::lexical_cast<uint64_t>(parts[3]);
+      else
+	return 0;
+    }
+  }
+  return 0;
+}
+
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 {
   UeberBackend B;

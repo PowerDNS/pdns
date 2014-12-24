@@ -24,6 +24,7 @@
 #include "secpoll-auth.hh"
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "dynhandler.hh"
 #include <boost/foreach.hpp>
 
 bool g_anyToTcp;
@@ -254,6 +255,13 @@ void declareStats(void)
   S.declare("incoming-notifications", "NOTIFY packets received.");
 
   S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
+#ifdef __linux__
+  S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats);
+  S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats);
+  S.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats);
+  S.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats);
+#endif
+
   S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
   S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
   S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes);
