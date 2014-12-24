@@ -61,7 +61,7 @@ AC_SEARCH_LIBS([gethostent], [nsl])
 AC_SEARCH_LIBS([inet_aton], [resolv])
 
 LT_PREREQ([2.2.2])
-LT_INIT([disable-static])
+LT_INIT([disable-static dlopen])
 
 
 MC_TM_GMTOFF
@@ -118,13 +118,7 @@ PDNS_CHECK_LINKCHECKER
 dnl Checks for library functions.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
-# Check for libdl
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(dl,dlopen)
-LIBDL=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBDL)
+AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 AC_MSG_CHECKING([for RTLD_NOW]);
 ac_save_LIBS="$LIBS"
