@@ -85,7 +85,18 @@ BOOST_SERIALIZATION([mt])
 
 PDNS_ENABLE_UNIT_TESTS
 
-PDNS_WITH_SQLITE3
+dnl Allow user to require SQLite3
+AC_MSG_CHECKING([whether user requires sqlite3])
+AC_ARG_WITH([sqlite3],
+  [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
+  [with_sqlite3=$withval],
+  [with_sqlite3=no]
+)
+AC_MSG_RESULT([$with_sqlite3])
+
+AS_IF([test "x$with_sqlite3" != "xno"], [
+  needsqlite3=yes
+])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -240,7 +251,6 @@ for a in $modules $dynmodules; do
       ;;
     gsqlite3)
       needsqlite3=yes
-      PDNS_CHECK_SQLITE3
       ;;
     ldap)
       PDNS_CHECK_LDAP
@@ -270,6 +280,12 @@ AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
+AS_IF([test "x$needsqlite3" = "xyes"], [
+  PKG_CHECK_MODULES([SQLITE3], [sqlite3],
+    [AC_DEFINE([HAVE_SQLITE3], [1], [Define to 1 if you have sqlite3])],
+    [AC_MSG_ERROR([Could not find libsqlite3])]
+  )
+])
 
 for a in $modules; do
   moduledirs="$moduledirs ${a}backend"
