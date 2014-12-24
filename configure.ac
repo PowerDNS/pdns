@@ -118,6 +118,10 @@ PDNS_CHECK_LINKCHECKER
 dnl Checks for library functions.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
+AS_IF([test "x$lt_cv_dlopen" = "xno"],
+  [AC_MSG_ERROR([Your system does not support dlopen])]
+)
+
 AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 AC_MSG_CHECKING([for RTLD_NOW]);
