@@ -93,13 +93,14 @@ AC_ARG_WITH([sqlite3],
   [with_sqlite3=no]
 )
 AC_MSG_RESULT([$with_sqlite3])
+
 SQLITE3PC=sqlite3
-if test "$with_sqlite3" != "no"; then
+AS_IF([test "x$with_sqlite3" != "xno"], [
   needsqlite3=yes
-  if test "$with_sqlite3" != "yes"; then
+  AS_IF([test "x$with_sqlite3" != "xyes"], [
     SQLITE3PC=$with_sqlite3
-  fi
-fi
+  ])
+])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -283,7 +284,7 @@ AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
-if test "$needsqlite3"; then
+AS_IF([test "x$needsqlite3" = "xyes"], [
   PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
     [HAVE_SQLITE3=yes],
     [AC_MSG_ERROR([Could not find sqlite3])]
@@ -291,7 +292,7 @@ if test "$needsqlite3"; then
   AC_SUBST(SQLITE3_LIBS)
   AC_SUBST(SQLITE3_CFLAGS)
   AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
-fi
+])
 
 for a in $modules; do
   moduledirs="$moduledirs ${a}backend"
