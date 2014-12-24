@@ -89,15 +89,15 @@ dnl Allow user to require SQLite3
 AC_MSG_CHECKING([whether user requires sqlite3])
 AC_ARG_WITH([sqlite3],
   [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
-  [WITH_SQLITE3=$withval],
-  [WITH_SQLITE3=no]
+  [with_sqlite3=$withval],
+  [with_sqlite3=no]
 )
-AC_MSG_RESULT([$WITH_SQLITE3])
+AC_MSG_RESULT([$with_sqlite3])
 SQLITE3PC=sqlite3
-if test "$WITH_SQLITE3" != "no"; then
+if test "$with_sqlite3" != "no"; then
   needsqlite3=yes
-  if test "$WITH_SQLITE3" != "yes"; then
-    SQLITE3PC=$WITH_SQLITE3
+  if test "$with_sqlite3" != "yes"; then
+    SQLITE3PC=$with_sqlite3
   fi
 fi
 
