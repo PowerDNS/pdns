@@ -60,11 +60,8 @@ AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([gethostent], [nsl])
 AC_SEARCH_LIBS([inet_aton], [resolv])
 
-m4_ifndef([LT_INIT],[
-AC_PROG_LIBTOOL([disable-static])
-],[
+LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
-])
 
 
 MC_TM_GMTOFF
