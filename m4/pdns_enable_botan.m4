@@ -22,6 +22,9 @@ AC_DEFUN([PDNS_ENABLE_BOTAN],[
       [AC_DEFINE([HAVE_BOTAN110],[1],[Define to 1 if you have botan 1.10])],
       [AC_MSG_ERROR([Could not find botan 1.10])]
     )]
+    [AS_CASE([$host_os], [linux*],
+      [BOTAN110_LIBS="$BOTAN110_LIBS -lgmp -lrt"]
+    )]
   )
 
   AS_IF([test "x$enable_botan18" != "xno"], [
@@ -29,5 +32,11 @@ AC_DEFUN([PDNS_ENABLE_BOTAN],[
       [AC_DEFINE([HAVE_BOTAN18], [1], [Define to 1 if you have botan 1.10])],
       [AC_MSG_ERROR([Could not find botan 1.8])]
     )]
+    [AS_CASE([$host_os], [linux*],
+      [BOTAN18_LIBS="$BOTAN18_LIBS -lgmp"]
+    )]
   )
+
+  AC_SUBST([BOTAN110_LIBS])
+  AC_SUBST([BOTAN18_LIBS])
 ])
