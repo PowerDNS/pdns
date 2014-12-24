@@ -94,12 +94,8 @@ AC_ARG_WITH([sqlite3],
 )
 AC_MSG_RESULT([$with_sqlite3])
 
-SQLITE3PC=sqlite3
 AS_IF([test "x$with_sqlite3" != "xno"], [
   needsqlite3=yes
-  AS_IF([test "x$with_sqlite3" != "xyes"], [
-    SQLITE3PC=$with_sqlite3
-  ])
 ])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -285,7 +281,7 @@ AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 AS_IF([test "x$needsqlite3" = "xyes"], [
-  PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
+  PKG_CHECK_MODULES([SQLITE3], [sqlite3],
     [AC_DEFINE([HAVE_SQLITE3], [1], [Define to 1 if you have sqlite3])],
     [AC_MSG_ERROR([Could not find libsqlite3])]
   )
