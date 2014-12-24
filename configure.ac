@@ -124,20 +124,6 @@ AS_IF([test "x$lt_cv_dlopen" = "xno"],
 
 AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
-AC_MSG_CHECKING([for RTLD_NOW]);
-ac_save_LIBS="$LIBS"
-LIBS="$LIBS $LIBDL"
-AC_LINK_IFELSE(
-  [AC_LANG_PROGRAM([[#include <dlfcn.h>]],
-    [[(void) dlopen("",RTLD_NOW);]])],
-  [has_RTLD_NOW=yes],
-  [has_RTLD_NOW=no])
-AC_MSG_RESULT([$has_RTLD_NOW])
-if test "$has_RTLD_NOW" = "no"; then
-  AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
-fi
-LIBS=$ac_save_LIBS
-
 THREADFLAGS=""
 
 case "$host_os" in
