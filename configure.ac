@@ -289,8 +289,6 @@ AS_IF([test "x$needsqlite3" = "xyes"], [
     [HAVE_SQLITE3=yes],
     [AC_MSG_ERROR([Could not find sqlite3])]
   )
-  AC_SUBST(SQLITE3_LIBS)
-  AC_SUBST(SQLITE3_CFLAGS)
   AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
 ])
 
