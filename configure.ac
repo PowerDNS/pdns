@@ -105,7 +105,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
 # Check for libdl
 my_save_LIBS="$LIBS"
@@ -292,8 +292,6 @@ if test "$needsqlite3"; then
   AC_SUBST(SQLITE3_CFLAGS)
   AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
 fi
-
-AC_CHECK_FUNCS([localtime_r])
 
 for a in $modules; do
   moduledirs="$moduledirs ${a}backend"
