@@ -75,8 +75,6 @@ The following lists the contents of a zone called "powerdns.com".
       cout<<rr.qname<<"\t IN "<<rr.qtype.getName()<<"\t"<<rr.content<<endl;
 ```
 
-Please note that when so called 'fancy records' (see [Fancy records](../authoritative/fancy-records.md)) are enabled, a backend can receive wildcard lookups. These have a % as the first character of the qdomain in lookup.
-
 ## A sample minimal backend
 
 This backend only knows about the host "random.powerdns.com", and furthermore, only about its A record:
