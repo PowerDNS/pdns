@@ -138,7 +138,6 @@ LIBCRYPT=$LIBS
 LIBS="$my_save_LIBS"
 AC_SUBST(LIBCRYPT)
 
-DYNLINKFLAGS=""
 THREADFLAGS=""
 
 AM_CONDITIONAL([OS_MACOSX], false)
@@ -171,13 +170,17 @@ solaris2.6 | solaris2.7)
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
 linux*)
+<<<<<<< HEAD
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="$LDFLAGS -lrt"
+=======
+>>>>>>> 2cfb6b6... Let libtool figure out how to export symbols
   THREADFLAGS="-pthread"
   CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
 darwin*)
+<<<<<<< HEAD
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="-pthread $LDFLAGS"
@@ -187,13 +190,19 @@ darwin*)
 *)
   AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
+=======
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
+  AM_CONDITIONAL([OS_MACOSX], true)
+  ;;
+*)
+>>>>>>> 2cfb6b6... Let libtool figure out how to export symbols
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
   ;;
 esac
 
 AC_SUBST(THREADFLAGS)
-AC_SUBST(DYNLINKFLAGS)
+AC_SUBST([DYNLINKFLAGS], [-export-dynamic])
 
 PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_WITH_SYSTEM_POLARSSL
