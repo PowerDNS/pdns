@@ -174,6 +174,7 @@ PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
+PDNS_ENABLE_ED25519
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
 AC_MSG_CHECKING([whether we will be building static binaries])
@@ -341,6 +342,7 @@ AC_CONFIG_FILES([
   docs/Makefile
   pdns/pdns.init
   pdns/ext/Makefile
+  pdns/ext/ed25519/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
   pdns/ext/polarssl/Makefile

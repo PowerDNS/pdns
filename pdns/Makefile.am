@@ -202,6 +202,11 @@ pdns_server_SOURCES += cryptoppsigners.cc
 pdns_server_LDADD += $(CRYPTOPP_LIBS)
 endif
 
+if ED25519
+pdns_server_SOURCES += ed25519signers.cc
+pdns_server_LDADD += $(ED25519_LIBS)
+endif
+
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
@@ -289,6 +294,11 @@ endif
 if CRYPTOPP
 pdnssec_SOURCES += cryptoppsigners.cc
 pdnssec_LDADD += -lcryptopp
+endif
+
+if ED25519
+pdnssec_SOURCES += ed25519signers.cc
+pdnssec_LDADD += $(ED25519_LIBS)
 endif
 
 if SQLITE3
