@@ -9,6 +9,6 @@ AC_DEFUN([PDNS_ENABLE_UNIT_TESTS], [
   AC_MSG_RESULT([$enable_unit_tests])
   AM_CONDITIONAL([UNIT_TESTS], [test "x$enable_unit_tests" != "xno"])
   AS_IF([test "x$enable_unit_tests" != "xno"], [
-     BOOST_TEST([mt])
+     AX_BOOST_UNIT_TEST_FRAMEWORK
    ])
 ])
