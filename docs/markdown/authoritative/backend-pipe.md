@@ -52,9 +52,9 @@ If not set the default pipebackend-abi-version is 1. When set to 2, the local-ip
 Included with the PDNS distribution is the example.pl backend which has knowledge of the example.com zone, just like the BindBackend. To install both, add the following to your `pdns.conf`:
 
 ```
-          launch=pipe,bind
-          bind-example-zones
-          pipe-command=location/of/backend.pl
+launch=pipe,bind
+bind-example-zones
+pipe-command=location/of/backend.pl
 ```
 
 Please adjust the [`pipe-command`](#pipe-command) statement to the location of the unpacked PDNS distribution. If your backend is slow, raise [`pipe-timeout`](#pipe-timeout) from its default of 2000ms. Now launch PDNS in monitor mode, and perform some queries. Note the difference with the earlier experiment where only the BindBackend was loaded. The PipeBackend is launched first and thus gets queried first. The sample backend.pl script knows about:
@@ -102,10 +102,10 @@ Type is the tag above, `qname` is the domain the question is about. `qclass` is 
 AXFR-queries look like this:
 
 ```
-AXFR    id  zoneName
+AXFR    id  zone-name
 ```
 
-The id is gathered from the answer to a SOA query. ZoneName is given in ABI version 4.
+The `id` is gathered from the answer to a SOA query. `zone-name` is given in ABI version 4.
 
 ### Answers
 Each answer starts with a tag, possibly followed by a TAB and more data.
