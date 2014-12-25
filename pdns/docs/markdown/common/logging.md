@@ -129,8 +129,19 @@ LegendI[recursing]: recursing-answers
 ## Sending to Carbon/Graphite/Metronome
 For carbon/graphite/metronome, we use the following namespace. Everything starts with 'pdns.', which is then followed by the local hostname. Thirdly, we add either 'auth' or 'recursor' to siginify the daemon generating the metrics. This is then rounded off with the actual name of the metric. As an example: 'pdns.ns1.recursor.questions'.
 
+**Warning**: If your hostname includes dots, beyond 3.6.2 they will be
+replaced by underscores so as not to confuse the namespace. In 3.6.2 and earlier,
+any dots will remain unchanged. See below for how to override the hostname.
+
 Care has been taken to make the sending of statistics as unobtrusive as possible, the daemons will not be hindered by an unreachable carbon server, timeouts or connection refused situations.
 
 To benefit from our carbon/graphite support, either install Graphite, or use our own lightweight statistics daemon, Metronome, currently available on [GitHub](https://github.com/ahupowerdns/metronome/).
 
-Secondly, set [`carbon-server`](../authoritative/settings.md#carbon-server), possibly [`carbon-interval`](../authoritative/settings.md#carbon-interval) and possibly [`carbon-ourname`](../authoritative/settings.md#carbon-ourname) in the configuration.
+Secondly, set [`carbon-server`](../authoritative/settings.md#carbon-server),
+possibly [`carbon-interval`](../authoritative/settings.md#carbon-interval)
+and possibly [`carbon-ourname`](../authoritative/settings.md#carbon-ourname)
+in the configuration.
+
+**Warning**: If you include dots in `carbon-ourname`, they will not be replaced by underscores, 
+since PowerDNS assumes you know what you are doing if you override your hostname.
+
