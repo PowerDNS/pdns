@@ -34,7 +34,7 @@
 #include <sys/types.h>
 
 
-#if DARWIN || _AIX || __APPLE__ 
+#if defined(_AIX) || defined(__APPLE__)
 
 // Darwin 6.0 Compatible implementation, uses pthreads so it portable across more platforms.
 
