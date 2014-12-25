@@ -165,7 +165,7 @@ DATA    scopebits   auth    qname       qclass  qtype   ttl id  content
 
 `scopebits` indicates how many bits from the subnet provided in the question (originally from edns-subnet) were used in determining this answer. This can aid caching (although PowerDNS does not currently use this value). The `auth` field indicates whether this response is authoritative; this is for DNSSEC. In the `auth` field, use 0 for non-authoritative or 1 for authoritative.
 
-For api-versions 1 and 2, the two new fields fall back to default values. The default value for scopebits is 0. The default for auth is 1 (meaning authoritative).
+For abi-versions 1 and 2, the two new fields fall back to default values. The default value for scopebits is 0. The default for auth is 1 (meaning authoritative).
 
 ## Sample perl backend
 ```
