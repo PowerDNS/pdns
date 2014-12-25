@@ -70,12 +70,7 @@ Questions come in over a file descriptor, by default standard input. Answers are
 ## Handshake
 PowerDNS sends out `HELO\t1`, indicating that it wants to speak the protocol as defined in this document, version 1. For abi-version 2 or 3, PowerDNS sends `HELO\t2` or `HELO\t3`. A PowerDNS Coprocess must then send out a banner, prefixed by `OK\t`, indicating it launched successfully. If it does not support the indicated version, it should respond with `FAIL`, but not exit. Suggested behaviour is to try and read a further line, and wait to be terminated.
 
-### Questions
-Questions come in three forms and are prefixed by a tag indicating the type:
-
-* `Q`: Regular queries
-* `AXFR`: List requests, which mean that an entire zone should be listed
-* `PING`: Check if the coprocess is functioning
+### `Q`: Regular queries for data
 
 The question format, for type Q questions:
 
@@ -101,6 +96,8 @@ Type is the tag above, `qname` is the domain the question is about. `qclass` is 
 `edns-subnet-address` is the actual client subnet as provided via edns-subnet support. Note that for the SOA query that precedes an AXFR, edns-subnet is always set to 0.0.0.0/0.
 
 **Note**: Queries for wildcard names should be answered literally, without expansion. So, if a backend gets a question for "*.powerdns.com", it should only answer with data if there is an actual "*.powerdns.com" name
+
+### `AXFR`: List an entire zone
 
 AXFR-queries look like this:
 
