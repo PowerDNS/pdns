@@ -38,6 +38,7 @@ if TOOLS
   bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy dnsdist nsec3dig saxfr
 endif
 
+<<<<<<< HEAD
 EXTRA_PROGRAMS=pdns_recursor sdig saxfr dnstcpbench dnsdist tsig-tests speedtest dnsscope dnsgram rec_control \
 testrunner dnsreplay zone2lmdb \
 toysdig dnsdemog dnswasher dnsscan nproxy notify dnsbulktest nsec3dig saxfr
@@ -71,6 +72,117 @@ comment.hh auth-carbon.cc
 
 pdns_server_LDFLAGS=@moduleobjects@ @modulelibs@ $(DYNLINKFLAGS) @LIBDL@ $(THREADFLAGS)  $(BOOST_SERIALIZATION_LDFLAGS) -rdynamic
 pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQLITE3_LIBS) $(YAHTTP_LIBS)
+=======
+EXTRA_PROGRAMS = \
+	dnsbulktest \
+	dnsdemog \
+	dnsdist \
+	dnsgram \
+	dnsreplay \
+	dnsscan \
+	dnsscope \
+	dnstcpbench \
+	dnswasher \
+	notify \
+	nproxy \
+	nsec3dig \
+	pdns_recursor \
+	rec_control \
+	saxfr \
+	sdig \
+	speedtest \
+	testrunner \
+	toysdig \
+	tsig-tests \
+	zone2lmdb
+
+pdns_server_SOURCES = \
+	arguments.cc arguments.hh \
+	auth-carbon.cc \
+	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
+	backends/gsql/ssql.hh \
+	base32.cc base32.hh \
+	base64.cc base64.hh \
+	bind-dnssec.schema.sqlite3.sql.h \
+	bindlexer.l \
+	bindparser.cc \
+	cachecleaner.hh \
+	comment.hh \
+	common_startup.cc common_startup.hh \
+	communicator.cc communicator.hh \
+	dbdnsseckeeper.cc \
+	distributor.hh \
+	dns.cc dns.hh \
+	dns_random.cc dns_random.hh \
+	dnsbackend.cc dnsbackend.hh \
+	dnslabeltext.cc \
+	dnspacket.cc dnspacket.hh \
+	dnsparser.cc \
+	dnsproxy.cc dnsproxy.hh \
+	dnsrecords.cc \
+	dnssecinfra.cc dnssecinfra.hh \
+	dnsseckeeper.hh \
+	dnssecsigner.cc \
+	dnswriter.cc \
+	dynhandler.cc dynhandler.hh \
+	dynlistener.cc dynlistener.hh \
+	dynmessenger.hh \
+	ednssubnet.cc ednssubnet.hh \
+	iputils.hh \
+	json.cc json.hh \
+	lock.hh \
+	logger.cc logger.hh \
+	lua-auth.cc lua-auth.hh \
+	lua-pdns.cc \
+	mastercommunicator.cc \
+	md5.hh \
+	misc.cc misc.hh \
+	nameserver.cc nameserver.hh \
+	namespaces.hh \
+	nsecrecords.cc \
+	packetcache.cc packetcache.hh \
+	packethandler.cc packethandler.hh \
+	pdnsexception.hh \
+	polarrsakeyinfra.cc \
+	qtype.cc qtype.hh \
+	randomhelper.cc \
+	rcpgenerator.cc	\
+	receiver.cc \
+	resolver.cc resolver.hh \
+	responsestats.cc responsestats.hh \
+	rfc2136handler.cc \
+	secpoll-auth.cc secpoll-auth.hh \
+	serialtweaker.cc \
+	sha.hh \
+	signingpipe.cc signingpipe.hh \
+	sillyrecords.cc \
+	slavecommunicator.cc \
+	statbag.cc statbag.hh \
+	tcpreceiver.cc tcpreceiver.hh \
+	ueberbackend.cc ueberbackend.hh \
+	unix_semaphore.cc \
+	unix_utility.cc \
+	utility.hh \
+	version.cc version.hh \
+	webserver.cc webserver.hh \
+	ws-api.cc ws-api.hh \
+	ws-auth.cc ws-auth.hh \
+	zoneparser-tng.cc
+
+
+pdns_server_LDFLAGS = \
+	$(DYNLINKFLAGS) \
+	$(THREADFLAGS) \
+	$(BOOST_SERIALIZATION_LDFLAGS)
+
+pdns_server_LDADD = \
+	@moduleobjects@ \
+	@modulelibs@ \
+	$(LIBDL) \
+	$(POLARSSL_LIBS) \
+	$(BOOST_SERIALIZATION_LIBS) \
+	$(YAHTTP_LIBS)
+>>>>>>> 2cfb6b6... Let libtool figure out how to export symbols
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
