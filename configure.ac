@@ -30,6 +30,10 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 
 AC_LANG([C++])
 
+AC_DEFINE([_GNU_SOURCE], [1],
+  [Define _GNU_SOURCE so that we get all necessary prototypes]
+)
+
 AC_CC_PIE
 AC_CC_STACK_PROTECTOR
 AC_CC_PARAM_SSP_BUFFER_SIZE([4])
@@ -151,7 +155,6 @@ solaris2.8 | solaris2.9 )
   ;;
 linux*)
   THREADFLAGS="-pthread"
-  CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
 darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
