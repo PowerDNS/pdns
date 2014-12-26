@@ -703,6 +703,82 @@ int deleteZone(const string &zone) {
   return 1;
 }
 
+int listZone(const string &zone) {
+  UeberBackend B;
+  DomainInfo di;
+  
+  if (! B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' not found!"<<endl;
+    return 1;
+  }
+  di.backend->list(zone, di.id);
+  DNSResourceRecord rr;
+  while(di.backend->get(rr)) {
+    if(rr.qtype.getCode()) {
+      if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') 
+	rr.content.append(1, '.');
+	
+      cout<<rr.qname<<".\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<endl;
+    }
+  }
+  return 0;
+}
+
+int loadZone(string zone, const string& fname) {
+  UeberBackend B;
+  DomainInfo di;
+
+  if (B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' exists already, replacing contents"<<endl;
+  }
+  else {
+    cerr<<"Creating '"<<zone<<"'"<<endl;
+    B.createDomain(zone);
+    
+    if(!B.getDomainInfo(zone, di)) {
+      cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
+      return 1;
+    }
+  }
+  DNSBackend* db = di.backend;
+  ZoneParserTNG zpt(fname, zone);
+  
+  DNSResourceRecord rr;
+  if(!db->startTransaction(zone, di.id)) {
+    cerr<<"Unable to start transaction for load of zone '"<<zone<<"'"<<endl;
+    return 1;
+  }
+  rr.domain_id=di.id;  
+  while(zpt.get(rr)) {
+    if(!endsOn(stripDot(rr.qname), zone) && rr.qname!=zone) {
+      cerr<<"File contains record named '"<<rr.qname<<"' which is not part of zone '"<<zone<<"'"<<endl;
+      return 1;
+    }
+    rr.qname=stripDot(rr.qname);
+    db->feedRecord(rr);
+  }
+  db->commitTransaction();
+  return 0;
+}
+
+int createZone(const string &zone) {
+  UeberBackend B;
+  DomainInfo di;
+  if (B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' exists already"<<endl;
+    return 1;
+  }
+  cerr<<"Creating '"<<zone<<"'"<<endl;
+  B.createDomain(zone);
+
+  if(!B.getDomainInfo(zone, di)) {
+    cerr<<"Domain '"<<zone<<"' was not created!"<<endl;
+    return 1;
+  }
+  return 1;
+}
+
+
 int listAllZones(const string &type="") {
 
   int kindFilter = -1;
@@ -1171,6 +1247,7 @@ try
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
+    cerr<<"create-zone ZONE                   Create empty zone ZONE"<<endl;
     cerr<<"deactivate-tsig-key ZONE NAME [master|slave]"<<endl;
     cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
@@ -1194,8 +1271,11 @@ try
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
     cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
+    cerr<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
+    cerr<<"                                   replacing contents"<<endl;
+    cerr<<"list-zone ZONE                     List zone contents"<<endl;
     cerr<<"list-all-zones [master|slave|native]"<<endl;
-    cerr<<"                                   List all zones"<<endl;;
+    cerr<<"                                   List all zone names"<<endl;;
     cerr<<"list-tsig-keys                     List all TSIG keys"<<endl;
     cerr<<"rectify-zone ZONE [ZONE ..]        Fix up DNSSEC fields (order, auth)"<<endl;
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
@@ -1456,6 +1536,33 @@ try
       return 0;
     }
     exit(deleteZone(cmds[1]));
+  }
+  else if(cmds[0] == "create-zone") {
+    if(cmds.size() != 2) {
+      cerr<<"Syntax: pdnssec create-zone ZONE"<<endl;
+      return 0;
+    }
+    exit(createZone(cmds[1]));
+  }
+  else if(cmds[0] == "list-zone") {
+    if(cmds.size() != 2) {
+      cerr<<"Syntax: pdnssec list-zone ZONE"<<endl;
+      return 0;
+    }
+    if(cmds[1]==".")
+      cmds[1].clear();
+
+    exit(listZone(cmds[1]));
+  }
+  else if(cmds[0] == "load-zone") {
+    if(cmds.size() != 3) {
+      cerr<<"Syntax: pdnssec load-zone ZONE FILENAME"<<endl;
+      return 0;
+    }
+    if(cmds[1]==".")
+      cmds[1].clear();
+
+    exit(loadZone(cmds[1], cmds[2]));
   }
   else if(cmds[0] == "secure-zone") {
     if(cmds.size() < 2) {
