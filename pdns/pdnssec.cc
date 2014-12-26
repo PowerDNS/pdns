@@ -692,7 +692,7 @@ int deleteZone(const string &zone) {
   UeberBackend B;
   DomainInfo di;
   if (! B.getDomainInfo(zone, di)) {
-    cerr<<"Domain '"<<zone<<"' not found!";
+    cerr<<"Domain '"<<zone<<"' not found!"<<endl;
     return 1;
   }
 
