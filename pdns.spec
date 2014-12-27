@@ -7,7 +7,6 @@ License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-AutoReqProv: no
 
 %define _rpmdir ../
 %define _rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
@@ -48,7 +47,6 @@ License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-AutoReqProv: no
 
 %description -n pdns-tools
 These are the tools
