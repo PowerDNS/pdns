@@ -21,13 +21,4 @@ EXTRA_DIST = \
 
 ACLOCAL_AMFLAGS = -I m4
 
-install-exec-local: 
-	-@chmod +x pdns/pdns.init
-	@echo "***********************************************************"
-	@echo
-	@echo An init.d startup script has been made for you in pdns/pdns.init.
-	@echo You may want to copy this to /etc/init.d or equivalent.
-	@echo
-	@echo "***********************************************************"
-
 dvi: # do nothing to build dvi
