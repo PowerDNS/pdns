@@ -24,21 +24,21 @@ backend'.
 
 %files
 %defattr(-,root,root)
-"/usr/sbin/pdns_server"
-"/usr/bin/pdns_control"
-"/usr/bin/zone2sql"
-"/usr/bin/zone2json"
-"/usr/bin/pdnssec"
-#"/usr/bin/zone2ldap"
-"/usr/man/man1/pdns_control.1"
-"/usr/man/man1/pdns_server.1"
-"/usr/man/man1/zone2sql.1"
-"/usr/man/man1/pdnssec.1"
-"/usr/share/doc/pdns/*.sql"
+/usr/sbin/pdns_server
+/usr/bin/pdns_control
+/usr/bin/zone2sql
+/usr/bin/zone2json
+/usr/bin/pdnssec
+#/usr/bin/zone2ldap
+/usr/man/man8/pdns_control.8
+/usr/man/man8/pdns_server.8
+/usr/man/man8/zone2sql.8
+/usr/man/man8/pdnssec.8
+/usr/share/doc/pdns/*.sql
 
-%dir "/etc/powerdns/"
-%config(noreplace) "/etc/powerdns/pdns.conf"
-%config "/etc/init.d/pdns"
+%dir /etc/powerdns/
+%config(noreplace) /etc/powerdns/pdns.conf
+%config /etc/init.d/pdns
 
 %post
 echo Remember to create a 'pdns' user before starting pdns
@@ -56,20 +56,20 @@ These are the tools
 
 %files -n pdns-tools
 %defattr(-,root,root)
-"/usr/bin/dnsbulktest"
-"/usr/bin/dnsgram"
-"/usr/bin/dnsreplay"
-"/usr/bin/dnsscan"
-"/usr/bin/dnsscope"
-"/usr/bin/dnsdist"
-"/usr/bin/dnstcpbench"
-"/usr/bin/dnswasher"
-"/usr/bin/notify"
-"/usr/bin/nproxy"
-"/usr/bin/nsec3dig"
-"/usr/bin/saxfr"
-"/usr/man/man1/dnsreplay.1"
-"/usr/man/man1/dnsscope.1"
-"/usr/man/man1/dnswasher.1"
-"/usr/man/man1/dnstcpbench.1"
-"/usr/man/man1/dnsdist.1"
+/usr/bin/dnsbulktest
+/usr/bin/dnsgram
+/usr/bin/dnsreplay
+/usr/bin/dnsscan
+/usr/bin/dnsscope
+/usr/bin/dnsdist
+/usr/bin/dnstcpbench
+/usr/bin/dnswasher
+/usr/bin/notify
+/usr/bin/nproxy
+/usr/bin/nsec3dig
+/usr/bin/saxfr
+/usr/man/man8/dnsreplay.1
+/usr/man/man8/dnsscope.1
+/usr/man/man8/dnswasher.1
+/usr/man/man1/dnstcpbench.1
+/usr/man/man1/dnsdist.1
