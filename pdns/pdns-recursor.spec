@@ -11,16 +11,16 @@ Vendor: PowerDNS.COM BV
 Group: System/DNS
 
 %define _rpmdir ../
-%define _rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
+%define _rpmfilename %%{name}-%%{version}-%%{release}.%%{arch}.rpm
 
 %build
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 export PATH=/opt/gcc-4.1.1/bin:${PATH}
 export LD_LIBRARY_PATH=/opt/gcc-4.1.1/lib
 CC=gcc make STATIC=semi
 
 %install
-DESTDIR=$RPM_BUILD_ROOT make install
+make install DESTDIR=%{buildroot}
 
 %description
 PowerDNS is a versatile nameserver which supports a large number
