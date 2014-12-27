@@ -3,7 +3,7 @@ Name: pdns-static
 Version: 3.3
 Release: 1
 Summary: extremely powerful and versatile nameserver
-License: GPL
+License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
@@ -45,7 +45,7 @@ echo Remember to create a 'pdns' user before starting pdns
 
 %package -n pdns-tools
 Summary: extremely powerful and versatile nameserver
-License: GPL
+License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
