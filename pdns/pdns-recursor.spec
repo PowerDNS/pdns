@@ -5,7 +5,7 @@ Name: pdns-recursor
 Version: 3.5.1
 Release: 1
 Summary: extremely powerful and versatile recursing nameserver
-License: GPL
+License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
