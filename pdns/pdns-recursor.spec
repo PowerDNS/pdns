@@ -32,13 +32,13 @@ This RPM is semi-statically compiled and should work on all Linux distributions.
 
 %files
 %defattr(-,root,root)
-"/usr/sbin/pdns_recursor"
-"/usr/bin/rec_control"
-"/etc/init.d/pdns-recursor"
-"/usr/share/man/man1/pdns_recursor.1.gz"
-"/usr/share/man/man1/rec_control.1.gz"
-%dir "/etc/powerdns/"
-%config "/etc/powerdns/recursor.conf-dist"
+/usr/sbin/pdns_recursor
+/usr/bin/rec_control
+/etc/init.d/pdns-recursor
+/usr/share/man/man1/pdns_recursor.1.gz
+/usr/share/man/man1/rec_control.1.gz
+%dir /etc/powerdns/
+%config /etc/powerdns/recursor.conf-dist
 
 %post
 echo Remember to create a 'pdns' user before starting pdns
