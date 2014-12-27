@@ -27,7 +27,7 @@ backend'.
 %{_bindir}/zone2sql
 %{_bindir}/zone2json
 %{_bindir}/pdnssec
-#%{_bindir}/zone2ldap
+#%%{_bindir}/zone2ldap
 %{_mandir}/man8/pdns_control.8
 %{_mandir}/man8/pdns_server.8
 %{_mandir}/man8/zone2sql.8
