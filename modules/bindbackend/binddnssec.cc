@@ -19,7 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "bindbackend2.hh"
+#include "bindbackend.hh"
 #include "pdns/dnsrecords.hh"
 #include "pdns/bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>

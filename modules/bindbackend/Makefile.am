@@ -12,7 +12,7 @@ BUILT_SOURCES = \
 EXTRA_DIST = OBJECTFILES OBJECTLIBS
 
 libbindbackend_la_SOURCES = \
-	bindbackend2.cc bindbackend2.hh \
+	bindbackend.cc bindbackend.hh \
 	binddnssec.cc
 
 libbindbackend_la_LDFLAGS = -module -avoid-version
