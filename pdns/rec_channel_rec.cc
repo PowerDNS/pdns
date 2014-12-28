@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include "version.hh"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -22,7 +23,7 @@
 #include <sys/time.h>
 #include "lock.hh"
 #include "responsestats.hh"
-#include "version_generated.h"
+
 #include "secpoll-recursor.hh"
 #include "pubsuffix.hh"
 #include "namespaces.hh"
@@ -845,7 +846,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   }
 
   if(cmd=="version") {
-    return string(PDNS_VERSION)+"\n";
+    return getPDNSVersion()+"\n";
   }
   
   if(cmd=="quit-nicely") {

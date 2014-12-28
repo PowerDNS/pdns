@@ -49,6 +49,11 @@ string productName() {
   return "Unknown";
 }
 
+string getPDNSVersion()
+{
+  return PDNS_VERSION;
+}
+
 // REST API product type
 string productTypeApiType() {
   switch (productType) {
