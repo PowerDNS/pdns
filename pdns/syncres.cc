@@ -22,6 +22,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include "lua-recursor.hh"
 #include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
@@ -72,8 +73,8 @@ bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-                                                 d_now(now),
-                                                 d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
+					       d_now(now),
+					       d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
                                                  
 { 
   if(!t_sstorage) {
@@ -932,9 +933,17 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               s_tcpoutqueries++; d_tcpoutqueries++;
             }
             
-            resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
+	    if(d_pdl && d_pdl->prequery(*remoteIP, *remoteIP, qname, qtype, lwr.d_result, resolveret)) {
+	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
+	    }
+	    else 
+	      resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
                                            doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
-              
+
+            if(resolveret==-3)
+	      throw ImmediateServFailException("Query killed by policy");
+
+
 	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);

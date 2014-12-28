@@ -2,6 +2,7 @@
 #define PDNS_REC_CHANNEL
 #include <string>
 #include <map>
+#include <vector>
 #include <inttypes.h>
 #include <sys/un.h>
 #include <pthread.h>
@@ -42,4 +43,5 @@ private:
 std::map<std::string, std::string> getAllStatsMap();
 extern pthread_mutex_t g_carbon_config_lock;
 void sortPublicSuffixList();
+std::vector<std::pair<std::string, uint16_t> >* pleaseGetQueryRing();
 #endif 

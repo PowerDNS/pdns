@@ -542,6 +542,9 @@ void startDoResolve(void *p)
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
     SyncRes sr(dc->d_now);
+    if(t_pdl) {
+      sr.setLuaEngine(*t_pdl);
+    }
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
 

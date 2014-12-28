@@ -158,3 +158,13 @@ function hidettl ( remoteip, domain, qtype, records, origrcode )
 	end
 	return origrcode, records
 end
+
+function prequery(remoteip, domain, qtype)
+	print("pdns wants to ask "..remoteip.." about "..domain.." "..qtype)
+	if(remoteip=="192.121.121.14")
+	then
+		return -3,{}
+	else
+		return -1,{}
+	end
+end

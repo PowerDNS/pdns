@@ -23,7 +23,7 @@
 #include "iputils.hh"
 
 void primeHints(void);
-
+class RecursorLua;
 struct NegCacheEntry
 {
   string d_name;
@@ -278,6 +278,12 @@ public:
     return d_trace.str();
   }
 
+  void setLuaEngine(shared_ptr<RecursorLua> pdl)
+  {
+    d_pdl = pdl;
+  }
+
+
   int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
   
   static void doEDNSDumpAndClose(int fd);
@@ -444,9 +450,9 @@ private:
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
   vector<ComboAddress> getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
-
 private:
   ostringstream d_trace;
+  shared_ptr<RecursorLua> d_pdl;
   string d_prefix;
   bool d_cacheonly;
   bool d_nocache;

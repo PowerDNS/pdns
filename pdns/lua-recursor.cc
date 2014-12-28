@@ -155,6 +155,12 @@ bool RecursorLua::postresolve(const ComboAddress& remote, const ComboAddress& lo
   return passthrough("postresolve", remote, local, query, qtype, ret, res, variable);
 }
 
+bool RecursorLua::prequery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+{
+  return passthrough("prequery", remote, local, query, qtype, ret, res, 0);
+}
+
+
 
 bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
   int& res, bool* variable)
@@ -162,7 +168,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   d_variable = false;
   lua_getglobal(d_lua,  func.c_str());
   if(!lua_isfunction(d_lua, -1)) {
-    //  cerr<<"No such function '"<<func<<"'\n";
+    //    cerr<<"No such function '"<<func<<"'\n";
     lua_pop(d_lua, 1);
     return false;
   }
@@ -191,7 +197,8 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     return false;
   }
 
-  *variable |= d_variable;
+  if(variable)
+    *variable |= d_variable;
     
   if(!lua_isnumber(d_lua, 1)) {
     string tocall = lua_tostring(d_lua,1);
