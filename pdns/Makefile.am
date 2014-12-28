@@ -949,7 +949,7 @@ check-local:
 endif
 
 dnslabeltext.cc: dnslabeltext.rl
-	ragel dnslabeltext.rl -o dnslabeltext.cc
+	$(AM_V_GEN)$(RAGEL) dnslabeltext.rl -o dnslabeltext.cc
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
