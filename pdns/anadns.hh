@@ -8,7 +8,6 @@
 #include "dnsparser.hh"
 #include "iputils.hh"
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 struct QuestionIdentifier
 {
