@@ -1094,13 +1094,15 @@ bool secureZone(DNSSECKeeper& dk, const std::string& zone)
     return false;
   }
   
+  int kid;
   for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
-    dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
+    dk.addKey(zone, true, kid, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
 
   BOOST_FOREACH(string z_algo, z_algos)
   {
     int algo = shorthand2algorithm(z_algo);
-    dk.addKey(zone, false, algo, z_size);
+    int id;
+    dk.addKey(zone, false, id, algo, z_size);
   }
 
   // rectifyZone(dk, zone);
@@ -1489,6 +1491,7 @@ try
     int bits=0;
     int algorithm=8;
     bool active=false;
+    int kid;
     for(unsigned int n=2; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "zsk"))
         keyOrZone = false;
@@ -1507,7 +1510,7 @@ try
         exit(EXIT_FAILURE);;
       }
     }
-    if(!dk.addKey(zone, keyOrZone, algorithm, bits, active)) {
+    if(!dk.addKey(zone, keyOrZone, kid, algorithm, bits, active)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }
@@ -1756,8 +1759,8 @@ try
     }
     else
       dpk.d_flags = 257; // ksk
-      
-    if(!dk.addKey(zone, dpk)) {
+    int kid; 
+    if(!dk.addKey(zone, dpk, kid)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }
@@ -1781,6 +1784,7 @@ try
     
     dpk.d_flags = 257; 
     bool active=true;
+    int kid;
 
     for(unsigned int n = 3; n < cmds.size(); ++n) {
       if(pdns_iequals(cmds[n], "ZSK"))
@@ -1796,7 +1800,7 @@ try
         exit(1);
       }          
     }
-    if(!dk.addKey(zone, dpk, active)) {
+    if(!dk.addKey(zone, dpk, kid, active)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       exit(1);
     }
@@ -2109,8 +2113,8 @@ try
      DNSSECPrivateKey dpk;
      dpk.d_flags = (keyOrZone ? 257 : 256);
      dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
- 
-     if (!(id = dk.addKey(zone, dpk))) {
+     
+     if (!dk.addKey(zone, dpk, id)) {
        cerr << "Unable to assign module slot to zone" << std::endl;
        return 1;
      }

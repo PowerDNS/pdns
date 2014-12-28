@@ -151,3 +151,11 @@ string SMySQL::escape(const string &name)
   }
   return a;
 }
+
+int SMySQL::getLastInsertId(const string& table) 
+{
+  int id = static_cast<int>( mysql_insert_id(&d_db) );
+
+  if (id < 1) return -1; // did not succeed
+  return id;
+}

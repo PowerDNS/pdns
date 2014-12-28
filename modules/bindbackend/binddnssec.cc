@@ -242,7 +242,7 @@ int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
   }
   
-  return true;
+  return d_dnssecdb->getLastInsertId("cryptokeys");
 }
 
 bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)

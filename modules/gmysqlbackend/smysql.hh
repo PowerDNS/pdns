@@ -25,6 +25,7 @@ public:
   bool getRow(row_t &row);
   string escape(const string &str);
   void setLog(bool state);
+  int getLastInsertId(const string &table);
 private:
   MYSQL d_db;
   MYSQL_RES *d_rres;

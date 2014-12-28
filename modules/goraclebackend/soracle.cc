@@ -262,6 +262,19 @@ string SOracle::escape(const string &name)
   return a;
 }
 
+int SOracle::getLastInsertId(const string& table)
+{
+  int id = -1;
+  std::ostringstream oss;
+  oss << "SELECT " << table << "_id_sequence.currval FROM dual";
+  doQuery(oss.str());
+  row_t row;
+  if (getRow(row))
+    id = boost::lexical_cast<int>(row[0]);
+  while(getRow(row));
+  return id;
+}
+
 #if 0
 
 int main(int argc, char** argv)

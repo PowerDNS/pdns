@@ -51,6 +51,9 @@ public:
 
   void setLog(bool state);
 
+  //! Get last insert id
+  int getLastInsertId(const std::string & table);
+
   //! Used to create an backend specific exception message.
   SSqlException sPerrorException( const std::string & reason );
 };
