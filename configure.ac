@@ -140,7 +140,6 @@ AC_SUBST(LIBCRYPT)
 
 THREADFLAGS=""
 
-AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
   LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
@@ -157,7 +156,6 @@ linux*)
   ;;
 darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
-  AM_CONDITIONAL([OS_MACOSX], true)
   ;;
 *)
   LDFLAGS="-pthread $LDFLAGS"
