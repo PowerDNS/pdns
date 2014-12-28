@@ -1,3 +1,6 @@
+#ifndef PDNS_GSQLBACKEND_HH
+#define PDNS_GSQLBACKEND_HH
+
 #include <string>
 #include <map>
 #include "ssql.hh"
@@ -166,3 +169,5 @@ private:
 protected:
   bool d_dnssecQueries;
 };
+
+#endif /* PDNS_GSQLBACKEND_HH */
