@@ -3,7 +3,9 @@
 set -e
 
 ragel dnslabeltext.rl -o dnslabeltext.cc
-
+cd ../docs
+make
+cd -
 ## The following lines will be patched by set-version-recursor.
 VERSION=""
 DIST_HOST=""
