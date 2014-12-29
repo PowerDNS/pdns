@@ -157,6 +157,9 @@ linux*)
   THREADFLAGS="-pthread"
   ;;
 darwin*)
+  AC_DEFINE([_XOPEN_SOURCE], [1],
+    [Define _XOPEN_SOURCE for getcontext]
+  )
   CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
   ;;
 *)
