@@ -78,7 +78,6 @@ AC_CHECK_HEADERS(
 )
 
 PDNS_CHECK_RAGEL
-AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 PDNS_WITH_LUA
 
@@ -100,6 +99,9 @@ AC_MSG_RESULT([$with_sqlite3])
 AS_IF([test "x$with_sqlite3" != "xno"], [
   needsqlite3=yes
 ])
+
+PDNS_CHECK_PANDOC
+PDNS_CHECK_MKDOCS
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -328,11 +330,13 @@ AC_SUBST([AM_CPPFLAGS],
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
 
+
 AC_CONFIG_FILES([
   Makefile
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
+  docs/Makefile
   pdns/pdns.init
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile

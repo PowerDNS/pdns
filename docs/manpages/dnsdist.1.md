@@ -1,17 +1,15 @@
-DNSDIST(1)
-==========
+% DNSDIST(1)
+% PowerDNS.com BV
+% 2013
 
-NAME
-----
-dnsdist - tool to balance DNS queries over downstream servers
+# NAME
+**dnsdist** - tool to balance DNS queries over downstream servers
 
-SYNOPSIS
---------
-'dnsdist' [--help] [--verbose] [--local address] downstream-address downstream-address
+# SYNOPSIS
+dnsdist [*OPTION*]... *ADDRESS*...
 
-DESCRIPTION
------------
-dnsdist receives DNS queries and relays them to one or more downstream
+# DESCRIPTION
+**dnsdist** receives DNS queries and relays them to one or more downstream
 servers. It subsequently sends back responses to the original requestor.
 
 dnsdist operates over TCP and UDP, and strives to deliver very high
@@ -28,8 +26,7 @@ traffic.
 IPv4 and IPv6 operation can be mixed and matched, in other words, queries
 coming in over IPv6 could be forwarded to IPv4 and vice versa.
 
-SCOPE
------
+# SCOPE
 dnsdist does not 'think' about DNS, and does not perform any kind of
 caching, nor is it aware of the quality of the answers it is relaying.
 
@@ -40,39 +37,26 @@ The goal for dnsdist is to remain simple. If more powerful loadbalancing is
 required, dedicated hardware or software is recommended. Linux Virtual
 Server for example is often mentioned.
 
-OPTIONS
--------
+# OPTIONS
+--help
+:    Show a brief summary of the options.
 
---verbose::
-	Be wordy on what the program is doing
+--verbose
+:    Be wordy on what the program is doing
 
---local::
-	Supply as many addresses to listen on as required. Specify IPv4 as
-	0.0.0.0:53 and IPv6 as [::]:53.
+--local *ADDRESS*
+:    Bind to ADDRESS, Supply as many addresses (using multiple **--local**
+     statements) to listen on as required. Specify IPv4 as 0.0.0.0:53 and IPv6
+     as [::]:53.
 
---daemon::
-	Daemonize and run in the background
+--daemon
+:    Daemonize and run in the background
 
---help::
-	Provide a helpful message
+Finally, supply as many downstream addresses as required. Remote port defaults
+to 53.
 
-Finally, supply as many downstream addresses as required. Remote port defaults to 53.
+# BUGS
+Right now, the TCP support has some rather arbitrary limits.
 
-BUGS
-----
-Right now, the TCP support has some rather arbitrary limits. 
-
-AUTHOR
-------
-Written by PowerDNS.COM BV, powerdns.documentation@powerdns.com
-
-RESOURCES
----------
+# RESOURCES
 Website: http://www.powerdns.com
-
-COPYING
--------
-Copyright (C) 2013 PowerDNS.COM BV. Free use of this software
-is granted under the terms of the GNU General Public License (GPL) version
-2.
-

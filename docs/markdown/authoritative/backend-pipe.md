@@ -172,5 +172,5 @@ For api-versions 1 and 2, the two new fields fall back to default values. The de
 
 ## Sample perl backend
 ```
-!!include=../../modules/pipebackend/backend.pl
+!!include=../modules/pipebackend/backend.pl
 ```

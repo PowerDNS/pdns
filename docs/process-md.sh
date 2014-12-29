@@ -12,7 +12,7 @@ pre() {
 post() {
   # Change the following:
   # Add class="table-bordered" to tables
-  find html-new -type f -name '*.html' -exec perl -i -p \
+  find html -type f -name '*.html' -exec perl -i -p \
     -e 's/\<table>/<table class="table-bordered">/;' \
     {} +
 }
