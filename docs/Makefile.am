@@ -15,8 +15,8 @@ man_MANS = $(MANPAGES_TARGET)
 
 EXTRA_DIST = manpages \
 	markdown \
-	$(MANPAGES_TARGET) \
-	html
+	$(MANPAGES_TARGET) 
+#	html
 
 .PHONY: html
 html: html/index.html
