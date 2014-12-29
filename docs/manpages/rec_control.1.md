@@ -1,5 +1,5 @@
 % REC_CONTROL(1)
-% PowerDNS.COM BV - Bert Hubert
+% PowerDNS.COM BV
 % April 2006
 
 # NAME

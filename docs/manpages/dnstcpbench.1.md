@@ -1,5 +1,5 @@
 % DNSTCPBENCH(1)
-% PowerDNS.COM BV - Bert Hubert
+% PowerDNS.COM BV
 % July 2013
 
 # NAME

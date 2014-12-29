@@ -1,5 +1,5 @@
 % PDNS_RECURSOR(1)
-% PowerDNS.COM BV - Bert Hubert
+% PowerDNS.COM BV
 % March 2008
 
 # NAME
