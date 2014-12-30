@@ -157,7 +157,7 @@ linux*)
   THREADFLAGS="-pthread"
   ;;
 darwin*)
-  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
   ;;
 *)
   LDFLAGS="-pthread $LDFLAGS"
