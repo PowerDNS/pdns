@@ -21,7 +21,7 @@ The output has the same format as `pdns_server --config`. You'll notice that all
 Restart a PowerDNS instance. Only available when running in guardian mode.
 
 ## `notify DOMAIN`
-Adds a domain to the notification list, causing PowerDNS to send out notifications to the nameservers of a domain. Can be used if a slave missed previous notifications or is generally hard of hearing.
+Adds a domain to the notification list, causing PowerDNS to send out notifications to the nameservers of a domain. Can be used if a slave missed previous notifications or is generally hard of hearing. Use * to send notifications for all (type=MASTER) zones to all slaves.
 
 ## `notify-host DOMAIN HOST`
 Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
