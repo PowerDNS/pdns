@@ -962,7 +962,7 @@ endif
 
 version.o: version_generated.h
 
-pubsuffix.cc: effective_tld_names.dat
+pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	./mkpubsuffixcc
 
 .PHONY: version_generated.h
