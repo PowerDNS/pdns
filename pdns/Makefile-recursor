@@ -114,7 +114,7 @@ endif
 	-mkdir -p $(DESTDIR)/$(SYSCONFDIR)
 	$(DESTDIR)/$(SBINDIR)/pdns_recursor --config > $(DESTDIR)/$(SYSCONFDIR)/recursor.conf-dist
 	-mkdir -p $(DESTDIR)/usr/share/man/man1
-	cp pdns_recursor.1 rec_control.1 $(DESTDIR)/usr/share/man/man1
+#	cp pdns_recursor.1 rec_control.1 $(DESTDIR)/usr/share/man/man1
 	$(OS_SPECIFIC_INSTALL)	
 
 clean: binclean
