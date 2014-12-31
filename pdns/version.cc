@@ -62,7 +62,7 @@ string productTypeApiType() {
 void showProductVersion()
 {
   theL()<<Logger::Warning<<productName()<<" "<<PDNS_VERSION<<" ("DIST_HOST") "
-    "(C) 2001-2014 PowerDNS.COM BV" << endl;
+    "(C) 2001-2015 PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built on "BUILD_DATE" by "BUILD_HOST", "<<compilerVersion()<<"."<<endl;
   theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
