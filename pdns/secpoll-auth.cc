@@ -125,7 +125,7 @@ void doSecPoll(bool first)
   struct timeval now;
   gettimeofday(&now, 0);
 
-  string query = "auth-" PACKAGEVERSION ".security-status."+::arg()["security-poll-suffix"];
+  string query = "auth-" + string(PACKAGEVERSION) +".security-status."+::arg()["security-poll-suffix"];
 
   if(*query.rbegin()!='.')
     query+='.';
@@ -152,7 +152,7 @@ void doSecPoll(bool first)
 
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" PACKAGEVERSION "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    L<<Logger::Warning<<"Could not retrieve security status update for '" + string(PACKAGEVERSION) + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     if(security_status == 1) // it was ok, not it is unknown
       security_status = 0;
   }
