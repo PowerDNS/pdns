@@ -11,6 +11,10 @@ MANPAGES_TARGET = dnsdist.1 \
 
 if HAVE_PANDOC
 man_MANS = $(MANPAGES_TARGET)
+else
+if HAVE_MANPAGES
+dist_man_MANS = $(MANPAGES_TARGET)
+endif
 endif
 
 EXTRA_DIST = manpages \

@@ -7,4 +7,5 @@ AC_DEFUN([PDNS_CHECK_PANDOC], [
     )
   ])
   AM_CONDITIONAL([HAVE_PANDOC], [test "x$PANDOC" != "xno"])
+  AM_CONDITIONAL([HAVE_MANPAGES], [test -e docs/pdns_server.1])
 ])
