@@ -4,10 +4,8 @@ MANPAGES_TARGET = dnsdist.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
 	pdns_control.1 \
-	pdns_recursor.1 \
 	pdnssec.1 \
 	pdns_server.1 \
-	rec_control.1 \
 	zone2ldap.1 \
 	zone2sql.1
 
