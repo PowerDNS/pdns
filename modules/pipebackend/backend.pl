@@ -33,7 +33,7 @@ while(<>)
 
 	if(($qtype eq "SOA" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent SOA records\n";
-		print "DATA	$qname	$qclass	SOA	3600	-1	ahu.example.com ns1.example.com 2008080300 1800 3600 604800 3600\n";
+		print "DATA	$qname	$qclass	SOA	3600	-1	ns1.example.com ahu.example.com 2008080300 1800 3600 604800 3600\n";
 	}
 	if(($qtype eq "NS" || $qtype eq "ANY") && $qname eq "example.com") {
 		print STDERR "$$ Sent NS records\n";
