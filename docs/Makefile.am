@@ -34,8 +34,14 @@ html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
 
 manpages: $(MANPAGES_TARGET)
 
+if HAVE_PANDOC
 $(MANPAGES_TARGET): %: manpages/%.md
 	$(PANDOC) -s -t man $< -o $@
+else
+$(MANPAGES_TARGET):
+	echo "You need pandoc to generate the manpages"
+	exit 1
+endif
 
 clean:
 	rm -rf html *.8 *.1
