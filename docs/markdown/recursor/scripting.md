@@ -3,6 +3,8 @@ As of version 3.1.7 of the PowerDNS Recursor, it is possible to modify resolving
 
 These scripts can be used to quickly override dangerous domains, fix things that are wrong, for load balancing or for legal or commercial purposes.
 
+Lua is extremely fast and lightweight, easily supporting hundreds of thousands of queries per second.
+
 As of 3.1.7, queries can be intercepted in two places: before the resolving logic starts to work, plus after the resolving process failed to find a correct answer for a domain.
 
 ## Configuring Lua scripts
@@ -10,9 +12,13 @@ In order to load scripts, the PowerDNS Recursor must have Lua support built in. 
 
 If Lua support is available, a script can be configured either via the configuration file, or at runtime via the `rec_control` tool. Scripts can be reloaded or unloaded at runtime with no interruption in operations. If a new script contains syntax errors, the old script remains in force.
 
+
 On the command line, or in the configuration file, the setting `lua-dns-script` can be used to supply a full path to a 'lua' script.
 
 At runtime, `rec_control reload-lua-script` can be used to either reload the script from its current location, or, when passed a new file name, load one from a new location. A failure to parse the new script will leave the old script in working order.
+
+**Note**: It is also possible to precompile scripts using `luac`, and have PowerDNS load the result. This means that switching scripts is faster, and also
+that you'll be informed about syntax errors at compile time.
 
 Finally, `rec_control unload-lua-script` can be used to remove the currently installed script, and revert to unmodified behaviour.
 
@@ -33,7 +39,7 @@ is just like `nxdomain`, except it gets called when a domain exists, but the req
 
 All these functions are passed the IP address of the requester, plus the name and type being requested. In return, these functions indicate if they have taken over the request, or want to let normal proceedings take their course.
 
-**Warning**: In development versions of the PowerDNS Recursor, versions which were never released except as for testing purposes, these functions had a fourth parameter: localip This parameter has been replaced by `getlocaladdress()`, for which see below.
+**Warning**: In development versions of the PowerDNS Recursor, versions which were never released except as for testing purposes, these functions had a fourth parameter: localip. This parameter has been replaced by `getlocaladdress()`, for which see below.
 
 If a function has taken over a request, it should return an rcode (usually 0), and specify a table with records to be put in the answer section of a packet. An interesting rcode is NXDOMAIN (3, or `pdns.NXDOMAIN`), which specifies the non-existence of a domain. Returning -1 and an empty table signifies that the function chose not to intervene.
 
