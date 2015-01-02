@@ -49,6 +49,10 @@ AC_CHECK_FUNC([gethostent], [], [
  AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
 ])
 
+AC_CHECK_FUNC([inet_aton], [], [
+ AC_CHECK_LIB([resolv], [inet_aton], [LIBS="-lresolv $LIBS"])
+])
+
 m4_ifndef([LT_INIT],[
 AC_PROG_LIBTOOL([disable-static])
 ],[
