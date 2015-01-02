@@ -35,17 +35,9 @@ AC_CC_STACK_PROTECTOR
 AC_CC_PARAM_SSP_BUFFER_SIZE([4])
 AC_CC_D_FORTIFY_SOURCE
 
-AC_CHECK_FUNC([socket], [], [
-  AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
-])
-
-AC_CHECK_FUNC([gethostent], [], [
-  AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
-])
-
-AC_CHECK_FUNC([inet_aton], [], [
-  AC_CHECK_LIB([resolv], [inet_aton], [LIBS="-lresolv $LIBS"])
-])
+AC_SEARCH_LIBS([socket], [socket])
+AC_SEARCH_LIBS([gethostent], [nsl])
+AC_SEARCH_LIBS([inet_aton], [resolv])
 
 m4_ifndef([LT_INIT],[
 AC_PROG_LIBTOOL([disable-static])
