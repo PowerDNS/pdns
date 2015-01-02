@@ -31,6 +31,17 @@
 #include "iputils.hh"
 #include <boost/circular_buffer.hpp>
 
+struct SComboAddress
+{
+  SComboAddress(const ComboAddress& orig) : ca(orig) {}
+  ComboAddress ca;
+  bool operator<(const SComboAddress& rhs) const
+  {
+    return ComboAddress::addressOnlyLessThan()(ca, rhs.ca);
+  }
+};
+
+
 template<typename T, typename Comp=std::less<T> >
 class StatRing
 {
@@ -63,7 +74,7 @@ class StatBag
   map<string, AtomicCounter *> d_stats;
   map<string, string> d_keyDescrips;
   map<string,StatRing<string> >d_rings;
-  map<string,StatRing<ComboAddress, ComboAddress::addressOnlyLessThan> >d_comborings;
+  map<string,StatRing<SComboAddress> >d_comborings;
   typedef boost::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
