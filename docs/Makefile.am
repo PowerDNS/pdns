@@ -4,21 +4,25 @@ MANPAGES_TARGET = dnsdist.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
 	pdns_control.1 \
-	pdns_recursor.1 \
 	pdnssec.1 \
 	pdns_server.1 \
-	rec_control.1 \
 	zone2ldap.1 \
 	zone2sql.1
 
+if HAVE_PANDOC
 man_MANS = $(MANPAGES_TARGET)
+else
+if HAVE_MANPAGES
+dist_man_MANS = $(MANPAGES_TARGET)
+endif
+endif
 
 EXTRA_DIST = manpages \
 	markdown \
 	$(MANPAGES_TARGET) 
 #	html
 
-.PHONY: html
+.PHONY: html manpages
 html: html/index.html
 
 html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
@@ -28,11 +32,10 @@ html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
 	mkdocs build --clean
 	./process-md.sh post
 
-.PHONY: manpages
 manpages: $(MANPAGES_TARGET)
 
 $(MANPAGES_TARGET): %: manpages/%.md
-	pandoc -s -t man $< -o $@
+	$(PANDOC) -s -t man $< -o $@
 
 clean:
 	rm -rf html *.8 *.1

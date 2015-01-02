@@ -1,5 +1,5 @@
 AM_CPPFLAGS += \
-	-I../../pdns/ext/rapidjson/include \
+	-I$(top_srcdir)/pdns/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
@@ -107,10 +107,14 @@ libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
 libtestremotebackend_la_LIBADD = \
 	$(YAHTTP_LIBS) \
 	$(POLARSSL_LIBS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
-	$(BOOST_SERIALIZATION_LIB) \
-	$(BOOST_PROGRAM_OPTIONS_LIB) \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(BOOST_SERIALIZATION_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBDL)
+
+libtestremotebackend_la_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
 if REMOTEBACKEND_ZEROMQ
 libtestremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
