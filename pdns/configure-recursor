@@ -20,7 +20,7 @@ CF_STACK=""
 test_flags() {
   # test for relocation
 
-  if [ `uname -s` = 'SunOS' ]; then
+  if [ `uname -s` = 'SunOS' -o `uname -s` = 'FreeBSD' ]; then
     return
   fi
 
