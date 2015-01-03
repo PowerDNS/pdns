@@ -62,7 +62,8 @@ BOOST_AUTO_TEST_CASE(test_Base64_Encode) {
   BOOST_FOREACH(const cases_t::value_type& val, cases) {
     std::string encoded = Base64Encode(val.first), decoded;
     BOOST_CHECK_EQUAL(encoded, val.second);
-    B64Decode(encoded, decoded);
+    decoded.clear();
+    B64Decode(val.second, decoded);
     BOOST_CHECK_EQUAL(decoded, val.first);
   }
 }
