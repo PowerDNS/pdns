@@ -26,7 +26,9 @@ BOOST_AUTO_TEST_CASE(test_Base64_Roundtrip) {
 BOOST_AUTO_TEST_CASE(test_Base64_Encode) {
   typedef std::map<std::string, std::string> cases_t;
   cases_t cases;
-  assign::insert(cases)("z","eg==")
+  assign::insert(cases)
+    ("", "")
+    ("z","eg==")
     ("x4","eDQ=")
     ("J07","SjA3")
     ("kl8F","a2w4Rg==")

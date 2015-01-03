@@ -439,6 +439,8 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
+sdig_LDADD = $(POLARSSL_LIBS)
+
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -458,7 +460,7 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD= $(POLARSSL_LIBS)
+saxfr_LDADD = $(POLARSSL_LIBS)
 
 if PKCS11
 saxfr_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
@@ -483,8 +485,13 @@ dnstcpbench_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnstcpbench_LDFLAGS = $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
-dnstcpbench_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+dnstcpbench_LDFLAGS = \
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+
+dnstcpbench_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsdist_SOURCES = \
 	arguments.cc \
@@ -507,8 +514,13 @@ dnsdist_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnsdist_LDFLAGS = $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
-dnsdist_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+dnsdist_LDFLAGS = \
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+
+dnsdist_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
@@ -607,6 +619,8 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
+speedtest_LDADD = $(POLARSSL_LIBS)
+
 dnswasher_SOURCES = \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
@@ -640,7 +654,9 @@ dnsbulktest_LDFLAGS = \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-dnsbulktest_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+dnsbulktest_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscan_SOURCES = \
 	anadns.hh \
@@ -661,6 +677,8 @@ dnsscan_SOURCES = \
 	statbag.cc \
 	unix_utility.cc \
 	utility.hh
+
+dnsscan_LDADD = $(POLARSSL_LIBS)
 
 dnsreplay_SOURCES = \
 	anadns.hh \
@@ -686,7 +704,9 @@ dnsreplay_LDFLAGS = \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-dnsreplay_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+dnsreplay_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES = \
 	base32.cc \
@@ -711,7 +731,9 @@ nproxy_LDFLAGS = \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-nproxy_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+nproxy_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 notify_SOURCES = \
 	arguments.cc \
@@ -737,7 +759,9 @@ notify_LDFLAGS = \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-notify_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+notify_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscope_SOURCES = \
 	arguments.cc \
@@ -764,7 +788,9 @@ dnsscope_LDFLAGS = \
 	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-dnsscope_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
+dnsscope_LDADD = \
+	$(POLARSSL_LIBS) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsgram_SOURCES = \
 	base32.cc \
@@ -785,6 +811,8 @@ dnsgram_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
+dnsgram_LDADD = $(POLARSSL_LIBS)
+
 dnsdemog_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -803,6 +831,8 @@ dnsdemog_SOURCES = \
 	statbag.cc \
 	unix_utility.cc \
 	utility.hh
+
+dnsdemog_LDADD = $(POLARSSL_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
