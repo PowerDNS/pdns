@@ -31,15 +31,6 @@
 #include "iputils.hh"
 #include <boost/circular_buffer.hpp>
 
-struct SComboAddress
-{
-  SComboAddress(const ComboAddress& orig) : ca(orig) {}
-  ComboAddress ca;
-  bool operator<(const SComboAddress& rhs) const
-  {
-    return ComboAddress::addressOnlyLessThan()(ca, rhs.ca);
-  }
-};
 
 
 template<typename T, typename Comp=std::less<T> >
