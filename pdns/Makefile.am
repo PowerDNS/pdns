@@ -976,10 +976,16 @@ pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 
 .PHONY: version_generated.h
 version_generated.h:
-	@echo '#ifndef VERSION_GENERATED_H' > $@
-	@echo '#define VERSION_GENERATED_H' >> $@
-	@echo '#define PDNS_VERSION "$(pdns_version)"' >> $@
-	@echo '#define DIST_HOST "$(dist_host)"' >> $@
-	@echo '#define BUILD_DATE "$(build_date)"' >> $@
-	@echo '#define BUILD_HOST "$(build_host)"' >> $@
-	@echo '#endif //!VERSION_GENERATED_H' >> $@
+	@echo "$$create_version_generated_h" > $@
+
+define create_version_generated_h
+#ifndef VERSION_GENERATED_H
+#define VERSION_GENERATED_H
+#define PDNS_VERSION "$(pdns_version)"
+#define DIST_HOST "$(dist_host)"
+#define BUILD_DATE "$(build_date)"
+#define BUILD_HOST "$(build_host)"
+#endif //!VERSION_GENERATED_H
+endef
+
+export create_version_generated_h
