@@ -81,7 +81,9 @@ bool g_logCommonErrors;
 bool g_anyToTcp;
 uint16_t g_udpTruncationThreshold;
 __thread shared_ptr<RecursorLua>* t_pdl;
-__thread boost::circular_buffer<ComboAddress>* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
+
+__thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
+
 __thread boost::circular_buffer<pair<std::string, uint16_t> >* t_queryring, *t_servfailqueryring;
 __thread shared_ptr<Regex>* t_traceRegex;
 
@@ -2011,11 +2013,11 @@ try
   t_traceRegex = new shared_ptr<Regex>();
   unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numThreads;
   if(ringsize) {
-    t_remotes = new boost::circular_buffer<ComboAddress>();
+    t_remotes = new addrringbuf_t();
     t_remotes->set_capacity(ringsize);   
-    t_servfailremotes = new boost::circular_buffer<ComboAddress>();
+    t_servfailremotes = new addrringbuf_t();
     t_servfailremotes->set_capacity(ringsize);   
-    t_largeanswerremotes = new boost::circular_buffer<ComboAddress>();
+    t_largeanswerremotes = new addrringbuf_t();
     t_largeanswerremotes->set_capacity(ringsize);   
 
 

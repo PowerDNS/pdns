@@ -411,6 +411,21 @@ private:
 };
 
 
+struct SComboAddress
+{
+  SComboAddress(const ComboAddress& orig) : ca(orig) {}
+  ComboAddress ca;
+  bool operator<(const SComboAddress& rhs) const
+  {
+    return ComboAddress::addressOnlyLessThan()(ca, rhs.ca);
+  }
+  operator const ComboAddress&()
+  {
+    return ca;
+  }
+};
+
+
 int SSocket(int family, int type, int flags);
 int SConnect(int sockfd, const ComboAddress& remote);
 int SBind(int sockfd, const ComboAddress& local);
