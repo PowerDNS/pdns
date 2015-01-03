@@ -84,11 +84,6 @@ void HttpResponse::setBody(rapidjson::Document& document)
   this->body = makeStringFromDocument(document);
 }
 
-int WebServer::B64Decode(const std::string& strInput, std::string& strOutput)
-{
-  return ::B64Decode(strInput, strOutput);
-}
-
 static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses
