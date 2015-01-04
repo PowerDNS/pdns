@@ -20,6 +20,7 @@ before_script:
      libboost-all-dev
      libcdb-dev
      libcdb-dev
+     libcrypto++-dev
      libcurl4-openssl-dev
      libgeoip-dev
      libldap2-dev
@@ -72,6 +73,7 @@ script:
      --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
      --with-modules=''
      --with-sqlite3
+     --enable-cryptopp
      --enable-unit-tests
      --enable-tools
      --enable-remotebackend-zeromq
