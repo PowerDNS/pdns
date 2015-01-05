@@ -5,13 +5,13 @@ To get the best out of the PowerDNS recursor, which is important if you are doin
 -   Compile using g++ 4.1 or later. This compiler really does a good job on PowerDNS, much better than 3.4 or 4.0.
 -   On AMD/Intel hardware, wherever possible, run a 64-bit binary. This delivers a nearly twofold performance increase. On UltraSPARC, there is no need to run with 64 bits.
 -   Consider performing a 'profiled build' as described in the README. This is good for a 20% performance boost in some cases.
--   When running with \>3000 queries per second, and running Linux versions prior to 2.6.17 on some motherboards, your computer may spend an inordinate amount of time working around an ACPI bug for each call to gettimeofday. This is solved by rebooting with 'clock=tsc' or upgrading to a 2.6.17 kernel.
+-   When running with &gt;3000 queries per second, and running Linux versions prior to 2.6.17 on some motherboards, your computer may spend an inordinate amount of time working around an ACPI bug for each call to gettimeofday. This is solved by rebooting with 'clock=tsc' or upgrading to a 2.6.17 kernel.
 
     The above is relevant if dmesg shows **Using pmtmr for high-res timesource**
 
 -   A busy server may need hundreds of file descriptors on startup, and deals with spikes better if it has that many available later on. Linux by default restricts processes to 1024 file descriptors, which should suffice most of the time, but Solaris has a default limit of 256. This can be raised using the ulimit command. FreeBSD has a default limit that is high enough for even very heavy duty use.
 -   When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values. Please check and if necessary raise 'sysctl net.ipv6.route.max\_size'.
--   For older versions \<3.2: If you need it, try **--fork**, this will fork the daemon into two halves, allowing it to benefit from a second CPU. This feature almost doubles performance, but is a bit of a hack.
+-   For older versions &lt;3.2: If you need it, try **--fork**, this will fork the daemon into two halves, allowing it to benefit from a second CPU. This feature almost doubles performance, but is a bit of a hack.
 -   for 3.2 and higher, set 'threads' to your number of CPU cores (but values above 8 rarely improve performance).
 -   For best PowerDNS Recursor performance, use a recent version of your operating system, since this generally offers the best event multiplexer implementation available (kqueue, epoll, ports or /dev/poll).
 -   A Recursor under high load puts a severe stress on any stateful (connection tracking) firewall, so much so that the firewall may fail.
