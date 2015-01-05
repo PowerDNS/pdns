@@ -32,7 +32,7 @@ bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& loc
   return false;
 }
 
-bool RecursorLua::prequery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   return false;
 }
@@ -160,9 +160,9 @@ bool RecursorLua::postresolve(const ComboAddress& remote, const ComboAddress& lo
   return passthrough("postresolve", remote, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::prequery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
-  return passthrough("prequery", remote, local, query, qtype, ret, res, 0);
+  return passthrough("preoutquery", remote, local, query, qtype, ret, res, 0);
 }
 
 
@@ -180,7 +180,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   
   d_local = local; 
   /* the first argument */
-  if(strcmp(func.c_str(),"prequery"))
+  if(strcmp(func.c_str(),"preoutquery"))
     lua_pushstring(d_lua,  remote.toString().c_str() );
   else {
     ComboAddress* ca=(ComboAddress*)lua_newuserdata(d_lua, sizeof(ComboAddress)); 
