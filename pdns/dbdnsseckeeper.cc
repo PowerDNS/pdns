@@ -54,8 +54,8 @@ bool DNSSECKeeper::isSecuredZone(const std::string& zone)
   if(isPresigned(zone))
     return true;
 
-  keyset_t keys = getKeys(zone, true); // does the cache
-  
+  keyset_t keys = getKeys(zone); // does the cache
+
   BOOST_FOREACH(keyset_t::value_type& val, keys) {
     if(val.second.active) {
       return true;

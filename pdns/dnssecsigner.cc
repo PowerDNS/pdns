@@ -32,8 +32,8 @@ extern StatBag S;
 
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
-                     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent>& rrcs, bool ksk)
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL,
+                     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent>& rrcs)
 {
   if(toSign.empty())
     return -1;
@@ -60,21 +60,24 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
     rrc.d_algorithm = keymeta.first.d_algorithm;
     if(!keymeta.second.active) 
       continue;
-      
+
     if(keymeta.second.keyOrZone)
       KSKs.push_back(keymeta.first);
-    else if(!ksk)
+    else
       ZSKs.push_back(keymeta.first);
   }
-  if(ksk)
-    signingKeys = &KSKs;
-  else {
+  if(signQType == QType::DNSKEY) {
+    if(KSKs.empty())
+      signingKeys = &ZSKs;
+    else
+      signingKeys = &KSKs;
+  } else {
     if(ZSKs.empty())
       signingKeys = &KSKs;
     else
-      signingKeys =&ZSKs;
+      signingKeys = &ZSKs;
   }
-  
+
   BOOST_FOREACH(DNSSECPrivateKey& dpk, *signingKeys) {
     fillOutRRSIG(dpk, signQName, rrc, toSign);
     rrcs.push_back(rrc);
@@ -96,7 +99,7 @@ void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, c
     dk.getPreRRSIGs(db, signer, signQName, wildcardname, QType(signQType), signPlace, outsigned, origTTL); // does it all
   }
   else {
-    if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs, signQType == QType::DNSKEY) < 0)  {
+    if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs) < 0)  {
       // cerr<<"Error signing a record!"<<endl;
       return;
     } 
