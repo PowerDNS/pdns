@@ -5,23 +5,22 @@ Name: pdns-recursor
 Version: 3.5.1
 Release: 1
 Summary: extremely powerful and versatile recursing nameserver
-License: GPL
+License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-AutoReqProv: no
 
 %define _rpmdir ../
-%define _rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
+%define _rpmfilename %%{name}-%%{version}-%%{release}.%%{arch}.rpm
 
 %build
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 export PATH=/opt/gcc-4.1.1/bin:${PATH}
 export LD_LIBRARY_PATH=/opt/gcc-4.1.1/lib
 CC=gcc make STATIC=semi
 
 %install
-DESTDIR=$RPM_BUILD_ROOT make install
+make install DESTDIR=%{buildroot}
 
 %description
 PowerDNS is a versatile nameserver which supports a large number
@@ -32,13 +31,13 @@ This RPM is semi-statically compiled and should work on all Linux distributions.
 
 %files
 %defattr(-,root,root)
-"/usr/sbin/pdns_recursor"
-"/usr/bin/rec_control"
-"/etc/init.d/pdns-recursor"
-"/usr/share/man/man1/pdns_recursor.1.gz"
-"/usr/share/man/man1/rec_control.1.gz"
-%dir "/etc/powerdns/"
-%config "/etc/powerdns/recursor.conf-dist"
+%{_sbindir}/pdns_recursor
+%{_bindir}/rec_control
+%{_sysconfdir}/init.d/pdns-recursor
+%{_mandir}/man1/pdns_recursor.1.gz
+%{_mandir}/man1/rec_control.1.gz
+%dir %{_sysconfdir}/powerdns/
+%config %{_sysconfdir}/powerdns/recursor.conf-dist
 
 %post
 echo Remember to create a 'pdns' user before starting pdns

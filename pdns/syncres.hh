@@ -609,8 +609,13 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 2)
+typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
+#else
+typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
+#endif
+extern __thread addrringbuf_t* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
 
-extern __thread boost::circular_buffer<ComboAddress>* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
 extern __thread boost::circular_buffer<pair<std::string,uint16_t> >* t_queryring, *t_servfailqueryring;
 extern __thread NetmaskGroup* t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);

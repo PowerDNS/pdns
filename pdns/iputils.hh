@@ -80,7 +80,7 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
   }
 
-  struct addressOnlyLessThan: public std::binary_function<string, string, bool>
+  struct addressOnlyLessThan: public std::binary_function<ComboAddress, ComboAddress, bool>
   {
     bool operator()(const ComboAddress& a, const ComboAddress& b) const
     {
@@ -408,6 +408,21 @@ public:
 private:
   typedef vector<Netmask> container_t;
   container_t d_masks;
+};
+
+
+struct SComboAddress
+{
+  SComboAddress(const ComboAddress& orig) : ca(orig) {}
+  ComboAddress ca;
+  bool operator<(const SComboAddress& rhs) const
+  {
+    return ComboAddress::addressOnlyLessThan()(ca, rhs.ca);
+  }
+  operator const ComboAddress&()
+  {
+    return ca;
+  }
 };
 
 

@@ -18,7 +18,7 @@ AC_CANONICAL_HOST
 
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_PROG_YACC
+PDNS_CHECK_BISON
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
@@ -78,28 +78,20 @@ AC_CHECK_HEADERS(
 )
 
 PDNS_CHECK_RAGEL
-AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 PDNS_WITH_LUA
 
-AX_BOOST_BASE([1.35], [], [AC_MSG_ERROR([Boost not found])])
-AX_BOOST_PROGRAM_OPTIONS
-AX_BOOST_SERIALIZATION
+BOOST_REQUIRE([1.35])
+BOOST_FOREACH
+BOOST_PROGRAM_OPTIONS([mt])
+BOOST_SERIALIZATION([mt])
 
 PDNS_ENABLE_UNIT_TESTS
 
-dnl Allow user to require SQLite3
-AC_MSG_CHECKING([whether user requires sqlite3])
-AC_ARG_WITH([sqlite3],
-  [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
-  [with_sqlite3=$withval],
-  [with_sqlite3=no]
-)
-AC_MSG_RESULT([$with_sqlite3])
+PDNS_WITH_SQLITE3
 
-AS_IF([test "x$with_sqlite3" != "xno"], [
-  needsqlite3=yes
-])
+PDNS_CHECK_PANDOC
+PDNS_CHECK_MKDOCS
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -140,7 +132,6 @@ AC_SUBST(LIBCRYPT)
 
 THREADFLAGS=""
 
-AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
   LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
@@ -156,8 +147,7 @@ linux*)
   THREADFLAGS="-pthread"
   ;;
 darwin*)
-  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
-  AM_CONDITIONAL([OS_MACOSX], true)
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
   ;;
 *)
   LDFLAGS="-pthread $LDFLAGS"
@@ -281,13 +271,8 @@ AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 
 AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
+PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
-AS_IF([test "x$needsqlite3" = "xyes"], [
-  PKG_CHECK_MODULES([SQLITE3], [sqlite3],
-    [AC_DEFINE([HAVE_SQLITE3], [1], [Define to 1 if you have sqlite3])],
-    [AC_MSG_ERROR([Could not find libsqlite3])]
-  )
-])
 
 for a in $modules; do
   moduledirs="$moduledirs ${a}backend"
@@ -319,7 +304,7 @@ done
 
 CFLAGS="$PIE_CFLAGS $CFLAGS"
 CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
-LDFLAGS="$RELRO_LDFLAGS $BOOST_LDFLAGS $LDFLAGS"
+LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 AC_SUBST(LIBS)
 
@@ -330,11 +315,14 @@ AC_SUBST([AM_CPPFLAGS],
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
 
+export moduledirs moduleobjects modulelibs
+
 AC_CONFIG_FILES([
   Makefile
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
+  docs/Makefile
   pdns/pdns.init
   pdns/ext/Makefile
   pdns/ext/yahttp/Makefile
@@ -362,3 +350,23 @@ AC_CONFIG_FILES([
 ])
 AC_OUTPUT
 
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configuration summary])
+AC_MSG_NOTICE([=====================])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Modules: $modules])
+AC_MSG_NOTICE([Dynamic Modules: $dynmodules])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([CC: $CC])
+AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([LD: $LD])
+AC_MSG_NOTICE([CFLAGS: $CFLAGS])
+AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
+AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
+AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
+AC_MSG_NOTICE([Lua support: $with_lua])
+AC_MSG_NOTICE([])

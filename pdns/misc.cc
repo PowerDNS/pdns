@@ -680,7 +680,9 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     ourAddr.assign(addr.c_str() + 1, pos-1);
     port = atoi(addr.c_str()+pos+2);  
   }
-  
+  ret->sin6_scope_id=0;
+  ret->sin6_family=AF_INET6;
+
   if(inet_pton(AF_INET6, ourAddr.c_str(), (void*)&ret->sin6_addr) != 1) {
     struct addrinfo* res;
     struct addrinfo hints;

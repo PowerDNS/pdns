@@ -278,6 +278,13 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
 {
   d_lua = luaL_newstate();
 
+  // create module iputils & load it
+#if LUA_VERSION_NUM < 502
+  luaopen_iputils(d_lua);
+#else
+  luaL_requiref(d_lua, "iputils", luaopen_iputils, 1);
+#endif
+
   lua_pushcfunction(d_lua, netmaskMatchLua);
   lua_setglobal(d_lua, "matchnetmask");
 

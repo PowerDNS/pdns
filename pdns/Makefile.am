@@ -36,16 +36,6 @@ EXTRA_DIST = \
 	dnslabeltext.cc \
 	mtasker.cc \
 	inflighter.cc \
-	docs/pdns_control.8  \
-	docs/pdns_server.8 \
-	docs/zone2sql.8 \
-	docs/zone2ldap.8 \
-	docs/pdnssec.8 \
-	docs/dnsreplay.8 \
-	docs/dnsscope.8 \
-	docs/dnswasher.8 \
-	docs/pdnssec.8 \
-	docs/zone2ldap.8 \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
@@ -147,7 +137,7 @@ pdns_server_SOURCES = \
 	lock.hh \
 	logger.cc logger.hh \
 	lua-auth.cc lua-auth.hh \
-	lua-pdns.cc \
+	lua-pdns.cc lua-iputils.cc \
 	mastercommunicator.cc \
 	md5.hh \
 	misc.cc misc.hh \
@@ -186,14 +176,15 @@ pdns_server_SOURCES = \
 
 pdns_server_LDFLAGS = \
 	$(DYNLINKFLAGS) \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_SERIALIZATION_LDFLAGS)
 
 pdns_server_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
 	$(POLARSSL_LIBS) \
-	$(BOOST_SERIALIZATION_LIB) \
+	$(BOOST_SERIALIZATION_LIBS) \
 	$(YAHTTP_LIBS)
 
 if BOTAN110
@@ -272,15 +263,17 @@ pdnssec_SOURCES = \
 
 pdnssec_LDFLAGS = \
 	$(DYNLINKFLAGS) \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
+	$(BOOST_SERIALIZATION_LDFLAGS)
 
 pdnssec_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
 	$(POLARSSL_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIB) \
-	$(BOOST_SERIALIZATION_LIB) \
+	$(BOOST_PROGRAM_OPTIONS_LIBS) \
+	$(BOOST_SERIALIZATION_LIBS) \
 	$(YAHTTP_LIBS)
 
 if BOTAN110
@@ -366,6 +359,10 @@ zone2json_SOURCES = \
 
 zone2json_LDFLAGS = $(THREADFLAGS)
 zone2json_LDADD = $(POLARSSL_LIBS)
+
+# pkglib_LTLIBRARIES = iputils.la
+# iputils_la_SOURCES = lua-iputils.cc 
+# iputils_la_LDFLAGS= -module -avoid-version
 
 zone2ldap_SOURCES = \
 	arguments.cc \
@@ -490,8 +487,8 @@ dnstcpbench_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnstcpbench_LDFLAGS = $(THREADFLAGS)
-dnstcpbench_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+dnstcpbench_LDFLAGS = $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnstcpbench_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsdist_SOURCES = \
 	arguments.cc \
@@ -514,8 +511,8 @@ dnsdist_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnsdist_LDFLAGS = $(THREADFLAGS)
-dnsdist_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+dnsdist_LDFLAGS = $(THREADFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+dnsdist_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
@@ -644,9 +641,10 @@ dnsbulktest_SOURCES = \
 	unix_utility.cc
 
 dnsbulktest_LDFLAGS = \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-dnsbulktest_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+dnsbulktest_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscan_SOURCES = \
 	anadns.hh \
@@ -689,9 +687,10 @@ dnsreplay_SOURCES = \
 	utility.hh
 
 dnsreplay_LDFLAGS = \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-dnsreplay_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+dnsreplay_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES = \
 	base32.cc \
@@ -713,9 +712,10 @@ nproxy_SOURCES = \
 	unix_utility.cc
 
 nproxy_LDFLAGS = \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-nproxy_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+nproxy_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 notify_SOURCES = \
 	arguments.cc \
@@ -738,9 +738,10 @@ notify_SOURCES = \
 	unix_utility.cc
 
 notify_LDFLAGS = \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-notify_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+notify_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscope_SOURCES = \
 	arguments.cc \
@@ -764,9 +765,10 @@ dnsscope_SOURCES = \
 	utility.hh
 
 dnsscope_LDFLAGS = \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
-dnsscope_LDADD = $(BOOST_PROGRAM_OPTIONS_LIB)
+dnsscope_LDADD = $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsgram_SOURCES = \
 	base32.cc \
@@ -860,11 +862,12 @@ testrunner_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
-	$(THREADFLAGS)
+	$(THREADFLAGS) \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
 testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LIB)
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -886,7 +889,7 @@ pdns_recursor_SOURCES = \
 	htimer.cc htimer.hh \
 	json.cc json.hh \
 	logger.cc \
-	lua-pdns.cc lua-pdns.hh \
+	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	lua-recursor.cc lua-recursor.hh \
 	lwres.cc lwres.hh \
 	misc.cc \
@@ -949,7 +952,7 @@ check-local:
 endif
 
 dnslabeltext.cc: dnslabeltext.rl
-	ragel dnslabeltext.rl -o dnslabeltext.cc
+	$(AM_V_GEN)$(RAGEL) dnslabeltext.rl -o dnslabeltext.cc
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
@@ -972,15 +975,21 @@ endif
 
 version.o: version_generated.h
 
-pubsuffix.cc: effective_tld_names.dat
+pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	./mkpubsuffixcc
 
 .PHONY: version_generated.h
 version_generated.h:
-	@echo '#ifndef VERSION_GENERATED_H' > $@
-	@echo '#define VERSION_GENERATED_H' >> $@
-	@echo '#define PDNS_VERSION "$(pdns_version)"' >> $@
-	@echo '#define DIST_HOST "$(dist_host)"' >> $@
-	@echo '#define BUILD_DATE "$(build_date)"' >> $@
-	@echo '#define BUILD_HOST "$(build_host)"' >> $@
-	@echo '#endif //!VERSION_GENERATED_H' >> $@
+	@echo "$$create_version_generated_h" > $@
+
+define create_version_generated_h
+#ifndef VERSION_GENERATED_H
+#define VERSION_GENERATED_H
+#define PDNS_VERSION "$(pdns_version)"
+#define DIST_HOST "$(dist_host)"
+#define BUILD_DATE "$(build_date)"
+#define BUILD_HOST "$(build_host)"
+#endif //!VERSION_GENERATED_H
+endef
+
+export create_version_generated_h

@@ -1,0 +1,12 @@
+/html
+/pdns
+/pdns.pdf
+/pdns.txt
+/html.tar.bz2
+/pdns-expanded.xml
+/pdns-expanded.html
+/html
+/doc-build
+/*.[0-9]
+/Makefile
+/Makefile.in
