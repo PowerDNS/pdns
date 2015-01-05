@@ -168,3 +168,17 @@ function prequery(remoteip, domain, qtype)
 		return -1,{}
 	end
 end
+
+
+nmg=iputils.newnmgroup()
+nmg:add("192.121.121.0/24")
+
+function prequery(remoteip, domain, qtype)
+	print("pdns wants to ask "..remoteip:tostring().." about "..domain.." "..qtype)
+	if(nmg:match(remoteip))
+	then
+		print("We matched the group ", nmg,"!", "killing query dead")
+		return -3,{}
+	end
+	return -1,{}
+end
