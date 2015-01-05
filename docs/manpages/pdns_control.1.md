@@ -1,4 +1,4 @@
-% PDNS_CONTROL(8)
+% PDNS_CONTROL(1)
 % PowerDNS.com BV
 % December 2002
 
@@ -89,4 +89,4 @@ version
 :    Print the version of the running pdns daemon.
 
 # SEE ALSO
-pdns_server(8)
+pdns_server(1)

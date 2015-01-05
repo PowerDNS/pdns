@@ -1,4 +1,4 @@
-% ZONE2LDAP(8)
+% ZONE2LDAP(1)
 % Matthijs Möhlmann <matthijs@cacholong.nl>
 % November 2004
 
@@ -42,4 +42,4 @@ inserted to an LDAP server.
 :    Specify a zone name if zone is set
 
 # SEE ALSO
-pdns_server(8)
+pdns_server(1)
