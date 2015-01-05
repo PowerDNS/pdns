@@ -121,8 +121,8 @@ void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGReco
 uint32_t getStartOfWeek();
 void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace, 
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL);
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL, 
-		     vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc, bool ksk);
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL,
+  vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc);
 
 std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
