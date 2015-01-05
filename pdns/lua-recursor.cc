@@ -169,7 +169,15 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   
   d_local = local; 
   /* the first argument */
-  lua_pushstring(d_lua,  remote.toString().c_str() );
+  if(strcmp(func.c_str(),"prequery"))
+    lua_pushstring(d_lua,  remote.toString().c_str() );
+  else {
+    ComboAddress* ca=(ComboAddress*)lua_newuserdata(d_lua, sizeof(ComboAddress)); 
+    *ca=remote;
+    luaL_getmetatable(d_lua, "iputils.ca");
+    lua_setmetatable(d_lua, -2);
+  }
+
   lua_pushstring(d_lua,  query.c_str() );
   lua_pushnumber(d_lua,  qtype.getCode() );
 

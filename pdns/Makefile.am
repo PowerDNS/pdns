@@ -137,7 +137,7 @@ pdns_server_SOURCES = \
 	lock.hh \
 	logger.cc logger.hh \
 	lua-auth.cc lua-auth.hh \
-	lua-pdns.cc \
+	lua-pdns.cc lua-iputils.cc \
 	mastercommunicator.cc \
 	md5.hh \
 	misc.cc misc.hh \
@@ -359,6 +359,10 @@ zone2json_SOURCES = \
 
 zone2json_LDFLAGS = $(THREADFLAGS)
 zone2json_LDADD = $(POLARSSL_LIBS)
+
+# pkglib_LTLIBRARIES = iputils.la
+# iputils_la_SOURCES = lua-iputils.cc 
+# iputils_la_LDFLAGS= -module -avoid-version
 
 zone2ldap_SOURCES = \
 	arguments.cc \
@@ -885,7 +889,7 @@ pdns_recursor_SOURCES = \
 	htimer.cc htimer.hh \
 	json.cc json.hh \
 	logger.cc \
-	lua-pdns.cc lua-pdns.hh \
+	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	lua-recursor.cc lua-recursor.hh \
 	lwres.cc lwres.hh \
 	misc.cc \
