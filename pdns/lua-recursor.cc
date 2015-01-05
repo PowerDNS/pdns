@@ -32,6 +32,11 @@ bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& loc
   return false;
 }
 
+bool RecursorLua::prequery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+{
+  return false;
+}
+
 
 #else
 

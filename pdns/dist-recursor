@@ -34,7 +34,7 @@ ws-recursor.hh ws-api.hh secpoll-recursor.hh \
 responsestats.hh webserver.hh"
 
 CFILES="syncres.cc  misc.cc unix_utility.cc qtype.cc \
-logger.cc arguments.cc  lwres.cc pdns_recursor.cc  \
+logger.cc arguments.cc  lwres.cc pdns_recursor.cc lua-iputils.cc \
 recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \

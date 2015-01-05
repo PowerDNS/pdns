@@ -1,3 +1,5 @@
+#include "config.h"
+#ifdef HAVE_LUA
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
@@ -342,4 +344,5 @@ pair<string, string> splitField(const string& inp, char sepa)
   return ret;
 }
 
+#endif
 #endif
