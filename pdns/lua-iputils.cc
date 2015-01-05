@@ -13,8 +13,7 @@ extern "C" {
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
-       
-using namespace std;
+#include "namespaces.hh"       
 #undef L
 
 #if !defined LUA_VERSION_NUM || LUA_VERSION_NUM==501
