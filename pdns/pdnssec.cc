@@ -435,6 +435,27 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       rr.content=o.str();
     }
 
+    if(rr.qtype.getCode() == QType::PTR) {
+      if(rr.content.size() > 255) {
+        numerrors++;
+        cout<<"[Error] Total length for PTR record content too long: "<<rr.qname<<" IN PTR "<<rr.content<<endl;
+      }
+
+      string::iterator it;
+      int ctr = 0;
+      for(it=rr.content.begin(); it < rr.content.end(); ++it) {
+        ctr++;
+        if(*it == '.' || it == rr.content.end()-1){
+          if(ctr > 63){
+            numerrors++;
+            cout<<"[Error] Label in record content too long: "<<rr.qname<<" IN PTR "<<rr.content<<endl;
+            break;
+          }
+          ctr = 0;
+        }
+      }
+    }
+
     if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
       rr.content = "\""+rr.content+"\"";
 
