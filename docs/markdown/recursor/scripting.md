@@ -78,6 +78,7 @@ Fields that can be set in the return table include:
 * qclass: Query-Class of a record. Defaults to 1 (IN). Be sure to always return the correct qclass in each record! Valid query-classes are 1 (IN), 3 (CHAOS), 254 (NONE) and 255 (ANY).
 
 **Warning**: Only the IN class (1) is fully supported!
+
 **Warning**: The result table must have indexes that start at 1! Otherwise the first or confusingly the last entry of the table will be ignored. A useful technique is to return data using: `return 0, {{qtype=1, content="192.0.2.4"}, {qtype=1, content="4.3.2.1"}}` as this will get the numbering right automatically.
 
 The function `matchnetmask(ip, netmask1, netmask2..)` (or `matchnetmask(ip, {netmask1, netmask2})`) is available to match incoming queries against a number of netmasks. If any of these match, the function returns true.
@@ -104,6 +105,73 @@ To retrieve the IP address on which a query was received, use `getlocaladdress()
 To indicate that an answer should not be cached in the packet cache, use `setvariable()`. Available since version 3.3.
 
 To get fake AAAA records for DNS64 usage, use `return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"`. Available since version 3.4.
+
+## IP Address and netmask processing
+(Available in PowerDNS Recursor versions released after 3.6.2)
+
+To prevent the conversion of IP addresses to strings and to aid in the rapid
+filtering of queries based on IP addresses, PowerDNS provides an 'iputils'
+module to any scripts it hosts.
+
+The iputils module can create four kinds of objects: `ca`, `ipset`,
+`netmask` and `netmaskgroup`.  IP addresses are represented by `ca`, which
+is a wrapper around the internal PowerDNS ComboAddress class.  
+
+An `ipset` is a rapidly searchable container of `ca` addresses, suitable for 
+very large sets and high query rates.
+
+A `netmask` is an IPv4 of IPv6 netmask, to which we can match `ca`
+instances.  Finally, the `netmaskgroup` is a set of `netmask`s to which a
+`ca` can be matched. The `netmaskgroup` is a lot slower, but more powerful,
+than the `ipset`, which can only do exact matches.
+
+This is perhaps all explained best as a little sample script:
+
+```
+ca=iputils.newca("127.0.0.1")
+ca2=iputils.newca("127.0.0.1")
+ca3=iputils.newca("::1")
+ca4=iputils.newca("130.161.180.1:53")
+ca5=iputils.newca("[::1]:53")
+
+print("ca", ca)
+print("ca2", ca2:tostring())
+print("ca4", ca4:tostringwithport())
+print("ca5", ca5:tostringwithport())
+
+print("ca==ca2",ca==ca2)
+print("ca==ca3",ca==ca3)
+
+ipset=iputils.newipset()
+
+for _,a in pairs({ca, ca3, ca5})
+do
+	print("Adding ",a," to the set")
+	ipset[a]=1
+end
+
+print("Is ",ca," in our set: ", ipset[ca])
+print("Is ",ca2," in our set: ", ipset[ca2])
+print("Is ",ca4," in our set: ", ipset[ca4])
+
+netmask=iputils.newnm("10.0.0.0/8")
+print("Our netmask: ",netmask)
+print("Does it match ", ca4, netmask:match(ca4))
+ca5=iputils.newca("10.1.2.3")
+print("Does it match ", ca5, netmask:match(ca5))
+
+nmgroup=iputils.newnmgroup()
+nmgroup:add("192.168.0.0/16")
+nmgroup:add("10.0.0.0/8")
+nmgroup:add("fe80::/16")
+
+print("Our netmask group: ",nmgroup)
+print("Does it match ", ca4, nmgroup:match(ca4))
+print("Does it match ", ca5, nmgroup:match(ca5))
+
+ca6=iputils.newca("fe80::1")
+print("Does it match ", ca6, nmgroup:match(ca6))
+```
 
 ## CNAME chain resolution
 It may be useful to return a CNAME record for Lua, and then have the PowerDNS Recursor continue resolving that CNAME. This can be achieved by returning: "followCNAMERecords", 0, {{qtype=pdns.CNAME, content="www.powerdns.com"}}. This indicates an rcode of 0 and the records to put in the record. But the first string instruct PowerDNS to complete the CNAME chain. Available since 3.6.
