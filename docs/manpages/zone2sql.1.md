@@ -1,4 +1,4 @@
-% ZONE2SQL(8)
+% ZONE2SQL(1)
 % PowerDNS
 % December 2002
 
@@ -65,4 +65,4 @@ Oracle backends.
 :    Be verbose during conversion.
 
 # SEE ALSO
-pdns_server(8)
+pdns_server(1)

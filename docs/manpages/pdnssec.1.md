@@ -1,4 +1,4 @@
-% PDNSSEC(8) PowerDNS DNSSEC command and control
+% PDNSSEC(1) PowerDNS DNSSEC command and control
 % Matthijs Möhlmann <matthijs@cacholong.nl>
 % November 2011
 
@@ -193,4 +193,4 @@ unset-presigned *ZONE*
 :    Disables presigned operation for *ZONE*.
 
 # SEE ALSO
-pdns_server (8), pdns_control (8)
+pdns_server (1), pdns_control (1)

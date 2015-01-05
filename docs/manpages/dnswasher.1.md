@@ -1,4 +1,4 @@
-% DNSWASHER(8)
+% DNSWASHER(1)
 % Joerg Jungermann (jj+debian At borkum.net)
 % September 2012
 
