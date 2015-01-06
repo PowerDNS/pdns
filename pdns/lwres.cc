@@ -63,12 +63,12 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   
   string ping;
 
-  uint32_t nonce=dns_random(0xffffffff);
-  ping.assign((char*) &nonce, 4);
-
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
     if(EDNS0Level > 1) {
+      uint32_t nonce=dns_random(0xffffffff);
+      ping.assign((char*) &nonce, 4);
+
       opts.push_back(make_pair(5, ping));
     }
 
