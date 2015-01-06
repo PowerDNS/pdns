@@ -775,6 +775,7 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
     rnameservers.push_back(str);
   }
   map<string, double> speeds;
+
   BOOST_FOREACH(const string& val, rnameservers) {
     double speed;
     speed=t_sstorage->nsSpeeds[val].get(&d_now);
@@ -1194,20 +1195,6 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
   return -1;
 }
 
-void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
-{
-  set<DNSResourceRecord> bestns;
-  set<GetBestNSAnswer> beenthere;
-  bool dontcare;
-  getBestNSFromCache(qname, bestns, &dontcare, depth, beenthere);
-
-  for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
-    DNSResourceRecord ns=*k;
-    ns.d_place=DNSResourceRecord::AUTHORITY;
-    ns.ttl-=d_now.tv_sec;
-    ret.push_back(ns);
-  }
-}
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)
