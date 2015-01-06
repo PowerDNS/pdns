@@ -42,8 +42,13 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
       PGSQL_inc_check=$($PGSQL_pg_config --includedir)
     fi
     PGSQL_CFLAGS=
-  else
+  fi
+
+  if test "x$PGSQL_lib_check" == "x"; then
     PGSQL_lib_check="/usr/local/pgsql/lib/pgsql /usr/local/lib/pgsql /opt/pgsql/lib/pgsql /usr/lib/pgsql /usr/local/pgsql/lib /usr/local/lib /opt/pgsql/lib /usr/lib /usr/lib64 $full_libdir"
+  fi
+
+  if test "x$PGSQL_inc_check" == "x"; then
     PGSQL_inc_check="/usr/local/pgsql/include/pgsql /usr/include /usr/local/include/postgresql/ /usr/local/include /opt/pgsql/include/pgsql /opt/pgsql/include /usr/include/pgsql/ /usr/include/postgresql"
   fi
 
