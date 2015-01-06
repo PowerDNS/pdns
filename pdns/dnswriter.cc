@@ -236,25 +236,30 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
       d_labelmap.push_back(make_pair(chopped, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
     }
 
+    if(label.size() > 255)
+      throw MOADNSException("Total length of the name exceeds 255 bytes");
+
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
       // FIXME: this relies on the semi-canonical escaped output from getLabelFromContent
       boost::replace_all(part, "\\.", ".");
       boost::replace_all(part, "\\032", " ");
       boost::replace_all(part, "\\\\", "\\"); 
-      if(part.size() > 255)
+      if(part.size() > 63)
           throw MOADNSException("DNSPacketWriter::xfrLabel() tried to write an overly large label");
       d_record.push_back(part.size());
       unsigned int len=d_record.size();
       d_record.resize(len + part.size());
 
       memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
-      pos+=(part.size())+1;                         
+      pos+=(part.size())+1;
     }
     else {
       char labelsize=(char)(i->second - i->first);
       if(!labelsize) // empty label in the middle of name
         throw MOADNSException("DNSPacketWriter::xfrLabel() found empty label in the middle of name");
+      if(labelsize > 63)
+        throw MOADNSException("DNSPacketWriter::xfrLabel() found a too long label in name");
       d_record.push_back(labelsize);
       unsigned int len=d_record.size();
       d_record.resize(len + i->second - i->first);
