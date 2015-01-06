@@ -78,6 +78,7 @@ string DLPingHandler(const vector<string>&parts, Utility::pid_t ppid)
 }
 
 string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid)
+try
 {
   extern StatBag S;
   string ret("Wrong number of parameters");
@@ -90,7 +91,10 @@ string DLShowHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   return ret;
 }
-
+catch(...)
+{
+  return "Unknown";
+}
 
 void setStatus(const string &str)
 {

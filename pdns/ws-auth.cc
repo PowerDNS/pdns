@@ -278,7 +278,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2014 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2015 <a href=\"http://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
@@ -489,10 +489,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
-  if(!dk.isSecuredZone(zonename))
-    throw ApiException("Zone '"+zonename+"' is not secured");
-
-  DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename);
+  DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename, boost::indeterminate, false);
 
   if (keyset.empty())
     throw ApiException("No keys for zone '"+zonename+"'");

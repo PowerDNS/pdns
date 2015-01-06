@@ -101,6 +101,11 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
     if(!getFromTable("ttl", rr.ttl))
       rr.ttl=3600;
 
+    if(!getFromTable("priority", tmpnum))
+      rr.priority=0;
+    else
+      rr.priority=tmpnum;
+
     if(!getFromTable("qname", rr.qname))
       rr.qname = zone;
 

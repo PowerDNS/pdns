@@ -810,7 +810,7 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
 
 
   if(p->d.rd) {
-    static unsigned int &rdqueries=*S.getPointer("rd-queries");  
+    static AtomicCounter &rdqueries=*S.getPointer("rd-queries");  
     rdqueries++;
   }
 

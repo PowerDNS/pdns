@@ -71,7 +71,8 @@ public:
   }
   bool isSecuredZone(const std::string& zone);
   
-  keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate);
+  static uint64_t dbdnssecCacheSizes(const std::string& str);  
+  keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate, bool useCache = true);
   DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
   bool addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
   bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
@@ -107,7 +108,7 @@ public:
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
 private:
 
-  
+
   struct KeyCacheEntry
   {
     typedef vector<DNSSECKeeper::keymeta_t> keys_t;

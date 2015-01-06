@@ -28,23 +28,19 @@
 #include <algorithm>
 #include "arguments.hh"
 #include "lock.hh"
+#include <boost/foreach.hpp>
 
 #include "namespaces.hh"
 
 StatBag::StatBag()
 {
   d_doRings=false;
-  pthread_mutex_init(&d_lock,0);
 }
 
-
-
-/** this NEEDS TO HAVE THE LOCK held already! */
 void StatBag::exists(const string &key)
 {
-  if(!d_stats.count(key))
+  if(!d_keyDescrips.count(key))
     {
-      unlock(); // it's the details that count
       throw PDNSException("Trying to deposit into unknown StatBag key '"+key+"'");
     }
 }
@@ -53,14 +49,18 @@ string StatBag::directory()
 {
   string dir;
   ostringstream o;
-  lock();
-  for(map<string, unsigned int *>::const_iterator i=d_stats.begin();
+
+  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
     {
       o<<i->first<<"="<<*(i->second)<<",";
     }
-  unlock();
+
+
+  BOOST_FOREACH(const funcstats_t::value_type& val, d_funcstats) {
+    o << val.first<<"="<<val.second(val.first)<<",";
+  }
   dir=o.str();
   return dir;
 }
@@ -69,75 +69,62 @@ string StatBag::directory()
 vector<string>StatBag::getEntries()
 {
   vector<string> ret;
-  lock();
-  for(map<string, unsigned int *>::const_iterator i=d_stats.begin();
+
+  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
       ret.push_back(i->first);
 
-  unlock();
+  BOOST_FOREACH(const funcstats_t::value_type& val, d_funcstats) {
+    ret.push_back(val.first);
+  }
+
+
   return ret;
 
 }
 
 string StatBag::getDescrip(const string &item)
 {
-  lock();
-  string tmp=d_keyDescrips[item];
-  unlock();
-  return tmp;
+  exists(item);
+  return d_keyDescrips[item];
 }
 
 void StatBag::declare(const string &key, const string &descrip)
 {
-  lock();
-  unsigned int *i=new unsigned int(0);
+  AtomicCounter *i=new AtomicCounter(0);
   d_stats[key]=i;
   d_keyDescrips[key]=descrip;
-  unlock();
 }
 
+void StatBag::declare(const string &key, const string &descrip, StatBag::func_t func)
+{
+
+  d_funcstats[key]=func;
+  d_keyDescrips[key]=descrip;
+}
 
           
-void StatBag::set(const string &key, unsigned int value)
+void StatBag::set(const string &key, AtomicCounter::native_t value)
 {
-  lock();
   exists(key);
-  *d_stats[key]=value;
-
-  unlock();
+  *d_stats[key]=AtomicCounter(value);
 }
 
-unsigned int StatBag::read(const string &key)
+AtomicCounter::native_t StatBag::read(const string &key)
 {
-  lock();
-
-  if(!d_stats.count(key))
-    {
-      unlock();
-      return 0;
-    }
-
-  unsigned int tmp=*d_stats[key];
-
-  unlock();
-  return tmp;
+  exists(key);
+  funcstats_t::const_iterator iter = d_funcstats.find(key);
+  if(iter != d_funcstats.end())
+    return iter->second(iter->first);
+  return *d_stats[key];
 }
 
-unsigned int StatBag::readZero(const string &key)
+AtomicCounter::native_t StatBag::readZero(const string &key)
 {
-  lock();
-
-  if(!d_stats.count(key))
-    {
-      unlock();
-      return 0;
-    }
-  
-  unsigned int tmp=*d_stats[key];
+  exists(key);
+  AtomicCounter::native_t tmp=*d_stats[key];
   d_stats[key]=0;
-
-  unlock();
   return tmp;
 }
 
@@ -156,7 +143,7 @@ string StatBag::getValueStrZero(const string &key)
   return o.str();
 }
 
-unsigned int *StatBag::getPointer(const string &key)
+AtomicCounter *StatBag::getPointer(const string &key)
 {
   exists(key);
   return d_stats[key];
@@ -164,7 +151,7 @@ unsigned int *StatBag::getPointer(const string &key)
 
 StatBag::~StatBag()
 {
-  for(map<string,unsigned int *>::const_iterator i=d_stats.begin();
+  for(map<string, AtomicCounter *>::const_iterator i=d_stats.begin();
       i!=d_stats.end();
       i++)
     {
