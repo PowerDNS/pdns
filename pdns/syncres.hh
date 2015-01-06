@@ -443,9 +443,8 @@ private:
   domainmap_t::const_iterator getBestAuthZone(string* qname);
   bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
-  void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
+  void getBestNSFromCache(const string &qname, const QType &qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
+  string getBestNSNamesFromCache(const string &qname, const QType &qtype, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
@@ -463,14 +462,12 @@ private:
   struct GetBestNSAnswer
   {
     string qname;
-    set<DNSResourceRecord> bestns;
+    set<pair<string,string> > bestns;
+    uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
-      if(qname<b.qname)
-        return true;
-      if(qname==b.qname)
-        return bestns<b.bestns;
-      return false;
+      return boost::tie(qname, qtype, bestns) < 
+	boost::tie(b.qname, qtype, b.bestns);
     }
   };
 

@@ -438,7 +438,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   // the two retries allow getBestNSNamesFromCache&co to reprime the root
   // hints, in case they ever go missing
   for(int tries=0;tries<2 && nsset.empty();++tries) {
-    subdomain=getBestNSNamesFromCache(subdomain, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
+    subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
   }
 
   if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere)))
@@ -470,12 +470,7 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
 
   for(int j=1; j<2+s_doIPv6; j++)
   {
-    set<GetBestNSAnswer> rbeenthere(beenthere);
     bool done=false;
-    // j=0: ANY
-    // j=1: A
-    // j=2: AAAA
-
     switch(j) {
       case 0:
         type = QType::ANY;
@@ -488,7 +483,7 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
         break;
     }
 
-    if(!doResolve(qname, type, res,depth+1, j==1 ? beenthere : rbeenthere) && !res.empty()) {  // this consults cache, OR goes out
+    if(!doResolve(qname, type, res,depth+1, beenthere) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
           ret.push_back(ComboAddress(i->content, 53));
@@ -520,7 +515,7 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix, subdomain(qname);
   if(doLog()) {
@@ -560,12 +555,16 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
       }
       if(!bestns.empty()) {
         GetBestNSAnswer answer;
-        answer.qname=qname; answer.bestns=bestns;
+        answer.qname=qname;
+	answer.qtype=qtype.getCode();
+	BOOST_FOREACH(const DNSResourceRecord& rr, bestns)
+	  answer.bestns.insert(make_pair(rr.qname, rr.content));
+
         if(beenthere.count(answer)) {
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP (already seen "<<answer.qname<<")! Trying less specific NS"<<endl);
           if(doLog())
             for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j) {
-              LOG(prefix<<qname<<": beenthere: "<<j->qname<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
+              LOG(prefix<<qname<<": beenthere: "<<j->qname<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
             }
           bestns.clear();
         }
@@ -597,7 +596,7 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
+string SyncRes::getBestNSNamesFromCache(const string &qname, const QType& qtype, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
   string authdomain(qname);
@@ -615,7 +614,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStrin
   }
 
   set<DNSResourceRecord> bestns;
-  getBestNSFromCache(subdomain, bestns, flawedNSSet, depth, beenthere);
+  getBestNSFromCache(subdomain, qtype, bestns, flawedNSSet, depth, beenthere);
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     nsset.insert(k->content);
