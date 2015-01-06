@@ -288,9 +288,13 @@ for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
 
-CFLAGS="$PIE_CFLAGS $CFLAGS"
-CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
+
+AS_IF([test "x$static" != "xyes"], [
+  CFLAGS="$PIE_CFLAGS $CFLAGS"
+  CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+  LDFLAGS="$PIE_LDFLAGS $LDFLAGS"
+])
 
 AC_SUBST(LIBS)
 
