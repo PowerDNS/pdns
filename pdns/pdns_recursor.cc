@@ -969,6 +969,7 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
   
+  for(;;) 
   if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
     if(t_remotes)
       t_remotes->push_back(fromaddr);
@@ -1015,8 +1016,9 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     // cerr<<t_id<<" had error: "<<stringerror()<<endl;
-    if(errno == EAGAIN)
+    if(errno == EAGAIN) 
       g_stats.noPacketError++;
+    break;
   }
 }
 
