@@ -570,14 +570,17 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
           bestns.clear();
         }
         else {
-          beenthere.insert(answer);
+	  beenthere.insert(answer);
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' (flawedNSSet="<<*flawedNSSet<<")"<<endl);
           return;
         }
       }
     }
     LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
-    if(subdomain==".") { primeHints(); }
+    if(subdomain==".") { 
+      primeHints(); 
+      throw ImmediateServFailException("query ended up doubting the root, reprimed");
+    }
   }while(chopOffDotted(subdomain));
 }
 
