@@ -579,7 +579,8 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
     LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
     if(subdomain==".") { 
       primeHints(); 
-      throw ImmediateServFailException("query ended up doubting the root, reprimed");
+      if(d_outqueries > 4)
+	throw ImmediateServFailException("query ended up doubting the root, reprimed");
     }
   }while(chopOffDotted(subdomain));
 }
