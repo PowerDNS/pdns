@@ -1,4 +1,4 @@
-% DNSSCOPE(8)
+% DNSSCOPE(1)
 % Joerg Jungermann (jj+debian At borkum.net)
 % September 2012
 

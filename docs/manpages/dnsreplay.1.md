@@ -1,4 +1,4 @@
-% DNSREPLAY(8)
+% DNSREPLAY(1)
 % Joerg Jungermann (jj+debian At borkum.net)
 % September 2012
 
@@ -56,4 +56,4 @@ dnsreplay has no certain handling for timeouts. It handles around at most 65536
 outstanding answers.
 
 # SEE ALSO
-pcap(3PCAP), tcpdump(8), dnswascher(8)
+pcap(3PCAP), tcpdump(8), dnswasher(1)

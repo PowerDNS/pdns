@@ -290,8 +290,16 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 
 string PacketCache::pcReverse(const string &content)
 {
-  string tmp = string(content.rbegin(), content.rend());
-  return toLower(boost::replace_all_copy(tmp, ".", "\t"))+"\t";
+  typedef vector<pair<unsigned int, unsigned int> > parts_t;
+  parts_t parts;
+  vstringtok(parts,toLower(content), ".");
+  string ret;
+  ret.reserve(content.size()+1);
+  for(parts_t::reverse_iterator i=parts.rbegin(); i!=parts.rend(); ++i) {
+    ret.append(1, (char)(i->second - i->first));
+    ret.append(content.c_str() + i->first, i->second - i->first);
+  }
+  return ret;
 }
 
 map<char,int> PacketCache::getCounts()

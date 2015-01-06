@@ -90,7 +90,6 @@ Location of configuration directory (`pdns.conf`). Usually `/etc/powerdns`, but
 this depends on `SYSCONFDIR` during compile-time.
 
 ## `config-name`
-
 * String
 Name of this virtual configuration - will rename the binary image. See
 ["Virtual hosting"](virtual.md).
@@ -641,7 +640,12 @@ under that offset.
 * Path
 
 Where the controlsocket will live. The default depends on `LOCALSTATEDIR` during
-compile-time. See ["Controlsocket"](internals.md#controlsocket).
+compile-time (usually `/var/run` or `/run`). See
+["Controlsocket"](internals.md#controlsocket).
+
+This path will also contain the pidfile for this instance of PowerDNS called
+`pdns.pid` by default. See [`config-name`](#config-name) and
+[Virtual Hosting](virtual.md) how this can differ.
 
 ## `strict-rfc-axfrs`
 * Boolean
