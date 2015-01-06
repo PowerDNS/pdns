@@ -338,7 +338,7 @@ public:
   // returns -1 for errors which might go away, throws for ones that won't
   static int makeClientSocket(int family)
   {
-    int ret=(int)socket(family, SOCK_DGRAM, 0);
+    int ret=(int)socket(family, SOCK_DGRAM, 0 ); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
 
     if(ret < 0 && errno==EMFILE) // this is not a catastrophic error
       return ret;
@@ -512,16 +512,22 @@ void updateResponseStats(int res, const ComboAddress& remote, unsigned int packe
 
 ResponseStats g_rs;
 
+static string makeLoginfo(DNSComboWriter* dc)
+try
+{
+  return "("+dc->d_mdp.d_qname+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
+}
+catch(...)
+{
+  return "Exception making error message for exception";
+}
+
 void startDoResolve(void *p)
 {
   DNSComboWriter* dc=(DNSComboWriter *)p;
-  string loginfo="";
-
   try {
     t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
 
-    loginfo=" (while setting loginfo)";
-    loginfo=" ("+dc->d_mdp.d_qname+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
     uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
     EDNSOpts edo;
     if(getEDNSOpts(dc->d_mdp, &edo) && !dc->d_tcp) {
@@ -742,19 +748,19 @@ void startDoResolve(void *p)
     dc=0;
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"startDoResolve problem"<<loginfo<<": "<<ae.reason<<endl;
+    L<<Logger::Error<<"startDoResolve problem "<<makeLoginfo(dc)<<": "<<ae.reason<<endl;
     delete dc;
   }
   catch(MOADNSException& e) {
-    L<<Logger::Error<<"DNS parser error"<<loginfo<<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
+    L<<Logger::Error<<"DNS parser error "<<makeLoginfo(dc) <<": "<<dc->d_mdp.d_qname<<", "<<e.what()<<endl;
     delete dc;
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"STL error"<<loginfo<<": "<<e.what()<<endl;
+    L<<Logger::Error<<"STL error "<< makeLoginfo(dc)<<": "<<e.what()<<endl;
     delete dc;
   }
   catch(...) {
-    L<<Logger::Error<<"Any other exception in a resolver context"<<loginfo<<endl;
+    L<<Logger::Error<<"Any other exception in a resolver context "<< makeLoginfo(dc) <<endl;
   }
   
   g_stats.maxMThreadStackUsage = max(MT->getMaxStackUsage(), g_stats.maxMThreadStackUsage);
@@ -1040,10 +1046,10 @@ void makeTCPServerSockets()
     }
 
     fd=socket(sin.sin6.sin6_family, SOCK_STREAM, 0);
-    Utility::setCloseOnExec(fd);
-
     if(fd<0) 
       throw PDNSException("Making a TCP server socket for resolver: "+stringerror());
+
+    Utility::setCloseOnExec(fd);
 
     int tmp=1;
     if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -1105,11 +1111,11 @@ void makeUDPServerSockets()
     }
     
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
-    Utility::setCloseOnExec(fd);
-
     if(fd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
     }
+
+    Utility::setCloseOnExec(fd);
 
     setSocketReceiveBuffer(fd, 250000);
     sin.sin4.sin_port = htons(st.port);
