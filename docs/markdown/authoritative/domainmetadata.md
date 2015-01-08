@@ -56,4 +56,4 @@ Available modes are:
 * EPOCH: Sets the SOA serial to the number of seconds since the epoch. **Warning**: Don't combine this with AXFR - the slaves would keep refreshing all the time. If you need fast updates, sync the backend databases directly with incremental updates (or use the same database server on the slaves)
 
 ## TSIG-ALLOW-AXFR
-Allow these named TSIG keys to AXFR this zone (see [Provisioning outbound AXFR access](modes-of-operation.md#provisioning-outbound-axfr-access).
+Allow these named TSIG keys to AXFR this zone (see [Provisioning outbound AXFR access](modes-of-operation.md#provisioning-outbound-axfr-access)).
