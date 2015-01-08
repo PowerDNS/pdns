@@ -523,8 +523,9 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
     prefix.append(depth, ' ');
   }
   bestns.clear();
-
+  bool brokeloop;
   do {
+    brokeloop=false;
     LOG(prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl);
     set<DNSResourceRecord> ns;
     *flawedNSSet = false;
@@ -561,10 +562,12 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
 	  answer.bestns.insert(make_pair(rr.qname, rr.content));
 
         if(beenthere.count(answer)) {
+	  brokeloop=true;
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP (already seen "<<answer.qname<<")! Trying less specific NS"<<endl);
           if(doLog())
             for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j) {
-              LOG(prefix<<qname<<": beenthere: "<<j->qname<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
+	      bool neo = !(*j< answer || answer<*j);
+	      LOG(prefix<<qname<<": beenthere"<<(neo?"*":"")<<": "<<j->qname<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
             }
           bestns.clear();
         }
@@ -576,10 +579,9 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
       }
     }
     LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
-    if(subdomain==".") { 
+    if(subdomain=="." && !brokeloop) { 
       primeHints(); 
-      if(d_outqueries > 4)
-	throw ImmediateServFailException("query ended up doubting the root, reprimed");
+      LOG(prefix<<qname<<": reprimed the root"<<endl);
     }
   }while(chopOffDotted(subdomain));
 }
@@ -930,7 +932,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           }
           else {
             s_outqueries++; d_outqueries++;
-            if(d_outqueries > s_maxqperq) throw ImmediateServFailException("more than "+lexical_cast<string>(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname);
+            if(d_outqueries + d_throttledqueries > s_maxqperq) throw ImmediateServFailException("more than "+lexical_cast<string>(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname);
           TryTCP:
             if(doTCP) {
               LOG(prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);
