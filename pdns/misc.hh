@@ -538,7 +538,7 @@ private:
 };
 
 union ComboAddress;
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source);
+void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source);
 
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);

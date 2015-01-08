@@ -783,7 +783,7 @@ Regex::Regex(const string &expr)
     throw PDNSException("Regular expression did not compile");
 }
 
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source)
+void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source)
 {
   struct cmsghdr *cmsg = NULL;
 
