@@ -39,7 +39,7 @@ Set to "1" to tell PowerDNS this zone operates in NSEC3 'narrow' mode. See `set-
 NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM record. If present, NSEC3 is used, if not present, zones default to NSEC. See `set-nsec3` in [`pdnssec`](dnssec.md#pdnssec). Example content: "1 0 1 ab".
 
 ## PRESIGNED
-This zone carries DNSSEC RRSIGs (signatures), and is presigned. See `set-presigned` in [`pdnssec`](dnssec.md#pdnssec).
+This zone carries DNSSEC RRSIGs (signatures), and is presigned. PowerDNS sets this flag automatically upon incoming zone transfers (AXFR) if it detects DNSSEC records in the zone. However, if you import a presigned zone using `zone2sql` or `pdnssec load-zone` you must explicitly set the zone to be `PRESIGNED`. Note that PowerDNS will not be able to correctly serve the zone if the imported data is bogus or incomplete. Also see `set-presigned` in [`pdnssec`](dnssec.md#pdnssec).
 
 ## SOA-EDIT
 When serving this zone, modify the SOA serial number in one of several ways. Mostly useful to get slaves to re-transfer a zone regularly to get fresh RRSIGs.
