@@ -1101,7 +1101,10 @@ void makeTCPServerSockets()
       L<<Logger::Error<<"Setsockopt failed for TCP listening socket"<<endl;
       exit(1);
     }
-    
+    if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
+      L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+    }
+
 #ifdef TCP_DEFER_ACCEPT
     if(setsockopt(fd, SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
       if(i==locals.begin())
@@ -1156,10 +1159,15 @@ void makeUDPServerSockets()
       throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
     }
     setSocketTimestamps(fd);
-    int one;
+
     if(IsAnyAddress(sin)) {
+      int one=1;
       setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
       setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+      if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
+	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
+      }
+
     }
 
     Utility::setCloseOnExec(fd);
