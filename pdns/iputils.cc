@@ -133,3 +133,21 @@ int sendfromto(int sock, const char* data, int len, int flags, const ComboAddres
   }
   return sendmsg(sock, &msgh, flags);
 }
+
+// be careful: when using this for receive purposes, make sure addr->sin4.sin_family is set appropriately so getSocklen works!
+// be careful: when using this function for *send* purposes, be sure to set cbufsize to 0!
+void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr)
+{
+  iov->iov_base = data;
+  iov->iov_len  = datalen;
+
+  memset(msgh, 0, sizeof(struct msghdr));
+  
+  msgh->msg_control = cbuf;
+  msgh->msg_controllen = cbufsize;
+  msgh->msg_name = addr;
+  msgh->msg_namelen = addr->getSocklen();
+  msgh->msg_iov  = iov;
+  msgh->msg_iovlen = 1;
+  msgh->msg_flags = 0;
+}

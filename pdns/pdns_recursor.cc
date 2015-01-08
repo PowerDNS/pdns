@@ -149,6 +149,12 @@ struct DNSComboWriter {
     d_remote=*sa;
   }
 
+  void setLocal(const ComboAddress& sa)
+  {
+    d_local=sa;
+  }
+
+
   void setSocket(int sock)
   {
     d_socket=sock;
@@ -160,7 +166,7 @@ struct DNSComboWriter {
   }
 
   struct timeval d_now;
-  ComboAddress d_remote;
+  ComboAddress d_remote, d_local;
   bool d_tcp;
   int d_socket;
   shared_ptr<TCPConnection> d_tcpConnection;
@@ -596,7 +602,6 @@ void startDoResolve(void *p)
       }
       catch(ImmediateServFailException &e) {
         L<<Logger::Error<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
-
         res = RCode::ServFail;
       }
 
@@ -675,7 +680,13 @@ void startDoResolve(void *p)
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_remote, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
     if(!dc->d_tcp) {
-      sendto(dc->d_socket, (const char*)&*packet.begin(), packet.size(), 0, (struct sockaddr *)(&dc->d_remote), dc->d_remote.getSocklen());
+      struct msghdr msgh;
+      struct iovec iov;
+      char cbuf[256];
+      fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
+      if(dc->d_local.sin4.sin_family)
+	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local);
+      sendmsg(dc->d_socket, &msgh, 0);
       if(!SyncRes::s_nopacketcache && !variableAnswer ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec, 
@@ -913,8 +924,16 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   }
 }
  
-string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, int fd)
+string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
 {
+  struct timeval diff = g_now - tv;
+  double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
+  
+  if(delta > 1000.0) {
+    g_stats.tooOldDrops++;
+    return 0;
+  }
+
   ++g_stats.qcounter;
   if(fromaddr.sin4.sin_family==AF_INET6)
      g_stats.ipv6qcounter++;
@@ -930,7 +949,16 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
       ageDNSPacket(response, age);
-      sendto(fd, response.c_str(), response.length(), 0, (struct sockaddr*) &fromaddr, fromaddr.getSocklen());
+      struct msghdr msgh;
+      struct iovec iov;
+      char cbuf[256];
+      fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
+      if(destaddr.sin4.sin_family) {
+	cerr<<"Add!"<<endl;
+	addCMsgSrcAddr(&msgh, cbuf, &destaddr);
+      }
+      sendmsg(fd, &msgh, 0);
+
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader dh;
         memcpy(&dh, response.c_str(), sizeof(dh));
@@ -956,21 +984,28 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   DNSComboWriter* dc = new DNSComboWriter(question.c_str(), question.size(), g_now);
   dc->setSocket(fd);
   dc->setRemote(&fromaddr);
+  dc->setLocal(destaddr);
 
   dc->d_tcp=false;
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc
   return 0;
 } 
  
+
 void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 {
   int len;
   char data[1500];
   ComboAddress fromaddr;
-  socklen_t addrlen=sizeof(fromaddr);
-  
+  struct msghdr msgh;
+  struct iovec iov;
+  char cbuf[256];
+
+  fromaddr.sin6.sin6_family=AF_INET6; // this makes sure fromaddr is big enough
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), data, sizeof(data), &fromaddr);
+
   for(;;) 
-  if((len=recvfrom(fd, data, sizeof(data), 0, (sockaddr *)&fromaddr, &addrlen)) >= 0) {
+  if((len=recvmsg(fd, &msgh, 0)) >= 0) {
     if(t_remotes)
       t_remotes->push_back(fromaddr);
 
@@ -1002,10 +1037,15 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       else {
         string question(data, len);
+	struct timeval tv={0,0};
+	HarvestTimestamp(&msgh, &tv);
+	ComboAddress dest;
+	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
+	HarvestDestinationAddress(&msgh, &dest);
         if(g_weDistributeQueries)
-          distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, fd));
+          distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, dest, tv, fd));
         else
-          doProcessUDPQuestion(question, fromaddr, fd);
+          doProcessUDPQuestion(question, fromaddr, dest, tv, fd);
       }
     }
     catch(MOADNSException& mde) {
@@ -1096,10 +1136,6 @@ void makeUDPServerSockets()
   if(locals.empty())
     throw PDNSException("No local address specified");
   
-  if(::arg()["local-address"]=="0.0.0.0") {
-    L<<Logger::Warning<<"It is advised to bind to explicit addresses with the --local-address option"<<endl;
-  }
-
   for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
     ServiceTuple st;
     st.port=::arg().asNum("local-port");
@@ -1118,6 +1154,12 @@ void makeUDPServerSockets()
     int fd=socket(sin.sin4.sin_family, SOCK_DGRAM, 0);
     if(fd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
+    }
+    setSocketTimestamps(fd);
+    int one;
+    if(IsAnyAddress(sin)) {
+      setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+      setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
     }
 
     Utility::setCloseOnExec(fd);

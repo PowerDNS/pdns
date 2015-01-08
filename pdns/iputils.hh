@@ -441,6 +441,5 @@ int SSetsockopt(int sockfd, int level, int opname, int value);
 bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
-
-
+void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 #endif

@@ -295,14 +295,7 @@ void UDPNameserver::send(DNSPacket *p)
   else
     numanswered6++;
 
-  /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
-  iov.iov_base = (void*)buffer.c_str();
-  iov.iov_len = buffer.length();
-  msgh.msg_iov = &iov;
-  msgh.msg_iovlen = 1;
-  msgh.msg_name = (struct sockaddr*)&p->d_remote;
-  msgh.msg_namelen = p->d_remote.getSocklen();
+  fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
 
   if(p->d_anyLocal) {
     addCMsgSrcAddr(&msgh, cbuf, p->d_anyLocal.get_ptr());
@@ -327,18 +320,8 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   struct iovec iov;
   char cbuf[256];
 
-  iov.iov_base = mesg;
-  iov.iov_len  = sizeof(mesg);
-
-  memset(&msgh, 0, sizeof(struct msghdr));
-  
-  msgh.msg_control = cbuf;
-  msgh.msg_controllen = sizeof(cbuf);
-  msgh.msg_name = &remote;
-  msgh.msg_namelen = sizeof(remote);
-  msgh.msg_iov  = &iov;
-  msgh.msg_iovlen = 1;
-  msgh.msg_flags = 0;
+  remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), mesg, sizeof(mesg), &remote);
   
   int err;
   vector<struct pollfd> rfds= d_rfds;

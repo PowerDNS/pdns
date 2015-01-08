@@ -558,6 +558,7 @@ struct RecursorStats
   uint64_t tcpClientOverflow;
   uint64_t clientParseError;
   uint64_t serverParseError;
+  uint64_t tooOldDrops;
   uint64_t unexpectedCount;
   uint64_t caseMismatchCount;
   uint64_t spoofCount;

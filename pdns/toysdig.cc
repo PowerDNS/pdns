@@ -20,7 +20,7 @@ try
 
   Socket sock(AF_INET, SOCK_DGRAM);
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
-  for(unsigned int n=0; n < 100; ++n) {
+  for(unsigned int n=0; n < 20000; ++n) {
     vector<uint8_t> packet;
     string qname;
 
