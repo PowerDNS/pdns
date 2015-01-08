@@ -121,8 +121,12 @@ string RecursorControlChannel::recv(std::string* remote, unsigned int timeout)
   ssize_t len;
   struct sockaddr_un remoteaddr;
   socklen_t addrlen=sizeof(remoteaddr);
-    
-  if((waitForData(d_fd, timeout, 0 ) != 1) || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
+  
+  int ret=waitForData(d_fd, timeout, 0);
+  if(ret==0)
+    throw PDNSException("Timeout waiting for answer from control channel");
+  
+  if( ret < 0 || (len=::recvfrom(d_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&remoteaddr, &addrlen)) < 0)
     throw PDNSException("Unable to receive message over control channel: "+string(strerror(errno)));
 
   if(remote)
