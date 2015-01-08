@@ -843,6 +843,7 @@ testrunner_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc \
 	ednssubnet.cc \
+	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nameserver.cc \
