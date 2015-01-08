@@ -433,4 +433,14 @@ int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
 int SSetsockopt(int sockfd, int level, int opname, int value);
 
+#if defined(IP_PKTINFO)
+  #define GEN_IP_PKTINFO IP_PKTINFO
+#elif defined(IP_RECVDSTADDR)
+  #define GEN_IP_PKTINFO IP_RECVDSTADDR 
+#endif
+bool IsAnyAddress(const ComboAddress& addr);
+bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
+bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
+
+
 #endif

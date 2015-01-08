@@ -132,7 +132,7 @@ pdns_server_SOURCES = \
 	dynlistener.cc dynlistener.hh \
 	dynmessenger.hh \
 	ednssubnet.cc ednssubnet.hh \
-	iputils.hh \
+	iputils.cc iputils.hh \
 	json.cc json.hh \
 	lock.hh \
 	logger.cc logger.hh \
@@ -897,6 +897,7 @@ pdns_recursor_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	epollmplexer.cc \
 	htimer.cc htimer.hh \
+	iputils.cc \
 	json.cc json.hh \
 	logger.cc \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
