@@ -2066,11 +2066,10 @@ try
       *t_pdl = shared_ptr<RecursorLua>(new RecursorLua(::arg()["lua-dns-script"]));
       L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
     }
-    
   }
   catch(std::exception &e) {
     L<<Logger::Error<<"Failed to load 'lua' script from '"<<::arg()["lua-dns-script"]<<"': "<<e.what()<<endl;
-    exit(99);
+    _exit(99);
   }
   
   t_traceRegex = new shared_ptr<Regex>();
