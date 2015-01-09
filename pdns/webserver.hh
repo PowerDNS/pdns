@@ -143,8 +143,6 @@ public:
   void registerWebHandler(const string& url, HandlerFunction handler);
 
 protected:
-  static char B64Decode1(char cInChar);
-  static int B64Decode(const std::string& strInput, std::string& strOutput);
   void registerBareHandler(const string& url, HandlerFunction handler);
 
   virtual Server* createServer() {
