@@ -102,10 +102,11 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
     L<<Logger::Debug<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException();
   }
-  bool auth_ok = req->compareHeader("x-api-key", api_key);
+  bool auth_ok = req->compareHeader("x-api-key", api_key) || req->getvars["api-key"]==api_key;
+  
   if (!auth_ok) {
     L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
-    throw HttpUnauthorizedException();
+    throw HttpBadRequestException();
   }
 
   resp->headers["Access-Control-Allow-Origin"] = "*";

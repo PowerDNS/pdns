@@ -30,6 +30,7 @@
 #include "arguments.hh"
 #include "misc.hh"
 #include "syncres.hh"
+#include "dnsparser.hh"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -531,6 +532,50 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     resp->body = returnJsonObject(stats);
     return;
   }
+  else if(command == "get-query-ring") {
+    typedef pair<string,uint16_t> query_t;
+    vector<query_t> queries;
+    if(req->getvars["name"]=="servfail-queries")
+      queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
+    else if(req->getvars["name"]=="queries")
+      queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
+    
+    typedef map<query_t,unsigned int> counts_t;
+    counts_t counts;
+    unsigned int total=0;
+    BOOST_FOREACH(const query_t& q, queries) {
+      total++;
+      counts[make_pair(toLower(q.first), q.second)]++;
+    }
+    
+    typedef std::multimap<int, query_t> rcounts_t;
+    rcounts_t rcounts;
+  
+    for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
+      rcounts.insert(make_pair(-i->second, i->first));
+
+    
+    Document doc;
+    doc.SetObject();
+    Value entries;
+    entries.SetArray();
+    int tot=0;
+    BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
+      Value arr;
+      
+      arr.SetArray();
+      arr.PushBack(-q.first, doc.GetAllocator());
+      arr.PushBack(q.second.first.c_str(), doc.GetAllocator());
+      arr.PushBack(DNSRecordContent::NumberToType(q.second.second).c_str(), doc.GetAllocator());
+      entries.PushBack(arr, doc.GetAllocator());
+      if(tot++>=100)
+	break;
+    }
+    doc.AddMember("entries", entries, doc.GetAllocator());  
+    resp->setBody(doc);
+    return;
+  }
+  
   else if(command == "config") {
     vector<string> items = ::arg().list();
     BOOST_FOREACH(const string& var, items) {
@@ -551,7 +596,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     return;
   } else {
     resp->status = 404;
-    resp->body = returnJsonError("Not found");
+    resp->body = returnJsonError("Command '"+command+"' not found");
   }
 }
 
@@ -586,7 +631,7 @@ void AsyncWebServer::serveConnection(Socket *client)
   YaHTTP::AsyncRequestLoader yarl;
   yarl.initialize(&req);
   client->setNonBlocking();
-
+ 
   string data;
   try {
     while(!req.complete) {
