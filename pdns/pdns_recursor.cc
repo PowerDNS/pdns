@@ -954,7 +954,6 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
       if(destaddr.sin4.sin_family) {
-	cerr<<"Add!"<<endl;
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr);
       }
       sendmsg(fd, &msgh, 0);
