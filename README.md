@@ -62,7 +62,10 @@ COMPILING THE RECURSOR
 On Linux, `make pdns_recursor` in the `pdns` subdir may work. The portable, and supported, way to
 build the recursor is first running `dist-recursor` and compiling from the `pdns-recursor-x.y` subdirectory.
 
-When building from git `pandoc` and `zip` are build dependencies.
+When building from git `pandoc` and `zip` are build dependencies. 
+
+To build deb and rpm packages after running `dist-recursor`, run `build-recursor`. This depends on
+Lua 5.1 (liblua5.1-dev), dh-make and rpm.
 
 SOLARIS NOTES
 -------------
