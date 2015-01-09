@@ -480,6 +480,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     content.str("");
     content<<rr.qname<<" "<<rr.qtype.getName();
+    if (rr.qtype.getCode() == QType::RRSIG) {
+      RRSIGRecordContent rrc(rr.content);
+      content<<" ("<<DNSRecordContent::NumberToType(rrc.d_type)<<")";
+    }
     ret = ttl.insert(pair<string, unsigned int>(toLower(content.str()), rr.ttl));
     if (ret.second == false && ret.first->second != rr.ttl) {
       cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
