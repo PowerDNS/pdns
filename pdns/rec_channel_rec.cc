@@ -712,7 +712,7 @@ void sortPublicSuffixList()
 }
 
 
-static string getRegisteredName(const std::string& dom)
+string getRegisteredName(const std::string& dom)
 {
   vector<string> parts;
   stringtok(parts, dom, ".");
@@ -908,7 +908,6 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 
   if(cmd=="top-pub-queries")
     return doGenericTopQueries(pleaseGetQueryRing, getRegisteredName);
-
 
   if(cmd=="top-servfail-queries")
     return doGenericTopQueries(pleaseGetServfailQueryRing);

@@ -535,6 +535,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
   else if(command == "get-query-ring") {
     typedef pair<string,uint16_t> query_t;
     vector<query_t> queries;
+    bool filter=!req->getvars["public-filtered"].empty();
+      
     if(req->getvars["name"]=="servfail-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
     else if(req->getvars["name"]=="queries")
@@ -545,10 +547,65 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     unsigned int total=0;
     BOOST_FOREACH(const query_t& q, queries) {
       total++;
-      counts[make_pair(toLower(q.first), q.second)]++;
+      if(filter)
+	counts[make_pair(getRegisteredName(toLower(q.first)), q.second)]++;
+      else 
+	counts[make_pair(toLower(q.first), q.second)]++;
     }
     
     typedef std::multimap<int, query_t> rcounts_t;
+    rcounts_t rcounts;
+  
+    for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
+      rcounts.insert(make_pair(-i->second, i->first));
+
+    Document doc;
+    doc.SetObject();
+    Value entries;
+    entries.SetArray();
+    unsigned int tot=0, totIncluded=0;
+    BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
+      Value arr;
+      
+      arr.SetArray();
+      totIncluded-=q.first;
+      arr.PushBack(-q.first, doc.GetAllocator());
+      arr.PushBack(q.second.first.c_str(), doc.GetAllocator());
+      arr.PushBack(DNSRecordContent::NumberToType(q.second.second).c_str(), doc.GetAllocator());
+      entries.PushBack(arr, doc.GetAllocator());
+      if(tot++>=100)
+	break;
+    }
+    if(queries.size() != totIncluded) {
+      Value arr;
+      arr.SetArray();
+      arr.PushBack(queries.size()-totIncluded, doc.GetAllocator());
+      arr.PushBack("", doc.GetAllocator());
+      arr.PushBack("", doc.GetAllocator());
+      entries.PushBack(arr, doc.GetAllocator());
+    }
+    doc.AddMember("entries", entries, doc.GetAllocator());  
+    resp->setBody(doc);
+    return;
+  }
+  else if(command == "get-remote-ring") {
+    vector<ComboAddress> queries;
+    if(req->getvars["name"]=="remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetRemotes);
+    else if(req->getvars["name"]=="servfail-remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetServfailRemotes);
+    else if(req->getvars["name"]=="large-answer-remotes")
+      queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
+    
+    typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
+    counts_t counts;
+    unsigned int total=0;
+    BOOST_FOREACH(const ComboAddress& q, queries) {
+      total++;
+      counts[q]++;
+    }
+    
+    typedef std::multimap<int, ComboAddress> rcounts_t;
     rcounts_t rcounts;
   
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
@@ -559,18 +616,27 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     doc.SetObject();
     Value entries;
     entries.SetArray();
-    int tot=0;
+    unsigned int tot=0, totIncluded=0;
     BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
+      totIncluded-=q.first;
       Value arr;
       
       arr.SetArray();
       arr.PushBack(-q.first, doc.GetAllocator());
-      arr.PushBack(q.second.first.c_str(), doc.GetAllocator());
-      arr.PushBack(DNSRecordContent::NumberToType(q.second.second).c_str(), doc.GetAllocator());
+      Value jname(q.second.toString().c_str(), doc.GetAllocator()); // copy 
+      arr.PushBack(jname, doc.GetAllocator());
       entries.PushBack(arr, doc.GetAllocator());
       if(tot++>=100)
 	break;
     }
+    if(queries.size() != totIncluded) {
+      Value arr;
+      arr.SetArray();
+      arr.PushBack(queries.size()-totIncluded, doc.GetAllocator());
+      arr.PushBack("", doc.GetAllocator());
+      entries.PushBack(arr, doc.GetAllocator());
+    }
+
     doc.AddMember("entries", entries, doc.GetAllocator());  
     resp->setBody(doc);
     return;
