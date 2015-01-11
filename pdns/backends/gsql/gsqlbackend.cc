@@ -640,10 +640,10 @@ bool GSQLBackend::setTSIGKey(const string& name, const string& algorithm, const 
   return true;
 }
 
-bool GSQLBackend::deleteTSIGKey(const string& name)
+bool GSQLBackend::deleteTSIGKey(const string& name, const string& algorithm)
 {
   char output[1024];
-  snprintf(output,sizeof(output)-1,d_deleteTSIGKeyQuery.c_str(), sqlEscape(toLower(name)).c_str());
+  snprintf(output,sizeof(output)-1,d_deleteTSIGKeyQuery.c_str(), sqlEscape(toLower(name)).c_str(), sqlEscape(toLower(algorithm)).c_str());
   try {
     d_db->doCommand(output);
   }

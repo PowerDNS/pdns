@@ -543,7 +543,7 @@ bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algor
    return true;
 }
 
-bool RemoteBackend::deleteTSIGKey(const std::string& name) {
+bool RemoteBackend::deleteTSIGKey(const std::string& name, const std::string& algorithm) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -553,6 +553,7 @@ bool RemoteBackend::deleteTSIGKey(const std::string& name) {
    JSON_ADD_MEMBER(query, "method", "deleteTSIGKey", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "algorithm", algorithm.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;

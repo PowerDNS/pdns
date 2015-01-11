@@ -225,7 +225,7 @@ class Handler
    end
 
    def do_deletetsigkey(args)
-      $tsigkeys.delete args["name"] if $tsigkeys.has_key? args["name"]
+      $tsigkeys.delete args["name"] args["algorithm"] if $tsigkeys.has_key? args["name"]
       [true]
    end
 

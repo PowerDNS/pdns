@@ -1937,12 +1937,12 @@ try
         return 0;
      }
      string name = cmds[1];
-
+     string algo = cmds[2];
      UeberBackend B("default");
-     if (B.deleteTSIGKey(name)) {
-       cout << "Deleted TSIG key " << name << endl;
+     if (B.deleteTSIGKey(name,algo)) {
+       cout << "Deleted TSIG key " << name << " " << algo << endl;
      } else {
-       cout << "Failure deleting TSIG key " << name << endl;
+       cout << "Failure deleting TSIG key " << name << " " << algo << endl;
        return 1;
      }
      return 0;
