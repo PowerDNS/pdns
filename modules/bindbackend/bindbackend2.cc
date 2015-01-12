@@ -1,4 +1,4 @@
-/*
+  /*
     PowerDNS Versatile Database Driven Nameserver
     Copyright (C) 2002 - 2014  PowerDNS.COM BV
 
@@ -587,6 +587,20 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
 
 Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 {
+  d_getAllDomainMetadataQuery_stmt = NULL;
+  d_getDomainMetadataQuery_stmt = NULL;
+  d_deleteDomainMetadataQuery_stmt = NULL;
+  d_insertDomainMetadataQuery_stmt = NULL;
+  d_getDomainKeysQuery_stmt = NULL;
+  d_deleteDomainKeyQuery_stmt = NULL;
+  d_insertDomainKeyQuery_stmt = NULL;
+  d_activateDomainKeyQuery_stmt = NULL;
+  d_deactivateDomainKeyQuery_stmt = NULL;
+  d_getTSIGKeyQuery_stmt = NULL;
+  d_setTSIGKeyQuery_stmt = NULL;
+  d_deleteTSIGKeyQuery_stmt = NULL;
+  d_getTSIGKeysQuery_stmt = NULL;
+
   setArgPrefix("bind"+suffix);
   d_logprefix="[bind"+suffix+"backend]";
   d_hybrid=mustDo("hybrid");
@@ -616,7 +630,7 @@ Bind2Backend::Bind2Backend(const string &suffix, bool loadZones)
 }
 
 Bind2Backend::~Bind2Backend()
-{}
+{ freeStatements(); } // deallocate statements 
 
 void Bind2Backend::rediscover(string *status)
 {
