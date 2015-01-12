@@ -1,12 +1,10 @@
 AM_CPPFLAGS += \
-	-I$(top_srcdir)/pdns/ext/rapidjson/include \
+	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
 AM_LDFLAGS = $(THREADFLAGS)
-
-SUBDIRS = ../../pdns/ext/yahttp
 
 EXTRA_DIST = \
 	OBJECTFILES \
