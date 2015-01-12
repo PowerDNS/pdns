@@ -711,7 +711,6 @@ void sortPublicSuffixList()
   sort(g_pubs.begin(), g_pubs.end());
 }
 
-
 string getRegisteredName(const std::string& dom)
 {
   vector<string> parts;
@@ -721,27 +720,25 @@ string getRegisteredName(const std::string& dom)
   reverse(parts.begin(), parts.end());
   BOOST_FOREACH(string& str, parts) { str=toLower(str); };
 
-  pubs_t::const_iterator iter = lower_bound(g_pubs.begin(), g_pubs.end(), parts);
-  if(iter != g_pubs.end()) {
-    if(iter != g_pubs.begin())
-      --iter;
-
-    if(iter->size() < parts.size()) {
-      unsigned int n;
-      for(n=0; n < iter->size(); ++n)
-	if((*iter)[n] != parts[n])
-	  break;
-      if(n==iter->size()) {
-	string ret;
-	for(unsigned int n=iter->size()+1;n;++iter,--n) {
-	  ret+=parts[n-1]+".";
-	}
-	return ret;
-      } 
+  // uk co migweb 
+  string last;
+  while(!parts.empty()) {
+    if(parts.size()==1 || binary_search(g_pubs.begin(), g_pubs.end(), parts)) {
+  
+      string ret=last;
+      if(!ret.empty())
+	ret+=".";
+      
+      BOOST_REVERSE_FOREACH(const std::string& p, parts) {
+	ret+=p+".";
+      }
+      return ret;
     }
+
+    last=parts[parts.size()-1];
+    parts.resize(parts.size()-1);
   }
- 
-  return parts[1]+"."+parts[0]+".";
+  return "??";
 }
 
 static string nopFilter(const std::string& str)
