@@ -349,13 +349,13 @@ AC_CONFIG_FILES([
   codedocs/Makefile
   docs/Makefile
   pdns/pdns.init
-  pdns/ext/Makefile
-  pdns/ext/ed25519/Makefile
-  pdns/ext/yahttp/Makefile
-  pdns/ext/yahttp/yahttp/Makefile
-  pdns/ext/polarssl/Makefile
-  pdns/ext/polarssl/library/Makefile
-  pdns/ext/rapidjson/Makefile
+  ext/Makefile
+  ext/ed25519/Makefile
+  ext/yahttp/Makefile
+  ext/yahttp/yahttp/Makefile
+  ext/polarssl/Makefile
+  ext/polarssl/library/Makefile
+  ext/rapidjson/Makefile
   modules/bindbackend/Makefile
   modules/geobackend/Makefile
   modules/geoipbackend/Makefile
