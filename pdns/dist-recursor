@@ -59,13 +59,13 @@ cat >>$DIRNAME/config.h <<EOF
 #define HAVE_BOOST 1
 EOF
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
-cp -a ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
-cp -a ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
+cp -a ../ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
+cp -a ../ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
 mkdir -p $DIRNAME/ext/polarssl/include/polarssl
-cp -a ext/polarssl/include/polarssl/config.h ext/polarssl/include/polarssl/check_config.h ext/polarssl/include/polarssl/aes.h ext/polarssl/include/polarssl/base64.h ext/polarssl/include/polarssl/platform.h ext/polarssl/include/polarssl/version.h $DIRNAME/ext/polarssl/include/polarssl
+cp -a ../ext/polarssl/include/polarssl/config.h ../ext/polarssl/include/polarssl/check_config.h ../ext/polarssl/include/polarssl/aes.h ../ext/polarssl/include/polarssl/base64.h ../ext/polarssl/include/polarssl/platform.h ../ext/polarssl/include/polarssl/version.h $DIRNAME/ext/polarssl/include/polarssl
 mkdir -p $DIRNAME/ext/polarssl/library
-cp -a ext/polarssl/library/aes.c ext/polarssl/library/base64.c $DIRNAME/ext/polarssl/library
-cp -a ext/yahttp/ $DIRNAME/ext/yahttp
+cp -a ../ext/polarssl/library/aes.c ../ext/polarssl/library/base64.c $DIRNAME/ext/polarssl/library
+cp -a ../ext/yahttp/ $DIRNAME/ext/yahttp
 echo '#include "../../../config.h"' > $DIRNAME/ext/yahttp/yahttp/yahttp-config.h
 mkdir $DIRNAME/rrd
 cp tools/rrd/{create,update,makegraphs,index.html} $DIRNAME/rrd
