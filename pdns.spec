@@ -24,14 +24,14 @@ backend'.
 %defattr(-,root,root)
 %{_sbindir}/pdns_server
 %{_bindir}/pdns_control
-%{_bindir}/zone2sql
-%{_bindir}/zone2json
 %{_bindir}/pdnssec
+%{_bindir}/zone2json
 %{_bindir}/zone2ldap
+%{_bindir}/zone2sql
 %{_mandir}/man1/pdns_control.1
 %{_mandir}/man1/pdns_server.1
-%{_mandir}/man1/zone2sql.1
 %{_mandir}/man1/pdnssec.1
+%{_mandir}/man1/zone2sql.1
 %{_datadir}/doc/pdns/*.sql
 
 %dir %{_sysconfdir}/powerdns/
@@ -54,19 +54,19 @@ These are the tools
 %files -n pdns-tools
 %defattr(-,root,root)
 %{_bindir}/dnsbulktest
+%{_bindir}/dnsdist
 %{_bindir}/dnsgram
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
-%{_bindir}/dnsdist
 %{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/notify
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
+%{_mandir}/man1/dnsdist.1
 %{_mandir}/man1/dnsreplay.1
 %{_mandir}/man1/dnsscope.1
-%{_mandir}/man1/dnswasher.1
 %{_mandir}/man1/dnstcpbench.1
-%{_mandir}/man1/dnsdist.1
+%{_mandir}/man1/dnswasher.1
