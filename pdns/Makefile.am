@@ -189,12 +189,12 @@ pdns_server_LDADD = \
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN110_LIBS)
+pdns_server_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
 endif
 
 if BOTAN18
 pdns_server_SOURCES += botan18signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN18_LIBS)
+pdns_server_LDADD += $(BOTAN18_LIBS) -lgmp
 endif
 
 if CRYPTOPP
@@ -283,12 +283,12 @@ pdnssec_LDADD = \
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN110_LIBS)
+pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
 endif
 
 if BOTAN18
 pdnssec_SOURCES += botan18signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN18_LIBS)
+pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
 endif
 
 if CRYPTOPP
