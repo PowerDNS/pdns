@@ -497,7 +497,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       if (rr.qtype.getCode() == QType::NS) {
         hasNsAtApex=true;
       } else if (rr.qtype.getCode() == QType::DS) {
-        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should no be here."<<endl;
+        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
       }
     } else {
