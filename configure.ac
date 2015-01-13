@@ -60,6 +60,9 @@ AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
 # We use this to search for other libraries.
 eval full_libdir="\"$libdir\""
 
+# detect pkg-config explicitly
+PKG_PROG_PKG_CONFIG
+
 # check if we want a static build
 AC_MSG_CHECKING([whether we will be building static binaries])
 
@@ -73,9 +76,6 @@ AC_MSG_RESULT([$static])
 AS_IF([test "x$static" != "xno"], [
   PKG_CONFIG="$PKG_CONFIG --static"
 ])
-
-# detect pkg-config explicitly
-PKG_PROG_PKG_CONFIG
 
 AC_CHECK_HEADERS(
 	[sys/mman.h],
