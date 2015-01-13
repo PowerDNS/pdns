@@ -430,7 +430,10 @@ void mainthread()
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
 
-   doSecPoll(true); // this must be BEFORE chroot
+   try {
+     doSecPoll(true); // this must be BEFORE chroot
+   }
+   catch(...) {}
 
    if(!::arg()["chroot"].empty()) {  
      triggerLoadOfLibraries();
