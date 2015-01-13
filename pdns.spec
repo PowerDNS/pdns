@@ -28,10 +28,10 @@ backend'.
 %{_bindir}/zone2json
 %{_bindir}/pdnssec
 #%%{_bindir}/zone2ldap
-%{_mandir}/man8/pdns_control.8
-%{_mandir}/man8/pdns_server.8
-%{_mandir}/man8/zone2sql.8
-%{_mandir}/man8/pdnssec.8
+%{_mandir}/man1/pdns_control.8
+%{_mandir}/man1/pdns_server.8
+%{_mandir}/man1/zone2sql.8
+%{_mandir}/man1/pdnssec.8
 %{_datadir}/doc/pdns/*.sql
 
 %dir %{_sysconfdir}/powerdns/
@@ -65,8 +65,8 @@ These are the tools
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
-%{_mandir}/man8/dnsreplay.1
-%{_mandir}/man8/dnsscope.1
-%{_mandir}/man8/dnswasher.1
+%{_mandir}/man1/dnsreplay.1
+%{_mandir}/man1/dnsscope.1
+%{_mandir}/man1/dnswasher.1
 %{_mandir}/man1/dnstcpbench.1
 %{_mandir}/man1/dnsdist.1
