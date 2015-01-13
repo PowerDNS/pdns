@@ -63,6 +63,20 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
+# check if we want a static build
+AC_MSG_CHECKING([whether we will be building static binaries])
+
+AC_ARG_ENABLE([static-binaries],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
+  [static=$enableval],
+  [static=no],
+)
+AC_MSG_RESULT([$static])
+
+AS_IF([test "x$static" != "xno"], [
+  PKG_CONFIG="$PKG_CONFIG --static"
+])
+
 AC_CHECK_HEADERS(
 	[sys/mman.h],
 	[AC_CHECK_FUNC(
@@ -162,17 +176,9 @@ PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_ED25519
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AC_MSG_CHECKING([whether we will be building static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [static=$enableval],
-  [static=no],
-)
-AC_MSG_RESULT([$static])
-AS_IF([test "x$static" != "xno"],
-  [LDFLAGS="-all-static $LDFLAGS"]
-)
+AS_IF([test "x$static" != "xno"], [
+  LDFLAGS="-all-static $LDFLAGS"
+])
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
