@@ -120,6 +120,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
   d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
 
+  d_query_stmt = NULL;
   d_NoIdQuery_stmt = NULL;
   d_IdQuery_stmt = NULL;
   d_ANYNoIdQuery_stmt = NULL;
