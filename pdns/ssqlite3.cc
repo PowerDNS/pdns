@@ -39,6 +39,7 @@ public:
     const char *pTail;
     this->d_query = query;
     this->d_dolog = dolog;
+    d_rc = 0;
     d_db = db;
 #if SQLITE_VERSION_NUMBER >= 3003009
     if (sqlite3_prepare_v2(d_db->db(), query.c_str(), -1, &d_stmt, &pTail ) != SQLITE_OK)
@@ -145,6 +146,7 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
   m_dolog = 0;
   m_in_transaction = false;
+  m_pStmt = NULL;
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
 }
 
