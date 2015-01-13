@@ -342,7 +342,10 @@ void mainthread()
    
 #ifndef WIN32
 
-   doSecPoll(true); // this must be BEFORE chroot
+   try {
+     doSecPoll(true); // this must be BEFORE chroot
+   }
+   catch(...) {}
 
    if(!::arg()["chroot"].empty()) {  
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
