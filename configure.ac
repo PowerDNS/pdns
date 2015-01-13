@@ -170,9 +170,11 @@ AC_ARG_ENABLE([static-binaries],
   [static=no],
 )
 AC_MSG_RESULT([$static])
-AS_IF([test "x$static" != "xno"],
-  [LDFLAGS="-all-static $LDFLAGS"]
-)
+AS_IF([test "x$static" != "xno"], [
+  LDFLAGS="-all-static $LDFLAGS"
+  AC_REQUIRE([PKG_PROG_PKG_CONFIG])
+  PKG_CONFIG="$PKG_CONFIG --static"
+])
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
