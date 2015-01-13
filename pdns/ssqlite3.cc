@@ -146,6 +146,7 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
   m_dolog = 0;
   m_in_transaction = false;
+  m_pStmt = NULL;
   sqlite3_busy_handler(m_pDB, busyHandler, 0);
 }
 
