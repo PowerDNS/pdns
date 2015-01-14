@@ -16,9 +16,6 @@ private:
   //! Pointer to the SQLite database instance.
   sqlite3 *m_pDB;
 
-  //! Pointer to the SQLite virtual machine executing a query.
-  sqlite3_stmt *m_pStmt;
-
   bool m_dolog;
   bool m_in_transaction;
   static int busyHandler(void*, int);
