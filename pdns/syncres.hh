@@ -467,7 +467,7 @@ private:
     bool operator<(const GetBestNSAnswer &b) const
     {
       return boost::tie(qname, qtype, bestns) < 
-	boost::tie(b.qname, qtype, b.bestns);
+	boost::tie(b.qname, b.qtype, b.bestns);
     }
   };
 
