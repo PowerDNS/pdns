@@ -927,7 +927,6 @@ pdns_recursor_SOURCES = \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
 	epollmplexer.cc \
-	htimer.cc htimer.hh \
 	iputils.cc \
 	json.cc json.hh \
 	logger.cc \

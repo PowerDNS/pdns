@@ -33,26 +33,6 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 using namespace ::boost::multi_index;
-#if 0
-#include <iostream>
-using std::cout;
-using std::endl;
-
-struct TSCTimer
-{
-  TSCTimer()
-  {
-    RDTSC(d_tsc1);
-  }
-  ~TSCTimer()
-  {
-    uint64_t tsc2;
-    RDTSC(tsc2);
-    cout<<"Timer: "<< (tsc2 - d_tsc1)/3000.0 << endl;
-  }
-  uint64_t d_tsc1;
-};
-#endif
 
 #include "utility.hh"
 #include "dns.hh"
@@ -181,7 +161,7 @@ int makeGidNumeric(const string &group);
 int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
 
-#ifdef _POSIX_THREAD_CPUTIME
+#if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)
 /** CPUTime measurements */
 class CPUTime
 {
