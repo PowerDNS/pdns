@@ -1003,17 +1003,11 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 .hh.h:
 	cp $< $@
 
-build_date = $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host = $(shell id -u -n)@$(shell hostname -f)
-if RELEASE_BUILD
-pdns_version = $(PACKAGE_VERSION)
-dist_host = $(DIST_HOST)
-else
-git_version = $(shell git describe --always --dirty=+ 2>/dev/null)
+build_date := $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
+build_host := $(shell id -u -n)@$(shell hostname -f)
+git_version := $(shell git describe --always --dirty=+ 2>/dev/null)
 # Do the test in shell, so we don't confuse automake with ifeq/ifneq.
-pdns_version = $(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git_version)")
-dist_host = $(build_host)
-endif
+pdns_version := $(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git_version)")
 
 version.o: version_generated.h
 
@@ -1024,14 +1018,27 @@ pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 version_generated.h:
 	@echo "$$create_version_generated_h" > $@
 
+if RELEASE_BUILD
 define create_version_generated_h
 #ifndef VERSION_GENERATED_H
 #define VERSION_GENERATED_H
-#define PDNS_VERSION "$(pdns_version)"
-#define DIST_HOST "$(dist_host)"
+#define PDNS_VERSION "$(PACKAGE_VERSION)"
+#define DIST_HOST "$(DIST_HOST)"
 #define BUILD_DATE "$(build_date)"
 #define BUILD_HOST "$(build_host)"
 #endif //!VERSION_GENERATED_H
 endef
+
+else
+define create_version_generated_h
+#ifndef VERSION_GENERATED_H
+#define VERSION_GENERATED_H
+#define PDNS_VERSION "$(pdns_version)"
+#define DIST_HOST "$(build_host)"
+#define BUILD_DATE "$(build_date)"
+#define BUILD_HOST "$(build_host)"
+#endif //!VERSION_GENERATED_H
+endef
+endif
 
 export create_version_generated_h

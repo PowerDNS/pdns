@@ -19,15 +19,16 @@ public:
   ~SMySQL();
 
   SSqlException sPerrorException(const string &reason);
-  int doQuery(const string &query, result_t &result);
-  int doQuery(const string &query);
-  int doCommand(const string &query);
-  bool getRow(row_t &row);
-  string escape(const string &str);
   void setLog(bool state);
+  SSqlStatement* prepare(const string& query, int nparams);
+  void execute(const string& query);
+
+  void startTransaction();
+  void commit();
+  void rollback();
+
 private:
   MYSQL d_db;
-  MYSQL_RES *d_rres;
   static bool s_dolog;
   static pthread_mutex_t s_myinitlock;
 };

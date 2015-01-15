@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 #include "../../namespaces.hh"
-
+#include <inttypes.h>
 
 class SSqlException 
 {
@@ -29,18 +29,40 @@ public:
 private:
   string d_reason;
 };
-
-class SSql
+ 
+class SSqlStatement
 {
 public:
   typedef vector<string> row_t;
   typedef vector<row_t> result_t;
+
+  virtual SSqlStatement* bind(const string& name, bool value)=0;
+  virtual SSqlStatement* bind(const string& name, int value)=0;
+  virtual SSqlStatement* bind(const string& name, uint32_t value)=0;
+  virtual SSqlStatement* bind(const string& name, long value)=0;
+  virtual SSqlStatement* bind(const string& name, unsigned long value)=0;
+  virtual SSqlStatement* bind(const string& name, long long value)=0;;
+  virtual SSqlStatement* bind(const string& name, unsigned long long value)=0;
+  virtual SSqlStatement* bind(const string& name, const std::string& value)=0;
+  virtual SSqlStatement* bindNull(const string& name)=0;
+  virtual SSqlStatement* execute()=0;;
+  virtual bool hasNextRow()=0;
+  virtual SSqlStatement* nextRow(row_t& row)=0;
+  virtual SSqlStatement* getResult(result_t& result)=0;
+  virtual SSqlStatement* reset()=0;
+  virtual const std::string& getQuery()=0;
+  virtual ~SSqlStatement();
+};
+
+class SSql
+{
+public:
   virtual SSqlException sPerrorException(const string &reason)=0;
-  virtual int doQuery(const string &query, result_t &result)=0;
-  virtual int doQuery(const string &query)=0;
-  virtual int doCommand(const string &query)=0;
-  virtual bool getRow(row_t &row)=0;
-  virtual string escape(const string &name)=0;
+  virtual SSqlStatement* prepare(const string& query, int nparams)=0;
+  virtual void execute(const string& query)=0;
+  virtual void startTransaction()=0;
+  virtual void rollback()=0;
+  virtual void commit()=0;
   virtual void setLog(bool state){}
   virtual ~SSql(){};
 };

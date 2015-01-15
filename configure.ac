@@ -19,7 +19,7 @@ AC_CANONICAL_HOST
 AC_PROG_CC
 AM_PROG_CC_C_O
 PDNS_CHECK_BISON
-AM_PROG_LEX
+PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
@@ -39,13 +39,9 @@ AC_CC_STACK_PROTECTOR
 AC_CC_PARAM_SSP_BUFFER_SIZE([4])
 AC_CC_D_FORTIFY_SOURCE
 
-AC_CHECK_FUNC([socket], [], [
- AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
-])
-
-AC_CHECK_FUNC([gethostent], [], [
- AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
-])
+AC_SEARCH_LIBS([socket], [socket])
+AC_SEARCH_LIBS([gethostent], [nsl])
+AC_SEARCH_LIBS([inet_aton], [resolv])
 
 m4_ifndef([LT_INIT],[
 AC_PROG_LIBTOOL([disable-static])
@@ -66,6 +62,20 @@ eval full_libdir="\"$libdir\""
 
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
+
+# check if we want a static build
+AC_MSG_CHECKING([whether we will be building static binaries])
+
+AC_ARG_ENABLE([static-binaries],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
+  [static=$enableval],
+  [static=no],
+)
+AC_MSG_RESULT([$static])
+
+AS_IF([test "x$static" != "xno"], [
+  PKG_CONFIG="$PKG_CONFIG --static"
+])
 
 AC_CHECK_HEADERS(
 	[sys/mman.h],
@@ -134,13 +144,13 @@ THREADFLAGS=""
 
 case "$host_os" in
 solaris2.10)
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
+  LIBS="-lposix4 -lpthread -lrt $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
 solaris2.8 | solaris2.9 )
   AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
   AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
+  LIBS="-lposix4 -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
 linux*)
@@ -166,17 +176,9 @@ PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_ED25519
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AC_MSG_CHECKING([whether we will be building static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [static=$enableval],
-  [static=no],
-)
-AC_MSG_RESULT([$static])
-AS_IF([test "x$static" != "xno"],
-  [LDFLAGS="-all-static $LDFLAGS"]
-)
+AS_IF([test "x$static" != "xno"], [
+  LDFLAGS="-all-static $LDFLAGS"
+])
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
@@ -285,17 +287,6 @@ for a in $modules; do
 
   if test ${a} = "gpgsql"; then
     LIBS="$LIBS $LIBCRYPT"
-
-    case "$host_os" in
-      freebsd*)
-        ;;
-      darwin*)
-        modulelibs="$modulelibs -lresolv"
-        ;;
-      *)
-        modulelibs="$modulelibs -lresolv -lnsl"
-        ;;
-    esac
   fi
 done
 
@@ -303,9 +294,13 @@ for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
 
-CFLAGS="$PIE_CFLAGS $CFLAGS"
-CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
+
+AS_IF([test "x$static" != "xyes"], [
+  CFLAGS="$PIE_CFLAGS $CFLAGS"
+  CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+  LDFLAGS="$PIE_LDFLAGS $LDFLAGS"
+])
 
 AC_SUBST(LIBS)
 

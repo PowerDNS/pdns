@@ -632,7 +632,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     if(queries.size() != totIncluded) {
       Value arr;
       arr.SetArray();
-      arr.PushBack(queries.size()-totIncluded, doc.GetAllocator());
+      arr.PushBack((unsigned int)(queries.size()-totIncluded), doc.GetAllocator());
       arr.PushBack("", doc.GetAllocator());
       entries.PushBack(arr, doc.GetAllocator());
     }

@@ -50,9 +50,9 @@ AC_DEFUN([PDNS_WITH_ORACLE],[
   # we have to check for client9 as well...
   # test -lclntsh
   old_LDFLAGS="$LDFLAGS"
-  LDFLAGS="-L$with_oracle_libs -lnnz11 -locci"
+  LDFLAGS="-L$with_oracle_libs -locci"
   AC_CHECK_LIB([clntsh],[OCIEnvInit],
-    [ORACLE_LIBS="-L$with_oracle_libs -lnnz11 -lclntsh -locci"],
+    [ORACLE_LIBS="-L$with_oracle_libs -lclntsh -locci"],
     AC_CHECK_LIB([client9], [OCIEnvInit],
       [ORACLE_LIBS="-L$with_oracle_libs -lclient9 -lclntsh9"],
       [AC_MSG_ERROR([Could not find client libraries])]

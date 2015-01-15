@@ -3,12 +3,10 @@ Name: pdns-static
 Version: 3.3
 Release: 1
 Summary: extremely powerful and versatile nameserver
-License: GPL
+License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-AutoReqProv: no
-Requires: glibc >= 2.4
 
 %define _rpmdir ../
 %define _rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
@@ -24,52 +22,51 @@ backend'.
 
 %files
 %defattr(-,root,root)
-"/usr/sbin/pdns_server"
-"/usr/bin/pdns_control"
-"/usr/bin/zone2sql"
-"/usr/bin/zone2json"
-"/usr/bin/pdnssec"
-#"/usr/bin/zone2ldap"
-"/usr/man/man1/pdns_control.1"
-"/usr/man/man1/pdns_server.1"
-"/usr/man/man1/zone2sql.1"
-"/usr/man/man1/pdnssec.1"
-"/usr/share/doc/pdns/*.sql"
+%{_sbindir}/pdns_server
+%{_bindir}/pdns_control
+%{_bindir}/zone2sql
+%{_bindir}/zone2json
+%{_bindir}/pdnssec
+#%%{_bindir}/zone2ldap
+%{_mandir}/man1/pdns_control.1
+%{_mandir}/man1/pdns_server.1
+%{_mandir}/man1/zone2sql.1
+%{_mandir}/man1/pdnssec.1
+%{_datadir}/doc/pdns/*.sql
 
-%dir "/etc/powerdns/"
-%config(noreplace) "/etc/powerdns/pdns.conf"
-%config "/etc/init.d/pdns"
+%dir %{_sysconfdir}/powerdns/
+%config(noreplace) %{_sysconfdir}/powerdns/pdns.conf
+%config %{_sysconfdir}/init.d/pdns
 
 %post
 echo Remember to create a 'pdns' user before starting pdns
 
 %package -n pdns-tools
 Summary: extremely powerful and versatile nameserver
-License: GPL
+License: GPLv2
 Distribution: Neutral
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-AutoReqProv: no
 
 %description -n pdns-tools
 These are the tools
 
 %files -n pdns-tools
 %defattr(-,root,root)
-"/usr/bin/dnsbulktest"
-"/usr/bin/dnsgram"
-"/usr/bin/dnsreplay"
-"/usr/bin/dnsscan"
-"/usr/bin/dnsscope"
-"/usr/bin/dnsdist"
-"/usr/bin/dnstcpbench"
-"/usr/bin/dnswasher"
-"/usr/bin/notify"
-"/usr/bin/nproxy"
-"/usr/bin/nsec3dig"
-"/usr/bin/saxfr"
-"/usr/man/man1/dnsreplay.1"
-"/usr/man/man1/dnsscope.1"
-"/usr/man/man1/dnswasher.1"
-"/usr/man/man1/dnstcpbench.1"
-"/usr/man/man1/dnsdist.1"
+%{_bindir}/dnsbulktest
+%{_bindir}/dnsgram
+%{_bindir}/dnsreplay
+%{_bindir}/dnsscan
+%{_bindir}/dnsscope
+%{_bindir}/dnsdist
+%{_bindir}/dnstcpbench
+%{_bindir}/dnswasher
+%{_bindir}/notify
+%{_bindir}/nproxy
+%{_bindir}/nsec3dig
+%{_bindir}/saxfr
+%{_mandir}/man1/dnsreplay.1
+%{_mandir}/man1/dnsscope.1
+%{_mandir}/man1/dnswasher.1
+%{_mandir}/man1/dnstcpbench.1
+%{_mandir}/man1/dnsdist.1
