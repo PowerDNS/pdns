@@ -181,6 +181,26 @@ int makeGidNumeric(const string &group);
 int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
 
+#ifdef _POSIX_THREAD_CPUTIME
+/** CPUTime measurements */
+class CPUTime
+{
+public:
+  void start()
+  {
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &d_start);
+  }
+  uint64_t ndiff()
+  {
+    struct timespec now;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &now);
+    return 1000000000ULL*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec);
+  }
+private:
+  struct timespec d_start;
+};
+#endif 
+
 /** The DTime class can be used for timing statistics with microsecond resolution. 
 On 32 bits systems this means that 2147 seconds is the longest time that can be measured. */
 class DTime 
