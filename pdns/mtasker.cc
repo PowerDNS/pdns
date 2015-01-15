@@ -330,6 +330,7 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
         d_waitstatus=TimeOut;
         d_eventkey=i->key;        // pass waitEvent the exact key it was woken for
         ucontext_t* uc = i->context;
+        d_tid = i->tid;
         ttdindex.erase(i++);                  // removes the waitpoint 
 
         if(swapcontext(&d_kernel, uc)) { // swaps back to the above point 'A'
