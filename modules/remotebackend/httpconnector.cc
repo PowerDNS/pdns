@@ -389,7 +389,11 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
     try {
       t0 = time((time_t*)NULL);
       while(arl.ready() == false && (labs(time((time_t*)NULL) - t0) <= timeout/1000)) {
-        rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout); // if rd<=0 this will throw
+        rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
+        if (rd==0) 
+          throw NetworkError("EOF while reading");
+        if (rd<0)
+          throw NetworkError(std::string(strerror(rd)));
         buffer[rd] = 0;
         arl.feed(std::string(buffer, rd));
       }
