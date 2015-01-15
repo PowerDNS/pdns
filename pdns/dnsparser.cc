@@ -531,9 +531,11 @@ string simpleCompress(const string& elabel, const string& root)
 {
   string label=elabel;
   // FIXME: this relies on the semi-canonical escaped output from getLabelFromContent
-  boost::replace_all(label, "\\.", ".");
-  boost::replace_all(label, "\\032", " ");
-  boost::replace_all(label, "\\\\", "\\"); 
+  if(strchr(label.c_str(), '\\')) {
+    boost::replace_all(label, "\\.", ".");
+    boost::replace_all(label, "\\032", " ");
+    boost::replace_all(label, "\\\\", "\\");   
+  }
   typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
   vstringtok(parts, label, ".");
