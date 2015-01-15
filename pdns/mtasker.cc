@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <iostream>
 
+
 /** \page MTasker
     Simple system for implementing cooperative multitasking of functions, with 
     support for waiting on events which can return values.
@@ -190,11 +191,17 @@ template<class EventKey, class EventVal>int MTasker<EventKey,EventVal>::waitEven
   w.key=key;
 
   d_waiters.insert(w);
-  
+#ifdef MTASKERTIMING
+  unsigned int diff=d_threads[d_tid].dt.ndiff()/1000;
+  d_threads[d_tid].totTime+=diff;
+#endif
   if(swapcontext(d_waiters.find(key)->context,&d_kernel)) { // 'A' will return here when 'key' has arrived, hands over control to kernel first
     perror("swapcontext");
     exit(EXIT_FAILURE); // no way we can deal with this 
   }
+#ifdef MTASKERTIMING
+  d_threads[d_tid].dt.start();
+#endif
   if(val && d_waitstatus==Answer) 
     *val=d_waitval;
   d_tid=w.tid;
@@ -299,6 +306,9 @@ template<class Key, class Val>bool MTasker<Key,Val>::schedule(struct timeval*  n
 {
   if(!d_runQueue.empty()) {
     d_tid=d_runQueue.front();
+#ifdef MTASKERTIMING
+    d_threads[d_tid].dt.start();
+#endif
     if(swapcontext(&d_kernel, d_threads[d_tid].context)) {
       perror("swapcontext in schedule");
       exit(EXIT_FAILURE);
@@ -399,9 +409,18 @@ template<class Key, class Val>int MTasker<Key,Val>::getTid()
   return d_tid;
 }
 
-
 //! Returns the maximum stack usage so far of this MThread
 template<class Key, class Val>unsigned int MTasker<Key,Val>::getMaxStackUsage()
 {
   return d_threads[d_tid].startOfStack - d_threads[d_tid].highestStackSeen;
+}
+
+//! Returns the maximum stack usage so far of this MThread
+template<class Key, class Val>unsigned int MTasker<Key,Val>::getUsec()
+{
+#ifdef MTASKERTIMING
+  return d_threads[d_tid].totTime + d_threads[d_tid].dt.ndiff()/1000;
+#else 
+  return 0;
+#endif
 }
