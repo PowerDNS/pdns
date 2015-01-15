@@ -25,7 +25,7 @@ for spotting problems.
 # Getting help
 There are several ways of getting help:
 
-* [The pretty .com website](www.powerdns.com) for commercial support
+* [The pretty .com website](https://www.powerdns.com) for commercial support
 * This documentation
   * [Getting support](common/support.md)
 * [The mailing lists](https://www.powerdns.com/mailing-lists.html)
