@@ -457,7 +457,7 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-sdig_LDADD = $(POLARSSL_LIBS)
+sdig_LDADD = $(POLARSSL_LIBS) 	$(THREADFLAGS) 
 
 saxfr_SOURCES = \
 	base32.cc \
@@ -478,7 +478,7 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD = $(POLARSSL_LIBS)
+saxfr_LDADD = $(POLARSSL_LIBS) $(THREADFLAGS)
 
 if PKCS11
 saxfr_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
@@ -559,7 +559,7 @@ nsec3dig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-nsec3dig_LDADD = $(POLARSSL_LIBS)
+nsec3dig_LDADD = $(POLARSSL_LIBS) $(THREADFLAGS)
 
 if PKCS11
 nsec3dig_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
@@ -587,7 +587,7 @@ toysdig_SOURCES = \
 	toysdig.cc \
 	unix_utility.cc
 
-toysdig_LDADD = $(POLARSSL_LIBS)
+toysdig_LDADD = $(POLARSSL_LIBS) $(THREADFLAGS)
 
 tsig_tests_SOURCES = \
 	arguments.cc \
@@ -613,7 +613,7 @@ tsig_tests_SOURCES = \
 	tsig-tests.cc \
 	unix_utility.cc
 
-tsig_tests_LDADD = $(POLARSSL_LIBS)
+tsig_tests_LDADD = $(POLARSSL_LIBS) $(THREADFLAGS)
 
 if PKCS11
 tsig_tests_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
@@ -637,7 +637,7 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDADD = $(POLARSSL_LIBS)
+speedtest_LDADD = $(POLARSSL_LIBS) $(THREADFLAGS)
 
 dnswasher_SOURCES = \
 	dnsparser.hh \
