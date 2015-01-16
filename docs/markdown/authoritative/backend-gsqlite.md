@@ -35,7 +35,7 @@ Before you can use this backend you first have to set it up and fill it with dat
 
 This schema contains all elements needed for master, slave and superslave operation.
 
-After you have created the database you probably want to fill it with data. If you have a BIND zone file it's as easy as: `zone2sql --zone=myzonefile --gmysql | sqlite powerdns.sqlite`, but you can also use AXFR (or insert data manually).
+After you have created the database you probably want to fill it with data. If you have a BIND zone file it's as easy as: `zone2sql --zone=myzonefile --gsqlite | sqlite powerdns.sqlite`, but you can also use AXFR (or insert data manually).
 
 To communicate with a SQLite database, use either the 'sqlite' or 'sqlite3' program, and feed it SQL.
 
