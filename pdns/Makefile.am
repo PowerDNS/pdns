@@ -850,7 +850,7 @@ dnsdemog_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsdemog_LDADD = $(POLARSSL_LIBS)
+dnsdemog_LDADD = $(POLARSSL_LIBS) $(THREADFLAGS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
@@ -861,6 +861,8 @@ rec_control_SOURCES = \
 	rec_control.cc \
 	statbag.cc \
 	unix_utility.cc
+
+rec_control_LDADD = $(THREADFLAGS)
 
 testrunner_SOURCES = \
 	arguments.cc \
