@@ -58,7 +58,6 @@ bin_PROGRAMS = \
 	pdns_control \
 	pdnssec \
 	zone2sql \
-	zone2ldap \
 	zone2json
 
 if TOOLS
@@ -98,6 +97,7 @@ EXTRA_PROGRAMS = \
 	testrunner \
 	toysdig \
 	tsig-tests \
+	zone2ldap \
 	zone2lmdb
 
 pdns_server_SOURCES = \
@@ -373,6 +373,10 @@ zone2json_LDADD = $(POLARSSL_LIBS)
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc 
 # iputils_la_LDFLAGS= -module -avoid-version
+
+if LDAP
+bin_PROGRAMS += zone2ldap
+endif
 
 zone2ldap_SOURCES = \
 	arguments.cc \

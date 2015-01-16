@@ -249,6 +249,7 @@ for a in $modules $dynmodules; do
       ;;
     ldap)
       PDNS_CHECK_LDAP
+      needldap=yes
       ;;
     opendbx)
       PDNS_CHECK_OPENDBX
@@ -271,6 +272,8 @@ for a in $modules $dynmodules; do
 done
 
 AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
+
+AM_CONDITIONAL([LDAP],[test "x$needldap" = "xyes"])
 
 AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
