@@ -21,7 +21,7 @@
 */
 #include "logger.hh"
 #include "config.h"
-
+#include "misc.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 extern StatBag S;
