@@ -69,11 +69,15 @@ bin_PROGRAMS += \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
-	dnsdist \
 	notify \
 	nproxy \
 	nsec3dig \
 	saxfr
+	
+if CXX2011
+bin_PROGRAMS += dnsdist
+endif
+
 endif
 
 EXTRA_PROGRAMS = \

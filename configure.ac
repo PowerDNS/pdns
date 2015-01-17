@@ -22,7 +22,8 @@ PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AX_CXX_COMPILE_STDCXX_11(,optional)
+
+
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
   AC_MSG_ERROR([no C++ compiler found])
@@ -34,6 +35,8 @@ AC_DEFINE([_GNU_SOURCE], [1],
   [Define _GNU_SOURCE so that we get all necessary prototypes]
 )
 
+AX_CXX_COMPILE_STDCXX_11(,optional)
+AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
 AC_CC_PIE
 AC_CC_STACK_PROTECTOR
 AC_CC_PARAM_SSP_BUFFER_SIZE([4])
@@ -228,6 +231,7 @@ AC_ARG_ENABLE([tools],
 AC_MSG_RESULT([$enable_tools])
 AM_CONDITIONAL([TOOLS],[test "x$enable_tools" != "xno"])
 
+
 for a in $modules $dynmodules; do
   case "$a" in
     oracle|goracle)
@@ -369,4 +373,5 @@ AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
 AC_MSG_NOTICE([Lua support: $with_lua])
+AC_MSG_NOTICE([C++2011 support: $HAVE_CXX11])
 AC_MSG_NOTICE([])
