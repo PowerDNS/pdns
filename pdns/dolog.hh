@@ -58,6 +58,9 @@ void genlog(int level, const char* s, Args... args)
     std::cout<<str.str()<<std::endl;
 }
 
+
+#define vinfolog if(g_verbose)infolog
+
 template<typename... Args>
 void infolog(const char* s, Args... args)
 {
@@ -76,3 +79,4 @@ void errlog(const char* s, Args... args)
 {
   genlog(LOG_ERR, s, args...);
 }
+

@@ -57,8 +57,6 @@ atomic<uint64_t> g_regexBlocks;
 uint16_t g_maxOutstanding;
 bool g_console;
 
-#define vinfolog if(g_verbose)infolog
-
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
    We send directly to those sockets.
