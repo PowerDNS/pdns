@@ -22,7 +22,7 @@ PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-
+AX_CXX_COMPILE_STDCXX_11(,optional)
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
   AC_MSG_ERROR([no C++ compiler found])
