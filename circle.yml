@@ -1,11 +1,11 @@
 dependencies:
-	pre:
-    		- sudo apt-get install autoconf automake bison flex g++ git libboost-all-dev libtool make pkg-config ragel
+  pre:
+        - sudo apt-get install autoconf automake bison flex g++ git libboost-all-dev libtool make pkg-config ragel
 
 test:
-	override:
-		- echo hi
-	post:
-		- echo hi
+  override:
+    - echo hi
+  post:
+    - echo hi
 
 
