@@ -20,8 +20,16 @@ namespace YaHTTP {
           std::string tmpurl;
           std::istringstream iss(line);
           iss >> target->method >> tmpurl >> ver;
-          if (ver.find("HTTP/1.") != 0)
-            throw ParseError("Not a HTTP 1.x request");
+          if (ver.size() == 0)
+            target->version = 9;
+          else if (ver.find("HTTP/0.9") == 0)
+            target->version = 9;
+          else if (ver.find("HTTP/1.0") == 0)
+            target->version = 10;
+          else if (ver.find("HTTP/1.1") == 0)
+            target->version = 11;
+          else
+            throw ParseError("HTTP version not supported");
           // uppercase the target method
           std::transform(target->method.begin(), target->method.end(), target->method.begin(), ::toupper);
           target->url.parse(tmpurl);
@@ -30,9 +38,25 @@ namespace YaHTTP {
         } else if(target->kind == YAHTTP_TYPE_RESPONSE) {
           std::string ver;
           std::istringstream iss(line);
-          iss >> ver >> target->status >> target->statusText;
-          if (ver.find("HTTP/1.") != 0)
-            throw ParseError("Not a HTTP 1.x response");
+          std::string::size_type pos1;
+          iss >> ver >> target->status;
+          std::getline(iss, target->statusText);
+          pos1=0;
+          while(pos1 < target->statusText.size() && ::isspace(target->statusText.at(pos1))) pos1++;
+          target->statusText = target->statusText.substr(pos1); 
+          if ((pos1 = target->statusText.find("\r")) != std::string::npos) {
+            target->statusText = target->statusText.substr(0, pos1-1);
+          }
+          if (ver.size() == 0) {
+            target->version = 9;
+          } else if (ver.find("HTTP/0.9") == 0)
+            target->version = 9;
+          else if (ver.find("HTTP/1.0") == 0)
+            target->version = 10;
+          else if (ver.find("HTTP/1.1") == 0)
+            target->version = 11;
+          else
+            throw ParseError("HTTP version not supported");
           state = 1;
         }
       } else if (state == 1) {
@@ -49,9 +73,9 @@ namespace YaHTTP {
         key = line.substr(0, pos);
         value = line.substr(pos+2);
         for(std::string::iterator it=key.begin(); it != key.end(); it++)
-          if (std::isspace(*it)) 
+          if (std::isspace(*it))
             throw ParseError("Header key contains whitespace which is not allowed by RFC");
-     
+
         Utility::trim(value);
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         // is it already defined
@@ -61,7 +85,7 @@ namespace YaHTTP {
           target->jar.parseCookieHeader(value);
         } else {
           if (key == "host" && target->kind == YAHTTP_TYPE_REQUEST) {
-            // maybe it contains port? 
+            // maybe it contains port?
             if ((pos = value.find(":")) == std::string::npos) {
               target->url.host = value;
             } else {
@@ -81,9 +105,9 @@ namespace YaHTTP {
     minbody = 0;
     // check for expected body size
     if (target->kind == YAHTTP_TYPE_REQUEST) maxbody = target->max_request_size;
-    else if (target->kind == YAHTTP_TYPE_RESPONSE) maxbody = target->max_response_size; 
+    else if (target->kind == YAHTTP_TYPE_RESPONSE) maxbody = target->max_response_size;
     else maxbody = 0;
-   
+
     if (!chunked) {
       if (target->headers.find("content-length") != target->headers.end()) {
         std::istringstream maxbodyS(target->headers["content-length"]);
@@ -119,7 +143,7 @@ namespace YaHTTP {
           if (buffer.at(chunk_size) == '\r') {
             if (buffer.size() < static_cast<size_t>(chunk_size+2) || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
             crlf=2;
-          } else if (buffer.at(chunk_size) != '\n') return false; 
+          } else if (buffer.at(chunk_size) != '\n') return false;
           std::string tmp = buffer.substr(0, chunk_size);
           buffer.erase(buffer.begin(), buffer.begin()+chunk_size+crlf);
           bodybuf << tmp;
@@ -127,9 +151,9 @@ namespace YaHTTP {
           if (buffer.size() == 0) break; // just in case
         }
       } else {
-        if (bodybuf.str().length() + buffer.length() > maxbody) 
+        if (bodybuf.str().length() + buffer.length() > maxbody)
           bodybuf << buffer.substr(0, maxbody - bodybuf.str().length());
-        else 
+        else
           bodybuf << buffer;
         buffer = "";
       }
@@ -139,50 +163,52 @@ namespace YaHTTP {
 
     return ready();
   };
-  
+
   void HTTPBase::write(std::ostream& os) const {
     if (kind == YAHTTP_TYPE_REQUEST) {
       std::ostringstream getparmbuf;
       std::string getparms;
-      // prepare URL 
+      // prepare URL
       for(strstr_map_t::const_iterator i = getvars.begin(); i != getvars.end(); i++) {
         getparmbuf << Utility::encodeURL(i->first, false) << "=" << Utility::encodeURL(i->second, false) << "&";
       }
-      if (getparmbuf.str().length() > 0)  
+      if (getparmbuf.str().length() > 0)
         getparms = "?" + std::string(getparmbuf.str().begin(), getparmbuf.str().end() - 1);
       else
         getparms = "";
-      os << method << " " << url.path << getparms << " HTTP/1.1";
+      os << method << " " << url.path << getparms << " HTTP/" << versionStr(this->version);
     } else if (kind == YAHTTP_TYPE_RESPONSE) {
-      os << "HTTP/1.1 " << status << " ";
+      os << "HTTP/" << versionStr(this->version) << " " << status << " ";
       if (statusText.empty())
         os << Utility::status2text(status);
       else
         os << statusText;
     }
     os << "\r\n";
-  
+
     bool cookieSent = false;
     bool sendChunked = false;
-    
-    if (headers.find("content-length") == headers.end()) {
-      // must use chunked on response
-      sendChunked = (kind == YAHTTP_TYPE_RESPONSE);
-      if ((headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second != "chunked")) {
-        throw YaHTTP::Error("Transfer-encoding must be chunked, or Content-Length defined");
-      }
-      if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
-        sendChunked = true;
-        // write the header now
-        os << "Transfer-Encoding: chunked" << "\r\n";
-      }
-    } else {
-      if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
-        sendChunked = true;
-        // write the header now
-        os << "Transfer-Encoding: chunked" << "\r\n";
-      } else if (headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second == "chunked") {
-        sendChunked = true;
+
+    if (this->version > 10) { // 1.1 or better
+      if (headers.find("content-length") == headers.end()) {
+        // must use chunked on response
+        sendChunked = (kind == YAHTTP_TYPE_RESPONSE);
+        if ((headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second != "chunked")) {
+          throw YaHTTP::Error("Transfer-encoding must be chunked, or Content-Length defined");
+        }
+        if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
+          sendChunked = true;
+          // write the header now
+          os << "Transfer-Encoding: chunked" << "\r\n";
+        }
+      } else {
+        if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
+          sendChunked = true;
+          // write the header now
+          os << "Transfer-Encoding: chunked" << "\r\n";
+        } else if (headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second == "chunked") {
+          sendChunked = true;
+        }
       }
     }
 
@@ -209,16 +235,16 @@ namespace YaHTTP {
 #ifdef HAVE_CPP_FUNC_PTR
     this->renderer(this, os, sendChunked);
 #else
-    SendbodyRenderer r; 
+    SendbodyRenderer r;
     r(this, os, chunked)
 #endif
   };
-  
+
   std::ostream& operator<<(std::ostream& os, const Response &resp) {
     resp.write(os);
     return os;
   };
-  
+
   std::istream& operator>>(std::istream& is, Response &resp) {
     YaHTTP::AsyncResponseLoader arl;
     arl.initialize(&resp);
@@ -231,17 +257,17 @@ namespace YaHTTP {
       }
     }
     // throw unless ready
-    if (arl.ready() == false) 
+    if (arl.ready() == false)
       throw ParseError("Was not able to extract a valid Response from stream");
     arl.finalize();
     return is;
   };
-  
+
   std::ostream& operator<<(std::ostream& os, const Request &req) {
     req.write(os);
     return os;
   };
-  
+
   std::istream& operator>>(std::istream& is, Request &req) {
     YaHTTP::AsyncRequestLoader arl;
     arl.initialize(&req);
