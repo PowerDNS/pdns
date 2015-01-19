@@ -12,7 +12,7 @@ License:		GPL
 Source:			http://downloads.powerdns.com/releases/%{name}-#VERSION#.tar.bz2
 
 BuildRequires:		boost-devel >= 1.39.0
-BuildRequires:		lua-devel >= 5.2
+BuildRequires:		lua-devel >= 5.3
 
 BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -25,7 +25,7 @@ PowerDNS recursor
 %build
 %configure
 
-LUA=1 LUA_LIBS_CONFIG=-llua-5.2 %{__make}
+LUA=1 LUA_LIBS_CONFIG=-llua-5.3 %{__make}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
