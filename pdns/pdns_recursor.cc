@@ -601,7 +601,8 @@ void startDoResolve(void *p)
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
       catch(ImmediateServFailException &e) {
-        L<<Logger::Error<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
+        if(g_logCommonErrors)
+          L<<Logger::Notice<<"Sending SERVFAIL to "<<dc->getRemote()<<" during resolve of '"<<dc->d_mdp.d_qname<<"' because: "<<e.reason<<endl;
         res = RCode::ServFail;
       }
 
@@ -975,7 +976,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
-      L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
+      L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
 
     g_stats.overCapacityDrops++;
     return 0;
@@ -1304,7 +1305,7 @@ try
     sr.setNoCache();
     int res=sr.beginResolve(".", QType(QType::NS), 1, ret);
     if(!res) {
-      L<<Logger::Warning<<"Refreshed . records"<<endl;
+      L<<Logger::Notice<<"Refreshed . records"<<endl;
       last_rootupdate=now.tv_sec;
     }
     else
@@ -1615,7 +1616,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   pident.fd=fd;
 
   if(!dh.qr && g_logCommonErrors) {
-    L<<Logger::Warning<<"Not taking data from question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
+    L<<Logger::Notice<<"Not taking data from question on outgoing socket from "<< fromaddr.toStringWithPort()  <<endl;
   }
 
   if(!dh.qdcount || // UPC, Nominum, very old BIND on FormErr, NSD
