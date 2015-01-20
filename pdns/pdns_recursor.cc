@@ -1319,7 +1319,10 @@ try
     }
 
     if(now.tv_sec - last_secpoll >= 3600) {
-      doSecPoll(&last_secpoll);
+      try {
+        doSecPoll(&last_secpoll);
+      }
+      catch(...) {}
     }
   }
 }

@@ -23,7 +23,8 @@ void doSecPoll(time_t* last_secpoll)
   
   vector<DNSResourceRecord> ret;
 
-  string query = "recursor-" +string(PACKAGEVERSION)+ ".security-status."+::arg()["security-poll-suffix"];
+  string version = "recursor-" +string(PACKAGEVERSION);
+  string query = version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"];
 
   if(*query.rbegin()!='.')
     query+='.';
