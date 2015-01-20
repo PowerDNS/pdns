@@ -78,6 +78,8 @@ namespace YaHTTP {
         std::ifstream ifs(path.c_str(), std::ifstream::binary);
 #endif
         n = 0;
+
+	std::cerr << "Sending file " << path << std::endl;
         while(ifs && ifs.good()) {
           ifs.read(buf, sizeof buf);
           n += (k = ifs.gcount());
@@ -116,6 +118,7 @@ namespace YaHTTP {
       postvars.clear();
       body = "";
       routeName = "";
+      version = 11; // default to version 1.1
     }
 protected:
     HTTPBase(const HTTPBase& rhs) {
@@ -125,7 +128,7 @@ protected:
       this->jar = rhs.jar; this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
-      this->max_response_size = rhs.max_response_size;
+      this->max_response_size = rhs.max_response_size; this->version = rhs.version;
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
@@ -137,7 +140,7 @@ protected:
       this->jar = rhs.jar; this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
-      this->max_response_size = rhs.max_response_size;
+      this->max_response_size = rhs.max_response_size; this->version = rhs.version;
 #ifdef HAVE_CPP_FUNC_PTR
       this->renderer = rhs.renderer;
 #endif
@@ -147,6 +150,7 @@ public:
     URL url; //<! URL of this request/response
     int kind; //<! Type of object (1 = request, 2 = response)
     int status; //<! status code 
+    int version; //<! http version 9 = 0.9, 10 = 1.0, 11 = 1.1
     std::string statusText; //<! textual representation of status code
     std::string method; //<! http verb
     strstr_map_t headers; //<! map of header(s)
@@ -170,6 +174,15 @@ public:
     strstr_map_t& GET() { return getvars; }; //<! acccessor for getvars
     strstr_map_t& POST() { return postvars; }; //<! accessor for postvars
     strcookie_map_t& COOKIES() { return jar.cookies; }; //<! accessor for cookies
+
+    std::string versionStr(int version) const {
+      switch(version) {
+      case  9: return "0.9";
+      case 10: return "1.0";
+      case 11: return "1.1";
+      default: throw YaHTTP::Error("Unsupported version");
+      }
+    };
 
     std::string str() const {
        std::ostringstream oss;
