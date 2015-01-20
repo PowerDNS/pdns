@@ -164,6 +164,7 @@ static int l_netmask_gc(lua_State* L)
 
 static const struct luaL_Reg iputils_netmask_methods[]={
     {"__tostring", l_netmask_tostring},
+    {"tostring", l_netmask_tostring},
     {"match", l_netmask_match},
     {"__gc", l_netmask_gc},
     {NULL, NULL}
@@ -214,6 +215,7 @@ static int l_nmgroup_gc(lua_State* L)
 
 static const struct luaL_Reg iputils_nmgroup_methods[]={
     {"__tostring", l_nmgroup_tostring},
+    {"tostring", l_nmgroup_tostring},
     {"match", l_nmgroup_match},
     {"add", l_nmgroup_add},
     {"__gc", l_nmgroup_gc},
