@@ -18,9 +18,9 @@ if PKCS11
 AM_CPPFLAGS += $(P11KIT1_CFLAGS)
 endif
 
-EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.8  \
-	docs/pdns_server.8 docs/zone2sql.8 docs/zone2ldap.8 docs/pdnssec.8 \
-	docs/dnsreplay.8 docs/dnsscope.8 docs/dnswasher.8 docs/pdnssec.8 docs/zone2ldap.8 \
+EXTRA_DIST = dnslabeltext.rl dnslabeltext.cc mtasker.cc inflighter.cc docs/pdns_control.1  \
+	docs/pdns_server.1 docs/zone2sql.1 docs/zone2ldap.1 docs/pdnssec.1 \
+	docs/dnsreplay.1 docs/dnsscope.1 docs/dnswasher.1 docs/pdnssec.1 docs/zone2ldap.1 \
 	bind-dnssec.schema.sqlite3.sql bindparser.h named.conf.parsertest
 
 SUBDIRS= ext
