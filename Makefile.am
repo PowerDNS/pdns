@@ -10,12 +10,12 @@ pdns/named.conf.parsertest regression-tests/zones/unit.test
 
 ACLOCAL_AMFLAGS = -I m4
 
-man8_MANS=pdns/docs/pdns_control.8 pdns/docs/pdnssec.8 pdns/docs/pdns_server.8 \
-  pdns/docs/zone2ldap.8 pdns/docs/zone2sql.8
+man1_MANS=pdns/docs/pdns_control.1 pdns/docs/pdnssec.1 pdns/docs/pdns_server.1 \
+  pdns/docs/zone2ldap.1 pdns/docs/zone2sql.1
 
 if TOOLS
-  man8_MANS += pdns/docs/dnsreplay.8 pdns/docs/dnsscope.8 pdns/docs/dnswasher.8
-  man1_MANS = pdns/docs/dnstcpbench.1 pdns/docs/dnsdist.1
+  man1_MANS += pdns/docs/dnsreplay.1 pdns/docs/dnsscope.1 pdns/docs/dnswasher.1
+  man1_MANS += pdns/docs/dnstcpbench.1 pdns/docs/dnsdist.1
 endif
 
 pdns/docs/dnstcpbench.1:

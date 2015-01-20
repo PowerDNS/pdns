@@ -88,6 +88,7 @@ binary-main-prepare:
 	rm -f "$(tmpdir)"/usr/bin/zone2ldap
 	rm -rf "$(tmpdir)"/usr/lib
 	rm -f "$(tmpdir)"/usr/share/man/man8/zone2ldap.8
+	rm -f "$(tmpdir)"/usr/share/man/man1/zone2ldap.1
 	strip --remove-section=.comment --remove-section=.note \
 		--strip-unneeded \
 		"$(tmpdir)"/usr/bin/zone2sql \
