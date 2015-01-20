@@ -162,12 +162,33 @@ end
 nmg=iputils.newnmgroup()
 nmg:add("192.121.121.0/24")
 
+ipset=iputils.newipset()
+
 function preoutquery(remoteip, domain, qtype)
-	print("pdns wants to ask "..remoteip:tostring().." about "..domain.." "..qtype)
+	print("pdns wants to ask "..remoteip:tostring().." about "..domain.." "..qtype.." on behalf of requestor "..getlocaladdress())
 	if(nmg:match(remoteip))
 	then
-		print("We matched the group ", nmg,"!", "killing query dead")
+		print("We matched the group "..nmg:tostring().."! Killing query dead & adding requestor "..getlocaladdress().." to block list")
+		ipset[iputils.newca(getlocaladdress())]=1
 		return -3,{}
 	end
 	return -1,{}
+end
+
+
+local delcount=0
+
+function ipfilter(remoteip)
+	delcount=delcount+1
+	
+	if((delcount % 10000)==0)
+	then
+		print("Clearing ipset!")
+		ipset=iputils.newipset()  -- clear it
+	end
+	
+	if(ipset[remoteip] ~= nil) then
+		return 1
+	end
+	return -1
 end

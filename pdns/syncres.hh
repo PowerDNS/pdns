@@ -304,7 +304,7 @@ public:
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
-
+  ComboAddress d_requestor;
   //  typedef map<string,NegCacheEntry> negcache_t;
 
   typedef multi_index_container <

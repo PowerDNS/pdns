@@ -558,6 +558,7 @@ void startDoResolve(void *p)
     SyncRes sr(dc->d_now);
     if(t_pdl) {
       sr.setLuaEngine(*t_pdl);
+      sr.d_requestor=dc->d_remote;
     }
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
@@ -974,6 +975,15 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     return 0;
   }
   
+  if(t_pdl->get()) {
+    if((*t_pdl)->ipfilter(fromaddr, destaddr)) {
+      if(!g_quiet)
+	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
+      g_stats.policyDrops++;
+      return 0;
+    }
+  }
+
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
       L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
@@ -1906,6 +1916,7 @@ int serviceMain(int argc, char*argv[])
   }
 
   g_quiet=::arg().mustDo("quiet");
+  
   g_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
   if(g_weDistributeQueries) {
       L<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;

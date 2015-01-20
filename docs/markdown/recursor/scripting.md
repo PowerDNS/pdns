@@ -37,11 +37,40 @@ is called after the DNS resolution process has run its course, but ended in an '
 ### `function nodata ( remoteip, domain, qtype, records )`
 is just like `nxdomain`, except it gets called when a domain exists, but the requested type does not. This is where one would implement DNS64. Available since version 3.4.
 
-All these functions are passed the IP address of the requester, plus the name and type being requested. In return, these functions indicate if they have taken over the request, or want to let normal proceedings take their course.
+### `function ipfilter ( remoteip )`
+This hook gets queried immediately after consulting the packet cache, but before
+parsing the DNS packet. If this hook returns a non-zero value, the packet is dropped. 
+However, because this check is after the packet cache, the IP address might still receive answers
+that require no packet parsing. 
 
-**Warning**: In development versions of the PowerDNS Recursor, versions which were never released except as for testing purposes, these functions had a fourth parameter: localip. This parameter has been replaced by `getlocaladdress()`, for which see below.
+With this hook, undesired traffic can be dropped rapidly before using precious CPU cycles
+for parsing.
+
+Available since 3.7.
+
+**Note**: `remoteip` is passed as an `iputils.ca` type (for which see below).
+
+### `function preoutquery ( remoteip, domain, qtype )`
+This hook is not called in response to a client packet, but fires when the Recursor
+wants to talk to an authoritative server. When this hook returns the special result code -3,
+the whole DNS client query causing this outquery gets dropped.
+
+However, this function can also return records like the preresolve query above.
+
+Within `preoutquery`, `getlocaladdress()` returns the IP address of the original client requestor.
+
+Available since 3.7.
+
+**Note**: `remoteip` is passed as an `iputils.ca` type (for which see below).
+
+## Semantics
+
+All these functions are passed the IP address of the requester. Most also get passed the name and type being requested. In return, these functions indicate if they have taken over the request, or want to let normal proceedings take their course.
 
 If a function has taken over a request, it should return an rcode (usually 0), and specify a table with records to be put in the answer section of a packet. An interesting rcode is NXDOMAIN (3, or `pdns.NXDOMAIN`), which specifies the non-existence of a domain. Returning -1 and an empty table signifies that the function chose not to intervene.
+
+The `ipfilter` and `preoutquery` hooks are different, in that `ipfilter` can only return a true of false value, and
+that `preoutquery` can also return -3 to signify that the whole query should be terminated.
 
 A minimal sample script:
 

@@ -939,7 +939,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               s_tcpoutqueries++; d_tcpoutqueries++;
             }
             
-	    if(d_pdl && d_pdl->preoutquery(*remoteIP, *remoteIP, qname, qtype, lwr.d_result, resolveret)) {
+	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_result, resolveret)) {
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
 	    }
 	    else 
