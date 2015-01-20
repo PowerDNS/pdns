@@ -945,7 +945,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uint32_t age;
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
-        L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+        L<<Logger::Notice<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
       // t_queryring->push_back("packetcached");
       
       g_stats.packetCacheHits++;
@@ -2334,6 +2334,8 @@ int main(int argc, char **argv)
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     if (logUrgency < Logger::Error)
       logUrgency = Logger::Error;
+    if(!g_quiet)
+      logUrgency = Logger::Info;
     L.setLoglevel(logUrgency);
     L.toConsole(logUrgency);
 
