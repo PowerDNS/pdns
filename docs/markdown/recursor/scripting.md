@@ -39,7 +39,7 @@ is just like `nxdomain`, except it gets called when a domain exists, but the req
 
 ### `function ipfilter ( remoteip )`
 This hook gets queried immediately after consulting the packet cache, but before
-parsing the DNS packet. If this hook returns a non-zero value, the packet is dropped. 
+parsing the DNS packet. If this hook returns something else than -1, the packet is dropped. 
 However, because this check is after the packet cache, the IP address might still receive answers
 that require no packet parsing. 
 
