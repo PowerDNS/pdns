@@ -47,4 +47,4 @@ clean:
 	rm -rf html *.8 *.1
 
 publish3:
-	rsync -crv ./html/ pdnsdocs@xs.powerdns.com:md/
+	rsync -crv --exclude '*~' ./html/ pdnsdocs@xs.powerdns.com:md/
