@@ -213,6 +213,9 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
   string chopped;
   bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
 
+  unsigned int startRecordSize=d_record.size();
+  unsigned int startPos;
+
   for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
     if(deDot)
       chopped.assign(label.c_str() + i->first, labellen - i->first -1);
@@ -221,9 +224,11 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
 
     lmap_t::iterator li=d_labelmap.end();
     // see if we've written out this domain before
-    //    cerr<<"Searching for compression pointer to '"<<chopped<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
-    if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {   
-      //      cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
+    // cerr<<"Searching for compression pointer to '"<<chopped<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
+    if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {
+      // cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
+      if (d_record.size() - startRecordSize + chopped.size() > 253) // chopped does not include a length octet for the first label and the root label
+        throw MOADNSException("DNSPacketWriter::xfrLabel() found overly large (compressed) name");
       uint16_t offset=li->second;
       offset|=0xc000;
       d_record.push_back((char)(offset >> 8));
@@ -236,35 +241,42 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
       d_labelmap.push_back(make_pair(chopped, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
     }
 
+    startPos=pos;
+
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
+
       // FIXME: this relies on the semi-canonical escaped output from getLabelFromContent
       boost::replace_all(part, "\\.", ".");
       boost::replace_all(part, "\\032", " ");
       boost::replace_all(part, "\\\\", "\\"); 
-      if(part.size() > 255)
-          throw MOADNSException("DNSPacketWriter::xfrLabel() tried to write an overly large label");
+
       d_record.push_back(part.size());
       unsigned int len=d_record.size();
       d_record.resize(len + part.size());
-
       memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
-      pos+=(part.size())+1;                         
+      pos+=(part.size())+1;
     }
     else {
       char labelsize=(char)(i->second - i->first);
-      if(!labelsize) // empty label in the middle of name
-        throw MOADNSException("DNSPacketWriter::xfrLabel() found empty label in the middle of name");
       d_record.push_back(labelsize);
       unsigned int len=d_record.size();
       d_record.resize(len + i->second - i->first);
       memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
       pos+=(i->second - i->first)+1;
     }
-  }
-  d_record.push_back(0);
 
- out:;
+    if(pos - startPos == 1)
+      throw MOADNSException("DNSPacketWriter::xfrLabel() found empty label in the middle of name");
+    if(pos - startPos > 64)
+      throw MOADNSException("DNSPacketWriter::xfrLabel() found overly large label in name");
+  }
+  d_record.push_back(0); // insert root label
+
+  if (d_record.size() - startRecordSize > 255)
+    throw MOADNSException("DNSPacketWriter::xfrLabel() found overly large name");
+
+  out:;
 }
 
 void DNSPacketWriter::xfrBlob(const string& blob, int  )
