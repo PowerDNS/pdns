@@ -737,7 +737,8 @@ void startDoResolve(void *p)
     if(!g_quiet) {
       L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-      sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
+	sr.d_totUsec/1000.0<<" ms, "<<
+	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
 
     sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++; 
@@ -1975,6 +1976,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
+  SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2299,6 +2301,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
+    ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="5000";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";

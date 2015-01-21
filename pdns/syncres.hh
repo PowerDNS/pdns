@@ -299,13 +299,14 @@ public:
   static unsigned int s_minimumTTL;
   static bool s_doIPv6;
   static unsigned int s_maxqperq;
+  static unsigned int s_maxtotusec;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
+  unsigned int d_totUsec;
   ComboAddress d_requestor;
-  //  typedef map<string,NegCacheEntry> negcache_t;
 
   typedef multi_index_container <
     NegCacheEntry,

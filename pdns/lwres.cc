@@ -78,7 +78,6 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   lwr->d_rcode = 0;
   lwr->d_pingCorrect = false;
   lwr->d_haveEDNS = false;
-
   int ret;
 
   DTime dt;

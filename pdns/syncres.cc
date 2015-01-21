@@ -64,6 +64,7 @@ unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 unsigned int SyncRes::s_maxqperq;
+unsigned int SyncRes::s_maxtotusec;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 
@@ -73,7 +74,7 @@ bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-					       d_now(now),
+					       d_totUsec(0), d_now(now),
 					       d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
                                                  
 { 
@@ -939,6 +940,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               s_tcpoutqueries++; d_tcpoutqueries++;
             }
             
+	    if(s_maxtotusec && d_totUsec > s_maxtotusec) 
+	      throw ImmediateServFailException("Too much time waiting for "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries) + ", "+lexical_cast<string>(d_totUsec/1000)+"msec");
+
 	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_result, resolveret)) {
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
 	    }
@@ -949,7 +953,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             if(resolveret==-3)
 	      throw ImmediateServFailException("Query killed by policy");
 
-
+	    d_totUsec += lwr.d_usec;
 	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
