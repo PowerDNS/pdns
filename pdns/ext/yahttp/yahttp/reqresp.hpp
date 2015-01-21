@@ -79,7 +79,6 @@ namespace YaHTTP {
 #endif
         n = 0;
 
-	std::cerr << "Sending file " << path << std::endl;
         while(ifs && ifs.good()) {
           ifs.read(buf, sizeof buf);
           n += (k = ifs.gcount());
