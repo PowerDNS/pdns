@@ -81,7 +81,8 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   int ret;
 
   DTime dt;
-  dt.setTimeval(*now);
+  dt.set();
+  *now=dt.getTimeval();
   errno=0;
   if(!doTCP) {
     int queryfd;
