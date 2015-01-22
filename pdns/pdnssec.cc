@@ -143,9 +143,9 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().laxFile(configname.c_str());
 
-  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
-
+  L.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
   ::arg().laxFile(configname.c_str());    
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -2196,4 +2196,8 @@ catch(std::exception& e) {
   cerr<<"Error: "<<e.what()<<endl;
   return 1;
 }
-
+catch(...)
+{
+  cerr<<"Caught an unknown exception"<<endl;
+  return 1;
+}
