@@ -18,9 +18,21 @@ AC_DEFUN([PDNS_ENABLE_REMOTEBACKEND_ZEROMQ],[
         AC_DEFINE([HAVE_LIBZMQ], [1], [Define to 1 if you have libzmq])
         AC_DEFINE([REMOTEBACKEND_ZEROMQ], [1], [Define to 1 if you have the ZeroMQ connector])
         REMOTEBACKEND_ZEROMQ=yes
+
       ],
       [AC_MSG_ERROR([Could not find libzmq])]
     )]
+
+    old_CXXFLAGS="$CXXFLAGS"
+    old_LDFLAGS="$LDFLAGS"
+    CXXFLAGS="$CFLAGS $LIBZMQ_CFLAGS"
+    LDFLAGS="$LDFLAGS $LIBZMQ_LIBS"
+    AC_CHECK_LIB([zmq], [zmq_msg_send],
+      [
+        AC_DEFINE([HAVE_ZMQ_MSG_SEND], [1], [Define to 1 if the ZeroMQ 3.x or greater API is available])
+      ])
+    CXXFLAGS="$old_CXXFLAGS"
+    LDFLAGS="$old_LDFLAGS"
   )
 ])
 
