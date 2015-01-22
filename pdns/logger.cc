@@ -50,8 +50,7 @@ void Logger::log(const string &msg, Urgency u)
   if(u<=consoleUrgency) {// Sep 14 06:52:09
     char buffer[50];
     strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
-    clog<<buffer;
-    clog <<msg <<endl;
+    clog << string(buffer) + msg <<endl;
   }
   if( u <= d_loglevel ) {
 #ifndef RECURSOR
