@@ -1005,7 +1005,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
     L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p->getRemote());
+    S.ringAccount("remotes-corrupt", p->d_remote);
     return 0;
   }
 
@@ -1037,7 +1037,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if(d_logDNSDetails)
         L<<Logger::Error<<"Received a malformed qdomain from "<<p->getRemote()<<", '"<<p->qdomain<<"': sending servfail"<<endl;
       S.inc("corrupt-packets");
-      S.ringAccount("remotes-corrupt", p->getRemote());
+      S.ringAccount("remotes-corrupt", p->d_remote);
       S.inc("servfail-packets");
       r->setRcode(RCode::ServFail);
       return r;
