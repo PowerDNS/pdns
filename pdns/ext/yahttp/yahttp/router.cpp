@@ -155,7 +155,6 @@ namespace YaHTTP {
         continue;
       }
     }
-    std::cout << mask.substr(k3) << std::endl;
     path << mask.substr(k3);
     result = path.str();
     return std::make_pair(method, result);

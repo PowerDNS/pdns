@@ -6,9 +6,10 @@ namespace YaHTTP {
     buffer.append(somedata);
     while(state < 2) {
       int cr=0;
+      pos = buffer.find_first_of("\n");
       // need to find CRLF in buffer
-      if ((pos = buffer.find_first_of("\n")) == std::string::npos) return false;
-      if (buffer[pos-1]=='\r')
+      if (pos == std::string::npos) return false;
+      if (pos>0 && buffer[pos-1]=='\r')
         cr=1;
       std::string line(buffer.begin(), buffer.begin()+pos-cr); // exclude CRLF
       buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer including CRLF
@@ -19,8 +20,16 @@ namespace YaHTTP {
           std::string tmpurl;
           std::istringstream iss(line);
           iss >> target->method >> tmpurl >> ver;
-          if (ver.find("HTTP/1.") != 0)
-            throw ParseError("Not a HTTP 1.x request");
+          if (ver.size() == 0)
+            target->version = 9;
+          else if (ver.find("HTTP/0.9") == 0)
+            target->version = 9;
+          else if (ver.find("HTTP/1.0") == 0)
+            target->version = 10;
+          else if (ver.find("HTTP/1.1") == 0)
+            target->version = 11;
+          else
+            throw ParseError("HTTP version not supported");
           // uppercase the target method
           std::transform(target->method.begin(), target->method.end(), target->method.begin(), ::toupper);
           target->url.parse(tmpurl);
@@ -29,9 +38,25 @@ namespace YaHTTP {
         } else if(target->kind == YAHTTP_TYPE_RESPONSE) {
           std::string ver;
           std::istringstream iss(line);
-          iss >> ver >> target->status >> target->statusText;
-          if (ver.find("HTTP/1.") != 0)
-            throw ParseError("Not a HTTP 1.x response");
+          std::string::size_type pos1;
+          iss >> ver >> target->status;
+          std::getline(iss, target->statusText);
+          pos1=0;
+          while(pos1 < target->statusText.size() && ::isspace(target->statusText.at(pos1))) pos1++;
+          target->statusText = target->statusText.substr(pos1); 
+          if ((pos1 = target->statusText.find("\r")) != std::string::npos) {
+            target->statusText = target->statusText.substr(0, pos1-1);
+          }
+          if (ver.size() == 0) {
+            target->version = 9;
+          } else if (ver.find("HTTP/0.9") == 0)
+            target->version = 9;
+          else if (ver.find("HTTP/1.0") == 0)
+            target->version = 10;
+          else if (ver.find("HTTP/1.1") == 0)
+            target->version = 11;
+          else
+            throw ParseError("HTTP version not supported");
           state = 1;
         }
       } else if (state == 1) {
@@ -43,11 +68,15 @@ namespace YaHTTP {
           break;
         }
         // split headers
-        if ((pos = line.find_first_of(": ")) == std::string::npos)
+        if ((pos = line.find(": ")) == std::string::npos)
           throw ParseError("Malformed header line");
         key = line.substr(0, pos);
         value = line.substr(pos+2);
-        Utility::trimRight(value);
+        for(std::string::iterator it=key.begin(); it != key.end(); it++)
+          if (std::isspace(*it))
+            throw ParseError("Header key contains whitespace which is not allowed by RFC");
+
+        Utility::trim(value);
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         // is it already defined
 
@@ -56,7 +85,7 @@ namespace YaHTTP {
           target->jar.parseCookieHeader(value);
         } else {
           if (key == "host" && target->kind == YAHTTP_TYPE_REQUEST) {
-            // maybe it contains port? 
+            // maybe it contains port?
             if ((pos = value.find(":")) == std::string::npos) {
               target->url.host = value;
             } else {
@@ -76,9 +105,9 @@ namespace YaHTTP {
     minbody = 0;
     // check for expected body size
     if (target->kind == YAHTTP_TYPE_REQUEST) maxbody = target->max_request_size;
-    else if (target->kind == YAHTTP_TYPE_RESPONSE) maxbody = target->max_response_size; 
+    else if (target->kind == YAHTTP_TYPE_RESPONSE) maxbody = target->max_response_size;
     else maxbody = 0;
-   
+
     if (!chunked) {
       if (target->headers.find("content-length") != target->headers.end()) {
         std::istringstream maxbodyS(target->headers["content-length"]);
@@ -114,7 +143,7 @@ namespace YaHTTP {
           if (buffer.at(chunk_size) == '\r') {
             if (buffer.size() < static_cast<size_t>(chunk_size+2) || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
             crlf=2;
-          } else if (buffer.at(chunk_size) != '\n') return false; 
+          } else if (buffer.at(chunk_size) != '\n') return false;
           std::string tmp = buffer.substr(0, chunk_size);
           buffer.erase(buffer.begin(), buffer.begin()+chunk_size+crlf);
           bodybuf << tmp;
@@ -122,9 +151,9 @@ namespace YaHTTP {
           if (buffer.size() == 0) break; // just in case
         }
       } else {
-        if (bodybuf.str().length() + buffer.length() > maxbody) 
+        if (bodybuf.str().length() + buffer.length() > maxbody)
           bodybuf << buffer.substr(0, maxbody - bodybuf.str().length());
-        else 
+        else
           bodybuf << buffer;
         buffer = "";
       }
@@ -134,37 +163,65 @@ namespace YaHTTP {
 
     return ready();
   };
-  
+
   void HTTPBase::write(std::ostream& os) const {
     if (kind == YAHTTP_TYPE_REQUEST) {
       std::ostringstream getparmbuf;
       std::string getparms;
-      // prepare URL 
+      // prepare URL
       for(strstr_map_t::const_iterator i = getvars.begin(); i != getvars.end(); i++) {
         getparmbuf << Utility::encodeURL(i->first, false) << "=" << Utility::encodeURL(i->second, false) << "&";
       }
-      if (getparmbuf.str().length() > 0)  
+      if (getparmbuf.str().length() > 0)
         getparms = "?" + std::string(getparmbuf.str().begin(), getparmbuf.str().end() - 1);
       else
         getparms = "";
-      os << method << " " << url.path << getparms << " HTTP/1.1";
+      os << method << " " << url.path << getparms << " HTTP/" << versionStr(this->version);
     } else if (kind == YAHTTP_TYPE_RESPONSE) {
-      os << "HTTP/1.1 " << status << " ";
+      os << "HTTP/" << versionStr(this->version) << " " << status << " ";
       if (statusText.empty())
         os << Utility::status2text(status);
       else
         os << statusText;
     }
     os << "\r\n";
-  
+
+    bool cookieSent = false;
+    bool sendChunked = false;
+
+    if (this->version > 10) { // 1.1 or better
+      if (headers.find("content-length") == headers.end()) {
+        // must use chunked on response
+        sendChunked = (kind == YAHTTP_TYPE_RESPONSE);
+        if ((headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second != "chunked")) {
+          throw YaHTTP::Error("Transfer-encoding must be chunked, or Content-Length defined");
+        }
+        if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
+          sendChunked = true;
+          // write the header now
+          os << "Transfer-Encoding: chunked" << "\r\n";
+        }
+      } else {
+        if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
+          sendChunked = true;
+          // write the header now
+          os << "Transfer-Encoding: chunked" << "\r\n";
+        } else if (headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second == "chunked") {
+          sendChunked = true;
+        }
+      }
+    }
+
     // write headers
     strstr_map_t::const_iterator iter = headers.begin();
     while(iter != headers.end()) {
       if (iter->first == "host" && kind != YAHTTP_TYPE_REQUEST) { iter++; continue; }
+      std::string header = Utility::camelizeHeader(iter->first);
+      if (header == "Cookie" || header == "Set-Cookie") cookieSent = true;
       os << Utility::camelizeHeader(iter->first) << ": " << iter->second << "\r\n";
       iter++;
     }
-    if (jar.cookies.size() > 0) { // write cookies
+    if (!cookieSent && jar.cookies.size() > 0) { // write cookies
       for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
         if (kind == YAHTTP_TYPE_REQUEST) {
           os << "Cookie: ";
@@ -176,40 +233,41 @@ namespace YaHTTP {
     }
     os << "\r\n";
 #ifdef HAVE_CPP_FUNC_PTR
-    this->renderer(this, os);
+    this->renderer(this, os, sendChunked);
 #else
-    os << body;
+    SendbodyRenderer r;
+    r(this, os, chunked)
 #endif
   };
-  
+
   std::ostream& operator<<(std::ostream& os, const Response &resp) {
     resp.write(os);
     return os;
   };
-  
+
   std::istream& operator>>(std::istream& is, Response &resp) {
     YaHTTP::AsyncResponseLoader arl;
     arl.initialize(&resp);
     while(is.good()) {
       char buf[1024];
       is.read(buf, 1024);
-      if (is.gcount()) { // did we actually read anything
+      if (is.gcount()>0) { // did we actually read anything
         is.clear();
         if (arl.feed(std::string(buf, is.gcount())) == true) break; // completed
       }
     }
     // throw unless ready
-    if (arl.ready() == false) 
+    if (arl.ready() == false)
       throw ParseError("Was not able to extract a valid Response from stream");
     arl.finalize();
     return is;
   };
-  
+
   std::ostream& operator<<(std::ostream& os, const Request &req) {
     req.write(os);
     return os;
   };
-  
+
   std::istream& operator>>(std::istream& is, Request &req) {
     YaHTTP::AsyncRequestLoader arl;
     arl.initialize(&req);
