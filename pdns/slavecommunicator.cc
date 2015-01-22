@@ -74,7 +74,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
     DNSSECKeeper dk (B); // reuse our UeberBackend copy for DNSSECKeeper
 
-
     if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
@@ -107,7 +106,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
       }
     }
 
-
     vector<string> localaddr;
     ComboAddress laddr;
     if(B->getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
@@ -122,7 +120,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     } else {
       laddr.sin4.sin_family = 0;
     }
-
 
     bool hadDnssecZone = false;
     bool hadPresigned = false;
@@ -139,7 +136,6 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         hadNarrow = isNarrow;
       }
     }
-
 
     bool isDnssecZone = false;
     bool isPresigned = false;
