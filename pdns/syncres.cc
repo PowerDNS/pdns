@@ -941,7 +941,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             }
             
 	    if(s_maxtotusec && d_totUsec > s_maxtotusec) 
-	      throw ImmediateServFailException("Too much time waiting for "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries) + ", "+lexical_cast<string>(d_totUsec/1000)+"msec");
+	      throw ImmediateServFailException("Too much time waiting for "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries) + ", queries: "+lexical_cast<string>(d_outqueries)+", "+lexical_cast<string>(d_totUsec/1000)+"msec");
 
 	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_result, resolveret)) {
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
