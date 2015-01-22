@@ -7,6 +7,7 @@ pre() {
     -e 's/\\([\$\*\^><])/\1/g;' \
     $file
   done
+  sed 's|\([0-9a-f]\{9\}\)\([0-9a-f]*\)|[\1](https://github.com/PowerDNS/pdns/commit/\1\2)|g' < markdown/changelog.md.raw > doc-build/changelog.md
 }
 
 post() {
