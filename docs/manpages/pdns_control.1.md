@@ -39,11 +39,21 @@
 
 # COMMANDS
 ccounts
-:    Show the content of the cache
+:    Show the content of the cache.
+
+current-config
+:    Show the currently running configuration.
 
 cycle
 :    Restart the nameserver so it reloads its configuration. Only works when the
      server is running in guardian mode.
+
+list
+:    Dump all variables and their values in a comma separated list, equivalent
+     to **show \***.
+
+list-zones [master,slave,native]
+:    Show a list of zones, optionally filter on the type of zones to show.
 
 notify *DOMAIN*
 :    Adds *DOMAIN* to the notification list, causing PDNS to send out
@@ -54,13 +64,18 @@ notify-host *DOMAIN* *HOST*
 :    Same as above but with operator specified IP address as destination, to be
      used if you know better than PowerDNS.
 
-ping
-:    Check if the server is alive.
+ping, rping
+:    Check if the server is still alive. Will return 'PONG' when it is.
+     **ping** works when running inside a guardian, whereas **rping** works when
+     running without a guardian.
 
 purge [*RECORD*]
 :    Purge entries from the packet cache. If *RECORD* ends with a dollar ($)
      all entries that end with that name are removed. If no record is specified
      the entire cache is purged.
+
+qtypes
+:    Get a count of queries per qtype.
 
 quit
 :    Tell a running pdns_server to quit.
@@ -68,6 +83,15 @@ quit
 rediscover
 :    Instructs backends that new domains may have appeared in the database, or,
      in the case of the Bind backend, in named.conf.
+
+reload
+:    Instruct the server to reload all its zones.
+
+remotes
+:    Get the top number of remote addresses.
+
+respsizes
+:    Get a histogram of the response sizes.
 
 retrieve *DOMAIN*
 :    Retrieve slave *DOMAIN* from its master. Done nearly immediately.
@@ -80,7 +104,8 @@ show *VARIABLE*
 :    Show a single statistic, as present in the output of the list command.
 
 status
-:    Show usage statistics.
+:    Show usage statistics. This only works if the server is running in guardian
+     mode.
 
 uptime
 :    Show the uptime of the running server.
