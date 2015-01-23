@@ -234,7 +234,7 @@ Changes between 3.3.1 and 3.4.0-RC1 follow.
 # PowerDNS Recursor 3.6.1
 **Warning**: Version 3.6.1 is a mandatory security upgrade to 3.6.0! Released on the 10th of September 2014.
 
-PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets. For more details, see [the advisory](powerdns-advisory-2014-01.html). PowerDNS Recursor 3.6.1 was very well tested, and is in full production already, so it should be a safe upgrade.
+PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets. For more details, see [the advisory](security/powerdns-advisory-2014-01.md). PowerDNS Recursor 3.6.1 was very well tested, and is in full production already, so it should be a safe upgrade.
 
 ## Downloads
 -   [Official download page](https://www.powerdns.com/downloads.html)
@@ -667,7 +667,7 @@ Changes below are in 3.2-RC1 and up.
 -   Our label decompression code was naive, causing troubles for slaving of very specifically formatted zones. Fix in [ticket 2822](https://github.com/PowerDNS/pdns/issues/2822), closes [ticket 599](https://github.com/PowerDNS/pdns/issues/599).
 -   Bindbackend slaves would choke on unknown RR types and do silly things with RP and SRV records. Fixed in [commit 2811](http://wiki.powerdns.com/projects/trac/changeset/2811) and [commit 2812](http://wiki.powerdns.com/projects/trac/changeset/2812).
 -   The luabackend can now compile against Lua 5.2. Patch by Fredrik Danerklint in [commit 2794](http://wiki.powerdns.com/projects/trac/changeset/2794), additional luabackend compile fixes in [commit 2854](http://wiki.powerdns.com/projects/trac/changeset/2854).
--   A new backend, the 'Remote backend' [Section 16, “Remote Backend”](remotebackend.html "16. Remote Backend") was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in [commit 2755](http://wiki.powerdns.com/projects/trac/changeset/2755), [commit 2756](http://wiki.powerdns.com/projects/trac/changeset/2756), [commit 2757](http://wiki.powerdns.com/projects/trac/changeset/2757), [commit 2758](http://wiki.powerdns.com/projects/trac/changeset/2758), [commit 2759](http://wiki.powerdns.com/projects/trac/changeset/2759), [commit 2824](http://wiki.powerdns.com/projects/trac/changeset/2824), closing [ticket 529](https://github.com/PowerDNS/pdns/issues/529), [ticket 597](https://github.com/PowerDNS/pdns/issues/597).
+-   A new backend, the 'Remote backend' [Remote Backend](authoritative/backend-remote.md "Remote Backend") was submitted by Aki Tuomi. It aims to replace the pipebackend with a better protocol and support for more connection methods, including HTTP. Code in [commit 2755](http://wiki.powerdns.com/projects/trac/changeset/2755), [commit 2756](http://wiki.powerdns.com/projects/trac/changeset/2756), [commit 2757](http://wiki.powerdns.com/projects/trac/changeset/2757), [commit 2758](http://wiki.powerdns.com/projects/trac/changeset/2758), [commit 2759](http://wiki.powerdns.com/projects/trac/changeset/2759), [commit 2824](http://wiki.powerdns.com/projects/trac/changeset/2824), closing [ticket 529](https://github.com/PowerDNS/pdns/issues/529), [ticket 597](https://github.com/PowerDNS/pdns/issues/597).
 -   The gsqlite (SQLite 2) backend was removed. We were not aware of any users and it was not actually working anyway. Changes in commits [2773](http://wiki.powerdns.com/projects/trac/changeset/2773)-[2777](http://wiki.powerdns.com/projects/trac/changeset/2777), closing [ticket 565](https://github.com/PowerDNS/pdns/issues/565).
 -   Various tinydnsbackend improvements: ignore-bogus-records option; TAI offset updated; strip dots on names where suitable; various internal improvements. Code in [commit 2762](http://wiki.powerdns.com/projects/trac/changeset/2762).
 -   gpgsql no longer logs the database password in connection errors. Code in [commit 2609](http://wiki.powerdns.com/projects/trac/changeset/2609), [commit 2612](http://wiki.powerdns.com/projects/trac/changeset/2612), closing [ticket 459](https://github.com/PowerDNS/pdns/issues/459).
@@ -1164,7 +1164,7 @@ All known versions of the PowerDNS Recursor are impacted to a greater or lesser 
 
 These vulnerabilities were discovered by a third party that can't yet be named, but who we thank for their contribution to a more secure PowerDNS Recursor.
 
-For more information, see [PowerDNS Security Advisory 2010-01](security/powerdns-advisory-2010-01.md "PowerDNS Security Advisory 2010-01: PowerDNS Recursor up to and including 3.1.7.1 can be brought down and probably exploited") and [PowerDNS Security Advisory 2010-02](security/powerdns-advisory-2010-02.html "PowerDNS Security Advisory 2010-02: PowerDNS Recursor up to and including 3.1.7.1 can be spoofed into accepting bogus data").
+For more information, see [PowerDNS Security Advisory 2010-01](security/powerdns-advisory-2010-01.md "PowerDNS Security Advisory 2010-01: PowerDNS Recursor up to and including 3.1.7.1 can be brought down and probably exploited") and [PowerDNS Security Advisory 2010-02](security/powerdns-advisory-2010-02.md "PowerDNS Security Advisory 2010-02: PowerDNS Recursor up to and including 3.1.7.1 can be spoofed into accepting bogus data").
 
 # Recursor version 3.1.7.1
 Released on the 2nd of August 2009.
@@ -1204,7 +1204,7 @@ Finally, the release candidates of this version have been tested & improved by J
 
 ## New features
 -   **pdns\_control** can now also work over TCP/IP. Sponsored by Directi. Commits [1246](http://wiki.powerdns.com/projects/trac/changeset/1246), [1251](http://wiki.powerdns.com/projects/trac/changeset/1251), [1254](http://wiki.powerdns.com/projects/trac/changeset/1254), [1255](http://wiki.powerdns.com/projects/trac/changeset/1255).
--   Implemented a notification proxy, see [Section 1, “Notification proxy (nproxy)”](tools.html#nproxy "1. Notification proxy (nproxy)"). This work was sponsored by UPC Broadband. Implemented in commits [1075](http://wiki.powerdns.com/projects/trac/changeset/1075), [1077](http://wiki.powerdns.com/projects/trac/changeset/1077), [1082](http://wiki.powerdns.com/projects/trac/changeset/1082), [1083](http://wiki.powerdns.com/projects/trac/changeset/1083), [1085](http://wiki.powerdns.com/projects/trac/changeset/1085) and [1086](http://wiki.powerdns.com/projects/trac/changeset/1086).
+-   Implemented a notification proxy, see ["Notification proxy (nproxy)"](tools/analysis.md#nproxy"). This work was sponsored by UPC Broadband. Implemented in commits [1075](http://wiki.powerdns.com/projects/trac/changeset/1075), [1077](http://wiki.powerdns.com/projects/trac/changeset/1077), [1082](http://wiki.powerdns.com/projects/trac/changeset/1082), [1083](http://wiki.powerdns.com/projects/trac/changeset/1083), [1085](http://wiki.powerdns.com/projects/trac/changeset/1085) and [1086](http://wiki.powerdns.com/projects/trac/changeset/1086).
 -   IXFR queries are now supported in the sense that we treat them as AXFR queries, silencing warnings in other nameservers. Suggested in [ticket 131](https://github.com/PowerDNS/pdns/issues/131).
 -   The PIPE backend has been extended by David Apgar to allow the reporting of errors using the 'FAIL' command, plus support for responses with whitespace. Implemented in [commit 1114](http://wiki.powerdns.com/projects/trac/changeset/1114).
 -   PowerDNS Authoritative server now parses incoming EDNS options, like maximum allowed packet size. Implemented in [commit 1123](http://wiki.powerdns.com/projects/trac/changeset/1123) and [commit 1281](http://wiki.powerdns.com/projects/trac/changeset/1281).
@@ -1436,7 +1436,7 @@ This release would not have been possible without large amounts of help and supp
 -   Geobackend (by Mark Bergsma) did not properly override the getSOA method, breaking non-overlay operation of this fine backend. The geobackend now also skips '.hidden' configuration files, and now properly disregards empty configuration files. Additionally, the overlapping abilities were improved. Details available in [commit 876](http://wiki.powerdns.com/projects/trac/changeset/876), by Mark.
 
 ## Features
--   Thanks to [EasyDNS](http://www.easydns.com), PowerDNS now supports multiple masters per domain. For configuration details, see [Section 2, “Slave operation”](slave.html "2. Slave operation"). Implemented in [commit 1018](http://wiki.powerdns.com/projects/trac/changeset/1018), [commit 1017](http://wiki.powerdns.com/projects/trac/changeset/1017).
+-   Thanks to [EasyDNS](http://www.easydns.com), PowerDNS now supports multiple masters per domain. For configuration details, see [Slave operation](authoritative/modes-of-operation.md#slave-operation "Slave operation"). Implemented in [commit 1018](http://wiki.powerdns.com/projects/trac/changeset/1018), [commit 1017](http://wiki.powerdns.com/projects/trac/changeset/1017).
 -   Thanks to [EasyDNS](http://www.easydns.com), PowerDNS now supports the KEY record type, as well the SPF record. In [commit 976](http://wiki.powerdns.com/projects/trac/changeset/976).
 -   Added support for CERT, SSHFP, DNSKEY, DS, NSEC, RRSIG record types, as part of the move to the new DNS parsing/generating code.
 -   Support for the AFSDB record type, as requested by 'Bastian'. Implemented in [commit 978](http://wiki.powerdns.com/projects/trac/changeset/978), closing [ticket 129](https://github.com/PowerDNS/pdns/issues/129).
@@ -1471,8 +1471,8 @@ Released the 13th of November 2006.
 This release contains almost no new features, but consists mostly of minor and major bug fixes. It also addresses two major security issues, which makes this release a highly recommended upgrade.
 
 ## Security issues
--   Large TCP questions followed by garbage could cause the recursor to crash. This critical security issue has been assigned CVE-2006-4251, and is fixed in [commit 915](http://wiki.powerdns.com/projects/trac/changeset/915). More information can be found in [Section 5, “PowerDNS Security Advisory 2006-01: Malformed TCP queries can lead to a buffer overflow which might be exploitable”](powerdns-advisory-2006-01.html "5. PowerDNS Security Advisory 2006-01: Malformed TCP queries can lead to a buffer overflow which might be exploitable").
--   CNAME loops with zero second TTLs could cause crashes in some conditions. These loops could be constructed by malicious parties, making this issue a potential denial of service attack. This security issue has been assigned CVE-2006-4252 and is fixed by [commit 919](http://wiki.powerdns.com/projects/trac/changeset/919). More information can be found in [Section 6, “PowerDNS Security Advisory 2006-02: Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash”](powerdns-advisory-2006-02.html "6. PowerDNS Security Advisory 2006-02: Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash"). Many thanks to David Gavarret for helping pin down this problem.
+-   Large TCP questions followed by garbage could cause the recursor to crash. This critical security issue has been assigned CVE-2006-4251, and is fixed in [commit 915](http://wiki.powerdns.com/projects/trac/changeset/915). More information can be found in [Section 5, “PowerDNS Security Advisory 2006-01: Malformed TCP queries can lead to a buffer overflow which might be exploitable”](security/powerdns-advisory-2006-01.md "5. PowerDNS Security Advisory 2006-01: Malformed TCP queries can lead to a buffer overflow which might be exploitable").
+-   CNAME loops with zero second TTLs could cause crashes in some conditions. These loops could be constructed by malicious parties, making this issue a potential denial of service attack. This security issue has been assigned CVE-2006-4252 and is fixed by [commit 919](http://wiki.powerdns.com/projects/trac/changeset/919). More information can be found in [Section 6, “PowerDNS Security Advisory 2006-02: Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash”](security/powerdns-advisory-2006-02.md "PowerDNS Security Advisory 2006-02: Zero second CNAME TTLs can make PowerDNS exhaust allocated stack space, and crash"). Many thanks to David Gavarret for helping pin down this problem.
 
 ## Bugs
 -   On certain error conditions, PowerDNS would neglect to close a socket, which might therefore eventually run out. Spotted by Stefan Schmidt, fixed in commits [892](http://wiki.powerdns.com/projects/trac/changeset/892), [897](http://wiki.powerdns.com/projects/trac/changeset/897), [899](http://wiki.powerdns.com/projects/trac/changeset/899).
@@ -1678,7 +1678,7 @@ Thanks are due to [XS4ALL](http://www.xs4all.nl) who are supporting continuing d
 ## Improvements
 -   dnsreplay now has a help message and has received further massive updates, making the code substantially faster. It turns out that dnsreplay is often 'heavier' than the PowerDNS process being benchmarked.
 -   PowerDNS recursor no longer prints out its queries by default as most recursor deployments have too much traffic for this to be useful.
--   PowerDNS recursor is now able to read its root-hints from disk, which is useful to operate with alternate roots, like the [Open Root Server Network](http://www.orsn.org). See [Chapter 18, *PowerDNS Recursor: a high performance resolving nameserver*](built-in-recursor.html "Chapter 18. PowerDNS Recursor: a high performance resolving nameserver").
+-   PowerDNS recursor is now able to read its root-hints from disk, which is useful to operate with alternate roots, like the [Open Root Server Network](http://www.orsn.org). See [PowerDNS Recursor](recursor/index.md).
 -   PowerDNS can now send out old-fashioned root-referrals when queried for domains for which it is not authoritative. Wastes some bandwidth but may solve incoming query floods if domains are delegated to you for which you are not authoritative, but which are queried by broken recursors.
 -   PowerDNS now prints out a warning when running with legacy LinuxThreads implementation instead of the high performance NPTL library. [commit 455](http://wiki.powerdns.com/projects/trac/changeset/455).
 -   A lot of superfluous calls to gettimeofday() have been removed, making PowerDNS and especially the recursor faster. Suggested by Kai.
@@ -1751,7 +1751,7 @@ There are two bugs with security implications, which only apply to installations
 -   **--version** now outputs gcc version used, so we can tell people 2.95 is no longer supported.
 -   Extended regression tests, moved them to the new 'sdig' tool (see below).
 -   Bind2backend is now blazingly fast, and highly memory efficient to boot. As a special bonus it can read gzipped zones directly. The '.NET' zone is hosted using 401MB of memory, the same size as the zone on disk.
--   The Pipe Backend has been improved such that it can send out different answers based on the IP address the question was received ON. See [Section 1.1, “PipeBackend protocol”](backends-detail.html#pipebackend-protocol "1.1. PipeBackend protocol") for how this changed the Pipe Backend protocol. Note that you need to set **pipebackend-abi-version** to benefit from this change, existing clients are not affected. Change and documentation contributed by Marc Jauvin of Register4Less.
+-   The Pipe Backend has been improved such that it can send out different answers based on the IP address the question was received ON. See [PipeBackend protocol](authoritative/backend-pipe.md#pipebackend-protocol) for how this changed the Pipe Backend protocol. Note that you need to set **pipebackend-abi-version** to benefit from this change, existing clients are not affected. Change and documentation contributed by Marc Jauvin of Register4Less.
 -   LDAP backend has been updated (Norbert Sendetzky).
 
 ## Recursor improvements and fixes.
@@ -1918,7 +1918,7 @@ Release rich in features. Work on Verisign oddities, addition of SQLite backend,
 ## New features
 -   --version command (requested by Mike Benoit)
 -   delegation-only, a Verisign special.
--   Generic [SQLite](http://www.sqlite.org) support, by Michel 'Who da man?' Stol. See [Section 5, “Generic SQLite backend (2 and 3)”](gsqlite.html "5. Generic SQLite backend (2 and 3)").
+-   Generic [SQLite](http://www.sqlite.org) support, by Michel 'Who da man?' Stol. See [Generic SQLite backend](authoritative/backend-gsqlite.md).
 -   init.d script for pdns\_recursor
 -   Recursor now actually purges its cache, saving memory.
 -   Slave configuration now no longer falls over when presented with a NULL master
@@ -2027,7 +2027,7 @@ Two new backends - Generic ODBC (windows only) and LDAP. Furthermore, a few impo
 -   Massive speedup for those of you using the slightly deprecated MBOXFW records. Thanks to Jorn of [ISP Services](http://www.ISP-Services.nl) for helping and testing this improvement.
 -   $GENERATE had an off-by-one bug where it would omit the last record to be generated (Christian Laursen)
 -   Simultaneous AXFRs may have been problematic on some backends. Thanks to Jorn of ISP-Services again for helping us resolve this issue.
--   Added LDAP backend by Norbert Sendetzky, see [Section 11, “LDAP backend”](ldap.html "11. LDAP backend").
+-   Added LDAP backend by Norbert Sendetzky, see [LDAP Backend](authoritative/backend-ldap.md).
 -   Added Generic ODBC backend for Windows by Michel Stol.
 -   Simplified 'out of zone data' detection in incoming AXFR support, hopefully removing a case sensitivity bug there. Thanks again to Christian Laursen for reporting this issue.
 -   $include in-zonefile was broken under some circumstances, losing the last character of a file name. Thanks to Joris Vandalon for noticing this.
@@ -2070,17 +2070,17 @@ Excellent work was also performed by Michel Stol, the Windows guy, in fixing all
 # Version 2.9.4
 Yet another grand release. Big news is the addition of a recursing nameserver which has sprung into existence over the past week. It is in use on several computers already but it is not ready for prime time. Complete integration with PowerDNS is expected around 2.9.5, for now the recursor is a separate program.
 
-In preliminary tests, the recursor appears to be four times faster than BIND 9 on a naive benchmark starting from a cold cache. BIND 9 managed to get through to some slower nameservers however, which were given up on by PowerDNS. We will continue to tune the recursor. See [Chapter 18, *PowerDNS Recursor: a high performance resolving nameserver*](built-in-recursor.html "Chapter 18. PowerDNS Recursor: a high performance resolving nameserver") for further details.
+In preliminary tests, the recursor appears to be four times faster than BIND 9 on a naive benchmark starting from a cold cache. BIND 9 managed to get through to some slower nameservers however, which were given up on by PowerDNS. We will continue to tune the recursor. See [PowerDNS Recursor](recursor/index.md) for further details.
 
 The BIND Backend has also been tested (see the **bind-domain-status** item below) rather heavily by several parties. After some discussion online, one of the BIND authors ventured that the newsgroup comp.protocols.dns.bind may now in fact be an appropriate venue for discussing PowerDNS. Since this discussion, traffic to the PowerDNS pages has increased sixfold and shows no signs of slowing down.
 
 From this, it is apparent that far more people are interested in PowerDNS than yet know about it. So spread the word!
 
-In other news, we now have a security page at [Section 4, “Security”](security-policy.html "4. Security"). Furthermore, Maurice Nonnekes contributed an OpenBSD port! See [his page](http://www.codeninja.nl/openbsd/powerdns/) for more details!
+In other news, we now have a security page at [Security](security/index.md). Furthermore, Maurice Nonnekes contributed an OpenBSD port! See [his page](http://www.codeninja.nl/openbsd/powerdns/) for more details!
 
 ## New features and improvements
--   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Section 3, “Generic MySQL and PgSQL backends”](generic-mypgsql-backends.html "3. Generic MySQL and PgSQL backends").
--   A recursing nameserver! See [Chapter 18, *PowerDNS Recursor: a high performance resolving nameserver*](built-in-recursor.html "Chapter 18. PowerDNS Recursor: a high performance resolving nameserver").
+-   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic MySQL and PgSQL backends](authoritative/backend-generic-mypgsql.md).
+-   A recursing nameserver! See [PowerDNS Recursor](recursor/index.md).
 -   An incoming AXFR now only starts a backend zone replacement transaction after the first record arrived successfully, thus making sure no work is done when a remote nameserver is unable/unwilling to AXFR a zone to us.
 -   Zone parser error messages were improved slightly (thanks to Stef van Dessel for spotting this shortcoming)
 -   XS4ALL's Erik Bos checked how PowerDNS reacted to a BIND installation with almost 60.000 domains, some of which with \>100.000 records, and he discovered the pdns\_control **bind-domain-status** command became very slow with larger numbers of domains. Fixed, 60.000 domains are now listed in under one second.
@@ -2212,7 +2212,7 @@ To get back the mysql backend, add --with-modules="mysql" or --with-dynmodules="
 -   pdns init.d script is now +x by default
 -   OpenBSD is on its way of becoming a supported platform! As of 2.9.2, PowerDNS compiles on OpenBSD but swiftly crashes. Help is welcome.
 -   ODBC backend (for Windows only) was missing from the distribution, now added.
--   xdb backend added - see [Section 10, “XDB Backend”](xdbbackend.html "10. XDB Backend"). Designed for use by root-server operators.
+-   xdb backend added - see [XDB Backend](authoritative/backend-deprecated.md#xdb-backend). Designed for use by root-server operators.
 -   Dynamic modules are back which is good news for distributors who want to make a pdns packages that does not depend one every database under the sun.
 
 # Version 2.9.1
@@ -2339,7 +2339,7 @@ Also, a large amount of issues biting large scale slave operators were addressed
 
     The webserver also displays the efficiency of the new Query Cache.
 
-    The old Packet Cache is still there (and useful) but see [Chapter 9, *Authoritative Server Performance*](performance.html "Chapter 9. Authoritative Server Performance") for more details.
+    The old Packet Cache is still there (and useful) but see [Authoritative Server Performance](authoritative/performance.md) for more details.
 
 -   There is now the ability to shut off some logging at a very early stage. High performance sites doing thousands of queries/second may in fact spend most of their CPU time on attempting to write out logging, even though it is ignored by syslog. The new flag **log-dns-details**, on by default, allows the operator to kill most informative-only logging before it takes any cpu.
 -   Flags which can be switched 'on' and 'off' can now also be set to 'off' instead of only to 'no' to turn them off.
@@ -2426,7 +2426,7 @@ For operators of PowerDNS Express trying to host .DE domains, the very special *
 # Version 2.1
 This is a somewhat bigger release due to pressing demands from customers. An upgrade is advised for installations using Recursion. If you are using recursion, it is vital that you are aware of changes in semantics. Basically, local data will now override data in your recursing backend under most circumstances. Old behaviour can be restored by turning **lazy-recursion** off.
 
-Developers: this version has a new pdns-2.1 development kit, available on <http://downloads.powerdns.com/releases/dev>. See also [Appendix C, *Backend writers' guide*](backend-writers-guide.html "Appendix C. Backend writers' guide").
+Developers: this version has a new pdns-2.1 development kit, available on <http://downloads.powerdns.com/releases/dev>. See also [Backend writers' guide](appendix/backend-writers-guide.md).
 
 **Warning**: Most users will run a static version of PDNS which has no dependencies on external libraries. However, some may need to run the dynamic version. This warning applies to these users.
 
@@ -2444,7 +2444,7 @@ To run the dynamic version of PDNS, which is needed for backend drivers which ar
 ## Features
 -   Oracle support has been tuned, leading to the first public release of the Oracle backend. Zone2sql now outputs better SQL and the backend is now fully documented. Furthermore, the queries are compatible with the PowerDNS XML-RPC product, allowing PowerDNS express to run off Oracle. See [Oracle backend](authoritative/backend-oracle.md "Oracle backend").
 -   Zone2sql now accepts --transactions to wrap zones in a transaction for PostgreSQL and Oracle output. This is a major speedup and also makes for better isolation of inserts. See [Zone2sql](authoritative/migration.md#zone2sql "Zone2sql").
--   **pdns\_control** now has the ability to purge the PowerDNS cache or parts of it. This enables operators to raise the TTL of the Packet Cache to huge values and only to invalidate the cache when changes are made. See also [Authoritative Server Performance](authoritative/performance.md "Authoritative Server Performance") and [pdns\_control](appendix/pdns-internals.html#pdnscontrol "pdns_control").
+-   **pdns\_control** now has the ability to purge the PowerDNS cache or parts of it. This enables operators to raise the TTL of the Packet Cache to huge values and only to invalidate the cache when changes are made. See also [Authoritative Server Performance](authoritative/performance.md "Authoritative Server Performance") and [pdns\_control](authoritative/internals.md#pdnscontrol "pdns_control").
 
 # Version 2.0.1
 Maintenance release, fixing three small issues.
@@ -2520,12 +2520,12 @@ Windows changes. We are indebted to Dimitry Andric who educated us in the ways o
 -   A runtime DLL that is present on most windows systems (but not all!) was missing.
 
 # Version 1.99.12 Prerelease
-The Windows release! See [Installing on Microsoft Windows](authoritative/installation.md ""). Beware, windows support is still very fresh and untested. Feedback is very welcome.
+The Windows release! See [Installing on Microsoft Windows](authoritative/installation.md). Beware, windows support is still very fresh and untested. Feedback is very welcome.
 
 Developers: this version is compatible with 1.99.11 backends.
 
 -   Windows 2000 code base merge completed. This resulted in quite some changes on the Unix end of things, so this may impact reliability.
--   ODBC backend added for Windows. See [Section 9, “ODBC backend”](odbc.html "9. ODBC backend").
+-   ODBC backend added for Windows. See [ODBC backend](authoritative/backend-deprecated.md#odbc-backend).
 -   IBM DB2 Universal Database backend available for Linux. See [DB2 backend](authoritative/backend-deprecated.md#db2-backend "DB2 backend").
 -   Zone2sql now understands $INCLUDE. Thanks to Amaze Internet for nagging about this
 -   The SOA Minimum TTL now has a configurable default (**soa-minimum-ttl**)value to placate the DENIC requirements.
@@ -2538,8 +2538,8 @@ Developers: this version is compatible with 1.99.11 backends.
 -   Documentation bug - postgresql create/index statements created a duplicate index. If you've previously copy pasted the commands and not noticed the error, execute **CREATE INDEX rec\_name\_index ON records(name)** to remedy. Thanks to Jeff Miller for reporting this. This also lead to depressingly slow 'ANY' lookups for those of you doing benchmarks.
 
 ## Features
--   pdns\_control (see [pdns\_control](appendix/pdns-internals.html#pdnscontrol "pdns_control")) now opens the local end of its socket in `/tmp` instead of next to the remote socket (by default `/var/run`). This eases the way for allowing non-root access to pdns\_control. When running chrooted (see [Chapter 7, *Security settings & considerations*](common/security.md "Security settings & considerations")), the local socket again moves back to `/var/run`.
--   pdns\_control now has a 'version' command. See [Section 1.1, “pdns\_control”](pdns-internals.html#pdnscontrol "1.1. pdns_control").
+-   pdns\_control (see [pdns\_control](authoritative/internals.md#pdnscontrol "pdns_control")) now opens the local end of its socket in `/tmp` instead of next to the remote socket (by default `/var/run`). This eases the way for allowing non-root access to pdns\_control. When running chrooted (see [Chapter 7, *Security settings & considerations*](common/security.md "Security settings & considerations")), the local socket again moves back to `/var/run`.
+-   pdns\_control now has a 'version' command. See [Section 1.1, “pdns\_control”](authoritative/internals.md#pdnscontrol "1.1. pdns_control").
 
 # Version 1.99.11 Prerelease
 This release is important because it is the first release which is accompanied by an Open Source Backend Development Kit, allowing external developers to write backends for PDNS. Furthermore, a few bugs have been fixed
@@ -2584,7 +2584,7 @@ This is again a feature and an infrastructure release. We are nearly feature com
 ## Features
 -   When operating as a slave, AAAA records are now supported in the zone. They were already supported in master zones.
 -   IPv6 transport support - PDNS can now listen on an IPv6 socket using the **local-ipv6** setting.
--   Very silly randombackend added which appears in the documentation as a sample backend. See [Backend writers' guide](appendix/backend-writers-guide.html "Backend writers' guide").
+-   Very silly randombackend added which appears in the documentation as a sample backend. See [Backend writers' guide](appendix/backend-writers-guide.md).
 -   When transferring a slave zone from a master, out of zone data is now rejected. Malicious operators might try to insert bad records otherwise.
 -   'Supermaster' support for automatic provisioning from masters. See [Supermaster automatic provisioning of slaves](authoritative/modes-of-operation.md#supermaster "Supermaster automatic provisioning of slaves").
 -   Recursing backend can now live on a non-standard (!=53) port. See [Recursion](authoritative/recursion.md "Recursion").
@@ -2593,7 +2593,7 @@ This is again a feature and an infrastructure release. We are nearly feature com
 
 ## Internal
 -   SOA records are now 'special' and each backend can optionally generate them in special ways. PostgreSQL backend does so when operating as a slave.
--   Writing backends is now a lot easier. See [Backend writers' guide](appendix/backend-writers-guide.html "Backend writers' guide").
+-   Writing backends is now a lot easier. See [Backend writers' guide](appendix/backend-writers-guide.md "Backend writers' guide").
 -   Added Bindbackend to internal regression tests, confirming that it is compliant.
 
 # Version 1.99.8 Early Access Prerelease

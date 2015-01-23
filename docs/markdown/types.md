@@ -57,10 +57,10 @@ Since 2.9.21. The NSEC DNSSEC record type is fully supported, as described in [R
 Reverse pointer, used to specify the host name belonging to an IP or IPv6 address. Name is stored plainly: 'www.powerdns.com'. As always, no terminating dot.
 
 ## RP
-Responsible Person record, as described in [RFC 1183](http://tools.ietf.org/html/rfc1183). Stored with a single space between the mailbox name and the more-information pointer. Example 'peter.powerdns.com peter.people.powerdns.com', to indicate that peter@powerdns.com is responsible and that more information about peter is available by querying the TXT record of peter.people.powerdns.com.
+Responsible Person record, as described in [RFC 1183](http://tools.ietf.org/html/rfc1183). Stored with a single space between the mailbox name and the more-information pointer. Example 'peter.powerdns.com peter.people.powerdns.com', to indicate that `peter@powerdns.com` is responsible and that more information about peter is available by querying the TXT record of peter.people.powerdns.com.
 
 ## RRSIG
-Since 2.9.21. The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [pdnssec](pdnssec.html "5. 'pdnssec' for PowerDNSSEC command & control").
+Since 2.9.21. The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [pdnssec](authoritative/dnssec.md#pdnssec).
 
 ## SOA
 The Start of Authority record is one of the most complex available. It specifies a lot about a domain: the name of the master nameserver ('the primary'), the hostmaster and a set of numbers indicating how the data in this domain expires and how often it needs to be checked. Further more, it contains a serial number which should rise on each change of the domain.
@@ -74,7 +74,7 @@ The stored format is:
 Besides the primary and the hostmaster, all fields are numerical. PDNS has a set of default values:
 
  * primary: [`default-soa-name`](authoritative/settings.md#default-soa-name) configuration option
- * hostmaster: hostmaster@domain-name
+ * hostmaster: `hostmaster@domain-name`
  * serial: 0
  * refresh: 10800 (3 hours)
  * retry: 3600 (1 hour)

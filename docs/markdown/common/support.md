@@ -4,8 +4,8 @@ community or from its authors. You may also help others (please do).
 
 The PowerDNS company provides free support on the public mailing lists, and can
 help or support you in private as well. For first class and rapid support,
-please contact powerdns-support@netherlabs.nl, or see
-[www.powerdns.com](http://www.powerdns.com).
+please contact [powerdns-support@netherlabs.nl](mailto:powerdns-support@netherlabs.nl)
+, or see [www.powerdns.com](http://www.powerdns.com).
 
 More information about the PowerDNS community, and its mailing lists, can be
 found on [its Wiki](http://wiki.powerdns.com). On the wiki, you will also find
