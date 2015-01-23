@@ -63,6 +63,20 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
+# check if we want a static build
+AC_MSG_CHECKING([whether we will be building static binaries])
+
+AC_ARG_ENABLE([static-binaries],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
+  [static=$enableval],
+  [static=no],
+)
+AC_MSG_RESULT([$static])
+
+AS_IF([test "x$static" != "xno"], [
+  PKG_CONFIG="$PKG_CONFIG --static"
+])
+
 AC_CHECK_HEADERS(
 	[sys/mman.h],
 	[AC_CHECK_FUNC(
@@ -194,24 +208,10 @@ PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AC_MSG_CHECKING([whether we should build static binaries])
 
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries])],
-  [case "${enableval}" in
-    yes) static=true ;;
-    no)  static=false ;;
-    *) AC_MSG_ERROR(bad value ${enableval} for --enable-static-binaries) ;;
-   esac],
-   [debug=false]
-)
-AC_MSG_RESULT([$static])
-
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" = "xtrue"])
-
-if test "x$static" = "xtrue"; then
+AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
-fi
+])
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
@@ -345,9 +345,9 @@ for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
 
-CFLAGS="$CFLAGS $PIE_CFLAGS"
-CXXFLAGS="$CXXFLAGS $PIE_CFLAGS"
-LDFLAGS="$LDFLAGS $RELRO_LDFLAGS"
+CFLAGS="$PIE_CFLAGS $CFLAGS"
+CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+LDFLAGS="$PIE_LDFLAGS $RELRO_LDFLAGS $LDFLAGS"
 
 AC_SUBST(LIBS)
 
