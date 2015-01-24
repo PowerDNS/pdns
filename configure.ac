@@ -35,13 +35,9 @@ AC_CC_STACK_PROTECTOR
 AC_CC_PARAM_SSP_BUFFER_SIZE([4])
 AC_CC_D_FORTIFY_SOURCE
 
-AC_CHECK_FUNC([socket], [], [
- AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
-])
-
-AC_CHECK_FUNC([gethostent], [], [
- AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
-])
+AC_SEARCH_LIBS([socket], [socket])
+AC_SEARCH_LIBS([gethostent], [nsl])
+AC_SEARCH_LIBS([inet_aton], [resolv])
 
 m4_ifndef([LT_INIT],[
 AC_PROG_LIBTOOL([disable-static])
@@ -158,40 +154,28 @@ THREADFLAGS=""
 AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
+  LIBS="-lposix4 -lpthread -lrt $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
-
 solaris2.8 | solaris2.9 )
   AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
   AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
-  CXXFLAGS="-D_REENTRANT $CXXFLAGS"
-  ;;
-solaris2.6 | solaris2.7)
-  AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-  AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
+  LIBS="-lposix4 -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   ;;
 linux*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="$LDFLAGS -lrt"
   THREADFLAGS="-pthread"
   CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
   ;;
 darwin*)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS -D__APPLE_USE_RFC_3542"
   AM_CONDITIONAL([OS_MACOSX], true)
   ;;
 *)
-  AC_DEFINE(HAVE_IPV6,1,[If the host operating system understands IPv6])
   DYNLINKFLAGS="-rdynamic"
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
@@ -327,17 +311,6 @@ for a in $modules; do
 
   if test ${a} = "gpgsql"; then
     LIBS="$LIBS $LIBCRYPT"
-
-    case "$host_os" in
-      freebsd*)
-        ;;
-      darwin*)
-        modulelibs="$modulelibs -lresolv"
-        ;;
-      *)
-        modulelibs="$modulelibs -lresolv -lnsl"
-        ;;
-    esac
   fi
 done
 

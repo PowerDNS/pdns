@@ -253,7 +253,8 @@ void *TCPNameserver::doConnection(void *data)
   pthread_detach(pthread_self());
   Utility::setNonBlocking(fd);
   try {
-    char mesg[65535];
+    int mesgsize=65535;
+    scoped_array<char> mesg(new char[mesgsize]);
     
     DLOG(L<<"TCP Connection accepted on fd "<<fd<<endl);
     bool logDNSQueries= ::arg().mustDo("log-dns-queries");
@@ -278,19 +279,19 @@ void *TCPNameserver::doConnection(void *data)
 
       // do not remove this check as it will catch if someone
       // decreases the mesg buffer size for some reason. 
-      if(pktlen>sizeof(mesg)) {
+      if(pktlen > mesgsize) {
         L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
         break;
       }
       
-      getQuestion(fd, mesg, pktlen, remote);
+      getQuestion(fd, mesg.get(), pktlen, remote);
       S.inc("tcp-queries");      
 
       packet=shared_ptr<DNSPacket>(new DNSPacket);
       packet->setRemote(&remote);
       packet->d_tcp=true;
       packet->setSocket(fd);
-      if(packet->parse(mesg, pktlen)<0)
+      if(packet->parse(mesg.get(), pktlen)<0)
         break;
       
       if(packet->qtype.getCode()==QType::AXFR) {
@@ -1116,7 +1117,6 @@ TCPNameserver::TCPNameserver()
     d_prfds.push_back(pfd);
   }
 
-#if HAVE_IPV6
   for(vector<string>::const_iterator laddr=locals6.begin();laddr!=locals6.end();++laddr) {
     int s=socket(AF_INET6,SOCK_STREAM,0); 
 
@@ -1157,7 +1157,6 @@ TCPNameserver::TCPNameserver()
 
     d_prfds.push_back(pfd);
   }
-#endif
 }
 
 
