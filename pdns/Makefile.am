@@ -642,7 +642,7 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDADD = $(POLARSSL_LIBS) 
+speedtest_LDADD = $(POLARSSL_LIBS) -lrt
 speedtest_LDFLAGS = $(THREADFLAGS)
 
 dnswasher_SOURCES = \
