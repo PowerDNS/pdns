@@ -48,7 +48,14 @@ BUILT_SOURCES = \
 	version_generated.h \
 	bindparser.h
 
-CLEANFILES = version_generated.h
+CLEANFILES = \
+	version_generated.h \
+	*.gcda \
+	*.gcno \
+	*.gcov \
+	backends/gsql/gsqlbackend.gcda \
+	backends/gsql/gsqlbackend.gcno \
+	backends/gsql/gsqlbackend.gcov
 
 noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist
