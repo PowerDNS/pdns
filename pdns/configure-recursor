@@ -47,14 +47,11 @@ EOF
     if [ "$STATIC" != "semi" ] && [ "$STATIC" != "full" ] && $CXX -pie -o a2.out a.out; then
       LD_PIE="-pie"
     fi
-    rm -f a2.out
-    rm -f a.out
   fi
 
   # test for fortified source
   if $CXX $src -c -o a.out -O3 -D_FORTIFY_SOURCE=2; then
     CF_FORTIFY="-D_FORTIFY_SOURCE=2"
-    rm -f a.out
   fi
 
   # test for stack protector
@@ -63,10 +60,9 @@ EOF
     if $CXX $src -c -o a.out -O3 -fstack-protector --param ssp-buffer-size=4; then
       CF_STACK="$CF_STACK --param ssp-buffer-size=4"
     fi
-    rm -f a.out
   fi
 
-  rm -f $src
+  rm -f $src a.out a2.out
 }
 
 test_flags
