@@ -20,7 +20,7 @@ CF_STACK=""
 test_flags() {
   # test for relocation
 
-  if [ `uname -s` = 'SunOS' -o `uname -s` = 'FreeBSD' ]; then
+  if [ `uname -s` = 'SunOS' ]; then
     return
   fi
 
@@ -34,9 +34,13 @@ test_flags() {
 
   src=conftest.cc
   cat >$src <<EOF
+#include <pthread.h>
+
+__thread unsigned int t_id;
 int
 main ()
 {
+  t_id = 1;
   return 0;
 }
 EOF
