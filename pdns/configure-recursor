@@ -44,10 +44,8 @@ EOF
 
   if $CXX $src -c -o a.out -fPIE -fPIC -DPIE; then
     CF_PIE="-fPIE -fPIC -DPIE"
-    export CF_PIE
     if [ "$STATIC" != "semi" ] && [ "$STATIC" != "full" ] && $CXX -pie -o a2.out a.out; then
       LD_PIE="-pie"
-      export LD_PIE
     fi
     rm -f a2.out
     rm -f a.out
@@ -56,7 +54,6 @@ EOF
   # test for fortified source
   if $CXX $src -c -o a.out -O3 -D_FORTIFY_SOURCE=2; then
     CF_FORTIFY="-D_FORTIFY_SOURCE=2"
-    export CF_FORTIFY
     rm -f a.out
   fi
 
@@ -66,7 +63,6 @@ EOF
     if $CXX $src -c -o a.out -O3 -fstack-protector --param ssp-buffer-size=4; then
       CF_STACK="$CF_STACK --param ssp-buffer-size=4"
     fi
-    export CF_STACK
     rm -f a.out
   fi
 
