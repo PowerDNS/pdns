@@ -1314,7 +1314,14 @@ try
     vector<DNSResourceRecord> ret;
 
     sr.setNoCache();
-    int res=sr.beginResolve(".", QType(QType::NS), 1, ret);
+    int res=-1;
+    try {
+      res=sr.beginResolve(".", QType(QType::NS), 1, ret);
+    }
+    catch(...)
+    {
+      L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+    }
     if(!res) {
       L<<Logger::Notice<<"Refreshed . records"<<endl;
       last_rootupdate=now.tv_sec;
