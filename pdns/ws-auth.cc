@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2002 - 2014  PowerDNS.COM BV
+    Copyright (C) 2002 - 2015  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -42,6 +42,7 @@
 #include "dnsseckeeper.hh"
 #include <iomanip>
 #include "zoneparser-tng.hh"
+#include "common_startup.hh"
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -878,6 +879,42 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   }
 }
 
+static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
+  string zonename = apiZoneIdToName(req->parameters["id"]);
+
+  if(req->method != "PUT")
+    throw HttpMethodNotAllowedException();
+
+  UeberBackend B;
+  DomainInfo di;
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  if(di.masters.empty())
+    throw ApiException("Domain '"+zonename+"' is not a slave domain (or has no master defined)");
+
+  random_shuffle(di.masters.begin(), di.masters.end());
+  Communicator.addSuckRequest(zonename, di.masters.front());
+  resp->body = returnJsonMessage("Added retrieval request for '"+zonename+"' from master "+di.masters.front());
+}
+
+static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
+  string zonename = apiZoneIdToName(req->parameters["id"]);
+
+  if(req->method != "PUT")
+    throw HttpMethodNotAllowedException();
+
+  UeberBackend B;
+  DomainInfo di;
+  if(!B.getDomainInfo(zonename, di))
+    throw ApiException("Could not find domain '"+zonename+"'");
+
+  if(!Communicator.notifyDomain(zonename))
+    throw ApiException("Failed to add to the queue - see server log");
+
+  resp->body = returnJsonMessage("Notification queued");
+}
+
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
   if (rr.qtype.getCode() == QType::A) {
     uint32_t ip;
@@ -1140,65 +1177,21 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-void AuthWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
-{
-  string command;
+void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "PUT")
+    throw HttpMethodNotAllowedException();
 
-  if(req->getvars.count("command")) {
-    command = req->getvars["command"];
-    req->getvars.erase("command");
-  }
+  extern PacketCache PC;
+  int count;
+  if(req->getvars["domain"].empty())
+    count = PC.purge();
+  else
+    count = PC.purge(req->getvars["domain"]);
 
-  if(command == "flush-cache") {
-    extern PacketCache PC;
-    int number; 
-    if(req->getvars["domain"].empty())
-      number = PC.purge();
-    else
-      number = PC.purge(req->getvars["domain"]);
-      
-    map<string, string> object;
-    object["number"]=lexical_cast<string>(number);
-    //cerr<<"Flushed cache for '"<<parameters["domain"]<<"', cleaned "<<number<<" records"<<endl;
-    resp->body = returnJsonObject(object);
-    resp->status = 200;
-    return;
-  }
-  else if(command == "pdns-control") {
-    if(req->method!="POST")
-      throw HttpMethodNotAllowedException();
-    // cout<<"post: "<<post<<endl;
-    rapidjson::Document document;
-    req->json(document);
-    // cout<<"Parameters: '"<<document["parameters"].GetString()<<"'\n";
-    vector<string> parameters;
-    stringtok(parameters, document["parameters"].GetString(), " \t");
-    
-    DynListener::g_funk_t* ptr=0;
-    if(!parameters.empty())
-      ptr = DynListener::getFunc(toUpper(parameters[0]));
-    map<string, string> m;
-    
-    if(ptr) {
-      resp->status = 200;
-      m["result"] = (*ptr)(parameters, 0);
-    } else {
-      resp->status = 404;
-      m["error"]="No such function "+toUpper(parameters[0]);
-    }
-    resp->body = returnJsonObject(m);
-    return;
-  }
-  else if(command=="log-grep") {
-    // legacy parameter name hack
-    req->getvars["q"] = req->getvars["needle"];
-    apiServerSearchLog(req, resp);
-    return;
-  }
-
-  resp->body = returnJsonError("No or unknown command given");
-  resp->status = 404;
-  return;
+  map<string, string> object;
+  object["count"] = lexical_cast<string>(count);
+  object["result"] = "Flushed cache.";
+  resp->body = returnJsonObject(object);
 }
 
 void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
@@ -1242,18 +1235,19 @@ void AuthWebServer::webThread()
   try {
     if(::arg().mustDo("experimental-json-interface")) {
       d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
+      d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
+      d_ws->registerApiHandler("/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
       d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
       d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
       d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
       d_ws->registerApiHandler("/servers", &apiServer);
-      // legacy dispatch
-      d_ws->registerApiHandler("/jsonstat", boost::bind(&AuthWebServer::jsonstat, this, _1, _2));
     }
     d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
     d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));

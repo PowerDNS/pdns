@@ -417,6 +417,19 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
+static void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
+  if(req->method != "PUT")
+    throw HttpMethodNotAllowedException();
+
+  string canon = toCanonic("", req->getvars["domain"]);
+  int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
+  count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
+  map<string, string> object;
+  object["count"] = lexical_cast<string>(count);
+  object["result"] = "Flushed cache.";
+  resp->body = returnJsonObject(object);
+}
+
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
@@ -426,6 +439,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
+  d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
   d_ws->registerApiHandler("/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
   d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
