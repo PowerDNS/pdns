@@ -79,19 +79,20 @@ QType &QType::operator=(uint16_t n)
 
 int QType::chartocode(const char *p)
 {
-  static QType qt;
+  string P = toUpper(p);
   vector<namenum>::iterator pos;
+
   for(pos=names.begin(); pos < names.end(); ++pos)
-    if(pos->first == p)
+    if(pos->first == P)
       return pos->second;
-  
+
   if(*p=='#') {
     return atoi(p+1);
   }
 
-  if(boost::starts_with(p, "TYPE"))
+  if(boost::starts_with(P, "TYPE"))
     return atoi(p+4);
-    
+
   return 0;
 }
 
