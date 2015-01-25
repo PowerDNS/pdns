@@ -1221,7 +1221,7 @@ void daemonize(void)
   }
 }
 
-uint64_t counter;
+AtomicCounter counter;
 bool statsWanted;
 
 void usr1Handler(int)
@@ -1279,75 +1279,80 @@ void doStats(void)
 }
 
 static void houseKeeping(void *)
-try
 {
   static __thread time_t last_stat, last_rootupdate, last_prune, last_secpoll;
   static __thread int cleanCounter=0;
-  struct timeval now;
-  Utility::gettimeofday(&now, 0);
-
-  // clog<<"* "<<t_id<<" "<<(void*)&last_stat<<"\t"<<(unsigned int)last_stat<<endl;
-
-  if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
-    DTime dt;
-    dt.setTimeval(now);
-    t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-    t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
+  static __thread bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
+  try {
+    if(s_running)
+      return;
+    s_running=true;
     
-    pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
+    struct timeval now;
+    Utility::gettimeofday(&now, 0);
     
-    if(!((cleanCounter++)%40)) {  // this is a full scan!
-      time_t limit=now.tv_sec-300;
-      for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); )
-        if(i->second.stale(limit))
-          t_sstorage->nsSpeeds.erase(i++);
-        else
-          ++i;
-    }
-//    L<<Logger::Warning<<"Spent "<<dt.udiff()/1000<<" msec cleaning"<<endl;
-    last_prune=time(0);
-  }
-  
-  if(now.tv_sec - last_rootupdate > 7200) {
-    SyncRes sr(now);
-    sr.setDoEDNS0(true);
-    vector<DNSResourceRecord> ret;
-
-    sr.setNoCache();
-    int res=-1;
-    try {
-      res=sr.beginResolve(".", QType(QType::NS), 1, ret);
-    }
-    catch(...)
-    {
-      L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
-    }
-    if(!res) {
-      L<<Logger::Notice<<"Refreshed . records"<<endl;
-      last_rootupdate=now.tv_sec;
-    }
-    else
-      L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
-  }
-
-  if(!t_id) {
-    if(now.tv_sec - last_stat >= 1800) { 
-      doStats();
-      last_stat=time(0);
-    }
-
-    if(now.tv_sec - last_secpoll >= 3600) {
-      try {
-        doSecPoll(&last_secpoll);
+    if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
+      DTime dt;
+      dt.setTimeval(now);
+      t_RC->doPrune(); // this function is local to a thread, so fine anyhow
+      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
+      
+      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
+      
+      if(!((cleanCounter++)%40)) {  // this is a full scan!
+	time_t limit=now.tv_sec-300;
+	for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); )
+	  if(i->second.stale(limit))
+	    t_sstorage->nsSpeeds.erase(i++);
+	  else
+	    ++i;
       }
-      catch(...) {}
+      last_prune=time(0);
     }
+    
+    if(now.tv_sec - last_rootupdate > 7200) {
+      SyncRes sr(now);
+      sr.setDoEDNS0(true);
+      vector<DNSResourceRecord> ret;
+      
+      sr.setNoCache();
+      int res=-1;
+      try {
+	res=sr.beginResolve(".", QType(QType::NS), 1, ret);
+      }
+      catch(...)
+	{
+	  L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+	}
+      if(!res) {
+	L<<Logger::Notice<<"Refreshed . records"<<endl;
+	last_rootupdate=now.tv_sec;
+      }
+      else
+	L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+    }
+    
+    if(!t_id) {
+      if(now.tv_sec - last_stat >= 1800) { 
+	doStats();
+	last_stat=time(0);
+      }
+      
+      if(now.tv_sec - last_secpoll >= 3600) {
+	try {
+	  doSecPoll(&last_secpoll);
+	}
+	catch(...) {}
+      }
+    }
+    s_running=false;
   }
-}
-catch(PDNSException& ae)
-{
-  L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
-  throw;
+  catch(PDNSException& ae)
+    {
+      s_running=false;
+      L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
+      throw;
+    }
 }
 
 void makeThreadPipes()
@@ -2149,7 +2154,7 @@ try
 
   time_t last_carbon=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
-  counter=0; // used to periodically execute certain tasks
+  counter=AtomicCounter(0); // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
       
