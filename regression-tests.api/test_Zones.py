@@ -95,13 +95,14 @@ class AuthZones(ApiTestCase):
         comments = [
             {
                 'name': name,
-                'type': 'SOA',
+                'type': 'soa',  # test uppercasing of type, too.
                 'account': 'test1',
                 'content': 'blah blah',
                 'modified_at': 11112,
             }
         ]
         payload, data = self.create_zone(name=name, comments=comments)
+        comments[0]['type'] = comments[0]['type'].upper()
         # check our comment has appeared
         self.assertEquals(data['comments'], comments)
 
@@ -110,13 +111,14 @@ class AuthZones(ApiTestCase):
         records = [
             {
                 "name": name,
-                "type": "SOA",
+                'type': 'soa',  # test uppercasing of type, too.
                 "ttl": 3600,
                 "content": "ns1.example.net testmaster@example.net 10 10800 3600 604800 3600",
                 "disabled": False
             }
         ]
         payload, data = self.create_zone(name=name, records=records)
+        records[0]['type'] = records[0]['type'].upper()
         self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
 
     def test_create_zone_trailing_dot(self):
@@ -449,7 +451,7 @@ fred   IN  A      192.168.0.4
         rrset = {
             'changetype': 'replace',
             'name': name,
-            'type': 'NS',
+            'type': 'ns',
             'records': [
                 {
                     "name": name,
@@ -475,6 +477,7 @@ fred   IN  A      192.168.0.4
         self.assert_success_json(r)
         # verify that (only) the new record is there
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        rrset['type'] = rrset['type'].upper()
         data = r.json()['records']
         recs = [rec for rec in data if rec['type'] == rrset['type'] and rec['name'] == rrset['name']]
         self.assertEquals(recs, rrset['records'])
