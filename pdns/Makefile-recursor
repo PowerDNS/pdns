@@ -6,7 +6,7 @@ LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread
-LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @LD_PIE@
+LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @CF_STACK@ @LD_PIE@
 STRIP_BINARIES?=1
 
 LINKCC=$(CXX)
