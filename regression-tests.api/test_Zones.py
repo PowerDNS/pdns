@@ -178,6 +178,25 @@ class AuthZones(ApiTestCase):
         r = self.session.delete(self.url("/servers/localhost/zones/" + data['id']))
         r.raise_for_status()
 
+    def test_retrieve_slave_zone(self):
+        payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
+        print "payload:", payload
+        print "data:", data
+        r = self.session.put(self.url("/servers/localhost/zones/" + data['id'] + "/axfr-retrieve"))
+        data = r.json()
+        print "status for axfr-retrieve:", data
+        self.assertEqual(data['result'], u'Added retrieval request for \'' + payload['name'] +
+                         '\' from master 127.0.0.2')
+
+    def test_notify_master_zone(self):
+        payload, data = self.create_zone(kind='Master')
+        print "payload:", payload
+        print "data:", data
+        r = self.session.put(self.url("/servers/localhost/zones/" + data['id'] + "/notify"))
+        data = r.json()
+        print "status for notify:", data
+        self.assertEqual(data['result'], 'Notification queued')
+
     def test_get_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
