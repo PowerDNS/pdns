@@ -254,10 +254,13 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     BOOST_TEST_CHECKPOINT("Checking bad value for record type " << q.getName() << " test #" << n);
     BOOST_TEST_MESSAGE("Checking bad value for record type " << q.getName() << " test #" << n);
  
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, "unit.test", q.getCode());
+
     if (val.get<2>()) {
-      BOOST_WARN_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     } else {
-      BOOST_CHECK_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     }
   };
 }
