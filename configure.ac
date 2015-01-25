@@ -30,10 +30,16 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 
 AC_LANG([C++])
 
-AC_CC_PIE
-AC_CC_STACK_PROTECTOR
-AC_CC_PARAM_SSP_BUFFER_SIZE([4])
-AC_CC_D_FORTIFY_SOURCE
+AC_ARG_ENABLE([hardening], [
+  AS_HELP_STRING([--disable-hardening, disable compiler security checks])
+])
+AS_IF([test "x$enable_hardening" != "xno"], [
+  AC_CC_PIE
+  AC_CC_STACK_PROTECTOR
+  AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+  AC_CC_D_FORTIFY_SOURCE
+  AC_LD_RELRO
+])
 
 AC_CHECK_FUNC([socket], [], [
  AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
@@ -49,7 +55,6 @@ AC_PROG_LIBTOOL([disable-static])
 LT_INIT([disable-static])
 ])
 
-AC_LD_RELRO
 
 MC_TM_GMTOFF
 
