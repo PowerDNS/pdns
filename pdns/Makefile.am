@@ -293,7 +293,7 @@ endif
 
 if CRYPTOPP
 pdnssec_SOURCES += cryptoppsigners.cc
-pdnssec_LDADD += -lcryptopp
+pdnssec_LDADD += $(CRYPTOPP_LIBS)
 endif
 
 if ED25519
