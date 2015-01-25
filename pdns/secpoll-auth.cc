@@ -124,7 +124,8 @@ void doSecPoll(bool first)
   struct timeval now;
   gettimeofday(&now, 0);
 
-  string query = "auth-" + string(PACKAGEVERSION) +".security-status."+::arg()["security-poll-suffix"];
+  string version = "auth-" + string(PACKAGEVERSION);
+  string query = version.substr(0, 63) +".security-status."+::arg()["security-poll-suffix"];
 
   if(*query.rbegin()!='.')
     query+='.';

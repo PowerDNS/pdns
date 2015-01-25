@@ -193,12 +193,12 @@ pdns_server_LDADD = \
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
+pdns_server_LDADD += $(BOTAN110_LIBS)
 endif
 
 if BOTAN18
 pdns_server_SOURCES += botan18signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN18_LIBS) -lgmp
+pdns_server_LDADD += $(BOTAN18_LIBS)
 endif
 
 if CRYPTOPP
@@ -287,12 +287,12 @@ pdnssec_LDADD = \
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
+pdnssec_LDADD += $(BOTAN110_LIBS)
 endif
 
 if BOTAN18
 pdnssec_SOURCES += botan18signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
+pdnssec_LDADD += $(BOTAN18_LIBS)
 endif
 
 if CRYPTOPP
@@ -646,7 +646,7 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDADD = $(POLARSSL_LIBS) 
+speedtest_LDADD = $(POLARSSL_LIBS) -lrt
 speedtest_LDFLAGS = $(THREADFLAGS)
 
 dnswasher_SOURCES = \

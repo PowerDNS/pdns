@@ -78,11 +78,11 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   lwr->d_rcode = 0;
   lwr->d_pingCorrect = false;
   lwr->d_haveEDNS = false;
-
   int ret;
 
   DTime dt;
-  dt.setTimeval(*now);
+  dt.set();
+  *now=dt.getTimeval();
   errno=0;
   if(!doTCP) {
     int queryfd;

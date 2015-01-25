@@ -47,7 +47,7 @@ before_script:
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
  - sudo apt-get update --quiet --quiet
  - sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev pandoc
- - sudo pip install pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1
+ - sudo pip install pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1 linkchecker==9.3
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
@@ -81,6 +81,9 @@ script:
      --disable-dependency-tracking
  - make -k dist
  - make -k -j 4
+ - cd docs
+ - make check-links
+ - cd ..
  - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
  - travis_retry timeout 240s make -j 4 check # Workaround for remotebackend failures on travis-ci

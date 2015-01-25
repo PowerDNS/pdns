@@ -105,6 +105,7 @@ PDNS_WITH_SQLITE3
 
 PDNS_CHECK_PANDOC
 PDNS_CHECK_MKDOCS
+PDNS_CHECK_LINKCHECKER
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T

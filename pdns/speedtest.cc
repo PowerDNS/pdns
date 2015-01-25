@@ -34,12 +34,12 @@ template<typename C> void doRun(const C& cmd, int mseconds=100)
   
   unsigned int runs=0;
   g_stop=false;
-  DTime dt;
-  dt.set();
+  CPUTime dt;
+  dt.start();
   while(runs++, !g_stop) {
     cmd();
   }
-  double delta=dt.udiff()/1000000.0;
+  double delta=dt.ndiff()/1000000000.0;
   boost::format fmt("'%s' %.02f seconds: %.1f runs/s, %.02f usec/run");
 
   cerr<< (fmt % cmd.getName() % delta % (runs/delta) % (delta* 1000000.0/runs)) << endl;
@@ -131,6 +131,36 @@ struct StaticMemberTest
     static string* s_ptr;
     if(!s_ptr)
       s_ptr = new string();
+  }
+};
+
+struct StringtokTest
+{
+  string getName() const
+  {
+    return "stringtok";
+  }
+  
+  void operator()() const 
+  {
+    string str("the quick brown fox jumped");
+    vector<string> parts;
+    stringtok(parts, str);
+  }
+};
+
+struct VStringtokTest
+{
+  string getName() const
+  {
+    return "vstringtok";
+  }
+  
+  void operator()() const 
+  {
+    string str("the quick brown fox jumped");
+    vector<pair<unsigned int, unsigned> > parts;
+    vstringtok(parts, str);
   }
 };
 
@@ -859,12 +889,15 @@ try
   doRun(GenericRecordTest(4, QType::NS, "powerdnssec1.ds9a.nl"));
   doRun(GenericRecordTest(64, QType::NS, "powerdnssec1.ds9a.nl"));
 
-
+  
 
   doRun(SOARecordTest(1));
   doRun(SOARecordTest(2));
   doRun(SOARecordTest(4));
   doRun(SOARecordTest(64));
+
+  doRun(StringtokTest());
+  doRun(VStringtokTest());  
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
 

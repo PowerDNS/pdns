@@ -37,6 +37,11 @@ bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& lo
   return false;
 }
 
+bool RecursorLua::ipfilter(const ComboAddress& remote, const ComboAddress& local)
+{
+  return false;
+}
+
 
 #else
 
@@ -142,29 +147,72 @@ int getFakePTRRecords(const std::string& qname, const std::string& prefix, vecto
 
 bool RecursorLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
+  if(d_nofuncs.nxdomain)
+    return false;
+
   return passthrough("nxdomain", remote, local, query, qtype, ret, res, variable);
 }
 
 bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
+  if(d_nofuncs.preresolve)
+    return false;
   return passthrough("preresolve", remote, local, query, qtype, ret, res, variable);
 }
 
 bool RecursorLua::nodata(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
+  if(d_nofuncs.nodata)
+    return false;
+
   return passthrough("nodata", remote, local, query, qtype, ret, res, variable);
 }
 
 bool RecursorLua::postresolve(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
+  if(d_nofuncs.postresolve)
+    return false;
   return passthrough("postresolve", remote, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool RecursorLua::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
-  return passthrough("preoutquery", remote, local, query, qtype, ret, res, 0);
+  if(d_nofuncs.preoutquery)
+    return false;
+
+  return passthrough("preoutquery", ns, requestor, query, qtype, ret, res, 0);
 }
 
+// returns true to block
+bool RecursorLua::ipfilter(const ComboAddress& remote, const ComboAddress& local)
+{
+  if(d_nofuncs.ipfilter)
+    return false;
+
+  lua_getglobal(d_lua,  "ipfilter");
+  if(!lua_isfunction(d_lua, -1)) {
+    d_nofuncs.regist("ipfilter");
+    lua_pop(d_lua, 1);
+    return false;
+  }
+  d_local = local; 
+  
+  ComboAddress* ca=(ComboAddress*)lua_newuserdata(d_lua, sizeof(ComboAddress)); 
+  *ca=remote;
+  luaL_getmetatable(d_lua, "iputils.ca");
+  lua_setmetatable(d_lua, -2);
+
+  if(lua_pcall(d_lua,  1, 1, 0)) {   
+    string error=string("lua error in 'ipfilter' while processing: ")+lua_tostring(d_lua, -1);
+    lua_pop(d_lua, 1);
+    throw runtime_error(error);
+    return false;
+  }
+
+  int newres = (int)lua_tonumber(d_lua, 1); 
+  lua_pop(d_lua, 1);
+  return newres != -1;
+}
 
 
 bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, 
@@ -173,7 +221,10 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
   d_variable = false;
   lua_getglobal(d_lua,  func.c_str());
   if(!lua_isfunction(d_lua, -1)) {
-    //    cerr<<"No such function '"<<func<<"'\n";
+    // we hit this rarely, so we can be slow
+    //    cerr<<"Registering negative for '"<<func<<"'"<<endl;
+    d_nofuncs.regist(func);
+
     lua_pop(d_lua, 1);
     return false;
   }
@@ -203,7 +254,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     extraParameter+=2;
   }
 
-  if(lua_pcall(d_lua,  3 + extraParameter, 3, 0)) {   // NOTE! Means we always get 3 stack entries back!
+  if(lua_pcall(d_lua,  3 + extraParameter, 3, 0)) {   // NOTE! Means we always get 3 stack entries back, no matter what our lua hook returned!
     string error=string("lua error in '"+func+"' while processing query for '"+query+"|"+qtype.getName()+": ")+lua_tostring(d_lua, -1);
     lua_pop(d_lua, 1);
     throw runtime_error(error);

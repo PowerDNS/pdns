@@ -1017,6 +1017,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
     sd.db->startTransaction(rr.qname);
     if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+      sd.db->abortTransaction();
       throw ApiException("PTR-Hosting backend for "+rr.qname+"/"+rr.qtype.getName()+" does not support editing records.");
     }
     sd.db->commitTransaction();

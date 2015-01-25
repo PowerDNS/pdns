@@ -85,7 +85,7 @@ public:
   {
     if(d_doRings)  {
       if(!d_rings.count(name))
-	throw runtime_error("Attempting to account to non-existent ring");
+	throw runtime_error("Attempting to account to non-existent ring '"+std::string(name)+"'");
 
       d_rings[name].account(item);
     }
@@ -94,7 +94,7 @@ public:
   {
     if(d_doRings) {
       if(!d_comborings.count(name))
-	throw runtime_error("Attempting to account to non-existent comboring");
+	throw runtime_error("Attempting to account to non-existent comboring '"+std::string(name)+"'");
       d_comborings[name].account(item);
     }
   }

@@ -56,6 +56,7 @@ public:
 class LWResult
 {
 public:
+  LWResult() : d_usec(0) {}
   typedef vector<DNSResourceRecord> res_t;
 
   vector<DNSResourceRecord> d_result;

@@ -558,6 +558,7 @@ void startDoResolve(void *p)
     SyncRes sr(dc->d_now);
     if(t_pdl) {
       sr.setLuaEngine(*t_pdl);
+      sr.d_requestor=dc->d_remote;
     }
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
@@ -736,7 +737,8 @@ void startDoResolve(void *p)
     if(!g_quiet) {
       L<<Logger::Error<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] answer to "<<(dc->d_mdp.d_header.rd?"":"non-rd ")<<"question '"<<dc->d_mdp.d_qname<<"|"<<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype);
       L<<"': "<<ntohs(pw.getHeader()->ancount)<<" answers, "<<ntohs(pw.getHeader()->arcount)<<" additional, took "<<sr.d_outqueries<<" packets, "<<
-      sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
+	sr.d_totUsec/1000.0<<" ms, "<<
+	sr.d_throttledqueries<<" throttled, "<<sr.d_timeouts<<" timeouts, "<<sr.d_tcpoutqueries<<" tcp connections, rcode="<<res<<endl;
     }
 
     sr.d_outqueries ? t_RC->cacheMisses++ : t_RC->cacheHits++; 
@@ -945,7 +947,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     uint32_t age;
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
-        L<<Logger::Error<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
+        L<<Logger::Notice<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
       // t_queryring->push_back("packetcached");
       
       g_stats.packetCacheHits++;
@@ -974,6 +976,15 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     return 0;
   }
   
+  if(t_pdl->get()) {
+    if((*t_pdl)->ipfilter(fromaddr, destaddr)) {
+      if(!g_quiet)
+	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
+      g_stats.policyDrops++;
+      return 0;
+    }
+  }
+
   if(MT->numProcesses() > g_maxMThreads) {
     if(!g_quiet)
       L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<", over capacity"<<endl;
@@ -1210,7 +1221,7 @@ void daemonize(void)
   }
 }
 
-uint64_t counter;
+AtomicCounter counter;
 bool statsWanted;
 
 void usr1Handler(int)
@@ -1268,65 +1279,80 @@ void doStats(void)
 }
 
 static void houseKeeping(void *)
-try
 {
   static __thread time_t last_stat, last_rootupdate, last_prune, last_secpoll;
   static __thread int cleanCounter=0;
-  struct timeval now;
-  Utility::gettimeofday(&now, 0);
-
-  // clog<<"* "<<t_id<<" "<<(void*)&last_stat<<"\t"<<(unsigned int)last_stat<<endl;
-
-  if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
-    DTime dt;
-    dt.setTimeval(now);
-    t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-    t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
+  static __thread bool s_running;  // houseKeeping can get suspended in secpoll, and be restarted, which makes us do duplicate work
+  try {
+    if(s_running)
+      return;
+    s_running=true;
     
-    pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
+    struct timeval now;
+    Utility::gettimeofday(&now, 0);
     
-    if(!((cleanCounter++)%40)) {  // this is a full scan!
-      time_t limit=now.tv_sec-300;
-      for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); )
-        if(i->second.stale(limit))
-          t_sstorage->nsSpeeds.erase(i++);
-        else
-          ++i;
+    if(now.tv_sec - last_prune > (time_t)(5 + t_id)) { 
+      DTime dt;
+      dt.setTimeval(now);
+      t_RC->doPrune(); // this function is local to a thread, so fine anyhow
+      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
+      
+      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
+      
+      if(!((cleanCounter++)%40)) {  // this is a full scan!
+	time_t limit=now.tv_sec-300;
+	for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); )
+	  if(i->second.stale(limit))
+	    t_sstorage->nsSpeeds.erase(i++);
+	  else
+	    ++i;
+      }
+      last_prune=time(0);
     }
-//    L<<Logger::Warning<<"Spent "<<dt.udiff()/1000<<" msec cleaning"<<endl;
-    last_prune=time(0);
+    
+    if(now.tv_sec - last_rootupdate > 7200) {
+      SyncRes sr(now);
+      sr.setDoEDNS0(true);
+      vector<DNSResourceRecord> ret;
+      
+      sr.setNoCache();
+      int res=-1;
+      try {
+	res=sr.beginResolve(".", QType(QType::NS), 1, ret);
+      }
+      catch(...)
+	{
+	  L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
+	}
+      if(!res) {
+	L<<Logger::Notice<<"Refreshed . records"<<endl;
+	last_rootupdate=now.tv_sec;
+      }
+      else
+	L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
+    }
+    
+    if(!t_id) {
+      if(now.tv_sec - last_stat >= 1800) { 
+	doStats();
+	last_stat=time(0);
+      }
+      
+      if(now.tv_sec - last_secpoll >= 3600) {
+	try {
+	  doSecPoll(&last_secpoll);
+	}
+	catch(...) {}
+      }
+    }
+    s_running=false;
   }
-  
-  if(now.tv_sec - last_rootupdate > 7200) {
-    SyncRes sr(now);
-    sr.setDoEDNS0(true);
-    vector<DNSResourceRecord> ret;
-
-    sr.setNoCache();
-    int res=sr.beginResolve(".", QType(QType::NS), 1, ret);
-    if(!res) {
-      L<<Logger::Notice<<"Refreshed . records"<<endl;
-      last_rootupdate=now.tv_sec;
+  catch(PDNSException& ae)
+    {
+      s_running=false;
+      L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
+      throw;
     }
-    else
-      L<<Logger::Error<<"Failed to update . records, RCODE="<<res<<endl;
-  }
-
-  if(!t_id) {
-    if(now.tv_sec - last_stat >= 1800) { 
-      doStats();
-      last_stat=time(0);
-    }
-
-    if(now.tv_sec - last_secpoll >= 3600) {
-      doSecPoll(&last_secpoll);
-    }
-  }
-}
-catch(PDNSException& ae)
-{
-  L<<Logger::Error<<"Fatal error in housekeeping thread: "<<ae.reason<<endl;
-  throw;
 }
 
 void makeThreadPipes()
@@ -1903,6 +1929,7 @@ int serviceMain(int argc, char*argv[])
   }
 
   g_quiet=::arg().mustDo("quiet");
+  
   g_weDistributeQueries = ::arg().mustDo("pdns-distributes-queries");
   if(g_weDistributeQueries) {
       L<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
@@ -1961,6 +1988,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverdownthrottletime=::arg().asNum("server-down-throttle-time");
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
+  SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2126,7 +2154,7 @@ try
 
   time_t last_carbon=0;
   time_t carbonInterval=::arg().asNum("carbon-interval");
-  counter=0; // used to periodically execute certain tasks
+  counter=AtomicCounter(0); // used to periodically execute certain tasks
   for(;;) {
     while(MT->schedule(&g_now)); // MTasker letting the mthreads do their thing
       
@@ -2285,6 +2313,7 @@ int main(int argc, char **argv)
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
+    ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";
 
     ::arg().set("include-dir","Include *.conf files from this directory")="";
     ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
@@ -2331,6 +2360,8 @@ int main(int argc, char **argv)
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
     if (logUrgency < Logger::Error)
       logUrgency = Logger::Error;
+    if(!g_quiet)
+      logUrgency = Logger::Info;
     L.setLoglevel(logUrgency);
     L.toConsole(logUrgency);
 

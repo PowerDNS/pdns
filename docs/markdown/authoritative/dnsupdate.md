@@ -32,7 +32,7 @@ So to only allow dynamic DNS updates to a zone based on TSIG key, and regardless
 Further information can be found [below](#how-it-works).
 
 # Per zone settings
-For permissions, a number of per zone settings are available via the domain metadata (See [Chapter 15, *Per zone settings aka Domain Metadata*](domainmetadata.html "Chapter 15. Per zone settings aka Domain Metadata")).
+For permissions, a number of per zone settings are available via the domain metadata (See [Per zone settings aka Domain Metadata](domainmetadata.md)).
 
 ## ALLOW-DNSUPDATE-FROM
 This setting has the same function as described in the configuration options (See [above](#configuration-options)). Only one item is allowed per row, but multiple rows can be added. An example:
@@ -71,7 +71,7 @@ send
 If a TSIG key is set for the domain, it is required to be used for the update. The TSIG is extra security on top of the **ALLOW-DNSUPDATE-FROM** setting. If a TSIG key is set, the IP(-range) still needs to be allowed via **ALLOW-DNSUPDATE-FROM**.
 
 ## FORWARD-DNSUPDATE
-See [Section 1, “Configuration options”](dnsupdate.html#dnsupdate-configuration "1. Configuration options") for what it does, but per domain.
+See [Configuration options](#configuration-options) for what it does, but per domain.
 
 ```
 sql> select id from domains where name='example.org';

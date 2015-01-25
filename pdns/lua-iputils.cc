@@ -84,9 +84,11 @@ static const struct luaL_Reg iputils_ca_methods[]={
 
 /////////////////////////////
 
+typedef set<ComboAddress, ComboAddress::addressOnlyLessThan> ourset_t;
+
 static int l_ipset_index(lua_State* L)
 {
-  set<ComboAddress>*ourset = (set<ComboAddress>*)luaL_checkudata(L, 1, "iputils.ipset");
+  ourset_t *ourset = (ourset_t*)luaL_checkudata(L, 1, "iputils.ipset");
   ComboAddress* ca1 = (ComboAddress*)luaL_checkudata(L, 2, "iputils.ca");
   if(ourset->count(*ca1)) {
     lua_pushboolean(L, 1);
@@ -98,7 +100,7 @@ static int l_ipset_index(lua_State* L)
 
 static int l_ipset_newindex(lua_State* L)
 {
-  set<ComboAddress>*ourset = (set<ComboAddress>*)luaL_checkudata(L, 1, "iputils.ipset");
+  ourset_t*ourset = (ourset_t*)luaL_checkudata(L, 1, "iputils.ipset");
   ComboAddress* ca1 = (ComboAddress*)luaL_checkudata(L, 2, "iputils.ca");
   ourset->insert(*ca1);
   return 0;
@@ -106,7 +108,7 @@ static int l_ipset_newindex(lua_State* L)
 
 static int l_newipset(lua_State* L)
 {
-  new(lua_newuserdata(L, sizeof(set<ComboAddress>))) set<ComboAddress>();
+  new(lua_newuserdata(L, sizeof(ourset_t))) ourset_t();
   luaL_getmetatable(L, "iputils.ipset");
   lua_setmetatable(L, -2);
   return 1;
@@ -114,8 +116,8 @@ static int l_newipset(lua_State* L)
 
 static int l_ipset_gc(lua_State* L)
 {
-  set<ComboAddress>*ourset = (set<ComboAddress>*)luaL_checkudata(L, 1, "iputils.ipset");
-  ourset->~set<ComboAddress>();
+  ourset_t*ourset = (ourset_t*)luaL_checkudata(L, 1, "iputils.ipset");
+  ourset->~ourset_t();
   return 0;
 }
 
@@ -162,6 +164,7 @@ static int l_netmask_gc(lua_State* L)
 
 static const struct luaL_Reg iputils_netmask_methods[]={
     {"__tostring", l_netmask_tostring},
+    {"tostring", l_netmask_tostring},
     {"match", l_netmask_match},
     {"__gc", l_netmask_gc},
     {NULL, NULL}
@@ -212,6 +215,7 @@ static int l_nmgroup_gc(lua_State* L)
 
 static const struct luaL_Reg iputils_nmgroup_methods[]={
     {"__tostring", l_nmgroup_tostring},
+    {"tostring", l_nmgroup_tostring},
     {"match", l_nmgroup_match},
     {"add", l_nmgroup_add},
     {"__gc", l_nmgroup_gc},

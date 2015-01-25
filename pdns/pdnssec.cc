@@ -132,7 +132,7 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
-  ::arg().set("default-zsk-size","Default KSK size (0 means default)")="0";
+  ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
@@ -143,9 +143,9 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
   ::arg().laxFile(configname.c_str());
 
-  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
-
+  L.toConsole(Logger::Error);   // so we print any errors
   BackendMakers().launch(::arg()["launch"]); // vrooooom!
+  L.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));  
   ::arg().laxFile(configname.c_str());    
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -2196,4 +2196,8 @@ catch(std::exception& e) {
   cerr<<"Error: "<<e.what()<<endl;
   return 1;
 }
-
+catch(...)
+{
+  cerr<<"Caught an unknown exception"<<endl;
+  return 1;
+}
