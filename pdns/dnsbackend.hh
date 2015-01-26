@@ -378,8 +378,6 @@ protected:
   bool mustDo(const string &key);
   const string &getArg(const string &key);
   int getArgAsNum(const string &key);
-  string getRemote(DNSPacket *p);
-  bool getRemote(DNSPacket *p, struct sockaddr *in, Utility::socklen_t *len);
 
 private:
   string d_prefix;

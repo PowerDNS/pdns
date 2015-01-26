@@ -190,7 +190,7 @@ Please note that a RandomBackend is actually in most PDNS releases. By default i
 #### `void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt=0, int zoneId=-1)`
 This function is used to initiate a straight lookup for a record of name 'qdomain' and type 'qtype'. A QType can be converted into an integer by invoking its `getCode()` method and into a string with the `getCode()`.
 
-The original question may or may not be passed in the pointer p. If it is, you can retrieve (from 1.99.11 onwards) information about who asked the question with the `getRemote(DNSPacket *)` method. Alternatively, `bool getRemote(struct sockaddr *sa, socklen_t *len)` is available.
+The original question may or may not be passed in the pointer pkt. If it is, you can retrieve information about who asked the question with the `pkt->getRemote()` method.
 
 Note that **qdomain** can be of any case and that your backend should make sure it is in effect case insensitive. Furthermore, the case of the original question should be retained in answers returned by `get()`!
 

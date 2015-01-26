@@ -30,20 +30,6 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-string DNSBackend::getRemote(DNSPacket *p)
-{
-  return p->getRemote();
-}
-
-bool DNSBackend::getRemote(DNSPacket *p, struct sockaddr *sa, Utility::socklen_t *len)
-{
-  if(p->d_remote.getSocklen() < *len)
-    return false;
-  *len=p->d_remote.getSocklen();
-  memcpy(sa,&p->d_remote,*len);
-  return true;
-}
-
 bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len)
 {
   bool found=false;
