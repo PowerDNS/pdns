@@ -74,9 +74,6 @@ public:
 
   static bool loadmodule(const string &name);
 
-  /** Thread function that listens on our unix domain socket for commands, for example
-      instructions to load new modules */
-  static void *DynListener(void *);
   static void go(void);
 
   /** This contains all registered backends. The DynListener modifies this list for us when
