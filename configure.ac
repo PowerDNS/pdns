@@ -34,10 +34,16 @@ AC_DEFINE([_GNU_SOURCE], [1],
   [Define _GNU_SOURCE so that we get all necessary prototypes]
 )
 
-AC_CC_PIE
-AC_CC_STACK_PROTECTOR
-AC_CC_PARAM_SSP_BUFFER_SIZE([4])
-AC_CC_D_FORTIFY_SOURCE
+AC_ARG_ENABLE([hardening], [
+  AS_HELP_STRING([--disable-hardening, disable compiler security checks])
+])
+AS_IF([test "x$enable_hardening" != "xno"], [
+  AC_CC_PIE
+  AC_CC_STACK_PROTECTOR
+  AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+  AC_CC_D_FORTIFY_SOURCE
+  AC_LD_RELRO
+])
 
 AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([gethostent], [nsl])
@@ -49,7 +55,6 @@ AC_PROG_LIBTOOL([disable-static])
 LT_INIT([disable-static])
 ])
 
-AC_LD_RELRO
 
 MC_TM_GMTOFF
 
