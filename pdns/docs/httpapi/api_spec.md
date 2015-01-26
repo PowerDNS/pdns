@@ -49,6 +49,12 @@ For interactions that do not directly map onto CRUD, we use these:
 * GET: Query. Success reply: `200 OK`
 * PUT: Action/Execute. Success reply: `200 OK`
 
+Action/Execute methods return a JSON body of this format:
+
+    {
+      "message": "result message"
+    }
+
 
 Authentication
 --------------
@@ -477,8 +483,6 @@ Not supported for recursors.
 
 Clients MUST NOT send a body.
 
-**TODO**: Not yet implemented.
-
 
 URL: /servers/:server\_id/zones/:zone\_id/axfr-retrieve
 -------------------------------------------------------
@@ -494,7 +498,6 @@ Not supported for recursors.
 
 Clients MUST NOT send a body.
 
-**TODO**: Not yet implemented.
 
 URL: /servers/:server\_id/zones/:zone\_id/check
 -----------------------------------------------
