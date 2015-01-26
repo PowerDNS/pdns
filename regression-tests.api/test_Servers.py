@@ -41,3 +41,16 @@ class Servers(ApiTestCase):
         self.assert_success_json(r)
         data = dict([(r['name'], r['value']) for r in r.json()])
         self.assertIn('uptime', data)
+
+    def test_flush_cache(self):
+        r = self.session.put(self.url("/servers/localhost/flush-cache?domain=example.org."))
+        self.assert_success_json(r)
+        data = r.json()
+        self.assertIn('count', data)
+
+    def test_flush_complete_cache(self):
+        r = self.session.put(self.url("/servers/localhost/flush-cache"))
+        self.assert_success_json(r)
+        data = r.json()
+        self.assertIn('count', data)
+        self.assertEqual(data['result'], 'Flushed cache.')
