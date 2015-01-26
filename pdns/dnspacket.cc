@@ -589,7 +589,7 @@ void DNSPacket::commitD()
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
 
-bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
 

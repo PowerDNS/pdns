@@ -108,7 +108,7 @@ bool UeberBackend::createDomain(const string &domain)
   return false;
 }
 
-int UeberBackend::addDomainKey(const string& name, const KeyData& key)
+int UeberBackend::addDomainKey(const string& name, const DNSBackend::KeyData& key)
 {
   int ret;
   BOOST_FOREACH(DNSBackend* db, backends) {
@@ -117,7 +117,7 @@ int UeberBackend::addDomainKey(const string& name, const KeyData& key)
   }
   return -1;
 }
-bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
+bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDomainKeys(name, kind, keys))

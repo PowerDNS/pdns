@@ -38,6 +38,7 @@
 #include "dns.hh"
 #include "namespaces.hh"
 #include "dnsbackend.hh"
+#include "ueberbackend.hh"
 
 class ResolverException : public PDNSException
 {
@@ -113,35 +114,56 @@ class AXFRRetriever : public boost::noncopyable
 class FindNS
 {
 public:
-  vector<string> lookup(const string &name, DNSBackend *B)
+  vector<string> lookup(const string &name, DNSBackend *b)
   {
     vector<string> addresses;
+
+    this->resolve_name(&addresses, name);
     
-    struct addrinfo* res;
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    
-    for(int n = 0; n < 2; ++n) {
-      hints.ai_family = n ? AF_INET : AF_INET6;
-      ComboAddress remote;
-      remote.sin4.sin_family = AF_INET6;
-      if(!getaddrinfo(name.c_str(), 0, &hints, &res)) { 
-        struct addrinfo* address = res;
-        do {
-          memcpy(&remote, address->ai_addr, address->ai_addrlen);
-          addresses.push_back(remote.toString());
-        } while((address = address->ai_next));
-        freeaddrinfo(res);
-      }
-    }
-    
-    B->lookup(QType(QType::ANY),name);
+    b->lookup(QType(QType::ANY),name);
     DNSResourceRecord rr;
-    while(B->get(rr)) 
+    while(b->get(rr))
       if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
         addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
 
     return addresses;
+  }
+
+  vector<string> lookup(const string &name, UeberBackend *b)
+  {
+    vector<string> addresses;
+
+    this->resolve_name(&addresses, name);
+
+    b->lookup(QType(QType::ANY),name);
+    DNSResourceRecord rr;
+    while(b->get(rr))
+      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
+         addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+
+    return addresses;
+  }
+
+private:
+  void resolve_name(vector<string>* addresses, const string& name)
+  {
+    struct addrinfo* res;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+
+    for(int n = 0; n < 2; ++n) {
+      hints.ai_family = n ? AF_INET : AF_INET6;
+      ComboAddress remote;
+      remote.sin4.sin_family = AF_INET6;
+      if(!getaddrinfo(name.c_str(), 0, &hints, &res)) {
+        struct addrinfo* address = res;
+        do {
+          memcpy(&remote, address->ai_addr, address->ai_addrlen);
+          addresses->push_back(remote.toString());
+        } while((address = address->ai_next));
+        freeaddrinfo(res);
+      }
+    }
   }
 };
 

@@ -61,7 +61,7 @@ public:
   static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers. Called by Distributor
  
   void soaMagic(DNSResourceRecord *rr);
-  DNSBackend *getBackend();
+  UeberBackend *getBackend();
 
   int trySuperMasterSynchronous(DNSPacket *p);
 

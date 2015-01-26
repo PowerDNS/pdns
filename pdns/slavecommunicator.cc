@@ -71,7 +71,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
   di.backend=0;
   bool transaction=false;
   try {
-    UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
+    UeberBackend *B=P.getBackend();  // copy of the same UeberBackend
     DNSSECKeeper dk (B); // reuse our UeberBackend copy for DNSSECKeeper
 
     if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
@@ -519,7 +519,7 @@ void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
-  UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
+  UeberBackend *B=P->getBackend();
   vector<DomainInfo> rdomains;
   vector<DomainNotificationInfo> sdomains; // the bool is for 'presigned'
   vector<DNSPacket> trysuperdomains;

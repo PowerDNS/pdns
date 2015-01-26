@@ -80,7 +80,7 @@ PacketHandler::PacketHandler():B(s_programname)
 
 }
 
-DNSBackend *PacketHandler::getBackend()
+UeberBackend *PacketHandler::getBackend()
 {
   return &B;
 }
@@ -410,7 +410,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
-void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+void emitNSEC3(UeberBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
   // cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
