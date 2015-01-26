@@ -381,8 +381,7 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const std::string& signer, con
 
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
         SOAData sd;
-        sd.db=(DNSBackend *)-1; // force uncached answer
-        if(!db.getSOA(signer, sd)) {
+        if(!db.getSOAUncached(signer, sd)) {
                 DLOG(L<<"Could not get SOA for domain"<<endl);
                 return false;
         }

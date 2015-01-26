@@ -544,8 +544,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
-  sd.db = (DNSBackend*)-1; // force uncached answer
-  if(!B.getSOA(auth, sd)) {
+  if(!B.getSOAUncached(auth, sd)) {
     DLOG(L<<"Could not get SOA for domain");
     return;
   }
@@ -638,8 +637,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!B.getSOA(auth, sd)) {
+  if(!B.getSOAUncached(auth, sd)) {
     DLOG(L<<"Could not get SOA for domain"<<endl);
     return;
   }

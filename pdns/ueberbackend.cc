@@ -347,27 +347,34 @@ auth_found:
     return true;
 }
 
-/** special trick - if sd.db is set to -1, the cache is ignored */
 bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
   d_question.zoneId=-1;
     
-  if(sd.db!=(DNSBackend *)-1) {
-    int cstat=cacheHas(d_question,d_answers);
-    if(cstat==0) { // negative
-      return false;
-    }
-    else if(cstat==1 && !d_answers.empty()) {
-      fillSOAData(d_answers[0].content,sd);
-      sd.domain_id=d_answers[0].domain_id;
-      sd.ttl=d_answers[0].ttl;
-      sd.db=0;
-      return true;
-    }
+  int cstat=cacheHas(d_question,d_answers);
+  if(cstat==0) { // negative
+    return false;
   }
-    
+  else if(cstat==1 && !d_answers.empty()) {
+    fillSOAData(d_answers[0].content,sd);
+    sd.domain_id=d_answers[0].domain_id;
+    sd.ttl=d_answers[0].ttl;
+    sd.db=0;
+    return true;
+  }
+
+  // not found in neg. or pos. cache, look it up
+  return getSOAUncached(domain, sd, p);
+}
+
+bool UeberBackend::getSOAUncached(const string &domain, SOAData &sd, DNSPacket *p)
+{
+  d_question.qtype=QType::SOA;
+  d_question.qname=domain;
+  d_question.zoneId=-1;
+
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
       if( d_cache_ttl ) {
@@ -384,7 +391,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       return true;
     }
 
-  addNegCache(d_question); 
+  addNegCache(d_question);
   return false;
 }
 
