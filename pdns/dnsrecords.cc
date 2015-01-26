@@ -323,6 +323,21 @@ boilerplate_conv(RKEY, 57,
                  )
 RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
 
+
+boilerplate_conv(TKEY, 249, 
+                 conv.xfrLabel(d_algo);
+                 conv.xfr32BitInt(d_inception);
+                 conv.xfr32BitInt(d_expiration);
+                 conv.xfr16BitInt(d_mode);
+                 conv.xfr16BitInt(d_error);
+                 conv.xfr16BitInt(d_keysize);
+                 conv.xfrBlob(d_key, d_keysize);
+                 conv.xfr16BitInt(d_othersize);
+                 conv.xfrBlob(d_other, d_othersize);
+                )
+TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(249) {}
+
+
 /* EUI48 start */
 void EUI48RecordContent::report(void) 
 {
@@ -504,6 +519,7 @@ void reportOtherTypes()
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    //TSIGRecordContent::report();
    OPTRecordContent::report();
+   TKEYRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();
    MINFORecordContent::report();
