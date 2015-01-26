@@ -325,7 +325,7 @@ RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
 
 
 boilerplate_conv(TKEY, 249, 
-                 conv.xfrLabel(d_algo);
+                 conv.xfrLabel(d_name);
                  conv.xfr32BitInt(d_inception);
                  conv.xfr32BitInt(d_expiration);
                  conv.xfr16BitInt(d_mode);
