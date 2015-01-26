@@ -873,7 +873,7 @@ bool RemoteBackend::commitTransaction() {
    rapidjson::Value parameters;
 
    query.SetObject();
-   JSON_ADD_MEMBER(query, "method", "abortTransaction", query.GetAllocator());
+   JSON_ADD_MEMBER(query, "method", "commitTransaction", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
@@ -889,7 +889,7 @@ bool RemoteBackend::abortTransaction() {
    rapidjson::Value parameters;
 
    query.SetObject();
-   JSON_ADD_MEMBER(query, "method", "commitTransaction", query.GetAllocator());
+   JSON_ADD_MEMBER(query, "method", "abortTransaction", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
