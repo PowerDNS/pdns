@@ -18,6 +18,7 @@ before_script:
      geoip-database
      ldnsutils
      libboost-all-dev
+     libbotan1.10-dev
      libcdb-dev
      libcdb-dev
      libcurl4-openssl-dev
@@ -72,6 +73,7 @@ script:
      --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
      --with-modules=''
      --with-sqlite3
+     --enable-botan1.10
      --enable-unit-tests
      --enable-tools
      --enable-remotebackend-zeromq
