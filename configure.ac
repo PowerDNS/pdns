@@ -290,6 +290,8 @@ AS_IF([test "x$static" != "xyes"], [
   LDFLAGS="$PIE_LDFLAGS $LDFLAGS"
 ])
 
+PDNS_ENABLE_COVERAGE
+
 AC_SUBST(LIBS)
 
 AC_SUBST([AM_CPPFLAGS],
