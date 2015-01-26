@@ -43,8 +43,6 @@
 
 #include "namespaces.hh"
 
-class BackendReporter;
-
 /** This is a very magic backend that allows us to load modules dynamically,
     and query them in order. This is persistent over all UeberBackend instantiations
     across multiple threads. 
@@ -60,11 +58,6 @@ public:
   typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
-
-  /** contains BackendReporter objects, which contain maker functions and information about
-      weather a module has already been reported to existing instances of the UeberBackend
-  */
-//  static vector<BackendReporter>backendmakers;
 
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
       existing threads of new modules 
@@ -170,23 +163,6 @@ private:
   
   bool stale;
   int domain_id;
-};
-
-
-/** Class used to report new backends. It stores a maker function, and a flag that indicates that 
-    this module has been reported */
-class BackendReporter
-{
-public:
-  BackendReporter(UeberBackend::BackendMaker *p)
-  {
-    maker=p;
-    reported=false;
-  };
-  map<string,string>d_parameters;
-  UeberBackend::BackendMaker *maker; //!< function to make this backend
-  bool reported; //!< if this backend has been reported to running UeberBackend threads 
-private:
 };
 
 #endif
