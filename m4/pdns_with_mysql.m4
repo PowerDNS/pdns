@@ -38,7 +38,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
 
   MYSQL_config=""
   if test "x$MYSQL_config_check" != "xskip"; then
-    if test "x$MYSQL_config_check" == "x"; then
+    if test "x$MYSQL_config_check" = "x"; then
       AC_PATH_PROG([MYSQL_config], [mysql_config])
     else
       AC_MSG_CHECKING([for $MYSQL_config_check])

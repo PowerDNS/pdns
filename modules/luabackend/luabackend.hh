@@ -43,7 +43,7 @@ public:
 //  MASTER BACKEND
 
     void getUpdatedMasters(vector<DomainInfo>* domains);
-    void setNotifed(int id, u_int32_t serial);
+    void setNotifed(int id, uint32_t serial);
 
 
 //  SLAVE BACKEND
