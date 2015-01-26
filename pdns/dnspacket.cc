@@ -45,6 +45,8 @@
 #include "base64.hh"
 #include "ednssubnet.hh"
 
+#include <typeinfo>
+
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
  
@@ -457,7 +459,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
     return false;
   
   bool gotit=false;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     if(i->first.d_type == QType::TSIG) {
       *trc = *boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       
@@ -473,6 +475,26 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
     *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, d_tsigprevious, false); // if you change rawpacket to getString it breaks!
   
   return true;
+}
+
+bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, string *keyname) const
+{
+  MOADNSParser mdp(d_rawpacket);
+  bool gotit=false;
+
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+    if (gotit) {
+      L<<Logger::Error<<"More than one TKEY record found in query"<<endl;
+      return false; 
+    }
+    if(i->first.d_type == QType::TKEY) {
+      *tr = *boost::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      *keyname = i->first.d_label;
+      gotit=true;
+    }
+  }
+
+  return gotit;
 }
 
 /** This function takes data from the network, possibly received with recvfrom, and parses

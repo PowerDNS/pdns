@@ -156,6 +156,8 @@ public:
   TSIGRecordContent d_trc;
   static bool s_doEDNSSubnetProcessing;
   static uint16_t s_udpTruncationThreshold;
+ 
+  bool getTKEYRecord(TKEYRecordContent* tr, string* keyname) const;
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
