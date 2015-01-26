@@ -150,7 +150,7 @@ pdns_server_SOURCES = \
 	polarrsakeyinfra.cc \
 	qtype.cc qtype.hh \
 	randomhelper.cc \
-	rcpgenerator.cc	\
+	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh \
@@ -371,7 +371,7 @@ zone2json_LDFLAGS = $(THREADFLAGS)
 zone2json_LDADD = $(POLARSSL_LIBS)
 
 # pkglib_LTLIBRARIES = iputils.la
-# iputils_la_SOURCES = lua-iputils.cc 
+# iputils_la_SOURCES = lua-iputils.cc
 # iputils_la_LDFLAGS= -module -avoid-version
 
 if LDAP
@@ -457,8 +457,8 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-sdig_LDADD = $(POLARSSL_LIBS) 	
-sdig_LDFLAGS=$(THREADFLAGS) 
+sdig_LDADD = $(POLARSSL_LIBS)
+sdig_LDFLAGS = $(THREADFLAGS)
 
 saxfr_SOURCES = \
 	base32.cc \
@@ -479,11 +479,11 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD = $(POLARSSL_LIBS) 
+saxfr_LDADD = $(POLARSSL_LIBS)
 saxfr_LDFLAGS = $(THREADFLAGS)
 
 if PKCS11
-saxfr_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -561,11 +561,11 @@ nsec3dig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-nsec3dig_LDADD = $(POLARSSL_LIBS) 
-nsec3dig_LDFLAGS= $(THREADFLAGS)
+nsec3dig_LDADD = $(POLARSSL_LIBS)
+nsec3dig_LDFLAGS = $(THREADFLAGS)
 
 if PKCS11
-nsec3dig_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -590,7 +590,7 @@ toysdig_SOURCES = \
 	toysdig.cc \
 	unix_utility.cc
 
-toysdig_LDADD = $(POLARSSL_LIBS) 
+toysdig_LDADD = $(POLARSSL_LIBS)
 toysdig_LDFLAGS = $(THREADFLAGS)
 
 tsig_tests_SOURCES = \
@@ -617,11 +617,11 @@ tsig_tests_SOURCES = \
 	tsig-tests.cc \
 	unix_utility.cc
 
-tsig_tests_LDADD = $(POLARSSL_LIBS) 
-tsig_tests_LDFLAGS=$(THREADFLAGS)
+tsig_tests_LDADD = $(POLARSSL_LIBS)
+tsig_tests_LDFLAGS = $(THREADFLAGS)
 
 if PKCS11
-tsig_tests_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -702,8 +702,8 @@ dnsscan_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsscan_LDADD = $(POLARSSL_LIBS) 
-dnsscan_LDFLAGS=$(THREADFLAGS)
+dnsscan_LDADD = $(POLARSSL_LIBS)
+dnsscan_LDFLAGS = $(THREADFLAGS)
 
 dnsreplay_SOURCES = \
 	anadns.hh \
@@ -836,8 +836,8 @@ dnsgram_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsgram_LDADD = $(POLARSSL_LIBS) 
-dnsgram_LDFLAGS=$(THREADFLAGS)
+dnsgram_LDADD = $(POLARSSL_LIBS)
+dnsgram_LDFLAGS = $(THREADFLAGS)
 
 dnsdemog_SOURCES = \
 	base32.cc \
@@ -858,7 +858,7 @@ dnsdemog_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsdemog_LDADD = $(POLARSSL_LIBS) 
+dnsdemog_LDADD = $(POLARSSL_LIBS)
 dnsdemog_LDFLAGS = $(THREADFLAGS)
 
 rec_control_SOURCES = \
