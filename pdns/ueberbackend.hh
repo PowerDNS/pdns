@@ -119,8 +119,6 @@ public:
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker(const map<string,string> &);
-  static void closeDynListener();
-  static void setStatus(const string &st);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
@@ -173,7 +171,6 @@ private:
   static sem_t d_dynserialize;
   static bool d_go;
   static int s_s;
-  static string s_status; 
   int d_ancount;
   
   bool stale;

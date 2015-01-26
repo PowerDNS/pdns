@@ -54,7 +54,6 @@ vector<UeberBackend *>UeberBackend::instances;
 pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
 
 sem_t UeberBackend::d_dynserialize;
-string UeberBackend::s_status;
 
 // initially we are blocked
 bool UeberBackend::d_go=false;
@@ -397,11 +396,6 @@ bool UeberBackend::superMasterBackend(const string &ip, const string &domain, co
     if((*i)->superMasterBackend(ip, domain, nsset, nameserver, account, db))
       return true;
   return false;
-}
-
-void UeberBackend::setStatus(const string &st)
-{
-  s_status=st;
 }
 
 UeberBackend::UeberBackend(const string &pname)
