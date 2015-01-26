@@ -1006,7 +1006,7 @@ pdns_control_SOURCES = \
 pdns_control_LDFLAGS = $(THREADFLAGS)
 
 if UNIT_TESTS
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
 else
 check-local:
