@@ -132,15 +132,6 @@ if test "$has_RTLD_NOW" = "no"; then
 fi
 LIBS=$ac_save_LIBS
 
-# Check for libcrypt
-
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(crypt, crypt)
-LIBCRYPT=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBCRYPT)
-
 THREADFLAGS=""
 
 case "$host_os" in
@@ -288,10 +279,6 @@ for a in $modules; do
     moduleobjects="$moduleobjects ../modules/${a}backend/$b"
   done
   modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
-
-  if test ${a} = "gpgsql"; then
-    LIBS="$LIBS $LIBCRYPT"
-  fi
 done
 
 for a in $dynmodules; do
