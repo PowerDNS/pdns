@@ -332,6 +332,16 @@ pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
 pdnssec_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+pdnssec_LDADD += $(GSS_LIBS)
+endif
+
+
+if GSS_TSIG
+pdnssec_LDADD += $(GSS_LIBS)
+endif
+
+
 zone2sql_SOURCES = \
 	arguments.cc \
 	base32.cc \
@@ -966,6 +976,14 @@ testrunner_LDADD = \
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+testrunner_LDADD += $(GSS_LIBS)
+endif
+
+if GSS_TSIG
+testrunner_LDADD += $(GSS_LIBS)
 endif
 
 pdns_recursor_SOURCES = \
