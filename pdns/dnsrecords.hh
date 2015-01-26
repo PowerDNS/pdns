@@ -557,7 +557,7 @@ public:
   includeboilerplate(TKEY)
 
   // storage for the bytes
-  string d_name;
+  string d_algo;
   uint32_t d_inception;
   uint32_t d_expiration;
   uint16_t d_mode;

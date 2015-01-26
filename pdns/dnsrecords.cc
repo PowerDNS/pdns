@@ -324,18 +324,18 @@ boilerplate_conv(RKEY, 57,
 RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
 
 
-boilerplate_conv(TKEY, 249, 
-                 conv.xfrLabel(d_name);
+boilerplate_conv(TKEY, QType::TKEY, 
+                 conv.xfrLabel(d_algo);
                  conv.xfr32BitInt(d_inception);
                  conv.xfr32BitInt(d_expiration);
                  conv.xfr16BitInt(d_mode);
                  conv.xfr16BitInt(d_error);
                  conv.xfr16BitInt(d_keysize);
-                 conv.xfrBlob(d_key, d_keysize);
+                 if (d_keysize>0) conv.xfrBlob(d_key, d_keysize);
                  conv.xfr16BitInt(d_othersize);
-                 conv.xfrBlob(d_other, d_othersize);
-                )
-TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(249) {}
+                 if (d_othersize>0) conv.xfrBlob(d_other, d_othersize);
+                 )
+TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) {}
 
 
 /* EUI48 start */
@@ -517,6 +517,7 @@ void reportOtherTypes()
    TLSARecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   DNSRecordContent::regist(QClass::ANY, QType::TKEY, &TKEYRecordContent::make, &TKEYRecordContent::make, "TKEY");
    //TSIGRecordContent::report();
    OPTRecordContent::report();
    TKEYRecordContent::report();
