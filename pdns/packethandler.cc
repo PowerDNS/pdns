@@ -43,6 +43,7 @@
 #include "dnsproxy.hh"
 #include "version.hh"
 #include "common_startup.hh"
+#include "tkey.hh"
 
 #if 0
 #undef DLOG
