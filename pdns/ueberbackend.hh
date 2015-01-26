@@ -170,7 +170,6 @@ private:
   static pthread_cond_t d_cond;
   static sem_t d_dynserialize;
   static bool d_go;
-  static int s_s;
   int d_ancount;
   
   bool stale;

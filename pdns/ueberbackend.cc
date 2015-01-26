@@ -60,8 +60,6 @@ bool UeberBackend::d_go=false;
 pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t UeberBackend::d_cond = PTHREAD_COND_INITIALIZER;
 
-int UeberBackend::s_s=-1; // ?
-
 #ifdef NEED_RTLD_NOW
 #define RTLD_NOW RTLD_LAZY
 #endif
