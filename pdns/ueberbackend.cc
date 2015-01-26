@@ -419,12 +419,6 @@ UeberBackend::UeberBackend(const string &pname)
   backends=BackendMakers().all(pname=="key-only");
 }
 
-void UeberBackend::die()
-{
-  cleanup();
-  stale=true;
-}
-
 void del(DNSBackend* d)
 {
   delete d;

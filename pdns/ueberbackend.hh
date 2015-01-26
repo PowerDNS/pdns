@@ -83,7 +83,6 @@ public:
       new modules are loaded */
   vector<DNSBackend*> backends; 
 
-  void die();
   void cleanup();
 
   //! the very magic handle for UeberBackend questions
