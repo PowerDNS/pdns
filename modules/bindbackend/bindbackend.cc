@@ -37,7 +37,7 @@
 #include "pdns/namespaces.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
-#include "bindbackend2.hh"
+#include "bindbackend.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/zoneparser-tng.hh"
 #include "pdns/bindparserclasses.hh"

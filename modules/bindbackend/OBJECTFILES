@@ -1,1 +1,1 @@
-bindbackend2.lo binddnssec.lo
+bindbackend.lo binddnssec.lo
