@@ -26,7 +26,7 @@
 #include "statbag.hh"
 extern StatBag S;
 #endif
-
+#include "lock.hh"
 #include "namespaces.hh"
 
 pthread_once_t Logger::s_once;
