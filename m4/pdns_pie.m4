@@ -19,6 +19,7 @@ dnl <http://www.gnu.org/licenses/>.
 dnl
 
 AC_DEFUN([AC_CC_PIE],[
+    AC_REQUIRE([gl_UNKNOWN_WARNINGS_ARE_ERRORS])
     PIE_CFLAGS=
     PIE_LDFLAGS=
     case "$host" in
