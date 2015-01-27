@@ -15,11 +15,16 @@ using std::string;
 BOOST_AUTO_TEST_SUITE(bindparser_cc)
 
 BOOST_AUTO_TEST_CASE(test_parser) {
+        char *srcdir;
         std::ostringstream pathbuf;
         BindParser BP;
         BOOST_CHECK_THROW( BP.parse("../regression-tests/named.confx"), PDNSException);
         BP.setVerbose(true);
-        pathbuf << std::getenv("SRCDIR") << "/../pdns/named.conf.parsertest";
+        srcdir = std::getenv("SRCDIR");
+        if(!srcdir)
+                srcdir="."; // assume no shenanigans
+
+        pathbuf << srcdir << "/../pdns/named.conf.parsertest";
         BP.parse(pathbuf.str());
 
         vector<BindDomainInfo> domains=BP.getDomains();
