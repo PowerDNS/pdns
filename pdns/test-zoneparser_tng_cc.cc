@@ -11,6 +11,7 @@
 #include "zoneparser-tng.hh"
 #include "dnsrecords.hh"
 #include <fstream>
+#include <cstdlib>
 
 BOOST_AUTO_TEST_SUITE(test_zoneparser_tng_cc)
 
@@ -18,10 +19,12 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
   reportAllTypes();
   reportFancyTypes();
 
-  ZoneParserTNG zp("../regression-tests/zones/unit.test", "unit.test");
+  std::ostringstream pathbuf;
+  pathbuf << std::getenv("SRCDIR") << "/../regression-tests/zones/unit.test";
+  ZoneParserTNG zp(pathbuf.str(), "unit.test");
   DNSResourceRecord rr;
 
-  boost::iostreams::stream<boost::iostreams::file_source> ifs("../regression-tests/zones/unit.test");
+  boost::iostreams::stream<boost::iostreams::file_source> ifs(pathbuf.str());
 
   while(zp.get(rr)) {
     // make sure these concur.
