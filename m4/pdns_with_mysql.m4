@@ -39,7 +39,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
   MYSQL_config=""
   if test "x$MYSQL_config_check" != "xskip"; then
     AC_MSG_CHECKING([for mysql_config])
-    if test "x$MYSQL_config_check" == "x"; then
+    if test "x$MYSQL_config_check" = "x"; then
       # check if it's in path
       for m in /bin /usr/bin /usr/local/bin /opt/csw/bin; do
         if test -x $m/mysql_config; then
@@ -48,7 +48,7 @@ AC_DEFUN([PDNS_WITH_MYSQL],[
         fi
       done
 
-      if test "x$MYSQL_config" == "x"; then
+      if test "x$MYSQL_config" = "x"; then
         AC_MSG_RESULT([not found])
       else
         AC_MSG_RESULT([$MYSQL_config])
