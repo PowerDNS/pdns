@@ -698,6 +698,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       return RCode::Refused;
     }
 
+    if (toLowerCanonic(trc.d_algoName) == "gss-tsig") inputkey = "gss-tsig";
+
     for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
       if (inputkey == *key) // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
         validKey=true;
@@ -707,6 +709,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       L<<Logger::Error<<msgPrefix<<"TSIG key ("<<inputkey<<") required, but no matching key found in domainmetadata, tried "<<tsigKeys.size()<<". Sending REFUSED"<<endl;
       return RCode::Refused;
     }
+
+    L<<Logger::Info<<msgPrefix<<"Update permitted by TSIG key " << inputkey << endl;
   }
 
   if (tsigKeys.size() == 0 && p->d_havetsig)
