@@ -149,6 +149,7 @@ solaris2.8 | solaris2.9 )
   ;;
 linux*)
   THREADFLAGS="-pthread"
+  have_linux="yes"
   ;;
 darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
@@ -158,6 +159,8 @@ darwin*)
   CXXFLAGS="-pthread $CXXFLAGS"
   ;;
 esac
+
+AM_CONDITIONAL([HAVE_LINUX], [test "x$have_linux" = "xyes"])
 
 AC_SUBST(THREADFLAGS)
 AC_SUBST([DYNLINKFLAGS], [-export-dynamic])

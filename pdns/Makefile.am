@@ -948,7 +948,6 @@ pdns_recursor_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
-	epollmplexer.cc \
 	iputils.cc \
 	json.cc json.hh \
 	logger.cc \
@@ -991,6 +990,10 @@ pdns_recursor_LDADD = \
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
+endif
+
+if HAVE_LINUX
+pdns_recursor_SOURCES += epollmplexer.cc
 endif
 
 pdns_control_SOURCES = \
