@@ -331,9 +331,9 @@ boilerplate_conv(TKEY, QType::TKEY,
                  conv.xfr16BitInt(d_mode);
                  conv.xfr16BitInt(d_error);
                  conv.xfr16BitInt(d_keysize);
-                 if (d_keysize>0) conv.xfrBlob(d_key, d_keysize);
+                 if (d_keysize>0) conv.xfrBlobNoSpaces(d_key, d_keysize);
                  conv.xfr16BitInt(d_othersize);
-                 if (d_othersize>0) conv.xfrBlob(d_other, d_othersize);
+                 if (d_othersize>0) conv.xfrBlobNoSpaces(d_other, d_othersize);
                  )
 TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) {}
 
