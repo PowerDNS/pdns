@@ -22,12 +22,14 @@ AC_DEFUN([AC_CC_PIE],[
     AC_REQUIRE([gl_UNKNOWN_WARNINGS_ARE_ERRORS])
     PIE_CFLAGS=
     PIE_LDFLAGS=
+    OLD_CXXFLAGS=$CXXFLAGS
     case "$host" in
       *-*-mingw* | *-*-msvc* | *-*-cygwin* )
          ;; dnl All code is position independent on Win32 target
       *)
       gl_COMPILER_OPTION_IF([-fPIE -DPIE], [
         PIE_CFLAGS="-fPIE -DPIE"
+        CXXFLAGS="$PIE_CFLAGS"
         gl_COMPILER_OPTION_IF([-pie], [
           PIE_LDFLAGS="-pie"
           ], [
@@ -39,6 +41,7 @@ AC_DEFUN([AC_CC_PIE],[
         )]
       )
     esac
+    CXXFLAGS=$OLD_CXXFLAGS
     AC_SUBST([PIE_CFLAGS])
     AC_SUBST([PIE_LDFLAGS])
 ])
