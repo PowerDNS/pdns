@@ -130,7 +130,7 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<string, CIStringCompare>& authMap, vector<DNSResourceRecord>& rrs);
 
-typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512 } TSIGHashEnum;
+typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
 
 string calculateMD5HMAC(const std::string& key, const std::string& text);
 string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
