@@ -72,7 +72,7 @@ by graphite and metronome. See
 ## `carbon-interval`
 * Integer
 * Default: 30
-* Availavle since: 3.3.1
+* Available since: 3.3.1
 
 If sending carbon updates, this is the interval between them in seconds. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
@@ -91,6 +91,7 @@ this depends on `SYSCONFDIR` during compile-time.
 
 ## `config-name`
 * String
+
 Name of this virtual configuration - will rename the binary image. See
 ["Virtual hosting"](virtual.md).
 
