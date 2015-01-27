@@ -151,7 +151,7 @@ boilerplate_conv(TSIG, QType::TSIG,
                  conv.xfrBlob(d_mac, size);
                  conv.xfr16BitInt(d_origID);
                  conv.xfr16BitInt(d_eRcode);
-                     size=d_otherData.size();
+                 size=d_otherData.size();
                  conv.xfr16BitInt(size); 
                  if (size>0) conv.xfrBlob(d_otherData, size);
                  );
