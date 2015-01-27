@@ -633,10 +633,11 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 
+#ifdef ENABLE_GSS_TSIG
   if (algoName == "gss-tsig") {
-    // rah rah
     return pdns_gssapi_verify(*keyname, message, trc->d_mac);
   }
+#endif
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
