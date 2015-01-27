@@ -44,8 +44,7 @@
 #include "dnssecinfra.hh" 
 #include "base64.hh"
 #include "ednssubnet.hh"
-
-#include <typeinfo>
+#include "tkey.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
@@ -633,6 +632,11 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
   string algoName = toLowerCanonic(trc->d_algoName);
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
+
+  if (algoName == "gss-tsig") {
+    // rah rah
+    return pdns_gssapi_verify(*keyname, message, trc->d_mac);
+  }
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
