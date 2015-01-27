@@ -339,6 +339,7 @@ pdnssec_LDADD += $(P11KIT1_LIBS)
 endif
 
 if GSS_TSIG
+pdnssec_SOURCES += gssapi.cc
 pdnssec_LDADD += $(GSS_LIBS)
 endif
 
