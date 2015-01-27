@@ -125,19 +125,18 @@ OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& in
       }
   }
 
-/*  if ((maj_status == GSS_S_COMPLETE) && ((flags & (GSS_C_MUTUAL_FLAG|GSS_C_PROT_READY_FLAG)) != GSS_C_MUTUAL_FLAG|GSS_C_PROT_READY_FLAG) ) {
-    // sorry, unacceptable
+  if ((maj_status == GSS_S_COMPLETE) &&
+      (!(flags & GSS_C_MUTUAL_FLAG))) {
+    // sorry, unacceptable, peer needs to auth too
     if (ctx != GSS_C_NO_CONTEXT) {
       gss_delete_sec_context(&min_status,
                              &ctx,
                              GSS_C_NO_BUFFER);
     }
     maj_status = GSS_S_DEFECTIVE_CREDENTIAL; // anything that makes it fail
-  }*/
-
-//  if (maj_status == GSS_S_COMPLETE) {
-     gss_ctx_map[label] = ctx;
-//  }
+  } else {
+    gss_ctx_map[label] = ctx;
+  }
 
   return maj_status;
 }
