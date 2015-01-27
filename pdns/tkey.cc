@@ -15,12 +15,15 @@ void pdns_tkey_handler(DNSPacket *p, DNSPacket *r) {
   TKEYRecordContent tkey_in;
   boost::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   string label;
+  bool sign=false;
 
   if (!p->getTKEYRecord(&tkey_in, &label)) {
     L<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
     r->setRcode(RCode::FormErr);
     return;
   }
+
+  label = toLowerCanonic(label);
 
   tkey_out->d_error = 0;
   tkey_out->d_mode = tkey_in.d_mode;
@@ -42,10 +45,10 @@ void pdns_tkey_handler(DNSPacket *p, DNSPacket *r) {
         OM_uint32 result = pdns_gssapi_accept_ctx(label, tkey_in.d_key, tkey_out->d_key);
         if (GSS_ERROR(result)) {
           tkey_out->d_error = 17; // BADKEY
-        } else if (result & GSS_S_COMPLETE) {
+        } else if (result == GSS_S_COMPLETE) {
           tkey_out->d_error = 0;
-          // FIXME: Add TSIG record
-        } 
+          sign=true;
+        }
       }
     }
 #else
@@ -90,5 +93,20 @@ void pdns_tkey_handler(DNSPacket *p, DNSPacket *r) {
   rr.qclass = QClass::ANY;
   rr.d_place = DNSResourceRecord::ANSWER;
   r->addRecord(rr);
+#ifdef ENABLE_GSS_TSIG
+  if (sign) 
+  {
+    TSIGRecordContent trc;
+    trc.d_algoName = "gss-tsig";
+    trc.d_time = tkey_out->d_inception;
+    trc.d_fudge = 300;
+    trc.d_mac = "";
+    trc.d_origID = p->d.id;
+    trc.d_eRcode = 0;
+    trc.d_otherData = "";
+    // this should cause it to lookup label context
+    r->setTSIGDetails(trc, label, label, "", false);
+  }
+#endif
   r->commitD();
 }

@@ -74,7 +74,9 @@ bool pdns_gssapi_get_credential(void) {
   value.value = (void*)"DNS/labra01.unit.test@UNIT.TEST";
 
   gss_import_name(&min_status, &value, (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME, &target_name);
-  gss_acquire_cred(&min_status, target_name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_ACCEPT, &gss_cred, NULL, NULL);
+  maj_status = gss_acquire_cred(&min_status, target_name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_ACCEPT, &gss_cred, NULL, NULL);
+  if (GSS_ERROR(maj_status))
+    pdns_gssapi_display_status("gss_acquire_cred", maj_status, min_status);
   gss_release_name(&min_status, &target_name);
 
   return true;
@@ -93,7 +95,7 @@ gss_ctx_id_t pdns_gssapi_find_ctx(const std::string& label) {
 OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& input, std::string& output) {
   Lock l(&gss_mutex);
 
-  OM_uint32 maj_status, min_status;
+  OM_uint32 maj_status, min_status, flags;
   gss_buffer_desc value = GSS_C_EMPTY_BUFFER;
   gss_buffer_desc recv_tok = GSS_C_EMPTY_BUFFER;
   gss_buffer_desc send_tok = GSS_C_EMPTY_BUFFER;
@@ -104,7 +106,7 @@ OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& in
   
   recv_tok.length = input.size();
   recv_tok.value = (void*)input.c_str();
-  maj_status = gss_accept_sec_context(&min_status, &ctx, gss_cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS, NULL, NULL, &send_tok, NULL, NULL, NULL);
+  maj_status = gss_accept_sec_context(&min_status, &ctx, gss_cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS, NULL, NULL, &send_tok, &flags, NULL, NULL);
 
   if (GSS_ERROR(maj_status)) {
     pdns_gssapi_display_status("accept_context", maj_status, min_status);
@@ -123,9 +125,19 @@ OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& in
       }
   }
 
-  if (maj_status & GSS_S_COMPLETE) {
+/*  if ((maj_status == GSS_S_COMPLETE) && ((flags & (GSS_C_MUTUAL_FLAG|GSS_C_PROT_READY_FLAG)) != GSS_C_MUTUAL_FLAG|GSS_C_PROT_READY_FLAG) ) {
+    // sorry, unacceptable
+    if (ctx != GSS_C_NO_CONTEXT) {
+      gss_delete_sec_context(&min_status,
+                             &ctx,
+                             GSS_C_NO_BUFFER);
+    }
+    maj_status = GSS_S_DEFECTIVE_CREDENTIAL; // anything that makes it fail
+  }*/
+
+//  if (maj_status == GSS_S_COMPLETE) {
      gss_ctx_map[label] = ctx;
-  }
+//  }
 
   return maj_status;
 }
@@ -139,12 +151,72 @@ bool pdns_gssapi_delete_ctx(const std::string& label, const std::string& input, 
   if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
     gss_ctx_id_t ctx = gss_ctx_map[label];
     gss_ctx_map.erase(label);
-    gss_delete_sec_context(&min_status, &ctx, &send_tok);
+    maj_status = gss_delete_sec_context(&min_status, &ctx, &send_tok);
+    if (GSS_ERROR(maj_status))
+      pdns_gssapi_display_status("gss_delete_sec_context", maj_status, min_status);
     if (send_tok.length > 0) {
       output.assign((const char*)send_tok.value, send_tok.length);
       gss_release_buffer(&min_status, &send_tok);
     }
     return true;
+  }
+
+  return false;
+}
+
+bool pdns_gssapi_sign(const std::string& label, const std::string& input, std::string& output) {
+  Lock l(&gss_mutex);
+
+  OM_uint32 maj_status, min_status;
+  gss_buffer_desc recv_tok = GSS_C_EMPTY_BUFFER;
+  gss_buffer_desc send_tok = GSS_C_EMPTY_BUFFER;
+
+  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
+    gss_ctx_id_t ctx = gss_ctx_map[label];
+    recv_tok.length = input.size();
+    recv_tok.value = (void*)input.c_str();
+
+    maj_status = gss_get_mic(&min_status, ctx, GSS_C_QOP_DEFAULT, &recv_tok, &send_tok);
+    if (GSS_ERROR(maj_status)) {
+      pdns_gssapi_display_status("pdns_gssapi_sign", maj_status, min_status);
+    }
+
+    if (send_tok.length>0) {
+      output.assign((const char*)send_tok.value, send_tok.length);
+      gss_release_buffer(&min_status, &send_tok);
+    }
+
+    return (maj_status == GSS_S_COMPLETE);
+  } else {
+    L<<Logger::Error<<"GSS signing request with label " << label << ", but no context found" << endl;
+  }
+
+  return false;
+}
+
+bool pdns_gssapi_verify(const std::string& label, const std::string& input, const std::string& token) {
+  Lock l(&gss_mutex);
+
+  OM_uint32 maj_status, min_status;
+  gss_buffer_desc recv_tok = GSS_C_EMPTY_BUFFER;
+  gss_buffer_desc sign_tok = GSS_C_EMPTY_BUFFER;
+
+  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
+    gss_ctx_id_t ctx = gss_ctx_map[label];
+    recv_tok.length = input.size();
+    recv_tok.value = (void*)input.c_str();
+    sign_tok.length = token.size();
+    sign_tok.value = (void*)token.c_str();
+
+    maj_status = gss_verify_mic(&min_status, ctx, &recv_tok, &sign_tok, NULL);
+
+    if (GSS_ERROR(maj_status)) {
+      pdns_gssapi_display_status("pdns_gssapi_verify", maj_status, min_status);
+    }
+
+    return (maj_status == GSS_S_COMPLETE);
+  } else {
+    L<<Logger::Error<<"GSS verification request with label " << label << ", but no context found" << endl;
   }
 
   return false;
