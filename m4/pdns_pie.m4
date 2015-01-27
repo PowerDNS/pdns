@@ -27,7 +27,6 @@ AC_DEFUN([AC_CC_PIE],[
       *-*-mingw* | *-*-msvc* | *-*-cygwin* )
          ;; dnl All code is position independent on Win32 target
       *)
-      gl_COMPILER_OPTION_IF([-fPIE -DPIE], [
         CXXFLAGS="-fPIE -DPIE"
         gl_COMPILER_OPTION_IF([-pie], [
           PIE_CFLAGS="-fPIE -DPIE"
@@ -48,13 +47,7 @@ __thread unsigned int t_id;
 #include <pthread.h>
 __thread unsigned int t_id;
             ]], [[t_id = 1;]])]
-        )],
-        [],
-        [AC_LANG_PROGRAM([[
-#include <pthread.h>
-__thread unsigned int t_id;
-          ]], [[t_id = 1;]])]
-      )
+        )
     esac
     CXXFLAGS=$OLD_CXXFLAGS
     AC_SUBST([PIE_CFLAGS])
