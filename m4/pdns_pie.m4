@@ -28,13 +28,14 @@ AC_DEFUN([AC_CC_PIE],[
          ;; dnl All code is position independent on Win32 target
       *)
       gl_COMPILER_OPTION_IF([-fPIE -DPIE], [
-        PIE_CFLAGS="-fPIE -DPIE"
-        CXXFLAGS="$PIE_CFLAGS"
+        CXXFLAGS="-fPIE -DPIE"
         gl_COMPILER_OPTION_IF([-pie], [
+          PIE_CFLAGS="-fPIE -DPIE"
           PIE_LDFLAGS="-pie"
           ], [
             dnl some versions of clang require -Wl,-pie instead of -pie
             gl_COMPILER_OPTION_IF([[-Wl,-pie]], [
+              PIE_CFLAGS="-fPIE -DPIE"
               PIE_LDFLAGS="-Wl,-pie"
             ])
           ]
