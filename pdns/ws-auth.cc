@@ -340,7 +340,6 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
     object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-    object.AddMember("priority", rr.priority, doc.GetAllocator());
     object.AddMember("disabled", rr.disabled, doc.GetAllocator());
     string temp_content = rr.content;
     if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
@@ -398,15 +397,11 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       rr.content = stringFromJson(record, "content");
       rr.auth = 1;
       rr.ttl = intFromJson(record, "ttl");
-      rr.priority = intFromJson(record, "priority");
+      rr.priority = 0;
       rr.disabled = boolFromJson(record, "disabled");
 
-      string temp_content = rr.content;
-      if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
-        temp_content = lexical_cast<string>(rr.priority)+" "+rr.content;
-
       try {
-        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, temp_content));
+        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
         string tmp = drc->serialize(rr.qname);
       }
       catch(std::exception& e)
@@ -428,6 +423,15 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
 
         ptr.domain_id = sd.domain_id;
         new_ptrs.push_back(ptr);
+      } else if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV) {
+        int prio;
+        prio=atoi(rr.content.c_str());
+
+        string::size_type pos = rr.content.find_first_not_of("0123456789");
+        if(pos != string::npos)
+          boost::erase_head(rr.content, pos);
+        trim_left(rr.content);
+        rr.priority = prio;
       }
 
       new_records.push_back(rr);
