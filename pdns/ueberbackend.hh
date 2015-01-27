@@ -102,7 +102,7 @@ public:
 
   void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
-  bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
+  bool getAuth(DNSPacket *p, SOAData *sd, const string &target);
   bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
   bool getSOAUncached(const string &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
   bool list(const string &target, int domain_id, bool include_disabled=false);

@@ -271,7 +271,7 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
-bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
+bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target)
 {
   int best_match_len = -1;
   bool from_cache = false;  // Was this result fetched from the cache?
@@ -312,7 +312,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
   }
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
-    if((*i)->getAuth(p, sd, target, zoneId, best_match_len)) {
+    if((*i)->getAuth(p, sd, target, best_match_len)) {
         best_match_len = sd->qname.length();
         from_cache = false;
 

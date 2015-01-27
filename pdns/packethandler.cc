@@ -986,8 +986,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   *shouldRecurse=false;
   DNSResourceRecord rr;
   SOAData sd;
-  sd.db=0;
-  
+
   string subdomain="";
   string soa;
   int retargetcount=0;
@@ -1116,7 +1115,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
     
-    if(!B.getAuth(p, &sd, target, 0)) {
+    if(!B.getAuth(p, &sd, target)) {
       DLOG(L<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(r->d.ra) {
         DLOG(L<<Logger::Error<<"Recursion is available for this remote, doing that"<<endl);
