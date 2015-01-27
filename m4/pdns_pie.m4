@@ -38,13 +38,22 @@ AC_DEFUN([AC_CC_PIE],[
               PIE_CFLAGS="-fPIE -DPIE"
               PIE_LDFLAGS="-Wl,-pie"
               ], [],
-              [AC_LANG_PROGRAM([[#include <pthread.h>]], [[static __thread unsigned int t_id = 1;]])]
+              [AC_LANG_PROGRAM([[
+#include <pthread.h>
+__thread unsigned int t_id;
+                ]], [[t_id = 1;]])]
             )
           ],
-          [AC_LANG_PROGRAM([[#include <pthread.h>]], [[static __thread unsigned int t_id = 1;]])]
+          [AC_LANG_PROGRAM([[
+#include <pthread.h>
+__thread unsigned int t_id;
+            ]], [[t_id = 1;]])]
         )],
         [],
-        [AC_LANG_PROGRAM([[#include <pthread.h>]], [[static __thread unsigned int t_id = 1;]])]
+        [AC_LANG_PROGRAM([[
+#include <pthread.h>
+__thread unsigned int t_id;
+          ]], [[t_id = 1;]])]
       )
     esac
     CXXFLAGS=$OLD_CXXFLAGS
