@@ -68,28 +68,48 @@ bool pdns_gssapi_get_credential(void) {
   OM_uint32 maj_status, min_status;
   gss_buffer_desc value = GSS_C_EMPTY_BUFFER;
   gss_name_t target_name;
+  bool retval = true;
 
   // try to get us a name
-  value.length = strlen("DNS/labra01.unit.test@UNIT.TEST");
-  value.value = (void*)"DNS/labra01.unit.test@UNIT.TEST";
+  value.length = strlen("DNS/");
+  value.value = (void*)"DNS/";
 
   gss_import_name(&min_status, &value, (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME, &target_name);
   maj_status = gss_acquire_cred(&min_status, target_name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_ACCEPT, &gss_cred, NULL, NULL);
-  if (GSS_ERROR(maj_status))
+
+  if (GSS_ERROR(maj_status)) {
     pdns_gssapi_display_status("gss_acquire_cred", maj_status, min_status);
+    retval = false;
+  }
+
   gss_release_name(&min_status, &target_name);
 
-  return true;
+  return retval;
+}
+
+gss_ctx_id_t pdns_gssapi_find_ctx_real(const std::string& label) {
+  OM_uint32 maj_status, min_status, t;
+
+   //FIXME: reap any expired credentials first to clean up
+
+  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
+    gss_ctx_id_t ctx = gss_ctx_map[label];
+    maj_status = gss_context_time(&min_status, ctx, &t);
+    if (maj_status != GSS_S_COMPLETE) {
+       // invalidate
+       gss_ctx_map.erase(label);
+       return GSS_C_NO_CONTEXT;
+    }
+    return ctx;
+  }
+
+  return GSS_C_NO_CONTEXT;
 }
 
 gss_ctx_id_t pdns_gssapi_find_ctx(const std::string& label) {
   Lock l(&gss_mutex);
 
-  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
-    return gss_ctx_map[label];
-  }
-
-  return GSS_C_NO_CONTEXT;
+  return pdns_gssapi_find_ctx_real(label);
 }
 
 OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& input, std::string& output) {
@@ -100,13 +120,17 @@ OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& in
   gss_buffer_desc recv_tok = GSS_C_EMPTY_BUFFER;
   gss_buffer_desc send_tok = GSS_C_EMPTY_BUFFER;
   gss_ctx_id_t ctx = GSS_C_NO_CONTEXT;
-//  gss_name_t source_name;
+  gss_name_t source_name;
 
-  if (gss_cred == GSS_C_NO_CREDENTIAL) pdns_gssapi_get_credential(); 
-  
+/*  if (gss_cred == GSS_C_NO_CREDENTIAL && !pdns_gssapi_get_credential()) {
+    return GSS_S_DEFECTIVE_CREDENTIAL;
+  } */
+
+  // FIXME: Credential hunting, context resumption
+
   recv_tok.length = input.size();
   recv_tok.value = (void*)input.c_str();
-  maj_status = gss_accept_sec_context(&min_status, &ctx, gss_cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS, NULL, NULL, &send_tok, &flags, NULL, NULL);
+  maj_status = gss_accept_sec_context(&min_status, &ctx, gss_cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS, &source_name, NULL, &send_tok, &flags, NULL, NULL);
 
   if (GSS_ERROR(maj_status)) {
     pdns_gssapi_display_status("accept_context", maj_status, min_status);
@@ -133,8 +157,13 @@ OM_uint32 pdns_gssapi_accept_ctx(const std::string& label, const std::string& in
                              &ctx,
                              GSS_C_NO_BUFFER);
     }
-    maj_status = GSS_S_DEFECTIVE_CREDENTIAL; // anything that makes it fail
-  } else {
+    L<<Logger::Error<<"GSS-API: accept_context: mutual authentication required but peer did not authenticate itself"<<endl;
+    maj_status = GSS_S_DEFECTIVE_CREDENTIAL; // anything that makes it fail 
+  } else if (maj_status == GSS_S_COMPLETE) {
+    gss_display_name(&min_status, source_name, &value, NULL);
+    L<<Logger::Info<<"GSS-API: accept_context: handshake completed with "<< (char*)value.value<<endl;
+    gss_release_buffer(&min_status,&value);
+    gss_release_name(&min_status, &source_name);
     gss_ctx_map[label] = ctx;
   }
 
@@ -146,10 +175,10 @@ bool pdns_gssapi_delete_ctx(const std::string& label, const std::string& input, 
 
   OM_uint32 maj_status, min_status;
   gss_buffer_desc send_tok = GSS_C_EMPTY_BUFFER;
+  gss_ctx_id_t ctx = pdns_gssapi_find_ctx_real(label);
 
-  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
-    gss_ctx_id_t ctx = gss_ctx_map[label];
-    gss_ctx_map.erase(label);
+  if (ctx != GSS_C_NO_CONTEXT) {
+    gss_ctx_map.erase(label); //FIXME: should really be MARKED for deletion
     maj_status = gss_delete_sec_context(&min_status, &ctx, &send_tok);
     if (GSS_ERROR(maj_status))
       pdns_gssapi_display_status("gss_delete_sec_context", maj_status, min_status);
@@ -169,9 +198,9 @@ bool pdns_gssapi_sign(const std::string& label, const std::string& input, std::s
   OM_uint32 maj_status, min_status;
   gss_buffer_desc recv_tok = GSS_C_EMPTY_BUFFER;
   gss_buffer_desc send_tok = GSS_C_EMPTY_BUFFER;
+  gss_ctx_id_t ctx = pdns_gssapi_find_ctx_real(label);
 
-  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
-    gss_ctx_id_t ctx = gss_ctx_map[label];
+  if (ctx != GSS_C_NO_CONTEXT) {
     recv_tok.length = input.size();
     recv_tok.value = (void*)input.c_str();
 
@@ -199,9 +228,9 @@ bool pdns_gssapi_verify(const std::string& label, const std::string& input, cons
   OM_uint32 maj_status, min_status;
   gss_buffer_desc recv_tok = GSS_C_EMPTY_BUFFER;
   gss_buffer_desc sign_tok = GSS_C_EMPTY_BUFFER;
+  gss_ctx_id_t ctx = pdns_gssapi_find_ctx_real(label);
 
-  if (gss_ctx_map.find(label) != gss_ctx_map.end()) {
-    gss_ctx_id_t ctx = gss_ctx_map[label];
+  if (ctx != GSS_C_NO_CONTEXT) {
     recv_tok.length = input.size();
     recv_tok.value = (void*)input.c_str();
     sign_tok.length = token.size();
