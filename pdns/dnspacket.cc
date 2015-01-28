@@ -621,6 +621,7 @@ void DNSPacket::commitD()
 bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
+  string tmpKeyname = *keyname;
 
   q->getTSIGDetails(trc, keyname, &message);
   int64_t now = time(0);
@@ -633,17 +634,24 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 
+  string secret64;
+
 #ifdef ENABLE_GSS_TSIG
   if (algoName == "gss-tsig") {
-    return pdns_gssapi_verify(*keyname, message, trc->d_mac);
+    tmpKeyname = "gss-tsig";
   }
 #endif
 
-  string secret64;
-  if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
+  if(!B->getTSIGKey(tmpKeyname, &algoName, &secret64)) {
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<tmpKeyname<<"' and algorithm '"<<algoName<<"'"<<endl;
     return false;
   }
+
+#ifdef ENABLE_GSS_TSIG
+  if (algoName == "gss-tsig") 
+    return pdns_gssapi_verify(*keyname, message, trc->d_mac);
+#endif
+
   if (trc->d_algoName == "hmac-md5")
     trc->d_algoName += ".sig-alg.reg.int.";
 
