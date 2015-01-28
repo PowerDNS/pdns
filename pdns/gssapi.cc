@@ -114,9 +114,21 @@ bool pdns_gssapi_match_credential(const std::string& label, const std::string& c
   if (pdns_gssapi_ctx_find(label, &ctx) && (ctx.source != GSS_C_NO_NAME)) {
     gss_buffer_desc value;
     gss_name_t comp;
-    value.length = credential.size();
-    value.value = (void*)credential.c_str();
-    maj_status = gss_import_name(&min_status, &value, (const gss_OID)GSS_C_NO_OID, &comp);
+    string tmpcred;
+    gss_OID oid = GSS_C_NO_OID;
+
+    if (credential.compare("princ:")) {
+      tmpcred = credential.substr(6); 
+      oid = (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME;
+    } else if (credential.compare("srv:")) {
+      tmpcred = credential.substr(4);
+      oid = (gss_OID)GSS_KRB5_NT_HOSTBASED_SERVICE_NAME;
+    } else 
+      tmpcred = credential;
+      
+    value.length = tmpcred.size();
+    value.value = (void*)tmpcred.c_str();
+    maj_status = gss_import_name(&min_status, &value, oid, &comp);
 
     if (GSS_ERROR(maj_status)) {
       pdns_gssapi_display_status("pdns_gssapi_match_credential", maj_status, min_status);
