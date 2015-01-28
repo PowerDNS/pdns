@@ -154,12 +154,18 @@ linux*)
 darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
   ;;
+freebsd*)
+  LDFLAGS="-pthread $LDFLAGS"
+  CXXFLAGS="-pthread $CXXFLAGS"
+  have_freebsd="yes"
+  ;;
 *)
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
   ;;
 esac
 
+AM_CONDITIONAL([HAVE_FREEBSD], [test "x$have_freebsd" = "xyes"])
 AM_CONDITIONAL([HAVE_LINUX], [test "x$have_linux" = "xyes"])
 
 AC_SUBST(THREADFLAGS)
