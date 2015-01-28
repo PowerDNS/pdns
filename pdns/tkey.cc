@@ -37,18 +37,15 @@ void pdns_tkey_handler(DNSPacket *p, DNSPacket *r) {
       L<<Logger::Error<<"TKEY algorithm " << tkey_in.d_algo << " unsupported" <<endl;
       tkey_out->d_error = 21; // BADALG
     } else {
-      // need to perform context exchange
-      if (pdns_gssapi_find_ctx(label) != GSS_C_NO_CONTEXT) {
-        // context found, not wanted here.
+      int result = pdns_gssapi_accept_ctx(label, tkey_in.d_key, tkey_out->d_key);
+      if (result == PDNS_GSSAPI_OK) { // complete
+        sign=true;
+      } else if (result == PDNS_GSSAPI_CONTINUE) { // continue
+        sign=false;
+      } else if (result == PDNS_GSSAPI_BADNAME) { 
         tkey_out->d_error = 20; // BADNAME
-      } else {
-        OM_uint32 result = pdns_gssapi_accept_ctx(label, tkey_in.d_key, tkey_out->d_key);
-        if (GSS_ERROR(result)) {
-          tkey_out->d_error = 17; // BADKEY
-        } else if (result == GSS_S_COMPLETE) {
-          tkey_out->d_error = 0;
-          sign=true;
-        }
+      } else if (result == PDNS_GSSAPI_BADKEY) { 
+        tkey_out->d_error = 17; // BADKEY
       }
     }
 #else
@@ -64,7 +61,9 @@ void pdns_tkey_handler(DNSPacket *p, DNSPacket *r) {
     }
     // remove context
 #ifdef ENABLE_GSS_TSIG
-    tkey_out->d_error = pdns_gssapi_delete_ctx(label, tkey_in.d_key, tkey_out->d_key); 
+    if (!pdns_gssapi_delete_ctx(label, tkey_in.d_key, tkey_out->d_key)) {
+      tkey_out->d_error = 20; // BADNAME
+    }
 #else
     // sorry, return failure
     tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
