@@ -57,3 +57,11 @@ Available modes are:
 
 ## TSIG-ALLOW-AXFR
 Allow these named TSIG keys to AXFR this zone (see [Provisioning outbound AXFR access](modes-of-operation.md#provisioning-outbound-axfr-access)).
+
+## AXFR-GSS-ACL
+Allow this principal or service name to AXFR this zone. Use princ:service/host@REALM or srv:service@host or srv:service. For kerberos principals you can omit princ, but it's recommended for reliable results. Use one metadata entry per principal. 
+
+## UPDATE-GSS-ACL
+Allow this principal or service name to update this zone. Use princ:service/host@REALM or srv:service@host or srv:service. For kerberos principals you can omit princ, but it's recommended for reliable results. Use one metadata entry per principal.
+
+
