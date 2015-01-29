@@ -81,7 +81,6 @@ class AuthZones(ApiTestCase):
             {
                 "name": name,
                 "type": "A",
-                "priority": 0,
                 "ttl": 3600,
                 "content": "4.3.2.1",
                 "disabled": False
@@ -112,7 +111,6 @@ class AuthZones(ApiTestCase):
             {
                 "name": name,
                 "type": "SOA",
-                "priority": 0,
                 "ttl": 3600,
                 "content": "ns1.example.net testmaster@example.net 10 10800 3600 604800 3600",
                 "disabled": False
@@ -291,7 +289,7 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
             'SOA': [
                 { 'content': 'powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800' } ],
             'MX': [
-                { 'content': 'xs.powerdns.com.', 'priority': 0 } ],
+                { 'content': '0 xs.powerdns.com.' } ],
             'A': [
                 { 'content': '82.94.213.34', 'name': 'powerdns.com' } ],
             'AAAA': [
@@ -305,10 +303,6 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
                 for ret in data['records']:
                     if 'name' in ev:
                         if ret['name'] == ev['name'] and ret['content'] == ev['content'].rstrip('.'):
-                            counter[et] = counter[et]-1
-                            continue
-                    if 'priority' in ev:
-                        if ret['priority'] == ev['priority'] and ret['content'] == ev['content'].rstrip('.'):
                             counter[et] = counter[et]-1
                             continue
                     if ret['content'] == ev['content'].rstrip('.'):
@@ -358,7 +352,7 @@ fred   IN  A      192.168.0.4
             'SOA': [
                 { 'content': 'ns1.example.org. hostmaster.example.org. 2002022401 10800 15 604800 10800' } ],
             'MX': [
-                { 'content': 'mail.another.com.', 'priority': 10 } ],
+                { 'content': '10 mail.another.com.' } ],
             'A': [
                 { 'content': '192.168.0.1', 'name': 'ns1.example.org' },
                 { 'content': '192.168.0.2', 'name': 'www.example.org' },
@@ -375,10 +369,6 @@ fred   IN  A      192.168.0.4
                 for ret in data['records']:
                     if 'name' in ev:
                         if ret['name'] == ev['name'] and ret['content'] == ev['content'].rstrip('.'):
-                            counter[et] = counter[et]-1
-                            continue
-                    if 'priority' in ev:
-                        if ret['priority'] == ev['priority'] and ret['content'] == ev['content'].rstrip('.'):
                             counter[et] = counter[et]-1
                             continue
                     if ret['content'] == ev['content'].rstrip('.'):
@@ -464,7 +454,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns1.bar.com",
                     "disabled": False
@@ -472,7 +461,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 1800,
                     "content": "ns2-disabled.bar.com",
                     "disabled": True
@@ -492,7 +480,7 @@ fred   IN  A      192.168.0.4
         self.assertEquals(recs, rrset['records'])
 
     def test_zone_rr_update_mx(self):
-        # Important to test with MX records, as they have a priority field, which must not end up in the content field.
+        # Important to test with MX records, as they have a priority field, which must end up in the content field.
         payload, zone = self.create_zone()
         name = payload['name']
         # do a replace (= update)
@@ -504,9 +492,8 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "MX",
-                    "priority": 10,
                     "ttl": 3600,
-                    "content": "mail.example.org",
+                    "content": "10 mail.example.org",
                     "disabled": False
                 }
             ]
@@ -534,7 +521,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns9999.example.com",
                     "disabled": False
@@ -549,9 +535,8 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "MX",
-                    "priority": 10,
                     "ttl": 3600,
-                    "content": "mx444.example.com",
+                    "content": "10 mx444.example.com",
                     "disabled": False
                 }
             ]
@@ -604,7 +589,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "SOA",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns1.bar.com hostmaster.foo.org 1 1 1 1 1",
                     "disabled": True
@@ -653,7 +637,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns1.bar.com",
                     "disabled": False
@@ -679,7 +662,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": 'blah.'+name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns1.bar.com",
                     "disabled": False
@@ -705,7 +687,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns1.bar.com",
                     "disabled": False
@@ -833,7 +814,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "NS",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": "ns1.bar.com",
                     "disabled": False
@@ -873,7 +853,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "A",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": '192.2.0.2',
                     "disabled": False,
@@ -895,7 +874,6 @@ fred   IN  A      192.168.0.4
             u'content': name,
             u'disabled': False,
             u'ttl': 3600,
-            u'priority': 0,
             u'type': u'PTR',
             u'name': u'2.0.2.192.in-addr.arpa'
         }])
@@ -915,7 +893,6 @@ fred   IN  A      192.168.0.4
                 {
                     "name": name,
                     "type": "AAAA",
-                    "priority": 0,
                     "ttl": 3600,
                     "content": '2001:DB8::bb:aa',
                     "disabled": False,
@@ -937,7 +914,6 @@ fred   IN  A      192.168.0.4
             u'content': name,
             u'disabled': False,
             u'ttl': 3600,
-            u'priority': 0,
             u'type': u'PTR',
             u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa'
         }])
