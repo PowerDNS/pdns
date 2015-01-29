@@ -979,6 +979,10 @@ if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
 endif
 
+if HAVE_FREEBSD
+pdns_recursor_SOURCES += kqueuemplexer.cc
+endif
+
 if HAVE_LINUX
 pdns_recursor_SOURCES += epollmplexer.cc
 endif
