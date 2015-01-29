@@ -621,7 +621,6 @@ void DNSPacket::commitD()
 bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
-  string tmpKeyname = *keyname;
 
   q->getTSIGDetails(trc, keyname, &message);
   int64_t now = time(0);
@@ -629,6 +628,8 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
     L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
+
+  string tmpKeyname = *keyname;
 
   string algoName = toLowerCanonic(trc->d_algoName);
   if (algoName == "hmac-md5.sig-alg.reg.int")
@@ -638,7 +639,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
 
 #ifdef ENABLE_GSS_TSIG
   if (algoName == "gss-tsig") {
-    tmpKeyname = "gss-tsig";
+    tmpKeyname = "gss-tsig"; // tsig is special
   }
 #endif
 
