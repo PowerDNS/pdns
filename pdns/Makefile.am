@@ -987,6 +987,12 @@ if HAVE_LINUX
 pdns_recursor_SOURCES += epollmplexer.cc
 endif
 
+if HAVE_SOLARIS
+pdns_recursor_SOURCES += \
+	devpollmplexer.cc \
+	portsmplexer.cc
+endif
+
 pdns_control_SOURCES = \
 	arguments.cc \
 	dynloader.cc \
