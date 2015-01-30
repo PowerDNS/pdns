@@ -19,6 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "ext/luawrapper/include/LuaContext.hpp"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "statbag.hh"
@@ -30,6 +31,9 @@
 #include <atomic>
 #include "arguments.hh"
 #include "dolog.hh"
+#include <fstream>
+#undef L
+
 
 /* syntax: dnsdist 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220
    Added downstream server 8.8.8.8:53
@@ -72,6 +76,13 @@ bool g_console;
    IDs are assigned by atomic increments of the socket offset.
  */
 
+/* for our load balancing, we want to support:
+   Round-robin
+   Round-robin with basic uptime checks
+   Send to least loaded server (least outstanding)
+   Send it to the first server that is not overloaded
+*/
+
 struct IDState
 {
   IDState() : origFD(-1) {}
@@ -109,7 +120,7 @@ unsigned int g_numdownstreams;
 void* responderThread(DownstreamState* state)
 {
   char packet[4096];
-
+  
   struct dnsheader* dh = (struct dnsheader*)packet;
   int len;
   for(;;) {
@@ -143,6 +154,7 @@ struct ClientState
   int tcpFD;
 };
 
+#if 0
 DownstreamState& getBestDownstream()
 {
   unsigned int lowest = std::numeric_limits<unsigned int>::max();
@@ -154,6 +166,27 @@ DownstreamState& getBestDownstream()
     }
   }      
   return g_dstates[chosen];
+}
+#endif
+LuaContext g_lua;
+class Object {
+public:
+  Object() : value(10) {}
+
+  void increment() { std::cout << "incrementing" << std::endl; value++; } 
+
+  int value;
+};
+
+
+DownstreamState& getBestDownstream()
+{
+  auto pickServer=g_lua.readVariable<LuaContext::LuaFunctionCaller<int (void)> >("pickServer");
+  auto i = pickServer();
+  return g_dstates[i];
+
+
+
 }
 
 static void daemonize(void)
@@ -484,10 +517,42 @@ void* statThread()
 }
 
 
+struct Server
+{
+  string d_name;
+  ComboAddress d_address;
+};
+vector<Server> g_servers;
+int defineServer(const std::string& name, const std::string& address)
+{
+  g_servers.push_back({name, ComboAddress(address, 53)});
+  return g_servers.size()-1;
+}
+
+void setupLua()
+{
+  g_lua.writeVariable("defineServer", &defineServer);
+  std::ifstream ifs("dnsdistconf.lua");
+  g_lua.executeCode(ifs);
+
+  Object o1, o2;
+  g_lua.registerFunction("increment", &Object::increment);
+
+  g_lua.writeVariable("obj1", o1);
+  g_lua.writeVariable("obj2", o2);
+  g_lua.executeCode("obj1:increment();");
+  g_lua.executeCode("obj1:increment();");
+
+  std::cout << g_lua.readVariable<Object>("obj1").value << std::endl;
+  std::cout << g_lua.readVariable<Object>("obj2").value << std::endl;
+
+}
 
 int main(int argc, char** argv)
 try
 {
+
+  setupLua();
   signal(SIGPIPE, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
@@ -518,12 +583,14 @@ try
 
   g_verbose=g_vm.count("verbose");
   g_maxOutstanding = g_vm["max-outstanding"].as<uint16_t>();
-  
+
+  /*  
   if(!g_vm.count("remotes")) {
     cerr<<"Need to specify at least one remote address"<<endl;
     cout<<desc<<endl;
     exit(EXIT_FAILURE);
   }
+  */
 
   if(g_vm["daemon"].as<bool>())  {
     g_console=false;
@@ -533,15 +600,15 @@ try
     vinfolog("Running in the foreground");
   }
 
-  vector<string> remotes = g_vm["remotes"].as<vector<string> >();
+  //  vector<string> remotes = g_vm["remotes"].as<vector<string> >();
 
-  g_numdownstreams = remotes.size();
+  g_numdownstreams = g_servers.size();
   g_dstates = new DownstreamState[g_numdownstreams];
   int pos=0;
-  for(const string& remote : remotes) {
+  for(const Server& server : g_servers) {
     DownstreamState& dss = g_dstates[pos++];
  
-    dss.remote = ComboAddress(remote, 53);
+    dss.remote = server.d_address;
 
     dss.fd = SSocket(dss.remote.sin4.sin_family, SOCK_DGRAM, 0);
     SConnect(dss.fd, dss.remote);
@@ -598,10 +665,12 @@ try
   thread stattid(statThread);
   stattid.join();
 }
+/*
 catch(std::exception &e)
 {
   errlog("Fatal: %s", e.what());
 }
+*/
 catch(PDNSException &ae)
 {
   errlog("Fatal: %s", ae.reason);

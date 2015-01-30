@@ -544,7 +544,7 @@ dnsdist_LDFLAGS = \
 
 dnsdist_LDADD = \
 	$(POLARSSL_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS)
+	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
