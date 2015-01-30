@@ -2259,7 +2259,7 @@ int main(int argc, char **argv)
     ::arg().set("experimental-api-config-dir", "Directory where REST API stores config and zones") = "";
     ::arg().set("experimental-api-key", "REST API Static authentication key (required for API use)") = "";
     ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats")="";
-    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server")="";
+    ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this servers, separated by spaces or commas")="";
     ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates")="30";
     ::arg().set("experimental-api-readonly", "If the JSON API should disallow data modification") = "no";
     ::arg().set("quiet","Suppress logging of questions and answers")="";

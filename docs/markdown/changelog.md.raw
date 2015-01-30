@@ -32,6 +32,7 @@ Improvements:
 - Builtin webserver can be queried with the API key in the URL again c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Ringbuffers are now available via API c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Lua 5.3 compatibility 59c6fc3e3931ca87d484337daee512e716bc4cf4 (Kees Monshouwer)
+- PowerDNS Recursor can now send stats to a _list_ of Carbon servers.
 
 New features:
 
