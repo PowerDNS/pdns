@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2014  PowerDNS.COM BV
+    Copyright (C) 2003 - 2015  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 
@@ -121,7 +121,7 @@ typedef vector<int> tcpListenSockets_t;
 tcpListenSockets_t g_tcpListenSockets;   // shared across threads, but this is fine, never written to from a thread. All threads listen on all sockets
 int g_tcpTimeout;
 unsigned int g_maxMThreads;
-struct timeval g_now; // timestamp, updated (too) frequently
+__thread struct timeval g_now; // timestamp, updated (too) frequently
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
 listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
 
@@ -930,9 +930,10 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
  
 string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, struct timeval tv, int fd)
 {
+  gettimeofday(&g_now, 0);
   struct timeval diff = g_now - tv;
   double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
-  
+
   if(delta > 1000.0) {
     g_stats.tooOldDrops++;
     return 0;
