@@ -15,7 +15,7 @@ class ApiTestCase(unittest.TestCase):
         self.server_port = int(os.environ.get('WEBPORT', '5580'))
         self.server_url = 'http://%s:%s/' % (self.server_address, self.server_port)
         self.session = requests.Session()
-        self.session.headers = {'X-API-Key': os.environ.get('APIKEY', 'changeme-key')}
+        self.session.headers = {'X-API-Key': os.environ.get('APIKEY', 'changeme-key'), 'Origin': 'http://%s:%s' % (self.server_address, self.server_port)}
 
     def url(self, relative_url):
         return urlparse.urljoin(self.server_url, relative_url)

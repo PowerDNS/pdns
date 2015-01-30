@@ -96,8 +96,27 @@ void WebServer::registerBareHandler(const string& url, HandlerFunction handler)
   YaHTTP::Router::Any(url, f);
 }
 
+static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
+  if (req->method == "OPTIONS") {
+    resp->headers["access-control-allow-origin"] = "*";
+    resp->headers["access-control-allow-headers"] = "Content-Type, X-API-Key";
+    resp->headers["access-control-allow-methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+    resp->headers["access-control-max-age"] = "3600";
+    resp->status = 200;
+    resp->headers["content-type"]= "text/plain";
+    resp->body = "";
+    return true;
+  }
+  return false;
+}
+
 static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
   const string& api_key = arg()["experimental-api-key"];
+
+  if (optionsHandler(req, resp)) return;
+
+  resp->headers["access-control-allow-origin"] = "*";
+
   if (api_key.empty()) {
     L<<Logger::Debug<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
     throw HttpUnauthorizedException();
@@ -109,7 +128,6 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
     throw HttpBadRequestException();
   }
 
-  resp->headers["Access-Control-Allow-Origin"] = "*";
   resp->headers["Content-Type"] = "application/json";
 
   string callback;
@@ -151,6 +169,11 @@ void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
 
 static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
   const string& web_password = arg()["webserver-password"];
+
+  if (optionsHandler(req, resp)) return;
+
+  resp->headers["access-control-allow-origin"] = "*";
+
   if (!web_password.empty()) {
     bool auth_ok = req->compareAuthorization(web_password);
     if (!auth_ok) {
