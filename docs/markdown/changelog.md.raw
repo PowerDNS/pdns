@@ -73,6 +73,7 @@ Kerkhof.  Lots of improvements all over the place by Kees Monshouwer.
 [Official download page](https://www.powerdns.com/downloads.html)
 
 A list of changes since 3.6.1 follows.
+
 -   [commit ab14b4f](https://github.com/PowerDNS/pdns/commit/ab14b4f): expedite servfail generation for ezdns-like failures (fully abort query resolving if we hit more than 50 outqueries). This also prevents the issue documented in [PowerDNS Security Advisory 2014-02](security/powerdns-advisory-2014-02/) (CVE-2014-8601)
 -   [commit 42025be](https://github.com/PowerDNS/pdns/commit/42025be): PowerDNS now polls the security status of a release at startup and periodically. More detail on this feature, and how to turn it off, can be found in [Security polling](common/security.md#security-polling).
 -   [commit 5027429](https://github.com/PowerDNS/pdns/commit/5027429): We did not transmit the right 'local' socket address to Lua for TCP/IP queries in the recursor. In addition, we would attempt to lookup a filedescriptor that wasn't there in an unlocked map which could conceivably lead to crashes. Closes [ticket 1828](https://github.com/PowerDNS/pdns/issues/1828), thanks Winfried for reporting
@@ -110,6 +111,7 @@ Find the downloads [on our download page](https://www.powerdns.com/downloads.htm
 A list of changes since 3.3.1 follows.
 
 Changes between RC2 and 3.4.0:
+
 -   [commit ad189c9](https://github.com/PowerDNS/pdns/commit/ad189c9), [commit 445d93c](https://github.com/PowerDNS/pdns/commit/445d93c): also distribute the dnsdist manual page
 -   [commit b5a276d](https://github.com/PowerDNS/pdns/commit/b5a276d), [commit 0b346e9](https://github.com/PowerDNS/pdns/commit/0b346e9), [commit 74caf87](https://github.com/PowerDNS/pdns/commit/74caf87), [commit 642fd2e](https://github.com/PowerDNS/pdns/commit/642fd2e): Make sure all backends actually work as dynamic modules
 -   [commit 14b11c4](https://github.com/PowerDNS/pdns/commit/14b11c4): raise log level on dlerror(), fixes [ticket 1734](https://github.com/PowerDNS/pdns/issues/1734), thanks @James-TR
@@ -118,6 +120,7 @@ Changes between RC2 and 3.4.0:
 -   [commit 25e7af3](https://github.com/PowerDNS/pdns/commit/25e7af3): send empty SERVFAIL after a backend throws a DBException, instead of including useless content
 
 Changes between RC1 and RC2:
+
 -   [commit bb6e54f](https://github.com/PowerDNS/pdns/commit/bb6e54f): document udp6-queries, udp4-queries, add rd-queries, recursion-unanswered metrics & document. Closes [ticket 1400](https://github.com/PowerDNS/pdns/issues/1400).
 -   [commit 4a23af7](https://github.com/PowerDNS/pdns/commit/4a23af7): init script: support DAEMON\_ARGS; [commit 7e5b3a0](https://github.com/PowerDNS/pdns/commit/7e5b3a0): init script: ensure socket dir exists
 -   [commit dd930ed](https://github.com/PowerDNS/pdns/commit/dd930ed): don't import supermaster ips from other accounts
