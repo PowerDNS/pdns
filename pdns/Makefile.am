@@ -75,12 +75,13 @@ bin_PROGRAMS += \
 	saxfr
 	
 if CXX2011
-bin_PROGRAMS += dnsdist
+bin_PROGRAMS += dnsdist calidns
 endif
 
 endif
 
 EXTRA_PROGRAMS = \
+	calidns \
 	dnsbulktest \
 	dnsdemog \
 	dnsdist \
@@ -463,6 +464,28 @@ sdig_SOURCES = \
 
 sdig_LDADD = $(POLARSSL_LIBS) 	
 sdig_LDFLAGS=$(THREADFLAGS) 
+
+calidns_SOURCES = \
+	base32.cc \
+	base64.cc base64.hh \
+	calidns.cc \
+	dnslabeltext.cc \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnswriter.cc dnswriter.hh \
+	logger.cc \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	unix_utility.cc
+
+calidns_LDADD = $(POLARSSL_LIBS) 	
+calidns_LDFLAGS=$(THREADFLAGS) 
+
 
 saxfr_SOURCES = \
 	base32.cc \
