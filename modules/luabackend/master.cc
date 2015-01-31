@@ -23,7 +23,7 @@
 
 /* 
     virtual void getUpdatedMasters(vector<DomainInfo>* domains);
-    virtual void setNotifed(int id, u_int32_t serial);
+    virtual void setNotifed(int id, uint32_t serial);
 */
 
 void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
@@ -56,7 +56,7 @@ void LUABackend::getUpdatedMasters(vector<DomainInfo>* domains) {
 	L << Logger::Info << backend_name << "(getUpdatedMasters) END" << endl;
 }
 
-void LUABackend::setNotifed(int id, u_int32_t serial) {
+void LUABackend::setNotifed(int id, uint32_t serial) {
 	
     if (f_lua_setnotifed == 0)
 	return;

@@ -37,10 +37,16 @@ AC_DEFINE([_GNU_SOURCE], [1],
 
 AX_CXX_COMPILE_STDCXX_11(,optional)
 AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
-AC_CC_PIE
-AC_CC_STACK_PROTECTOR
-AC_CC_PARAM_SSP_BUFFER_SIZE([4])
-AC_CC_D_FORTIFY_SOURCE
+AC_ARG_ENABLE([hardening], [
+  AS_HELP_STRING([--disable-hardening, disable compiler security checks])
+])
+AS_IF([test "x$enable_hardening" != "xno"], [
+  AC_CC_PIE
+  AC_CC_STACK_PROTECTOR
+  AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+  AC_CC_D_FORTIFY_SOURCE
+  AC_LD_RELRO
+])
 
 AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([gethostent], [nsl])
@@ -52,7 +58,6 @@ AC_PROG_LIBTOOL([disable-static])
 LT_INIT([disable-static])
 ])
 
-AC_LD_RELRO
 
 MC_TM_GMTOFF
 
@@ -107,9 +112,6 @@ PDNS_CHECK_PANDOC
 PDNS_CHECK_MKDOCS
 PDNS_CHECK_LINKCHECKER
 
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
-
 dnl Checks for library functions.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
@@ -135,39 +137,42 @@ if test "$has_RTLD_NOW" = "no"; then
 fi
 LIBS=$ac_save_LIBS
 
-# Check for libcrypt
-
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(crypt, crypt)
-LIBCRYPT=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBCRYPT)
-
 THREADFLAGS=""
 
 case "$host_os" in
 solaris2.10)
   LIBS="-lposix4 -lpthread -lrt $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  have_solaris="yes"
   ;;
 solaris2.8 | solaris2.9 )
   AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
   AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
   LIBS="-lposix4 -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  have_solaris="yes"
   ;;
 linux*)
   THREADFLAGS="-pthread"
+  have_linux="yes"
   ;;
 darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
+  ;;
+freebsd*)
+  LDFLAGS="-pthread $LDFLAGS"
+  CXXFLAGS="-pthread $CXXFLAGS"
+  have_freebsd="yes"
   ;;
 *)
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
   ;;
 esac
+
+AM_CONDITIONAL([HAVE_FREEBSD], [test "x$have_freebsd" = "xyes"])
+AM_CONDITIONAL([HAVE_LINUX], [test "x$have_linux" = "xyes"])
+AM_CONDITIONAL([HAVE_SOLARIS], [test "x$have_solaris" = "xyes"])
 
 AC_SUBST(THREADFLAGS)
 AC_SUBST([DYNLINKFLAGS], [-export-dynamic])
@@ -292,10 +297,6 @@ for a in $modules; do
     moduleobjects="$moduleobjects ../modules/${a}backend/$b"
   done
   modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
-
-  if test ${a} = "gpgsql"; then
-    LIBS="$LIBS $LIBCRYPT"
-  fi
 done
 
 for a in $dynmodules; do
@@ -307,8 +308,11 @@ LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 AS_IF([test "x$static" != "xyes"], [
   CFLAGS="$PIE_CFLAGS $CFLAGS"
   CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
-  LDFLAGS="$PIE_LDFLAGS $LDFLAGS"
+  PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 ])
+AC_SUBST([PROGRAM_LDFLAGS])
+
+PDNS_ENABLE_COVERAGE
 
 AC_SUBST(LIBS)
 

@@ -49,6 +49,12 @@ For interactions that do not directly map onto CRUD, we use these:
 * GET: Query. Success reply: `200 OK`
 * PUT: Action/Execute. Success reply: `200 OK`
 
+Action/Execute methods return a JSON body of this format:
+
+    {
+      "message": "result message"
+    }
+
 
 Authentication
 --------------
@@ -356,12 +362,14 @@ zone_collection
 
 Turning on DNSSEC with custom keys: just create the zone with `dnssec`
 set to `false`, and add keys using the cryptokeys REST interface. Have
-at least one of them `active` set to `true`.
+at least one of them `active` set to `true`. **TODO**: not yet
+implemented.
 
 Changes made through the Zones API will always yield valid zone data,
-and the zone will be properly "rectified". If changes are made through
-other means (e.g. direct database access), this is not guranteed to be
-true and clients SHOULD trigger rectify.
+and the zone will be properly "rectified" (**TODO**: not yet
+implemented). If changes are made through other means (e.g. direct
+database access), this is not guranteed to be true and clients SHOULD
+trigger rectify.
 
 Backends might implement additional features (by coincidence or not).
 These things are not supported through the API.
@@ -470,6 +478,7 @@ Having `type` inside an RR differ from `type` at the top level is an error.
   List of new comments (replacing the old ones). Must be empty when `changetype` is set to `DELETE`.
   An empty list results in deletion of all comments.
   `modified_at` is optional and defaults to the current server time.
+  `account` is a field with user-defined meaning.
 
 #### PUT
 
@@ -494,8 +503,6 @@ Not supported for recursors.
 
 Clients MUST NOT send a body.
 
-**TODO**: Not yet implemented.
-
 
 URL: /servers/:server\_id/zones/:zone\_id/axfr-retrieve
 -------------------------------------------------------
@@ -511,7 +518,6 @@ Not supported for recursors.
 
 Clients MUST NOT send a body.
 
-**TODO**: Not yet implemented.
 
 URL: /servers/:server\_id/zones/:zone\_id/check
 -----------------------------------------------

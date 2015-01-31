@@ -8,6 +8,10 @@ AM_CXXFLAGS = \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
 	-DLOCALSTATEDIR=\"$(socketdir)\"
 
+AM_LDFLAGS = \
+	$(PROGRAM_LDFLAGS) \
+	$(THREADFLAGS)
+
 AM_LFLAGS = -i
 AM_YFLAGS = -d --verbose --debug
 
@@ -48,7 +52,14 @@ BUILT_SOURCES = \
 	version_generated.h \
 	bindparser.h
 
-CLEANFILES = version_generated.h
+CLEANFILES = \
+	version_generated.h \
+	*.gcda \
+	*.gcno \
+	*.gcov \
+	backends/gsql/gsqlbackend.gcda \
+	backends/gsql/gsqlbackend.gcno \
+	backends/gsql/gsqlbackend.gcov
 
 noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist
@@ -155,7 +166,7 @@ pdns_server_SOURCES = \
 	polarrsakeyinfra.cc \
 	qtype.cc qtype.hh \
 	randomhelper.cc \
-	rcpgenerator.cc	\
+	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
 	responsestats.cc responsestats.hh \
@@ -178,10 +189,9 @@ pdns_server_SOURCES = \
 	ws-auth.cc ws-auth.hh \
 	zoneparser-tng.cc
 
-
 pdns_server_LDFLAGS = \
+	$(AM_LDFLAGS) \
 	$(DYNLINKFLAGS) \
-	$(THREADFLAGS) \
 	$(BOOST_SERIALIZATION_LDFLAGS)
 
 pdns_server_LDADD = \
@@ -272,8 +282,8 @@ pdnssec_SOURCES = \
 	zoneparser-tng.cc
 
 pdnssec_LDFLAGS = \
+	$(AM_LDFLAGS) \
 	$(DYNLINKFLAGS) \
-	$(THREADFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
 	$(BOOST_SERIALIZATION_LDFLAGS)
 
@@ -298,7 +308,7 @@ endif
 
 if CRYPTOPP
 pdnssec_SOURCES += cryptoppsigners.cc
-pdnssec_LDADD += -lcryptopp
+pdnssec_LDADD += $(CRYPTOPP_LIBS)
 endif
 
 if ED25519
@@ -346,7 +356,6 @@ zone2sql_SOURCES = \
 	zone2sql.cc \
 	zoneparser-tng.cc
 
-zone2sql_LDFLAGS = $(THREADFLAGS)
 zone2sql_LDADD = $(POLARSSL_LIBS)
 
 zone2json_SOURCES = \
@@ -372,11 +381,10 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDFLAGS = $(THREADFLAGS)
 zone2json_LDADD = $(POLARSSL_LIBS)
 
 # pkglib_LTLIBRARIES = iputils.la
-# iputils_la_SOURCES = lua-iputils.cc 
+# iputils_la_SOURCES = lua-iputils.cc
 # iputils_la_LDFLAGS= -module -avoid-version
 
 if LDAP
@@ -407,7 +415,6 @@ zone2ldap_SOURCES = \
 	zone2ldap.cc \
 	zoneparser-tng.cc
 
-zone2ldap_LDFLAGS = $(THREADFLAGS)
 zone2ldap_LDADD = $(POLARSSL_LIBS)
 
 if LMDB
@@ -438,7 +445,6 @@ zone2lmdb_SOURCES = \
 	zone2lmdb.cc \
 	zoneparser-tng.cc
 
-zone2lmdb_LDFLAGS = $(THREADFLAGS)
 zone2lmdb_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(LMDB_LIBS)
@@ -462,8 +468,7 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-sdig_LDADD = $(POLARSSL_LIBS) 	
-sdig_LDFLAGS=$(THREADFLAGS) 
+sdig_LDADD = $(POLARSSL_LIBS)
 
 calidns_SOURCES = \
 	base32.cc \
@@ -506,11 +511,10 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD = $(POLARSSL_LIBS) 
-saxfr_LDFLAGS = $(THREADFLAGS)
+saxfr_LDADD = $(POLARSSL_LIBS)
 
 if PKCS11
-saxfr_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -533,7 +537,7 @@ dnstcpbench_SOURCES = \
 	unix_utility.cc
 
 dnstcpbench_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnstcpbench_LDADD = \
@@ -562,7 +566,7 @@ dnsdist_SOURCES = \
 	unix_utility.cc
 
 dnsdist_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsdist_LDADD = \
@@ -588,11 +592,10 @@ nsec3dig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-nsec3dig_LDADD = $(POLARSSL_LIBS) 
-nsec3dig_LDFLAGS= $(THREADFLAGS)
+nsec3dig_LDADD = $(POLARSSL_LIBS)
 
 if PKCS11
-nsec3dig_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -617,8 +620,7 @@ toysdig_SOURCES = \
 	toysdig.cc \
 	unix_utility.cc
 
-toysdig_LDADD = $(POLARSSL_LIBS) 
-toysdig_LDFLAGS = $(THREADFLAGS)
+toysdig_LDADD = $(POLARSSL_LIBS)
 
 tsig_tests_SOURCES = \
 	arguments.cc \
@@ -644,11 +646,10 @@ tsig_tests_SOURCES = \
 	tsig-tests.cc \
 	unix_utility.cc
 
-tsig_tests_LDADD = $(POLARSSL_LIBS) 
-tsig_tests_LDFLAGS=$(THREADFLAGS)
+tsig_tests_LDADD = $(POLARSSL_LIBS)
 
 if PKCS11
-tsig_tests_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
@@ -670,7 +671,6 @@ speedtest_SOURCES = \
 	unix_utility.cc
 
 speedtest_LDADD = $(POLARSSL_LIBS) -lrt
-speedtest_LDFLAGS = $(THREADFLAGS)
 
 dnswasher_SOURCES = \
 	dnsparser.hh \
@@ -682,7 +682,6 @@ dnswasher_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-dnswasher_LDFLAGS = $(THREADFLAGS)
 
 dnsbulktest_SOURCES = \
 	base32.cc \
@@ -702,7 +701,7 @@ dnsbulktest_SOURCES = \
 	unix_utility.cc
 
 dnsbulktest_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsbulktest_LDADD = \
@@ -729,8 +728,7 @@ dnsscan_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsscan_LDADD = $(POLARSSL_LIBS) 
-dnsscan_LDFLAGS=$(THREADFLAGS)
+dnsscan_LDADD = $(POLARSSL_LIBS)
 
 dnsreplay_SOURCES = \
 	anadns.hh \
@@ -753,7 +751,7 @@ dnsreplay_SOURCES = \
 	utility.hh
 
 dnsreplay_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsreplay_LDADD = \
@@ -780,7 +778,7 @@ nproxy_SOURCES = \
 	unix_utility.cc
 
 nproxy_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 nproxy_LDADD = \
@@ -808,7 +806,7 @@ notify_SOURCES = \
 	unix_utility.cc
 
 notify_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 notify_LDADD = \
@@ -837,7 +835,7 @@ dnsscope_SOURCES = \
 	utility.hh
 
 dnsscope_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsscope_LDADD = \
@@ -863,8 +861,7 @@ dnsgram_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsgram_LDADD = $(POLARSSL_LIBS) 
-dnsgram_LDFLAGS=$(THREADFLAGS)
+dnsgram_LDADD = $(POLARSSL_LIBS)
 
 dnsdemog_SOURCES = \
 	base32.cc \
@@ -885,8 +882,7 @@ dnsdemog_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsdemog_LDADD = $(POLARSSL_LIBS) 
-dnsdemog_LDFLAGS = $(THREADFLAGS)
+dnsdemog_LDADD = $(POLARSSL_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
@@ -898,7 +894,6 @@ rec_control_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-rec_control_LDFLAGS = $(THREADFLAGS)
 
 testrunner_SOURCES = \
 	arguments.cc \
@@ -945,7 +940,7 @@ testrunner_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
-	$(THREADFLAGS) \
+	$(AM_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
 
 testrunner_LDADD = \
@@ -968,7 +963,6 @@ pdns_recursor_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
-	epollmplexer.cc \
 	iputils.cc \
 	json.cc json.hh \
 	logger.cc \
@@ -1004,13 +998,26 @@ pdns_recursor_SOURCES = \
 	ws-recursor.cc ws-recursor.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
-pdns_recursor_LDFLAGS = $(THREADFLAGS)
 pdns_recursor_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(YAHTTP_LIBS)
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
+endif
+
+if HAVE_FREEBSD
+pdns_recursor_SOURCES += kqueuemplexer.cc
+endif
+
+if HAVE_LINUX
+pdns_recursor_SOURCES += epollmplexer.cc
+endif
+
+if HAVE_SOLARIS
+pdns_recursor_SOURCES += \
+	devpollmplexer.cc \
+	portsmplexer.cc
 endif
 
 pdns_control_SOURCES = \
@@ -1023,10 +1030,9 @@ pdns_control_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-pdns_control_LDFLAGS = $(THREADFLAGS)
 
 if UNIT_TESTS
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
 else
 check-local:
@@ -1035,10 +1041,10 @@ check-local:
 endif
 
 dnslabeltext.cc: dnslabeltext.rl
-	$(AM_V_GEN)$(RAGEL) dnslabeltext.rl -o dnslabeltext.cc
+	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
-	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' bind-dnssec.schema.sqlite3.sql | sed 's/^/"/g'  ; echo ';' ) > $@
+	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@
 
 # for bindparser.h/hh
 .hh.h:

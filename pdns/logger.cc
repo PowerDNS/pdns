@@ -26,7 +26,7 @@
 #include "statbag.hh"
 extern StatBag S;
 #endif
-
+#include "lock.hh"
 #include "namespaces.hh"
 
 pthread_once_t Logger::s_once;
@@ -47,9 +47,11 @@ void Logger::log(const string &msg, Urgency u)
   time(&t);
   tm=*localtime(&t);
 
-  if(u<=consoleUrgency) {// Sep 14 06:52:09
+  if(u<=consoleUrgency) {
     char buffer[50];
     strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
+    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+    Lock l(&m); // the C++-2011 spec says we need this, and OSX actually does
     clog << string(buffer) + msg <<endl;
   }
   if( u <= d_loglevel ) {
