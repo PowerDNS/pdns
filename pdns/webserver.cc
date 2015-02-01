@@ -174,10 +174,6 @@ void WebServer::registerApiHandler(const string& url, HandlerFunction handler) {
 static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
   const string& web_password = arg()["webserver-password"];
 
-  if (optionsHandler(req, resp)) return;
-
-  resp->headers["access-control-allow-origin"] = "*";
-
   if (!web_password.empty()) {
     bool auth_ok = req->compareAuthorization(web_password);
     if (!auth_ok) {
