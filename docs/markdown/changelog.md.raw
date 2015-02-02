@@ -63,7 +63,7 @@ Bugs fixed:
 - When using the webserver AND having an error in the Lua script, recursor could crash during startup 62f0ae62984adadab687c23fe1b287c1f219b2cb
 - Hugely long version strings would trip up security polling 18b7333828a1275ae5f5574a9c8330290d8557ff (Kees Monshouwer)
  
-Various other documentation changes by Christian Hoffstaedtler and Ruben
+Various other documentation changes by Christian Hofstaedtler and Ruben
 Kerkhof.  Lots of improvements all over the place by Kees Monshouwer.
 
 # PowerDNS Recursor 3.6.2
