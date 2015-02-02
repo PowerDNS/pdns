@@ -84,9 +84,9 @@ bin_PROGRAMS += \
 	nproxy \
 	nsec3dig \
 	saxfr
-	
+
 if CXX2011
-bin_PROGRAMS += dnsdist calidns
+bin_PROGRAMS += dnsdist calidns dumresp
 endif
 
 endif
@@ -102,6 +102,7 @@ EXTRA_PROGRAMS = \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
+	dumresp \
 	notify \
 	nproxy \
 	nsec3dig \
@@ -478,6 +479,7 @@ calidns_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -490,6 +492,14 @@ calidns_SOURCES = \
 
 calidns_LDADD = $(POLARSSL_LIBS) 	
 calidns_LDFLAGS=$(THREADFLAGS) 
+
+dumresp_SOURCES = \
+	dumresp.cc \
+	logger.cc \
+	misc.cc misc.hh \
+	statbag.cc \
+	unix_utility.cc \
+	qtype.cc 
 
 
 saxfr_SOURCES = \
