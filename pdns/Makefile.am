@@ -38,6 +38,7 @@ endif
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
+	effective_tld_names.dat \
 	mtasker.cc \
 	inflighter.cc \
 	bind-dnssec.schema.sqlite3.sql \
