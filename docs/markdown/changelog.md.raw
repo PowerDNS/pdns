@@ -8,39 +8,21 @@ Released February xx, 2015
 
 Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
 
-This is a bugfix update to 3.4.1 and any earlier version.
+This is a performance and bugfix update to 3.4.1 and any earlier version. For high traffic setups, including
+those using DNSSEC, upgrading to 3.4.2 may show tremendous performance increases.
 
 A list of changes since 3.4.1 follows.
 
-- [commit 4d9c289](https://github.com/PowerDNS/pdns/commit/4d9c289): qtype is now case insensitive
-- [commit 13af5d8](https://github.com/PowerDNS/pdns/commit/13af5d8): Add an option to disable hardening
+- [commit 73004f1](https://github.com/PowerDNS/pdns/commit/73004f1): implement CORS for the HTTP API
+- [commit 4d9c289](https://github.com/PowerDNS/pdns/commit/4d9c289): qtype is now case insensitive in API and database
+- [commit 13af5d8](https://github.com/PowerDNS/pdns/commit/13af5d8), [commit 223373a](https://github.com/PowerDNS/pdns/commit/223373a), [commit 1d5a68d](https://github.com/PowerDNS/pdns/commit/1d5a68d), [commit 705a73f](https://github.com/PowerDNS/pdns/commit/705a73f), [commit b418d52](https://github.com/PowerDNS/pdns/commit/b418d52): Allow (optional) PIE hardening
 - [commit 7cc96a8](https://github.com/PowerDNS/pdns/commit/7cc96a8): Use correct methods, fixes [ticket #1874](https://github.com/PowerDNS/pdns/issues/1874)
 - [commit 2f86f20](https://github.com/PowerDNS/pdns/commit/2f86f20): json-api: remove priority from json
 - [commit e5a17fb](https://github.com/PowerDNS/pdns/commit/e5a17fb): remove priority from api tests (cherry picked from commit 05cf6a71fc0434a307149163db6e99c1fc9e37e9)
-- [commit 0861372](https://github.com/PowerDNS/pdns/commit/0861372): use uint32_t consistently, this makes the 'u_int32_t not defined on SunOS.' patch from pkgsrc obsolete
-- [commit 395b795](https://github.com/PowerDNS/pdns/commit/395b795): use = instead of == in shell tests, this makes the configure 'Portability.' patch from pkgsrc obsolete
-- [commit e04ce46](https://github.com/PowerDNS/pdns/commit/e04ce46): import 'Add DragonFly support.' from pkgsrc
 - [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-receive
-- [commit 223373a](https://github.com/PowerDNS/pdns/commit/223373a): Don't create PIE executables for semistatic builds
-- [commit 60b2b7c](https://github.com/PowerDNS/pdns/commit/60b2b7c): tests for label and name length check in xfrLabel()
-- [commit d962fbc](https://github.com/PowerDNS/pdns/commit/d962fbc): check label and name length in xfrLabel()
-- [commit cefcf9f](https://github.com/PowerDNS/pdns/commit/cefcf9f): Merge pull request [ticket #2107](https://github.com/PowerDNS/pdns/issues/2107) from rubenk/remotebackend-fixes-for-3.4.2
-- [commit 219b84c](https://github.com/PowerDNS/pdns/commit/219b84c): Update to v0.1.5
-- [commit 5b58a44](https://github.com/PowerDNS/pdns/commit/5b58a44): Allow changing the Sockaddr in ComboAddress
-- [commit ecce9a0](https://github.com/PowerDNS/pdns/commit/ecce9a0): Properly handle read errors (EOF and errors)
-- [commit 2d5580a](https://github.com/PowerDNS/pdns/commit/2d5580a): Use NetworkError, remove redundant code
-- [commit 7c7a5fb](https://github.com/PowerDNS/pdns/commit/7c7a5fb): Check timeout since it seems that readWithTimeout not always works
-- [commit 1d0cc63](https://github.com/PowerDNS/pdns/commit/1d0cc63): Reuse existing connection when possible
-- [commit abf8cec](https://github.com/PowerDNS/pdns/commit/abf8cec): Reconnect on read error, also fix whitespace
-- [commit a527c56](https://github.com/PowerDNS/pdns/commit/a527c56): Use zeromq library C API, based on work by @wtfuzz and @hexwave. Fixes [ticket #1760](https://github.com/PowerDNS/pdns/issues/1760).
-- [commit 1999ddd](https://github.com/PowerDNS/pdns/commit/1999ddd): Use correct syntax for escapes
-- [commit e227d22](https://github.com/PowerDNS/pdns/commit/e227d22): Add json to the Gem bundle
-- [commit 079d797](https://github.com/PowerDNS/pdns/commit/079d797): oops
+- [commit 60b2b7c](https://github.com/PowerDNS/pdns/commit/60b2b7c), [commit d962fbc](https://github.com/PowerDNS/pdns/commit/d962fbc): refuse overly long labels in names
+- [commit cefcf9f](https://github.com/PowerDNS/pdns/commit/cefcf9f): backport remotebackend fixes
 - [commit 1e39b4c](https://github.com/PowerDNS/pdns/commit/1e39b4c): move manpages to section 1
-- [commit 1d5a68d](https://github.com/PowerDNS/pdns/commit/1d5a68d): Append to PKG_CONFIG only after calling PKG_PROG_PKG_CONFIG
-- [commit 705a73f](https://github.com/PowerDNS/pdns/commit/705a73f): Override PKG_CONFIG sooner
-- [commit b418d52](https://github.com/PowerDNS/pdns/commit/b418d52): Make executables position-independent
-- [commit 075006f](https://github.com/PowerDNS/pdns/commit/075006f): adjust specfile manpath
 - [commit 920f987](https://github.com/PowerDNS/pdns/commit/920f987), [commit dd8853c](https://github.com/PowerDNS/pdns/commit/dd8853c): Support Lua 5.3
 - [commit a64fd6a](https://github.com/PowerDNS/pdns/commit/a64fd6a): auth: limit long version strings to 63 characters and catch exceptions in secpoll
 - [commit 003aae5](https://github.com/PowerDNS/pdns/commit/003aae5): support single-type ZSK signing
@@ -60,32 +42,14 @@ A list of changes since 3.4.1 follows.
 - [commit a83257a](https://github.com/PowerDNS/pdns/commit/a83257a): enable callback based metrics to statbas, and add 5 such metrics: uptime, sys-msec, user-msec, key-cache-size, meta-cache-size, signature-cache-size
 - [commit aaff7c8](https://github.com/PowerDNS/pdns/commit/aaff7c8): fix up our packet cache unit tests plus add bunch more tests
 - [commit 1ed152e](https://github.com/PowerDNS/pdns/commit/1ed152e): add a bunch of packet based regression tests to the packetcache
-- [commit 135db51](https://github.com/PowerDNS/pdns/commit/135db51): make sure we lock the cache shards while we clean them, closing [ticket #1910](https://github.com/PowerDNS/pdns/issues/1910). Plus add regression test that pretty reliably detects us not locking.
-- [commit 7d0f392](https://github.com/PowerDNS/pdns/commit/7d0f392): add unit tests for new sharded packet cache
-- [commit 24d9a38](https://github.com/PowerDNS/pdns/commit/24d9a38): speed up the testbag test a bit (by doing smaller tests)
-- [commit d061045](https://github.com/PowerDNS/pdns/commit/d061045): split up the packet & query cache into 1024 shards so our locks no longer collide
-- [commit 65931d9](https://github.com/PowerDNS/pdns/commit/65931d9): disabling test if test environment does not define things we need to know..
-- [commit 71f85ff](https://github.com/PowerDNS/pdns/commit/71f85ff): actually writing some unit tests for the new 64 bit capable AtomicCounter found a pile of bugs!
-- [commit 0f1eeab](https://github.com/PowerDNS/pdns/commit/0f1eeab): Our "StatBag" statistics class was 1) 32 bit 2) heavily locked 3) still allowed for lock-free operations for high speed counters. This commit 1) makes the StatBag 64 bit on 64 bit systems, 2) removes all locks and 3) has gone AtomicCounter 'native' The upshot of this is that 64 bit users will suddenly get 64 bit counters. A second upshot is that multicore systems should now see consistent statistics again. One important thing that changed is that the StatBag class used to be completely thread safe, and now it no longer is. You can't declare new counters while the StatBag is in use. This should not be happening, but you never know. Finally, there is now a StatBag unit test.
-- [commit bbe9cb3](https://github.com/PowerDNS/pdns/commit/bbe9cb3): make our AtomicCounter 64 bit on 64 bit machines
-- [commit fde666d](https://github.com/PowerDNS/pdns/commit/fde666d): silence timeout error from webserver
+- [commit d061045](https://github.com/PowerDNS/pdns/commit/d061045), [commit 135db51](https://github.com/PowerDNS/pdns/commit/135db51), [commit 7d0f392](https://github.com/PowerDNS/pdns/commit/7d0f392): shard the packet cache, closing [ticket #1910](https://github.com/PowerDNS/pdns/issues/1910).
 - [commit 1c57e1d](https://github.com/PowerDNS/pdns/commit/1c57e1d): Potential fix for [ticket #1907](https://github.com/PowerDNS/pdns/issues/1907), we now try to trigger libgcc_s.so.1 to load before we chroot. I can't reproduce the bug on my local system, but this "should" help. Seriously.
-- [commit 0f2f999](https://github.com/PowerDNS/pdns/commit/0f2f999): get priority from table in Lua axfrfilter fixes [ticket #1857](https://github.com/PowerDNS/pdns/issues/1857)
+- [commit 0f2f999](https://github.com/PowerDNS/pdns/commit/0f2f999): get priority from table in Lua axfrfilter; fixes [ticket #1857](https://github.com/PowerDNS/pdns/issues/1857)
 - [commit d71a712](https://github.com/PowerDNS/pdns/commit/d71a712): with thanks to Jack Lloyd, this works around the default Botan allocator slowing down for us during production use.
-- [commit 96963e2](https://github.com/PowerDNS/pdns/commit/96963e2): oraclebackend: fix records pointing at root
-- [commit bbcbbbe](https://github.com/PowerDNS/pdns/commit/bbcbbbe): lmdbbackend: fix types pointing at root
-- [commit d5c9c07](https://github.com/PowerDNS/pdns/commit/d5c9c07): mydnsbackend: fix types pointing at root
-- [commit fd27791](https://github.com/PowerDNS/pdns/commit/fd27791): no fancy-records in tinydns generate-data.sh
-- [commit f9d6503](https://github.com/PowerDNS/pdns/commit/f9d6503): test NS and CNAME pointing at the root
-- [commit 4195239](https://github.com/PowerDNS/pdns/commit/4195239): root MX test
+- [commit 96963e2](https://github.com/PowerDNS/pdns/commit/96963e2), [commit bbcbbbe](https://github.com/PowerDNS/pdns/commit/bbcbbbe), [commit d5c9c07](https://github.com/PowerDNS/pdns/commit/d5c9c07): various backends: fix records pointing at root
 - [commit e94c2c4](https://github.com/PowerDNS/pdns/commit/e94c2c4): remove additional layer of trailing . stripping, which broke MX records to the root in the BIND backend. Should close [ticket #1243](https://github.com/PowerDNS/pdns/issues/1243).
 - [commit 031ab21](https://github.com/PowerDNS/pdns/commit/031ab21): update polarssl to 1.3.9
-- [commit 42c2dcd](https://github.com/PowerDNS/pdns/commit/42c2dcd): Polarssl: disable padlock
-- [commit 4926fb1](https://github.com/PowerDNS/pdns/commit/4926fb1): cleanup polar update
-- [commit 77d2b6c](https://github.com/PowerDNS/pdns/commit/77d2b6c): Disable aesni for now
-- [commit d5cb617](https://github.com/PowerDNS/pdns/commit/d5cb617): Upgrade to polarssl 1.3.8
-- [commit 1852e16](https://github.com/PowerDNS/pdns/commit/1852e16): Rename polarssl-1.3.2 to polarssl
-- [commit b3992d9](https://github.com/PowerDNS/pdns/commit/b3992d9): secpoll: Replace ~ with _, too
+- [commit b3992d9](https://github.com/PowerDNS/pdns/commit/b3992d9): secpoll: Replace ~ with _
 - [commit 9799ef5](https://github.com/PowerDNS/pdns/commit/9799ef5): only zones with an active ksk are secure
 - [commit d02744f](https://github.com/PowerDNS/pdns/commit/d02744f): api: show keys for zones without active ksk
 - [commit 8f35ba2](https://github.com/PowerDNS/pdns/commit/8f35ba2): api: use uncached results for getKeys()
