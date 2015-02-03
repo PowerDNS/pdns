@@ -241,6 +241,12 @@ Entropy source file to use.
 
 Disallow data modification through the json API when set.
 
+## `experimental-api-key`
+* String
+* Available since: 3.4.1
+
+experimental-api-key REST API Static authentication key (required for API use)
+
 ## `experimental-dname-processing`
 * Boolean
 * Default: no
@@ -453,6 +459,13 @@ it is not available. A side-effect is that you can start multiple servers on the
 same IP/port combination which may or may not be a good idea. You could use this
 to enable transparent restarts, but it may also mask configuration issues and
 for this reason it is disabled by default.
+
+## `security-poll-suffix`
+* String
+* Default: secpoll.powerdns.com.
+* Available since: 3.4.1
+
+Domain name from which to query security update notifications
 
 ## `server-id`
 * String

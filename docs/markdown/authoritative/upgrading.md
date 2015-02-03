@@ -2,6 +2,19 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.4.1 to 3.4.2
+
+## API
+**Warning**: `priority` is no longer part of `records` in the API. `content` now includes the backend's `priority` field (see [API Spec](../httpapi/api_spec.md#url-serversserver_idzoneszone_id) for details).
+
+# 3.4.0 to 3.4.1
+
+## Configuration option changes
+
+### New options
+* [`experimental-api-key`](settings.md#experimental-api-key)
+* [`security-poll-suffix`](settings.md#security-poll-suffix)
+
 # 3.3.1 to 3.4.0
 If you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade
 
