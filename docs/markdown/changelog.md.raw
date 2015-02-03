@@ -1,10 +1,9 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 # PowerDNS Authoritative Server 3.4.2
-**Note**: Not yet released.
 
 **Warning**: Version 3.4.2 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
 
-Released February xx, 2015
+Released February 3rd, 2015
 
 Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
 
@@ -13,47 +12,58 @@ those using DNSSEC, upgrading to 3.4.2 may show tremendous performance increases
 
 A list of changes since 3.4.1 follows.
 
+Improvements:
+
 - [commit 73004f1](https://github.com/PowerDNS/pdns/commit/73004f1): implement CORS for the HTTP API
 - [commit 4d9c289](https://github.com/PowerDNS/pdns/commit/4d9c289): qtype is now case insensitive in API and database
 - [commit 13af5d8](https://github.com/PowerDNS/pdns/commit/13af5d8), [commit 223373a](https://github.com/PowerDNS/pdns/commit/223373a), [commit 1d5a68d](https://github.com/PowerDNS/pdns/commit/1d5a68d), [commit 705a73f](https://github.com/PowerDNS/pdns/commit/705a73f), [commit b418d52](https://github.com/PowerDNS/pdns/commit/b418d52): Allow (optional) PIE hardening
-- [commit 7cc96a8](https://github.com/PowerDNS/pdns/commit/7cc96a8): Use correct methods, fixes [ticket #1874](https://github.com/PowerDNS/pdns/issues/1874)
 - [commit 2f86f20](https://github.com/PowerDNS/pdns/commit/2f86f20): json-api: remove priority from json
-- [commit e5a17fb](https://github.com/PowerDNS/pdns/commit/e5a17fb): remove priority from api tests (cherry picked from commit 05cf6a71fc0434a307149163db6e99c1fc9e37e9)
-- [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-receive
-- [commit 60b2b7c](https://github.com/PowerDNS/pdns/commit/60b2b7c), [commit d962fbc](https://github.com/PowerDNS/pdns/commit/d962fbc): refuse overly long labels in names
 - [commit cefcf9f](https://github.com/PowerDNS/pdns/commit/cefcf9f): backport remotebackend fixes
-- [commit 1e39b4c](https://github.com/PowerDNS/pdns/commit/1e39b4c): move manpages to section 1
 - [commit 920f987](https://github.com/PowerDNS/pdns/commit/920f987), [commit dd8853c](https://github.com/PowerDNS/pdns/commit/dd8853c): Support Lua 5.3
-- [commit a64fd6a](https://github.com/PowerDNS/pdns/commit/a64fd6a): auth: limit long version strings to 63 characters and catch exceptions in secpoll
 - [commit 003aae5](https://github.com/PowerDNS/pdns/commit/003aae5): support single-type ZSK signing
-- [commit 92cef2d](https://github.com/PowerDNS/pdns/commit/92cef2d): pdns_control make it posible to notify all zones at once
+- [commit 1c57e1d](https://github.com/PowerDNS/pdns/commit/1c57e1d): Potential fix for [ticket #1907](https://github.com/PowerDNS/pdns/issues/1907), we now try to trigger libgcc_s.so.1 to load before we chroot. I can't reproduce the bug on my local system, but this "should" help. Seriously.
+- [commit 031ab21](https://github.com/PowerDNS/pdns/commit/031ab21): update polarssl to 1.3.9
+
+Bug fixes:
+
+- [commit 60b2b7c](https://github.com/PowerDNS/pdns/commit/60b2b7c), [commit d962fbc](https://github.com/PowerDNS/pdns/commit/d962fbc): refuse overly long labels in names
+- [commit a64fd6a](https://github.com/PowerDNS/pdns/commit/a64fd6a): auth: limit long version strings to 63 characters and catch exceptions in secpoll
 - [commit fa52e02](https://github.com/PowerDNS/pdns/commit/fa52e02): pdnssec: fix ttl check for RRSIG records
-- [commit a37fe8c](https://github.com/PowerDNS/pdns/commit/a37fe8c): better key for packetcache
 - [commit 0678b25](https://github.com/PowerDNS/pdns/commit/0678b25): fix up latency reporting for sub-millisecond latencies (would clip to 0)
 - [commit d45c1f1](https://github.com/PowerDNS/pdns/commit/d45c1f1): make sure we don't throw an exception on "pdns_control show" of an unknown variable
 - [commit 63c8088](https://github.com/PowerDNS/pdns/commit/63c8088): fix startup race condition with carbon thread already trying to broadcast uninitialized data
-- [commit 02653a7](https://github.com/PowerDNS/pdns/commit/02653a7): add 'bench-db' to do very simple database backend performance benchmark
 - [commit 796321c](https://github.com/PowerDNS/pdns/commit/796321c): make qsize-q more robust
-- [commit 1b97ba0](https://github.com/PowerDNS/pdns/commit/1b97ba0): add signatures metric to auth, so we can plot signatures/second
-- [commit e5217bb](https://github.com/PowerDNS/pdns/commit/e5217bb): don't do time(0) under signature cache lock
 - [commit 407867c](https://github.com/PowerDNS/pdns/commit/407867c): mind04 discovered we count corrupt packets and EAGAIN situations as validly received packets, skewing the udp questions/answers graphs on auth.
 - [commit f06d069](https://github.com/PowerDNS/pdns/commit/f06d069): make latency & qsize reporting 'live'. Plus fix that we only reported the qsize of the first distributor.
 - [commit 2f3498e](https://github.com/PowerDNS/pdns/commit/2f3498e): fix up statbag for carbon protocol and function pointers
-- [commit a83257a](https://github.com/PowerDNS/pdns/commit/a83257a): enable callback based metrics to statbas, and add 5 such metrics: uptime, sys-msec, user-msec, key-cache-size, meta-cache-size, signature-cache-size
-- [commit aaff7c8](https://github.com/PowerDNS/pdns/commit/aaff7c8): fix up our packet cache unit tests plus add bunch more tests
-- [commit 1ed152e](https://github.com/PowerDNS/pdns/commit/1ed152e): add a bunch of packet based regression tests to the packetcache
-- [commit d061045](https://github.com/PowerDNS/pdns/commit/d061045), [commit 135db51](https://github.com/PowerDNS/pdns/commit/135db51), [commit 7d0f392](https://github.com/PowerDNS/pdns/commit/7d0f392): shard the packet cache, closing [ticket #1910](https://github.com/PowerDNS/pdns/issues/1910).
-- [commit 1c57e1d](https://github.com/PowerDNS/pdns/commit/1c57e1d): Potential fix for [ticket #1907](https://github.com/PowerDNS/pdns/issues/1907), we now try to trigger libgcc_s.so.1 to load before we chroot. I can't reproduce the bug on my local system, but this "should" help. Seriously.
 - [commit 0f2f999](https://github.com/PowerDNS/pdns/commit/0f2f999): get priority from table in Lua axfrfilter; fixes [ticket #1857](https://github.com/PowerDNS/pdns/issues/1857)
-- [commit d71a712](https://github.com/PowerDNS/pdns/commit/d71a712): with thanks to Jack Lloyd, this works around the default Botan allocator slowing down for us during production use.
 - [commit 96963e2](https://github.com/PowerDNS/pdns/commit/96963e2), [commit bbcbbbe](https://github.com/PowerDNS/pdns/commit/bbcbbbe), [commit d5c9c07](https://github.com/PowerDNS/pdns/commit/d5c9c07): various backends: fix records pointing at root
 - [commit e94c2c4](https://github.com/PowerDNS/pdns/commit/e94c2c4): remove additional layer of trailing . stripping, which broke MX records to the root in the BIND backend. Should close [ticket #1243](https://github.com/PowerDNS/pdns/issues/1243).
-- [commit 031ab21](https://github.com/PowerDNS/pdns/commit/031ab21): update polarssl to 1.3.9
+- [commit 8f35ba2](https://github.com/PowerDNS/pdns/commit/8f35ba2): api: use uncached results for getKeys()
+- [commit c574336](https://github.com/PowerDNS/pdns/commit/c574336): read ALLOW-AXFR-FROM from the backend with the metadata
+
+Minor changes:
+
+- [commit 1e39b4c](https://github.com/PowerDNS/pdns/commit/1e39b4c): move manpages to section 1
 - [commit b3992d9](https://github.com/PowerDNS/pdns/commit/b3992d9): secpoll: Replace ~ with _
 - [commit 9799ef5](https://github.com/PowerDNS/pdns/commit/9799ef5): only zones with an active ksk are secure
 - [commit d02744f](https://github.com/PowerDNS/pdns/commit/d02744f): api: show keys for zones without active ksk
-- [commit 8f35ba2](https://github.com/PowerDNS/pdns/commit/8f35ba2): api: use uncached results for getKeys()
-- [commit c574336](https://github.com/PowerDNS/pdns/commit/c574336): read ALLOW-AXFR-FROM from the backend with the metadata
+
+New features:
+
+- [commit 1b97ba0](https://github.com/PowerDNS/pdns/commit/1b97ba0): add signatures metric to auth, so we can plot signatures/second
+- [commit 92cef2d](https://github.com/PowerDNS/pdns/commit/92cef2d): pdns_control: make it posible to notify all zones at once
+- [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-receive
+- [commit 02653a7](https://github.com/PowerDNS/pdns/commit/02653a7): add 'bench-db' to do very simple database backend performance benchmark
+- [commit a83257a](https://github.com/PowerDNS/pdns/commit/a83257a): enable callback based metrics to statbas, and add 5 such metrics: uptime, sys-msec, user-msec, key-cache-size, meta-cache-size, signature-cache-size
+
+Performance improvements:
+
+- [commit a37fe8c](https://github.com/PowerDNS/pdns/commit/a37fe8c): better key for packetcache
+- [commit e5217bb](https://github.com/PowerDNS/pdns/commit/e5217bb): don't do time(0) under signature cache lock
+- [commit d061045](https://github.com/PowerDNS/pdns/commit/d061045), [commit 135db51](https://github.com/PowerDNS/pdns/commit/135db51), [commit 7d0f392](https://github.com/PowerDNS/pdns/commit/7d0f392): shard the packet cache, closing [ticket #1910](https://github.com/PowerDNS/pdns/issues/1910).
+- [commit d71a712](https://github.com/PowerDNS/pdns/commit/d71a712): with thanks to Jack Lloyd, this works around the default Botan allocator slowing down for us during production use.
+
 
 # PowerDNS Recursor 3.7.0
 **Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015.
