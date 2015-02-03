@@ -1175,9 +1175,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       SOAData sd;
       fillSOAData(row[2], sd);
       di.serial = sd.serial;
-      if (!row[5].empty()) {
-        di.notified_serial = atol(row[5].c_str());
-      }
+      di.notified_serial = atol(row[5].c_str());
       di.last_check = atol(row[6].c_str());
       di.account = row[7];
 
