@@ -11,6 +11,7 @@
 #include <utility>
 #include "misc.hh"
 #include "lwres.hh"
+#include <boost/circular_buffer.hpp>
 #include <boost/utility.hpp>
 #include "sstuff.hh"
 #include "recursor_cache.hh"
@@ -22,7 +23,7 @@
 #include "iputils.hh"
 
 void primeHints(void);
-
+class RecursorLua;
 struct NegCacheEntry
 {
   string d_name;
@@ -277,6 +278,12 @@ public:
     return d_trace.str();
   }
 
+  void setLuaEngine(shared_ptr<RecursorLua> pdl)
+  {
+    d_pdl = pdl;
+  }
+
+
   int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
   
   static void doEDNSDumpAndClose(int fd);
@@ -292,13 +299,14 @@ public:
   static unsigned int s_minimumTTL;
   static bool s_doIPv6;
   static unsigned int s_maxqperq;
+  static unsigned int s_maxtotusec;
   unsigned int d_outqueries;
   unsigned int d_tcpoutqueries;
   unsigned int d_throttledqueries;
   unsigned int d_timeouts;
   unsigned int d_unreachables;
-
-  //  typedef map<string,NegCacheEntry> negcache_t;
+  unsigned int d_totUsec;
+  ComboAddress d_requestor;
 
   typedef multi_index_container <
     NegCacheEntry,
@@ -436,16 +444,15 @@ private:
   domainmap_t::const_iterator getBestAuthZone(string* qname);
   bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
   bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  string getBestNSNamesFromCache(const string &qname,set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
-  void addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth);
+  void getBestNSFromCache(const string &qname, const QType &qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
+  string getBestNSNamesFromCache(const string &qname, const QType &qtype, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
   vector<ComboAddress> getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
-
 private:
   ostringstream d_trace;
+  shared_ptr<RecursorLua> d_pdl;
   string d_prefix;
   bool d_cacheonly;
   bool d_nocache;
@@ -456,14 +463,12 @@ private:
   struct GetBestNSAnswer
   {
     string qname;
-    set<DNSResourceRecord> bestns;
+    set<pair<string,string> > bestns;
+    uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
-      if(qname<b.qname)
-        return true;
-      if(qname==b.qname)
-        return bestns<b.bestns;
-      return false;
+      return boost::tie(qname, qtype, bestns) < 
+	boost::tie(b.qname, b.qtype, b.bestns);
     }
   };
 
@@ -554,6 +559,7 @@ struct RecursorStats
   uint64_t tcpClientOverflow;
   uint64_t clientParseError;
   uint64_t serverParseError;
+  uint64_t tooOldDrops;
   uint64_t unexpectedCount;
   uint64_t caseMismatchCount;
   uint64_t spoofCount;
@@ -602,20 +608,14 @@ public:
   string reason; //! Print this to tell the user what went wrong
 };
 
-struct RemoteKeeper
-{
-  typedef vector<ComboAddress> remotes_t;
-  remotes_t remotes;
-  int d_remotepos;
-  void addRemote(const ComboAddress& remote)
-  {
-    if(!remotes.size())
-      return;
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 2)
+typedef boost::circular_buffer<SComboAddress> addrringbuf_t;
+#else
+typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
+#endif
+extern __thread addrringbuf_t* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
 
-    remotes[(d_remotepos++) % remotes.size()]=remote;
-  }
-};
-extern __thread RemoteKeeper* t_remotes;
+extern __thread boost::circular_buffer<pair<std::string,uint16_t> >* t_queryring, *t_servfailqueryring;
 extern __thread NetmaskGroup* t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);

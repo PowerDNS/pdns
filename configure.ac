@@ -18,8 +18,8 @@ AC_CANONICAL_HOST
 
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_PROG_YACC
-AM_PROG_LEX
+PDNS_CHECK_BISON
+PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
@@ -30,18 +30,24 @@ AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
 
 AC_LANG([C++])
 
-AC_CC_PIE
-AC_CC_STACK_PROTECTOR
-AC_CC_PARAM_SSP_BUFFER_SIZE([4])
-AC_CC_D_FORTIFY_SOURCE
+AC_DEFINE([_GNU_SOURCE], [1],
+  [Define _GNU_SOURCE so that we get all necessary prototypes]
+)
 
-AC_CHECK_FUNC([socket], [], [
- AC_CHECK_LIB([socket], [socket], [LIBS="-lsocket $LIBS"])
+AC_ARG_ENABLE([hardening], [
+  AS_HELP_STRING([--disable-hardening, disable compiler security checks])
+])
+AS_IF([test "x$enable_hardening" != "xno"], [
+  AC_CC_PIE
+  AC_CC_STACK_PROTECTOR
+  AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+  AC_CC_D_FORTIFY_SOURCE
+  AC_LD_RELRO
 ])
 
-AC_CHECK_FUNC([gethostent], [], [
- AC_CHECK_LIB([nsl], [gethostent], [LIBS="-lnsl $LIBS"])
-])
+AC_SEARCH_LIBS([socket], [socket])
+AC_SEARCH_LIBS([gethostent], [nsl])
+AC_SEARCH_LIBS([inet_aton], [resolv])
 
 m4_ifndef([LT_INIT],[
 AC_PROG_LIBTOOL([disable-static])
@@ -49,7 +55,6 @@ AC_PROG_LIBTOOL([disable-static])
 LT_INIT([disable-static])
 ])
 
-AC_LD_RELRO
 
 MC_TM_GMTOFF
 
@@ -63,6 +68,20 @@ eval full_libdir="\"$libdir\""
 # detect pkg-config explicitly
 PKG_PROG_PKG_CONFIG
 
+# check if we want a static build
+AC_MSG_CHECKING([whether we will be building static binaries])
+
+AC_ARG_ENABLE([static-binaries],
+  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
+  [static=$enableval],
+  [static=no],
+)
+AC_MSG_RESULT([$static])
+
+AS_IF([test "x$static" != "xno"], [
+  PKG_CONFIG="$PKG_CONFIG --static"
+])
+
 AC_CHECK_HEADERS(
 	[sys/mman.h],
 	[AC_CHECK_FUNC(
@@ -74,7 +93,6 @@ AC_CHECK_HEADERS(
 )
 
 PDNS_CHECK_RAGEL
-AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 
 PDNS_WITH_LUA
 
@@ -85,27 +103,14 @@ BOOST_SERIALIZATION([mt])
 
 PDNS_ENABLE_UNIT_TESTS
 
-dnl Allow user to require SQLite3
-AC_MSG_CHECKING([whether user requires sqlite3])
-AC_ARG_WITH([sqlite3],
-  [AS_HELP_STRING([--with-sqlite3],[include sqlite3 driver @<:@default=no@:>@])],
-  [WITH_SQLITE3=$withval],
-  [WITH_SQLITE3=no]
-)
-AC_MSG_RESULT([$WITH_SQLITE3])
-SQLITE3PC=sqlite3
-if test "$WITH_SQLITE3" != "no"; then
-  needsqlite3=yes
-  if test "$WITH_SQLITE3" != "yes"; then
-    SQLITE3PC=$WITH_SQLITE3
-  fi
-fi
+PDNS_WITH_SQLITE3
 
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
+PDNS_CHECK_PANDOC
+PDNS_CHECK_MKDOCS
+PDNS_CHECK_LINKCHECKER
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([strcasestr])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
 # Check for libdl
 my_save_LIBS="$LIBS"
@@ -129,69 +134,57 @@ if test "$has_RTLD_NOW" = "no"; then
 fi
 LIBS=$ac_save_LIBS
 
-# Check for libcrypt
-
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(crypt, crypt)
-LIBCRYPT=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBCRYPT)
-
-DYNLINKFLAGS=""
 THREADFLAGS=""
 
-AM_CONDITIONAL([OS_MACOSX], false)
 case "$host_os" in
 solaris2.10)
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread -lrt $LIBS"
+  LIBS="-lposix4 -lpthread -lrt $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  have_solaris="yes"
   ;;
 solaris2.8 | solaris2.9 )
   AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
   AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
-  LIBS="-lposix4 -lresolv -lnsl -lsocket -lpthread $LIBS"
+  LIBS="-lposix4 -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
+  have_solaris="yes"
   ;;
 linux*)
-  DYNLINKFLAGS="-rdynamic"
   THREADFLAGS="-pthread"
-  CXXFLAGS="-D_GNU_SOURCE $CXXFLAGS"
+  have_linux="yes"
   ;;
 darwin*)
-  DYNLINKFLAGS="-rdynamic"
-  CXXFLAGS="-D__APPLE_USE_RFC_3542 $CXXFLAGS"
-  AM_CONDITIONAL([OS_MACOSX], true)
+  CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
+  ;;
+freebsd*)
+  LDFLAGS="-pthread $LDFLAGS"
+  CXXFLAGS="-pthread $CXXFLAGS"
+  have_freebsd="yes"
   ;;
 *)
-  DYNLINKFLAGS="-rdynamic"
   LDFLAGS="-pthread $LDFLAGS"
   CXXFLAGS="-pthread $CXXFLAGS"
   ;;
 esac
 
+AM_CONDITIONAL([HAVE_FREEBSD], [test "x$have_freebsd" = "xyes"])
+AM_CONDITIONAL([HAVE_LINUX], [test "x$have_linux" = "xyes"])
+AM_CONDITIONAL([HAVE_SOLARIS], [test "x$have_solaris" = "xyes"])
+
 AC_SUBST(THREADFLAGS)
-AC_SUBST(DYNLINKFLAGS)
+AC_SUBST([DYNLINKFLAGS], [-export-dynamic])
 
 PDNS_ENABLE_VERBOSE_LOGGING
 PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
+PDNS_ENABLE_ED25519
 PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
-AC_MSG_CHECKING([whether we will be building static binaries])
-
-AC_ARG_ENABLE([static-binaries],
-  [AS_HELP_STRING([--enable-static-binaries],[build static binaries @<:@default=no@:>@])],
-  [static=$enableval],
-  [static=no],
-)
-AC_MSG_RESULT([$static])
-AM_CONDITIONAL([ALLSTATIC], [test "x$static" != "xno"])
-AS_IF([test "x$static" != "xno"],
-  [LDFLAGS="-all-static $LDFLAGS"]
-)
+AS_IF([test "x$static" != "xno"], [
+  LDFLAGS="-all-static $LDFLAGS"
+])
 
 modules="bind gmysql geo random"
 AC_ARG_WITH([modules],
@@ -262,6 +255,7 @@ for a in $modules $dynmodules; do
       ;;
     ldap)
       PDNS_CHECK_LDAP
+      needldap=yes
       ;;
     opendbx)
       PDNS_CHECK_OPENDBX
@@ -285,20 +279,12 @@ done
 
 AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 
+AM_CONDITIONAL([LDAP],[test "x$needldap" = "xyes"])
+
 AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
+PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
-if test "$needsqlite3"; then
-  PKG_CHECK_MODULES([SQLITE3], $SQLITE3PC,
-    [HAVE_SQLITE3=yes],
-    [AC_MSG_ERROR([Could not find sqlite3])]
-  )
-  AC_SUBST(SQLITE3_LIBS)
-  AC_SUBST(SQLITE3_CFLAGS)
-  AC_DEFINE([HAVE_SQLITE3],[1],[If we have sqlite3])
-fi
-
-AC_CHECK_FUNCS([localtime_r])
 
 for a in $modules; do
   moduledirs="$moduledirs ${a}backend"
@@ -307,30 +293,22 @@ for a in $modules; do
     moduleobjects="$moduleobjects ../modules/${a}backend/$b"
   done
   modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
-
-  if test ${a} = "gpgsql"; then
-    LIBS="$LIBS $LIBCRYPT"
-
-    case "$host_os" in
-      freebsd*)
-        ;;
-      darwin*)
-        modulelibs="$modulelibs -lresolv"
-        ;;
-      *)
-        modulelibs="$modulelibs -lresolv -lnsl"
-        ;;
-    esac
-  fi
 done
 
 for a in $dynmodules; do
   moduledirs="$moduledirs ${a}backend"
 done
 
-CFLAGS="$PIE_CFLAGS $CFLAGS"
-CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
+
+AS_IF([test "x$static" != "xyes"], [
+  CFLAGS="$PIE_CFLAGS $CFLAGS"
+  CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+  PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
+])
+AC_SUBST([PROGRAM_LDFLAGS])
+
+PDNS_ENABLE_COVERAGE
 
 AC_SUBST(LIBS)
 
@@ -348,15 +326,16 @@ AC_CONFIG_FILES([
   modules/Makefile
   pdns/Makefile
   codedocs/Makefile
+  docs/Makefile
   pdns/pdns.init
   pdns/ext/Makefile
+  pdns/ext/ed25519/Makefile
   pdns/ext/yahttp/Makefile
   pdns/ext/yahttp/yahttp/Makefile
   pdns/ext/polarssl/Makefile
   pdns/ext/polarssl/library/Makefile
   pdns/ext/rapidjson/Makefile
   modules/bindbackend/Makefile
-  modules/db2backend/Makefile
   modules/geobackend/Makefile
   modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
@@ -376,3 +355,23 @@ AC_CONFIG_FILES([
 ])
 AC_OUTPUT
 
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configuration summary])
+AC_MSG_NOTICE([=====================])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Modules: $modules])
+AC_MSG_NOTICE([Dynamic Modules: $dynmodules])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([CC: $CC])
+AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([LD: $LD])
+AC_MSG_NOTICE([CFLAGS: $CFLAGS])
+AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
+AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
+AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
+AC_MSG_NOTICE([Lua support: $with_lua])
+AC_MSG_NOTICE([])

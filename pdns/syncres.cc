@@ -22,6 +22,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include "lua-recursor.hh"
 #include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
@@ -63,6 +64,7 @@ unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
 unsigned int SyncRes::s_maxqperq;
+unsigned int SyncRes::s_maxtotusec;
 string SyncRes::s_serverID;
 SyncRes::LogMode SyncRes::s_lm;
 
@@ -72,8 +74,8 @@ bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-                                                 d_now(now),
-                                                 d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
+					       d_totUsec(0), d_now(now),
+					       d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
                                                  
 { 
   if(!t_sstorage) {
@@ -437,7 +439,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   // the two retries allow getBestNSNamesFromCache&co to reprime the root
   // hints, in case they ever go missing
   for(int tries=0;tries<2 && nsset.empty();++tries) {
-    subdomain=getBestNSNamesFromCache(subdomain, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
+    subdomain=getBestNSNamesFromCache(subdomain, qtype, nsset, &flawedNSSet, depth, beenthere); //  pass beenthere to both occasions
   }
 
   if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere)))
@@ -466,13 +468,10 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
   ret_t ret;
 
   QType type;
-  for(int j=1-s_doIPv6; j<2+s_doIPv6; j++)
+
+  for(int j=1; j<2+s_doIPv6; j++)
   {
     bool done=false;
-    // j=0: ANY
-    // j=1: A
-    // j=2: AAAA
-
     switch(j) {
       case 0:
         type = QType::ANY;
@@ -485,17 +484,17 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
         break;
     }
 
-    if(!doResolve(qname, type, res,depth+1,beenthere) && !res.empty()) {  // this consults cache, OR goes out
+    if(!doResolve(qname, type, res,depth+1, beenthere) && !res.empty()) {  // this consults cache, OR goes out
       for(res_t::const_iterator i=res.begin(); i!= res.end(); ++i) {
         if(i->qtype.getCode()==QType::A || i->qtype.getCode()==QType::AAAA) {
           ret.push_back(ComboAddress(i->content, 53));
-          if(!j) done=true;
+          done=true;
         }
       }
     }
     if(done) break;
   }
-
+  
   if(ret.size() > 1) {
     random_shuffle(ret.begin(), ret.end(), dns_random);
 
@@ -517,7 +516,7 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix, subdomain(qname);
   if(doLog()) {
@@ -525,8 +524,9 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
     prefix.append(depth, ' ');
   }
   bestns.clear();
-
+  bool brokeloop;
   do {
+    brokeloop=false;
     LOG(prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl);
     set<DNSResourceRecord> ns;
     *flawedNSSet = false;
@@ -557,24 +557,33 @@ void SyncRes::getBestNSFromCache(const string &qname, set<DNSResourceRecord>&bes
       }
       if(!bestns.empty()) {
         GetBestNSAnswer answer;
-        answer.qname=qname; answer.bestns=bestns;
+        answer.qname=qname;
+	answer.qtype=qtype.getCode();
+	BOOST_FOREACH(const DNSResourceRecord& rr, bestns)
+	  answer.bestns.insert(make_pair(rr.qname, rr.content));
+
         if(beenthere.count(answer)) {
+	  brokeloop=true;
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP (already seen "<<answer.qname<<")! Trying less specific NS"<<endl);
           if(doLog())
             for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j) {
-              LOG(prefix<<qname<<": beenthere: "<<j->qname<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
+	      bool neo = !(*j< answer || answer<*j);
+	      LOG(prefix<<qname<<": beenthere"<<(neo?"*":"")<<": "<<j->qname<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
             }
           bestns.clear();
         }
         else {
-          beenthere.insert(answer);
+	  beenthere.insert(answer);
           LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' (flawedNSSet="<<*flawedNSSet<<")"<<endl);
           return;
         }
       }
     }
     LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
-    if(subdomain==".") { primeHints(); }
+    if(subdomain=="." && !brokeloop) { 
+      primeHints(); 
+      LOG(prefix<<qname<<": reprimed the root"<<endl);
+    }
   }while(chopOffDotted(subdomain));
 }
 
@@ -590,7 +599,7 @@ SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
+string SyncRes::getBestNSNamesFromCache(const string &qname, const QType& qtype, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
 {
   string subdomain(qname);
   string authdomain(qname);
@@ -608,7 +617,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname, set<string, CIStrin
   }
 
   set<DNSResourceRecord> bestns;
-  getBestNSFromCache(subdomain, bestns, flawedNSSet, depth, beenthere);
+  getBestNSFromCache(subdomain, qtype, bestns, flawedNSSet, depth, beenthere);
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
     nsset.insert(k->content);
@@ -772,6 +781,7 @@ inline vector<string> SyncRes::shuffleInSpeedOrder(set<string, CIStringCompare> 
     rnameservers.push_back(str);
   }
   map<string, double> speeds;
+
   BOOST_FOREACH(const string& val, rnameservers) {
     double speed;
     speed=t_sstorage->nsSpeeds[val].get(&d_now);
@@ -923,16 +933,27 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           }
           else {
             s_outqueries++; d_outqueries++;
-            if(d_outqueries > s_maxqperq) throw ImmediateServFailException("more than "+lexical_cast<string>(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname);
+            if(d_outqueries + d_throttledqueries > s_maxqperq) throw ImmediateServFailException("more than "+lexical_cast<string>(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname);
           TryTCP:
             if(doTCP) {
               LOG(prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);
               s_tcpoutqueries++; d_tcpoutqueries++;
             }
             
-            resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
+	    if(s_maxtotusec && d_totUsec > s_maxtotusec) 
+	      throw ImmediateServFailException("Too much time waiting for "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries) + ", queries: "+lexical_cast<string>(d_outqueries)+", "+lexical_cast<string>(d_totUsec/1000)+"msec");
+
+	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_result, resolveret)) {
+	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
+	    }
+	    else 
+	      resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(), 
                                            doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
-              
+
+            if(resolveret==-3)
+	      throw ImmediateServFailException("Query killed by policy");
+
+	    d_totUsec += lwr.d_usec;
 	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
@@ -962,6 +983,8 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
               }
               continue;
             }
+
+//	    if(d_timeouts + 0.5*d_throttledqueries > 6.0 && d_timeouts > 2) throw ImmediateServFailException("Too much work resolving "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries));
 
             if(lwr.d_rcode==RCode::ServFail || lwr.d_rcode==RCode::Refused) {
               LOG(prefix<<qname<<": "<<*tns<<" returned a "<< (lwr.d_rcode==RCode::ServFail ? "ServFail" : "Refused") << ", trying sibling IP or NS"<<endl);
@@ -1181,20 +1204,6 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
   return -1;
 }
 
-void SyncRes::addAuthorityRecords(const string& qname, vector<DNSResourceRecord>& ret, int depth)
-{
-  set<DNSResourceRecord> bestns;
-  set<GetBestNSAnswer> beenthere;
-  bool dontcare;
-  getBestNSFromCache(qname, bestns, &dontcare, depth, beenthere);
-
-  for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
-    DNSResourceRecord ns=*k;
-    ns.d_place=DNSResourceRecord::AUTHORITY;
-    ns.ttl-=d_now.tv_sec;
-    ret.push_back(ns);
-  }
-}
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret)

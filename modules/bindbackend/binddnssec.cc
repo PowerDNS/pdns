@@ -74,6 +74,11 @@ bool Bind2Backend::deleteTSIGKey(const string& name)
 
 bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 { return false; }
+void Bind2Backend::setupStatements() 
+{ return; }
+void Bind2Backend::freeStatements()
+{ return; }
+
 #else
 
 #include "pdns/ssqlite3.hh"
@@ -84,6 +89,7 @@ void Bind2Backend::setupDNSSEC()
     return;
   try {
     d_dnssecdb = shared_ptr<SSQLite3>(new SSQLite3(getArg("dnssec-db")));
+    setupStatements();
   }
   catch(SSqlException& se) {
     // this error is meant to kill the server dead - it makes no sense to continue..
@@ -93,6 +99,44 @@ void Bind2Backend::setupDNSSEC()
   d_dnssecdb->setLog(::arg().mustDo("query-logging"));
 }
 
+void Bind2Backend::setupStatements() 
+{
+  d_getAllDomainMetadataQuery_stmt = d_dnssecdb->prepare("select kind, content from domainmetadata where domain=:domain",1);
+  d_getDomainMetadataQuery_stmt = d_dnssecdb->prepare("select content from domainmetadata where domain=:domain and kind=:kind",2);
+  d_deleteDomainMetadataQuery_stmt = d_dnssecdb->prepare("delete from domainmetadata where domain=:domain and kind=:kind",2);
+  d_insertDomainMetadataQuery_stmt = d_dnssecdb->prepare("insert into domainmetadata (domain, kind, content) values (:domain,:kind,:content)",3);
+  d_getDomainKeysQuery_stmt = d_dnssecdb->prepare("select id,flags, active, content from cryptokeys where domain=:domain",1);
+  d_deleteDomainKeyQuery_stmt = d_dnssecdb->prepare("delete from cryptokeys where domain=:domain and id=:key_id",2);
+  d_insertDomainKeyQuery_stmt = d_dnssecdb->prepare("insert into cryptokeys (domain, flags, active, content) values (:domain, :flags, :active, :content)", 4);
+  d_activateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=1 where domain=:domain and id=:key_id", 2);
+  d_deactivateDomainKeyQuery_stmt = d_dnssecdb->prepare("update cryptokeys set active=0 where domain=:domain and id=:key_id", 2);
+  d_getTSIGKeyQuery_stmt = d_dnssecdb->prepare("select algorithm, secret from tsigkeys where name=:key_name", 1);
+  d_setTSIGKeyQuery_stmt = d_dnssecdb->prepare("replace into tsigkeys (name,algorithm,secret) values(:key_name, :algorithm, :content)", 3);
+  d_deleteTSIGKeyQuery_stmt = d_dnssecdb->prepare("delete from tsigkeys where name=:key_name", 1);
+  d_getTSIGKeysQuery_stmt = d_dnssecdb->prepare("select name,algorithm,secret from tsigkeys", 0);
+}
+
+void Bind2Backend::release(SSqlStatement** stmt) {
+  delete *stmt;
+  *stmt = NULL;
+}
+
+void Bind2Backend::freeStatements() 
+{
+    release(&d_getAllDomainMetadataQuery_stmt);
+    release(&d_getDomainMetadataQuery_stmt);
+    release(&d_deleteDomainMetadataQuery_stmt);
+    release(&d_insertDomainMetadataQuery_stmt);
+    release(&d_getDomainKeysQuery_stmt);
+    release(&d_deleteDomainKeyQuery_stmt);
+    release(&d_insertDomainKeyQuery_stmt);
+    release(&d_activateDomainKeyQuery_stmt);
+    release(&d_deactivateDomainKeyQuery_stmt);
+    release(&d_getTSIGKeyQuery_stmt);
+    release(&d_setTSIGKeyQuery_stmt);
+    release(&d_deleteTSIGKeyQuery_stmt);
+    release(&d_getTSIGKeysQuery_stmt);
+}
 bool Bind2Backend::doesDNSSEC()
 {
   return d_dnssecdb || d_hybrid;
@@ -128,14 +172,18 @@ bool Bind2Backend::getAllDomainMetadata(const string& name, std::map<std::string
 
   // cerr<<"Asked to get metadata for zone '"<<name<<"'|"<<kind<<"\n";
 
-  boost::format fmt("select kind, content from domainmetadata where domain='%s'");
   try {
-    d_dnssecdb->doQuery((fmt % d_dnssecdb->escape(name)).str());
+    d_getAllDomainMetadataQuery_stmt->
+      bind("domain", name)->
+      execute();
 
-    vector<string> row;
-    while(d_dnssecdb->getRow(row)) {
+    SSqlStatement::row_t row;
+    while(d_getAllDomainMetadataQuery_stmt->hasNextRow()) {
+      d_getAllDomainMetadataQuery_stmt->nextRow(row);
       meta[row[0]].push_back(row[1]);
     }
+
+    d_getAllDomainMetadataQuery_stmt->reset();
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
@@ -150,14 +198,19 @@ bool Bind2Backend::getDomainMetadata(const string& name, const std::string& kind
     
   // cerr<<"Asked to get metadata for zone '"<<name<<"'|"<<kind<<"\n";
   
-  boost::format fmt("select content from domainmetadata where domain='%s' and kind='%s'");
   try {
-    d_dnssecdb->doQuery((fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(kind)).str());
+    d_getDomainMetadataQuery_stmt->
+      bind("domain", name)->
+      bind("kind", kind)->
+      execute(); 
   
-    vector<string> row;
-    while(d_dnssecdb->getRow(row)) {
+    SSqlStatement::row_t row;
+    while(d_getDomainMetadataQuery_stmt->hasNextRow()) {
+      d_getDomainMetadataQuery_stmt->nextRow(row);
       meta.push_back(row[0]);
     }
+
+    d_getDomainMetadataQuery_stmt->reset();
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
@@ -170,12 +223,22 @@ bool Bind2Backend::setDomainMetadata(const string& name, const std::string& kind
   if(!d_dnssecdb || d_hybrid)
     return false;
   
-  boost::format fmt("delete from domainmetadata where domain='%s' and kind='%s'");
-  boost::format fmt2("insert into domainmetadata (domain, kind, content) values ('%s','%s', '%s')");
   try {
-    d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(kind)).str());
-    if(!meta.empty())
-      d_dnssecdb->doCommand((fmt2 % d_dnssecdb->escape(name) % d_dnssecdb->escape(kind) % d_dnssecdb->escape(meta.begin()->c_str())).str());
+    d_deleteDomainMetadataQuery_stmt->
+      bind("domain", name)->
+      bind("kind", kind)->
+      execute()->
+      reset();
+    if(!meta.empty()) {
+      BOOST_FOREACH(const string& value, meta) {
+        d_insertDomainMetadataQuery_stmt->
+          bind("domain", name)->
+          bind("kind", kind)->
+          bind("content", value)->
+          execute()->
+          reset();
+      }
+    }
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
@@ -189,18 +252,21 @@ bool Bind2Backend::getDomainKeys(const string& name, unsigned int kind, std::vec
   // cerr<<"Asked to get keys for zone '"<<name<<"'\n";
   if(!d_dnssecdb || d_hybrid)
     return false;
-  boost::format fmt("select id,flags, active, content from cryptokeys where domain='%s'");
   try {
-    d_dnssecdb->doQuery((fmt % d_dnssecdb->escape(name)).str());
+    d_getDomainKeysQuery_stmt->
+      bind("domain", name)->
+      execute();
     KeyData kd;
-    vector<string> row;
-    while(d_dnssecdb->getRow(row)) {
+    SSqlStatement::row_t row;
+    while(d_getDomainKeysQuery_stmt->hasNextRow()) {
+      d_getDomainKeysQuery_stmt->nextRow(row);
       kd.id = atoi(row[0].c_str());
       kd.flags = atoi(row[1].c_str());
       kd.active = atoi(row[2].c_str());
       kd.content = row[3];
       keys.push_back(kd);
     }
+    d_getDomainKeysQuery_stmt->reset();
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
@@ -216,9 +282,12 @@ bool Bind2Backend::removeDomainKey(const string& name, unsigned int id)
 
   // cerr<<"Asked to remove key "<<id<<" in zone '"<<name<<"'\n";
 
-  boost::format fmt("delete from cryptokeys where domain='%s' and id=%d");
   try {
-    d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % id).str());
+    d_deleteDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
   }
   catch(SSqlException& se) {
     cerr<<se.txtReason()  <<endl;
@@ -234,9 +303,14 @@ int Bind2Backend::addDomainKey(const string& name, const KeyData& key)
   
   //cerr<<"Asked to add a key to zone '"<<name<<"'\n";
   
-  boost::format fmt("insert into cryptokeys (domain, flags, active, content) values ('%s', %d, %d, '%s')");
   try {
-    d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % key.flags % key.active % d_dnssecdb->escape(key.content)).str());
+    d_insertDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("flags", key.flags)->
+      bind("active", key.active)->
+      bind("content", key.content)->
+      execute()->
+      reset();
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
@@ -251,9 +325,12 @@ bool Bind2Backend::activateDomainKey(const string& name, unsigned int id)
   if(!d_dnssecdb || d_hybrid)
     return false;
   
-  boost::format fmt("update cryptokeys set active=1 where domain='%s' and id=%d");
   try {
-    d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % id).str());
+    d_activateDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());    
@@ -268,9 +345,12 @@ bool Bind2Backend::deactivateDomainKey(const string& name, unsigned int id)
   if(!d_dnssecdb || d_hybrid)
     return false;
     
-  boost::format fmt("update cryptokeys set active=0 where domain='%s' and id=%d");
   try {
-    d_dnssecdb->doCommand((fmt % d_dnssecdb->escape(name) % id).str());
+    d_deactivateDomainKeyQuery_stmt->
+      bind("domain", name)->
+      bind("key_id", id)->
+      execute()->
+      reset();
   }
   catch(SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend: "+se.txtReason());
@@ -283,36 +363,41 @@ bool Bind2Backend::getTSIGKey(const string& name, string* algorithm, string* con
 {
   if(!d_dnssecdb || d_hybrid)
     return false;
-  boost::format fmt("select algorithm, secret from tsigkeys where name='%s'");
   
   try {
-    d_dnssecdb->doQuery( (fmt % d_dnssecdb->escape(name)).str());
+    d_getTSIGKeyQuery_stmt->
+      bind("key_name", name)->
+      execute();
+    SSqlStatement::row_t row;
+    content->clear();
+    while(d_getTSIGKeyQuery_stmt->hasNextRow()) {
+      d_getTSIGKeyQuery_stmt->nextRow(row);
+      if(row.size() >= 2 && (algorithm->empty() || pdns_iequals(*algorithm, row[0]))) {
+        *algorithm = row[0];
+        *content = row[1];
+      }
+    }
+    d_getTSIGKeyQuery_stmt->reset();
   }
   catch (SSqlException &e) {
     throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
   }
-  
-  SSql::row_t row;
-  
-  content->clear();
-  while(d_dnssecdb->getRow(row)) {
-    if(row.size() >= 2 && (algorithm->empty() || pdns_iequals(*algorithm, row[0]))) {
-      *algorithm = row[0];
-      *content = row[1];
-    }
-  }
 
   return !content->empty();
-
 }
 
 bool Bind2Backend::setTSIGKey(const string& name, const string& algorithm, const string& content)
 {
   if(!d_dnssecdb || d_hybrid)
     return false;
-  boost::format fmt("replace into tsigkeys (name,algorithm,secret) values('%s', '%s', '%s')");
+
   try {
-    d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name) % d_dnssecdb->escape(algorithm) % d_dnssecdb->escape(content)).str() );
+    d_setTSIGKeyQuery_stmt->
+      bind("key_name", name)->
+      bind("algorithm", algorithm)->
+      bind("content", content)->
+      execute()->
+      reset();
   }
   catch (SSqlException &e) {
     throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
@@ -325,10 +410,12 @@ bool Bind2Backend::deleteTSIGKey(const string& name)
 {
   if(!d_dnssecdb || d_hybrid)
     return false;
-  boost::format fmt("delete from tsigkeys where name='%s'");
 
   try {
-    d_dnssecdb->doCommand( (fmt % d_dnssecdb->escape(name)).str() );
+    d_deleteTSIGKeyQuery_stmt->
+      bind("key_name", name)->
+      execute()->
+      reset();
   }
   catch (SSqlException &e) {
     throw PDNSException("BindBackend unable to retrieve named TSIG key: "+e.txtReason());
@@ -343,20 +430,24 @@ bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     return false;
 
   try {
-    d_dnssecdb->doQuery( "select name,algorithm,secret from tsigkeys" );
+    d_getTSIGKeysQuery_stmt->
+      execute(); 
+
+    SSqlStatement::row_t row;
+
+    while(d_getTSIGKeysQuery_stmt->hasNextRow()) {
+      d_getTSIGKeysQuery_stmt->nextRow(row);
+      struct TSIGKey key;
+      key.name = row[0];
+      key.algorithm = row[1];
+      key.key = row[2];
+      keys.push_back(key);
+    }
+
+    d_getTSIGKeysQuery_stmt->reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to retrieve named TSIG key: "+e.txtReason());
-  }
-
-  SSql::row_t row;
-
-  while(d_dnssecdb->getRow(row)) {
-     struct TSIGKey key;
-     key.name = row[0];
-     key.algorithm = row[1];
-     key.key = row[2];
-     keys.push_back(key);
+    throw PDNSException("GSQLBackend unable to retrieve all TSIG keys: "+e.txtReason());
   }
 
   return !keys.empty();

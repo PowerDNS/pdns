@@ -21,13 +21,16 @@
 */
 #include "logger.hh"
 #include "config.h"
-
+#include "misc.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 extern StatBag S;
 #endif
-
+#include "lock.hh"
 #include "namespaces.hh"
+
+pthread_once_t Logger::s_once;
+pthread_key_t Logger::s_loggerKey;
 
 Logger &theL(const string &pname)
 {
@@ -44,11 +47,12 @@ void Logger::log(const string &msg, Urgency u)
   time(&t);
   tm=*localtime(&t);
 
-  if(u<=consoleUrgency) {// Sep 14 06:52:09
+  if(u<=consoleUrgency) {
     char buffer[50];
     strftime(buffer,sizeof(buffer),"%b %d %H:%M:%S ", &tm);
-    clog<<buffer;
-    clog <<msg <<endl;
+    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+    Lock l(&m); // the C++-2011 spec says we need this, and OSX actually does
+    clog << string(buffer) + msg <<endl;
   }
   if( u <= d_loglevel ) {
 #ifndef RECURSOR
@@ -83,6 +87,12 @@ void Logger::setName(const string &_name)
   open();
 }
 
+void Logger::initKey()
+{
+  if(pthread_key_create(&s_loggerKey, perThreadDestructor))
+    unixDie("Creating thread key for logger");
+}
+
 Logger::Logger(const string &n, int facility)
 {
   opened=false;
@@ -90,32 +100,43 @@ Logger::Logger(const string &n, int facility)
   d_facility=facility;
   consoleUrgency=Error;
   name=n;
-  pthread_mutex_init(&lock,0);
+
+  if(pthread_once(&s_once, initKey))
+    unixDie("Creating thread key for logger");
+
   open();
 
 }
 
 Logger& Logger::operator<<(Urgency u)
 {
-  pthread_mutex_lock(&lock);
-
-  d_outputurgencies[pthread_self()]=u;
-
-  pthread_mutex_unlock(&lock);
+  getPerThread()->d_urgency=u;
   return *this;
+}
+
+void Logger::perThreadDestructor(void* buf)
+{
+  PerThread* pt = (PerThread*) buf;
+  delete pt;
+}
+
+Logger::PerThread* Logger::getPerThread()
+{
+  void *buf=pthread_getspecific(s_loggerKey);
+  PerThread* ret;
+  if(buf)
+    ret = (PerThread*) buf;
+  else {
+    ret = new PerThread();
+    pthread_setspecific(s_loggerKey, (void*)ret);
+  }
+  return ret;
 }
 
 Logger& Logger::operator<<(const string &s)
 {
-  pthread_mutex_lock(&lock);
-
-  if(!d_outputurgencies.count(pthread_self())) // default urgency
-    d_outputurgencies[pthread_self()]=Info;
-
-  //  if(d_outputurgencies[pthread_self()]<=(unsigned int)consoleUrgency) // prevent building strings we won't ever print
-      d_strings[pthread_self()].append(s);
-
-  pthread_mutex_unlock(&lock);
+  PerThread* pt =getPerThread();
+  pt->d_output.append(s);
   return *this;
 }
 
@@ -180,13 +201,10 @@ Logger& Logger::operator<<(long i)
 
 Logger& Logger::operator<<(ostream & (&)(ostream &))
 {
-  // *this<<" ("<<(int)d_outputurgencies[pthread_self()]<<", "<<(int)consoleUrgency<<")";
-  pthread_mutex_lock(&lock);
+  PerThread* pt =getPerThread();
 
-  log(d_strings[pthread_self()], d_outputurgencies[pthread_self()]);
-  d_strings.erase(pthread_self());  
-  d_outputurgencies.erase(pthread_self());
-
-  pthread_mutex_unlock(&lock);
+  log(pt->d_output, pt->d_urgency);
+  pt->d_output.clear();
+  pt->d_urgency=Info;
   return *this;
 }

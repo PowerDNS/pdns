@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2001 - 2011  PowerDNS.COM BV
+    Copyright (C) 2001 - 2015  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -421,8 +421,8 @@ int DNSPacket::noparse(const char *mesg, int length)
 {
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
-    L << Logger::Warning << "Ignoring packet: too short from "
-      << getRemote() << endl;
+    L << Logger::Warning << "Ignoring packet: too short ("<<length<<" < 12) from "
+      << d_remote.toStringWithPort()<< endl;
     return -1;
   }
   d_wantsnsid=false;
@@ -594,8 +594,8 @@ bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, str
   string message;
 
   q->getTSIGDetails(trc, keyname, &message);
-  uint64_t now = time(0);
-  if(abs(trc->d_time - now) > trc->d_fudge) {
+  int64_t now = time(0);
+  if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
     L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }

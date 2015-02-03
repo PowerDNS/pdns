@@ -24,6 +24,7 @@
 #include "secpoll-auth.hh"
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "dynhandler.hh"
 #include <boost/foreach.hpp>
 
 bool g_anyToTcp;
@@ -98,7 +99,7 @@ void declareArguments()
   ::arg().set("allow-axfr-ips","Allow zonetransfers only to these subnets")="127.0.0.0/8,::1";
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks")="0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a domain, also notify these nameservers")="";
-  ::arg().set("slave-cycle-interval","Reschedule failed SOA serial checks once every .. seconds")="60";
+  ::arg().set("slave-cycle-interval","Schedule slave freshness checks once every .. seconds")="60";
 
   ::arg().set("tcp-control-address","If set, PowerDNS can be controlled over TCP on this address")="";
   ::arg().set("tcp-control-port","If set, PowerDNS can be controlled over TCP on this address")="53000";
@@ -254,6 +255,13 @@ void declareStats(void)
   S.declare("incoming-notifications", "NOTIFY packets received.");
 
   S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
+#ifdef __linux__
+  S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats);
+  S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats);
+  S.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats);
+  S.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats);
+#endif
+
   S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec);
   S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec);
   S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes);
@@ -432,7 +440,10 @@ void mainthread()
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
 
-   doSecPoll(true); // this must be BEFORE chroot
+   try {
+     doSecPoll(true); // this must be BEFORE chroot
+   }
+   catch(...) {}
 
    if(!::arg()["chroot"].empty()) {  
      triggerLoadOfLibraries();

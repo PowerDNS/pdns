@@ -33,26 +33,6 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 using namespace ::boost::multi_index;
-#if 0
-#include <iostream>
-using std::cout;
-using std::endl;
-
-struct TSCTimer
-{
-  TSCTimer()
-  {
-    RDTSC(d_tsc1);
-  }
-  ~TSCTimer()
-  {
-    uint64_t tsc2;
-    RDTSC(tsc2);
-    cout<<"Timer: "<< (tsc2 - d_tsc1)/3000.0 << endl;
-  }
-  uint64_t d_tsc1;
-};
-#endif
 
 #include "utility.hh"
 #include "dns.hh"
@@ -180,6 +160,26 @@ void dropPrivs(int uid, int gid);
 int makeGidNumeric(const string &group);
 int makeUidNumeric(const string &user);
 void cleanSlashes(string &str);
+
+#if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)
+/** CPUTime measurements */
+class CPUTime
+{
+public:
+  void start()
+  {
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &d_start);
+  }
+  uint64_t ndiff()
+  {
+    struct timespec now;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &now);
+    return 1000000000ULL*(now.tv_sec - d_start.tv_sec) + (now.tv_nsec - d_start.tv_nsec);
+  }
+private:
+  struct timespec d_start;
+};
+#endif 
 
 /** The DTime class can be used for timing statistics with microsecond resolution. 
 On 32 bits systems this means that 2147 seconds is the longest time that can be measured. */
@@ -538,7 +538,7 @@ private:
 };
 
 union ComboAddress;
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, ComboAddress* source);
+void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source);
 
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);

@@ -382,21 +382,24 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
     char buffer[4096];
     int rd = -1;
     bool fail = false;
+    time_t t0;
 
     arl.initialize(&resp);
 
     try {
-      while(arl.ready() == false) {
+      t0 = time((time_t*)NULL);
+      while(arl.ready() == false && (labs(time((time_t*)NULL) - t0) <= timeout/1000)) {
         rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
-        if (rd<0) {
-          delete d_socket;
-          d_socket = NULL;
-          fail = true;
-          break;
-        }
+        if (rd==0) 
+          throw NetworkError("EOF while reading");
+        if (rd<0)
+          throw NetworkError(std::string(strerror(rd)));
         buffer[rd] = 0;
         arl.feed(std::string(buffer, rd));
       }
+      // timeout occured.
+      if (arl.ready() == false)
+        throw NetworkError("timeout");
     } catch (NetworkError &ne) {
       L<<Logger::Error<<"While reading from HTTP endpoint "<<d_addr.toStringWithPort()<<": "<<ne.what()<<std::endl; 
       delete d_socket;

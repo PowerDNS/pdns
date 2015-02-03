@@ -229,7 +229,7 @@ void StatBag::declareRing(const string &name, const string &help, unsigned int s
 
 void StatBag::declareComboRing(const string &name, const string &help, unsigned int size)
 {
-  d_comborings[name]=StatRing<ComboAddress, ComboAddress::addressOnlyLessThan >(size);
+  d_comborings[name]=StatRing<SComboAddress>(size);
   d_comborings[name].setHelp(help);
 }
 
@@ -239,11 +239,11 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
   if(d_rings.count(name))
     return d_rings[name].get();
   else {
-    typedef pair<ComboAddress, unsigned int> stor_t;
+    typedef pair<SComboAddress, unsigned int> stor_t;
     vector<stor_t> raw =d_comborings[name].get();
     vector<pair<string, unsigned int> > ret;
     BOOST_FOREACH(const stor_t& stor, raw) {
-      ret.push_back(make_pair(stor.first.toString(), stor.second));
+      ret.push_back(make_pair(stor.first.ca.toString(), stor.second));
     }
     return ret;
   }
@@ -295,7 +295,7 @@ vector<string>StatBag::listRings()
   vector<string> ret;
   for(map<string,StatRing<string> >::const_iterator i=d_rings.begin();i!=d_rings.end();++i)
     ret.push_back(i->first);
-  for(map<string,StatRing<ComboAddress, ComboAddress::addressOnlyLessThan> >::const_iterator i=d_comborings.begin();i!=d_comborings.end();++i)
+  for(map<string,StatRing<SComboAddress> >::const_iterator i=d_comborings.begin();i!=d_comborings.end();++i)
     ret.push_back(i->first);
 
   return ret;
@@ -307,4 +307,4 @@ bool StatBag::ringExists(const string &name)
 }
 
 template class StatRing<std::string>;
-template class StatRing<ComboAddress, ComboAddress::addressOnlyLessThan >;
+template class StatRing<SComboAddress>;

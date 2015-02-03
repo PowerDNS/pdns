@@ -35,7 +35,7 @@ function preresolve ( remoteip, domain, qtype )
 
 	if domain == "www.powerdns.org." 
 	then
-		ret={}
+		local ret={}
 		ret[1]= {qtype=pdns.A, content="85.17.220.215", ttl=86400}
 		print "dealing!"
 		return 0, ret
@@ -60,11 +60,11 @@ end
 function nxdomain ( remoteip, domain, qtype )
 	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
 	if qtype ~= pdns.A then 
-    pdnslog("Only A records", pdns.loglevels.Error)
+    		pdnslog("Only A records", pdns.loglevels.Error)
 	return pdns.PASS, {} 
 	end  --  only A records
 	if not string.find(domain, "^www%.") then 
-    pdnslog("Only strings that start with www.", pdns.loglevels.Error)
+		pdnslog("Only strings that start with www.", pdns.loglevels.Error)
 	return pdns.PASS, {} 
 	end  -- only things that start with www.
 	
@@ -72,7 +72,7 @@ function nxdomain ( remoteip, domain, qtype )
 	if matchnetmask(remoteip, {"127.0.0.1/32", "10.1.0.0/16"}) 
 	then 
 		print "dealing"
-		ret={}
+		local ret={}
 		ret[1]={qtype=pdns.CNAME, content="www.webserver.com", ttl=3602}
 		ret[2]={qname="www.webserver.com", qtype=pdns.A, content="1.2.3.4", ttl=3602}
 		ret[3]={qname="webserver.com", qtype=pdns.NS, content="ns1.webserver.com", place=2}
@@ -87,12 +87,12 @@ end
 function axfrfilter(remoteip, zone, qname, qtype, ttl, content)
 	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
 	then
-		ret = {}
+		local ret = {}
 		return pdns.PASS, ret
 	end
 
 	print "got soa!"
-	ret={}
+	local ret={}
 	ret[1]={qname=qname, qtype=qtype, content=content, ttl=ttl}
 	ret[2]={qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
 	return 0, ret
@@ -138,7 +138,7 @@ function prequery ( dnspacket )
 		dnspacket:setRcode(pdns.NXDOMAIN)
 		pdnslog ("called dnspacket:setRcode", pdns.loglevels.Debug)
 		pdnslog ("adding records", pdns.loglevels.Debug)
-		ret = {}
+		local ret = {}
 		ret[1] = {qname=qname, qtype=qtype, content="1.2.3.4", place=2}
 		ret[2] = {qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
 		dnspacket:addRecords(ret)
@@ -157,4 +157,38 @@ function hidettl ( remoteip, domain, qtype, records, origrcode )
 		val.ttl=0
 	end
 	return origrcode, records
+end
+
+nmg=iputils.newnmgroup()
+nmg:add("192.121.121.0/24")
+
+ipset=iputils.newipset()
+
+function preoutquery(remoteip, domain, qtype)
+	print("pdns wants to ask "..remoteip:tostring().." about "..domain.." "..qtype.." on behalf of requestor "..getlocaladdress())
+	if(nmg:match(remoteip))
+	then
+		print("We matched the group "..nmg:tostring().."! Killing query dead & adding requestor "..getlocaladdress().." to block list")
+		ipset[iputils.newca(getlocaladdress())]=1
+		return -3,{}
+	end
+	return -1,{}
+end
+
+
+local delcount=0
+
+function ipfilter(remoteip)
+	delcount=delcount+1
+	
+	if((delcount % 10000)==0)
+	then
+		print("Clearing ipset!")
+		ipset=iputils.newipset()  -- clear it
+	end
+	
+	if(ipset[remoteip] ~= nil) then
+		return 1
+	end
+	return -1
 end

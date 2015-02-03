@@ -95,13 +95,14 @@ class AuthZones(ApiTestCase):
         comments = [
             {
                 'name': name,
-                'type': 'SOA',
+                'type': 'soa',  # test uppercasing of type, too.
                 'account': 'test1',
                 'content': 'blah blah',
                 'modified_at': 11112,
             }
         ]
         payload, data = self.create_zone(name=name, comments=comments)
+        comments[0]['type'] = comments[0]['type'].upper()
         # check our comment has appeared
         self.assertEquals(data['comments'], comments)
 
@@ -110,13 +111,14 @@ class AuthZones(ApiTestCase):
         records = [
             {
                 "name": name,
-                "type": "SOA",
+                'type': 'soa',  # test uppercasing of type, too.
                 "ttl": 3600,
                 "content": "ns1.example.net testmaster@example.net 10 10800 3600 604800 3600",
                 "disabled": False
             }
         ]
         payload, data = self.create_zone(name=name, records=records)
+        records[0]['type'] = records[0]['type'].upper()
         self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
 
     def test_create_zone_trailing_dot(self):
@@ -177,6 +179,25 @@ class AuthZones(ApiTestCase):
         payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
         r = self.session.delete(self.url("/servers/localhost/zones/" + data['id']))
         r.raise_for_status()
+
+    def test_retrieve_slave_zone(self):
+        payload, data = self.create_zone(kind='Slave', nameservers=None, masters=['127.0.0.2'])
+        print "payload:", payload
+        print "data:", data
+        r = self.session.put(self.url("/servers/localhost/zones/" + data['id'] + "/axfr-retrieve"))
+        data = r.json()
+        print "status for axfr-retrieve:", data
+        self.assertEqual(data['result'], u'Added retrieval request for \'' + payload['name'] +
+                         '\' from master 127.0.0.2')
+
+    def test_notify_master_zone(self):
+        payload, data = self.create_zone(kind='Master')
+        print "payload:", payload
+        print "data:", data
+        r = self.session.put(self.url("/servers/localhost/zones/" + data['id'] + "/notify"))
+        data = r.json()
+        print "status for notify:", data
+        self.assertEqual(data['result'], 'Notification queued')
 
     def test_get_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
@@ -430,7 +451,7 @@ fred   IN  A      192.168.0.4
         rrset = {
             'changetype': 'replace',
             'name': name,
-            'type': 'NS',
+            'type': 'ns',
             'records': [
                 {
                     "name": name,
@@ -456,6 +477,7 @@ fred   IN  A      192.168.0.4
         self.assert_success_json(r)
         # verify that (only) the new record is there
         r = self.session.get(self.url("/servers/localhost/zones/" + name))
+        rrset['type'] = rrset['type'].upper()
         data = r.json()['records']
         recs = [rec for rec in data if rec['type'] == rrset['type'] and rec['name'] == rrset['name']]
         self.assertEquals(recs, rrset['records'])

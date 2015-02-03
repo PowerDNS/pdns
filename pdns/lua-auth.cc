@@ -131,7 +131,11 @@ static DNSPacket* ldp_checkDNSPacket(lua_State *L) {
 
 static int ldp_setRcode(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
+#if LUA_VERSION_NUM < 503
   int rcode = luaL_checkint(L, 2);
+#else
+  int rcode = (int)luaL_checkinteger(L, 2);
+#endif
   p->setRcode(rcode);
   return 0;
 }

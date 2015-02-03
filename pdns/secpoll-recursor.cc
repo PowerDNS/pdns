@@ -3,10 +3,10 @@
 #include "logger.hh"
 #include "arguments.hh"
 #include "version.hh"
-#include "version_generated.h"
+
 #include <stdint.h>
 #ifndef PACKAGEVERSION 
-#define PACKAGEVERSION PDNS_VERSION
+#define PACKAGEVERSION getPDNSVersion()
 #endif
 
 uint32_t g_security_status;
@@ -23,7 +23,8 @@ void doSecPoll(time_t* last_secpoll)
   
   vector<DNSResourceRecord> ret;
 
-  string query = "recursor-" PACKAGEVERSION ".security-status."+::arg()["security-poll-suffix"];
+  string version = "recursor-" +string(PACKAGEVERSION);
+  string query = version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"];
 
   if(*query.rbegin()!='.')
     query+='.';
@@ -46,7 +47,7 @@ void doSecPoll(time_t* last_secpoll)
     *last_secpoll=now.tv_sec;
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" PACKAGEVERSION "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    L<<Logger::Warning<<"Could not retrieve security status update for '" +string(PACKAGEVERSION)+ "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     if(g_security_status == 1) // it was ok, not it is unknown
       g_security_status = 0;
     if(res == RCode::NXDomain) // if we had servfail, keep on trying more more frequently

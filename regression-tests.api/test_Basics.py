@@ -8,7 +8,7 @@ class TestBasics(ApiTestCase):
 
     def test_unauth(self):
         r = requests.get(self.url("/servers/localhost"))
-        self.assertEquals(r.status_code, requests.codes.unauthorized)
+        self.assertEquals(r.status_code, requests.codes.bad_request)
 
     def test_split_request(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,3 +31,14 @@ class TestBasics(ApiTestCase):
         status = resp.splitlines(0)[0]
         if '400' in status:
             raise Exception('Got unwanted response: %s' % status)
+
+    def test_cors(self):
+        r = self.session.options(self.url("/servers/localhost"))
+        # look for CORS headers
+
+        self.assertEquals(r.status_code, requests.codes.ok)
+        self.assertEquals(r.headers['access-control-allow-origin'], "*")
+        self.assertEquals(r.headers['access-control-allow-headers'], 'Content-Type, X-API-Key')
+        self.assertEquals(r.headers['access-control-allow-methods'], 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+
+        print "response", repr(r.headers)

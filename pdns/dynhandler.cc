@@ -266,15 +266,35 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   extern CommunicatorClass Communicator;
-  ostringstream os;
+  UeberBackend B;
   if(parts.size()!=2)
     return "syntax: notify domain";
   if(!::arg().mustDo("master"))
       return "PowerDNS not configured as master";
   L<<Logger::Warning<<"Notification request for domain '"<<parts[1]<<"' received from operator"<<endl;
-  if(!Communicator.notifyDomain(parts[1]))
-    return "Failed to add to the queue - see log";
-  return "Added to queue";
+
+  if (parts[1] == "*") {
+    vector<DomainInfo> domains;
+    B.getAllDomains(&domains);
+
+    int total = 0;
+    int notified = 0;
+    for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
+      if (di->kind == 0) { // MASTER
+        total++;
+        if(Communicator.notifyDomain(di->zone))
+          notified++;
+      }
+    }
+
+    if (total != notified)
+      return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
+    return "Added "+itoa(total)+" MASTER zones to queue";
+  } else {
+    if(!Communicator.notifyDomain(parts[1]))
+      return "Failed to add to the queue - see log";
+    return "Added to queue";
+  }
 }
 
 string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
@@ -298,6 +318,33 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   P.getBackend()->reload();
   L<<Logger::Error<<"Reload was requested"<<endl;
   return "Ok";
+}
+
+uint64_t udpErrorStats(const std::string& str)
+{
+  ifstream ifs("/proc/net/snmp");
+  if(!ifs)
+    return 0;
+  string line;
+  vector<string> parts;
+  while(getline(ifs,line)) {
+    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
+      stringtok(parts, line, " \n\t\r");
+      if(parts.size() < 7)
+	break;
+      if(str=="udp-rcvbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[5]);
+      else if(str=="udp-sndbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[6]);
+      else if(str=="udp-noport-errors")
+	return boost::lexical_cast<uint64_t>(parts[2]);
+      else if(str=="udp-in-errors")
+	return boost::lexical_cast<uint64_t>(parts[3]);
+      else
+	return 0;
+    }
+  }
+  return 0;
 }
 
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid)

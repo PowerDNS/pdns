@@ -81,12 +81,6 @@ extern StatBag S;
     The main() of PowerDNS can be found in receiver.cc - start reading there for further insights into the operation of the nameserver
 */
 
-#if defined(IP_PKTINFO)
-  #define GEN_IP_PKTINFO IP_PKTINFO
-#elif defined(IP_RECVDSTADDR)
-  #define GEN_IP_PKTINFO IP_RECVDSTADDR 
-#endif
-
 vector<ComboAddress> g_localaddresses; // not static, our unit tests need to poke this
 
 void UDPNameserver::bindIPv4()
@@ -157,17 +151,6 @@ void UDPNameserver::bindIPv4()
   }
 }
 
-static bool IsAnyAddress(const ComboAddress& addr)
-{
-  if(addr.sin4.sin_family == AF_INET)
-    return addr.sin4.sin_addr.s_addr == 0;
-  else if(addr.sin4.sin_family == AF_INET6)
-    return !memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr));
-  
-  return false;
-}
-
-
 bool AddressIsUs(const ComboAddress& remote)
 {
   BOOST_FOREACH(const ComboAddress& us, g_localaddresses) {
@@ -223,7 +206,6 @@ void UDPNameserver::bindIPv6()
     Utility::setCloseOnExec(s);
     if(!Utility::setNonBlocking(s))
       throw PDNSException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
-
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));
     
@@ -313,14 +295,7 @@ void UDPNameserver::send(DNSPacket *p)
   else
     numanswered6++;
 
-  /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
-  iov.iov_base = (void*)buffer.c_str();
-  iov.iov_len = buffer.length();
-  msgh.msg_iov = &iov;
-  msgh.msg_iovlen = 1;
-  msgh.msg_name = (struct sockaddr*)&p->d_remote;
-  msgh.msg_namelen = p->d_remote.getSocklen();
+  fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
 
   if(p->d_anyLocal) {
     addCMsgSrcAddr(&msgh, cbuf, p->d_anyLocal.get_ptr());
@@ -331,52 +306,6 @@ void UDPNameserver::send(DNSPacket *p)
   }
   if(sendmsg(p->getSocket(), &msgh, 0) < 0)
     L<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p->getSocket()<<", dest="<<p->d_remote.toStringWithPort()<<"): "<<strerror(errno)<<endl;
-}
-
-static bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv) 
-{
-#ifdef SO_TIMESTAMP
-  struct cmsghdr *cmsg;
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP) && 
-	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
-      memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
-      return true;
-    }
-  }
-#endif
-  return false;
-}
-
-static bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination)
-{
-  memset(destination, 0, sizeof(*destination));
-  struct cmsghdr *cmsg;
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-#if defined(IP_PKTINFO)
-     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
-        struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
-        destination->sin4.sin_addr = i->ipi_addr;
-        destination->sin4.sin_family = AF_INET;
-        return true;
-    }
-#elif defined(IP_RECVDSTADDR)
-    if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
-      struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
-      destination->sin4.sin_addr = *i;
-      destination->sin4.sin_family = AF_INET;      
-      return true;
-    }
-#endif
-
-    if ((cmsg->cmsg_level == IPPROTO_IPV6) && (cmsg->cmsg_type == IPV6_PKTINFO)) {
-        struct in6_pktinfo *i = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-        destination->sin6.sin6_addr = i->ipi6_addr;
-        destination->sin4.sin_family = AF_INET6;
-        return true;
-    }
-  }
-  return false;
 }
 
 DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
@@ -391,18 +320,8 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   struct iovec iov;
   char cbuf[256];
 
-  iov.iov_base = mesg;
-  iov.iov_len  = sizeof(mesg);
-
-  memset(&msgh, 0, sizeof(struct msghdr));
-  
-  msgh.msg_control = cbuf;
-  msgh.msg_controllen = sizeof(cbuf);
-  msgh.msg_name = &remote;
-  msgh.msg_namelen = sizeof(remote);
-  msgh.msg_iov  = &iov;
-  msgh.msg_iovlen = 1;
-  msgh.msg_flags = 0;
+  remote.sin6.sin6_family=AF_INET6; // make sure it is big enough
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), mesg, sizeof(mesg), &remote);
   
   int err;
   vector<struct pollfd> rfds= d_rfds;

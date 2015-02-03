@@ -63,12 +63,12 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   
   string ping;
 
-  uint32_t nonce=dns_random(0xffffffff);
-  ping.assign((char*) &nonce, 4);
-
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
     if(EDNS0Level > 1) {
+      uint32_t nonce=dns_random(0xffffffff);
+      ping.assign((char*) &nonce, 4);
+
       opts.push_back(make_pair(5, ping));
     }
 
@@ -78,11 +78,11 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   lwr->d_rcode = 0;
   lwr->d_pingCorrect = false;
   lwr->d_haveEDNS = false;
-
   int ret;
 
   DTime dt;
-  dt.setTimeval(*now);
+  dt.set();
+  *now=dt.getTimeval();
   errno=0;
   if(!doTCP) {
     int queryfd;

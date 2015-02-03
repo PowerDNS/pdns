@@ -80,7 +80,7 @@ union ComboAddress {
       return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, 16) > 0;
   }
 
-  struct addressOnlyLessThan: public std::binary_function<string, string, bool>
+  struct addressOnlyLessThan: public std::binary_function<ComboAddress, ComboAddress, bool>
   {
     bool operator()(const ComboAddress& a, const ComboAddress& b) const
     {
@@ -411,6 +411,21 @@ private:
 };
 
 
+struct SComboAddress
+{
+  SComboAddress(const ComboAddress& orig) : ca(orig) {}
+  ComboAddress ca;
+  bool operator<(const SComboAddress& rhs) const
+  {
+    return ComboAddress::addressOnlyLessThan()(ca, rhs.ca);
+  }
+  operator const ComboAddress&()
+  {
+    return ca;
+  }
+};
+
+
 int SSocket(int family, int type, int flags);
 int SConnect(int sockfd, const ComboAddress& remote);
 int SBind(int sockfd, const ComboAddress& local);
@@ -418,4 +433,13 @@ int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
 int SSetsockopt(int sockfd, int level, int opname, int value);
 
+#if defined(IP_PKTINFO)
+  #define GEN_IP_PKTINFO IP_PKTINFO
+#elif defined(IP_RECVDSTADDR)
+  #define GEN_IP_PKTINFO IP_RECVDSTADDR 
+#endif
+bool IsAnyAddress(const ComboAddress& addr);
+bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
+bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
+void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 #endif

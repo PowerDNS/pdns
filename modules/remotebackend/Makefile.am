@@ -1,5 +1,5 @@
 AM_CPPFLAGS += \
-	-I../../pdns/ext/rapidjson/include \
+	-I$(top_srcdir)/pdns/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)

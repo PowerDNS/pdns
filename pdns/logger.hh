@@ -24,7 +24,6 @@
 /* (C) 2002 POWERDNS.COM BV */
 
 #include <string>
-#include <map>
 #include <ctime>
 #include <iostream>
 #include <sstream>
@@ -81,8 +80,18 @@ public:
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
 
 private:
-  map<pthread_t,string>d_strings;
-  map<pthread_t,Urgency> d_outputurgencies;
+  struct PerThread
+  {
+    PerThread() 
+    {
+      d_urgency=Info;
+    }
+    string d_output;
+    Urgency d_urgency;
+  };
+  static void initKey();
+  static void perThreadDestructor(void *);
+  PerThread* getPerThread();
   void open();
   string name;
   int flags;
@@ -90,7 +99,8 @@ private:
   bool opened;
   Urgency d_loglevel;
   Urgency consoleUrgency;
-  pthread_mutex_t lock;
+  static pthread_once_t s_once;
+  static pthread_key_t s_loggerKey;
 };
 
 extern Logger &theL(const string &pname="");

@@ -16,6 +16,19 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
 
   ComboAddress remote("130.161.33.15", 53);
   BOOST_CHECK(!(local == remote));
+  BOOST_CHECK_EQUAL(remote.sin4.sin_port, htons(53));
+  
+  ComboAddress withport("213.244.168.210:53");
+  BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(53));
+  
+  ComboAddress withportO("213.244.168.210:53", 5300);
+  BOOST_CHECK_EQUAL(withportO.sin4.sin_port, htons(53));
+ 
+  withport = ComboAddress("[::]:53");
+  BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(53));
+  
+  withport = ComboAddress("[::]:5300", 53);
+  BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(5300));
 }
 
 BOOST_AUTO_TEST_CASE(test_Netmask) {

@@ -37,4 +37,5 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
 void pushSyslogSecurityLevelTable(lua_State *lua);
 int getLuaTableLength(lua_State* lua, int depth);
 void luaStackDump (lua_State *L);
+extern "C" int luaopen_iputils(lua_State*);
 #endif

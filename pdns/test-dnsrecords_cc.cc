@@ -43,6 +43,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::CNAME, "name.rec.test", "name.rec.test.", "\x04name\xc0\x11",false))
 // non-local alias
      (CASE_S(QType::CNAME, "name.example.com.", "\x04name\x07""example\x03""com\x00",false))
+// max label length (63)
+     (CASE_S(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.example.com.", "\x3f""123456789012345678901234567890123456789012345678901234567890123\x07""example\x03""com\x00", false))
+// local max name length (255)
+     (CASE_S(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.1234567890123456789012345678901234567890123456789012.rec.test.", "\x3f""123456789012345678901234567890123456789012345678901234567890123\x3f""123456789012345678901234567890123456789012345678901234567890123\x3f""123456789012345678901234567890123456789012345678901234567890123\x34""1234567890123456789012345678901234567890123456789012\xc0\x11", false))
+// non-local max name length (255)
+     (CASE_S(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.1234567890123456789012345678901234567890123456789012345678901.", "\x3f""123456789012345678901234567890123456789012345678901234567890123\x3f""123456789012345678901234567890123456789012345678901234567890123\x3f""123456789012345678901234567890123456789012345678901234567890123\x3d""1234567890123456789012345678901234567890123456789012345678901\x00", false))
 // local names
      (CASE_S(QType::SOA, "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
 // local name without dots
@@ -225,6 +231,14 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (case_t(QType::AAAA, "23:00::15::43", zone, false)) // double compression
      (case_t(QType::AAAA, "2a23:00::15::", zone, false)) // ditto 
      (case_t(QType::AAAA, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff", zone, false)) // truncated wire value
+// empty label, must be broken
+     (case_t(QType::CNAME, "name..example.com.", zone, false))
+// overly large label (64), must be broken
+     (case_t(QType::CNAME, "1234567890123456789012345678901234567890123456789012345678901234.example.com.", zone, false))
+// local overly large name (256), must be broken
+     (case_t(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123.rec.test.", zone, false))
+// non-local overly large name (256), must be broken
+     (case_t(QType::CNAME, "123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.123456789012345678901234567890123456789012345678901234567890123.12345678901234567890123456789012345678901234567890123456789012.", zone, false))
      (case_t(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120", zone, false)) // too long serial
 ;
 
@@ -239,10 +253,13 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     BOOST_TEST_CHECKPOINT("Checking bad value for record type " << q.getName() << " test #" << n);
     BOOST_TEST_MESSAGE("Checking bad value for record type " << q.getName() << " test #" << n);
  
+    vector<uint8_t> packet;
+    DNSPacketWriter pw(packet, "unit.test", q.getCode());
+
     if (val.get<2>()) {
-      BOOST_WARN_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     } else {
-      BOOST_CHECK_EXCEPTION( DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()), std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     }
   };
 }

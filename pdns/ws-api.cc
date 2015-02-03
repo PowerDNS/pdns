@@ -86,7 +86,8 @@ static void fillServerDetail(Value& out, Value::AllocatorType& allocator)
   out.AddMember("id", "localhost", allocator);
   out.AddMember("url", "/servers/localhost", allocator);
   out.AddMember("daemon_type", jdaemonType, allocator);
-  out.AddMember("version", VERSION, allocator);
+  Value jversion(getPDNSVersion().c_str(), allocator);
+  out.AddMember("version", jversion, allocator);
   out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
   out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
 }

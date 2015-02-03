@@ -8,11 +8,47 @@ before_script:
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update --quiet --quiet
- - sudo apt-get install --quiet --quiet --no-install-recommends libboost-all-dev libtolua-dev bc libcdb-dev libnet-dns-perl unbound-host ldnsutils dnsutils bind9utils libtool libcdb-dev xmlto links asciidoc ruby-json ruby-sqlite3 rubygems libcurl4-openssl-dev ruby1.9.1 socat time pkg-config daemontools authbind liblua5.1-posix1 libopendbx1-dev libopendbx1-sqlite3 python-virtualenv libldap2-dev softhsm libp11-kit-dev p11-kit moreutils libgeoip-dev geoip-database faketime
+ - sudo apt-get install --quiet --quiet --no-install-recommends
+     authbind
+     bc
+     bind9utils
+     daemontools
+     dnsutils
+     faketime
+     geoip-database
+     ldnsutils
+     libboost-all-dev
+     libbotan1.10-dev
+     libcdb-dev
+     libcdb-dev
+     libcurl4-openssl-dev
+     libgeoip-dev
+     libldap2-dev
+     liblua5.1-posix1
+     libnet-dns-perl
+     libopendbx1-dev
+     libopendbx1-sqlite3
+     libp11-kit-dev
+     libtolua-dev
+     libtool
+     links
+     moreutils
+     p11-kit
+     pkg-config
+     python-virtualenv
+     ruby-json
+     ruby-sqlite3
+     ruby1.9.1
+     rubygems
+     socat
+     softhsm
+     time
+     unbound-host
+     xmlto
  - sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
  - sudo apt-get update --quiet --quiet
  - sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev pandoc
- - sudo pip install pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1
+ - sudo pip install pandoc==1.0.0-alpha.3 pandocfilters mkdocs==0.11.1 linkchecker==9.3
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
@@ -33,9 +69,23 @@ before_script:
  - p11-kit -l # ensure it's ok
 script:
  - ./bootstrap
- - ./configure --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua' --with-modules='' --enable-unit-tests --enable-tools --enable-remotebackend-zeromq --enable-experimental-pkcs11 --disable-silent-rules --disable-dependency-tracking
+ - ./configure
+     --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
+     --with-modules=''
+     --with-sqlite3
+     --enable-botan1.10
+     --enable-unit-tests
+     --enable-tools
+     --enable-remotebackend-zeromq
+     --enable-experimental-ed25519
+     --enable-experimental-pkcs11
+     --disable-silent-rules
+     --disable-dependency-tracking
  - make -k dist
  - make -k -j 4
+ - cd docs
+ - make check-links
+ - cd ..
  - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
  - travis_retry timeout 240s make -j 4 check # Workaround for remotebackend failures on travis-ci
@@ -49,10 +99,7 @@ script:
  - make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
- - make -k -C docs html/index.html manpages
- - cd docs
- - make html-new/index.html
- - cd ../../regression-tests.recursor
+ - cd ../regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
  - ./start.sh

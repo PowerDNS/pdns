@@ -25,8 +25,6 @@
 .deps
 .libs
 .dirstamp
-modules/*/Makefile
-modules/*/Makefile.in
 codedocs/Makefile
 codedocs/Makefile.in
 /config.log
@@ -44,3 +42,6 @@ pdns-*.tar.bz2
 .*DS_Store
 *~
 pdns.pid
+*.gcda
+*.gcno
+*.gcov

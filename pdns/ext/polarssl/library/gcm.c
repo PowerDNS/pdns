@@ -220,7 +220,6 @@ static void gcm_mult( gcm_context *ctx, const unsigned char x[16],
 #endif /* POLARSSL_AESNI_C && POLARSSL_HAVE_X86_64 */
 
     lo = x[15] & 0xf;
-    hi = x[15] >> 4;
 
     zh = ctx->HH[lo];
     zl = ctx->HL[lo];
@@ -354,7 +353,7 @@ int gcm_update( gcm_context *ctx,
     /* Total length is restricted to 2^39 - 256 bits, ie 2^36 - 2^5 bytes
      * Also check for possible overflow */
     if( ctx->len + length < ctx->len ||
-        (uint64_t) ctx->len + length > 0x03FFFFE0llu )
+        (uint64_t) ctx->len + length > 0x03FFFFE0ull )
     {
         return( POLARSSL_ERR_GCM_BAD_INPUT );
     }

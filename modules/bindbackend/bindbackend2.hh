@@ -39,8 +39,9 @@
 #include "pdns/lock.hh"
 #include "pdns/misc.hh"
 #include "pdns/dnsbackend.hh"
-
 #include "pdns/namespaces.hh"
+#include "pdns/backends/gsql/ssql.hh"
+
 using namespace ::boost::multi_index;
 
 /** This struct is used within the Bind2Backend to store DNS information. 
@@ -237,6 +238,9 @@ public:
 
 private:
   void setupDNSSEC();
+  void setupStatements();
+  void freeStatements();
+  void release(SSqlStatement**);
   static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
   static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
   static bool safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd);
@@ -301,4 +305,18 @@ private:
   void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
   void loadConfig(string *status=0);
   static void nukeZoneRecords(BB2DomainInfo *bbd);
+
+  SSqlStatement* d_getAllDomainMetadataQuery_stmt;
+  SSqlStatement* d_getDomainMetadataQuery_stmt;
+  SSqlStatement* d_deleteDomainMetadataQuery_stmt;
+  SSqlStatement* d_insertDomainMetadataQuery_stmt;
+  SSqlStatement* d_getDomainKeysQuery_stmt;
+  SSqlStatement* d_deleteDomainKeyQuery_stmt;
+  SSqlStatement* d_insertDomainKeyQuery_stmt;
+  SSqlStatement* d_activateDomainKeyQuery_stmt;
+  SSqlStatement* d_deactivateDomainKeyQuery_stmt;
+  SSqlStatement* d_getTSIGKeyQuery_stmt;
+  SSqlStatement* d_setTSIGKeyQuery_stmt;
+  SSqlStatement* d_deleteTSIGKeyQuery_stmt;
+  SSqlStatement* d_getTSIGKeysQuery_stmt;
 };

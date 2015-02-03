@@ -32,7 +32,10 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include "namespaces.hh"
+#include "misc.hh"
 using namespace ::boost::multi_index;
+
+// #define MTASKERTIMING 1
 
 struct KeyTag {};
 
@@ -54,6 +57,10 @@ private:
 	ucontext_t* context;
 	char* startOfStack;
 	char* highestStackSeen;
+#ifdef MTASKERTIMING
+    	CPUTime dt;
+	unsigned int totTime;
+#endif
   };
 
   typedef std::map<int, ThreadInfo> mthreads_t;
@@ -105,6 +112,7 @@ public:
   unsigned int numProcesses();
   int getTid(); 
   unsigned int getMaxStackUsage();
+  unsigned int getUsec();
 
 private:
   static void threadWrapper(uint32_t self1, uint32_t self2, tfunc_t *tf, int tid, uint32_t val1, uint32_t val2);

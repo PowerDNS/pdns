@@ -5,6 +5,22 @@ namespace YaHTTP {
   static const char *MONTHS[] = {0,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",0}; //<! List of months 
   static const char *DAYS[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat",0}; //<! List of days
 
+  /*! Case-Insensitive NULL safe comparator for string maps */
+  struct ASCIICINullSafeComparator {
+    bool operator() (const std::string& lhs, const std::string& rhs) const {
+      char v;
+      std::string::const_iterator lhi = lhs.begin();
+      std::string::const_iterator rhi = rhs.begin();
+      for(;lhi != lhs.end() && rhi != rhs.end(); lhi++, rhi++)
+        if ((v = ::tolower(*lhi) - ::tolower(*rhi)) != 0) return v<0; 
+      if (lhi == lhs.end() && rhi != rhs.end()) return true;
+      if (lhi != lhs.end() && rhi == rhs.end()) return false;
+      return false; // they are equal
+    }
+  };
+
+  typedef std::map<std::string,std::string,ASCIICINullSafeComparator> strstr_map_t; //<! String to String map
+
   /*! Represents a date/time with utc offset */
   class DateTime {
   public:
@@ -158,7 +174,6 @@ namespace YaHTTP {
        const char *ptr;
        if ( (ptr = strptime(cookie_date.c_str(), "%d-%b-%Y %T", &tm)) != NULL) {
           while(*ptr && ( ::isspace(*ptr) || ::isalnum(*ptr) )) ptr++;
-          std::cerr << ptr << std::endl;
           if (*ptr) throw "Unparseable date (non-final)"; // must be final.
           fromTm(&tm);
           this->utc_offset = 0;
@@ -331,9 +346,9 @@ namespace YaHTTP {
        }
     }; //<! static HTTP codes to text mappings
 
-    static std::map<std::string,std::string> parseUrlParameters(std::string parameters) {
+    static strstr_map_t parseUrlParameters(std::string parameters) {
       std::string::size_type pos = 0;
-      std::map<std::string,std::string> parameter_map;
+      strstr_map_t parameter_map;
       while (pos != std::string::npos) {
         // find next parameter start
         std::string::size_type nextpos = parameters.find("&", pos);
@@ -389,12 +404,24 @@ namespace YaHTTP {
       return iequals(a,b,a.size());
     }; //<! case-insensitive comparison
 
+    static void trimLeft(std::string &str) {
+       const std::locale &loc = std::locale::classic();
+       std::string::iterator iter = str.begin();
+       while(iter != str.end() && std::isspace(*iter, loc)) iter++;
+       str.erase(str.begin(), iter);
+    }; //<! removes whitespace from left
+
     static void trimRight(std::string &str) {
        const std::locale &loc = std::locale::classic();
        std::string::reverse_iterator iter = str.rbegin();
        while(iter != str.rend() && std::isspace(*iter, loc)) iter++;
        str.erase(iter.base(), str.end());
     }; //<! removes whitespace from right
+
+    static void trim(std::string &str) {
+       trimLeft(str);
+       trimRight(str);
+    }; //<! removes whitespace from left and right
 
     static std::string camelizeHeader(const std::string &str) {
        std::string::const_iterator iter = str.begin();

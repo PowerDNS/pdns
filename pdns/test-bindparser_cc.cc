@@ -7,15 +7,25 @@
 #include "pdnsexception.hh"
 #include <utility>
 #include <boost/foreach.hpp>
+#include <sstream>
+#include <cstdlib>
 
 using std::string;
 
 BOOST_AUTO_TEST_SUITE(bindparser_cc)
 
 BOOST_AUTO_TEST_CASE(test_parser) {
+        char *srcdir;
+        std::ostringstream pathbuf;
         BindParser BP;
         BOOST_CHECK_THROW( BP.parse("../regression-tests/named.confx"), PDNSException);
-        BP.parse("../pdns/named.conf.parsertest"); // indirect path because Jenkins runs us from ../regression-tests/
+        BP.setVerbose(true);
+        srcdir = std::getenv("SRCDIR");
+        if(!srcdir)
+                srcdir="."; // assume no shenanigans
+
+        pathbuf << srcdir << "/../pdns/named.conf.parsertest";
+        BP.parse(pathbuf.str());
 
         vector<BindDomainInfo> domains=BP.getDomains();
         BOOST_CHECK_EQUAL(domains.size(), 11);
