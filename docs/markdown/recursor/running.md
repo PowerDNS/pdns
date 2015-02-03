@@ -60,8 +60,8 @@ Reload data about all authoritative and forward zones. The configuration file is
 ### `set-minimum-ttl value`
 Available since 3.6, this setting artificially raises all TTLs to be at least this long. While this is a gross hack, and violates RFCs, under conditions of DoS, it may enable you to continue serving your customers. Corresponds to the configuration file setting 'minimum-ttl-override'.
 
-### `set-carbon-server server ourname`
-Set a Carbon server for telemetry purposes. The parameter `server` corresponds to the configuration setting **carbon-server**, and `ourname` corresponds to **carbon-ourname**.
+### `set-carbon-server server(-list) ourname`
+Set a Carbon server (list) for telemetry purposes. The parameter `server` corresponds to the configuration setting **carbon-server**, and `ourname` corresponds to **carbon-ourname**.
 
 ### `top-remotes`
 Shows the top-20 most active remote hosts. Statistics are over the last **remotes-ringbuffer-entries** queries, which defaults to 0.

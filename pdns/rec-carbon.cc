@@ -18,43 +18,49 @@ try
     hostname=arg()["carbon-ourname"];
   }
 
-  if(carbonServer.empty())
+  vector<string>locals;
+  stringtok(locals,carbonServer," ,");
+
+  if(locals.empty())
     return;
 
   RecursorControlParser rcp; // inits if needed
-  ComboAddress remote(carbonServer, 2003);
-  Socket s(remote.sin4.sin_family, SOCK_STREAM);
 
-  s.setNonBlocking();
-  s.connect(remote);  // we do the connect so the attempt happens while we gather stats
- 
-  typedef map<string,string> all_t;
-  all_t all=getAllStatsMap();
+  for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
+    ComboAddress remote(*i, 2003);
+    Socket s(remote.sin4.sin_family, SOCK_STREAM);
 
-  ostringstream str;
-  time_t now=time(0);
+    s.setNonBlocking();
+    s.connect(remote);  // we do the connect so the attempt happens while we gather stats
 
-  if(hostname.empty()) {
-    char tmp[80];
-    memset(tmp, 0, sizeof(tmp));
-    gethostname(tmp, sizeof(tmp));
-    char *p = strchr(tmp, '.');
-    if(p) *p=0;
+    typedef map<string,string> all_t;
+    all_t all=getAllStatsMap();
 
-    hostname=tmp;
-    boost::replace_all(hostname, ".", "_");    
+    ostringstream str;
+    time_t now=time(0);
+
+    if(hostname.empty()) {
+      char tmp[80];
+      memset(tmp, 0, sizeof(tmp));
+      gethostname(tmp, sizeof(tmp));
+      char *p = strchr(tmp, '.');
+      if(p) *p=0;
+
+      hostname=tmp;
+      boost::replace_all(hostname, ".", "_");
+    }
+    BOOST_FOREACH(const all_t::value_type& val, all) {
+      str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
+    }
+    const string msg = str.str();
+
+    int ret=asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect
+    if(ret < 0)
+      L<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<strerror(errno)<<endl;
+    if(ret==0)
+      L<<Logger::Warning<<"Timeout connecting/writing carbon data to "<<remote.toStringWithPort()<<endl;
   }
-  BOOST_FOREACH(const all_t::value_type& val, all) {
-    str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
-  }
-  const string msg = str.str();
-
-  int ret=asendtcp(msg, &s);     // this will actually do the right thing waiting on the connect
-  if(ret < 0)
-    L<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<strerror(errno)<<endl;
-  if(ret==0)
-    L<<Logger::Warning<<"Timeout connecting/writing carbon data to "<<remote.toStringWithPort();
- }
+}
 catch(PDNSException& e)
 {
   L<<Logger::Error<<"Error in carbon thread: "<<e.reason<<endl;

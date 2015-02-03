@@ -61,8 +61,8 @@ careful not to include any dots in this setting, unless you know what you
 are doing. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-server`
-* IP address
-* Available since: 3.5.3
+* IP addresses, separated by spaces or commas
+* Available since: 3.5.3, multiple addresses since: 3.7.0
 
 If set to an IP or IPv6 address, will send all available metrics to this server
 via the carbon protocol, which is used by graphite and metronome. See
