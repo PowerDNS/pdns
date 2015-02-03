@@ -2359,10 +2359,12 @@ int main(int argc, char **argv)
     }
 
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+
     if (logUrgency < Logger::Error)
       logUrgency = Logger::Error;
-    if(!g_quiet)
-      logUrgency = Logger::Info;
+    if(!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
+      logUrgency = Logger::Info;                // if you do --quiet=no, you need Info to also see the query log
+    }
     L.setLoglevel(logUrgency);
     L.toConsole(logUrgency);
 
