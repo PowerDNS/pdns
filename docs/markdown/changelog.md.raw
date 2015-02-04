@@ -66,7 +66,7 @@ Performance improvements:
 
 
 # PowerDNS Recursor 3.7.0
-**Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015.
+**Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015, Release Candidate 2 released on 4th of January 2015.
 
 This version contains a mix of speedups and improvements, the combined effect of which is vastly
 improved resilience against traffic spikes and malicious query overloads. 
@@ -98,6 +98,13 @@ Improvements:
 - Builtin webserver can be queried with the API key in the URL again c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Ringbuffers are now available via API c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Lua 5.3 compatibility 59c6fc3e3931ca87d484337daee512e716bc4cf4 (Kees Monshouwer)
+- No longer leave a stale UNIX domain socket around from rec_control if the recursor was down 524e4f4d81f4ed9eb218715cbc8a59f0b9868234, 
+  ticket #2061 (RC2)
+- Running with 'quiet=no' would strangely actually prevent debug messages from being logged f48d7b657ec32517f8bfcada3bfe6353ca313314
+  (RC2)
+- Webserver now implements CORS for the API ea89a97e864c43c1cb03f2959ad04c4ebe7580ad (RC2), fixing ticket #1984
+- Houskeeping thread would sometimes run multiple times simultaneously, which worked, but was odd cc59bce675e62e2b9657b42614ce8be3312cae82 (RC2)
+- Tweaked the DoS timeouts somewhat compared to RC1 c59501468f581586e4adcdc5b4e98c4e1b1db13d based on feedback (RC2)
 
 New features:
 
@@ -120,6 +127,7 @@ Speedups:
 Security relevant:
 
 - Check for PIE, RELRO and stack protector during configure 8d0354b189c12e1e14f5309d3b49935c17f9eeb0 (Aki Tuomi)
+- Testing for support of PIE etc was improved in b2053c28ccb9609e2ce7bcb6beda83f98a062aa3 and beyond, fixes #2125 (Ruben Kerkhof)
 - Max query-per-query limit (max-qperq) is now configurable 173d790ead08f67733010ca4c6fc404a040fe699
 
 Bugs fixed:
@@ -128,6 +136,15 @@ Bugs fixed:
 - rec_control gave incorrect output on a timeout 12997e9d800734da51b808767e1e2477244c30eb
 - When using the webserver AND having an error in the Lua script, recursor could crash during startup 62f0ae62984adadab687c23fe1b287c1f219b2cb
 - Hugely long version strings would trip up security polling 18b7333828a1275ae5f5574a9c8330290d8557ff (Kees Monshouwer)
+- The 'remotes' ringbuffer was sized incorrectly f8f243b01215d6adcb59389f09ef494f1309041f (RC2)
+- Cache sizes had an off-by-one scaling problem, with the wrong number of entries allocated per thread f8f243b01215d6adcb59389f09ef494f1309041f (RC2)
+- Our automatic file descriptor limit raising was attempted *after* setuid, which made it a lot less effective. Found and fixed by Aki Tuomi
+  a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1 (RC2)
+- Timestamps used for dropping packets were occasionaly wrong 183eb8774e4bc2569f06d5894fec65740f4b70b6 and 4c4765c104bacc146533217bcc843efb244a8086 
+  (RC2) with thanks to Winfried for debugging.
+- In RC1, our new DoS protection measures would crash the Recursor if too many root sersvers were unreachable.
+  6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4. Debugging and testing by Fusl.
+
  
 Various other documentation changes by Christian Hofstaedtler and Ruben
 Kerkhof.  Lots of improvements all over the place by Kees Monshouwer.
