@@ -17,5 +17,5 @@ LUA_LIBS_CONFIG ?= -llua5.1 -rdynamic
 
 
 optional/epollmplexer.o: epollmplexer.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ ; true
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
