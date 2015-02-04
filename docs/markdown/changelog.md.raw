@@ -66,7 +66,7 @@ Performance improvements:
 
 
 # PowerDNS Recursor 3.7.0
-**Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015, Release Candidate 2 released on 4th of January 2015.
+**Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015, Release Candidate 2 released on 4th of February 2015.
 
 This version contains a mix of speedups and improvements, the combined effect of which is vastly
 improved resilience against traffic spikes and malicious query overloads. 
