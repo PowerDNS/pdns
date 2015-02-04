@@ -8,6 +8,7 @@ After=network-online.target
 Type=forking
 ExecStart=/usr/sbin/pdns_recursor --daemon
 PrivateTmp=true
+PrivateDevices=true
 
 [Install]
 WantedBy=multi-user.target
