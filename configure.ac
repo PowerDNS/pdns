@@ -208,6 +208,10 @@ for a in $modules $dynmodules; do
     geoip)
       PDNS_CHECK_GEOIP
       ;;
+    geosql)
+      BOOST_REGEX
+      PDNS_WITH_MYSQL
+      ;;
     lua*)
       AS_IF([test "x$with_lua" = "xno"],
         [AC_MSG_ERROR([${a} backend needs lua, run ./configure --with-lua])]
@@ -323,6 +327,7 @@ AC_CONFIG_FILES([
   ext/json11/Makefile
   modules/bindbackend/Makefile
   modules/geoipbackend/Makefile
+  modules/geosqlbackend/Makefile
   modules/gmysqlbackend/Makefile
   modules/godbcbackend/Makefile
   modules/goraclebackend/Makefile
