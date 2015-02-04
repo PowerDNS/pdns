@@ -1,6 +1,15 @@
 # All PowerDNS Recursor Settings
 Each setting can appear on the command line, prefixed by '--', or in the configuration file. The command line overrides the configuration file.
 
+**Note**:  Settings marked as 'Boolean' can either be set to an empty value, which
+means on, or to 'no' or 'off' which means off. Anything else means on.
+
+So, as an example:
+
+ * 'serve-rfc1918' on its own means: do serve those zones. 
+ * 'serve-rfc1918=off' or 'serve-rfc1918=no' means: do not serve those zones. 
+ * Anything else means: do serve those zones.
+
 ## `aaaa-additional-processing`
 * Boolean
 * Default: No
@@ -472,7 +481,7 @@ which also disables outgoing IPv6 support.
 
 Don't log queries.
 
-## `serve-rfc-1918`
+## `serve-rfc1918`
 * Boolean
 * Default: yes
 
