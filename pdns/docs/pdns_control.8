@@ -40,8 +40,32 @@ Secret needed to connect to remote PowerDNS
 Where the controlsocket will live
 .SH COMMANDS
 .TP
+.B help
+Lists all available commands.
+.TP
+.B bind-add-zone \fI<domain>\fR \fI<filename>\fR
+bindbackend: Adds a zone to the bind backend. Zone will be loaded at first request.
+.TP
+.B bind-domain-status \fI[<domains>]\fR
+bindbackend: Output status of domain or domains. Can be one of seen in named.conf, not parsed, parsed successfully at <time> or error parsing at line ... at <time>.
+.TP
+.B bind-list-rejects
+bindbackend: Lists all zones that have problems, and what those problems are.
+.TP
+.B bind-reload-now \fI<domains>\fR
+bindbackend: Reloads a zone from disk NOW, reporting back results.
+.TP
 .B ccounts
 Show the content of the cache
+.TP
+.B current-config
+Retrieve the current configuration
+TP
+.B cycle
+Restart the nameserver so it reloads its configuration.
+.TP
+.B list-zones \fI[master|slave|native]\fR
+show list of zones
 .TP
 .B notify \fI<domain>\fR
 Adds a domain to the notification list, causing PDNS to send out notifications to the nameservers of a domain. Can be used if a slave missed previous notifications or is generally hard of hearing.
@@ -49,38 +73,50 @@ Adds a domain to the notification list, causing PDNS to send out notifications t
 .B notify-host \fI<domain>\fR \fI<host>\fR
 Same as above but with operator specified IP address as destination, to be used if you know better than PowerDNS.
 .TP
-.B cycle
-Restart the nameserver so it reloads its configuration.
-.TP
 .B ping
-Check if the server is alive.
+'PING' the powerdns-guardian. Will return 'PONG' when it is available. (Only works when you are running in guardian mode)
 .TP
 .B purge \fI[<record>]\fR
 Purge entries from the packet cache. If the record name ends with a
 dollar ($) all entries that end with that name are removed. If no record is
 specified the entire cache is purged.
 .TP
+.B qtypes
+get QType statistics
+.TP
+.B quit
+Tell a running \fBpdns_server\fR to quit.
+.TP
 .B rediscover
 Instructs backends that new domains may have appeared in the database, or, in the case of the Bind backend, in named.conf.
 .TP
+.B reload
+All zones with a changed timestamp are reloaded at the next incoming query for them.
+.TP
+.B remotes
+get top remotes
+.TP
+.B respsizes
+Shows a histogram of response sizes.
+.TP
 .B retrieve \fI<domain>\fR
 Retrieve a slave domain from its master. Done nearly immediatly.
+.TP
+.B rping
+'PING' the powerdns-instance. Will return 'PONG' when it is available.
 .TP
 .B set \fI<variable> <value>\fR
 Set the configuration parameter \fI<variable>\fR to \fI<value>\fR. Currently
 only the \fIquery\-logging\fR can be set.
 .TP
 .B show \fI<variable>\fR
-Show a single statistic, as present in the output of the list command.
-.TP
-.B quit
-Tell a running \fBpdns_server\fR to quit.
+Show a single statistic, as present in the output of the list command. Use '*' to get a list.
 .TP
 .B status
-Show usage statistics.
+Retrieves the status of PowerDNS. Only available when running with guardian.
 .TP
 .B uptime
-Show the uptime of the running server.
+Reports the uptime of the daemon in human readable form.
 .TP
 .B version
 Print the version of the running pdns daemon.
