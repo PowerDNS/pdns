@@ -492,7 +492,19 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
         }
       }
     }
-    if(done) break;
+    if(done) { 
+      if(j==1 && s_doIPv6) { // we got an A record, see if we have some AAAA lying around
+	set<DNSResourceRecord> cset;
+	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset) > 0) {
+	  for(set<DNSResourceRecord>::const_iterator k=cset.begin();k!=cset.end();++k) {
+	    if(k->ttl > (unsigned int)d_now.tv_sec ) { 
+	      ret.push_back(ComboAddress(k->content, 53));
+	    }
+	  }
+	}
+      }
+      break;
+    }
   }
   
   if(ret.size() > 1) {
