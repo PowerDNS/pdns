@@ -1989,6 +1989,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
+  SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2312,6 +2313,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
+    ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";

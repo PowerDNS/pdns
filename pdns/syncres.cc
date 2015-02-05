@@ -63,6 +63,7 @@ uint64_t SyncRes::s_unreachables;
 unsigned int SyncRes::s_minimumTTL;
 bool SyncRes::s_doIPv6;
 bool SyncRes::s_nopacketcache;
+bool SyncRes::s_rootNXTrust;
 unsigned int SyncRes::s_maxqperq;
 unsigned int SyncRes::s_maxtotusec;
 string SyncRes::s_serverID;
@@ -678,7 +679,16 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
 }
 
 
+static const string getLastLabel(const std::string& qname)
+{
+  string ret=qname.substr(0, qname.length()-1);
 
+  string::size_type pos = ret.rfind('.');
+  if(pos != string::npos) {
+    ret = ret.substr(pos+1) + ".";
+  }
+  return ret;
+}
 
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
@@ -693,37 +703,54 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   string sqname(qname);
   QType sqt(qtype);
   uint32_t sttl=0;
-  //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"'\n";
+  //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
   
-  pair<negcache_t::const_iterator, negcache_t::const_iterator> range=t_sstorage->negcache.equal_range(tie(qname));
-  negcache_t::iterator ni;
-  for(ni=range.first; ni != range.second; ni++) {
-    // we have something
-    if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
-      res=0;
-      if((uint32_t)d_now.tv_sec < ni->d_ttd) {
-        sttl=ni->d_ttd - d_now.tv_sec;
-        if(ni->d_qtype.getCode()) {
-          LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
-          res = RCode::NoError;
-        }
-        else {
-          LOG(prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
-          res= RCode::NXDomain; 
-        }
-        giveNegative=true;
-        sqname=ni->d_qname;
-        sqt=QType::SOA;
-        moveCacheItemToBack(t_sstorage->negcache, ni);
-        break;
-      }
-      else {
-        LOG(prefix<<qname<<": Entire record '"<<qname<<"' or type was negatively cached, but entry expired"<<endl);
-        moveCacheItemToFront(t_sstorage->negcache, ni);
+  pair<negcache_t::const_iterator, negcache_t::const_iterator> range;
+  QType qtnull(0);
+  range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull));
+  //  cerr<< "eq: "<<(range.first != t_sstorage->negcache.end() )<<endl;
+  if(s_rootNXTrust && range.first != t_sstorage->negcache.end() 
+	   && range.first->d_qname=="." && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
+    sttl=range.first->d_ttd - d_now.tv_sec;
+    
+    cerr<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<range.first->d_name<<"' & '"<<range.first->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
+    res= RCode::NXDomain; 
+    sqname=range.first->d_qname;
+    sqt=QType::SOA;
+    moveCacheItemToBack(t_sstorage->negcache, range.first);
+    
+    giveNegative=true;
+  }
+  else {
+    range=t_sstorage->negcache.equal_range(tie(qname));
+    negcache_t::iterator ni;
+    for(ni=range.first; ni != range.second; ni++) {
+      // we have something
+      if(ni->d_qtype.getCode() == 0 || ni->d_qtype == qtype) {
+	res=0;
+	if((uint32_t)d_now.tv_sec < ni->d_ttd) {
+	  sttl=ni->d_ttd - d_now.tv_sec;
+	  if(ni->d_qtype.getCode()) {
+	    LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
+	    res = RCode::NoError;
+	  }
+	  else {
+	    LOG(prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
+	    res= RCode::NXDomain; 
+	  }
+	  giveNegative=true;
+	  sqname=ni->d_qname;
+	  sqt=QType::SOA;
+	  moveCacheItemToBack(t_sstorage->negcache, ni);
+	  break;
+	}
+	else {
+	  LOG(prefix<<qname<<": Entire record '"<<qname<<"' or type was negatively cached, but entry expired"<<endl);
+	  moveCacheItemToFront(t_sstorage->negcache, ni);
+	}
       }
     }
   }
-
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
 
@@ -1123,6 +1150,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           ne.d_qtype=QType(0); // this encodes 'whole record'
           
           replacing_insert(t_sstorage->negcache, ne);
+	  if(s_rootNXTrust && auth==".") {
+	    ne.d_name = getLastLabel(ne.d_name);
+	    replacing_insert(t_sstorage->negcache, ne);
+	  }
           
           negindic=true;
         }
