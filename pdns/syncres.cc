@@ -678,10 +678,12 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   return false;
 }
 
-
+// accepts . terminated names, www.powerdns.com. -> com.
 static const string getLastLabel(const std::string& qname)
 {
-  string ret=qname.substr(0, qname.length()-1);
+  if(qname.empty())
+    return qname;
+  string ret=qname.substr(0, qname.length()-1); // strip .
 
   string::size_type pos = ret.rfind('.');
   if(pos != string::npos) {
@@ -707,14 +709,14 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   
   pair<negcache_t::const_iterator, negcache_t::const_iterator> range;
   QType qtnull(0);
-  range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull));
-  //  cerr<< "eq: "<<(range.first != t_sstorage->negcache.end() )<<endl;
-  if(s_rootNXTrust && range.first != t_sstorage->negcache.end() 
-	   && range.first->d_qname=="." && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
+  
+  if(s_rootNXTrust && 
+     (range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull))) != t_sstorage->negcache.end() && 
+      range.first->d_qname=="." && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
     sttl=range.first->d_ttd - d_now.tv_sec;
     
-    cerr<<prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<range.first->d_name<<"' & '"<<range.first->d_qname<<"' for another "<<sttl<<" seconds"<<endl;
-    res= RCode::NXDomain; 
+    LOG(prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<range.first->d_name<<"' & '"<<range.first->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
+    res = RCode::NXDomain; 
     sqname=range.first->d_qname;
     sqt=QType::SOA;
     moveCacheItemToBack(t_sstorage->negcache, range.first);
