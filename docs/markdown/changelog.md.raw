@@ -111,6 +111,7 @@ New features:
 - Lua preoutquery filter 3457a2a0ec41d3b3aff7640f30008788e1228a6e
 - Lua IP-based filter (ipfilter) before parsing packets 4ea949413c495254acb0bd19335142761c1efc0c
 - `iputils` class for Lua, to quickly process IP addresses and netmasks in their native format
+- `getregisteredname` function for Lua, to find the registered domain for a given name
 - Various new ringbuffers: top-servfail-remotes, top-largeanswer-remotes, top-servfail-queries
 
 Speedups:
