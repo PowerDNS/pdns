@@ -49,7 +49,7 @@ class AuthZones(ApiTestCase):
 
     def test_create_zone(self):
         payload, data = self.create_zone(serial=22)
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit'):
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])

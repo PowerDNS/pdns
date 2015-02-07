@@ -130,7 +130,7 @@ bool GSQLBackend::setKind(const string &domain, const DomainInfo::DomainKind kin
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
-     id,name,master IP(s),last_check,notified_serial,type */
+     id,name,master IP(s),last_check,notified_serial,type,account */
   char output[1024];
   snprintf(output,sizeof(output)-1,d_InfoOfDomainsZoneQuery.c_str(),
 	   sqlEscape(domain).c_str());
@@ -151,6 +151,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.last_check=atol(d_result[0][3].c_str());
   di.notified_serial = atol(d_result[0][4].c_str());
   string type=d_result[0][5];
+  di.account=d_result[0][6];
   di.backend=this;
 
   di.serial = 0;
@@ -994,7 +995,6 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
     if (!row[4].empty()) {
       stringtok(di.masters, row[4], " ,\t");
     }
-    di.last_check=atol(row[6].c_str());
 
     SOAData sd;
     fillSOAData(row[2], sd);
@@ -1002,6 +1002,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
     if (!row[5].empty()) {
       di.notified_serial = atol(row[5].c_str());
     }
+    di.last_check = atol(row[6].c_str());
+    di.account = row[7];
     
     if (pdns_iequals(row[3], "MASTER"))
       di.kind = DomainInfo::Master;
