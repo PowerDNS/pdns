@@ -704,6 +704,29 @@ fred   IN  A      192.168.0.4
         self.assertEquals(r.status_code, 422)
         self.assertIn('out of zone', r.json()['error'])
 
+    def test_rrset_unknown_type(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'FAFAFA',
+            'records': [
+                {
+                    "name": name,
+                    "type": "FAFAFA",
+                    "ttl": 3600,
+                    "content": "4.3.2.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('unknown type', r.json()['error'])
+
     def test_zone_rr_delete_out_of_zone(self):
         payload, zone = self.create_zone()
         name = payload['name']

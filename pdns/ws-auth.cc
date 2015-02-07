@@ -396,6 +396,10 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       rr.ttl = intFromJson(record, "ttl");
       rr.disabled = boolFromJson(record, "disabled");
 
+      if (rr.qtype.getCode() == 0) {
+        throw ApiException("Record "+rr.qname+"/"+stringFromJson(record, "type")+" is of unknown type");
+      }
+
       try {
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
         string tmp = drc->serialize(rr.qname);
