@@ -75,6 +75,15 @@ class AuthZones(ApiTestCase):
         self.assertGreater(soa_serial, payload['serial'])
         self.assertEquals(soa_serial, data['serial'])
 
+    def test_create_zone_with_account(self):
+        # soa_edit_api wins over serial
+        payload, data = self.create_zone(account='anaccount', serial=10)
+        print data
+        for k in ('account', ):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
+
     def test_create_zone_with_records(self):
         name = unique_zone_name()
         records = [

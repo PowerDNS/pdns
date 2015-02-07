@@ -127,6 +127,19 @@ bool GSQLBackend::setKind(const string &domain, const DomainInfo::DomainKind kin
   return true;
 }
 
+bool GSQLBackend::setAccount(const string &domain, const string &account)
+{
+  string query = (GSQLformat(d_UpdateAccountOfZoneQuery) % sqlEscape(account) % sqlEscape(toLower(domain))).str();
+
+  try {
+    d_db->doCommand(query);
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set account of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
@@ -293,6 +306,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertEntQuery=getArg("insert-ent-query");
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
+  d_UpdateAccountOfZoneQuery=getArg("update-account-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
