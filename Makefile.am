@@ -15,7 +15,6 @@ EXTRA_DIST = \
 	contrib/systemd-pdns-recursor.service \
 	contrib/systemd-pdns.service \
 	debian \
-	pdns.spec \
 	pdns/named.conf.parsertest \
 	regression-tests/zones/unit.test
 
