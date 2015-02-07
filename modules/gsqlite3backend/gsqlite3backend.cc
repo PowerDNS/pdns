@@ -77,7 +77,7 @@ public:
     
     declare(suffix, "master-zone-query", "Data", "select master from domains where name=:domain and type='SLAVE'");
 
-    declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type from domains where name=:domain");
+    declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
 
     declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
@@ -128,7 +128,7 @@ public:
     declare(suffix, "delete-tsig-key-query","", "delete from tsigkeys where name=:key_name");
     declare(suffix, "get-tsig-keys-query","", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR :include_disabled");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR :include_disabled");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=:domain_id");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (:domain_id, :qname, :qtype, :modified_at, :account, :content)");

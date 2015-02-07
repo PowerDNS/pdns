@@ -51,6 +51,7 @@ struct DomainInfo
   uint32_t notified_serial;
   uint32_t serial;
   time_t last_check;
+  string account;
   enum DomainKind { Master, Slave, Native } kind;
   DNSBackend *backend;
   
