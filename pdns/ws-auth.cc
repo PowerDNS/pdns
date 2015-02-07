@@ -407,10 +407,21 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       try {
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
         string tmp = drc->serialize(rr.qname);
+        if (rr.qtype.getCode() != QType::AAAA) {
+          tmp = drc->getZoneRepresentation();
+          if (!pdns_iequals(tmp, rr.content)) {
+            throw std::runtime_error("Not in expected format (parsed as '"+tmp+"')");
+          }
+        } else {
+          struct in6_addr tmpbuf;
+          if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1 || rr.content.find('.') != string::npos) {
+            throw std::runtime_error("Invalid IPv6 address");
+          }
+        }
       }
       catch(std::exception& e)
       {
-        throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": "+e.what());
+        throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" '"+rr.content+"': "+e.what());
       }
 
       if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
