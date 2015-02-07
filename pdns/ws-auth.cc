@@ -470,6 +470,9 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
   if (document["soa_edit"].IsString()) {
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].GetString());
   }
+  if (document["account"].IsString()) {
+    di.backend->setAccount(zonename, document["account"].GetString());
+  }
 }
 
 static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {

@@ -337,6 +337,12 @@ public:
     return false;
   }
 
+  //! Called when the Account of a domain should be changed
+  virtual bool setAccount(const string &domain, const string &account)
+  {
+    return false;
+  }
+
   //! Can be called to seed the getArg() function with a prefix
   void setArgPrefix(const string &prefix);
 

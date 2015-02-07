@@ -72,6 +72,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
+  d_UpdateAccountOfZoneQuery=getArg("update-account-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
@@ -142,6 +143,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateKindOfZoneQuery_stmt = NULL;
   d_UpdateSerialOfZoneQuery_stmt = NULL;
   d_UpdateLastCheckofZoneQuery_stmt = NULL;
+  d_UpdateAccountOfZoneQuery_stmt = NULL;
   d_InfoOfAllMasterDomainsQuery_stmt = NULL;
   d_DeleteDomainQuery_stmt = NULL;
   d_DeleteZoneQuery_stmt = NULL;
@@ -266,6 +268,21 @@ bool GSQLBackend::setKind(const string &domain, const DomainInfo::DomainKind kin
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to set kind of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::setAccount(const string &domain, const string &account)
+{
+  try {
+    d_UpdateAccountOfZoneQuery_stmt->
+            bind("account", account)->
+            bind("domain", toLower(domain))->
+            execute()->
+            reset();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set account of domain \""+domain+"\": "+e.txtReason());
   }
   return true;
 }

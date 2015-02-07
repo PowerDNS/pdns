@@ -72,7 +72,7 @@ public:
     declare(suffix,"supermaster-query","", "select account from supermasters where ip=? and nameserver=?");
     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
 
-    declare(suffix,"insert-zone-query","", "insert into domains (type,name) values('NATIVE',?)");
+    declare(suffix,"insert-zone-query","", "insert into domains (type,name,account) values('NATIVE',?,?)");
     declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE',?,?,?)");
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (?,?,?,?,?,?,?,?)");
@@ -92,6 +92,7 @@ public:
 
     declare(suffix,"update-master-query","", "update domains set master=? where name=?");
     declare(suffix,"update-kind-query","", "update domains set type=? where name=?");
+    declare(suffix,"update-account-query","", "update domains set account=? where name=?");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=? where id=?");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=? where id=?");
     declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=?");
