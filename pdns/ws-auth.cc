@@ -307,6 +307,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
   doc.AddMember("type", "Zone", doc.GetAllocator());
   doc.AddMember("kind", di.getKindString(), doc.GetAllocator());
   doc.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
+  doc.AddMember("account", di.account.c_str(), doc.GetAllocator());
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
   doc.AddMember("soa_edit_api", soa_edit_api.c_str(), doc.GetAllocator());
@@ -468,6 +469,9 @@ static void updateDomainSettingsFromDocument(const DomainInfo& di, const string&
   }
   if (document["soa_edit"].IsString()) {
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].GetString());
+  }
+  if (document["account"].IsString()) {
+    di.backend->setAccount(zonename, document["account"].GetString());
   }
 }
 

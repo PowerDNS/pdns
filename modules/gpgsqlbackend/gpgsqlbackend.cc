@@ -60,13 +60,13 @@ public:
 
     declare(suffix,"master-zone-query","Data", "select master from domains where name=$1 and type='SLAVE'");
 
-    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name=$1");
+    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name=$1");
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip=$1 and nameserver=$2");
     declare(suffix,"supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
 
-    declare(suffix,"insert-zone-query","", "insert into domains (type,name) values('NATIVE',$1)");
+    declare(suffix,"insert-zone-query","", "insert into domains (type,name,account) values('NATIVE',$1,$2)");
     declare(suffix,"insert-slave-query","", "insert into domains (type,name,master,account) values('SLAVE',$1,$2,$3)");
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values ($1,$2,$3,$4,$5,$6,$7,$8)");
@@ -86,6 +86,7 @@ public:
 
     declare(suffix,"update-master-query","", "update domains set master=$1 where name=$2");
     declare(suffix,"update-kind-query","", "update domains set type=$1 where name=$2");
+    declare(suffix,"update-account-query","", "update domains set account=$1 where name=$2");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=$1 where id=$2");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=$1 where id=$2");
     declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=$1");
@@ -111,7 +112,7 @@ public:
     declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name=$1");
     declare(suffix,"get-tsig-keys-query","", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR $1");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR $1");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=$1");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES ($1, $2, $3, $4, $5, $6)");
