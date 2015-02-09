@@ -1,4 +1,4 @@
-# Generic MySQL and PgSQL backends
+# Generic MySQL and PostgreSQL backends
 |&nbsp;|&nbsp;|
 |:--|:--|
 |Native|Yes|

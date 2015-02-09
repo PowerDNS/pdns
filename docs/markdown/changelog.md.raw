@@ -2166,7 +2166,7 @@ From this, it is apparent that far more people are interested in PowerDNS than y
 In other news, we now have a security page at [Security](security/index.md). Furthermore, Maurice Nonnekes contributed an OpenBSD port! See [his page](http://www.codeninja.nl/openbsd/powerdns/) for more details!
 
 ## New features and improvements
--   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic MySQL and PgSQL backends](authoritative/backend-generic-mypgsql.md).
+-   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic MySQL and PostgreSQL backends](authoritative/backend-generic-mypgsql.md).
 -   A recursing nameserver! See [PowerDNS Recursor](recursor/index.md).
 -   An incoming AXFR now only starts a backend zone replacement transaction after the first record arrived successfully, thus making sure no work is done when a remote nameserver is unable/unwilling to AXFR a zone to us.
 -   Zone parser error messages were improved slightly (thanks to Stef van Dessel for spotting this shortcoming)
@@ -2242,7 +2242,7 @@ For more about all this coolness, see [“pdns\_control”](authoritative/intern
 
 **Warning**: Again some changes in compilation instructions. The hybrid pgmysql backend has been split up into 'gmysql' and 'gpgsql', sharing a common base within the PowerDNS server itself. This means that you can no longer compile **--with-modules="pgmysql" --enable-mysql --enable-pgsql** but that you should now use: **--with-modules="gmysql gpgsql"**. The old launch-names remain available.
 
-If you launch the Generic PgSQL backend as gpgsql2, all parameters will have gpgsql2 as a prefix, for example **gpgsql2-dbname**. If launched as gpgsql, the regular names are in effect.
+If you launch the Generic PostgreSQL backend as gpgsql2, all parameters will have gpgsql2 as a prefix, for example **gpgsql2-dbname**. If launched as gpgsql, the regular names are in effect.
 
 **Warning**: The pdns\_control protocol was changed which means that older pdns\_controls cannot talk to 2.9.3. The other way around is broken too. This may lead to problems with automatic upgrade scripts, so pay attention if your daemon is truly restarted.
 
@@ -2463,7 +2463,7 @@ This version fixes some stability issues with malformed or malcrafted packets. A
 
 -   The ability to change parameters at runtime was added. Currently, only the new **query-logging** flag can be changed.
 -   Added **query-logging** flag which hints a backend that it should output a textual representation of queries it receives. Currently only gmysql and gpgsql2 honor this flag.
--   Gmysql backend can now also talk to PgSQL, leading to less code. Currently, the old postgresql driver ('gpgsql') is still the default, the new driver is available as 'gpgsql2' and has the benefit that it does query logging. In the future, gpgsql2 will become the default gpgsql driver.
+-   Gmysql backend can now also talk to PostgreSQL, leading to less code. Currently, the old postgresql driver ('gpgsql') is still the default, the new driver is available as 'gpgsql2' and has the benefit that it does query logging. In the future, gpgsql2 will become the default gpgsql driver.
 -   DNS recursing proxy is now more verbose in logging odd events which may be caused by buggy recursing backends.
 -   Webserver now displays peak queries/second 1 minute average.
 
@@ -2476,7 +2476,7 @@ Documentation: added details for **strict-rfc-axfrs**. This feature can be used 
 
 Developers: this version is compatible with the pdns-2.1 development kit, available on <http://downloads.powerdns.com/releases/dev>. See also [Backend writers' guide](appendix/backend-writers-guide.md "Backend writers' guide")
 
-This release adds the Generic MySQL backend which allows full master/slave semantics with MySQL and InnoDB tables (or other tables that support transactions). See [Generic MySQL and PgSQL backends](authoritative/backend-generic-mypgsql.md "Generic MySQL and PgSQL backends").
+This release adds the Generic MySQL backend which allows full master/slave semantics with MySQL and InnoDB tables (or other tables that support transactions). See [Generic MySQL and PostgreSQL backends](authoritative/backend-generic-mypgsql.md "Generic MySQL and PostgreSQL backends").
 
 ## Other new features
 -   Improved error messages in master/slave communicator will help down track problems.
@@ -2727,7 +2727,7 @@ Named.conf parsing got a lot of work and many more bind configurations can now b
 -   Line number counting goes on as it should when including files in named.conf
 -   Added --no-config to enable users to start the pdns daemon without parsing the configuration file.
 -   zone2sql now has --bare for unformatted output which can be used to generate insert statements for different database layouts
--   zone2sql now has --gpgsql, which is an alias for --mysql, to output in a format useful for the default Generic PgSQL backend
+-   zone2sql now has --gpgsql, which is an alias for --mysql, to output in a format useful for the default Generic PostgreSQL backend
 -   zone2sql is now documented.
 
 ## Known bugs
