@@ -52,7 +52,7 @@ class Semaphore
 private:
   typedef int sem_value_t;
 
-#if DARWIN || _AIX || __APPLE__
+#if defined(_AIX) || defined(__APPLE__)
   uint32_t       m_magic;
   pthread_mutex_t m_lock;
   pthread_cond_t  m_gtzero;
