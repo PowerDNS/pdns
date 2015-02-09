@@ -39,7 +39,7 @@ public:
       d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
       d_SuperMasterInfoQuery_stmt = d_db->prepare(d_SuperMasterInfoQuery, 2);
       d_GetSuperMasterIPs_stmt = d_db->prepare(d_GetSuperMasterIPs, 2);
-      d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 2);
+      d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 1);
       d_InsertSlaveZoneQuery_stmt = d_db->prepare(d_InsertSlaveZoneQuery, 3);
       d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 8);
       d_InsertEntQuery_stmt = d_db->prepare(d_InsertEntQuery, 3);

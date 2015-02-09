@@ -83,7 +83,7 @@ public:
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
 
-    declare(suffix, "insert-zone-query", "", "insert into domains (type,name,account) values('NATIVE',:domain,:account)");
+    declare(suffix, "insert-zone-query", "", "insert into domains (type,name) values('NATIVE',:domain)");
     declare(suffix, "insert-slave-query", "", "insert into domains (type,name,master,account) values('SLAVE',:domain,:masters,:account)");
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:auth)");
