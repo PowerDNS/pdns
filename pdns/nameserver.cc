@@ -123,6 +123,11 @@ void UDPNameserver::bindIPv4()
           d_can_reuseport = false;
 #endif
 
+#ifdef IP_TRANSPARENT
+    if( ::arg().mustDo("local-bind-transparent") )
+        setsockopt(s, IPPROTO_IP, IP_TRANSPARENT, &one, sizeof(one));
+#endif
+
     locala=ComboAddress(localname, ::arg().asNum("local-port"));
     if(locala.sin4.sin_family != AF_INET) 
       throw PDNSException("Attempting to bind IPv4 socket to IPv6 address");
@@ -221,6 +226,11 @@ void UDPNameserver::bindIPv6()
     if( d_can_reuseport )
         if( setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) )
           d_can_reuseport = false;
+#endif
+
+#ifdef IP_TRANSPARENT
+    if( ::arg().mustDo("local-bind-transparent") )
+        setsockopt(s, IPPROTO_IP, IP_TRANSPARENT, &one, sizeof(one));
 #endif
 
     if( !d_additional_socket )

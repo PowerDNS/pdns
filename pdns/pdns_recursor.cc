@@ -1125,6 +1125,11 @@ void makeTCPServerSockets()
     }
 #endif
 
+#ifdef IP_TRANSPARENT
+    if( ::arg().mustDo("local-bind-transparent") )
+        setsockopt(fd, IPPROTO_IP, IP_TRANSPARENT, &tmp, sizeof(tmp));
+#endif
+
     sin.sin4.sin_port = htons(st.port);
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0) 
@@ -1146,6 +1151,7 @@ void makeTCPServerSockets()
 
 void makeUDPServerSockets()
 {
+  int one=1;
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
 
@@ -1174,7 +1180,6 @@ void makeUDPServerSockets()
     setSocketTimestamps(fd);
 
     if(IsAnyAddress(sin)) {
-      int one=1;
       setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
       setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
       if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
@@ -1182,6 +1187,11 @@ void makeUDPServerSockets()
       }
 
     }
+
+#ifdef IP_TRANSPARENT
+    if( ::arg().mustDo("local-bind-transparent") )
+        setsockopt(fd, IPPROTO_IP, IP_TRANSPARENT, &one, sizeof(one));
+#endif
 
     Utility::setCloseOnExec(fd);
 
@@ -2243,6 +2253,7 @@ int main(int argc, char **argv)
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
+    ::arg().setSwitch("local-bind-transparent", "Enable binding to non-local addresses by using the IP_TRANSPARENT socket option")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
