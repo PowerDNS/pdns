@@ -300,6 +300,11 @@
 # no-shuffle=off
 
 #################################
+# non-local-bind	Enable binding to non-local addresses by using FREEBIND / BINDANY socket options
+#
+# non-local-bind=no
+
+#################################
 # only-notify	Only send AXFR NOTIFY to these IP addresses or netmasks
 #
 # only-notify=0.0.0.0/0,::/0

@@ -149,6 +149,9 @@ public:
   
   //! Marks the socket to be closed on exec().
   static bool setCloseOnExec ( Utility::sock_t socket );
+
+  //! Sets the socket into Bind-any mode
+  static void setBindAny ( int af, Utility::sock_t socket );
   
   //! Sleeps for a number of seconds.
   static unsigned int sleep( unsigned int seconds );
