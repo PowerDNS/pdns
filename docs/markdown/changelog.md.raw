@@ -108,6 +108,8 @@ Improvements:
 
 New features:
 
+- New `root-nx-trust` flag makes PowerDNS generalize NXDOMAIN responses from the root-servers 01402d56846a3a61811ebd4e6bc97e53f908e568
+- `getregisteredname()` for Lua, which turns 'www.bbc.co.uk' into 'bbc.co.uk' 8cd4851beb78bc6ab320926fb5cb6a09282016b1
 - Lua preoutquery filter 3457a2a0ec41d3b3aff7640f30008788e1228a6e
 - Lua IP-based filter (ipfilter) before parsing packets 4ea949413c495254acb0bd19335142761c1efc0c
 - `iputils` class for Lua, to quickly process IP addresses and netmasks in their native format

@@ -481,6 +481,14 @@ which also disables outgoing IPv6 support.
 
 Don't log queries.
 
+## `root-nx-trust`
+* Boolean
+* Default: no
+* Available since: 3.7.0
+
+If set, an NXDOMAIN from the root-servers will serve as a blanket NXDOMAIN for the entire TLD
+the query belonged to. The effect of this is far fewer queries to the root-servers.
+
 ## `serve-rfc1918`
 * Boolean
 * Default: yes
