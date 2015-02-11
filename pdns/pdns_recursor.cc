@@ -934,7 +934,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   struct timeval diff = g_now - tv;
   double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
 
-  if(delta > 1000.0) {
+  if(tv.tv_sec && delta > 1000.0) {
     g_stats.tooOldDrops++;
     return 0;
   }

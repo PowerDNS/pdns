@@ -1,4 +1,6 @@
 #include "iputils.hh"
+#include <sys/socket.h> 
+
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
 static void RuntimeError(const boost::format& fmt)
@@ -63,7 +65,7 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 #ifdef SO_TIMESTAMP
   struct cmsghdr *cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP) && 
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && 
 	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
       return true;
