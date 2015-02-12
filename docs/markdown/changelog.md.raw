@@ -66,7 +66,12 @@ Performance improvements:
 
 
 # PowerDNS Recursor 3.7.0
-**Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015, Release Candidate 2 released on 4th of February 2015.
+
+Unreleased, please see the 3.7.1 changelog below.
+
+# PowerDNS Recursor 3.7.1
+
+Released February 12th, 2015.
 
 This version contains a mix of speedups and improvements, the combined effect of which is vastly
 improved resilience against traffic spikes and malicious query overloads. 
@@ -94,7 +99,7 @@ Improvements:
 - Move to PolarSSL base64 488360551009784ab35c43ee4580e773a2a8a227 (Kees Monshouwer)
 - The quiet=no query logging is now more informative 461df9d20c560d240285f772c09b3beb89d46daa
 - We can finally bind to 0.0.0.0 and :: and guarantee answers from the correct source b71b60ee73ef3c86f80a2179981eda2e61c4363f
-- We use per-packet timestamps to drop ancient traffic in case of overload b71b60ee73ef3c86f80a2179981eda2e61c4363f
+- We use per-packet timestamps to drop ancient traffic in case of overload b71b60ee73ef3c86f80a2179981eda2e61c4363f, non-Linux portability in d63f0d83631c41eff203d30b0b7c475a88f1db59
 - Builtin webserver can be queried with the API key in the URL again c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Ringbuffers are now available via API c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Lua 5.3 compatibility 59c6fc3e3931ca87d484337daee512e716bc4cf4 (Kees Monshouwer)
