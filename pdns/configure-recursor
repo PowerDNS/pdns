@@ -46,8 +46,8 @@ main ()
 EOF
 
   # test for PIE
-  if $CXX $src -c -o a.out -fPIE -DPIE; then
-    if [ "$STATIC" != "semi" ] && [ "$STATIC" != "full" ] && $CXX -pie -o a2.out a.out; then
+  if $CXX $src -c -o a.out -fPIE -DPIE 2>/dev/null; then
+    if [ "$STATIC" != "semi" ] && [ "$STATIC" != "full" ] && $CXX -pie -o a2.out a.out 2>/dev/null; then
       CF_PIE="-fPIE -DPIE"
       LD_PIE="-pie"
     fi
