@@ -42,7 +42,7 @@ DynMessenger::DynMessenger(const string &localdir,
 
   string localname=localdir;
 
-  localname+="/lsockXXXXXX";
+  localname+="/pdns_control_socketXXXXXX";
   if (makeUNsockaddr(localname, &d_local))
     throw PDNSException("Unable to bind to local temporary file, path '"+localname+"' is not a valid UNIX socket path.");
 
