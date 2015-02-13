@@ -40,7 +40,6 @@ class DynMessenger
 {
   int d_s;
 
-  struct sockaddr_un d_local; // our local address
   struct sockaddr_un d_remote; // our remote address
 
   DynMessenger(const DynMessenger &); // NOT IMPLEMENTED
@@ -48,8 +47,7 @@ class DynMessenger
 public:
   // CREATORS
 
-  DynMessenger(const string &ldir,
-    const string &filename,
+  DynMessenger(const string &filename,
     int timeout_sec = 7,
     int timeout_usec = 0);  //!< Create a DynMessenger sending to this file
 

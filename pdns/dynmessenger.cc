@@ -28,8 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-DynMessenger::DynMessenger(const string &localdir,
-    const string &fname,
+DynMessenger::DynMessenger(const string &fname,
     int timeout_sec,
     int timeout_usec)
 {
@@ -40,25 +39,7 @@ DynMessenger::DynMessenger(const string &localdir,
     throw PDNSException(string("socket")+strerror(errno));
   }
 
-  string localname=localdir;
-
-  localname+="/lsockXXXXXX";
-  if (makeUNsockaddr(localname, &d_local))
-    throw PDNSException("Unable to bind to local temporary file, path '"+localname+"' is not a valid UNIX socket path.");
-
-  if(mkstemp(d_local.sun_path)<0)
-    throw PDNSException("Unable to generate local temporary file: "+stringerror());
-  
-  unlink(d_local.sun_path);
-
   try {
-    if(bind(d_s, (sockaddr*)&d_local,sizeof(d_local))<0)
-      throw PDNSException("Unable to bind to local temporary file: "+stringerror());
-
-    // make sure that pdns can reply!
-    if(chmod(d_local.sun_path,0666)<0)
-      throw PDNSException("Unable to chmod local temporary file: "+stringerror());
-
     if(makeUNsockaddr(fname, &d_remote))
       throw PDNSException("Unable to connect to remote '"+fname+"': Path is not a valid UNIX socket path.");
 
@@ -82,7 +63,6 @@ DynMessenger::DynMessenger(const string &localdir,
   } catch(...) {
     close(d_s);
     d_s=-1;
-    unlink(d_local.sun_path);
     throw;
   }
 }
@@ -92,7 +72,6 @@ DynMessenger::DynMessenger(const ComboAddress& remote,
     int timeout_sec,
     int timeout_usec)
 {
-  *d_local.sun_path=0;
   d_s=socket(AF_INET, SOCK_STREAM,0);
   Utility::setCloseOnExec(d_s);
  
@@ -131,8 +110,6 @@ DynMessenger::~DynMessenger()
 {
   if (d_s > 0)
     close(d_s);
-  if(*d_local.sun_path && unlink(d_local.sun_path)<0)
-    cerr<<"Warning: unable to unlink local unix domain endpoint: "<<strerror(errno)<<endl;
 }   
 
 int DynMessenger::send(const string &msg) const
