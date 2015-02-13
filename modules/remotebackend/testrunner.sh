@@ -34,17 +34,35 @@ function start_web() {
 }
 
 function stop_web() {
- if [ ! -z "$webrick_pid" ]; then
-   kill -TERM $webrick_pid
-   # wait a moment for it to die
-   i=0
-   while [ $i -lt 5 ]; do
-     sleep 1
-     kill -0 $webrick_pid 2>/dev/null
-     if [ $? -ne 0 ]; then break; fi
-     let i=i+1
-   done
- fi
+  if [ -z "${webrick_pid}" ]; then
+    # should never happen - why was stop_web() called?
+    echo >&2 "ERROR: Unable to stop \"${1}\" test service: Did we ever start the service?"
+    exit 99
+  fi
+
+  if ! kill -0 ${webrick_pid} 2>/dev/null; then
+    # should never happen - did the test crashed the service?
+    echo >&2 "ERROR: Unable to stop \"${1}\" test service: service (${webrick_pid}) not running"
+    exit 69
+  fi
+
+  kill -TERM ${webrick_pid}
+  local timeout=0
+  while [ ${timeout} -lt 5 ]; do
+    if ! kill -0 ${webrick_pid} 2>/dev/null; then
+      # service was stopped
+      return 0
+    fi
+
+    sleep 1
+    let timeout=timeout+1
+  done
+
+  if kill -0 ${webrick_pid} 2>/dev/null; then
+    echo >&2 "WARNING: Timeout (${timeout}s) reached - killing \"${1}\" test service ..."
+    kill -KILL ${webrick_pid} 2>/dev/null
+    return $?
+  fi
 }
 
 function start_zeromq() {
@@ -57,19 +75,35 @@ function start_zeromq() {
 }
 
 function stop_zeromq() {
- if [ ! -z "$zeromq_pid" ]; then
-   kill -TERM $zeromq_pid 
-   # wait a moment for it to die
-   i=0
-   while [ $i -lt 5 ]; do
-     sleep 1
-     kill -0 $zeromq_pid 2>/dev/null
-     if [ $? -ne 0 ]; then break; fi
-     let i=i+1
-   done
-   kill -0 $zeromq_pid 2>/dev/null
-   if [ $? -eq 0 ]; then kill -9 $zeromq_pid; fi
- fi
+  if [ -z "${zeromq_pid}" ]; then
+    # should never happen - why was stop_zeromq() called?
+    echo >&2 "ERROR: Unable to stop \"ZeroMQ\" test service: Did we ever start the service?"
+    exit 99
+  fi
+
+  if ! kill -0 ${zeromq_pid} 2>/dev/null; then
+    # should never happen - did the test crashed the service?
+    echo >&2 "ERROR: Unable to stop \"ZeroMQ\" test service: service (${zeromq_pid}) not running"
+    exit 69
+  fi
+
+  kill -TERM ${zeromq_pid}
+  local timeout=0
+  while [ ${timeout} -lt 5 ]; do
+    if ! kill -0 ${zeromq_pid} 2>/dev/null; then
+      # service was stopped
+      return 0
+    fi
+
+    sleep 1
+    let timeout=timeout+1
+  done
+
+  if kill -0 ${zeromq_pid} 2>/dev/null; then
+    echo >&2 "WARNING: Timeout (${timeout}s) reached - killing \"ZeroMQ\" test service ..."
+    kill -KILL ${zeromq_pid} 2>/dev/null
+    return $?
+  fi
 }
 
 function start_unix() {
@@ -84,21 +118,35 @@ function start_unix() {
 }
 
 function stop_unix() {
- if [ ! -z "$socat_pid" ]; then
-   kill -TERM $socat_pid 2>/dev/null
-   if [ $? -ne 0 ]; then
-     # already dead
-     return 
-   fi
-   # wait a moment for it to die
-   i=0
-   while [ $i -lt 5 ]; do
-     sleep 1
-     kill -0 $socat_pid 2>/dev/null
-     if [ $? -ne 0 ]; then break; fi
-     let i=i+1
-   done
- fi
+  if [ -z "${socat_pid}" ]; then
+    # should never happen - why was stop_unix() called?
+    echo >&2 "ERROR: Unable to stop \"UNIX socket\" test service: Did we ever start the service?"
+    exit 99
+  fi
+
+  if ! kill -0 ${socat_pid} 2>/dev/null; then
+    # should never happen - did the test crashed the service?
+    echo >&2 "ERROR: Unable to stop \"UNIX socket\" test service: service (${socat_pid}) not running"
+    exit 69
+  fi
+
+  kill -TERM ${socat_pid}
+  local timeout=0
+  while [ ${timeout} -lt 5 ]; do
+    if ! kill -0 ${socat_pid} 2>/dev/null; then
+      # service was stopped
+      return 0
+    fi
+
+    sleep 1
+    let timeout=timeout+1
+  done
+
+  if kill -0 ${socat_pid} 2>/dev/null; then
+    echo >&2 "WARNING: Timeout (${timeout}s) reached - killing \"UNIX socket\" test service ..."
+    kill -KILL ${socat_pid} 2>/dev/null
+    return $?
+  fi
 }
 
 function run_test() {
@@ -123,17 +171,17 @@ case "$mode" in
   remotebackend_http.test)
     start_web "http"
     run_test
-    stop_web
+    stop_web "http"
   ;;
   remotebackend_post.test)
     start_web "post"
     run_test
-    stop_web
+    stop_web "post"
   ;;
   remotebackend_json.test)
     start_web "json"
     run_test
-    stop_web
+    stop_web "json"
   ;;
   remotebackend_zeromq.test)
     start_zeromq
