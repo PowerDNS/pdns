@@ -236,4 +236,4 @@ case "$mode" in
   ;;
 esac
 
-exit $rv
+exit $?
