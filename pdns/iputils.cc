@@ -115,6 +115,7 @@ bool IsAnyAddress(const ComboAddress& addr)
   return false;
 }
 
+// FIXME: this function is unused, and using it could reduce some code duplication
 int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
   struct msghdr msgh;
@@ -133,11 +134,15 @@ int sendfromto(int sock, const char* data, int len, int flags, const ComboAddres
   if(from.sin4.sin_family) {
     addCMsgSrcAddr(&msgh, cbuf, &from);
   }
+  else {
+    msgh.msg_control=NULL;
+  }
   return sendmsg(sock, &msgh, flags);
 }
 
 // be careful: when using this for receive purposes, make sure addr->sin4.sin_family is set appropriately so getSocklen works!
 // be careful: when using this function for *send* purposes, be sure to set cbufsize to 0!
+// be careful: if you don't call addCMsgSrcAddr after fillMSGHdr, make sure to set msg_control to NULL
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr)
 {
   iov->iov_base = data;
