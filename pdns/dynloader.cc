@@ -55,7 +55,6 @@ StatBag S;
 int main(int argc, char **argv)
 {
   string s_programname="pdns";
-  string localdir;
 
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
@@ -96,16 +95,11 @@ int main(int argc, char **argv)
   string socketname=::arg()["socket-dir"]+"/"+s_programname+".controlsocket";
   cleanSlashes(socketname);
   
-  if(::arg()["chroot"].empty())
-    localdir="/tmp";
-  else
-    localdir=dirname(strdup(socketname.c_str()));
-
   try {
     string command=commands[0];
     shared_ptr<DynMessenger> D;
     if(::arg()["remote-address"].empty())
-      D=shared_ptr<DynMessenger>(new DynMessenger(localdir,socketname));
+      D=shared_ptr<DynMessenger>(new DynMessenger(socketname));
     else {
       uint16_t port;
       try {
