@@ -112,37 +112,37 @@ function run_test() {
 mode=`basename "$mode"`
 
 case "$mode" in
-  test_remotebackend_pipe)
+  remotebackend_pipe.test)
     run_test
   ;;
-  test_remotebackend_unix)
+  remotebackend_unix.test)
     start_unix
     run_test
     stop_unix
   ;;
-  test_remotebackend_http)
+  remotebackend_http.test)
     start_web "http"
     run_test
     stop_web
   ;;
-  test_remotebackend_post)
+  remotebackend_post.test)
     start_web "post"
     run_test
     stop_web
   ;;
-  test_remotebackend_json)
+  remotebackend_json.test)
     start_web "json"
     run_test
     stop_web
   ;;
-  test_remotebackend_zeromq)
-    start_zeromq 
+  remotebackend_zeromq.test)
+    start_zeromq
     run_test
     stop_zeromq
   ;;
   *)
-     echo "Usage: $0 test_remotebackend_(pipe|unix|http|post|json|zeromq)"
-     exit 1
+    echo "Usage: $0 remotebackend_(pipe|unix|http|post|json|zeromq).test"
+    exit 1
   ;;
 esac
 
