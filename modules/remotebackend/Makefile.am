@@ -71,6 +71,13 @@ TESTS = \
 	remotebackend_json.test \
 	remotebackend_zeromq.test
 
+RECHECK_LOGS = \
+	$(TEST_LOGS) \
+	remotebackend_http_server.log \
+	remotebackend_post_server.log \
+	remotebackend_json_server.log \
+	remotebackend_zeromq_server.log
+
 ## The http, post and json test are using the same TCP port.
 ## To prevent "Address already in use - bind(2) (Errno::EADDRINUSE)"
 ## errors when running `make check` in parallel, we need to specify

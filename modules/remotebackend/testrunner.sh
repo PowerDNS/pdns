@@ -22,7 +22,7 @@ zeromq_pid=""
 socat=$(which socat)
 
 function start_web() {
- ./unittest_$1.rb >> $mode.log 2>&1 & 
+ ./unittest_$1.rb >> ${mode%\.test}_server.log 2>&1 &
  webrick_pid=$!
  loopcount=0
  while [ $loopcount -lt 20 ]; do
@@ -49,7 +49,7 @@ function stop_web() {
 
 function start_zeromq() {
   if [ x"$REMOTEBACKEND_ZEROMQ" == "xyes" ]; then
-   ./unittest_zeromq.rb >> $mode.log 2>&1 &
+   ./unittest_zeromq.rb >> ${mode%\.test}_server.log 2>&1 &
    zeromq_pid=$!
    # need to wait a moment
    sleep 5
