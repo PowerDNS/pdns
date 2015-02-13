@@ -13,6 +13,15 @@ DNSPacket* AuthLua::prequery(DNSPacket *p)
   return 0;
 }
 
+int AuthLua::police(DNSPacket *req, DNSPacket *resp, bool isTcp)
+{
+  return PolicyDecision::PASS;
+}
+
+string AuthLua::policycmd(const vector<string>&parts) {
+  return "no policy script loaded";
+}
+
 bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
 {
   return false;
