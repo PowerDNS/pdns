@@ -39,6 +39,13 @@ function start_web() {
     let timeout=timeout+1
   done
 
+  if kill -0 ${webrick_pid} 2>/dev/null; then
+    # if something is wrong with curl (i.e. curl isn't installed, localhost is firewalled ...)
+    # the status check will fail -- cleanup required!
+    echo >&2 "WARNING: Timeout (${timeout}s) reached: \"${1}\" test service process is running but status check failed"
+    kill -KILL ${webrick_pid} 2>/dev/null
+  fi
+
   echo >&2 "ERROR: A timeout (${timeout}s) was reached while waiting for \"${1}\" test service to start!"
   echo >&2 "       See \"modules/remotebackend/${service_logfile}\" for more details."
   exit 69
@@ -98,6 +105,12 @@ function start_zeromq() {
     let timeout=timeout+1
   done
 
+  if kill -0 ${zeromq_pid} 2>/dev/null; then
+    # not sure when this can happen but we should cleanup any process we started
+    echo >&2 "WARNING: Timeout (${timeout}s) reached: \"ZeroMQ\" test service process is running but status check failed"
+    kill -KILL ${zeromq_pid} 2>/dev/null
+  fi
+
   echo >&2 "ERROR: A timeout (${timeout}s) was reached while waiting for \"ZeroMQ\" test service to start!"
   echo >&2 "       See \"modules/remotebackend/${service_logfile}\" for more details."
   exit 69
@@ -154,6 +167,12 @@ function start_unix() {
     sleep 1
     let timeout=timeout+1
   done
+
+  if kill -0 ${socat_pid} 2>/dev/null; then
+    # not sure when this can happen but we should cleanup any process we started
+    echo >&2 "WARNING: Timeout (${timeout}s) reached: \"UNIX socket\" test service process is running but status check failed"
+    kill -KILL ${socat_pid} 2>/dev/null
+  fi
 
   echo >&2 "ERROR: A timeout (${timeout}s) was reached while waiting for \"UNIX socket\" test service to start!"
   exit 69
