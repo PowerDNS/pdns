@@ -22,15 +22,26 @@ zeromq_pid=""
 socat=$(which socat)
 
 function start_web() {
- ./unittest_$1.rb >> ${mode%\.test}_server.log 2>&1 &
- webrick_pid=$!
- loopcount=0
- while [ $loopcount -lt 20 ]; do
-   res=$(curl http://localhost:62434/ping 2>/dev/null)
-   if [ "x$res" == "xpong" ]; then break; fi
-   sleep 1
-   let loopcount=loopcount+1
+  local service_logfile="${mode%\.test}_server.log"
+
+  ./unittest_${1}.rb >> ${service_logfile} 2>&1 &
+  webrick_pid=$!
+
+  local timeout=0
+  while [ ${timeout} -lt 20 ]; do
+    local res=$(curl http://localhost:62434/ping 2>/dev/null)
+    if [ "x$res" == "xpong" ]; then
+      # server is up and running
+      return 0
+    fi
+
+    sleep 1
+    let timeout=timeout+1
   done
+
+  echo >&2 "ERROR: A timeout (${timeout}s) was reached while waiting for \"${1}\" test service to start!"
+  echo >&2 "       See \"modules/remotebackend/${service_logfile}\" for more details."
+  exit 69
 }
 
 function stop_web() {
@@ -66,12 +77,30 @@ function stop_web() {
 }
 
 function start_zeromq() {
-  if [ x"$REMOTEBACKEND_ZEROMQ" == "xyes" ]; then
-   ./unittest_zeromq.rb >> ${mode%\.test}_server.log 2>&1 &
-   zeromq_pid=$!
-   # need to wait a moment
-   sleep 5
+  if [ x"$REMOTEBACKEND_ZEROMQ" != "xyes" ]; then
+    echo "INFO: Skipping \"ZeroMQ\" test because PowerDNS was built without \"--enable-remotebackend-zeromq\"!"
+    exit 77
   fi
+
+  local service_logfile="${mode%\.test}_server.log"
+
+  ./unittest_zeromq.rb >> ${service_logfile} 2>&1 &
+  zeromq_pid=$!
+
+  local timeout=0
+  while [ ${timeout} -lt 5 ]; do
+    if [ -S "/tmp/remotebackend.0" ]; then
+      # service is up and running
+      return 0
+    fi
+
+    sleep 1
+    let timeout=timeout+1
+  done
+
+  echo >&2 "ERROR: A timeout (${timeout}s) was reached while waiting for \"ZeroMQ\" test service to start!"
+  echo >&2 "       See \"modules/remotebackend/${service_logfile}\" for more details."
+  exit 69
 }
 
 function stop_zeromq() {
@@ -108,13 +137,26 @@ function stop_zeromq() {
 
 function start_unix() {
   if [ -z "$socat" -o ! -x "$socat" ]; then
-     echo "Cannot find socat - skipping test (non-fatal)"
-     exit 0
+    echo "INFO: Skipping \"UNIX socket\" test because \"socat\" executable wasn't found!"
+    exit 77
   fi
-  
+
   $socat unix-listen:/tmp/remotebackend.sock exec:./unittest_pipe.rb &
   socat_pid=$!
-  sleep 1
+
+  local timeout=0
+  while [ ${timeout} -lt 5 ]; do
+    if [ -S "/tmp/remotebackend.sock" ]; then
+      # service is up and running
+      return 0
+    fi
+
+    sleep 1
+    let timeout=timeout+1
+  done
+
+  echo >&2 "ERROR: A timeout (${timeout}s) was reached while waiting for \"UNIX socket\" test service to start!"
+  exit 69
 }
 
 function stop_unix() {
