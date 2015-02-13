@@ -86,7 +86,7 @@ public:
   bool unsetNSEC3PARAM(const std::string& zname);
   void clearAllCaches();
   void clearCaches(const std::string& name);
-  bool getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
+  bool getPreRRSIGs(UeberBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
   bool isPresigned(const std::string& zname);
   bool setPresigned(const std::string& zname);
   bool unsetPresigned(const std::string& zname);

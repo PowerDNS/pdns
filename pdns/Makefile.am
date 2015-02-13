@@ -877,6 +877,7 @@ testrunner_SOURCES = \
 	bindparser.yy \
 	dns.cc \
 	dns_random.cc \
+	dnsbackend.cc \
 	dnslabeltext.cc \
 	dnspacket.cc \
 	dnsparser.cc \
@@ -911,15 +912,18 @@ testrunner_SOURCES = \
 	test-sha_hh.cc \
 	packetcache.cc \
 	unix_utility.cc \
+	ueberbackend.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
+	$(BOOST_SERIALIZATION_LDFLAGS)
 
 testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(BOOST_SERIALIZATION_LIBS)
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh

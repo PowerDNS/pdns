@@ -88,7 +88,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
 }
 
 // this is the entrypoint from DNSPacket
-void addSignature(DNSSECKeeper& dk, DNSBackend& db, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType, 
+void addSignature(DNSSECKeeper& dk, UeberBackend& db, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType,
   uint32_t signTTL, DNSPacketWriter::Place signPlace, 
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL)
 {
@@ -198,7 +198,7 @@ static bool getBestAuthFromSet(const set<string, CIStringCompare>& authSet, cons
   return false;
 }
 
-void addRRSigs(DNSSECKeeper& dk, DNSBackend& db, const set<string, CIStringCompare>& authSet, vector<DNSResourceRecord>& rrs)
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<string, CIStringCompare>& authSet, vector<DNSResourceRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
   

@@ -60,7 +60,7 @@
  #endif // HAVE_CONFIG_H
 
 
-class DNSBackend;
+class UeberBackend;
 class DNSSECKeeper;
 
 //! This class represents DNS packets, either received or to be sent.
@@ -181,6 +181,6 @@ private:
 };
 
 
-bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
 
 #endif

@@ -430,8 +430,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 
   // cerr<<"doing per-zone-axfr-acls"<<endl;
   SOAData sd;
-  sd.db=(DNSBackend *)-1;
-  if(s_P->getBackend()->getSOA(q->qdomain,sd)) {
+  if(s_P->getBackend()->getSOAUncached(q->qdomain,sd)) {
     // cerr<<"got backend and SOA"<<endl;
     DNSBackend *B=sd.db;
     vector<string> acl;
@@ -552,7 +551,6 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
 
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
   {
     Lock l(&s_plock);
     DLOG(L<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
@@ -561,7 +559,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(target, sd) || !canDoAXFR(q)) {
+    if(!s_P->getBackend()->getSOAUncached(target, sd) || !canDoAXFR(q)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
@@ -570,17 +568,9 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
  
   UeberBackend db;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!db.getSOA(target, sd)) {
+  if(!db.getSOAUncached(target, sd)) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
-    outpacket->setRcode(9); // 'NOTAUTH'
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
-
-  if(!sd.db || sd.db==(DNSBackend *)-1) {
-    L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
-    outpacket->setRcode(RCode::ServFail);
+    outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
   }
@@ -981,7 +971,6 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
 
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
   {
     Lock l(&s_plock);
     DLOG(L<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
@@ -990,7 +979,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(q->qdomain, sd) || !canDoAXFR(q)) {
+    if(!s_P->getBackend()->getSOAUncached(q->qdomain, sd) || !canDoAXFR(q)) {
       L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
@@ -1001,17 +990,9 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   string target = q->qdomain;
 
   UeberBackend db;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!db.getSOA(target, sd)) {
+  if(!db.getSOAUncached(target, sd)) {
     L<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
-    outpacket->setRcode(9); // 'NOTAUTH'
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
-
-  if(!sd.db || sd.db==(DNSBackend *)-1) {
-    L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an IXFR"<<endl;
-    outpacket->setRcode(RCode::ServFail);
+    outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
   }

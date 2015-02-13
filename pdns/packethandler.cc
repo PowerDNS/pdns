@@ -80,7 +80,7 @@ PacketHandler::PacketHandler():B(s_programname)
 
 }
 
-DNSBackend *PacketHandler::getBackend()
+UeberBackend *PacketHandler::getBackend()
 {
   return &B;
 }
@@ -410,7 +410,7 @@ void PacketHandler::emitNSEC(const std::string& begin, const std::string& end, c
   r->addRecord(rr);
 }
 
-void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
+void emitNSEC3(UeberBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode)
 {
   // cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
@@ -544,8 +544,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const string& target, c
   DLOG(L<<"addNSEC3() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
-  sd.db = (DNSBackend*)-1; // force uncached answer
-  if(!B.getSOA(auth, sd)) {
+  if(!B.getSOAUncached(auth, sd)) {
     DLOG(L<<"Could not get SOA for domain");
     return;
   }
@@ -638,8 +637,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const string& target, co
   DLOG(L<<"addNSEC() mode="<<mode<<" auth="<<auth<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!B.getSOA(auth, sd)) {
+  if(!B.getSOAUncached(auth, sd)) {
     DLOG(L<<"Could not get SOA for domain"<<endl);
     return;
   }
@@ -1017,8 +1015,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   *shouldRecurse=false;
   DNSResourceRecord rr;
   SOAData sd;
-  sd.db=0;
-  
+
   string subdomain="";
   string soa;
   int retargetcount=0;
@@ -1147,7 +1144,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       return r;
     }
     
-    if(!B.getAuth(p, &sd, target, 0)) {
+    if(!B.getAuth(p, &sd, target)) {
       DLOG(L<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(r->d.ra) {
         DLOG(L<<Logger::Error<<"Recursion is available for this remote, doing that"<<endl);
