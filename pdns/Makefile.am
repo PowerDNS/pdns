@@ -923,7 +923,8 @@ testrunner_LDFLAGS = \
 testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
-	$(BOOST_SERIALIZATION_LIBS)
+	$(BOOST_SERIALIZATION_LIBS) \
+	$(LIBDL)
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
