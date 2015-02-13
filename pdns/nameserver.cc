@@ -300,6 +300,9 @@ void UDPNameserver::send(DNSPacket *p)
   if(p->d_anyLocal) {
     addCMsgSrcAddr(&msgh, cbuf, p->d_anyLocal.get_ptr());
   }
+  else {
+    msgh.msg_control=NULL;
+  }
   DLOG(L<<Logger::Notice<<"Sending a packet to "<< p->getRemote() <<" ("<< buffer.length()<<" octets)"<<endl);
   if(buffer.length() > p->getMaxReplyLen()) {
     L<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p->getMaxReplyLen()<<endl;
