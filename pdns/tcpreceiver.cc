@@ -44,6 +44,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 
+#include "common_startup.hh"
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "resolver.hh"
@@ -327,8 +328,11 @@ void *TCPNameserver::doConnection(void *data)
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
         cached->commitD(); // commit d to the packet                        inlined
 
+        if(LPE) LPE->police(&(*packet), &(*cached), true);
+
         sendPacket(cached, fd); // presigned, don't do it again
         S.inc("tcp-answers");
+
         continue;
       }
       if(logDNSQueries)
@@ -342,6 +346,8 @@ void *TCPNameserver::doConnection(void *data)
         bool shouldRecurse;
 
         reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
+
+        if(LPE) LPE->police(&(*packet), &(*reply), true);
 
         if(shouldRecurse) {
           proxyQuestion(packet);

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+bindwait ()
+{
+	configname=$1
+	domcount=1
+	loopcount=0
+	while [ $loopcount -lt 20 ]; do
+		sleep 1
+		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		if [ $done = $domcount ]
+			then
+			return
+		fi
+		let loopcount=loopcount+1
+	done
+	if [ $done != $domcount ]; then
+		echo "Domain parsing failed" >> failed_tests
+	fi
+}
+
+port=5501
+rm -f pdns*.pid
+
+../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./          \
+	--no-shuffle --launch=bind --bind-config=lua-policy/named.conf   \
+	--experimental-lua-policy-script=lua-policy/policy.lua \
+	--send-root-referral --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+bindwait
+
+# plain SOA query
+../pdns/sdig 127.0.0.1 5501 minimal.com SOA | LC_ALL=C sort
+# expect DROP, so timeout
+timeout 3 ../pdns/sdig 127.0.0.1 5501 drop.minimal.com SOA || ret=$?
+echo timeout/sdig return value: $ret
+# expect TRUNCATE
+../pdns/sdig 127.0.0.1 5501 truncate.minimal.com SOA
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

@@ -819,6 +819,7 @@ bool validDNSName(const string &name)
 DNSPacket *PacketHandler::question(DNSPacket *p)
 {
   DNSPacket *ret;
+  int policyres = PolicyDecision::PASS;
 
   if(d_pdl)
   {
@@ -827,16 +828,44 @@ DNSPacket *PacketHandler::question(DNSPacket *p)
       return ret;
   }
 
-
   if(p->d.rd) {
     static AtomicCounter &rdqueries=*S.getPointer("rd-queries");  
     rdqueries++;
+  }
+
+  if(LPE)
+  {
+    policyres = LPE->police(p, NULL);
+  }
+
+  if (policyres == PolicyDecision::DROP)
+    return NULL;
+
+  if (policyres == PolicyDecision::TRUNCATE) {
+    ret=p->replyPacket();  // generate an empty reply packet
+    ret->d.tc = 1;
+    ret->commitD();
+    return ret;
   }
 
   bool shouldRecurse=false;
   ret=questionOrRecurse(p, &shouldRecurse);
   if(shouldRecurse) {
     DP->sendPacket(p);
+  }
+  if(LPE) {
+    int policyres=LPE->police(p, ret);
+    if(policyres == PolicyDecision::DROP) {
+      delete ret;
+      return NULL;
+    }
+    if (policyres == PolicyDecision::TRUNCATE) {
+      delete ret;
+      ret=p->replyPacket();  // generate an empty reply packet
+      ret->d.tc = 1;
+      ret->commitD();
+    }
+
   }
   return ret;
 }
@@ -1141,6 +1170,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     DLOG(L<<Logger::Error<<"We have authority, zone='"<<sd.qname<<"', id="<<sd.domain_id<<endl);
     authSet.insert(sd.qname); 
 
+    if(!retargetcount) r->qdomainzone=sd.qname;
+
+
     if(pdns_iequals(sd.qname, p->qdomain)) {
       if(p->qtype.getCode() == QType::DNSKEY)
       {
@@ -1263,6 +1295,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       string wildcard;
       if(tryWildcard(p, r, sd, target, wildcard, wereRetargeted, nodata)) {
         if(wereRetargeted) {
+          if(!retargetcount) r->qdomainwild=wildcard;
           retargetcount++;
           goto retargeted;
         }
