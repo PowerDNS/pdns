@@ -269,6 +269,10 @@ for a in $modules $dynmodules; do
       PDNS_CHECK_OPENDBX
       ;;
     remote)
+      AS_IF([test "x$enable_unit_tests" = "xyes"],
+        [PDNS_CHECK_CURL_PROGRAM]
+      )
+
       have_remotebackend=yes
       ;;
     tinydns)
