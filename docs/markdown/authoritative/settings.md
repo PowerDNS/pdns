@@ -116,13 +116,12 @@ Must be one of:
 * dsa
 * ecc
 * rsasha1
-* dsa-nsec3-sha1
-* rsasha1-nsec3-sha1
 * rsasha256
 * rsasha512
 * ecc-gost
-* ecdsap256sha256
-* ecdsap384sha384
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
+* ed25519
 
 ## `default-ksk-size`
 * Integer
@@ -160,13 +159,12 @@ Must be one of:
 * dsa
 * ecc
 * rsasha1
-* dsa-nsec3-sha1
-* rsasha1-nsec3-sha1
 * rsasha256
 * rsasha512
 * ecc-gost
-* ecdsap256sha256
-* ecdsap384sha384
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
+* ed25519
 
 ## `default-zsk-size`
 * Integer
