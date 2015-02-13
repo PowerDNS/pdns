@@ -234,7 +234,6 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       }
       catch(const PDNSException &e) {
         L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
-        delete b;
         a=q->replyPacket();
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
@@ -242,7 +241,6 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       }
       catch(...) {
         L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
-        delete b;
         a=q->replyPacket();
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
