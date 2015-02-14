@@ -183,7 +183,6 @@ PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_ED25519
-PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
 AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
@@ -264,6 +263,9 @@ for a in $modules $dynmodules; do
     opendbx)
       PDNS_CHECK_OPENDBX
       ;;
+    remote)
+      have_remotebackend=yes
+      ;;
     tinydns)
       PDNS_CHECK_CDB
       ;;
@@ -280,6 +282,8 @@ for a in $modules $dynmodules; do
       ;;
   esac
 done
+
+PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
 AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 
