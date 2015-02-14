@@ -980,6 +980,7 @@ testrunner_LDADD += $(P11KIT1_LIBS)
 endif
 
 if GSS_TSIG
+testrunner_SOURCES += gssapi.cc
 testrunner_LDADD += $(GSS_LIBS)
 endif
 
