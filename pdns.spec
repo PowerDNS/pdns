@@ -57,7 +57,6 @@ These are the tools
 %{_bindir}/dnsreplay
 %{_bindir}/dnsscan
 %{_bindir}/dnsscope
-%{_bindir}/dnsdist
 %{_bindir}/dnstcpbench
 %{_bindir}/dnswasher
 %{_bindir}/notify
