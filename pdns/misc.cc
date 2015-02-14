@@ -916,7 +916,7 @@ void setSocketTimestamps(int fd)
 #ifdef SO_TIMESTAMP
   int on=1;
   if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
-    L<<Logger::Error<<"Warning: unable to enable timestamp reporting for socket"<<endl;
+    L<<Logger::Error<<"Unable to enable timestamp reporting for socket"<<endl;
 #endif
 }
 

@@ -312,7 +312,7 @@ inline bool LdapBackend::prepare()
         	m_ttl = (uint32_t) strtol( m_result["dNSTTL"][0].c_str(), &endptr, 10 );
         	if( *endptr != '\0' )
         	{
-        		L << Logger::Warning << m_myname << " Invalid time to life for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
+        		L << Logger::Warning << m_myname << " Invalid time to live for " << m_qname << ": " << m_result["dNSTTL"][0] << endl;
         		m_ttl = m_default_ttl;
         	}
         	m_result.erase( "dNSTTL" );

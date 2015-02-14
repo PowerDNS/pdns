@@ -100,7 +100,7 @@ void UDPNameserver::bindIPv4()
     s=socket(AF_INET,SOCK_DGRAM,0);
 
     if(s<0) {
-      L<<Logger::Error<<"Unable to acquire a UDP socket: "+string(strerror(errno)) << endl;
+      L<<Logger::Error<<"Unable to acquire UDP socket: "+string(strerror(errno)) << endl;
       throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
     }
   
@@ -137,7 +137,7 @@ void UDPNameserver::bindIPv4()
         L<<Logger::Error<<"IPv4 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"binding UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
+        L<<Logger::Error<<"Unable to bind UDP socket to '"+locala.toStringWithPort()+"': "<<binderror<<endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
     }
@@ -199,8 +199,8 @@ void UDPNameserver::bindIPv6()
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
     if(s<0) {
-      L<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(strerror(errno)) << endl;
-      throw PDNSException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
+      L<<Logger::Error<<"Unable to acquire UDPv6 socket: "+string(strerror(errno)) << endl;
+      throw PDNSException("Unable to acquire UDPv6 socket: "+string(strerror(errno)));
     }
 
     Utility::setCloseOnExec(s);
@@ -231,8 +231,8 @@ void UDPNameserver::bindIPv6()
         L<<Logger::Error<<"IPv6 Address " << localname << " does not exist on this server - skipping UDP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"binding to UDP ipv6 socket "<< localname <<": "<<strerror(errno)<<endl;
-        throw PDNSException("Unable to bind to UDP ipv6 socket");
+        L<<Logger::Error<<"Unable to bind to UDPv6 socket "<< localname <<": "<<strerror(errno)<<endl;
+        throw PDNSException("Unable to bind to UDPv6 socket");
       }
     }
     d_sockets.push_back(s);

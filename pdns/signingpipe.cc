@@ -63,7 +63,7 @@ try
   return 0;
 }
 catch(...) {
-  L<<Logger::Error<<"unknown exception in signing thread occurred"<<endl;
+  L<<Logger::Error<<"Unknown exception in signing thread occurred"<<endl;
   return 0;
 }
 

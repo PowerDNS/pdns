@@ -172,7 +172,7 @@ DynListener::DynListener(const string &progname)
     if(!mkdir(socketname.c_str(),0700)) // make /var directory, if needed
       L<<Logger::Warning<<"Created local state directory '"<<socketname<<"'"<<endl;
     else if(errno!=EEXIST) {
-      L<<Logger::Critical<<"FATAL: Unable to create socket directory ("<<socketname<<") and it does not exist yet"<<endl;
+      L<<Logger::Critical<<"Unable to create socket directory ("<<socketname<<") and it does not exist yet"<<endl;
       exit(1);
     }
     
