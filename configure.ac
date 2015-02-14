@@ -37,9 +37,15 @@ AC_DEFINE([_GNU_SOURCE], [1],
 
 AX_CXX_COMPILE_STDCXX_11(,optional)
 AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
-AC_ARG_ENABLE([hardening], [
-  AS_HELP_STRING([--disable-hardening, disable compiler security checks])
-])
+
+AC_MSG_CHECKING([whether we will enable compiler security checks])
+AC_ARG_ENABLE([hardening],
+  [AS_HELP_STRING([--disable-hardening],[disable compiler security checks @<:@default=no@:>@])],
+  [enable_hardening=$enableval],
+  [enable_hardening=yes]
+)
+AC_MSG_RESULT([$enable_hardening])
+
 AS_IF([test "x$enable_hardening" != "xno"], [
   AC_CC_PIE
   AC_CC_STACK_PROTECTOR
