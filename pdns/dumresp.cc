@@ -19,9 +19,11 @@ try
   Socket s(AF_INET, SOCK_DGRAM);
   ComboAddress local(argv[1], 5300);
   
+#ifdef SO_REUSEPORT
   int one=1;
   if(setsockopt(s.getHandle(), SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
     unixDie("setsockopt for REUSEPORT");
+#endif
 
   s.bind(local);
   char buffer[1500];
