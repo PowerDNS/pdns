@@ -47,6 +47,7 @@ public:
       d_InsertEntOrderQuery_stmt = d_db->prepare(d_InsertEntOrderQuery, 4);
       d_UpdateMasterOfZoneQuery_stmt = d_db->prepare(d_UpdateMasterOfZoneQuery, 2);
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
+      d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
       d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
       d_UpdateLastCheckofZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckofZoneQuery, 2);
       d_InfoOfAllMasterDomainsQuery_stmt = d_db->prepare(d_InfoOfAllMasterDomainsQuery, 0);
@@ -115,6 +116,7 @@ public:
     release(&d_InsertEntOrderQuery_stmt);
     release(&d_UpdateMasterOfZoneQuery_stmt);
     release(&d_UpdateKindOfZoneQuery_stmt);
+    release(&d_UpdateAccountOfZoneQuery_stmt);
     release(&d_UpdateSerialOfZoneQuery_stmt);
     release(&d_UpdateLastCheckofZoneQuery_stmt);
     release(&d_InfoOfAllMasterDomainsQuery_stmt);
@@ -180,6 +182,7 @@ public:
   void setNotified(uint32_t domain_id, uint32_t serial);
   bool setMaster(const string &domain, const string &ip);
   bool setKind(const string &domain, const DomainInfo::DomainKind kind);
+  bool setAccount(const string &domain, const string &account);
 
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
@@ -244,6 +247,7 @@ private:
   string d_InsertEntOrderQuery;
   string d_UpdateMasterOfZoneQuery;
   string d_UpdateKindOfZoneQuery;
+  string d_UpdateAccountOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;
@@ -312,6 +316,7 @@ private:
   SSqlStatement* d_InsertEntOrderQuery_stmt;
   SSqlStatement* d_UpdateMasterOfZoneQuery_stmt;
   SSqlStatement* d_UpdateKindOfZoneQuery_stmt;
+  SSqlStatement* d_UpdateAccountOfZoneQuery_stmt;
   SSqlStatement* d_UpdateSerialOfZoneQuery_stmt;
   SSqlStatement* d_UpdateLastCheckofZoneQuery_stmt;
   SSqlStatement* d_InfoOfAllMasterDomainsQuery_stmt;

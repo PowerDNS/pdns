@@ -344,7 +344,6 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
   }
  
   BOOST_FOREACH(DomainInfo &di, *domains) {
-    soadata.db=(DNSBackend *)-1; // makes getSOA() skip the cache. 
     this->getSOA(di.zone, soadata);
     di.serial=soadata.serial;
   }
@@ -373,7 +372,6 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     SOAData soadata;
     soadata.refresh=0;
     soadata.serial=0;
-    soadata.db=(DNSBackend *)-1; // not sure if this is useful, inhibits any caches that might be around
     try {
       getSOA(sd.zone,soadata); // we might not *have* a SOA yet
     }

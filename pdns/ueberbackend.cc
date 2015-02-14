@@ -54,14 +54,11 @@ vector<UeberBackend *>UeberBackend::instances;
 pthread_mutex_t UeberBackend::instances_lock=PTHREAD_MUTEX_INITIALIZER;
 
 sem_t UeberBackend::d_dynserialize;
-string UeberBackend::s_status;
 
 // initially we are blocked
 bool UeberBackend::d_go=false;
 pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t UeberBackend::d_cond = PTHREAD_COND_INITIALIZER;
-
-int UeberBackend::s_s=-1; // ?
 
 #ifdef NEED_RTLD_NOW
 #define RTLD_NOW RTLD_LAZY
@@ -108,7 +105,7 @@ bool UeberBackend::createDomain(const string &domain)
   return false;
 }
 
-int UeberBackend::addDomainKey(const string& name, const KeyData& key)
+int UeberBackend::addDomainKey(const string& name, const DNSBackend::KeyData& key)
 {
   int ret;
   BOOST_FOREACH(DNSBackend* db, backends) {
@@ -117,7 +114,7 @@ int UeberBackend::addDomainKey(const string& name, const KeyData& key)
   }
   return -1;
 }
-bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys)
+bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDomainKeys(name, kind, keys))
@@ -274,7 +271,7 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
-bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId)
+bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target)
 {
   int best_match_len = -1;
   bool from_cache = false;  // Was this result fetched from the cache?
@@ -315,7 +312,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
   }
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
-    if((*i)->getAuth(p, sd, target, zoneId, best_match_len)) {
+    if((*i)->getAuth(p, sd, target, best_match_len)) {
         best_match_len = sd->qname.length();
         from_cache = false;
 
@@ -350,27 +347,34 @@ auth_found:
     return true;
 }
 
-/** special trick - if sd.db is set to -1, the cache is ignored */
 bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
   d_question.zoneId=-1;
     
-  if(sd.db!=(DNSBackend *)-1) {
-    int cstat=cacheHas(d_question,d_answers);
-    if(cstat==0) { // negative
-      return false;
-    }
-    else if(cstat==1 && !d_answers.empty()) {
-      fillSOAData(d_answers[0].content,sd);
-      sd.domain_id=d_answers[0].domain_id;
-      sd.ttl=d_answers[0].ttl;
-      sd.db=0;
-      return true;
-    }
+  int cstat=cacheHas(d_question,d_answers);
+  if(cstat==0) { // negative
+    return false;
   }
-    
+  else if(cstat==1 && !d_answers.empty()) {
+    fillSOAData(d_answers[0].content,sd);
+    sd.domain_id=d_answers[0].domain_id;
+    sd.ttl=d_answers[0].ttl;
+    sd.db=0;
+    return true;
+  }
+
+  // not found in neg. or pos. cache, look it up
+  return getSOAUncached(domain, sd, p);
+}
+
+bool UeberBackend::getSOAUncached(const string &domain, SOAData &sd, DNSPacket *p)
+{
+  d_question.qtype=QType::SOA;
+  d_question.qname=domain;
+  d_question.zoneId=-1;
+
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getSOA(domain, sd, p)) {
       if( d_cache_ttl ) {
@@ -387,7 +391,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
       return true;
     }
 
-  addNegCache(d_question); 
+  addNegCache(d_question);
   return false;
 }
 
@@ -397,11 +401,6 @@ bool UeberBackend::superMasterBackend(const string &ip, const string &domain, co
     if((*i)->superMasterBackend(ip, domain, nsset, nameserver, account, db))
       return true;
   return false;
-}
-
-void UeberBackend::setStatus(const string &st)
-{
-  s_status=st;
 }
 
 UeberBackend::UeberBackend(const string &pname)
@@ -417,12 +416,6 @@ UeberBackend::UeberBackend(const string &pname)
   stale=false;
 
   backends=BackendMakers().all(pname=="key-only");
-}
-
-void UeberBackend::die()
-{
-  cleanup();
-  stale=true;
 }
 
 void del(DNSBackend* d)

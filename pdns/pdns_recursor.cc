@@ -127,7 +127,7 @@ listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threa
 
 __thread MT_t* MT; // the big MTasker
 
-unsigned int g_numThreads;
+unsigned int g_numThreads, g_numWorkerThreads;
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 // Bad Nets taken from both:
@@ -623,13 +623,13 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::DROP) {
+    if(res == PolicyDecision::DROP) {
       g_stats.policyDrops++;
       delete dc;
       dc=0;
       return;
     }  
-    if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -642,7 +642,7 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::PASS) {
+    if(res == PolicyDecision::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
@@ -688,6 +688,8 @@ void startDoResolve(void *p)
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
       if(dc->d_local.sin4.sin_family)
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local);
+      else
+        msgh.msg_control=NULL;
       sendmsg(dc->d_socket, &msgh, 0);
       if(!SyncRes::s_nopacketcache && !variableAnswer ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
@@ -934,7 +936,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   struct timeval diff = g_now - tv;
   double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
 
-  if(delta > 1000.0) {
+  if(tv.tv_sec && delta > 1000.0) {
     g_stats.tooOldDrops++;
     return 0;
   }
@@ -960,6 +962,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
       if(destaddr.sin4.sin_family) {
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr);
+      }
+      else {
+        msgh.msg_control=NULL;
       }
       sendmsg(fd, &msgh, 0);
 
@@ -1296,9 +1301,9 @@ static void houseKeeping(void *)
       DTime dt;
       dt.setTimeval(now);
       t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
+      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numWorkerThreads);
       
-      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
+      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10), 200);
       
       if(!((cleanCounter++)%40)) {  // this is a full scan!
 	time_t limit=now.tv_sec-300;
@@ -1785,20 +1790,19 @@ static void checkLinuxIPv6Limits()
 }
 static void checkOrFixFDS()
 {
-  unsigned int availFDs=getFilenumLimit();
-  if(g_maxMThreads * g_numThreads > availFDs) {
-    if(getFilenumLimit(true) >= g_maxMThreads * g_numThreads) {
-      setFilenumLimit(g_maxMThreads * g_numThreads);
-      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numThreads<<" to match max-mthreads and threads settings"<<endl;
+  unsigned int availFDs=getFilenumLimit()-10; // some healthy margin, thanks AJ ;-)
+  if(g_maxMThreads * g_numWorkerThreads > availFDs) {
+    if(getFilenumLimit(true) >= g_maxMThreads * g_numWorkerThreads) {
+      setFilenumLimit(g_maxMThreads * g_numWorkerThreads);
+      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numWorkerThreads<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
-      int newval = getFilenumLimit(true) / g_numThreads;
-      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numThreads<<"), reducing max-mthreads to "<<newval<<endl;
+      int newval = getFilenumLimit(true) / g_numWorkerThreads;
+      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numWorkerThreads<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
-      setFilenumLimit(g_maxMThreads * g_numThreads);
+      setFilenumLimit(g_maxMThreads * g_numWorkerThreads);
     }
   }
-
 }
 
 void* recursorThread(void*);
@@ -1990,6 +1994,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
+  SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2030,6 +2035,9 @@ int serviceMain(int argc, char*argv[])
   signal(SIGPIPE,SIG_IGN);
   writePid();
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
+  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
+  g_maxMThreads = ::arg().asNum("max-mthreads");
+  checkOrFixFDS();
   
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -2049,13 +2057,11 @@ int serviceMain(int argc, char*argv[])
 
   Utility::dropUserPrivs(newuid);
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
-  
+  g_numWorkerThreads = ::arg().asNum("threads");
   makeThreadPipes();
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
-  g_maxMThreads=::arg().asNum("max-mthreads");	
-  checkOrFixFDS();
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -2104,15 +2110,17 @@ try
   }
   
   t_traceRegex = new shared_ptr<Regex>();
-  unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numThreads;
+  unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
   if(ringsize) {
     t_remotes = new addrringbuf_t();
-    t_remotes->set_capacity(ringsize);   
+    if(g_weDistributeQueries)  // if so, only 1 thread does recvfrom
+      t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries"));   
+    else
+      t_remotes->set_capacity(ringsize);   
     t_servfailremotes = new addrringbuf_t();
     t_servfailremotes->set_capacity(ringsize);   
     t_largeanswerremotes = new addrringbuf_t();
     t_largeanswerremotes->set_capacity(ringsize);   
-
 
     t_queryring = new boost::circular_buffer<pair<string, uint16_t> >();
     t_queryring->set_capacity(ringsize);   
@@ -2310,6 +2318,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
+    ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
@@ -2359,10 +2368,12 @@ int main(int argc, char **argv)
     }
 
     Logger::Urgency logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
+
     if (logUrgency < Logger::Error)
       logUrgency = Logger::Error;
-    if(!g_quiet)
-      logUrgency = Logger::Info;
+    if(!g_quiet && logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
+      logUrgency = Logger::Info;                // if you do --quiet=no, you need Info to also see the query log
+    }
     L.setLoglevel(logUrgency);
     L.toConsole(logUrgency);
 

@@ -556,6 +556,7 @@ int main(int argc, char **argv)
     DynListener::registerFunc("RETRIEVE",&DLNotifyRetrieveHandler, "retrieve slave domain", "<domain>");
     DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "retrieve the current configuration");
     DynListener::registerFunc("LIST-ZONES",&DLListZones, "show list of zones", "[master|slave|native]");
+    DynListener::registerFunc("POLICY",&DLPolicy, "interact with policy engine", "[policy command]");
 
     if(!::arg()["tcp-control-address"].empty()) {
       DynListener* dlTCP=new DynListener(ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));

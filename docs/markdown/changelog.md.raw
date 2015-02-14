@@ -1,6 +1,77 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
+# PowerDNS Authoritative Server 3.4.2
+
+**Warning**: Version 3.4.2 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
+
+Released February 3rd, 2015
+
+Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
+
+This is a performance and bugfix update to 3.4.1 and any earlier version. For high traffic setups, including
+those using DNSSEC, upgrading to 3.4.2 may show tremendous performance increases.
+
+A list of changes since 3.4.1 follows.
+
+Improvements:
+
+- [commit 73004f1](https://github.com/PowerDNS/pdns/commit/73004f1): implement CORS for the HTTP API
+- [commit 4d9c289](https://github.com/PowerDNS/pdns/commit/4d9c289): qtype is now case insensitive in API and database
+- [commit 13af5d8](https://github.com/PowerDNS/pdns/commit/13af5d8), [commit 223373a](https://github.com/PowerDNS/pdns/commit/223373a), [commit 1d5a68d](https://github.com/PowerDNS/pdns/commit/1d5a68d), [commit 705a73f](https://github.com/PowerDNS/pdns/commit/705a73f), [commit b418d52](https://github.com/PowerDNS/pdns/commit/b418d52): Allow (optional) PIE hardening
+- [commit 2f86f20](https://github.com/PowerDNS/pdns/commit/2f86f20): json-api: remove priority from json
+- [commit cefcf9f](https://github.com/PowerDNS/pdns/commit/cefcf9f): backport remotebackend fixes
+- [commit 920f987](https://github.com/PowerDNS/pdns/commit/920f987), [commit dd8853c](https://github.com/PowerDNS/pdns/commit/dd8853c): Support Lua 5.3
+- [commit 003aae5](https://github.com/PowerDNS/pdns/commit/003aae5): support single-type ZSK signing
+- [commit 1c57e1d](https://github.com/PowerDNS/pdns/commit/1c57e1d): Potential fix for [ticket #1907](https://github.com/PowerDNS/pdns/issues/1907), we now try to trigger libgcc_s.so.1 to load before we chroot. I can't reproduce the bug on my local system, but this "should" help. Seriously.
+- [commit 031ab21](https://github.com/PowerDNS/pdns/commit/031ab21): update polarssl to 1.3.9
+
+Bug fixes:
+
+- [commit 60b2b7c](https://github.com/PowerDNS/pdns/commit/60b2b7c), [commit d962fbc](https://github.com/PowerDNS/pdns/commit/d962fbc): refuse overly long labels in names
+- [commit a64fd6a](https://github.com/PowerDNS/pdns/commit/a64fd6a): auth: limit long version strings to 63 characters and catch exceptions in secpoll
+- [commit fa52e02](https://github.com/PowerDNS/pdns/commit/fa52e02): pdnssec: fix ttl check for RRSIG records
+- [commit 0678b25](https://github.com/PowerDNS/pdns/commit/0678b25): fix up latency reporting for sub-millisecond latencies (would clip to 0)
+- [commit d45c1f1](https://github.com/PowerDNS/pdns/commit/d45c1f1): make sure we don't throw an exception on "pdns_control show" of an unknown variable
+- [commit 63c8088](https://github.com/PowerDNS/pdns/commit/63c8088): fix startup race condition with carbon thread already trying to broadcast uninitialized data
+- [commit 796321c](https://github.com/PowerDNS/pdns/commit/796321c): make qsize-q more robust
+- [commit 407867c](https://github.com/PowerDNS/pdns/commit/407867c): mind04 discovered we count corrupt packets and EAGAIN situations as validly received packets, skewing the udp questions/answers graphs on auth.
+- [commit f06d069](https://github.com/PowerDNS/pdns/commit/f06d069): make latency & qsize reporting 'live'. Plus fix that we only reported the qsize of the first distributor.
+- [commit 2f3498e](https://github.com/PowerDNS/pdns/commit/2f3498e): fix up statbag for carbon protocol and function pointers
+- [commit 0f2f999](https://github.com/PowerDNS/pdns/commit/0f2f999): get priority from table in Lua axfrfilter; fixes [ticket #1857](https://github.com/PowerDNS/pdns/issues/1857)
+- [commit 96963e2](https://github.com/PowerDNS/pdns/commit/96963e2), [commit bbcbbbe](https://github.com/PowerDNS/pdns/commit/bbcbbbe), [commit d5c9c07](https://github.com/PowerDNS/pdns/commit/d5c9c07): various backends: fix records pointing at root
+- [commit e94c2c4](https://github.com/PowerDNS/pdns/commit/e94c2c4): remove additional layer of trailing . stripping, which broke MX records to the root in the BIND backend. Should close [ticket #1243](https://github.com/PowerDNS/pdns/issues/1243).
+- [commit 8f35ba2](https://github.com/PowerDNS/pdns/commit/8f35ba2): api: use uncached results for getKeys()
+- [commit c574336](https://github.com/PowerDNS/pdns/commit/c574336): read ALLOW-AXFR-FROM from the backend with the metadata
+
+Minor changes:
+
+- [commit 1e39b4c](https://github.com/PowerDNS/pdns/commit/1e39b4c): move manpages to section 1
+- [commit b3992d9](https://github.com/PowerDNS/pdns/commit/b3992d9): secpoll: Replace ~ with _
+- [commit 9799ef5](https://github.com/PowerDNS/pdns/commit/9799ef5): only zones with an active ksk are secure
+- [commit d02744f](https://github.com/PowerDNS/pdns/commit/d02744f): api: show keys for zones without active ksk
+
+New features:
+
+- [commit 1b97ba0](https://github.com/PowerDNS/pdns/commit/1b97ba0): add signatures metric to auth, so we can plot signatures/second
+- [commit 92cef2d](https://github.com/PowerDNS/pdns/commit/92cef2d): pdns_control: make it posible to notify all zones at once
+- [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-receive
+- [commit 02653a7](https://github.com/PowerDNS/pdns/commit/02653a7): add 'bench-db' to do very simple database backend performance benchmark
+- [commit a83257a](https://github.com/PowerDNS/pdns/commit/a83257a): enable callback based metrics to statbas, and add 5 such metrics: uptime, sys-msec, user-msec, key-cache-size, meta-cache-size, signature-cache-size
+
+Performance improvements:
+
+- [commit a37fe8c](https://github.com/PowerDNS/pdns/commit/a37fe8c): better key for packetcache
+- [commit e5217bb](https://github.com/PowerDNS/pdns/commit/e5217bb): don't do time(0) under signature cache lock
+- [commit d061045](https://github.com/PowerDNS/pdns/commit/d061045), [commit 135db51](https://github.com/PowerDNS/pdns/commit/135db51), [commit 7d0f392](https://github.com/PowerDNS/pdns/commit/7d0f392): shard the packet cache, closing [ticket #1910](https://github.com/PowerDNS/pdns/issues/1910).
+- [commit d71a712](https://github.com/PowerDNS/pdns/commit/d71a712): with thanks to Jack Lloyd, this works around the default Botan allocator slowing down for us during production use.
+
+
 # PowerDNS Recursor 3.7.0
-**Note**: Not yet released. Release Candidate 1 released on 22nd of January 2015.
+
+Unreleased, please see the 3.7.1 changelog below.
+
+# PowerDNS Recursor 3.7.1
+
+Released February 12th, 2015.
 
 This version contains a mix of speedups and improvements, the combined effect of which is vastly
 improved resilience against traffic spikes and malicious query overloads. 
@@ -28,16 +99,24 @@ Improvements:
 - Move to PolarSSL base64 488360551009784ab35c43ee4580e773a2a8a227 (Kees Monshouwer)
 - The quiet=no query logging is now more informative 461df9d20c560d240285f772c09b3beb89d46daa
 - We can finally bind to 0.0.0.0 and :: and guarantee answers from the correct source b71b60ee73ef3c86f80a2179981eda2e61c4363f
-- We use per-packet timestamps to drop ancient traffic in case of overload b71b60ee73ef3c86f80a2179981eda2e61c4363f
+- We use per-packet timestamps to drop ancient traffic in case of overload b71b60ee73ef3c86f80a2179981eda2e61c4363f, non-Linux portability in d63f0d83631c41eff203d30b0b7c475a88f1db59
 - Builtin webserver can be queried with the API key in the URL again c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Ringbuffers are now available via API c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
 - Lua 5.3 compatibility 59c6fc3e3931ca87d484337daee512e716bc4cf4 (Kees Monshouwer)
+- No longer leave a stale UNIX domain socket around from rec_control if the recursor was down 524e4f4d81f4ed9eb218715cbc8a59f0b9868234, 
+  ticket #2061
+- Running with 'quiet=no' would strangely actually prevent debug messages from being logged f48d7b657ec32517f8bfcada3bfe6353ca313314
+- Webserver now implements CORS for the API ea89a97e864c43c1cb03f2959ad04c4ebe7580ad, fixing ticket #1984
+- Houskeeping thread would sometimes run multiple times simultaneously, which worked, but was odd cc59bce675e62e2b9657b42614ce8be3312cae82
 
 New features:
 
+- New `root-nx-trust` flag makes PowerDNS generalize NXDOMAIN responses from the root-servers 01402d56846a3a61811ebd4e6bc97e53f908e568
+- `getregisteredname()` for Lua, which turns 'www.bbc.co.uk' into 'bbc.co.uk' 8cd4851beb78bc6ab320926fb5cb6a09282016b1
 - Lua preoutquery filter 3457a2a0ec41d3b3aff7640f30008788e1228a6e
 - Lua IP-based filter (ipfilter) before parsing packets 4ea949413c495254acb0bd19335142761c1efc0c
 - `iputils` class for Lua, to quickly process IP addresses and netmasks in their native format
+- `getregisteredname` function for Lua, to find the registered domain for a given name
 - Various new ringbuffers: top-servfail-remotes, top-largeanswer-remotes, top-servfail-queries
 
 Speedups:
@@ -54,6 +133,7 @@ Speedups:
 Security relevant:
 
 - Check for PIE, RELRO and stack protector during configure 8d0354b189c12e1e14f5309d3b49935c17f9eeb0 (Aki Tuomi)
+- Testing for support of PIE etc was improved in b2053c28ccb9609e2ce7bcb6beda83f98a062aa3 and beyond, fixes #2125 (Ruben Kerkhof)
 - Max query-per-query limit (max-qperq) is now configurable 173d790ead08f67733010ca4c6fc404a040fe699
 
 Bugs fixed:
@@ -62,8 +142,17 @@ Bugs fixed:
 - rec_control gave incorrect output on a timeout 12997e9d800734da51b808767e1e2477244c30eb
 - When using the webserver AND having an error in the Lua script, recursor could crash during startup 62f0ae62984adadab687c23fe1b287c1f219b2cb
 - Hugely long version strings would trip up security polling 18b7333828a1275ae5f5574a9c8330290d8557ff (Kees Monshouwer)
+- The 'remotes' ringbuffer was sized incorrectly f8f243b01215d6adcb59389f09ef494f1309041f
+- Cache sizes had an off-by-one scaling problem, with the wrong number of entries allocated per thread f8f243b01215d6adcb59389f09ef494f1309041f
+- Our automatic file descriptor limit raising was attempted *after* setuid, which made it a lot less effective. Found and fixed by Aki Tuomi
+  a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1
+- Timestamps used for dropping packets were occasionaly wrong 183eb8774e4bc2569f06d5894fec65740f4b70b6 and 4c4765c104bacc146533217bcc843efb244a8086 
+  (RC2) with thanks to Winfried for debugging.
+- In RC1, our new DoS protection measures would crash the Recursor if too many root servers were unreachable.
+  6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4. Debugging and testing by Fusl.
+
  
-Various other documentation changes by Christian Hoffstaedtler and Ruben
+Various other documentation changes by Christian Hofstaedtler and Ruben
 Kerkhof.  Lots of improvements all over the place by Kees Monshouwer.
 
 # PowerDNS Recursor 3.6.2
@@ -73,6 +162,7 @@ Kerkhof.  Lots of improvements all over the place by Kees Monshouwer.
 [Official download page](https://www.powerdns.com/downloads.html)
 
 A list of changes since 3.6.1 follows.
+
 -   [commit ab14b4f](https://github.com/PowerDNS/pdns/commit/ab14b4f): expedite servfail generation for ezdns-like failures (fully abort query resolving if we hit more than 50 outqueries). This also prevents the issue documented in [PowerDNS Security Advisory 2014-02](security/powerdns-advisory-2014-02/) (CVE-2014-8601)
 -   [commit 42025be](https://github.com/PowerDNS/pdns/commit/42025be): PowerDNS now polls the security status of a release at startup and periodically. More detail on this feature, and how to turn it off, can be found in [Security polling](common/security.md#security-polling).
 -   [commit 5027429](https://github.com/PowerDNS/pdns/commit/5027429): We did not transmit the right 'local' socket address to Lua for TCP/IP queries in the recursor. In addition, we would attempt to lookup a filedescriptor that wasn't there in an unlocked map which could conceivably lead to crashes. Closes [ticket 1828](https://github.com/PowerDNS/pdns/issues/1828), thanks Winfried for reporting
@@ -110,6 +200,7 @@ Find the downloads [on our download page](https://www.powerdns.com/downloads.htm
 A list of changes since 3.3.1 follows.
 
 Changes between RC2 and 3.4.0:
+
 -   [commit ad189c9](https://github.com/PowerDNS/pdns/commit/ad189c9), [commit 445d93c](https://github.com/PowerDNS/pdns/commit/445d93c): also distribute the dnsdist manual page
 -   [commit b5a276d](https://github.com/PowerDNS/pdns/commit/b5a276d), [commit 0b346e9](https://github.com/PowerDNS/pdns/commit/0b346e9), [commit 74caf87](https://github.com/PowerDNS/pdns/commit/74caf87), [commit 642fd2e](https://github.com/PowerDNS/pdns/commit/642fd2e): Make sure all backends actually work as dynamic modules
 -   [commit 14b11c4](https://github.com/PowerDNS/pdns/commit/14b11c4): raise log level on dlerror(), fixes [ticket 1734](https://github.com/PowerDNS/pdns/issues/1734), thanks @James-TR
@@ -118,6 +209,7 @@ Changes between RC2 and 3.4.0:
 -   [commit 25e7af3](https://github.com/PowerDNS/pdns/commit/25e7af3): send empty SERVFAIL after a backend throws a DBException, instead of including useless content
 
 Changes between RC1 and RC2:
+
 -   [commit bb6e54f](https://github.com/PowerDNS/pdns/commit/bb6e54f): document udp6-queries, udp4-queries, add rd-queries, recursion-unanswered metrics & document. Closes [ticket 1400](https://github.com/PowerDNS/pdns/issues/1400).
 -   [commit 4a23af7](https://github.com/PowerDNS/pdns/commit/4a23af7): init script: support DAEMON\_ARGS; [commit 7e5b3a0](https://github.com/PowerDNS/pdns/commit/7e5b3a0): init script: ensure socket dir exists
 -   [commit dd930ed](https://github.com/PowerDNS/pdns/commit/dd930ed): don't import supermaster ips from other accounts
@@ -2079,7 +2171,7 @@ From this, it is apparent that far more people are interested in PowerDNS than y
 In other news, we now have a security page at [Security](security/index.md). Furthermore, Maurice Nonnekes contributed an OpenBSD port! See [his page](http://www.codeninja.nl/openbsd/powerdns/) for more details!
 
 ## New features and improvements
--   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic MySQL and PgSQL backends](authoritative/backend-generic-mypgsql.md).
+-   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic MySQL and PostgreSQL backends](authoritative/backend-generic-mypgsql.md).
 -   A recursing nameserver! See [PowerDNS Recursor](recursor/index.md).
 -   An incoming AXFR now only starts a backend zone replacement transaction after the first record arrived successfully, thus making sure no work is done when a remote nameserver is unable/unwilling to AXFR a zone to us.
 -   Zone parser error messages were improved slightly (thanks to Stef van Dessel for spotting this shortcoming)
@@ -2155,7 +2247,7 @@ For more about all this coolness, see [“pdns\_control”](authoritative/intern
 
 **Warning**: Again some changes in compilation instructions. The hybrid pgmysql backend has been split up into 'gmysql' and 'gpgsql', sharing a common base within the PowerDNS server itself. This means that you can no longer compile **--with-modules="pgmysql" --enable-mysql --enable-pgsql** but that you should now use: **--with-modules="gmysql gpgsql"**. The old launch-names remain available.
 
-If you launch the Generic PgSQL backend as gpgsql2, all parameters will have gpgsql2 as a prefix, for example **gpgsql2-dbname**. If launched as gpgsql, the regular names are in effect.
+If you launch the Generic PostgreSQL backend as gpgsql2, all parameters will have gpgsql2 as a prefix, for example **gpgsql2-dbname**. If launched as gpgsql, the regular names are in effect.
 
 **Warning**: The pdns\_control protocol was changed which means that older pdns\_controls cannot talk to 2.9.3. The other way around is broken too. This may lead to problems with automatic upgrade scripts, so pay attention if your daemon is truly restarted.
 
@@ -2376,7 +2468,7 @@ This version fixes some stability issues with malformed or malcrafted packets. A
 
 -   The ability to change parameters at runtime was added. Currently, only the new **query-logging** flag can be changed.
 -   Added **query-logging** flag which hints a backend that it should output a textual representation of queries it receives. Currently only gmysql and gpgsql2 honor this flag.
--   Gmysql backend can now also talk to PgSQL, leading to less code. Currently, the old postgresql driver ('gpgsql') is still the default, the new driver is available as 'gpgsql2' and has the benefit that it does query logging. In the future, gpgsql2 will become the default gpgsql driver.
+-   Gmysql backend can now also talk to PostgreSQL, leading to less code. Currently, the old postgresql driver ('gpgsql') is still the default, the new driver is available as 'gpgsql2' and has the benefit that it does query logging. In the future, gpgsql2 will become the default gpgsql driver.
 -   DNS recursing proxy is now more verbose in logging odd events which may be caused by buggy recursing backends.
 -   Webserver now displays peak queries/second 1 minute average.
 
@@ -2389,7 +2481,7 @@ Documentation: added details for **strict-rfc-axfrs**. This feature can be used 
 
 Developers: this version is compatible with the pdns-2.1 development kit, available on <http://downloads.powerdns.com/releases/dev>. See also [Backend writers' guide](appendix/backend-writers-guide.md "Backend writers' guide")
 
-This release adds the Generic MySQL backend which allows full master/slave semantics with MySQL and InnoDB tables (or other tables that support transactions). See [Generic MySQL and PgSQL backends](authoritative/backend-generic-mypgsql.md "Generic MySQL and PgSQL backends").
+This release adds the Generic MySQL backend which allows full master/slave semantics with MySQL and InnoDB tables (or other tables that support transactions). See [Generic MySQL and PostgreSQL backends](authoritative/backend-generic-mypgsql.md "Generic MySQL and PostgreSQL backends").
 
 ## Other new features
 -   Improved error messages in master/slave communicator will help down track problems.
@@ -2640,7 +2732,7 @@ Named.conf parsing got a lot of work and many more bind configurations can now b
 -   Line number counting goes on as it should when including files in named.conf
 -   Added --no-config to enable users to start the pdns daemon without parsing the configuration file.
 -   zone2sql now has --bare for unformatted output which can be used to generate insert statements for different database layouts
--   zone2sql now has --gpgsql, which is an alias for --mysql, to output in a format useful for the default Generic PgSQL backend
+-   zone2sql now has --gpgsql, which is an alias for --mysql, to output in a format useful for the default Generic PostgreSQL backend
 -   zone2sql is now documented.
 
 ## Known bugs

@@ -66,7 +66,7 @@ LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
 CXXFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 
-%.cc: %.rl
+dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o $@
 
 # Version
@@ -108,12 +108,12 @@ basic_checks:
 
 install: build-stamp
 	-mkdir -p $(DESTDIR)/$(SBINDIR)
-	mv pdns_recursor $(DESTDIR)/$(SBINDIR)
+	cp pdns_recursor $(DESTDIR)/$(SBINDIR)
 ifeq ($(STRIP_BINARIES), 1)
 	strip $(DESTDIR)/$(SBINDIR)/pdns_recursor
 endif
 	mkdir -p $(DESTDIR)/$(BINDIR)
-	mv rec_control $(DESTDIR)/$(BINDIR)
+	cp rec_control $(DESTDIR)/$(BINDIR)
 ifeq ($(STRIP_BINARIES), 1)
 	strip $(DESTDIR)/$(BINDIR)/rec_control
 endif

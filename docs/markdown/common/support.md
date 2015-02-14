@@ -31,7 +31,7 @@ of your server(s).
 ## Where should I send my question?
 To a mailing list. Please email the authors directly only if you previously
 entered a support contract with them, or are considering doing so. For mailing
-list details, see [the mailing lists page](http://mailman.powerdns.com/mailman/admin/).
+list details, see [the mailing lists page](http://mailman.powerdns.com/mailman/listinfo/).
 
 Questions about using PowerDNS should be sent to the pdns-users list, questions
 about compiler errors or feature requests to pdns-dev.

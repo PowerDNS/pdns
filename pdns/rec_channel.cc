@@ -68,6 +68,7 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
       throw PDNSException("Setsockopt failed: "+stringerror());
   
     string localname=path+"/lsockXXXXXX";
+    *d_local.sun_path=0;
     if (makeUNsockaddr(localname, &d_local))
       throw PDNSException("Unable to bind to local temporary file, path '"+localname+"' is not a valid UNIX socket path.");
 
@@ -88,8 +89,11 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
     if (makeUNsockaddr(remotename, &remote))
       throw PDNSException("Unable to connect to controlsocket, path '"+remotename+"' is not a valid UNIX socket path.");
 
-    if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0)
+    if(::connect(d_fd, (sockaddr*)&remote, sizeof(remote)) < 0) {
+      if(*d_local.sun_path)
+	unlink(d_local.sun_path);
       throw PDNSException("Unable to connect to remote '"+string(remote.sun_path)+"': "+stringerror());
+    }
 
   } catch (...) {
     close(d_fd);

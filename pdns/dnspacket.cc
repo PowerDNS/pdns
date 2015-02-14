@@ -88,6 +88,8 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   qtype=orig.qtype;
   qclass=orig.qclass;
   qdomain=orig.qdomain;
+  qdomainwild=orig.qdomainwild;
+  qdomainzone=orig.qdomainzone;
   d_maxreplylen = orig.d_maxreplylen;
   d_ednsping = orig.d_ednsping;
   d_wantsnsid = orig.d_wantsnsid;
@@ -347,6 +349,12 @@ void DNSPacket::wrapup()
     addTSIG(pw, &d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   
   d_rawpacket.assign((char*)&packet[0], packet.size());
+
+  // copy RR counts so LPE can read them
+  d.qdcount = pw.getHeader()->qdcount;
+  d.ancount = pw.getHeader()->ancount;
+  d.nscount = pw.getHeader()->nscount;
+  d.arcount = pw.getHeader()->arcount;
 }
 
 void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
@@ -589,7 +597,7 @@ void DNSPacket::commitD()
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
 
-bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
 

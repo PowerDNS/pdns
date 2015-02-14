@@ -587,8 +587,6 @@ static void doExit()
 
 static void doExitNicely()
 {
-  //extern void printCallers();
-  // printCallers();
   doExitGeneric(true);
 }
 
@@ -641,7 +639,7 @@ vector<ComboAddress>* pleaseGetServfailRemotes()
   vector<ComboAddress>* ret = new vector<ComboAddress>();
   if(!t_servfailremotes)
     return ret;
-  ret->reserve(t_remotes->size());
+  ret->reserve(t_servfailremotes->size());
   BOOST_FOREACH(const ComboAddress& ca, *t_servfailremotes) {
     ret->push_back(ca);
   }
@@ -653,7 +651,7 @@ vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
   vector<ComboAddress>* ret = new vector<ComboAddress>();
   if(!t_largeanswerremotes)
     return ret;
-  ret->reserve(t_remotes->size());
+  ret->reserve(t_largeanswerremotes->size());
   BOOST_FOREACH(const ComboAddress& ca, *t_largeanswerremotes) {
     ret->push_back(ca);
   }

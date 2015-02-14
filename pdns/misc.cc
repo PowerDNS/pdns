@@ -21,6 +21,7 @@
 */
 
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <netdb.h>
 #include <sys/time.h>
 #include <time.h>

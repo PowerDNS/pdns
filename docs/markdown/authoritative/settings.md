@@ -116,13 +116,12 @@ Must be one of:
 * dsa
 * ecc
 * rsasha1
-* dsa-nsec3-sha1
-* rsasha1-nsec3-sha1
 * rsasha256
 * rsasha512
 * ecc-gost
-* ecdsap256sha256
-* ecdsap384sha384
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
+* ed25519
 
 ## `default-ksk-size`
 * Integer
@@ -160,13 +159,12 @@ Must be one of:
 * dsa
 * ecc
 * rsasha1
-* dsa-nsec3-sha1
-* rsasha1-nsec3-sha1
 * rsasha256
 * rsasha512
 * ecc-gost
-* ecdsap256sha256
-* ecdsap384sha384
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
+* ed25519
 
 ## `default-zsk-size`
 * Integer
@@ -240,6 +238,12 @@ Entropy source file to use.
 * Available since: 3.4
 
 Disallow data modification through the json API when set.
+
+## `experimental-api-key`
+* String
+* Available since: 3.4.1
+
+experimental-api-key REST API Static authentication key (required for API use)
 
 ## `experimental-dname-processing`
 * Boolean
@@ -453,6 +457,13 @@ it is not available. A side-effect is that you can start multiple servers on the
 same IP/port combination which may or may not be a good idea. You could use this
 to enable transparent restarts, but it may also mask configuration issues and
 for this reason it is disabled by default.
+
+## `security-poll-suffix`
+* String
+* Default: secpoll.powerdns.com.
+* Available since: 3.4.1
+
+Domain name from which to query security update notifications
 
 ## `server-id`
 * String

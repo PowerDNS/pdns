@@ -40,7 +40,7 @@
 #include "namespaces.hh"
 
 
-void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
+void CommunicatorClass::queueNotifyDomain(const string &domain, UeberBackend *B)
 {
   bool hasQueuedItem=false;
   set<string> nsset, ips;
@@ -124,7 +124,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   if(!::arg().mustDo("master"))
     return; 
 
-  UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
+  UeberBackend *B=P->getBackend();
   vector<DomainInfo> cmdomains;
   B->getUpdatedMasters(&cmdomains);
   

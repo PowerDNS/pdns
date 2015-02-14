@@ -184,9 +184,8 @@ bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
   UeberBackend B("default");
   bool doTransaction=true; // but see above
   SOAData sd;
-  sd.db = (DNSBackend*)-1;
 
-  if(!B.getSOA(zone, sd)) {
+  if(!B.getSOAUncached(zone, sd)) {
     cerr<<"No SOA known for '"<<zone<<"', is such a zone in the database?"<<endl;
     return false;
   }
@@ -401,8 +400,7 @@ void rectifyAllZones(DNSSECKeeper &dk)
 int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 {
   SOAData sd;
-  sd.db=(DNSBackend*)-1;
-  if(!B.getSOA(zone, sd)) {
+  if(!B.getSOAUncached(zone, sd)) {
     cout<<"[error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
     cout<<"Checked 0 records of '"<<zone<<"', 1 errors, 0 warnings."<<endl;
     return 1;
@@ -613,8 +611,7 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
 {
   UeberBackend B("default");
   SOAData sd;
-  sd.db=(DNSBackend*)-1;
-  if(!B.getSOA(zone, sd)) {
+  if(!B.getSOAUncached(zone, sd)) {
     cout<<"No SOA for zone '"<<zone<<"'"<<endl;
     return -1;
   }

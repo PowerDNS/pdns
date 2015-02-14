@@ -4,6 +4,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/scoped_ptr.hpp>
 #include "dnsrecords.hh"
 
 #define CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
@@ -172,10 +173,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
    BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
    try {
-      DNSRecordContent *rec;
       std::string recData;
       if (q.getCode() != QType::TSIG) {
-        rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
+        boost::scoped_ptr<DNSRecordContent> rec(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()));
         BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
         if (rec == NULL) continue;
         // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
@@ -257,9 +257,9 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     DNSPacketWriter pw(packet, "unit.test", q.getCode());
 
     if (val.get<2>()) {
-      BOOST_WARN_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     } else {
-      BOOST_CHECK_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     }
   };
 }
