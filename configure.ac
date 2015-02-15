@@ -35,6 +35,7 @@ AC_DEFINE([_GNU_SOURCE], [1],
   [Define _GNU_SOURCE so that we get all necessary prototypes]
 )
 
+PDNS_WITH_LUA
 AX_CXX_COMPILE_STDCXX_11(,optional)
 AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
 AC_ARG_ENABLE([hardening], [
@@ -96,8 +97,6 @@ AC_CHECK_HEADERS(
 )
 
 PDNS_CHECK_RAGEL
-
-PDNS_WITH_LUA
 
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
