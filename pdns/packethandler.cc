@@ -58,7 +58,7 @@ enum root_referral {
     FULL_ROOT_REFERRAL
 };
 
-PacketHandler::PacketHandler():B(s_programname)
+PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
 {
   ++s_count;
   d_doDNAME=::arg().mustDo("experimental-dname-processing");
