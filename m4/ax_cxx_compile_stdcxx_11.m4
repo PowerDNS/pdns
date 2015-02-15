@@ -39,7 +39,6 @@
 m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
   #include <thread>
   #include <boost/shared_ptr.hpp>
-  #include "pdns/ext/luawrapper/include/LuaContext.hpp"
   void test() {
   boost::shared_ptr<int> one;
   boost::shared_ptr<int> two;

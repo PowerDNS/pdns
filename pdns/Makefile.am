@@ -87,7 +87,10 @@ bin_PROGRAMS += \
 	saxfr
 
 if CXX2011
-bin_PROGRAMS += dnsdist calidns dumresp
+bin_PROGRAMS += calidns dumresp
+if LUA
+bin_PROGRAMS += dnsdist
+endif
 endif
 
 endif
