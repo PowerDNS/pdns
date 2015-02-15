@@ -65,17 +65,15 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
 void CommunicatorClass::suck(const string &domain,const string &remote)
 {
   L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
-  PacketHandler P; // fresh UeberBackend
+  UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
   di.backend=0;
   bool transaction=false;
   try {
-    UeberBackend *B=dynamic_cast<UeberBackend *>(P.getBackend());  // copy of the same UeberBackend
-    DNSSECKeeper dk (B); // reuse our UeberBackend copy for DNSSECKeeper
+    DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
-
-    if(!B->getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
+    if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
       L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
@@ -85,7 +83,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     string tsigkeyname, tsigalgorithm, tsigsecret;
     if(dk.getTSIGForAccess(domain, remote, &tsigkeyname)) {
       string tsigsecret64;
-      if(B->getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
+      if(B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
         B64Decode(tsigsecret64, tsigsecret);
       } else {
         L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"' not found"<<endl;
@@ -96,7 +94,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     scoped_ptr<AuthLua> pdl;
     vector<string> scripts;
-    if(B->getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
+    if(B.getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
       try {
         pdl.reset(new AuthLua(scripts[0]));
         L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
@@ -110,7 +108,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     vector<string> localaddr;
     ComboAddress laddr;
-    if(B->getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
+    if(B.getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
         L<<Logger::Info<<"AXFR source for domain '"<<domain<<"' set to "<<localaddr[0]<<endl;

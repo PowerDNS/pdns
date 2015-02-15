@@ -230,8 +230,8 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   const string& domain=parts[1];
   DomainInfo di;
-  PacketHandler P;
-  if(!P.getBackend()->getDomainInfo(domain, di))
+  UeberBackend B;
+  if(!B.getDomainInfo(domain, di))
     return "Domain '"+domain+"' unknown";
   
   if(di.masters.empty())
@@ -299,11 +299,11 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  PacketHandler P;
+  UeberBackend B;
   try {
     L<<Logger::Error<<"Rediscovery was requested"<<endl;
     string status="Ok";
-    P.getBackend()->rediscover(&status);
+    B.rediscover(&status);
     return status;
   }
   catch(PDNSException &ae) {
@@ -314,8 +314,8 @@ string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  PacketHandler P;
-  P.getBackend()->reload();
+  UeberBackend B;
+  B.reload();
   L<<Logger::Error<<"Reload was requested"<<endl;
   return "Ok";
 }
