@@ -39,7 +39,6 @@
 m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
   #include <thread>
   #include <boost/shared_ptr.hpp>
-  #include "pdns/ext/luawrapper/include/LuaContext.hpp"
   void test() {
   boost::shared_ptr<int> one;
   boost::shared_ptr<int> two;
@@ -98,7 +97,7 @@ AC_DEFUN([AX_CXX_COMPILE_STDCXX_11], [dnl
       AC_CACHE_CHECK(whether $CXX supports C++11 features with $switch,
                      $cachevar,
         [ac_save_CXXFLAGS="$CXXFLAGS"
-         CXXFLAGS="$LUA_CFLAGS $CXXFLAGS $switch"
+         CXXFLAGS="$CXXFLAGS $switch"
          AC_COMPILE_IFELSE([AC_LANG_SOURCE([_AX_CXX_COMPILE_STDCXX_11_testbody])],
           [eval $cachevar=yes],
           [eval $cachevar=no])
@@ -118,7 +117,7 @@ AC_DEFUN([AX_CXX_COMPILE_STDCXX_11], [dnl
       AC_CACHE_CHECK(whether $CXX supports C++11 features with $switch,
                      $cachevar,
         [ac_save_CXXFLAGS="$CXXFLAGS"
-         CXXFLAGS="$CXXFLAGS $LUA_CFLAGS $switch"
+         CXXFLAGS="$CXXFLAGS $switch"
          AC_COMPILE_IFELSE([AC_LANG_SOURCE([_AX_CXX_COMPILE_STDCXX_11_testbody])],
           [eval $cachevar=yes],
           [eval $cachevar=no])
