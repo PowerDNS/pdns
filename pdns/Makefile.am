@@ -181,6 +181,7 @@ pdns_server_SOURCES = \
 	slavecommunicator.cc \
 	statbag.cc statbag.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+        tkey.hh tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
 	unix_utility.cc \
@@ -240,6 +241,11 @@ endif
 
 if LUA
 pdns_server_LDADD += $(LUA_LIBS)
+endif
+
+if GSS_TSIG
+pdns_server_SOURCES += gssapi.cc
+pdns_server_LDADD += $(GSS_LIBS)
 endif
 
 pdnssec_SOURCES = \
@@ -330,6 +336,11 @@ endif
 if PKCS11
 pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
 pdnssec_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+pdnssec_SOURCES += gssapi.cc
+pdnssec_LDADD += $(GSS_LIBS)
 endif
 
 zone2sql_SOURCES = \
@@ -966,6 +977,11 @@ testrunner_LDADD = \
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh
 testrunner_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+testrunner_SOURCES += gssapi.cc
+testrunner_LDADD += $(GSS_LIBS)
 endif
 
 pdns_recursor_SOURCES = \

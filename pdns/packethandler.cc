@@ -43,6 +43,7 @@
 #include "dnsproxy.hh"
 #include "version.hh"
 #include "common_startup.hh"
+#include "tkey.hh"
 
 #if 0
 #undef DLOG
@@ -1054,7 +1055,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   }
   
   r=p->replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
-  
+
+  if (p->qtype == QType::TKEY) {
+    // special TKEY handler
+    pdns_tkey_handler(p, r);
+    return r;
+  }
+
   try {    
 
     // XXX FIXME do this in DNSPacket::parse ?

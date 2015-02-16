@@ -44,6 +44,7 @@
 #include "dnssecinfra.hh" 
 #include "base64.hh"
 #include "ednssubnet.hh"
+#include "tkey.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
@@ -457,7 +458,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
     return false;
   
   bool gotit=false;
-  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     if(i->first.d_type == QType::TSIG) {
       *trc = *boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       
@@ -473,6 +474,26 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
     *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, d_tsigprevious, false); // if you change rawpacket to getString it breaks!
   
   return true;
+}
+
+bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, string *keyname) const
+{
+  MOADNSParser mdp(d_rawpacket);
+  bool gotit=false;
+
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+    if (gotit) {
+      L<<Logger::Error<<"More than one TKEY record found in query"<<endl;
+      return false; 
+    }
+    if(i->first.d_type == QType::TKEY) {
+      *tr = *boost::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      *keyname = i->first.d_label;
+      gotit=true;
+    }
+  }
+
+  return gotit;
 }
 
 /** This function takes data from the network, possibly received with recvfrom, and parses
@@ -608,15 +629,30 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
     return false;
   }
 
+  string tmpKeyname = *keyname;
+
   string algoName = toLowerCanonic(trc->d_algoName);
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 
   string secret64;
-  if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
+
+#ifdef ENABLE_GSS_TSIG
+  if (algoName == "gss-tsig") {
+    tmpKeyname = "gss-tsig"; // tsig is special
+  }
+#endif
+
+  if(!B->getTSIGKey(tmpKeyname, &algoName, &secret64)) {
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<tmpKeyname<<"' and algorithm '"<<algoName<<"'"<<endl;
     return false;
   }
+
+#ifdef ENABLE_GSS_TSIG
+  if (algoName == "gss-tsig") 
+    return pdns_gssapi_verify(*keyname, message, trc->d_mac);
+#endif
+
   if (trc->d_algoName == "hmac-md5")
     trc->d_algoName += ".sig-alg.reg.int.";
 

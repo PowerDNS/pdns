@@ -19,6 +19,7 @@
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
 #endif
+#include "tkey.hh"
 
 using namespace boost::assign;
 
@@ -525,7 +526,6 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
 
 string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash) {
   if (hash == TSIG_MD5) return calculateMD5HMAC(key, text);
-
   // add other algorithms here
 
   return calculateSHAHMAC(key, text, hash);
@@ -594,6 +594,8 @@ bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
     algoEnum = TSIG_SHA384;
   else if (normalizedName == "hmac-sha512")
     algoEnum = TSIG_SHA512;
+  else if (normalizedName == "gss-tsig")
+    algoEnum = TSIG_GSS;
   else {
      return false;
   }
@@ -640,7 +642,18 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
   toSign.append(&*signRecord.begin(), &*signRecord.end());
 
-  trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
+  if (algo == TSIG_GSS) {
+#ifdef ENABLE_GSS_TSIG
+    if (!pdns_gssapi_sign(tsigkeyname, toSign, trc->d_mac)) {
+      L<<Logger::Error<<"Could not add GSS-TSIG signature" << endl;
+    }
+#else
+    L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+    return;
+#endif
+  } else {
+    trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
+  }
   //  d_trc->d_mac[0]++; // sabotage
   pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
   trc->toPacket(pw);

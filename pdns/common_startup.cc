@@ -169,6 +169,9 @@ void declareArguments()
 
   ::arg().set("include-dir","Include *.conf files from this directory");
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
+#ifdef ENABLE_GSS_TSIG
+  ::arg().set("gssapi-use-principal","Define principal to use with GSSAPI, leave empty for default")="";
+#endif
 }
 
 static uint64_t uptimeOfProcess(const std::string& str)

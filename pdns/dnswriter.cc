@@ -285,6 +285,11 @@ void DNSPacketWriter::xfrBlob(const string& blob, int  )
   d_record.insert(d_record.end(), ptr, ptr+blob.size());
 }
 
+void DNSPacketWriter::xfrBlobNoSpaces(const string& blob, int  )
+{
+  xfrBlob(blob);
+}
+
 void DNSPacketWriter::xfrHexBlob(const string& blob, bool keepReading)
 {
   xfrBlob(blob);
