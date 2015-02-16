@@ -9,3 +9,6 @@ DIST_SUBDIRS = \
 	ed25519 \
 	yahttp \
 	rapidjson
+
+EXTRA_DIST = \
+	luawrapper/include/LuaContext.hpp
