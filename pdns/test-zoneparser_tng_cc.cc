@@ -20,7 +20,10 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
   reportFancyTypes();
 
   std::ostringstream pathbuf;
-  pathbuf << std::getenv("SRCDIR") << "/../regression-tests/zones/unit.test";
+  const char* p = std::getenv("SRCDIR");
+  if(!p)
+    p = ".";
+  pathbuf << p << "/../regression-tests/zones/unit.test";
   ZoneParserTNG zp(pathbuf.str(), "unit.test");
   DNSResourceRecord rr;
 
