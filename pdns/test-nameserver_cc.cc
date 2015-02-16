@@ -9,7 +9,6 @@
 #include <utility>
 
 extern vector<ComboAddress> g_localaddresses;
-StatBag S;
 
 ArgvMap &arg()
 {
