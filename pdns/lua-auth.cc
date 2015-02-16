@@ -347,7 +347,7 @@ string AuthLua::policycmd(const vector<string>&parts) {
     return "no policycmd function in policy script";
   }
 
-  for(int i=1; i<parts.size(); i++)
+  for(uint i=1; i<parts.size(); i++)
     lua_pushstring(d_lua, parts[i].c_str());
 
   if(lua_pcall(d_lua, parts.size()-1, 1, 0)) {
