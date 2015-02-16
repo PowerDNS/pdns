@@ -109,27 +109,17 @@ void sendThread(const vector<Socket*>* sockets, const vector<vector<uint8_t> >* 
   for(const auto& p : *packets) {
     count++;
 
-    unique_ptr<Unit> u{new Unit()};
+    Unit u;
 
-    fillMSGHdr(&u->msgh, &u->iov, u->cbuf, 0, (char*)&p[0], p.size(), &dest);
-    units.emplace_back(std::move(u));
-
-    if(units.size()==burst)  {
-      vector<struct mmsghdr> job;
-      for(auto& u : units) {
-	job.push_back({u->msgh, 0});
-      }
-      if((ret=sendmmsg((*sockets)[count % sockets->size()]->getHandle(), 
-		       &job[0], job.size(), 0)) != job.size()) {
-	if(ret < 0)
-	  unixDie("sendmmsg");
-	else
-	  cerr<<"Sent out partial number of packets: "<<ret<<endl;
-      }
+    fillMSGHdr(&u.msgh, &u.iov, u.cbuf, 0, (char*)&p[0], p.size(), &dest);
+    if((ret=sendmsg((*sockets)[count % sockets->size()]->getHandle(), 
+		    &u.msgh, 0)))
+      if(ret < 0)
+	unixDie("sendmmsg");
+    
+    
+    if(!(count%burst))
       nanosleep(&nsec, 0);
-      units.clear();
-
-    }
   }
 }
 
