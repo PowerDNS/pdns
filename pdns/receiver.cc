@@ -130,7 +130,7 @@ static void writePid(void)
   if(of)
     of<<getpid()<<endl;
   else
-    L<<Logger::Error<<"Requested to write pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Writing pid for "<<getpid()<<" to "<<fname<<" failed: "<<strerror(errno)<<endl;
 }
 
 int g_fd1[2], g_fd2[2];
@@ -308,8 +308,7 @@ static int guardian(int argc, char **argv)
           exit(1);
         }
         setStatus("Child died with code "+itoa(ret));
-        L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<endl;
-        L<<Logger::Error<<"Respawning"<<endl;
+        L<<Logger::Error<<"Our pdns instance exited with code "<<ret<<", respawning"<<endl;
 
         sleep(1);
         continue;
@@ -366,7 +365,7 @@ static void loadModules()
         res=UeberBackend::loadmodule(::arg()["module-dir"]+"/"+module);
       
       if(res==false) {
-        L<<Logger::Error<<"receiver unable to load module "<<module<<endl;
+        L<<Logger::Error<<"Receiver unable to load module "<<module<<endl;
         exit(1);
       }
     }

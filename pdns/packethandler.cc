@@ -1160,7 +1160,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         addRootReferral(r);
       }
       else {
-        DLOG(L<<Logger::Warning<<"setting 'No Error'"<<endl);
+        DLOG(L<<Logger::Warning<<"Setting 'No Error'"<<endl);
       }
       goto sendit;
     }

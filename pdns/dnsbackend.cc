@@ -136,7 +136,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
   
   if(res==false) {
-    L<<Logger::Error<<"dnsbackend unable to load module in "<<module<<endl;
+    L<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
     exit(1);
   }
 }
@@ -258,7 +258,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   }
 
   if(!sd.serial) { // magic time!
-    DLOG(L<<Logger::Warning<<"Doing soa serialnumber autocalculation for "<<rr.qname<<endl);
+    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
 
     time_t serial;
     if (calculateSOASerial(domain, sd, serial)) {
