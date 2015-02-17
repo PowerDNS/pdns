@@ -60,7 +60,6 @@ public:
   ~PacketHandler(); // defined in packethandler.cc, and does --count
   static int numRunning(){return s_count;}; //!< Returns the number of running PacketHandlers. Called by Distributor
  
-  void soaMagic(DNSResourceRecord *rr);
   UeberBackend *getBackend();
 
   int trySuperMasterSynchronous(DNSPacket *p);
@@ -69,13 +68,10 @@ private:
   int trySuperMaster(DNSPacket *p);
   int processNotify(DNSPacket *);
   void addRootReferral(DNSPacket *r);
-  int makeCanonic(DNSPacket *p, DNSPacket *r, string &target);
   int doChaosRequest(DNSPacket *p, DNSPacket *r, string &target);
   bool addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd);
   bool addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd);
-  bool getTLDAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
   int doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, const SOAData& sd, bool retargeted);
-  bool doDNSSECProcessing(DNSPacket* p, DNSPacket *r);
   void addNSECX(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string &auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, int mode);
   void addNSEC3(DNSPacket *p, DNSPacket* r, const string &target, const string &wildcard, const std::string& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
@@ -88,7 +84,6 @@ private:
   int checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di);
   void increaseSerial(const string &msgPrefix, const DomainInfo *di, bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr);
 
-  void synthesiseRRSIGs(DNSPacket* p, DNSPacket* r);
   void makeNXDomain(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd);
   void makeNOError(DNSPacket* p, DNSPacket* r, const std::string& target, const std::string& wildcard, SOAData& sd, int mode);
   vector<DNSResourceRecord> getBestReferralNS(DNSPacket *p, SOAData& sd, const string &target);
@@ -111,8 +106,7 @@ private:
   AuthLua* d_pdl;
 
   UeberBackend B; // every thread an own instance
-  DNSSECKeeper d_dk; // same, might even share B?
+  DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
-void emitNSEC3(DNSBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const std::string& unhashed, const std::string& begin, const std::string& end, const std::string& toNSEC3, DNSPacket *r, int mode);
 bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after, int mode=0);
 #endif /* PACKETHANDLER */
