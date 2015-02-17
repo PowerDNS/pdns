@@ -118,7 +118,7 @@ void Utility::setBindAny(int af, sock_t sock)
 
 #ifdef IP_BINDANY
   if (af == AF_INET)
-    if (setsockopt(s, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
       theL()<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
 #endif
 #ifdef IPV6_BINDANY
