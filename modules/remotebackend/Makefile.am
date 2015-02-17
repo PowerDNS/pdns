@@ -22,12 +22,12 @@ EXTRA_DIST = \
 	Gemfile.lock
 
 EXTRA_PROGRAMS = \
-	test_remotebackend_pipe \
-	test_remotebackend_unix \
-	test_remotebackend_http \
-	test_remotebackend_post \
-	test_remotebackend_json \
-	test_remotebackend_zeromq
+	remotebackend_pipe.test \
+	remotebackend_unix.test \
+	remotebackend_http.test \
+	remotebackend_post.test \
+	remotebackend_json.test \
+	remotebackend_zeromq.test
 
 EXTRA_LTLIBRARIES = libtestremotebackend.la
 
@@ -54,15 +54,37 @@ endif
 
 if UNIT_TESTS
 TESTS_ENVIRONMENT = \
-	env BOOST_TEST_LOG_LEVEL=message REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ) ./testrunner.sh
+	BOOST_TEST_LOG_LEVEL=message; \
+	export BOOST_TEST_LOG_LEVEL; \
+	REMOTEBACKEND_ZEROMQ=$(REMOTEBACKEND_ZEROMQ); \
+	export REMOTEBACKEND_ZEROMQ;
+
+TEST_EXTENSIONS = .test
+
+TEST_LOG_COMPILER = $(abs_srcdir)/testrunner.sh
 
 TESTS = \
-	test_remotebackend_pipe \
-	test_remotebackend_unix \
-	test_remotebackend_http \
-	test_remotebackend_post \
-	test_remotebackend_json \
-	test_remotebackend_zeromq
+	remotebackend_pipe.test \
+	remotebackend_unix.test \
+	remotebackend_http.test \
+	remotebackend_post.test \
+	remotebackend_json.test \
+	remotebackend_zeromq.test
+
+RECHECK_LOGS = \
+	$(TEST_LOGS) \
+	remotebackend_http_server.log \
+	remotebackend_post_server.log \
+	remotebackend_json_server.log \
+	remotebackend_zeromq_server.log
+
+## The http, post and json test are using the same TCP port.
+## To prevent "Address already in use - bind(2) (Errno::EADDRINUSE)"
+## errors when running `make check` in parallel, we need to specify
+## an order
+remotebackend_post.log: remotebackend_http.log
+
+remotebackend_json.log: remotebackend_http.log remotebackend_post.log
 endif
 
 BUILT_SOURCES = ../../pdns/dnslabeltext.cc
@@ -132,45 +154,44 @@ libtestremotebackend_la_CPPFLAGS += \
 	$(P11KIT1_CFLAGS)
 endif
 
-test_remotebackend_http_SOURCES = \
+remotebackend_http_test_SOURCES = \
 	test-remotebackend.cc \
 	test-remotebackend-http.cc \
 	test-remotebackend-keys.hh
 
-test_remotebackend_http_LDADD = libtestremotebackend.la
+remotebackend_http_test_LDADD = libtestremotebackend.la
 
-test_remotebackend_json_SOURCES = \
+remotebackend_json_test_SOURCES = \
 	test-remotebackend.cc \
 	test-remotebackend-json.cc \
 	test-remotebackend-keys.hh
 
-test_remotebackend_json_LDADD = libtestremotebackend.la
+remotebackend_json_test_LDADD = libtestremotebackend.la
 
-test_remotebackend_pipe_SOURCES = \
+remotebackend_pipe_test_SOURCES = \
 	test-remotebackend.cc \
 	test-remotebackend-pipe.cc \
 	test-remotebackend-keys.hh 
 
-test_remotebackend_pipe_LDADD = libtestremotebackend.la
+remotebackend_pipe_test_LDADD = libtestremotebackend.la
 
-test_remotebackend_post_SOURCES = \
+remotebackend_post_test_SOURCES = \
 	test-remotebackend.cc \
 	test-remotebackend-post.cc \
 	test-remotebackend-keys.hh
 
-test_remotebackend_post_LDADD = libtestremotebackend.la
+remotebackend_post_test_LDADD = libtestremotebackend.la
 
-test_remotebackend_unix_SOURCES = \
+remotebackend_unix_test_SOURCES = \
 	test-remotebackend.cc \
 	test-remotebackend-unix.cc \
 	test-remotebackend-keys.hh
 
-test_remotebackend_unix_LDADD = libtestremotebackend.la
+remotebackend_unix_test_LDADD = libtestremotebackend.la
 
-test_remotebackend_zeromq_SOURCES = \
+remotebackend_zeromq_test_SOURCES = \
 	test-remotebackend.cc \
 	test-remotebackend-zeromq.cc \
 	test-remotebackend-keys.hh
 
-test_remotebackend_zeromq_LDADD = libtestremotebackend.la
-
+remotebackend_zeromq_test_LDADD = libtestremotebackend.la
