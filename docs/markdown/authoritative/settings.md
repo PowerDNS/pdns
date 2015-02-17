@@ -307,6 +307,16 @@ interfaces and not use the default 'bind to any'. This causes big problems if
 you have multiple IP addresses. Unix does not provide a way of figuring out what
 IP address a packet was sent to when binding to any.
 
+## `non-local-bind`
+* Boolean
+* Default: no
+
+Bind to addresses even if one or more of the [`local-address`'s](#local-address)
+do not exist on this server. Setting this option will enable the needed socket
+options to allow binding to non-local addresses.
+This feature is intended to facilitate ip-failover setups, but it may also
+mask configuration issues and for this reason it is disabled by default.
+
 ## `local-address-nonexist-fail`
 * Boolean
 * Default: no

@@ -1082,6 +1082,9 @@ TCPNameserver::TCPNameserver()
       exit(1);  
     }
     
+    if( ::arg().mustDo("non-local-bind") )
+	Utility::setBindAny(AF_INET, s);
+
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
@@ -1119,6 +1122,8 @@ TCPNameserver::TCPNameserver()
       L<<Logger::Error<<"Setsockopt failed"<<endl;
       exit(1);  
     }
+    if( ::arg().mustDo("non-local-bind") )
+	Utility::setBindAny(AF_INET6, s);
     if(setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
     }

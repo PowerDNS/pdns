@@ -325,6 +325,16 @@ recommended to bind to explicit addresses.
 
 Local port to bind to.
 
+## `non-local-bind`
+* Boolean
+* Default: no
+
+Bind to addresses even if one or more of the [`local-address`'s](#local-address)
+do not exist on this server. Setting this option will enable the needed socket
+options to allow binding to non-local addresses.
+This feature is intended to facilitate ip-failover setups, but it may also
+mask configuration issues and for this reason it is disabled by default.
+
 ## `loglevel`
 * Integer between 0 and 
 * Default: 4
