@@ -54,10 +54,6 @@ while(<>)
 		print STDERR "$$ Sent CNAME records\n";
 		print "DATA	$qname	$qclass	CNAME	3600	-1	webserver.example.com\n";
 	}
-	elsif($qtype eq "MBOXFW") {
-		print STDERR "$$ Sent MBOXFW records\n";
-		print "DATA	$qname	$qclass	MBOXFW	3600	-1	powerdns\@example.com\n";
-	}
 
 
 	print STDERR "$$ End of data\n";

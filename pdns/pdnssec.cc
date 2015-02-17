@@ -552,12 +552,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       }
     }
 
-    if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) {
-      cout<<"[Error] The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
-      numerrors++;
-      continue;
-    }
-
     if (rr.qname[rr.qname.size()-1] == '.') {
       cout<<"[Error] Record '"<<rr.qname<<"' has a trailing dot. PowerDNS will ignore this record!"<<endl;
       numerrors++;
