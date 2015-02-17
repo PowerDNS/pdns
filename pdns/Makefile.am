@@ -565,6 +565,7 @@ dnsdist_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	dolog.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
