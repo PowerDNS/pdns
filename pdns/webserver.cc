@@ -118,14 +118,14 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
   resp->headers["access-control-allow-origin"] = "*";
 
   if (api_key.empty()) {
-    L<<Logger::Debug<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
-    throw HttpUnauthorizedException();
+    L<<Logger::Error<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl;
+    throw HttpUnauthorizedException("X-API-Key");
   }
   bool auth_ok = req->compareHeader("x-api-key", api_key) || req->getvars["api-key"]==api_key;
   
   if (!auth_ok) {
-    L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
-    throw HttpBadRequestException();
+    L<<Logger::Error<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl;
+    throw HttpUnauthorizedException("X-API-Key");
   }
 
   resp->headers["Content-Type"] = "application/json";
@@ -174,7 +174,7 @@ static void webWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
     bool auth_ok = req->compareAuthorization(web_password);
     if (!auth_ok) {
       L<<Logger::Debug<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl;
-      throw HttpUnauthorizedException();
+      throw HttpUnauthorizedException("Basic");
     }
   }
 
