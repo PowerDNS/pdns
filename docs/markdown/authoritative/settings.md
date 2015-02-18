@@ -380,7 +380,7 @@ stable, and is in fact likely to change.
 
 ## `master`
 * Boolean
-* Default: yes
+* Default: no
 
 Turn on master support.
 
