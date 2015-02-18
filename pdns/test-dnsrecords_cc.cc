@@ -29,6 +29,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   KXRecordContent::report();
   DHCIDRecordContent::report();
   TSIGRecordContent::report();
+  TKEYRecordContent::report();
 
 // NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
@@ -157,6 +158,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::EUI64, "00-11-22-33-44-55-66-77", "\x00\x11\x22\x33\x44\x55\x66\x77",false))
      (CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 0 0", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x00\x00\x00",false))
      (CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 18 16 TkbpD66/Mtgo8GUEFZIwhg==", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x12\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86",true))
+     (CASE_S(QType::TKEY, "gss-tsig. 12345 12345 3 21 4 dGVzdA== 4 dGVzdA==", "\x08gss-tsig\x00\x00\x00\x30\x39\x00\x00\x30\x39\x00\x03\x00\x15\x00\x04test\x00\x04test", false))
 /*        (CASE_S(QType::ADDR, "zone format", "line format",false)) */
      (CASE_S(QType::DLV, "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e",false))
 ;
