@@ -474,6 +474,27 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   return true;
 }
 
+bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, string *keyname) const
+{
+  MOADNSParser mdp(d_rawpacket);
+  bool gotit=false;
+
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+    if (gotit) {
+      L<<Logger::Error<<"More than one TKEY record found in query"<<endl;
+      return false;
+    }
+
+    if(i->first.d_type == QType::TKEY) {
+      *tr = *boost::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      *keyname = i->first.d_label;
+      gotit=true;
+    }
+  }
+
+  return gotit;
+}
+
 /** This function takes data from the network, possibly received with recvfrom, and parses
     it into our class. Results of calling this function multiple times on one packet are
     unknown. Returns -1 if the packet cannot be parsed.
