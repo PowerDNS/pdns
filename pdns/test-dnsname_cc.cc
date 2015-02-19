@@ -83,6 +83,22 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK_EQUAL(p.toString(), "power\\000dns.com.");
 }
 
+BOOST_AUTO_TEST_CASE(test_toolong) {
+  try {
+    DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com.");
+    BOOST_CHECK(0);
+  }
+  catch(...){}
+
+
+  try {
+    DNSName w("com.");
+    w.prependRawLabel("1234567890123456789012345678901234567890123456789012345678901234567890");
+    BOOST_CHECK(0);
+  }
+  catch(...){}
+
+}
 
 BOOST_AUTO_TEST_CASE(test_dnsstrings) {
   DNSName w("www.powerdns.com.");

@@ -5,7 +5,6 @@
 #include <string>
 #include "namespaces.hh"
 
-
 namespace {
 void appendSplit(vector<string>& ret, string& segment, char c)
 {
@@ -81,7 +80,7 @@ vector<string> segmentDNSText(const string& input )
         return ret;
 };
 
-vector<string> segmentDNSName(const string& input )
+deque<string> segmentDNSName(const string& input )
 {
 %%{
         machine dnsname;
@@ -96,7 +95,7 @@ vector<string> segmentDNSName(const string& input )
         char val = 0;
 
         string label;
-        vector<string> ret;
+        deque<string> ret;
 
         %%{
                 action labelEnd { 

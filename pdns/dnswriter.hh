@@ -132,5 +132,5 @@ private:
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
 bool labeltokUnescape(labelparts_t& parts, const string& label);
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
-std::vector<string> segmentDNSName(const string& input ); // from dnslabeltext.rl
+std::deque<string> segmentDNSName(const string& input ); // from dnslabeltext.rl
 #endif

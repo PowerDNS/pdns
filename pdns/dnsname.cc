@@ -6,9 +6,10 @@
 
 DNSName::DNSName(const char* p)
 {
-  auto vec = segmentDNSName(p);
-  for(auto& e : vec)
-    d_labels.push_back(e);
+  d_labels = segmentDNSName(p);
+  for(const auto& e : d_labels)
+    if(e.size() > 63)
+      throw std::range_error("label too long");
 }
 
 DNSName::DNSName(const char* pos, int len, uint16_t* qtype)
@@ -60,11 +61,16 @@ bool DNSName::isPartOf(const DNSName& parent) const
 
 void DNSName::appendRawLabel(const std::string& label)
 {
+  if(label.size() > 63)
+    throw std::range_error("label too long");
   d_labels.push_back(label);
 }
 
 void DNSName::prependRawLabel(const std::string& label)
 {
+  if(label.size() > 63)
+    throw std::range_error("label too long");
+
   d_labels.push_front(label);
 }
 
