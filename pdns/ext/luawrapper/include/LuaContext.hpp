@@ -1041,7 +1041,7 @@ private:
     template<typename TFunctionType, typename TRetValue, typename TObject, typename... TOtherParams>
     void registerFunctionImpl(const std::string& functionName, TFunctionType function, tag<TObject>, tag<TRetValue (TOtherParams...)>)
     {
-        static_assert(std::is_class<TObject>::value || std::is_pointer<TObject>::value, "registerFunction can only be used for a class or a pointer");
+        static_assert(std::is_class<TObject>::value || std::is_pointer<TObject>::value || std::is_union<TObject>::value , "registerFunction can only be used for a class or a pointer");
 
         checkTypeRegistration(mState, &typeid(TObject));
         setTable<TRetValue(TObject&, TOtherParams...)>(mState, Registry, &typeid(TObject), 0, functionName, std::move(function));
