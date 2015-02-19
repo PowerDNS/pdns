@@ -393,5 +393,8 @@ AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
 AC_MSG_NOTICE([Lua support: $with_lua])
-AC_MSG_NOTICE([C++2011 support: $HAVE_CXX11])
+AS_IF([test "$HAVE_CXX11" = "1"],
+  [AC_MSG_NOTICE([C++2011 support: yes])],
+  [AC_MSG_NOTICE([C++2011 support: no])]
+)
 AC_MSG_NOTICE([])
