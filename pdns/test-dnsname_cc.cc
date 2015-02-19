@@ -127,10 +127,11 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
   DNSPacketWriter dpw(packet, "www.ds9a.nl.", QType::AAAA);
 
-  uint16_t qtype;
-  DNSName dn((char*)&packet[12], packet.size() - 12, &qtype);
+  uint16_t qtype, qclass;
+  DNSName dn((char*)&packet[12], packet.size() - 12, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn.toString(), "www.ds9a.nl.");
   BOOST_CHECK_EQUAL(qtype, QType::AAAA);
+  BOOST_CHECK_EQUAL(qclass, 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_suffixmatch) {

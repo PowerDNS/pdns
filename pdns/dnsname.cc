@@ -12,7 +12,7 @@ DNSName::DNSName(const char* p)
       throw std::range_error("label too long");
 }
 
-DNSName::DNSName(const char* pos, int len, uint16_t* qtype)
+DNSName::DNSName(const char* pos, int len, uint16_t* qtype, uint16_t* qclass)
 {
   unsigned char labellen;
   const char* end = pos + len;
@@ -22,6 +22,10 @@ DNSName::DNSName(const char* pos, int len, uint16_t* qtype)
   }
   if(qtype && pos + labellen + 2 <= end)  
     *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
+
+  pos+=2;
+  if(qclass && pos + labellen + 2 <= end)  
+    *qclass=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
 
 }
 
