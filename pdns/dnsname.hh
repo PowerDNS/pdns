@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <deque>
+#include <set>
+#include <strings.h>
 
 /* Quest in life: 
      accept escaped ascii presentations of DNS names and store them "natively"
@@ -36,4 +38,61 @@ private:
   std::deque<std::string> d_labels;
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
+};
+
+
+/* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode, 
+   anything part of that domain will return 'true' in check */
+struct SuffixMatchNode
+{
+  SuffixMatchNode(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
+  {}
+  std::string name;
+  mutable bool endNode;
+  mutable std::set<SuffixMatchNode> children;
+  bool operator<(const SuffixMatchNode& rhs) const
+  {
+    return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
+  }
+
+  void add(const DNSName& name) 
+  {
+    add(name.getRawLabels());
+  }
+
+  void add(std::deque<std::string> labels) const
+  {
+    if(labels.empty()) { // this allows insertion of the root
+      endNode=true;
+    }
+    else if(labels.size()==1) {
+      children.insert({*labels.begin(), true});
+    }
+    else {
+      auto res=children.insert({*labels.rbegin(), false});
+      labels.pop_back();
+      res.first->add(labels);
+    }
+  }
+
+  bool check(const DNSName& name)  const
+  {
+    return check(name.getRawLabels());
+  }
+
+
+  bool check(std::deque<std::string> labels) const
+  {
+    if(labels.empty()) // optimization
+      return endNode; 
+
+    SuffixMatchNode smn({*labels.rbegin()});
+    auto child = children.find(smn);
+    if(child == children.end())
+      return endNode;
+    labels.pop_back();
+    return child->check(labels);
+  }
+	     
+
 };

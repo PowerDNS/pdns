@@ -563,6 +563,10 @@ void setupLua()
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction("tostring", &DNSName::toString);
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
+  g_lua.writeFunction("newSuffixNode", []() { return SuffixMatchNode(); });
+
+  g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
+  g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
   g_lua.executeCode(ifs);
 }

@@ -21,21 +21,23 @@ end
 
 counter=0
 
-block=newDNSName("ezdns.it.")
+block=newSuffixNode()
+block:add(newDNSName("ezdns.it."))
+block:add(newDNSName("xxx."))
 
 -- called to pick a downstream server
 function pickServer(remote, qname, qtype) 
-       print("qname: ",qname:tostring())
-       local servers
-       if(qname:isPartOf(block))
-       then 
-		servers=abuse 
-	else
+	 local servers
+       	 if(block:check(qname))
+       	 then 
+       	    print("Sending to abuse pool: ",qname:tostring())	
+	    servers=abuse 
+	 else
 		servers=good
-	end
+	 end
 
- 	counter=counter+1;
-	return servers[1 + (counter % #servers)]
+	 counter=counter+1;
+	 return servers[1 + (counter % #servers)]
 end
 
 

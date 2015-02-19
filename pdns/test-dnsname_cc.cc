@@ -117,4 +117,32 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   BOOST_CHECK_EQUAL(qtype, QType::AAAA);
 }
 
+BOOST_AUTO_TEST_CASE(test_suffixmatch) {
+  SuffixMatchNode smn;
+  DNSName ezdns("ezdns.it.");
+  smn.add(ezdns.getRawLabels());
+
+  smn.add(DNSName("org.").getRawLabels());
+
+  DNSName wwwpowerdnscom("www.powerdns.com.");
+  DNSName wwwezdnsit("www.ezdns.it.");
+  BOOST_CHECK(smn.check(wwwezdnsit));
+  BOOST_CHECK(!smn.check(wwwpowerdnscom));
+
+  BOOST_CHECK(smn.check(DNSName("www.powerdns.org.")));
+  BOOST_CHECK(smn.check(DNSName("www.powerdns.oRG.")));
+
+  smn.add(DNSName("news.bbc.co.uk."));
+  BOOST_CHECK(smn.check(DNSName("news.bbc.co.uk.")));
+  BOOST_CHECK(smn.check(DNSName("www.news.bbc.co.uk.")));
+  BOOST_CHECK(smn.check(DNSName("www.www.www.www.www.news.bbc.co.uk.")));
+  BOOST_CHECK(!smn.check(DNSName("images.bbc.co.uk.")));
+
+  BOOST_CHECK(!smn.check(DNSName("www.news.gov.uk.")));
+
+  smn.add(DNSName()); // block the root
+  BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
+
+
+}
 BOOST_AUTO_TEST_SUITE_END()
