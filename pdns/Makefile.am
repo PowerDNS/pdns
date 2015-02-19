@@ -562,12 +562,14 @@ dnsdist_SOURCES = \
 	dns.cc \
 	dnsdist.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	iputils.cc \
 	logger.cc \
+	lua-iputils.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -582,7 +584,7 @@ dnsdist_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsdist_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(POLARSSL_LIBS) -lreadline \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS)
 
 nsec3dig_SOURCES = \
@@ -952,6 +954,11 @@ testrunner_SOURCES = \
 	unix_utility.cc \
 	ueberbackend.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
+
+if CXX2011
+testrunner_SOURCES += test-dnsname_cc.cc dnsname.cc dnsname.hh
+endif
+
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \

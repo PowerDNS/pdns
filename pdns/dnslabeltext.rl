@@ -15,6 +15,7 @@ void appendSplit(vector<string>& ret, string& segment, char c)
   }
   segment.append(1, c);
 }
+
 }
 
 vector<string> segmentDNSText(const string& input )
@@ -79,6 +80,70 @@ vector<string> segmentDNSText(const string& input )
 
         return ret;
 };
+
+vector<string> segmentDNSName(const string& input )
+{
+%%{
+        machine dnsname;
+        write data;
+        alphtype unsigned char;
+}%%
+	(void)dnsname_error;  // silence warnings
+	(void)dnsname_en_main;
+        const char *p = input.c_str(), *pe = input.c_str() + input.length();
+        const char* eof = pe;
+        int cs;
+        char val = 0;
+
+        string label;
+        vector<string> ret;
+
+        %%{
+                action labelEnd { 
+                        ret.push_back(label);
+                        label.clear();
+                }
+                action labelBegin { 
+                        label.clear();
+                }
+
+                action reportEscaped {
+                  char c = *fpc;
+                  label.append(1, c);
+                }
+                action reportEscapedNumber {
+                  char c = *fpc;
+                  val *= 10;
+                  val += c-'0';
+                  
+                }
+                action doneEscapedNumber {
+                  label.append(1, val);
+                  val=0;
+                }
+                
+                action reportPlain {
+                  label.append(1, *(fpc));
+                }
+
+                escaped = '\\' (([^0-9]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
+                plain = (ascii-'\\'-'"'-'.') $ reportPlain;
+                labelElement = escaped | plain;            
+
+                main := ((labelElement+ '.') >labelBegin %labelEnd)+;
+
+                # Initialize and execute.
+                write init;
+                write exec;
+        }%%
+
+        if ( cs < dnsname_first_final ) {
+                throw runtime_error("Unable to parse DNS name '"+input+"'");
+        }
+
+        return ret;
+};
+
 
 #if 0
 int main()
