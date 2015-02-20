@@ -164,6 +164,23 @@ struct VStringtokTest
   }
 };
 
+struct StringAppendTest
+{
+  string getName() const
+  {
+    return "stringappend";
+  }
+  
+  void operator()() const 
+  {
+    string str;
+    static char i;
+    for(int n=0; n < 1000; ++n)
+      str.append(1, i);
+    i++; 
+  }
+};
+
 
 struct MakeARecordTest
 {
@@ -898,6 +915,7 @@ try
 
   doRun(StringtokTest());
   doRun(VStringtokTest());  
+  doRun(StringAppendTest());  
 
   cerr<<"Total runs: " << g_totalRuns<<endl;
 
