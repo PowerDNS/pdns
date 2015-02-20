@@ -1160,7 +1160,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
         addRootReferral(r);
       }
       else {
-        DLOG(L<<Logger::Warning<<"Setting 'No Error'"<<endl);
+        if (!retargetcount)
+          r->setRcode(RCode::Refused); // send REFUSED - but only on empty 'no idea'
       }
       goto sendit;
     }
