@@ -22,6 +22,14 @@ If set, only these IP addresses or netmasks will be able to perform AXFR.
 
 Allow DNS updates from these IP ranges.
 
+## `allow-notify-from`
+* IP ranges, separated by commas
+* Default: 0.0.0.0/0,::/0
+* Available since: 3.5.0
+
+Allow AXFR NOTIFY from these IP ranges.
+Setting this to an empty string will drop all incoming notifies.
+
 ## `allow-recursion`
 * IP ranges, separated by commas
 
