@@ -79,7 +79,7 @@ before_script:
 script:
  - ./bootstrap
  - ./configure
-     --with-dynmodules='bind geo geoip gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
+     --with-dynmodules='bind geo gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
      --with-modules=''
      --with-sqlite3
      --enable-botan1.10
@@ -127,7 +127,7 @@ script:
  - touch tests/verify-dnssec-zone/allow-missing
  - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
  - touch tests/verify-dnssec-zone/skip.optout
- - export geoipregion=oc geoipregionip=1.2.3.4
+#  - export geoipregion=oc geoipregionip=1.2.3.4
  - ./timestamp ./start-test-stop 5300 bind-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
@@ -135,8 +135,8 @@ script:
  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
- - ./timestamp ./start-test-stop 5300 geoipbackend
- - ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
+#  - ./timestamp ./start-test-stop 5300 geoipbackend
+#  - ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
  - ./timestamp ./start-test-stop 5300 gmysql-both
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
