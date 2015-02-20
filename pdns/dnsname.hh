@@ -34,12 +34,25 @@ public:
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::deque<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
+
+  DNSName& operator+=(const DNSName& rhs)
+  {
+    for(const auto& r : rhs.d_labels)
+      d_labels.push_back(r);
+    return *this;
+  }
 private:
   std::deque<std::string> d_labels;
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };
 
+inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
+{
+  DNSName ret=lhs;
+  ret += rhs;
+  return ret;
+}
 
 /* Quest in life: serve as a rapid block list. If you add a DNSName to a root SuffixMatchNode, 
    anything part of that domain will return 'true' in check */

@@ -123,6 +123,18 @@ BOOST_AUTO_TEST_CASE(test_chopping) {
   BOOST_CHECK_EQUAL(w.toString(), "a.root-servers.net.");
 }
 
+BOOST_AUTO_TEST_CASE(test_Append) {
+  DNSName dn("www."), powerdns("powerdns.com.");
+  DNSName tot=dn+powerdns;
+  
+  BOOST_CHECK_EQUAL(tot.toString(), "www.powerdns.com.");
+  BOOST_CHECK(tot == DNSName("www.powerdns.com."));
+
+  dn+=powerdns;
+
+  BOOST_CHECK(dn == DNSName("www.powerdns.com."));
+}
+
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
   DNSPacketWriter dpw(packet, "www.ds9a.nl.", QType::AAAA);
