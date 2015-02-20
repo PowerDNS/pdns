@@ -30,6 +30,8 @@ AC_DEFUN([AC_LD_RELRO],[
         *"-z now"*) RELRO_LDFLAGS="$RELRO_LDFLAGS -Wl,-z -Wl,now" ;;
     esac
     AC_SUBST([RELRO_LDFLAGS])
-
-    AC_MSG_RESULT([$RELRO_LDFLAGS])
+    AS_IF([test "x$RELRO_LDFLAGS" != "x"],
+      [AC_MSG_RESULT([$RELRO_LDFLAGS])],
+      [AC_MSG_RESULT([unknown])]
+    )
 ])
