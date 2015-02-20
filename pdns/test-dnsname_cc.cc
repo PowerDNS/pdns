@@ -137,13 +137,44 @@ BOOST_AUTO_TEST_CASE(test_Append) {
 
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
+  reportBasicTypes();
   DNSPacketWriter dpw(packet, "www.ds9a.nl.", QType::AAAA);
-
+  
   uint16_t qtype, qclass;
-  DNSName dn((char*)&packet[12], packet.size() - 12, &qtype, &qclass);
+  DNSName dn((char*)&packet[0], packet.size(), 12, false, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn.toString(), "www.ds9a.nl.");
   BOOST_CHECK_EQUAL(qtype, QType::AAAA);
   BOOST_CHECK_EQUAL(qclass, 1);
+
+  dpw.startRecord("ds9a.nl.", DNSRecordContent::TypeToNumber("NS"));
+  NSRecordContent nrc("ns1.powerdns.com");
+  nrc.toPacket(dpw);
+
+  dpw.commit();
+
+  /* packet now looks like this:
+     012345678901 12 bytes of header
+     3www4ds9a2nl0 13 bytes of name
+     0001 0001      4 bytes of qtype and qclass
+     answername     2 bytes
+     0001 0001      4 bytes of qtype and class
+     0000 0000      4 bytes of TTL
+     0000           2 bytes of content length
+     content name */
+
+  DNSName dn2((char*)&packet[0], packet.size(), 12+13+4, true, &qtype, &qclass);
+  BOOST_CHECK_EQUAL(dn2.toString(), "ds9a.nl."); 
+  BOOST_CHECK_EQUAL(qtype, QType::NS);
+  BOOST_CHECK_EQUAL(qclass, 1);
+
+  DNSName dn3((char*)&packet[0], packet.size(), 12+13+4+2 + 4 + 4 + 2, true);
+  BOOST_CHECK_EQUAL(dn3.toString(), "ns1.powerdns.com."); 
+
+  try {
+    DNSName dn4((char*)&packet[0], packet.size(), 12+13+4, false); // compressed, should fail
+    BOOST_CHECK(0); 
+  }
+  catch(...){}
 }
 
 BOOST_AUTO_TEST_CASE(test_suffixmatch) {

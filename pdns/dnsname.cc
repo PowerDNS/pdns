@@ -12,11 +12,25 @@ DNSName::DNSName(const char* p)
       throw std::range_error("label too long");
 }
 
-DNSName::DNSName(const char* pos, int len, uint16_t* qtype, uint16_t* qclass)
+// this should be the __only__ dns name parser in PowerDNS. 
+DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass)
 {
   unsigned char labellen;
+  const char *opos = pos;
+  pos += offset;
   const char* end = pos + len;
   while((labellen=*pos++) && pos < end) { // "scan and copy"
+    if(labellen & 0xc0) {
+      if(!uncompress)
+	throw std::range_error("Found compressed label, instructed not to follow");
+
+      labellen &= (~0xc0);
+      int newpos = (labellen << 8) + *(const unsigned char*)pos;
+
+      (*this) += DNSName(opos, len, newpos, false);
+      pos++;
+      break;
+    }
     d_labels.push_back(string(pos, labellen));
     pos+=labellen;
   }

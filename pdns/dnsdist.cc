@@ -235,7 +235,7 @@ try
       continue;
 
 
-    DNSName qname(packet+12, len-12, &qtype);
+    DNSName qname(packet, len, 12, false, &qtype);
     if(blockFilter(remote, qname, qtype))
       continue;
     if(re && re->match(qname.toString())) {
