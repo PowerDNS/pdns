@@ -28,6 +28,8 @@ There are in fact two backends, one for PostgreSQL and one for MySQL but they ac
 
 In practice, great results are achieved with the 'InnoDB' tables. PowerDNS will silently function with non-transaction aware MySQLs but at one point this is going to harm your database, for example when an incoming zone transfer fails.
 
+**Warning**: For MySQL 5.1.11 and earlier, and for MySQL 5.1.29 and later the default binary logging format is STATEMENT which is nondeterministic and can cause differences in data between master and slave. See ["5.2.4.2, Setting The Binary Log Format"](http://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html) for more information.
+
 The default setup conforms to the following schema:
 
 ```
