@@ -79,10 +79,10 @@ struct SuffixMatchNode
       endNode=true;
     }
     else if(labels.size()==1) {
-      children.insert({*labels.begin(), true});
+      children.insert(SuffixMatchNode(*labels.begin(), true));
     }
     else {
-      auto res=children.insert({*labels.rbegin(), false});
+      auto res=children.insert(SuffixMatchNode(*labels.rbegin(), false));
       labels.pop_back();
       res.first->add(labels);
     }
@@ -99,7 +99,7 @@ struct SuffixMatchNode
     if(labels.empty()) // optimization
       return endNode; 
 
-    SuffixMatchNode smn({*labels.rbegin()});
+    SuffixMatchNode smn(*labels.rbegin());
     auto child = children.find(smn);
     if(child == children.end())
       return endNode;

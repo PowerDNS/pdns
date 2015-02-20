@@ -111,7 +111,7 @@ void DNSSECKeeper::clearCaches(const std::string& name)
     s_keycache.erase(name); 
   }
   WriteLock l(&s_metacachelock);
-  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(name);
+  pair<metacache_t::iterator, metacache_t::iterator> range = s_metacache.equal_range(tie(name));
   while(range.first != range.second)
     s_metacache.erase(range.first++);
 }
