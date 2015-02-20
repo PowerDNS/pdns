@@ -390,7 +390,7 @@ stable, and is in fact likely to change.
 * Boolean
 * Default: no
 
-Turn on master support.
+Turn on master support. See ["Modes of operation"](modes-of-operation.md#master-operation).
 
 ## `max-cache-entries`
 * Integer
@@ -610,7 +610,7 @@ If set, change user id to this uid for more security. See
 * Boolean
 * Default: no
 
-Turn on slave support.
+Turn on slave support. See ["Modes of operation"](modes-of-operation.md#slave-operation).
 
 ## `slave-cycle-interval`
 * Integer
