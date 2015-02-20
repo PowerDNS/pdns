@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <memory>
 #include <vector>
 #include <map>
 #include <set>
