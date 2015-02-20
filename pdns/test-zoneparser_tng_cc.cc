@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
   ZoneParserTNG zp(pathbuf.str(), "unit.test");
   DNSResourceRecord rr;
 
-  boost::iostreams::stream<boost::iostreams::file_source> ifs(pathbuf.str());
+  ifstream ifs(pathbuf.str());
 
   while(zp.get(rr)) {
     // make sure these concur.
