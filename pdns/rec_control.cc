@@ -98,6 +98,10 @@ try
   }
   rccS.send(command);
   string receive=rccS.recv(0, arg().asNum("timeout"));
+  if(receive.compare(0, 7, "Unknown") == 0) {
+    cerr<<receive<<endl;
+    return 1;
+  }
   cout<<receive;
   return 0;
 }
