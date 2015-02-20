@@ -459,7 +459,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   bool gotit=false;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
     if(i->first.d_type == QType::TSIG) {
-      *trc = *boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
+      *trc = *std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       
       gotit=true;
       *keyname = i->first.d_label;

@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 #include <sys/types.h>
-#include <boost/shared_ptr.hpp>
+
 
 #include "pdns/namespaces.hh"
 #include "pdns/misc.hh"

@@ -14,7 +14,7 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+
 #include <boost/utility.hpp>
 #include <csignal>
 #include "namespaces.hh"

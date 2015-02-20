@@ -28,7 +28,7 @@
 #include <string>
 #include <sys/types.h>
 #include "responsestats.hh"
-#include <boost/shared_ptr.hpp>
+
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "dnspacket.hh"

@@ -43,7 +43,7 @@
 #include "base64.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
-#include <boost/shared_ptr.hpp>
+
 #include <boost/foreach.hpp>
 #include "dns_random.hh"
 
@@ -271,12 +271,12 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   bool gotSOA=false;
   BOOST_FOREACH(const MOADNSParser::answers_t::value_type& drc, mdp.d_answers) {
     if(drc.first.d_type == QType::SOA) {
-      shared_ptr<SOARecordContent> src=boost::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
+      shared_ptr<SOARecordContent> src=std::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
       *theirSerial=src->d_st.serial;
       gotSOA = true;
     }
     if(drc.first.d_type == QType::RRSIG) {
-      shared_ptr<RRSIGRecordContent> rrc=boost::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
+      shared_ptr<RRSIGRecordContent> rrc=std::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
       if(rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
         *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
@@ -475,7 +475,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
         checkTSIG = true;
       
       if(answer.first.d_type == QType::TSIG) {
-        shared_ptr<TSIGRecordContent> trc = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
+        shared_ptr<TSIGRecordContent> trc = std::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;
         checkTSIG = true;

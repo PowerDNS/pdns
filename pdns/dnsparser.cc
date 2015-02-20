@@ -275,7 +275,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_label=label;
       dr.d_clen=ah.d_clen;
 
-      dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
       if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 

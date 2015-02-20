@@ -28,7 +28,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/shared_ptr.hpp>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
@@ -224,7 +224,7 @@ string DynListener::getLine()
         continue;
       }
 
-      boost::shared_ptr<FILE> fp=boost::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
+      std::shared_ptr<FILE> fp=std::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
       if(d_tcp) {
         if(!fgets(&mesg[0], mesg.size(), fp.get())) {
           L<<Logger::Error<<"Unable to receive password from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;

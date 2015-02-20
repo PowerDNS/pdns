@@ -31,7 +31,7 @@
 #include <errno.h>
 // #include <netinet/in.h>
 #include "misc.hh"
-#include <boost/shared_ptr.hpp>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -267,7 +267,7 @@ struct DNSRecord
   uint32_t d_ttl;
   uint16_t d_clen;
   enum {Answer=1, Nameserver, Additional} d_place;
-  boost::shared_ptr<DNSRecordContent> d_content;
+  std::shared_ptr<DNSRecordContent> d_content;
 
   bool operator<(const DNSRecord& rhs) const
   {

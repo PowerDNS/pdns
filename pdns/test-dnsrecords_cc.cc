@@ -190,11 +190,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
         }
         recData = rec->serialize("rec.test");
       } else {
-        boost::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize("rec.test",q.getCode(),(val.get<3>()));
+        std::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize("rec.test",q.getCode(),(val.get<3>()));
         // TSIG special, only works the other way
         recData = rec3->serialize("rec.test");
       }
-      boost::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("rec.test",q.getCode(),recData);
+      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("rec.test",q.getCode(),recData);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)

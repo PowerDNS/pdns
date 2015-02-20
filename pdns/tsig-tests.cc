@@ -74,7 +74,7 @@ try
     cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
     
     if(i->first.d_type == QType::TSIG)
-      trc2 = boost::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
+      trc2 = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
   }
 
   if(mdp.getTSIGPos()) {    

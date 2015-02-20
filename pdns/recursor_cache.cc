@@ -1,7 +1,7 @@
 #include "recursor_cache.hh"
 #include "misc.hh"
 #include <iostream>
-#include <boost/shared_ptr.hpp>
+
 #include "dnsrecords.hh"
 #include "arguments.hh"
 #include "syncres.hh"
