@@ -1,3 +1,6 @@
+#ifndef PDNS_PKCS11SIGNERS_HH
+#define PDNS_PKCS11SIGNERS_HH
+
 class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
   protected:
@@ -48,3 +51,4 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     static DNSCryptoKeyEngine* maker(unsigned int algorithm);
 };
 
+#endif /* PDNS_PKCS11SIGNERS_HH */

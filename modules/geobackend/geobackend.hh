@@ -4,7 +4,8 @@
  * 
  *        	$Id$
  */
-
+#ifndef PDNS_GEOBACKEND_HH
+#define PDNS_GEOBACKEND_HH
 
 #include <vector>
 #include <map>
@@ -110,3 +111,5 @@ public:
 };
 
 static GeoLoader geoloader;
+
+#endif /* PDNS_GEOBACKEND_HH */
