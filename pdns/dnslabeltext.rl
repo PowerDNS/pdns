@@ -126,7 +126,7 @@ deque<string> segmentDNSName(const string& input )
                 }
 
                 escaped = '\\' (([^0-9]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
-                plain = (ascii-'\\'-'"'-'.') $ reportPlain;
+                plain = (extend-'\\'-'.') $ reportPlain;
                 labelElement = escaped | plain;            
 
                 main := ((labelElement+ '.') >labelBegin %labelEnd)+;
@@ -137,7 +137,7 @@ deque<string> segmentDNSName(const string& input )
         }%%
 
         if ( cs < dnsname_first_final ) {
-                throw runtime_error("Unable to parse DNS name '"+input+"'");
+                throw runtime_error("Unable to parse DNS name '"+input+"': cs="+std::to_string(cs));
         }
 
         return ret;

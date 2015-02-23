@@ -59,6 +59,11 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK_EQUAL(*labels.rbegin(), "example");
   BOOST_CHECK_EQUAL(labels.size(), 2);
 
+
+  DNSName build;
+  build.appendRawLabel("Donald E. Eastlake 3rd");
+  build.appendRawLabel("example");
+  BOOST_CHECK_EQUAL(build.toString(), R"(Donald\032E\.\032Eastlake\0323rd.example.)");
   try {
     DNSName broken("bert..hubert.");
     BOOST_CHECK(0);
@@ -175,6 +180,23 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
     BOOST_CHECK(0); 
   }
   catch(...){}
+}
+
+BOOST_AUTO_TEST_CASE(test_escaping) {
+  DNSName n;
+  string label;
+  for(int i = 0; i < 256; ++i) {
+    if(!((i+1)%63)) {
+      n.appendRawLabel(label);
+      label.clear();
+    }
+    label.append(1,(char)i);
+  }
+  if(!label.empty())
+    n.appendRawLabel(label);
+
+  DNSName n2(n.toString());
+  BOOST_CHECK(n==n2);
 }
 
 BOOST_AUTO_TEST_CASE(test_suffixmatch) {

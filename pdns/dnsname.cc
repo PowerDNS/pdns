@@ -79,6 +79,8 @@ bool DNSName::isPartOf(const DNSName& parent) const
 
 void DNSName::appendRawLabel(const std::string& label)
 {
+  if(label.empty())
+    throw std::range_error("no such thing as an empty label");
   if(label.size() > 63)
     throw std::range_error("label too long");
   d_labels.push_back(label);
@@ -86,6 +88,9 @@ void DNSName::appendRawLabel(const std::string& label)
 
 void DNSName::prependRawLabel(const std::string& label)
 {
+  if(label.empty())
+    throw std::range_error("no such thing as an empty label");
+
   if(label.size() > 63)
     throw std::range_error("label too long");
 
@@ -130,7 +135,7 @@ string DNSName::escapeLabel(const std::string& label)
     else if(p > 0x21 && p < 0x7e)
       ret.append(1, (char)p);
     else {
-      ret+="\\" + (boost::format("%03o") % (unsigned int)p).str();
+      ret+="\\" + (boost::format("%03d") % (unsigned int)p).str();
     }
   }
   return ret;
