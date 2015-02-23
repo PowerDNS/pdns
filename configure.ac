@@ -327,6 +327,7 @@ AS_IF([test "x$static" != "xyes"], [
 AC_SUBST([PROGRAM_LDFLAGS])
 
 PDNS_ENABLE_COVERAGE
+PDNS_ENABLE_SANITIZERS
 
 AC_SUBST(LIBS)
 
@@ -336,6 +337,8 @@ AC_SUBST([AM_CPPFLAGS],
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
+
+CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
 export moduledirs moduleobjects modulelibs
 
