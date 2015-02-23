@@ -99,12 +99,12 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 bool CommunicatorClass::notifyDomain(const string &domain)
 {
   DomainInfo di;
-  PacketHandler P;
-  if(!P.getBackend()->getDomainInfo(domain, di)) {
+  UeberBackend B;
+  if(!B.getDomainInfo(domain, di)) {
     L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
-  queueNotifyDomain(domain, P.getBackend());
+  queueNotifyDomain(domain, &B);
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
 
