@@ -12,6 +12,9 @@
  * script which generates a simple zone.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "pdns/utility.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dns.hh"

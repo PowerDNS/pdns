@@ -36,9 +36,6 @@
 #include "powerldap.hh"
 #include "utils.hh"
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 
 #ifndef LDAPBACKEND_HH

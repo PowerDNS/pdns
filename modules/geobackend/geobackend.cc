@@ -5,6 +5,9 @@
  *         $Id$
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <fstream>
 #include <sstream>
 #include <sys/types.h>

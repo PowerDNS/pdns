@@ -1,7 +1,6 @@
 #ifndef PDNS_GEOIPBACKEND_HH
 #define PDNS_GEOIPBACKEND_HH
 
-#include "config.h"
 #include "pdns/namespaces.hh"
 
 #include <vector>

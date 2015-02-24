@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"

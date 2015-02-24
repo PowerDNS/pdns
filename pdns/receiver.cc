@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 
 #include <cstdio>
@@ -44,7 +47,6 @@
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 
-#include "config.h"
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"

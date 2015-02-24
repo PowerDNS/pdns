@@ -1,5 +1,8 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/std/map.hpp>
 #include <boost/foreach.hpp>

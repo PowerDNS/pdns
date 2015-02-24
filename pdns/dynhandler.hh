@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include "config.h"
 #include <unistd.h>
 
 #include "namespaces.hh"

@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "cdb.hh"
 #include <cdb.h>
 #include "pdns/misc.hh"

@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <botan/botan.h>
 #include <botan/sha160.h>
 #include <botan/sha2_32.h>

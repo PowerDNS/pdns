@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "recursor_cache.hh"
 #include "misc.hh"
 #include <iostream>
@@ -11,7 +14,6 @@
 #include "namespaces.hh"
 #include "namespaces.hh"
 
-#include "config.h"
 
 DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
 {

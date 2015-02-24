@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "base64.hh"
 #include <boost/scoped_array.hpp>
 #include <polarssl/base64.h>

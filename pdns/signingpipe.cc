@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "signingpipe.hh"
 #include "misc.hh"
 #include <poll.h>
