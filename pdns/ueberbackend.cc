@@ -60,10 +60,6 @@ bool UeberBackend::d_go=false;
 pthread_mutex_t  UeberBackend::d_mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t UeberBackend::d_cond = PTHREAD_COND_INITIALIZER;
 
-#ifdef NEED_RTLD_NOW
-#define RTLD_NOW RTLD_LAZY
-#endif
-
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string &name)
 {

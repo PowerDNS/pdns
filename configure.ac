@@ -60,11 +60,8 @@ AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([gethostent], [nsl])
 AC_SEARCH_LIBS([inet_aton], [resolv])
 
-m4_ifndef([LT_INIT],[
-AC_PROG_LIBTOOL([disable-static])
-],[
-LT_INIT([disable-static])
-])
+LT_PREREQ([2.2.2])
+LT_INIT([disable-static dlopen])
 
 
 MC_TM_GMTOFF
@@ -121,27 +118,11 @@ PDNS_CHECK_LINKCHECKER
 dnl Checks for library functions.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
-# Check for libdl
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(dl,dlopen)
-LIBDL=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBDL)
+AS_IF([test "x$lt_cv_dlopen" = "xno"],
+  [AC_MSG_ERROR([Your system does not support dlopen])]
+)
 
-AC_MSG_CHECKING([for RTLD_NOW]);
-ac_save_LIBS="$LIBS"
-LIBS="$LIBS $LIBDL"
-AC_LINK_IFELSE(
-  [AC_LANG_PROGRAM([[#include <dlfcn.h>]],
-    [[(void) dlopen("",RTLD_NOW);]])],
-  [has_RTLD_NOW=yes],
-  [has_RTLD_NOW=no])
-AC_MSG_RESULT([$has_RTLD_NOW])
-if test "$has_RTLD_NOW" = "no"; then
-  AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
-fi
-LIBS=$ac_save_LIBS
+AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 THREADFLAGS=""
 
