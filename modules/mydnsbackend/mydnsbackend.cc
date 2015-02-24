@@ -19,6 +19,9 @@
  * If you do not know what mydns is: http://mydns.bboy.net/
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <map>
 #include <unistd.h>

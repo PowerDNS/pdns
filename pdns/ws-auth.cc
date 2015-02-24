@@ -18,6 +18,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "dynlistener.hh"
 #include "ws-auth.hh"
@@ -44,9 +47,6 @@
 #include "zoneparser-tng.hh"
 #include "common_startup.hh"
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif // HAVE_CONFIG_H
 
 using namespace rapidjson;
 

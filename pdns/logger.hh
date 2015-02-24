@@ -27,7 +27,6 @@
 #include <ctime>
 #include <iostream>
 #include <sstream>
-#include "config.h"
 #include <syslog.h>
 #include <pthread.h>
 

@@ -1,10 +1,10 @@
+#include "config.h"
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
 #include <boost/format.hpp>
-#include "config.h"
 #ifndef RECURSOR
 #include "statbag.hh"
 #include "base64.hh"

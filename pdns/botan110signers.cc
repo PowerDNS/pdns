@@ -1,4 +1,7 @@
 // utf-8 UTF-8 utf8 UTF8
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <botan/botan.h>
 #include <botan/ecdsa.h>
 #include <botan/gost_3410.h>

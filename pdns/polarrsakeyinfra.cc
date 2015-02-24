@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
 #include <sha.hh>

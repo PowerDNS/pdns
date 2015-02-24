@@ -1,6 +1,9 @@
 /* Copyright 2001 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information.
    $Id$  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "smysql.hh"
 #include <string>
 #include <iostream>

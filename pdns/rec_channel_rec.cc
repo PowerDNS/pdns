@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/lexical_cast.hpp>

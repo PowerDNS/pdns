@@ -1,5 +1,8 @@
 /* Copyright 2003 - 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE 
    for more information. */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include "spgsql.hh"
 

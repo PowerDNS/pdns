@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "tinydnsbackend.hh"
 #include "pdns/lock.hh"
 #include <cdb.h>

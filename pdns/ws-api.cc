@@ -18,13 +18,15 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
 #include "namespaces.hh"
 #include "ws-api.hh"
 #include "json.hh"
-#include "config.h"
 #include "version.hh"
 #include "arguments.hh"
 #include <stdio.h>
