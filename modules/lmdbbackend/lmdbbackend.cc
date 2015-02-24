@@ -31,7 +31,7 @@
 #endif
 
 int LMDBBackend::s_reloadcount=0;
-pthread_mutex_t LMDBBackend::s_initlock = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t LMDBBackend::s_initlock = PTHREAD_RWLOCK_INITIALIZER;
 
 LMDBBackend::LMDBBackend(const string &suffix)
 {
@@ -43,6 +43,7 @@ LMDBBackend::LMDBBackend(const string &suffix)
       d_doDnssec = false;
     }
     d_lastreload = s_reloadcount;
+    WriteLock wl(&s_initlock);
     open_db();
 }
 
@@ -57,7 +58,6 @@ void LMDBBackend::open_db() {
     if( MDB_VERINT( major, minor, patch ) < MDB_VERINT( 0, 9, 8 ) )
         throw PDNSException( "LMDB Library version too old (" + verstring + "). Needs to be 0.9.8 or greater" );
 
-    Lock l(&s_initlock);
 
     if( (rc = mdb_env_create(&env))  )
         throw PDNSException("Couldn't open LMDB database " + path + ": mdb_env_create() returned " + mdb_strerror(rc));
@@ -121,6 +121,7 @@ void LMDBBackend::close_db() {
 
 LMDBBackend::~LMDBBackend()
 {
+    WriteLock wl(&s_initlock);
     close_db();
 }
 
@@ -130,6 +131,7 @@ void LMDBBackend::reload() {
 
 void LMDBBackend::needReload() {
   if (s_reloadcount > d_lastreload) {
+    WriteLock wl(&s_initlock);
     d_lastreload = s_reloadcount;
     close_db();
     open_db();
@@ -142,6 +144,7 @@ bool LMDBBackend::getDomainMetadata(const string& name, const std::string& kind,
     return false;
 
   needReload();
+  ReadLock rl(&s_initlock);
 
   if (kind == "PRESIGNED" || kind == "NSEC3PARAM") {
     int rc;
@@ -178,6 +181,7 @@ bool LMDBBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType 
     return false;
 
   needReload();
+  ReadLock rl(&s_initlock);
 
   MDB_val key, data;
   string key_str, cur_key, cur_value;
@@ -250,6 +254,7 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
     return false;
 
   needReload();
+  ReadLock rl(&s_initlock);
 
   int rc;
   MDB_val key, data;
@@ -292,6 +297,7 @@ bool LMDBBackend::getDirectRRSIGs(const string &signer, const string &qname, con
 bool LMDBBackend::getAuthZone( string &rev_zone )
 {
     needReload();
+    ReadLock rl(&s_initlock);
 
     MDB_val key, data;
     // XXX can do this just using char *
@@ -333,6 +339,7 @@ bool LMDBBackend::getAuthZone( string &rev_zone )
 bool LMDBBackend::getAuthData( SOAData &soa, DNSPacket *p )
 {
     needReload();
+    ReadLock rl(&s_initlock);
 
     MDB_val key, value;
     if( mdb_cursor_get(zone_cursor, &key, &value, MDB_GET_CURRENT) )
@@ -378,6 +385,7 @@ void LMDBBackend::lookup(const QType &type, const string &inQdomain, DNSPacket *
     DEBUGLOG("lookup: " <<inQdomain << " " << type.getName() << endl);
 
     needReload();
+    ReadLock rl(&s_initlock);
 
     d_first = true;
     d_origdomain = inQdomain;
@@ -397,6 +405,7 @@ bool LMDBBackend::get(DNSResourceRecord &rr)
     bool is_axfr = (d_curqtype == QType::AXFR);
     bool is_full_key = ( ! is_axfr && d_curqtype != QType::ANY );
 
+    ReadLock rl(&s_initlock);
     DEBUGLOG("get : " <<d_origdomain<< endl);
     if( !d_origdomain.length() )
         return false;
