@@ -601,17 +601,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     Document document;
     req->json(document);
     string zonename = stringFromJson(document, "name");
-    string dotsuffix = "." + zonename;
-    string zonestring = stringFromJson(document, "zone", "");
 
-    // TODO: better validation of zonename
-    if(zonename.empty())
-      throw ApiException("Zone name empty");
-
-    // strip any trailing dots
-    while (zonename.substr(zonename.size()-1) == ".") {
+    // strip trailing dot (from spec PoV this is wrong, but be nice to clients)
+    if (zonename.size() > 0 && zonename.substr(zonename.size()-1) == ".") {
       zonename.resize(zonename.size()-1);
     }
+
+    string dotsuffix = "." + zonename;
+    string zonestring = stringFromJson(document, "zone", "");
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
