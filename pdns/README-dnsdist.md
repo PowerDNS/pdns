@@ -105,9 +105,6 @@ this:
 > addDomainBlock("sh43354.cn.")
 ```
 
-WARNING: This is not actually implemented yet, but `dnsdistconf.lua` shows
-the powerful but more typing way of achieving addDomainBlock!
-
 Or we configure a server dedicated to receiving the nasty stuff:
 
 ```
@@ -134,18 +131,22 @@ More powerful things can be achieved by defining a function called
 `blockFilter()` in the configuration file, which can decide to drop traffic
 on any reason it wants.
 
-The default load balancing policy is called 'first', which means the first
-server that has not exceeded its QPS limit gets the traffic. If you don't
-like this default policy, you can create your own, like this for example:
+The default load balancing policy is called 'firstAvailable', which means
+the first server that has not exceeded its QPS limit gets the traffic.  If
+you don't like this default policy, you can create your own, like this for
+example:
 
 ```
 counter=0
 servers=getServers()
-function roundrobin(remote, qname, qtype) 
+function luaroundrobin(remote, qname, qtype) 
 	 counter=counter+1
 	 return servers[1+(counter % #servers)]
 end
 
-setServerPolicy(roundrobin)
+setServerPolicy(luaroundrobin)
 ```
+
+Incidentally, this is similar to setting: `setServerPolicy(roundrobin)`
+which uses the C++ based roundrobin policy.
 

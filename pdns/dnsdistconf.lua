@@ -36,10 +36,10 @@ counter=0
 servers=getServers()
 
 -- called to pick a downstream server
-function roundrobin(remote, qname, qtype) 
+function luaroundrobin(remote, qname, qtype) 
 	 counter=counter+1;
 	 return servers[1+(counter % #servers)]
 end
 
--- setServerPolicy("roundrobin")
+-- setServerPolicy(luaroundrobin)
 

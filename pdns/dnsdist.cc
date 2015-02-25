@@ -311,6 +311,21 @@ shared_ptr<DownstreamState> firstAvailable(const ComboAddress& remote, const DNS
   return g_dstates[counter % g_dstates.size()];
 }
 
+shared_ptr<DownstreamState> roundrobin(const ComboAddress& remote, const DNSName& qname, uint16_t qtype)
+{
+  vector<shared_ptr<DownstreamState>> poss;
+  for(auto& d : g_dstates) {
+    if(d->isUp())
+      poss.push_back(d);
+  }
+  static int counter=0;
+  ++counter;
+  if(poss.empty())
+    return g_dstates[counter % g_dstates.size()];
+  return poss[counter % poss.size()];
+}
+
+
 #if 0
 static void daemonize(void)
 {
@@ -331,6 +346,7 @@ static void daemonize(void)
 }
 #endif
 
+SuffixMatchNode g_suffixMatchNodeFilter;
 SuffixMatchNode g_abuseSMN;
 NetmaskGroup g_abuseNMG;
 shared_ptr<DownstreamState> g_abuseDSS;
@@ -378,6 +394,9 @@ try
 	continue;
     }
 
+    if(g_suffixMatchNodeFilter.check(qname))
+      continue;
+
     if(re && re->match(qname.toString())) {
       g_regexBlocks++;
       continue;
@@ -387,8 +406,10 @@ try
     if(g_abuseSMN.check(qname) || g_abuseNMG.match(remote)) {
       ss = &*g_abuseDSS;
     }
-    else
+    else {
+      std::lock_guard<std::mutex> lock(g_luamutex);
       ss = g_policy(remote, qname, qtype).get();
+    }
     ss->queries++;
 
     unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
@@ -743,10 +764,11 @@ void setupLua()
       g_policy = func;
     });
 
-  g_lua.writeFunction("unsetServerPolicy", []() {
-      g_policy = firstAvailable;
-    });
 
+  g_lua.writeFunction("firstAvailable", firstAvailable);
+  g_lua.writeFunction("roundrobin", roundrobin);
+
+  g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { g_suffixMatchNodeFilter.add(DNSName(domain)); });
   g_lua.writeFunction("listServers", []() {  
       try {
       string ret;
