@@ -981,7 +981,7 @@ try
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".history");
+  ofstream history(".history", std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
@@ -996,7 +996,6 @@ try
     }
     lastline=line;
     free(sline);
-
     
     if(line=="quit")
       break;
@@ -1010,7 +1009,7 @@ try
     }
     
   }
-
+  _exit(EXIT_SUCCESS);
   // stattid.join();
 }
 
