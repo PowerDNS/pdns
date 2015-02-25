@@ -81,14 +81,16 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
 
 ssize_t UnixsocketConnector::read(std::string &data) {
   ssize_t nread;
+  int avail;
   char buf[1500] = {0};
 
   reconnect();
   if (!connected) return -1;
-  nread = ::read(this->fd, buf, sizeof buf);
 
-  // just try again later...
-  if (nread==-1 && errno == EAGAIN) return 0;
+  avail = waitForData(this->fd, 0, 1000); // see if there is data waiting
+  if (avail < 1) return avail;
+
+  nread = ::read(this->fd, buf, sizeof buf);
 
   if (nread==-1) {
     connected = false;
@@ -113,7 +115,7 @@ ssize_t UnixsocketConnector::write(const std::string &data) {
     nbuf = data.copy(buf, sizeof buf, pos); // copy data and write
     nwrite = ::write(fd, buf, nbuf);
     pos = pos + sizeof(buf);
-    if (nwrite == -1) {
+    if (nwrite < 1) {
       connected = false;
       close(fd);
       return -1;
@@ -144,17 +146,7 @@ void UnixsocketConnector::reconnect() {
      return;
   }
 
-  if (fcntl(fd, F_SETFL, O_NONBLOCK, &fd)) {
-     connected = false;
-     L<<Logger::Error<<"Cannot manipulate socket: " << strerror(errno) << std::endl;;
-     close(fd);
-     return;
-  }
-
-  if((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
-    waitForData(fd, 0, -1);
-    rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
-  }
+  rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
 
   if (rv != 0 && errno != EISCONN && errno != 0) {
      L<<Logger::Error<<"Cannot connect to socket: " << strerror(errno) << std::endl;
