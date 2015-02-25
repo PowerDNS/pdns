@@ -56,9 +56,9 @@ statistics:
 All                                     0.0                  1       0             
 ```
 
-Here we also see our configuration. 5 downstreamservers have been configured, of
+Here we also see our configuration. 5 downstream servers have been configured, of
 which the first 4 have a QPS limit (of 1, 1, 10 and 10 queries per second,
-respectively). The final serverhas no limit, which we can easily test:
+respectively). The final server has no limit, which we can easily test:
 
 ```
 $ for a in {0..1000}; do dig powerdns.com @127.0.0.1 -p 5200 +noall > /dev/null; done
@@ -142,7 +142,7 @@ like this default policy, you can create your own, like this for example:
 counter=0
 servers=getServers()
 function roundrobin(remote, qname, qtype) 
-	 counter=counter+1;
+	 counter=counter+1
 	 return servers[1+(counter % #servers)]
 end
 
