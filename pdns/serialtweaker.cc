@@ -97,3 +97,50 @@ uint32_t calculateEditSOA(SOAData sd, const string& kind) {
   }
   return sd.serial;
 }
+
+// Used for SOA-EDIT-DNSUPDATE and SOA-EDIT-API.
+uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind) {
+  // These only work when SOA-EDIT is set, otherwise fall back to default.
+  if (!editKind.empty()) {
+    if (pdns_iequals(increaseKind, "SOA-EDIT-INCREASE")) {
+      uint32_t new_serial = calculateEditSOA(sd, editKind);
+      if (new_serial <= sd.serial) {
+        new_serial = sd.serial + 1;
+      }
+      return new_serial;
+    }
+    else if (pdns_iequals(increaseKind, "SOA-EDIT")) {
+      return calculateEditSOA(sd, editKind);
+    }
+  }
+
+  if (pdns_iequals(increaseKind, "INCREASE")) {
+    return sd.serial + 1;
+  }
+  else if (pdns_iequals(increaseKind, "EPOCH")) {
+    return time(0);
+  }
+
+  // DEFAULT case
+  time_t now = time(0);
+  struct tm tm;
+  localtime_r(&now, &tm);
+  boost::format fmt("%04d%02d%02d%02d");
+  string newdate = (fmt % (tm.tm_year + 1900) % (tm.tm_mon + 1) % tm.tm_mday % 1).str();
+  uint32_t new_serial = atol(newdate.c_str());
+  if (new_serial <= sd.serial) {
+    new_serial = sd.serial + 1;
+  }
+  return new_serial;
+}
+
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind) {
+  if (increaseKind.empty())
+    return false;
+
+  SOAData sd;
+  fillSOAData(rr.content, sd);
+  sd.serial = calculateIncreaseSOA(sd, increaseKind, editKind);
+  rr.content = serializeSOAData(sd);
+  return true;
+}

@@ -167,8 +167,12 @@ private:
 };
 
 class DNSPacket;
-uint32_t calculateEditSOA(SOAData sd, const string& kind);
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
+// for SOA-EDIT
+uint32_t calculateEditSOA(SOAData sd, const string& kind);
 bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp);
 bool editSOARecord(DNSResourceRecord& rr, const string& kind);
+// for SOA-EDIT-DNSUPDATE/API
+uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);
 #endif

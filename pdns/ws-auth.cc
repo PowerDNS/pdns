@@ -626,8 +626,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Nameservers list must be given (but can be empty if NS records are supplied)");
 
     string soa_edit_api_kind;
-    if (document["soa_edit_api"].IsString())
+    if (document["soa_edit_api"].IsString()) {
       soa_edit_api_kind = document["soa_edit_api"].GetString();
+    }
+    else {
+      soa_edit_api_kind = "DEFAULT";
+    }
+    string soa_edit_kind;
+    if (document["soa_edit"].IsString())
+      soa_edit_kind = document["soa_edit"].GetString();
 
     // if records/comments are given, load and check them
     bool have_soa = false;
@@ -651,7 +658,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
       if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
         have_soa = true;
-        editSOARecord(rr, soa_edit_api_kind);
+        increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
     }
 
@@ -680,7 +687,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
       rr.content = serializeSOAData(sd);
       rr.qtype = "SOA";
-      editSOARecord(rr, soa_edit_api_kind);
+      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       new_records.push_back(rr);
     }
 
@@ -948,7 +955,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
   try {
     string soa_edit_api_kind;
+    string soa_edit_kind;
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
     for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
@@ -982,7 +991,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
-            soa_edit_done = editSOARecord(rr, soa_edit_api_kind);
+            soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
           }
         }
 
@@ -1025,7 +1034,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       rr.domain_id = di.id;
       rr.auth = 1;
       rr.ttl = sd.ttl;
-      editSOARecord(rr, soa_edit_api_kind);
+      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
 
       if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
         throw ApiException("Hosting backend does not support editing records.");
