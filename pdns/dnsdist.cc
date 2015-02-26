@@ -350,7 +350,7 @@ SuffixMatchNode g_suffixMatchNodeFilter;
 SuffixMatchNode g_abuseSMN;
 NetmaskGroup g_abuseNMG;
 shared_ptr<DownstreamState> g_abuseDSS;
-ComboAddress g_serverControl;
+ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 void* udpClientThread(ClientState* cs)
