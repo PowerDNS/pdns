@@ -36,8 +36,10 @@
 #include <readline/history.h>
 #include "dnsname.hh"
 #include "dnswriter.hh"
+#include "base64.hh"
 #include <fstream>
-
+#include <sodium.h>
+#include "sodcrypto.hh"
 #undef L
 
 
@@ -188,7 +190,6 @@ struct IDState
   atomic<uint64_t> age;
 };
 
-
 struct DownstreamState
 {
   DownstreamState(const ComboAddress& remote_);
@@ -326,7 +327,7 @@ shared_ptr<DownstreamState> roundrobin(const ComboAddress& remote, const DNSName
 }
 
 
-#if 0
+
 static void daemonize(void)
 {
   if(fork())
@@ -344,12 +345,12 @@ static void daemonize(void)
     close(i);
   }
 }
-#endif
 
 SuffixMatchNode g_suffixMatchNodeFilter;
 SuffixMatchNode g_abuseSMN;
 NetmaskGroup g_abuseNMG;
 shared_ptr<DownstreamState> g_abuseDSS;
+ComboAddress g_serverControl;
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 void* udpClientThread(ClientState* cs)
@@ -533,7 +534,6 @@ public:
   // Should not be called simultaneously!
   void addTCPClientThread()
   {  
-    
     vinfolog("Adding TCP Client thread");
 
     int pipefds[2];
@@ -712,9 +712,68 @@ void* maintThread()
   return 0;
 }
 
+struct {
+  string pub;
+  string sec;
+} g_accessKeys, g_serverKeys;
+
+void controlClientThread(int fd, ComboAddress client)
+try
+{
+  for(;;) {
+    uint16_t len;
+    getMsgLen(fd, &len);
+    char msg[len];
+    readn2(fd, msg, len);
+    
+    string line(msg, len);
+    line = sodDecrypt(line, g_accessKeys.pub, g_serverKeys.sec);
+    //    cerr<<"Have decrypted line: "<<line<<endl;
+    string response;
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto ret=g_lua.executeCode<boost::optional<string>>("return "+line);
+      if(ret)
+	response=*ret;
+    }
+    catch(std::exception& e) {
+      cerr<<"Error: "<<e.what()<<endl;
+    }
+    response = sodEncrypt(response, g_serverKeys.sec, g_accessKeys.pub);
+    putMsgLen(fd, response.length());
+    writen2(fd, response.c_str(), (uint16_t)response.length());
+  }
+  infolog("Closed control connection from %s", client.toStringWithPort());
+  close(fd);
+  fd=-1;
+}
+catch(std::exception& e)
+{
+  errlog("Got an exception in client connection from %s: %s", client.toStringWithPort(), e.what());
+  if(fd >= 0)
+    close(fd);
+}
 
 
-void setupLua()
+void controlThread(int fd, ComboAddress local)
+try
+{
+  ComboAddress client;
+  int sock;
+  warnlog("Accepting control connections on %s", local.toStringWithPort());
+  while((sock=SAccept(fd, client)) >= 0) {
+    warnlog("Got control connection from %s", client.toStringWithPort());
+    thread t(controlClientThread, sock, client);
+    t.detach();
+  }
+}
+catch(std::exception& e) 
+{
+  close(fd);
+  errlog("Control connection died: %s", e.what());
+}
+
+void setupLua(bool client)
 {
   g_lua.writeFunction("newServer", 
 		      [](const std::string& address, boost::optional<int> qps)
@@ -771,18 +830,15 @@ void setupLua()
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { g_suffixMatchNodeFilter.add(DNSName(domain)); });
   g_lua.writeFunction("listServers", []() {  
       try {
-      string ret;
+      ostringstream ret;
       
       boost::format fmt("%1$-3d %2% %|30t|%3$5s %|36t|%4$7.1f %|41t|%5$7d %|48t|%6$10d %|59t|%7$7d %|69t|%8$2.1f %|78t|%9$5.1f" );
 
-      cout << (fmt % "#" % "Address" % "State" % "Qps" % "Qlim" % "Queries" % "Drops" % "Drate" % "Lat") << endl;
+      ret << (fmt % "#" % "Address" % "State" % "Qps" % "Qlim" % "Queries" % "Drops" % "Drate" % "Lat") << endl;
 
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
       int counter=0;
       for(auto& s : g_dstates) {
-	if(!ret.empty()) ret+="\n";
-	ret+=s->remote.toStringWithPort() + " " + std::to_string(s->queries.load()) + " " + std::to_string(s->outstanding.load());
-
 	string status;
 	if(s->availability == DownstreamState::Availability::Up) 
 	  status = "UP";
@@ -791,7 +847,7 @@ void setupLua()
 	else 
 	  status = (s->upStatus ? "up" : "down");
 
-	cout<< (fmt % counter % s->remote.toStringWithPort() % 
+	ret << (fmt % counter % s->remote.toStringWithPort() % 
 		status % 
 		s->queryLoad % s->qps.getRate() % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0)) << endl;
 
@@ -800,11 +856,11 @@ void setupLua()
 	totDrops += s->reuseds.load();
 	++counter;
       }
-      cout<< (fmt % "All" % "" % "" 
+      ret<< (fmt % "All" % "" % "" 
 		% 
 	      (double)totQPS % "" % totQueries % totDrops % "" % "") << endl;
 
-      return ret;
+      return ret.str();
       }catch(std::exception& e) { cerr<<e.what()<<endl; throw; }
     });
 
@@ -843,8 +899,27 @@ void setupLua()
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
+  g_lua.writeFunction("controlSocket", [client](const std::string& str) {
+      ComboAddress local(str, 5199);
 
-
+      if(client) {
+	g_serverControl = local;
+	return;
+      }
+      
+      try {
+	int sock = socket(local.sin4.sin_family, SOCK_STREAM, 0);
+	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+	SBind(sock, local);
+	SListen(sock, 5);
+	thread t(controlThread, sock, local);
+	t.detach();
+      }
+      catch(std::exception& e) {
+	errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), e.what());
+      }
+    });
+  
   g_lua.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
   g_lua.registerFunction("check", &QPSLimiter::check);
 
@@ -862,21 +937,169 @@ void setupLua()
       g_abuseDSS=dss;
     });
 
+  g_lua.writeFunction("newKeypair", newKeypair);
+  g_lua.writeFunction("makeKeys", []() {
+      string server(newKeypair()), client(newKeypair());
+      return "serverKeys("+server+")\naccessKeys("+client+")";
+    });
+  
+  g_lua.writeFunction("accessKeys", [](std::unordered_map<int, std::string> params) {
+      if(B64Decode(params[1], g_accessKeys.pub)) 
+	throw std::runtime_error("Unable to decode "+params[1]+" as Base64");
+      if(B64Decode(params[2], g_accessKeys.sec))
+	throw std::runtime_error("Unable to decode "+params[2]+" as Base64");
+    });
+
+  g_lua.writeFunction("serverKeys", [](std::unordered_map<int, std::string> params) {
+      if(B64Decode(params[1], g_serverKeys.pub))
+	throw std::runtime_error("Unable to decode "+params[1]+" as Base64");
+      if(B64Decode(params[2], g_serverKeys.sec))
+	throw std::runtime_error("Unable to decode "+params[2]+" as Base64");
+    });
+
+  
+  g_lua.writeFunction("testCrypto", [](string testmsg)
+   {
+     string encrypted = sodEncrypt(testmsg, g_accessKeys.sec, g_serverKeys.pub);
+     string decrypted = sodDecrypt(encrypted, g_accessKeys.pub, g_serverKeys.sec);
+     
+     if(testmsg == decrypted)
+       cerr<<"Everything is ok!"<<endl;
+     else
+       cerr<<"Crypto failed.."<<endl;
+     
+   });
+
+
+
   g_lua.executeCode(ifs);
 }
 
+
+void doClient(ComboAddress server)
+{
+  cout<<"Connecting to "<<server.toStringWithPort()<<endl;
+  int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
+  SConnect(fd, server);
+
+  set<string> dupper;
+  {
+    ifstream history(".history");
+    string line;
+    while(getline(history, line))
+      add_history(line.c_str());
+  }
+  ofstream history(".history", std::ios_base::app);
+  string lastline;
+  for(;;) {
+    char* sline = readline("> ");
+    if(!sline)
+      break;
+
+    string line(sline);
+    if(!line.empty() && line != lastline) {
+      add_history(sline);
+      history << sline <<endl;
+      history.flush();
+    }
+    lastline=line;
+    free(sline);
+    
+    if(line=="quit")
+      break;
+
+    string response;
+    string msg=sodEncrypt(line, g_accessKeys.sec, g_serverKeys.pub);
+    putMsgLen(fd, msg.length());
+    writen2(fd, msg);
+    uint16_t len;
+    getMsgLen(fd, &len);
+    char resp[len];
+    readn2(fd, resp, len);
+    msg.assign(resp, len);
+    msg=sodDecrypt(msg, g_serverKeys.pub, g_accessKeys.sec);
+    cout<<msg<<endl;
+  }
+
+
+}
+
+void doConsole()
+{
+  set<string> dupper;
+  {
+    ifstream history(".history");
+    string line;
+    while(getline(history, line))
+      add_history(line.c_str());
+  }
+  ofstream history(".history", std::ios_base::app);
+  string lastline;
+  for(;;) {
+    char* sline = readline("> ");
+    if(!sline)
+      break;
+
+    string line(sline);
+    if(!line.empty() && line != lastline) {
+      add_history(sline);
+      history << sline <<endl;
+      history.flush();
+    }
+    lastline=line;
+    free(sline);
+    
+    if(line=="quit")
+      break;
+
+    string response;
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      auto ret=g_lua.executeCode<
+	boost::optional<
+	  boost::variant<
+	    string, 
+	    shared_ptr<DownstreamState>
+	    >
+	  >
+	>("return "+line);
+
+      if(ret) {
+	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+	  cout<<(*strValue)->remote.toStringWithPort()<<endl;
+	}
+	else if (const auto strValue = boost::get<string>(&*ret)) {
+	  cout<<*strValue<<endl;
+	}
+      }
+
+    }
+    catch(std::exception& e) {
+      cerr<<"Error: "<<e.what()<<endl;
+    }
+   
+  }
+}
 
 int main(int argc, char** argv)
 try
 {
   signal(SIGPIPE, SIG_IGN);
+  signal(SIGCHLD, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
+
+  if (sodium_init() == -1) {
+    cerr<<"Unable to initialize crypto library"<<endl;
+    exit(EXIT_FAILURE);
+  }
+
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
     ("config", po::value<string>()->default_value("dnsdistconf.lua"), "Filename with our configuration")
-    //    ("daemon", po::value<bool>()->default_value(true), "run in background")
+    ("client", "be a client")
+    ("daemon", po::value<bool>()->default_value(true), "run in background")
     ("local", po::value<vector<string> >(), "Listen on which addresses")
     ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
     ("regex-drop", po::value<string>(), "If set, block queries matching this regex. Mind trailing dot!")
@@ -902,8 +1125,23 @@ try
   g_maxOutstanding = g_vm["max-outstanding"].as<uint16_t>();
 
   g_policy = firstAvailable;
-  setupLua();
 
+
+  if(g_vm.count("client")) {
+    setupLua(true);
+    doClient(g_serverControl);
+    exit(EXIT_SUCCESS);
+  }
+  if(g_vm["daemon"].as<bool>())  {
+    g_console=false;
+    daemonize();
+  }
+  else {
+    vinfolog("Running in the foreground");
+  }
+
+
+  setupLua(false);
   if(g_vm.count("remotes")) {
     for(const auto& address : g_vm["remotes"].as<vector<string>>()) {
       auto ret=std::shared_ptr<DownstreamState>(new DownstreamState(ComboAddress(address, 53)));
@@ -912,15 +1150,7 @@ try
     }
   }
 
-  /*
-  if(g_vm["daemon"].as<bool>())  {
-    g_console=false;
-    daemonize();
-  }
-  else {
-    vinfolog("Running in the foreground");
-  }
-  */
+  
 
   for(auto& dss : g_dstates) {
     if(dss->availability==DownstreamState::Availability::Auto) {
@@ -972,53 +1202,22 @@ try
   }
 
   thread stattid(maintThread);
-  stattid.detach();
-
-  set<string> dupper;
-  {
-    ifstream history(".history");
-    string line;
-    while(getline(history, line))
-      add_history(line.c_str());
+  
+  if(!g_vm["daemon"].as<bool>())  {
+    stattid.detach();
+    doConsole();
   }
-  ofstream history(".history", std::ios_base::app);
-  string lastline;
-  for(;;) {
-    char* sline = readline("> ");
-    if(!sline)
-      break;
-
-    string line(sline);
-    if(!line.empty() && line != lastline) {
-      add_history(sline);
-      history << sline <<endl;
-      history.flush();
-    }
-    lastline=line;
-    free(sline);
-    
-    if(line=="quit")
-      break;
-
-    try {
-      std::lock_guard<std::mutex> lock(g_luamutex);
-      g_lua.executeCode(line);
-    }
-    catch(std::exception& e) {
-      cerr<<"Error: "<<e.what()<<endl;
-    }
-    
+  else {
+    stattid.join();
   }
   _exit(EXIT_SUCCESS);
-  // stattid.join();
-}
 
+}
 catch(std::exception &e)
 {
-  errlog("Fatal: %s", e.what());
+  errlog("Fatal error: %s", e.what());
 }
-
 catch(PDNSException &ae)
 {
-  errlog("Fatal: %s", ae.reason);
+  errlog("Fatal pdns error: %s", ae.reason);
 }

@@ -575,6 +575,7 @@ dnsdist_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
+	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	statbag.cc \
 	unix_utility.cc
@@ -585,7 +586,7 @@ dnsdist_LDFLAGS = \
 
 dnsdist_LDADD = \
 	$(POLARSSL_LIBS) -lreadline \
-	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS)
+	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
 
 nsec3dig_SOURCES = \
 	base32.cc \
