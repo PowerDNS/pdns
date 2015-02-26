@@ -585,7 +585,7 @@ dnsdist_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsdist_LDADD = \
-	$(POLARSSL_LIBS) -lreadline \
+	$(POLARSSL_LIBS) -lreadline -lrt \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
 
 nsec3dig_SOURCES = \
