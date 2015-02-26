@@ -159,11 +159,16 @@ First run on the command line, and generate a key:
 > makeKey()
 setKey("sepuCcHcQnSAZgNbNPCCpDWbujZ5esZJmrt/wh6ldkQ=")
 ```
+Now add this setKey line to `dnsdistconf.lua`, and also add:
 
-Now add this setKey line to `dnsdistconf.lua`, followed by:
+```
+controlSocket("0.0.0.0") -- or add portnumber too
+```
 
+Then start `dnsdist` as a daemon, and then connect to it:
 ```
 # dnsdist
 # dnsdist --client
 > 
 ```
+

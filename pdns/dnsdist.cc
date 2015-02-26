@@ -736,12 +736,28 @@ try
     string response;
     try {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      auto ret=g_lua.executeCode<boost::optional<string>>("return "+line);
-      if(ret)
-	response=*ret;
+      auto ret=g_lua.executeCode<
+	boost::optional<
+	  boost::variant<
+	    string, 
+	    shared_ptr<DownstreamState>
+	    >
+	  >
+	>("return "+line);
+
+      if(ret) {
+	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+	  response=(*strValue)->remote.toStringWithPort();
+	}
+	else if (const auto strValue = boost::get<string>(&*ret)) {
+	  response=*strValue;
+	}
+      }
+
+
     }
     catch(std::exception& e) {
-      cerr<<"Error: "<<e.what()<<endl;
+      response="Error: "+string(e.what());
     }
     response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
@@ -830,6 +846,9 @@ void setupLua(bool client)
 
   g_lua.writeFunction("firstAvailable", firstAvailable);
   g_lua.writeFunction("roundrobin", roundrobin);
+
+  g_lua.writeFunction("shutdown", []() { _exit(0);} );
+
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { g_suffixMatchNodeFilter.add(DNSName(domain)); });
   g_lua.writeFunction("listServers", []() {  

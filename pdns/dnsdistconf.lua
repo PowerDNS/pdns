@@ -1,4 +1,4 @@
--- controlSocket("0.0.0.0")
+controlSocket("0.0.0.0")
 setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
 
 -- define the good servers
