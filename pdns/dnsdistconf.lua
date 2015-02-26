@@ -1,7 +1,5 @@
-serverKeys({"oYhvA4N2a+PfWJ1aBVG3OFD/BBO/8sdkzRgGQoDxVz0=","2JjfJbIH/2g+1cIxj7IXhv4j38+rCiXbpdjtn91p/04="})
-accessKeys({"9RM9r+olHDJU+87hBXT9DCCej/DUS1XjIKWTq84AfTs=","ghv/LTqRTOgVvK8A/XEWrFks+F5fng1Wn14Xe9Rblgg="})
-
 controlSocket("0.0.0.0")
+setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
 
 -- define the good servers
 newServer("8.8.8.8", 2)  -- 2 qps

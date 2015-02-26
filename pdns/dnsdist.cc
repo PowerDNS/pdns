@@ -712,22 +712,26 @@ void* maintThread()
   return 0;
 }
 
-struct {
-  string pub;
-  string sec;
-} g_accessKeys, g_serverKeys;
+string g_key;
 
 void controlClientThread(int fd, ComboAddress client)
 try
 {
+  SodiumNonce theirs;
+  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
+  SodiumNonce ours;
+  ours.init();
+  writen2(fd, (char*)ours.value, sizeof(ours.value));
+
   for(;;) {
     uint16_t len;
-    getMsgLen(fd, &len);
+    if(!getMsgLen(fd, &len))
+      break;
     char msg[len];
     readn2(fd, msg, len);
     
     string line(msg, len);
-    line = sodDecrypt(line, g_accessKeys.pub, g_serverKeys.sec);
+    line = sodDecryptSym(line, g_key, theirs);
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
     try {
@@ -739,7 +743,7 @@ try
     catch(std::exception& e) {
       cerr<<"Error: "<<e.what()<<endl;
     }
-    response = sodEncrypt(response, g_serverKeys.sec, g_accessKeys.pub);
+    response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
     writen2(fd, response.c_str(), (uint16_t)response.length());
   }
@@ -937,31 +941,23 @@ void setupLua(bool client)
       g_abuseDSS=dss;
     });
 
-  g_lua.writeFunction("newKeypair", newKeypair);
-  g_lua.writeFunction("makeKeys", []() {
-      string server(newKeypair()), client(newKeypair());
-      return "serverKeys("+server+")\naccessKeys("+client+")";
+  g_lua.writeFunction("makeKey", []() {
+      return "setKey("+newKey()+")";
     });
   
-  g_lua.writeFunction("accessKeys", [](std::unordered_map<int, std::string> params) {
-      if(B64Decode(params[1], g_accessKeys.pub)) 
-	throw std::runtime_error("Unable to decode "+params[1]+" as Base64");
-      if(B64Decode(params[2], g_accessKeys.sec))
-	throw std::runtime_error("Unable to decode "+params[2]+" as Base64");
-    });
-
-  g_lua.writeFunction("serverKeys", [](std::unordered_map<int, std::string> params) {
-      if(B64Decode(params[1], g_serverKeys.pub))
-	throw std::runtime_error("Unable to decode "+params[1]+" as Base64");
-      if(B64Decode(params[2], g_serverKeys.sec))
-	throw std::runtime_error("Unable to decode "+params[2]+" as Base64");
+  g_lua.writeFunction("setKey", [](const std::string& key) {
+      if(B64Decode(key, g_key)) 
+	throw std::runtime_error("Unable to decode "+key+" as Base64");
     });
 
   
   g_lua.writeFunction("testCrypto", [](string testmsg)
    {
-     string encrypted = sodEncrypt(testmsg, g_accessKeys.sec, g_serverKeys.pub);
-     string decrypted = sodDecrypt(encrypted, g_accessKeys.pub, g_serverKeys.sec);
+     SodiumNonce sn, sn2;
+     sn.init();
+     sn2=sn;
+     string encrypted = sodEncryptSym(testmsg, g_key, sn);
+     string decrypted = sodDecryptSym(encrypted, g_key, sn2);
      
      if(testmsg == decrypted)
        cerr<<"Everything is ok!"<<endl;
@@ -981,6 +977,12 @@ void doClient(ComboAddress server)
   cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
   SConnect(fd, server);
+
+  SodiumNonce theirs, ours;
+  ours.init();
+
+  writen2(fd, (const char*)ours.value, sizeof(ours.value));
+  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
 
   set<string> dupper;
   {
@@ -1009,7 +1011,7 @@ void doClient(ComboAddress server)
       break;
 
     string response;
-    string msg=sodEncrypt(line, g_accessKeys.sec, g_serverKeys.pub);
+    string msg=sodEncryptSym(line, g_key, ours);
     putMsgLen(fd, msg.length());
     writen2(fd, msg);
     uint16_t len;
@@ -1017,11 +1019,9 @@ void doClient(ComboAddress server)
     char resp[len];
     readn2(fd, resp, len);
     msg.assign(resp, len);
-    msg=sodDecrypt(msg, g_serverKeys.pub, g_accessKeys.sec);
+    msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
   }
-
-
 }
 
 void doConsole()
@@ -1076,8 +1076,7 @@ void doConsole()
     }
     catch(std::exception& e) {
       cerr<<"Error: "<<e.what()<<endl;
-    }
-   
+    }   
   }
 }
 
@@ -1140,7 +1139,6 @@ try
     vinfolog("Running in the foreground");
   }
 
-
   setupLua(false);
   if(g_vm.count("remotes")) {
     for(const auto& address : g_vm["remotes"].as<vector<string>>()) {
@@ -1149,8 +1147,6 @@ try
       g_dstates.push_back(ret);
     }
   }
-
-  
 
   for(auto& dss : g_dstates) {
     if(dss->availability==DownstreamState::Availability::Auto) {

@@ -25,7 +25,7 @@ newServer2 {address="2620:0:ccc::2", qps=10}
 newServer2 {address="2620:0:ccd::2", qps=10}
 newServer("192.168.1.2")
 
-$ dnsdist --local=0.0.0.0:5200 
+$ dnsdist --local=0.0.0.0:5200 --daemon=no
 Marking downstream [2001:4860:4860::8888]:53 as 'up'
 Marking downstream [2001:4860:4860::8844]:53 as 'up'
 Marking downstream [2620:0:ccc::2]:53 as 'up'
@@ -150,3 +150,20 @@ setServerPolicy(luaroundrobin)
 Incidentally, this is similar to setting: `setServerPolicy(roundrobin)`
 which uses the C++ based roundrobin policy.
 
+Running it for real
+-------------------
+First run on the command line, and generate a key:
+
+```
+# dnsdist --daemon-no
+> makeKey()
+setKey("sepuCcHcQnSAZgNbNPCCpDWbujZ5esZJmrt/wh6ldkQ=")
+```
+
+Now add this setKey line to `dnsdistconf.lua`, followed by:
+
+```
+# dnsdist
+# dnsdist --client
+> 
+```
