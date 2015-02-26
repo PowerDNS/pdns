@@ -18,7 +18,7 @@ interface.
 Here is a minimal configuration:
 
 ```
-$ cat dnsdistconf.lua
+$ cat /etc/dnsdist.conf
 newServer2 {address="2001:4860:4860::8888", qps=1}
 newServer2 {address="2001:4860:4860::8844", qps=1} 
 newServer2 {address="2620:0:ccc::2", qps=10}

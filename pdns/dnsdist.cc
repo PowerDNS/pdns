@@ -909,6 +909,8 @@ void setupLua(bool client)
   g_lua.registerMember("upstatus", &DownstreamState::upStatus);
 
   std::ifstream ifs(g_vm["config"].as<string>());
+  if(!ifs) 
+    warnlog("Unable to read configuration from %s", g_vm["config"].as<string>());
 
   g_lua.registerFunction("tostring", &ComboAddress::toString);
 
@@ -1115,7 +1117,7 @@ try
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
-    ("config", po::value<string>()->default_value("dnsdistconf.lua"), "Filename with our configuration")
+    ("config", po::value<string>()->default_value("/etc/dnsdist.conf"), "Filename with our configuration")
     ("client", "be a client")
     ("daemon", po::value<bool>()->default_value(true), "run in background")
     ("local", po::value<vector<string> >(), "Listen on which addresses")
