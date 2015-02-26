@@ -1,12 +1,5 @@
 dnsdist
 -------
-
-WARNING: `dnsdist` is still under HEAVY development, but we are giving it some
-publicity in hopes of getting constructive feedback that will help us guide
-our feature set.
-
-Do NOT take this into production, but please DO let us know your thoughts!
-
 `dnsdist` is a highly DNS-, DoS- and abuse-aware loadbalancer. Its goal in
 life is to route traffic to the best server, delivering top performance
 to legitimate users while shunting or blocking abusive traffic.
@@ -14,6 +7,13 @@ to legitimate users while shunting or blocking abusive traffic.
 `dnsdist` is dynamic, in the sense that its configuration can be changed at
 runtime, and that its statistics can be queried from a console-like
 interface.
+
+WARNING: `dnsdist` is still under HEAVY development, but we are giving it some
+publicity in hopes of getting constructive feedback that will help us guide
+our feature set.
+
+Do NOT take this into production, but please DO let us know your thoughts!
+Test packages can be found on http://xs.powerdns.com/dnsdist/
 
 Here is a minimal configuration:
 
