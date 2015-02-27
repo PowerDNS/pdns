@@ -129,7 +129,24 @@ More power
 ----------
 More powerful things can be achieved by defining a function called
 `blockFilter()` in the configuration file, which can decide to drop traffic
-on any reason it wants.
+on any reason it wants. If you return 'true' from there, the query will get
+blocked.
+
+A demo on how to do this and many other things can be found on
+https://github.com/ahupowerdns/pdns/blob/dnsname/pdns/dnsdistconf.lua
+
+ANY or whatever to TC
+---------------------
+The `blockFilter()` also gets passed read/writable copy of the DNS Header.
+If you invoke setQR(1) on that, dnsdist knows you turned the packet into
+a response, and will send the answer directly to the original client.
+
+If you also called setTC(1), this will tell the remote client to move to
+TCP/IP, and in this way you can implement ANY-to-TCP even for downstream
+servers that lack this feature.
+
+Dynamic load balancing
+----------------------
 
 The default load balancing policy is called 'firstAvailable', which means
 the first server that has not exceeded its QPS limit gets the traffic.  If
