@@ -23,7 +23,14 @@ abuseShuntNM("192.168.1.0/24")
 
 block=newDNSName("powerdns.org.")
 -- called before we distribute a question
-function blockFilter(remote, qname, qtype)
+function blockFilter(remote, qname, qtype, dh)
+	 if(qtype==255) 
+	 then
+--	        print("any query, tc=1")
+		dh:setTC(true)
+		dh:setQR(true)
+	 end
+
 	 if(qname:isPartOf(block))
 	 then
 		print("Blocking *.powerdns.org")

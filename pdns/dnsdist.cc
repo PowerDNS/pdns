@@ -254,7 +254,6 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     dh->id = ids->origID;
     sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
-
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
     
@@ -371,7 +370,7 @@ try
   if(g_vm.count("regex-drop"))
     re=new Regex(g_vm["regex-drop"].as<string>());
 
-  typedef std::function<bool(ComboAddress, DNSName, uint16_t)> blockfilter_t;
+  typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
 
   
@@ -387,11 +386,15 @@ try
     if(len < (int)sizeof(struct dnsheader)) 
       continue;
 
+    if(dh->qr)    // don't respond to responses
+      continue;
+
     DNSName qname(packet, len, 12, false, &qtype);
     if(blockFilter)
     {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      if(blockFilter(remote, qname, qtype))
+
+      if(blockFilter(remote, qname, qtype, dh))
 	continue;
     }
 
@@ -403,6 +406,11 @@ try
       continue;
     }
    
+    if(dh->qr) { // something turned it into a response
+      sendto(cs->udpFD, packet, len, 0, (struct sockaddr*)&remote, remote.getSocklen());
+      continue;
+    }
+
     DownstreamState* ss = 0;
     if(g_abuseSMN.check(qname) || g_abuseNMG.match(remote)) {
       ss = &*g_abuseDSS;
@@ -470,7 +478,7 @@ catch(...)
    Let's start naively.
 */
 
-int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const std::string& qname, uint16_t qtype)
+int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype)
 {
   *ds = g_policy(remote, qname, qtype).get();
   
@@ -557,7 +565,7 @@ void* tcpClientThread(int pipefd)
   
   for(;;) {
     ConnectionInfo* citmp, ci;
-    ComboAddress fixme;
+
     readn2(pipefd, &citmp, sizeof(citmp));
     --g_tcpclientthreads.d_queued;
     ci=*citmp;
@@ -565,7 +573,7 @@ void* tcpClientThread(int pipefd)
      
     if(dsock == -1) {
 
-      dsock = getTCPDownstream(&ds, fixme, "", 0);
+      dsock = getTCPDownstream(&ds, ci.remote, DNSName(), 0);
     }
     else {
       vinfolog("Reusing existing TCP connection to %s", ds->remote.toStringWithPort());
@@ -586,7 +594,7 @@ void* tcpClientThread(int pipefd)
         if(!putMsgLen(dsock, qlen)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
           close(dsock);
-          dsock=getTCPDownstream(&ds, fixme, "", 0);
+          dsock=getTCPDownstream(&ds, ci.remote, DNSName(), 0);
           goto retry;
         }
       
@@ -595,7 +603,7 @@ void* tcpClientThread(int pipefd)
         if(!getMsgLen(dsock, &rlen)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
           close(dsock);
-          dsock=getTCPDownstream(&ds, fixme, "", 0);
+          dsock=getTCPDownstream(&ds, ci.remote, DNSName(), 0);
           goto retry;
         }
 
@@ -907,6 +915,19 @@ void setupLua(bool client)
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
   g_lua.registerFunction("setAuto", &DownstreamState::setAuto);
   g_lua.registerMember("upstatus", &DownstreamState::upStatus);
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setRD", [](dnsheader& dh, bool v) {
+      dh.rd=v;
+	});
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {
+      dh.tc=v;
+	});
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setQR", [](dnsheader& dh, bool v) {
+      dh.qr=v;
+	});
+
 
   std::ifstream ifs(g_vm["config"].as<string>());
   if(!ifs) 
