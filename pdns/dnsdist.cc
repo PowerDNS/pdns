@@ -42,16 +42,18 @@
 #include "sodcrypto.hh"
 #undef L
 
-
-/* syntax: dnsdist 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220
-   Added downstream server 8.8.8.8:53
-   Added downstream server 8.8.4.4:53
-   Added downstream server 208.67.222.222:53
-   Added downstream server 208.67.220.220:53
-   Listening on [::]:53
-
-   And you are in business!
- */
+/* Known sins:
+   We replace g_ACL w/o locking, might crash
+   No centralized statistics
+   We neglect to do recvfromto() on 0.0.0.0
+   Receiver is currently singlethreaded (not that bad actually)
+   We can't compile w/o crypto
+   newServer2{} is an abomination of a name
+   our naming is as inconsistent as only ahu can make it
+   lack of help()
+   we offer now way to log from Lua
+   our startup fails *after* fork on most cases, which is not overly helpful
+*/
 
 ArgvMap& arg()
 {
@@ -68,6 +70,8 @@ atomic<uint64_t> g_pos;
 atomic<uint64_t> g_regexBlocks;
 uint16_t g_maxOutstanding;
 bool g_console;
+NetmaskGroup g_ACL;
+
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -386,6 +390,9 @@ try
     if(len < (int)sizeof(struct dnsheader)) 
       continue;
 
+    if(!g_ACL.match(remote))
+      continue;
+
     if(dh->qr)    // don't respond to responses
       continue;
 
@@ -428,7 +435,7 @@ try
       ss->outstanding++;
     else
       ss->reuseds++;
-
+    
     ids->origFD = cs->udpFD;
     ids->age = 0;
     ids->origID = dh->id;
@@ -854,7 +861,24 @@ void setupLua(bool client)
 
   g_lua.writeFunction("firstAvailable", firstAvailable);
   g_lua.writeFunction("roundrobin", roundrobin);
-
+  g_lua.writeFunction("addACL", [](const std::string& domain) {
+      g_ACL.addMask(domain);
+    });
+  g_lua.writeFunction("setACL", [](const vector<pair<int, string>>& parts) {
+    NetmaskGroup nmg;
+    for(const auto& p : parts) {
+      nmg.addMask(p.second);
+    }
+    g_ACL=nmg;
+  });
+  g_lua.writeFunction("showACL", []() {
+      vector<string> vec;
+      g_ACL.toStringVector(&vec);
+      string ret;
+      for(const auto& s : vec)
+	ret+=s+"\n";
+      return ret;
+    });
   g_lua.writeFunction("shutdown", []() { _exit(0);} );
 
 
@@ -918,16 +942,15 @@ void setupLua(bool client)
 
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setRD", [](dnsheader& dh, bool v) {
       dh.rd=v;
-	});
+    });
 
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {
       dh.tc=v;
-	});
+    });
 
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setQR", [](dnsheader& dh, bool v) {
       dh.qr=v;
-	});
-
+    });
 
   std::ifstream ifs(g_vm["config"].as<string>());
   if(!ifs) 
@@ -939,8 +962,6 @@ void setupLua(bool client)
   g_lua.registerFunction("tostring", &DNSName::toString);
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   g_lua.writeFunction("newSuffixNode", []() { return SuffixMatchNode(); });
-
-
 
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
@@ -1008,7 +1029,7 @@ void setupLua(bool client)
      
    });
 
-
+  
 
   g_lua.executeCode(ifs);
 }
@@ -1180,6 +1201,9 @@ try
   else {
     vinfolog("Running in the foreground");
   }
+
+  for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+    g_ACL.addMask(addr);
 
   setupLua(false);
   if(g_vm.count("remotes")) {

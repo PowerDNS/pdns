@@ -189,3 +189,21 @@ Then start `dnsdist` as a daemon, and then connect to it:
 > 
 ```
 
+ACL, who can use dnsdist
+------------------------
+For safety reasons, by default only private networks can use dnsdist, see below
+how to query and change the ACL:
+
+```
+> showACL()
+127.0.0.0/8
+10.0.0.0/8
+(...)
+::1/128
+fc00::/7
+fe80::/10
+> addACL("130.161.0.0/16")
+> setACL({"::/0"}) -- resets the list to this array
+> showACL()
+::/0
+```
