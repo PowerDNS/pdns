@@ -44,6 +44,7 @@
 
 /* Known sins:
    We replace g_ACL w/o locking, might crash
+     g_policy too probably
    No centralized statistics
    We neglect to do recvfromto() on 0.0.0.0
    Receiver is currently singlethreaded (not that bad actually)
@@ -292,19 +293,9 @@ struct ClientState
 std::mutex g_luamutex;
 LuaContext g_lua;
 
-std::function<shared_ptr<DownstreamState>(const ComboAddress& remote, const DNSName& qname, uint16_t qtype)> g_policy;
+std::function<shared_ptr<DownstreamState>(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> g_policy;
 
-shared_ptr<DownstreamState> getLuaDownstream(const ComboAddress& remote, const DNSName& qname, uint16_t qtype)
-{
-  //auto pickServer=g_lua.readVariable<LuaContext::LuaFunctionCaller<std::shared_ptr<DownstreamState> (void)> >("pickServer");
-
-  std::lock_guard<std::mutex> lock(g_luamutex);
-
-  auto pickServer=g_lua.readVariable<std::function<std::shared_ptr<DownstreamState>(ComboAddress, DNSName, uint16_t)> >("pickServer");
-  return pickServer(remote, DNSName(qname), qtype);
-}
-
-shared_ptr<DownstreamState> firstAvailable(const ComboAddress& remote, const DNSName& qname, uint16_t qtype)
+shared_ptr<DownstreamState> firstAvailable(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   for(auto& d : g_dstates) {
     if(d->isUp() && d->qps.check())
@@ -424,7 +415,7 @@ try
     }
     else {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      ss = g_policy(remote, qname, qtype).get();
+      ss = g_policy(remote, qname, qtype, dh).get();
     }
     ss->queries++;
 
@@ -485,9 +476,12 @@ catch(...)
    Let's start naively.
 */
 
-int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype)
+int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  *ds = g_policy(remote, qname, qtype).get();
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    *ds = g_policy(remote, qname, qtype, dh).get();
+  }
   
   vinfolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
   int sock = SSocket((*ds)->remote.sin4.sin_family, SOCK_STREAM, 0);
@@ -578,13 +572,6 @@ void* tcpClientThread(int pipefd)
     ci=*citmp;
     delete citmp;
      
-    if(dsock == -1) {
-
-      dsock = getTCPDownstream(&ds, ci.remote, DNSName(), 0);
-    }
-    else {
-      vinfolog("Reusing existing TCP connection to %s", ds->remote.toStringWithPort());
-    }
 
     uint16_t qlen, rlen;
     try {
@@ -596,12 +583,22 @@ void* tcpClientThread(int pipefd)
         ds->outstanding++;
         char query[qlen];
         readn2(ci.fd, query, qlen);
+	uint16_t qtype;
+	DNSName qname(query, qlen, 12, false, &qtype);
+	struct dnsheader* dh =(dnsheader*)query;
+	if(dsock == -1) {
+	  dsock = getTCPDownstream(&ds, ci.remote, qname, qtype, dh);
+	}
+	else {
+	  vinfolog("Reusing existing TCP connection to %s", ds->remote.toStringWithPort());
+	}
+
         // FIXME: drop AXFR queries here, they confuse us
       retry:; 
         if(!putMsgLen(dsock, qlen)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
           close(dsock);
-          dsock=getTCPDownstream(&ds, ci.remote, DNSName(), 0);
+          dsock=getTCPDownstream(&ds, ci.remote, qname, qtype, dh);
           goto retry;
         }
       
@@ -610,7 +607,7 @@ void* tcpClientThread(int pipefd)
         if(!getMsgLen(dsock, &rlen)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
           close(dsock);
-          dsock=getTCPDownstream(&ds, ci.remote, DNSName(), 0);
+          dsock=getTCPDownstream(&ds, ci.remote, qname, qtype, dh);
           goto retry;
         }
 
@@ -854,7 +851,7 @@ void setupLua(bool client)
 		      } );
 
 
-  g_lua.writeFunction("setServerPolicy", [](std::function<shared_ptr<DownstreamState>(const ComboAddress&, const DNSName&, uint16_t)> func) {
+  g_lua.writeFunction("setServerPolicy", [](std::function<shared_ptr<DownstreamState>(const ComboAddress&, const DNSName&, uint16_t, dnsheader*)> func) {
       g_policy = func;
     });
 
@@ -943,6 +940,11 @@ void setupLua(bool client)
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setRD", [](dnsheader& dh, bool v) {
       dh.rd=v;
     });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) {
+      return (bool)dh.rd;
+    });
+
 
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {
       dh.tc=v;

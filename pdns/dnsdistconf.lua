@@ -43,10 +43,20 @@ counter=0
 servers=getServers()
 
 -- called to pick a downstream server
-function luaroundrobin(remote, qname, qtype) 
+function luaroundrobin(remote, qname, qtype, dh) 
 	 counter=counter+1;
 	 return servers[1+(counter % #servers)]
 end
 
 -- setServerPolicy(luaroundrobin)
 
+authServer=newServer2{address="2001:888:2000:1d::2", order=12}
+
+function splitSetup(remote, qname, qtype, dh)
+	 if(dh:getRD() == false)
+	 then
+		return authServer
+	 else
+		return firstAvailable(remote, qname, qtype, dh)
+	 end
+end

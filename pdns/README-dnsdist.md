@@ -156,7 +156,7 @@ example:
 ```
 counter=0
 servers=getServers()
-function luaroundrobin(remote, qname, qtype) 
+function luaroundrobin(remote, qname, qtype, dh) 
 	 counter=counter+1
 	 return servers[1+(counter % #servers)]
 end
@@ -166,6 +166,27 @@ setServerPolicy(luaroundrobin)
 
 Incidentally, this is similar to setting: `setServerPolicy(roundrobin)`
 which uses the C++ based roundrobin policy.
+
+To implement a split horizon, try:
+
+```
+authServer=newServer2{address="2001:888:2000:1d::2", order=12}
+-- order=12 is the current hack to make sure this server does 
+-- generally get used, will be replaced by dedicated pools later
+
+function splitSetup(remote, qname, qtype, dh)
+	 if(dh:getRD() == false)
+	 then
+		return authServer
+	 else
+		return firstAvailable(remote, qname, qtype, dh)
+	 end
+end
+```
+
+This will forward queries that don't want recursion to a specific
+server, and will apply the default load balancing policy to all
+other queries.
 
 Running it for real
 -------------------
