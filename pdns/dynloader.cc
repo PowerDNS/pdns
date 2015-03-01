@@ -148,6 +148,10 @@ int main(int argc, char **argv)
     }
     
     string resp=D->receive();
+    if(resp.compare(0, 7, "Unknown") == 0) {
+      cerr<<resp<<endl;
+      return 1;
+    }
     
     cout<<resp<<endl;
   }

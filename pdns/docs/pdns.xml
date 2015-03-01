@@ -17397,7 +17397,18 @@ To enable a Lua script for a particular slave zone, determine the domain_id for 
 	    </para>
 	    <para>Behaviour post 2.9.10: If set, only these IP addresses or netmasks will be able to perform AXFR.
 	    </para>
-	  </listitem></varlistentry>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>allow-notify-from=...</term>
+	  <listitem>
+	    <para>
+	      By specifying <command>allow-notify-from</command>, receiving AXFR NOTIFY can be restricted to netmasks specified. The default is to allow
+	      AXFR NOTIFY from anywhere. Example: <command>allow-notify-from=192.168.0.0/24, 10.0.0.0/8, 192.0.2.4</command>.
+	      The default is 0.0.0.0,::/0. Setting this to an empty string will drop all incoming notifies. Available since 3.4.3.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term>allow-recursion=...</term>
 	  <listitem>

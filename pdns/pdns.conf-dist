@@ -10,6 +10,11 @@
 # allow-dnsupdate-from=127.0.0.0/8,::1
 
 #################################
+# allow-notify-from	Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.
+#
+# allow-notify-from=0.0.0.0/0,::/0
+
+#################################
 # allow-recursion	List of subnets that are allowed to recurse
 #
 # allow-recursion=0.0.0.0/0
@@ -410,7 +415,7 @@
 # slave=no
 
 #################################
-# slave-cycle-interval	Reschedule failed SOA serial checks once every .. seconds
+# slave-cycle-interval	Schedule slave freshness checks once every .. seconds
 #
 # slave-cycle-interval=60
 
