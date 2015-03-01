@@ -51,34 +51,36 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
   // we sign the RRSET in toSign + the rrc w/o hash
   
   DNSSECKeeper::keyset_t keys = dk.getKeys(signer); // we don't want the . for the root!
-  vector<DNSSECPrivateKey> KSKs, ZSKs;
-  vector<DNSSECPrivateKey>* signingKeys;
-  
-  // if ksk==1, only get KSKs
-  // if ksk==0, get ZSKs, unless there is no ZSK, then get KSK
+  set<int> algoHasKSK, algoHasZSK;
+  vector<DNSSECPrivateKey> signingKeys;
+
   BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type& keymeta, keys) {
-    rrc.d_algorithm = keymeta.first.d_algorithm;
-    if(!keymeta.second.active) 
+    if(keymeta.second.active) {
+      if(keymeta.second.keyOrZone)
+        algoHasKSK.insert(keymeta.first.d_algorithm);
+      else
+        algoHasZSK.insert(keymeta.first.d_algorithm);
+    }
+  }
+
+  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type& keymeta, keys) {
+    if(!keymeta.second.active)
       continue;
 
-    if(keymeta.second.keyOrZone)
-      KSKs.push_back(keymeta.first);
-    else
-      ZSKs.push_back(keymeta.first);
-  }
-  if(signQType == QType::DNSKEY) {
-    if(KSKs.empty())
-      signingKeys = &ZSKs;
-    else
-      signingKeys = &KSKs;
-  } else {
-    if(ZSKs.empty())
-      signingKeys = &KSKs;
-    else
-      signingKeys = &ZSKs;
+    if(signQType == QType::DNSKEY) {
+      // skip ZSK, if this algorithm has a KSK
+      if(!keymeta.second.keyOrZone && algoHasKSK.count(keymeta.first.d_algorithm))
+        continue;
+    } else {
+      // skip KSK, if this algorithm has a ZSK
+      if(keymeta.second.keyOrZone && algoHasZSK.count(keymeta.first.d_algorithm))
+        continue;
+    }
+
+    signingKeys.push_back(keymeta.first);
   }
 
-  BOOST_FOREACH(DNSSECPrivateKey& dpk, *signingKeys) {
+  BOOST_FOREACH(DNSSECPrivateKey& dpk, signingKeys) {
     fillOutRRSIG(dpk, signQName, rrc, toSign);
     rrcs.push_back(rrc);
   }

@@ -52,6 +52,7 @@ public:
   void setNotified(uint32_t domain_id, uint32_t serial);
   bool setMaster(const string &domain, const string &ip);
   bool setKind(const string &domain, const DomainInfo::DomainKind kind);
+  bool setAccount(const string &domain, const string &account);
 
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
   bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
@@ -116,6 +117,7 @@ private:
   string d_InsertEntOrderQuery;
   string d_UpdateMasterOfZoneQuery;
   string d_UpdateKindOfZoneQuery;
+  string d_UpdateAccountOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckofZoneQuery;
   string d_InfoOfAllMasterDomainsQuery;

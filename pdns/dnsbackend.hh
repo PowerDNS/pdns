@@ -51,6 +51,7 @@ struct DomainInfo
   uint32_t notified_serial;
   uint32_t serial;
   time_t last_check;
+  string account;
   enum DomainKind { Master, Slave, Native } kind;
   DNSBackend *backend;
   
@@ -332,6 +333,12 @@ public:
 
   //! Called when the Kind of a domain should be changed (master -> native and similar)
   virtual bool setKind(const string &domain, const DomainInfo::DomainKind kind)
+  {
+    return false;
+  }
+
+  //! Called when the Account of a domain should be changed
+  virtual bool setAccount(const string &domain, const string &account)
   {
     return false;
   }

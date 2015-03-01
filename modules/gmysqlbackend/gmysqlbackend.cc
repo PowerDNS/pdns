@@ -66,7 +66,7 @@ public:
 
     declare(suffix,"master-zone-query","Data", "select master from domains where name='%s' and type='SLAVE'");
 
-    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type from domains where name='%s'");
+    declare(suffix,"info-zone-query","","select id,name,master,last_check,notified_serial,type,account from domains where name='%s'");
 
     declare(suffix,"info-all-slaves-query","","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix,"supermaster-query","", "select account from supermasters where ip='%s' and nameserver='%s'");
@@ -92,6 +92,7 @@ public:
 
     declare(suffix,"update-master-query","", "update domains set master='%s' where name='%s'");
     declare(suffix,"update-kind-query","", "update domains set type='%s' where name='%s'");
+    declare(suffix,"update-account-query","", "update domains set account='%s' where name='%s'");
     declare(suffix,"update-serial-query","", "update domains set notified_serial=%d where id=%d");
     declare(suffix,"update-lastcheck-query","", "update domains set last_check=%d where id=%d");
     declare(suffix,"zone-lastchange-query", "", "select max(change_date) from records where domain_id=%d");
@@ -117,7 +118,7 @@ public:
     declare(suffix,"delete-tsig-key-query","", "delete from tsigkeys where name='%s'");
     declare(suffix,"get-tsig-keys-query","", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR %d");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR %d");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=%d");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (%d, '%s', '%s', %d, '%s', '%s')");
