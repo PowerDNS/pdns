@@ -34,13 +34,23 @@ public:
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::deque<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
-
+  void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
     for(const auto& r : rhs.d_labels)
       d_labels.push_back(r);
     return *this;
   }
+
+  bool operator<(const DNSName& rhs)  const
+  {
+    return std::lexicographical_compare(d_labels.rbegin(), d_labels.rend(), 
+				 rhs.d_labels.rbegin(), rhs.d_labels.rend(),
+				 [](const std::string& a, const std::string& b) {
+				   return strcasecmp(a.c_str(), b.c_str()) < 0; // trips over embedded nulls XXX
+				 });
+  }
+
 private:
   std::deque<std::string> d_labels;
   static std::string escapeLabel(const std::string& orig);

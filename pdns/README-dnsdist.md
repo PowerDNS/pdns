@@ -19,11 +19,12 @@ Here is a minimal configuration:
 
 ```
 $ cat /etc/dnsdist.conf
-newServer2 {address="2001:4860:4860::8888", qps=1}
-newServer2 {address="2001:4860:4860::8844", qps=1} 
-newServer2 {address="2620:0:ccc::2", qps=10}
-newServer2 {address="2620:0:ccd::2", qps=10}
+newServer {address="2001:4860:4860::8888", qps=1}
+newServer {address="2001:4860:4860::8844", qps=1} 
+newServer {address="2620:0:ccc::2", qps=10}
+newServer {address="2620:0:ccd::2", qps=10}
 newServer("192.168.1.2")
+setServerPolicy(firstAvailable) -- first server within its QPS limit
 
 $ dnsdist --local=0.0.0.0:5200 --daemon=no
 Marking downstream [2001:4860:4860::8888]:53 as 'up'
@@ -32,7 +33,7 @@ Marking downstream [2620:0:ccc::2]:53 as 'up'
 Marking downstream [2620:0:ccd::2]:53 as 'up'
 Marking downstream 192.168.1.2:53 as 'up'
 Listening on 0.0.0.0:5200
->
+> 
 ```
 
 We can now send queries to port 5200, and get answers:
@@ -145,13 +146,28 @@ If you also called setTC(1), this will tell the remote client to move to
 TCP/IP, and in this way you can implement ANY-to-TCP even for downstream
 servers that lack this feature.
 
+Inspecting live traffic
+-----------------------
+This is still much in flux, but for now, try:
+
+ * `topQueries(20)`: shows the top-20 queries
+ * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
+ * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
+
 Dynamic load balancing
 ----------------------
 
-The default load balancing policy is called 'firstAvailable', which means
-the first server that has not exceeded its QPS limit gets the traffic.  If
-you don't like this default policy, you can create your own, like this for
-example:
+The default load balancing policy is called 'leastOutstanding', which means 
+we pick the server with the least queries 'in the air'. 
+
+Another policy, 'firstAvailable', picks the first server that has not
+exceeded its QPS limit gets the traffic.  
+
+A further policy, 'wrandom' assigns queries randomly, but based on the
+'weight' parameter passed to `newServer` 
+
+If you don't like the default policies you can create your own, like this
+for example:
 
 ```
 counter=0
@@ -167,21 +183,26 @@ setServerPolicy(luaroundrobin)
 Incidentally, this is similar to setting: `setServerPolicy(roundrobin)`
 which uses the C++ based roundrobin policy.
 
+Split horizon
+-------------
+
 To implement a split horizon, try:
 
 ```
-authServer=newServer2{address="2001:888:2000:1d::2", order=12}
+authServer=newServer{address="2001:888:2000:1d::2", order=12}
 -- order=12 is the current hack to make sure this server does 
--- generally get used, will be replaced by dedicated pools later
+-- not generally get used, will be replaced by dedicated pools later
 
 function splitSetup(remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
 	 then
 		return authServer
 	 else
-		return firstAvailable(remote, qname, qtype, dh)
+		return leastOutstanding(remote, qname, qtype, dh)
 	 end
 end
+
+setServerPolicy(splitSetup)
 ```
 
 This will forward queries that don't want recursion to a specific

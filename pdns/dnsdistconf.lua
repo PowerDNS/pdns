@@ -10,10 +10,10 @@ newServer("2001:4860:4860::8888", 1)
 newServer("2001:4860:4860::8844",1) 
 newServer("2620:0:ccc::2", 10) 
 newServer("2620:0:ccd::2", 10) 
-newServer2{address="192.168.1.2", qps=1000, order=2}
+newServer{address="192.168.1.2", qps=1000, order=2}
 
-newServer2{address="127.0.0.1:5300", order=3}
-abuse=newServer2{address="192.168.1.30:5300", order=4}
+newServer{address="127.0.0.1:5300", order=3}
+abuse=newServer{address="192.168.1.30:5300", order=4}
 
 abuseServer(abuse)
 abuseShuntSMN("ezdns.it.")
@@ -50,7 +50,7 @@ end
 
 -- setServerPolicy(luaroundrobin)
 
-authServer=newServer2{address="2001:888:2000:1d::2", order=12}
+authServer=newServer{address="2001:888:2000:1d::2", order=12}
 
 function splitSetup(remote, qname, qtype, dh)
 	 if(dh:getRD() == false)

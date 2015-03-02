@@ -110,6 +110,12 @@ bool DNSName::chopOff()
   return true;
 }
 
+void DNSName::trimToLabels(unsigned int to)
+{
+  while(d_labels.size() > to && chopOff())
+    ;
+}
+
 bool DNSName::operator==(const DNSName& rhs) const
 {
   if(rhs.d_labels.size() != d_labels.size())
