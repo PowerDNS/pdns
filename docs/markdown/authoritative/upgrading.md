@@ -2,6 +2,9 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.4.2 to 3.4.3
+No breaking changes.
+
 # 3.4.1 to 3.4.2
 
 ## API

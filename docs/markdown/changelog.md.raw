@@ -1,4 +1,59 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
+
+# PowerDNS Authoritative Server 3.4.3
+
+**Warning**: Version 3.4.3 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
+
+Released March 2nd, 2015
+
+Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
+
+Bug fixes:
+
+- [commit ceb49ce](https://github.com/PowerDNS/pdns/commit/ceb49ce):
+pdns_control: exit 1 on unknown command (Ruben Kerkhof)
+- [commit 1406891](https://github.com/PowerDNS/pdns/commit/1406891): evaluate
+KSK ZSK pairs per algorithm (Kees Monshouwer)
+- [commit 3ca050f](https://github.com/PowerDNS/pdns/commit/3ca050f): always
+set di.notified_serial in getAllDomains (Kees Monshouwer)
+- [commit d9d09e1](https://github.com/PowerDNS/pdns/commit/d9d09e1):
+pdns_control: don't open socket in /tmp (Ruben Kerkhof)
+
+New features:
+
+- [commit 2f67952](https://github.com/PowerDNS/pdns/commit/2f67952): Limit who
+can send us AXFR notify queries (Ruben Kerkhof)
+
+Improvements:
+
+- [commit d7bec64](https://github.com/PowerDNS/pdns/commit/d7bec64): respond
+REFUSED instead of NOERROR for "unknown zone" situations
+- [commit ebeb9d7](https://github.com/PowerDNS/pdns/commit/ebeb9d7): Check for
+Lua 5.3 (Ruben Kerkhof)
+- [commit d09931d](https://github.com/PowerDNS/pdns/commit/d09931d): Check
+compiler for relro support instead of linker (Ruben Kerkhof)
+- [commit c4b0d0c](https://github.com/PowerDNS/pdns/commit/c4b0d0c): Replace
+PacketHandler with UeberBackend where possible (Christian Hofstaedtler)
+- [commit 5a85152](https://github.com/PowerDNS/pdns/commit/5a85152):
+PacketHandler: Share UeberBackend with DNSSECKeeper (Christian Hofstaedtler)
+- [commit 97bd444](https://github.com/PowerDNS/pdns/commit/97bd444): fix
+building with GCC 5
+
+Experimental API changes (Christian Hofstaedtler):
+
+- [commit ca44706](https://github.com/PowerDNS/pdns/commit/ca44706): API: move
+shared DomainInfo reader into it's own function
+- [commit 102602f](https://github.com/PowerDNS/pdns/commit/102602f): API:
+allow writing to domains.account field
+- [commit d82f632](https://github.com/PowerDNS/pdns/commit/d82f632): API: read
+and expose domain account field
+- [commit 2b06977](https://github.com/PowerDNS/pdns/commit/2b06977): API: be
+more strict when parsing record contents
+- [commit 2f72b7c](https://github.com/PowerDNS/pdns/commit/2f72b7c): API:
+Reject unknown types (TYPE0)
+- [commit d82f632](https://github.com/PowerDNS/pdns/commit/d82f632): API: read
+and expose domain account field
+
 # PowerDNS Authoritative Server 3.4.2
 
 **Warning**: Version 3.4.2 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
