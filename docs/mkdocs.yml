@@ -35,6 +35,7 @@ pages:
   - [authoritative/backend-ldap.md, 'Authoritative Backends', 'LDAP']
   - [authoritative/backend-lua.md, 'Authoritative Backends', 'Lua']
   - [authoritative/backend-lmdb.md, 'Authoritative Backends', 'LMDB']
+  - [authoritative/backend-opendbx.md, 'Authoritative Backends', 'OpenDBX']
   - [authoritative/backend-oracle.md, 'Authoritative Backends', 'Oracle']
   - [authoritative/backend-pipe.md, 'Authoritative Backends', 'Pipe']
   - [authoritative/backend-random.md, 'Authoritative Backends', 'Random']
