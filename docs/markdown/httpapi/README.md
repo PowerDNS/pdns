@@ -44,6 +44,14 @@ After restarting `pdns_server`, the following examples should start working:
 `jq` is a highly recommended tool for pretty-printing JSON. If you don't have
 `jq`, try `json_pp` or `python -mjson.tool` instead.
 
+When running multiple instances you might want to specify on which address the web server should run:
+
+    # IP Address of web server to listen on
+    webserver-address=127.0.0.1
+    # Port of web server to listen on
+    webserver-port=8081
+    # Web server access is only allowed from these subnets
+    webserver-allow-from=0.0.0.0/0,::/0"
 
 Try it (Recursor edition)
 -------------------------
