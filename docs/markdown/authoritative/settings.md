@@ -32,6 +32,7 @@ Setting this to an empty string will drop all incoming notifies.
 
 ## `allow-recursion`
 * IP ranges, separated by commas
+* Default: 0.0.0.0/0
 
 By specifying `allow-recursion`, recursion can be restricted to netmasks
 specified. The default is to allow recursion from everywhere. Example:
