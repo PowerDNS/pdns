@@ -320,7 +320,12 @@ std::mutex g_luamutex;
 LuaContext g_lua;
 
 typedef std::function<shared_ptr<DownstreamState>(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
-policy_t g_policy;
+
+struct ServerPolicy
+{
+  string name;
+  policy_t policy;
+} g_policy;
 
 shared_ptr<DownstreamState> firstAvailable(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
@@ -491,7 +496,7 @@ try
     }
     else {
       std::lock_guard<std::mutex> lock(g_luamutex);
-      ss = g_policy(remote, qname, qtype, dh).get();
+      ss = g_policy.policy(remote, qname, qtype, dh).get();
       if(!ss)
 	continue;
     }
@@ -559,7 +564,7 @@ int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNS
 {
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
-    *ds = g_policy(remote, qname, qtype, dh).get();
+    *ds = g_policy.policy(remote, qname, qtype, dh).get();
   }
   
   vinfolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
@@ -895,7 +900,7 @@ void setupLua(bool client)
 		      [](boost::variant<string,std::unordered_map<std::string, std::string>> pvars, boost::optional<int> qps)
 		      { 
 			if(auto address = boost::get<string>(&pvars)) {
-			  auto ret=std::shared_ptr<DownstreamState>(new DownstreamState(ComboAddress(*address, 53)));
+			  auto ret=std::make_shared<DownstreamState>(ComboAddress(*address, 53));
 			  ret->tid = move(thread(responderThread, ret));
 			  if(qps) {
 			    ret->qps=QPSLimiter(*qps, *qps);
@@ -904,7 +909,7 @@ void setupLua(bool client)
 			  return ret;
 			}
 			auto vars=boost::get<std::unordered_map<std::string, std::string>>(pvars);
-			auto ret=std::shared_ptr<DownstreamState>(new DownstreamState(ComboAddress(vars["address"], 53)));
+			auto ret=std::make_shared<DownstreamState>(ComboAddress(vars["address"], 53));
 
 			ret->tid = move(thread(responderThread, ret));
 
@@ -938,16 +943,22 @@ void setupLua(bool client)
 		      } );
 
 
-  g_lua.writeFunction("setServerPolicy", [](policy_t func) {
-      cerr<<"Set it"<<endl;
-      g_policy = func;
+  g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy) {
+      g_policy = policy;
+    });
+
+  g_lua.writeFunction("showServerPolicy", []() {
+      g_outputBuffer=g_policy.name+"\n";
     });
 
 
-  g_lua.writeFunction("firstAvailable", firstAvailable);
-  g_lua.writeFunction("roundrobin", roundrobin);
-  g_lua.writeFunction("wrandom", wrandom);
-  g_lua.writeFunction("leastOutstanding", leastOutstanding);
+  g_lua.registerMember("name", &ServerPolicy::name);
+  g_lua.registerMember("policy", &ServerPolicy::policy);
+
+  g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
+  g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
+  g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
+  g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
       g_ACL.addMask(domain);
     });
@@ -970,7 +981,7 @@ void setupLua(bool client)
 
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { g_suffixMatchNodeFilter.add(DNSName(domain)); });
-  g_lua.writeFunction("listServers", []() {  
+  g_lua.writeFunction("showServers", []() {  
       try {
       ostringstream ret;
       
@@ -1056,7 +1067,9 @@ void setupLua(bool client)
 
   std::ifstream ifs(g_vm["config"].as<string>());
   if(!ifs) 
-    warnlog("Unable to read configuration from %s", g_vm["config"].as<string>());
+    warnlog("Unable to read configuration from '%s'", g_vm["config"].as<string>());
+  else
+    infolog("Read configuration from '%s'", g_vm["config"].as<string>());
 
   g_lua.registerFunction("tostring", &ComboAddress::toString);
 
@@ -1387,7 +1400,9 @@ try
   g_verbose=g_vm.count("verbose");
   g_maxOutstanding = g_vm["max-outstanding"].as<uint16_t>();
 
-  g_policy = leastOutstanding;
+  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
+
+  g_policy = leastOutstandingPol;
 
 
   if(g_vm.count("client")) {

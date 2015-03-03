@@ -47,7 +47,7 @@ Note that dnsdist offered us a prompt above, and on it we can get some
 statistics:
 
 ```
-> listServers()
+> showServers()
 #   Address                   State     Qps    Qlim    Queries   Drops Drate    Lat
 0   [2001:4860:4860::8888]:53    up     0.0       1          1       0 0.0      0.1
 1   [2001:4860:4860::8844]:53    up     0.0       1          0       0 0.0      0.0
