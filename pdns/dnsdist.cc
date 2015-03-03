@@ -19,6 +19,11 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include <boost/accumulators/statistics/median.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
+
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include <boost/circular_buffer.hpp>
 #include "sstuff.hh"
@@ -27,7 +32,8 @@
 #include "statbag.hh"
 #include <netinet/tcp.h>
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+
+
 #include <thread>
 #include <limits>
 #include <atomic>
@@ -1284,6 +1290,60 @@ void setupLua(bool client)
   g_lua.executeCode(R"(function topResponses(top, kind, labels) for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
 
+  g_lua.writeFunction("showResponseLatency", []() {
+
+      map<double, unsigned int> histo;
+      double bin=100;
+      for(int i=0; i < 15; ++i) {
+	histo[bin];
+	bin*=2;
+      }
+
+      using namespace boost::accumulators;
+
+      typedef boost::accumulators::accumulator_set<
+	unsigned int
+	, stats<boost::accumulators::tag::median(with_p_square_quantile),
+		boost::accumulators::tag::mean(immediate)
+		>
+	> acc_t;
+      acc_t lats;
+
+      {
+	std::lock_guard<std::mutex> lock(g_rings.respMutex);
+	
+	for(const auto& r : g_rings.respRing) {
+	  auto iter = histo.lower_bound(r.usec);
+	  if(iter != histo.end())
+	    iter->second++;
+	  else
+	    histo.rbegin()++;
+	  lats(r.usec);
+	}
+      }
+
+      g_outputBuffer = (boost::format("Average response latency: %.02f msec, median: %.02f msec\n") % (0.001*mean(lats)) % (0.001*median(lats))).str();
+      double highest=0;
+      
+      for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
+	highest=std::max(highest, iter->second*1.0);
+      }
+      boost::format fmt("%7.2f\t%s\n");
+      g_outputBuffer += (fmt % "msec" % "").str();
+
+      for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
+	int stars = (70.0 * iter->second/highest);
+	char c='*';
+	if(!stars && iter->second) {
+	  stars=1; // you get 1 . to show something is there..
+	  if(70.0*iter->second/highest > 0.5)
+	    c=':';
+	  else
+	    c='.';
+	}
+	g_outputBuffer += (fmt % (iter->first/1000.0) % string(stars, c)).str();
+      }
+    });
 
   g_lua.writeFunction("newQPSLimiter", [](int rate, int burst) { return QPSLimiter(rate, burst); });
   g_lua.registerFunction("check", &QPSLimiter::check);

@@ -155,6 +155,32 @@ This is still much in flux, but for now, try:
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
 
 
+Live histogram of latency
+-------------------------
+```
+> showResponseLatency()
+Average response latency: 78.84 msec, median: 87.59 msec
+   msec	
+   0.10	
+   0.20	.
+   0.40	**********************
+   0.80	***********
+   1.60	.
+   3.20	
+   6.40	.
+  12.80	*
+  25.60	*
+  51.20	*
+ 102.40	**********************************************************************
+ 204.80	*************************
+ 409.60	**
+ 819.20	:
+1638.40	.
+```
+
+Where : stands for 'half a star' and . for 'less than half a star, but
+something was there'.
+
 Per domain or subnet QPS limiting
 ---------------------------------
 If certain domains or source addresses are generating onerous amounts of
