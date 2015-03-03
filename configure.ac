@@ -10,6 +10,12 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 
+AC_SUBST([pdns_configure_args],["$ac_configure_args"])
+AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
+  ["$pdns_configure_args"],
+  [pdns configure arguments]
+)
+
 AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
 AM_SILENT_RULES([yes])
 
@@ -360,6 +366,8 @@ AC_OUTPUT
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Configuration summary])
 AC_MSG_NOTICE([=====================])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configured with:$pdns_configure_args])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Modules: $modules])
 AC_MSG_NOTICE([Dynamic Modules: $dynmodules])

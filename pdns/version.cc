@@ -114,6 +114,9 @@ void showBuildConfiguration()
 #ifndef POLARSSL_SYSTEM
   theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
 #endif
+#ifdef PDNS_CONFIG_ARGS
+  theL()<<Logger::Warning<<"Configured with: "<<PDNS_CONFIG_ARGS<<endl;
+#endif
 }
 
 string fullVersionString()
