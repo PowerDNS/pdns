@@ -71,6 +71,7 @@ struct SuffixMatchNode
   SuffixMatchNode(const std::string& name_="", bool endNode_=false) : name(name_), endNode(endNode_)
   {}
   std::string name;
+  std::string d_human;
   mutable bool endNode;
   mutable std::set<SuffixMatchNode> children;
   bool operator<(const SuffixMatchNode& rhs) const
@@ -80,6 +81,9 @@ struct SuffixMatchNode
 
   void add(const DNSName& name) 
   {
+    if(!d_human.empty())
+      d_human.append(", ");
+    d_human += name.toString();
     add(name.getRawLabels());
   }
 
@@ -103,7 +107,6 @@ struct SuffixMatchNode
     return check(name.getRawLabels());
   }
 
-
   bool check(std::deque<std::string> labels) const
   {
     if(labels.empty()) // optimization
@@ -116,6 +119,10 @@ struct SuffixMatchNode
     labels.pop_back();
     return child->check(labels);
   }
-	     
+  
+  std::string toString() const
+  {
+    return d_human;
+  }
 
 };

@@ -154,6 +154,33 @@ This is still much in flux, but for now, try:
  * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
 
+
+Per domain or subnet QPS limiting
+---------------------------------
+If certain domains or source addresses are generating onerous amounts of
+traffic, you can put ceilings on the amount of traffic you are willing to
+forward:
+
+```
+> addQPSLimit("h4xorbooter.xyz.", 10)
+> addQPSLimit({"130.161.0.0/16", "145.14.0.0/16"} , 20)
+> addQPSLimit({"nl.", "be."}, 1)
+> showQPSLimits()
+#   Object                                                 Lim   Passed  Blocked
+0   h4xorbooter.xyz.                                        10        0        0
+1   130.161.0.0/16, 145.14.0.0/16                           20        0        0
+2   nl., be.                                                 1        2        8
+```
+
+To delete a limit:
+```
+> deleteQPSLimit(1)
+> showQPSLimits()
+#   Object                                                 Lim   Passed  Blocked
+0   h4xorbooter.xyz.                                        10        0        0
+1   nl., be.                                                 1       16      251
+```
+
 Dynamic load balancing
 ----------------------
 

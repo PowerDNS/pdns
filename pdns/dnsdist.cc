@@ -74,6 +74,7 @@ bool g_console;
 NetmaskGroup g_ACL;
 string g_outputBuffer;
 
+
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
    We send directly to those sockets.
@@ -153,11 +154,22 @@ public:
     return d_passthrough? 0 : d_rate;
   }
 
+  int getPassed() const
+  {
+    return d_passed;
+  }
+  int getBlocked() const
+  {
+    return d_blocked;
+  }
+
   bool check()
   {
     if(d_passthrough)
       return true;
-    d_tokens += 1.0*d_rate * (d_prev.udiffAndSet()/1000000.0);
+    auto delta = d_prev.udiffAndSet();
+  
+    d_tokens += 1.0*d_rate * (delta/1000000.0);
 
     if(d_tokens > d_burst)
       d_tokens = d_burst;
@@ -166,7 +178,11 @@ public:
     if(d_tokens >= 1.0) { // we need this because burst=1 is weird otherwise
       ret=true;
       --d_tokens;
+      d_passed++;
     }
+    else
+      d_blocked++;
+
     return ret; 
   }
 private:
@@ -175,7 +191,11 @@ private:
   unsigned int d_burst;
   double d_tokens;
   StopWatch d_prev;
+  unsigned int d_passed{0};
+  unsigned int d_blocked{0};
 };
+
+vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> > g_limiters;
 
 struct IDState
 {
@@ -469,6 +489,24 @@ try
 
     g_rings.queryRing.push_back(qname);
     
+    bool blocked=false;
+    for(auto& lim : g_limiters) {
+      if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
+	if(nmg->match(remote) && !lim.second.check()) {
+	  blocked=true;
+	  break;
+	}
+      }
+      else if(auto smn=boost::get<SuffixMatchNode>(&lim.first)) {
+	if(smn->check(qname) && !lim.second.check()) {
+	  blocked=true;
+	  break;
+	}
+      }
+    }
+    if(blocked)
+      continue;
+
     if(blockFilter)
     {
       std::lock_guard<std::mutex> lock(g_luamutex);
@@ -931,15 +969,18 @@ void setupLua(bool client)
 			    return a->order < b->order;
 			  });
 			return ret;
-		       
-
 		      } );
 
 
+
+
   g_lua.writeFunction("deleteServer", 
-		      [](std::shared_ptr<DownstreamState> rem)
+		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
 		      { 
-			g_dstates.erase(remove(g_dstates.begin(), g_dstates.end(), rem), g_dstates.end());
+			if(auto* rem = boost::get<shared_ptr<DownstreamState>>(&var))
+			  g_dstates.erase(remove(g_dstates.begin(), g_dstates.end(), *rem), g_dstates.end());
+			else
+			  g_dstates.erase(g_dstates.begin() + boost::get<int>(var));
 		      } );
 
 
@@ -1015,6 +1056,52 @@ void setupLua(bool client)
 
       g_outputBuffer=ret.str();
       }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
+    });
+
+
+  g_lua.writeFunction("addQPSLimit", [](boost::variant<string,vector<pair<int, string>> > var, int lim) {
+      SuffixMatchNode smn;
+      NetmaskGroup nmg;
+
+      auto add=[&](string src) {
+	try {
+	  smn.add(DNSName(src));
+	} catch(...) {
+	  nmg.addMask(src);
+	}
+      };
+      if(auto src = boost::get<string>(&var))
+	add(*src);
+      else {
+	for(auto& a : boost::get<vector<pair<int, string>>>(var)) {
+	  add(a.second);
+	}
+      }
+      if(nmg.empty())
+	g_limiters.push_back({smn, QPSLimiter(lim, lim)});
+      else
+	g_limiters.push_back({nmg, QPSLimiter(lim, lim)});
+    });
+
+  g_lua.writeFunction("deleteQPSLimit", [](int i) {
+      g_limiters.erase(g_limiters.begin() + i);
+    });
+
+  g_lua.writeFunction("showQPSLimits", []() {
+      boost::format fmt("%-3d %-50s %7d %8d %8d\n");
+      g_outputBuffer += (fmt % "#" % "Object" % "Lim" % "Passed" % "Blocked").str();
+      int num=0;
+      for(const auto& lim : g_limiters) {
+	string name;
+	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
+	  name=nmg->toString();
+	}
+	else if(auto smn=boost::get<SuffixMatchNode>(&lim.first)) {
+	  name=smn->toString(); 
+	}
+	g_outputBuffer += (fmt % num % name % lim.second.getRate() % lim.second.getPassed() % lim.second.getBlocked()).str();
+	++num;
+      }
     });
 
 
