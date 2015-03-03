@@ -60,6 +60,6 @@ endif
 clean:
 	rm -rf html html.tar.bz2 *.8 *.1
 
-publish: html
+publish: html html.tar.bz2
 	rsync -crv --exclude '*~' ./html/ pdnsdocs@xs.powerdns.com:md/
 	rsync -crv --exclude '*~' ./html.tar.bz2 pdnsdocs@xs.powerdns.com:html.tar.bz2
