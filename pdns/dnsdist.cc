@@ -282,8 +282,8 @@ struct DownstreamState
   void setDown() { availability = Availability::Down; }
   void setAuto() { availability = Availability::Auto; }
 };
-
-vector<std::shared_ptr<DownstreamState> > g_dstates;
+using servers_t =vector<std::shared_ptr<DownstreamState>>;
+servers_t g_dstates;
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
@@ -345,7 +345,7 @@ struct ClientState
 std::mutex g_luamutex;
 LuaContext g_lua;
 
-typedef std::function<shared_ptr<DownstreamState>(const vector<shared_ptr<DownstreamState>>& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
+typedef std::function<shared_ptr<DownstreamState>(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
 
 struct ServerPolicy
 {
@@ -353,7 +353,7 @@ struct ServerPolicy
   policy_t policy;
 } g_policy;
 
-shared_ptr<DownstreamState> firstAvailable(const vector<shared_ptr<DownstreamState>>& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   for(auto& d : servers) {
     if(d->isUp() && d->qps.check())
@@ -366,7 +366,7 @@ shared_ptr<DownstreamState> firstAvailable(const vector<shared_ptr<DownstreamSta
   return g_dstates[counter % g_dstates.size()];
 }
 
-shared_ptr<DownstreamState> leastOutstanding(const vector<shared_ptr<DownstreamState>>& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<pair<int,int>, shared_ptr<DownstreamState>>> poss;
 
@@ -381,7 +381,7 @@ shared_ptr<DownstreamState> leastOutstanding(const vector<shared_ptr<DownstreamS
   return poss.begin()->second;
 }
 
-shared_ptr<DownstreamState> wrandom(const vector<shared_ptr<DownstreamState>>& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> wrandom(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<int, shared_ptr<DownstreamState>>> poss;
   int sum=0;
@@ -399,9 +399,9 @@ shared_ptr<DownstreamState> wrandom(const vector<shared_ptr<DownstreamState>>& s
   return p->second;
 }
 
-shared_ptr<DownstreamState> roundrobin(const vector<shared_ptr<DownstreamState>>& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> roundrobin(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  vector<shared_ptr<DownstreamState>> poss;
+  servers_t poss;
 
   for(auto& d : servers) {
     if(d->isUp()) {
@@ -443,7 +443,7 @@ SuffixMatchNode g_suffixMatchNodeFilter;
 
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
-using servers_t =vector<shared_ptr<DownstreamState>>;
+
 servers_t getDownstreamCandidates(const std::string& pool)
 {
   if(pool.empty())
