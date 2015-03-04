@@ -97,6 +97,9 @@ To change the QPS for a server:
 > getServer(0):setQPS(1000)
 ```
 
+Server pools
+------------
+
 Now for some cool stuff. Let's say we know we're getting a whole bunch of
 traffic for a domain used in DoS attacks, for example 'sh43354.cn'. We can
 do two things with this kind of traffic. Either we block it outright, like
