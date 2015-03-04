@@ -19,11 +19,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include <boost/accumulators/statistics/median.hpp>
-#include <boost/accumulators/statistics/mean.hpp>
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
-
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include <boost/circular_buffer.hpp>
 #include "sstuff.hh"
@@ -115,6 +110,9 @@ string g_outputBuffer;
 
 struct StopWatch
 {
+#ifndef CLOCK_MONOTONIC_RAW
+#define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
+#endif
   struct timespec d_start{0,0};
   void start() {  
     if(clock_gettime(CLOCK_MONOTONIC_RAW, &d_start) < 0)
@@ -1299,30 +1297,22 @@ void setupLua(bool client)
 	bin*=2;
       }
 
-      using namespace boost::accumulators;
-
-      typedef boost::accumulators::accumulator_set<
-	unsigned int
-	, stats<boost::accumulators::tag::median(with_p_square_quantile),
-		boost::accumulators::tag::mean(immediate)
-		>
-	> acc_t;
-      acc_t lats;
-
+      double totlat=0;
+      int size=0;
       {
 	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	
 	for(const auto& r : g_rings.respRing) {
+	  ++size;
 	  auto iter = histo.lower_bound(r.usec);
 	  if(iter != histo.end())
 	    iter->second++;
 	  else
 	    histo.rbegin()++;
-	  lats(r.usec);
+	  totlat+=r.usec;
 	}
       }
 
-      g_outputBuffer = (boost::format("Average response latency: %.02f msec, median: %.02f msec\n") % (0.001*mean(lats)) % (0.001*median(lats))).str();
+      g_outputBuffer = (boost::format("Average response latency: %.02f msec\n") % (0.001*totlat/size)).str();
       double highest=0;
       
       for(auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
@@ -1363,7 +1353,7 @@ void setupLua(bool client)
     });
 
   g_lua.writeFunction("makeKey", []() {
-      return "setKey("+newKey()+")";
+      g_outputBuffer="setKey("+newKey()+")\n";
     });
   
   g_lua.writeFunction("setKey", [](const std::string& key) {
