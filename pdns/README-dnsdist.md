@@ -106,11 +106,11 @@ this:
 > addDomainBlock("sh43354.cn.")
 ```
 
-Or we configure a server dedicated to receiving the nasty stuff:
+Or we configure a server pool dedicated to receiving the nasty stuff:
 
 ```
-> abuseServer(newServer("192.168.1.3"))
-> abuseSMN("sh43353.cn.")
+> newServer{address="192.168.1.3", pool="abuse")
+> addPoolRule({"sh43353.cn.", "ezdns.it."}, "abuse")
 ```
 
 The wonderful thing about this last solution is that it can also be used for
@@ -122,8 +122,13 @@ impacting the rest of the world (too much).
 We can similarly add clients to the abuse server:
 
 ```
-> abuseNM("192.168.12.0/24")
-> abuseNM("192.168.13.14")
+> addPoolRule({"192.168.12.0/24", "192.168.13.14"}, "abuse")
+```
+
+Pool rules can be inspected with `showPoolRules()`, and can be deleted with
+`rmPoolRule()`. Servers can be added or removed to pools with:
+```
+> getServer(7):addPool("abuse")
 ```
 
 More power
@@ -224,13 +229,12 @@ for example:
 
 ```
 counter=0
-servers=getServers()
-function luaroundrobin(remote, qname, qtype, dh) 
+function luaroundrobin(servers, remote, qname, qtype, dh) 
 	 counter=counter+1
 	 return servers[1+(counter % #servers)]
 end
 
-setServerPolicy(luaroundrobin)
+setServerPolicyLua("luaroundrobin", luaroundrobin)
 ```
 
 Incidentally, this is similar to setting: `setServerPolicy(roundrobin)`
@@ -242,20 +246,18 @@ Split horizon
 To implement a split horizon, try:
 
 ```
-authServer=newServer{address="2001:888:2000:1d::2", order=12}
--- order=12 is the current hack to make sure this server does 
--- not generally get used, will be replaced by dedicated pools later
+authServer=newServer{address="2001:888:2000:1d::2", pool="auth"}
 
-function splitSetup(remote, qname, qtype, dh)
+function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
 	 then
 		return authServer
 	 else
-		return leastOutstanding(remote, qname, qtype, dh)
+		return leastOutstanding(servers, remote, qname, qtype, dh)
 	 end
 end
 
-setServerPolicy(splitSetup)
+setServerPolicyLua("splitsetup", splitSetup)
 ```
 
 This will forward queries that don't want recursion to a specific
