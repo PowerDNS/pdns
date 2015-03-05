@@ -248,7 +248,6 @@ void setupLua(bool client)
 
   g_lua.writeFunction("getServer", [](int i) { return g_dstates[i]; });
 
-  g_lua.registerFunction<bool(DownstreamState::*)()>("checkQPS", [](DownstreamState& s) { return s.qps.check(); });
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
   g_lua.registerFunction<void(DownstreamState::*)(string)>("addPool", [](DownstreamState& s, string pool) { s.pools.insert(pool);});
   g_lua.registerFunction<void(DownstreamState::*)(string)>("rmPool", [](DownstreamState& s, string pool) { s.pools.erase(pool);});
@@ -260,7 +259,7 @@ void setupLua(bool client)
   g_lua.registerFunction("setDown", &DownstreamState::setDown);
   g_lua.registerFunction("setUp", &DownstreamState::setUp);
   g_lua.registerFunction("setAuto", &DownstreamState::setAuto);
-  g_lua.registerMember("upstatus", &DownstreamState::upStatus);
+  g_lua.registerMember("upStatus", &DownstreamState::upStatus);
   g_lua.registerMember("weight", &DownstreamState::weight);
   g_lua.registerMember("order", &DownstreamState::order);
   
@@ -297,7 +296,7 @@ void setupLua(bool client)
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction("tostring", &DNSName::toString);
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
-  g_lua.writeFunction("newSuffixNode", []() { return SuffixMatchNode(); });
+  g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
 
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
