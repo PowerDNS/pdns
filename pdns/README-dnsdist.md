@@ -167,7 +167,7 @@ Live histogram of latency
 -------------------------
 ```
 > showResponseLatency()
-Average response latency: 78.84 msec, median: 87.59 msec
+Average response latency: 78.84 msec
    msec	
    0.10	
    0.20	.
@@ -307,3 +307,124 @@ fe80::/10
 > showACL()
 ::/0
 ```
+
+All functions and types
+-----------------------
+Within `dnsdist` several core object types exist:
+ * Server: generated with newServer, represents a downstream server
+ * ComboAddress: represents an IP address and port
+ * DNSName: represents a domain name
+ * NetmaskGroup: represents a group of netmasks
+ * QPSLimiter: implements a QPS-based filter
+ * SuffixMatchNode: represents a group of domain suffixes for rapid testing of membership
+ * DNSHeader: represents the header of a DNS packet
+
+The existence of most of these objects can mostly be ignored, unless you
+plan to write your own hooks and policies, but it helps to understand an
+expressions like:
+
+```
+> getServer(0).order=12         -- set order of server 0 to 12
+> getServer(0):addPool("abuse") -- add this server to the abuse pool
+```
+The '.' means 'order' is a data member, while the ':' meand addPool is a member function.
+
+Here are all functions:
+
+ * ACL related:
+   * `addACL(netmask)`: add to the ACL set who can use this server
+   * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
+   * `showACL()`: show our ACL set
+ * Blocking related:
+   * `addDomainBlock(domain)`: block queries within this domain
+ * Control socket related:
+   * `makeKey()`: generate a new server access key, emit configuration line ready for pasting
+   * `setKey(key)`: set access key to that key. 
+   * `testCrypto()`: test of the crypto all works
+   * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
+ * Diagnostics and statistics
+   * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
+   * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
+   * `showResponseLatency()`: show a plot of the response time latency distribution
+ * Shaping related:
+   * `addQPSLimit(domain, n)`: limit queries within that domain to n per second
+   * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
+   * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
+   * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
+   * `rmQPSLimit(n)`: remove QPS limit n
+   * `showQPSLimits()`: outputs QPS limits
+ * Server related:
+   * `newServer("ip:port")`: instantiate a new downstream server with default settings
+   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse"})`: instantiate
+     a server with additional parameters
+   * `showServers()`: output all servers
+   * `getServer(n)`: returns server with index n 
+   * `getServers()`: returns a table with all defined servers
+   * `rmServer(n)`: remove server with index n
+   * `rmServer(server)`: remove this server object
+ * Server member functions:
+   * `addPool(pool)`: add this server to that pool
+   * `getOutstanding()`: this *returns* the number of outstanding queries (doesn't print it!)
+   * `rmPool(pool)`: remove server from that pool
+   * `setQPS(n)`: set the QPS setting to n
+   * `setAuto()`: set this server to automatic availability testing
+   * `setDown()`: force this server to be down
+   * `setUp()`: force this server to be UP
+   * `isUp()`: if this server is available
+ * Server member data:
+   * `upStatus`: if dnsdist considers this server available (overridden by `setDown()` and `setUp()`)
+   * `order`: order of this server in order-based server selection policies
+   * `weight`: weight of this server in weighted server selection policies
+ * Pool related:
+   * `addPoolRule(domain, pool)`: send queries to this domain to that pool
+   * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
+   * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
+   * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
+   * `rmPoolRule(n)`: remove rule n
+   * `showPoolRules()`: show the pool rules
+
+ * Server selection policy related:
+   * `setServerPolicy(policy)`: set server selection policy to that policy
+   * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
+   * `newServerPolicy(name, function)`: create a policy object from a Lua function
+ * Available policies:
+   * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
+   * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
+   * `roundrobin`: Simple round robin over available servers
+   * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order'
+ * Advanced functions for writing your own policies and hooks
+   * ComboAddress related:
+     * `tostring()`: return in human-friendly format
+   * DNSName related:
+     * `newDNSName(name)`: make a DNSName based on this .-terminated name
+     * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
+     * member `tostring()`: return as a human friendly . terminated string
+   * DNSHeader related
+     * member `getRD()`: get recursion desired flag
+     * member `setRD(bool)`: set recursion desired flag
+     * member `setTC(bool)`: set truncation flag (TC)
+     * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
+   * NetmaskGroup related
+     * nothing yet
+   * QPSLimiter related:
+     * `newQPSLimiter(rate, burst)`: configure a QPS limiter with that rate and that burst capacity
+     * member `check()`: check if this QPSLimiter has a token for us. If yes, you must use it.
+   * SuffixMatchNode related:
+     * newSuffixMatchNode(): returns a new SuffixMatchNode
+     * member `check(DNSName)`: returns true if DNSName is matched by this group
+     * member `add(DNSName)`: add this DNSName to the node
+
+All hooks
+---------
+`dnsdist` can call Lua per packet if so configured, and will do so with the following hooks:
+
+  * `bool blockfilter(ComboAddress, DNSName, qtype, DNSHeader)`: if defined, called for every function. If this
+    returns true, the packet is dropped. If false is returned, `dnsdist` will check if the DNSHeader indicates
+    the packet is now a query response. If so, `dnsdist` will answer the client directly with the modified packet.
+  * `server policy(candidates, ComboAddress, DNSName, qtype, DNSHeader)`: if configured with `setServerPolicyLua()` 
+    gets called for every packet. Candidates is a table of potential servers to pick from, ComboAddress is the 
+    address of the requestor, DNSName and qtype describe name and type of query. DNSHeader meanwhile is available for 
+    your inspection.
+
+
+  
