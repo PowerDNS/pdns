@@ -224,7 +224,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         us->d_overloaded=false;
       }
       
-      Answer *a;      
+      Answer *a; 
 
 #ifndef SMTPREDIR
       if(queuetimeout && q->d_dt.udiff()>queuetimeout*1000) {
@@ -240,13 +240,17 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       }
       catch(const PDNSException &e) {
         L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
-        delete b;
-        return 0;
+        a=q->replyPacket();
+        a->setRcode(RCode::ServFail);
+        S.inc("servfail-packets");
+        S.ringAccount("servfail-queries",q->qdomain);
       }
       catch(...) {
         L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
-        delete b;
-        return 0;
+        a=q->replyPacket();
+        a->setRcode(RCode::ServFail);
+        S.inc("servfail-packets");
+        S.ringAccount("servfail-queries",q->qdomain);
       }
 
       AnswerData<Answer> AD;
@@ -276,13 +280,19 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     L<<Logger::Error<<"Backend error: "<<e.reason<<endl;
     delete b;
     b=new Backend;
-    return 0;
+    a=q->replyPacket();
+    a->setRcode(RCode::ServFail);
+    S.inc("servfail-packets");
+    S.ringAccount("servfail-queries",q->qdomain);
   }
   catch(...) {
     L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
     delete b;
     b=new Backend;
-    return 0;
+    a=q->replyPacket();
+    a->setRcode(RCode::ServFail);
+    S.inc("servfail-packets");
+    S.ringAccount("servfail-queries",q->qdomain);
   }
   AnswerData<Answer> AD;
   AD.A=a;
