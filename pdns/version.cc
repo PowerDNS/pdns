@@ -115,7 +115,11 @@ void showBuildConfiguration()
   theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS
-  theL()<<Logger::Warning<<"Configured with: "<<PDNS_CONFIG_ARGS<<endl;
+#define double_escape(s) #s
+#define escape_quotes(s) double_escape(s)
+  theL()<<Logger::Warning<<"Configured with: "<<escape_quotes(PDNS_CONFIG_ARGS)<<endl;
+#undef escape_quotes
+#undef double_escape
 #endif
 }
 
