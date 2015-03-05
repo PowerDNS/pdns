@@ -561,6 +561,7 @@ dnsdist_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnsdist.cc \
+	dnsdist-lua.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \

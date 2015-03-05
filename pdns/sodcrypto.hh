@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <stdint.h>
-
+#include <sodium.h>
 void sodTest();
 std::string newKeypair();
 
