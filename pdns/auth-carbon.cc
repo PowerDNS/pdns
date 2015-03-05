@@ -56,7 +56,7 @@ try
       if(ret < 0)
 	L<<Logger::Warning<<"Error writing carbon data to "<<remote.toStringWithPort()<<": "<<strerror(errno)<<endl;
       if(ret==0)
-	L<<Logger::Warning<<"EOF writing carbon data to "<<remote.toStringWithPort();
+	L<<Logger::Warning<<"EOF writing carbon data to "<<remote.toStringWithPort()<<endl;
     }
     catch(std::exception& e) {
       L<<Logger::Warning<<"Problem sending carbon data: "<<e.what()<<endl;
