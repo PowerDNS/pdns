@@ -113,13 +113,14 @@ struct IDState
     age.store(orig.age.load());
   }
 
-  int origFD;  // set to <0 to indicate this state is empty
-  uint16_t origID;
-  ComboAddress origRemote;
-  StopWatch sentTime;
-  DNSName qname;
-  uint16_t qtype;
-  std::atomic<uint64_t> age;
+  int origFD;  // set to <0 to indicate this state is empty   // 4
+
+  ComboAddress origRemote;                                    // 28
+  StopWatch sentTime;                                         // 16
+  DNSName qname;                                              // 80
+  std::atomic<uint16_t> age;                                  // 4
+  uint16_t qtype;                                             // 2
+  uint16_t origID;                                            // 2
 };
 
 struct Rings {

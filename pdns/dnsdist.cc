@@ -152,7 +152,6 @@ DownstreamState::DownstreamState(const ComboAddress& remote_)
   
   fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
   SConnect(fd, remote);
-  
   idStates.resize(g_maxOutstanding);
   sw.start();
   infolog("Added downstream server %s", remote.toStringWithPort());
@@ -931,7 +930,7 @@ try
     ("command,c", po::value<string>(), "Execute this command on a running dnsdist")
     ("daemon", po::value<bool>()->default_value(true), "run in background")
     ("local", po::value<vector<string> >(), "Listen on which addresses")
-    ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
+    ("max-outstanding", po::value<uint16_t>()->default_value(1024), "maximum outstanding queries per downstream")
     ("regex-drop", po::value<string>(), "If set, block queries matching this regex. Mind trailing dot!")
     ("verbose,v", "be verbose");
     
