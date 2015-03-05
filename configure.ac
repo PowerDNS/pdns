@@ -327,6 +327,11 @@ AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
 
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
+AC_ARG_VAR(PACKAGEVERSION,[The version used in secpoll queries])
+AS_IF([test "x$PACKAGEVERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
+)
+
 export moduledirs moduleobjects modulelibs
 
 AC_CONFIG_FILES([
