@@ -238,6 +238,8 @@ try
 
   int count=0;
 
+  openDB();
+
   if(zonefile.empty()) {
     BindParser BP;
     BP.setVerbose(::arg().mustDo("verbose"));
@@ -258,7 +260,6 @@ try
     int tick=numdomains/100;
 
     cout <<"[";
-    openDB();
     for(vector<BindDomainInfo>::const_iterator i=domains.begin(); i!=domains.end(); ++i) {
       if(i->type!="master" && i->type!="slave") {
         cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
