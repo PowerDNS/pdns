@@ -45,7 +45,7 @@ private:
     void needReload();
     inline bool get_finished();
     static int s_reloadcount;
-    static pthread_mutex_t s_initlock;
+    static pthread_rwlock_t s_initlock;
 
 public:
     LMDBBackend(const string &suffix="");
