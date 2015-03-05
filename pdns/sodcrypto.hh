@@ -23,8 +23,9 @@ struct SodiumNonce
   
   void increment()
   {
-    uint64_t* p = (uint64_t*)value;
-    (*p)++;
+    uint32_t* p = (uint32_t*)value;
+    uint32_t count=htonl(*p);
+    *p=ntohl(++count);
   }
 
   string toString() const
