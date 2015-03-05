@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
-#include <deque>
+#include <vector>
 #include <set>
+#include <deque>
 #include <strings.h>
 
 /* Quest in life: 
@@ -15,8 +16,6 @@
 
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
-
-// As a side note, we currently store the labels in a fancy deque<>, but we could go for native format storage easily
 
 class DNSName
 {
@@ -32,27 +31,27 @@ public:
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
-  std::deque<std::string> getRawLabels() const; //!< Individual raw unescaped labels
+  std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
+  unsigned int countLabels() const;
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
-    for(const auto& r : rhs.d_labels)
-      d_labels.push_back(r);
+    d_storage+=rhs.d_storage;
     return *this;
   }
 
   bool operator<(const DNSName& rhs)  const
   {
-    return std::lexicographical_compare(d_labels.rbegin(), d_labels.rend(), 
-				 rhs.d_labels.rbegin(), rhs.d_labels.rend(),
-				 [](const std::string& a, const std::string& b) {
-				   return strcasecmp(a.c_str(), b.c_str()) < 0; // trips over embedded nulls XXX
+    return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
+				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
+				 [](const char& a, const char& b) {
+					  return tolower(a) < tolower(b); 
 				 });
   }
 
 private:
-  std::deque<std::string> d_labels;
+  std::string d_storage;
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };
@@ -87,7 +86,7 @@ struct SuffixMatchNode
     add(name.getRawLabels());
   }
 
-  void add(std::deque<std::string> labels) const
+  void add(std::vector<std::string> labels) const
   {
     if(labels.empty()) { // this allows insertion of the root
       endNode=true;
@@ -107,7 +106,7 @@ struct SuffixMatchNode
     return check(name.getRawLabels());
   }
 
-  bool check(std::deque<std::string> labels) const
+  bool check(std::vector<std::string> labels) const
   {
     if(labels.empty()) // optimization
       return endNode; 

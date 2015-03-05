@@ -4,12 +4,23 @@
 #include "dnswriter.hh"
 #include "misc.hh"
 
+/* raw storage
+   in DNS label format, without trailing 0. So the root is of length 0.
+
+   www.powerdns.com = 3www8powerdns3com 
+   
+   a primitive is nextLabel()
+*/
+
 DNSName::DNSName(const char* p)
 {
-  d_labels = segmentDNSName(p);
-  for(const auto& e : d_labels)
+  auto labels = segmentDNSName(p);
+  for(const auto& e : labels) {
     if(e.size() > 63)
       throw std::range_error("label too long");
+    d_storage.append(1, (char)e.size());
+    d_storage.append(e);
+  }
 }
 
 // this should be the __only__ dns name parser in PowerDNS. 
@@ -31,7 +42,7 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
       pos++;
       break;
     }
-    d_labels.push_back(string(pos, labellen));
+    appendRawLabel(string(pos, labellen));
     pos+=labellen;
   }
   if(qtype && pos + labellen + 2 <= end)  
@@ -45,10 +56,10 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
 
 std::string DNSName::toString() const
 {
-  if(d_labels.empty())  // I keep wondering if there is some deeper meaning to the need to do this
+  if(d_storage.empty())  // I keep wondering if there is some deeper meaning to the need to do this
     return ".";
   std::string ret;
-  for(const auto& s : d_labels) {
+  for(const auto& s : getRawLabels()) {
     ret+= escapeLabel(s) + ".";
   }
   return ret;
@@ -56,25 +67,22 @@ std::string DNSName::toString() const
 
 std::string DNSName::toDNSString() const
 {
-  std::string ret;
-  for(const auto& s : d_labels) {
-    ret.append(1, (char) s.length());
-    ret.append(s);
-  }
-  ret.append(1, (char)0);
+  string ret(d_storage);
+  ret.append(1,(char)0);
   return ret;
 }
 
 
+// true of a comparison from the end of parent terminates
 bool DNSName::isPartOf(const DNSName& parent) const
 {
-  auto us = d_labels.crbegin();
-  auto p = parent.d_labels.crbegin();
-  for(; us != d_labels.crend() && p != parent.d_labels.crend(); ++us, ++p) {
-    if(!pdns_iequals(*p, *us))
+  auto us = d_storage.crbegin();
+  auto p = parent.d_storage.crbegin();
+  for(; us != d_storage.crend() && p != parent.d_storage.crend(); ++us, ++p) {
+    if(tolower(*p) != tolower(*us))
       break;
   }
-  return (p==parent.d_labels.crend());
+  return (p==parent.d_storage.crend());
 }
 
 void DNSName::appendRawLabel(const std::string& label)
@@ -83,7 +91,8 @@ void DNSName::appendRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label");
   if(label.size() > 63)
     throw std::range_error("label too long");
-  d_labels.push_back(label);
+  d_storage.append(1, (char)label.size());
+  d_storage.append(label);
 }
 
 void DNSName::prependRawLabel(const std::string& label)
@@ -94,37 +103,53 @@ void DNSName::prependRawLabel(const std::string& label)
   if(label.size() > 63)
     throw std::range_error("label too long");
 
-  d_labels.push_front(label);
+  string prep(1, (char)label.size());
+  prep.append(label);
+  d_storage = prep+d_storage;
 }
 
-deque<string> DNSName::getRawLabels() const
+vector<string> DNSName::getRawLabels() const
 {
-  return d_labels;
+  vector<string> ret;
+
+  // 3www4ds9a2nl
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1) {
+    ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
+  }
+  return ret;
 }
 
 bool DNSName::chopOff() 
 {
-  if(d_labels.empty())
+  if(d_storage.empty())
     return false;
-  d_labels.pop_front();
+  d_storage = d_storage.substr((unsigned int)d_storage[0]+1);
   return true;
+}
+
+unsigned int DNSName::countLabels() const
+{
+  unsigned int count=0;
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p) 
+    ++count;
+  return count;
 }
 
 void DNSName::trimToLabels(unsigned int to)
 {
-  while(d_labels.size() > to && chopOff())
+  while(countLabels() > to && chopOff())
     ;
 }
 
 bool DNSName::operator==(const DNSName& rhs) const
 {
-  if(rhs.d_labels.size() != d_labels.size())
+  if(rhs.d_storage.size() != d_storage.size())
     return false;
 
-  auto us = d_labels.crbegin();
-  auto p = rhs.d_labels.crbegin();
-  for(; us != d_labels.crend() && p != rhs.d_labels.crend(); ++us, ++p) {
-    if(!pdns_iequals(*p, *us))
+  auto us = d_storage.crbegin();
+  auto p = rhs.d_storage.crbegin();
+  for(; us != d_storage.crend() && p != rhs.d_storage.crend(); ++us, ++p) {
+    if(tolower(*p) != tolower(*us))
       return false;
   }
   return true;
