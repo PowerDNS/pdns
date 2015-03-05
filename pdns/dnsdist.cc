@@ -49,10 +49,8 @@
    We neglect to do recvfromto() on 0.0.0.0
    Receiver is currently singlethreaded (not that bad actually)
    We can't compile w/o crypto
-   our naming is as inconsistent as only ahu can make it
    lack of help()
    we offer now way to log from Lua
-   our startup fails *after* fork on most cases, which is not overly helpful
 */
 
 ArgvMap& arg()
@@ -72,7 +70,7 @@ uint16_t g_maxOutstanding;
 bool g_console;
 NetmaskGroup g_ACL;
 string g_outputBuffer;
-
+vector<ComboAddress> g_locals;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -268,12 +266,9 @@ ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 servers_t getDownstreamCandidates(const std::string& pool)
 {
-  if(pool.empty())
-    return g_dstates;
-  
   servers_t ret;
   for(auto& s : g_dstates) 
-    if(s->pools.count(pool))
+    if((pool.empty() && s->pools.empty()) || s->pools.count(pool))
       ret.push_back(s);
   
   return ret;
@@ -800,6 +795,22 @@ void doClient(ComboAddress server)
   writen2(fd, (const char*)ours.value, sizeof(ours.value));
   readn2(fd, (char*)theirs.value, sizeof(theirs.value));
 
+  if(g_vm.count("command")) {
+    auto command = g_vm["command"].as<string>();
+    string response;
+    string msg=sodEncryptSym(command, g_key, ours);
+    putMsgLen(fd, msg.length());
+    writen2(fd, msg);
+    uint16_t len;
+    getMsgLen(fd, &len);
+    char resp[len];
+    readn2(fd, resp, len);
+    msg.assign(resp, len);
+    msg=sodDecryptSym(msg, g_key, theirs);
+    cout<<msg<<endl;
+    return; 
+  }
+
   set<string> dupper;
   {
     ifstream history(".history");
@@ -917,6 +928,7 @@ try
     ("help,h", "produce help message")
     ("config", po::value<string>()->default_value("/etc/dnsdist.conf"), "Filename with our configuration")
     ("client", "be a client")
+    ("command,c", po::value<string>(), "Execute this command on a running dnsdist")
     ("daemon", po::value<bool>()->default_value(true), "run in background")
     ("local", po::value<vector<string> >(), "Listen on which addresses")
     ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
@@ -947,11 +959,36 @@ try
   g_policy = leastOutstandingPol;
 
 
-  if(g_vm.count("client")) {
+  if(g_vm.count("client") || g_vm.count("command")) {
     setupLua(true);
     doClient(g_serverControl);
     exit(EXIT_SUCCESS);
   }
+
+  auto todo=setupLua(false);
+
+  if(g_vm.count("local")) {
+    g_locals.clear();
+    for(auto loc : g_vm["local"].as<vector<string> >())
+      g_locals.push_back(ComboAddress(loc, 53));
+  }
+  
+  if(g_locals.empty())
+    g_locals.push_back(ComboAddress("0.0.0.0", 53));
+  
+
+  vector<ClientState*> toLaunch;
+  for(const auto& local : g_locals) {
+    ClientState* cs = new ClientState;
+    cs->local= local;
+    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+    SBind(cs->udpFD, cs->local);    
+    toLaunch.push_back(cs);
+  }
+
   if(g_vm["daemon"].as<bool>())  {
     g_console=false;
     daemonize();
@@ -960,10 +997,13 @@ try
     vinfolog("Running in the foreground");
   }
 
+  for(auto& t : todo)
+    t();
+
   for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
     g_ACL.addMask(addr);
 
-  setupLua(false);
+
   if(g_vm.count("remotes")) {
     for(const auto& address : g_vm["remotes"].as<vector<string>>()) {
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
@@ -980,28 +1020,15 @@ try
     }
   }
 
-  vector<string> locals;
-  if(g_vm.count("local"))
-    locals = g_vm["local"].as<vector<string> >();
-  else
-    locals.push_back("::");
 
-  for(const string& local : locals) {
-    ClientState* cs = new ClientState;
-    cs->local= ComboAddress(local, 53);
-    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-    SBind(cs->udpFD, cs->local);    
-
+  for(auto& cs : toLaunch) {
     thread t1(udpClientThread, cs);
     t1.detach();
   }
 
-  for(const string& local : locals) {
+  for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= ComboAddress(local, 53);
+    cs->local= local;
 
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
 

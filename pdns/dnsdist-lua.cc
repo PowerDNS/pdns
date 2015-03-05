@@ -7,25 +7,39 @@
 
 using std::thread;
 
-void setupLua(bool client)
+static vector<std::function<void(void)>>* g_launchWork;
+
+vector<std::function<void(void)>> setupLua(bool client)
 {
+  g_launchWork= new vector<std::function<void(void)>>();
   g_lua.writeFunction("newServer", 
-		      [](boost::variant<string,std::unordered_map<std::string, std::string>> pvars, boost::optional<int> qps)
+		      [client](boost::variant<string,std::unordered_map<std::string, std::string>> pvars, boost::optional<int> qps)
 		      { 
+			if(client) {
+			  return shared_ptr<DownstreamState>();
+			}
 			if(auto address = boost::get<string>(&pvars)) {
 			  auto ret=std::make_shared<DownstreamState>(ComboAddress(*address, 53));
-			  ret->tid = move(thread(responderThread, ret));
+
 			  if(qps) {
 			    ret->qps=QPSLimiter(*qps, *qps);
 			  }
 			  g_dstates.push_back(ret);
+
+			  if(g_launchWork) {
+			    g_launchWork->push_back([ret]() {
+				ret->tid = move(thread(responderThread, ret));
+			      });
+			  }
+			  else {
+			    ret->tid = move(thread(responderThread, ret));
+			  }
+
 			  return ret;
 			}
 			auto vars=boost::get<std::unordered_map<std::string, std::string>>(pvars);
 			auto ret=std::make_shared<DownstreamState>(ComboAddress(vars["address"], 53));
-
-			ret->tid = move(thread(responderThread, ret));
-
+			
 			if(vars.count("qps")) {
 			  ret->qps=QPSLimiter(boost::lexical_cast<int>(vars["qps"]),boost::lexical_cast<int>(vars["qps"]));
 			}
@@ -42,6 +56,14 @@ void setupLua(bool client)
 			  ret->weight=boost::lexical_cast<int>(vars["weight"]);
 			}
 
+			if(g_launchWork) {
+			  g_launchWork->push_back([ret]() {
+			      ret->tid = move(thread(responderThread, ret));
+			    });
+			}
+			else {
+			  ret->tid = move(thread(responderThread, ret));
+			}
 
 			g_dstates.push_back(ret);
 			std::stable_sort(g_dstates.begin(), g_dstates.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
@@ -85,6 +107,18 @@ void setupLua(bool client)
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
       g_ACL.addMask(domain);
+    });
+
+  g_lua.writeFunction("addLocal", [client](const std::string& addr) {
+      if(client)
+	return;
+      try {
+	ComboAddress loc(addr, 53);
+	g_locals.push_back(loc);
+      }
+      catch(std::exception& e) {
+	g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
     });
   g_lua.writeFunction("setACL", [](const vector<pair<int, string>>& parts) {
     NetmaskGroup nmg;
@@ -285,11 +319,6 @@ void setupLua(bool client)
       dh.qr=v;
     });
 
-  std::ifstream ifs(g_vm["config"].as<string>());
-  if(!ifs) 
-    warnlog("Unable to read configuration from '%s'", g_vm["config"].as<string>());
-  else
-    infolog("Read configuration from '%s'", g_vm["config"].as<string>());
 
   g_lua.registerFunction("tostring", &ComboAddress::toString);
 
@@ -314,8 +343,15 @@ void setupLua(bool client)
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 	SBind(sock, local);
 	SListen(sock, 5);
-	thread t(controlThread, sock, local);
-	t.detach();
+	auto launch=[sock, local]() {
+	    thread t(controlThread, sock, local);
+	    t.detach();
+	};
+	if(g_launchWork) 
+	  g_launchWork->push_back(launch);
+	else
+	  launch();
+	    
       }
       catch(std::exception& e) {
 	errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), e.what());
@@ -487,6 +523,12 @@ void setupLua(bool client)
        string encrypted = sodEncryptSym(testmsg, g_key, sn);
        string decrypted = sodDecryptSym(encrypted, g_key, sn2);
        
+       sn.increment();
+       sn2.increment();
+
+       encrypted = sodEncryptSym(testmsg, g_key, sn);
+       decrypted = sodDecryptSym(encrypted, g_key, sn2);
+
        if(testmsg == decrypted)
 	 g_outputBuffer="Everything is ok!\n";
        else
@@ -498,6 +540,15 @@ void setupLua(bool client)
      }});
 
   
+  std::ifstream ifs(g_vm["config"].as<string>());
+  if(!ifs) 
+    warnlog("Unable to read configuration from '%s'", g_vm["config"].as<string>());
+  else
+    infolog("Read configuration from '%s'", g_vm["config"].as<string>());
 
   g_lua.executeCode(ifs);
+  auto ret=*g_launchWork;
+  delete g_launchWork;
+  g_launchWork=0;
+  return ret;
 }

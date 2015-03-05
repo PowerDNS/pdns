@@ -200,7 +200,7 @@ extern LuaContext g_lua;
 extern ServerPolicy g_policy;
 extern servers_t g_dstates;
 extern std::string g_outputBuffer;
-
+extern std::vector<ComboAddress> g_locals;
 struct dnsheader;
 std::shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
@@ -213,7 +213,8 @@ extern SuffixMatchNode g_suffixMatchNodeFilter;
 extern ComboAddress g_serverControl;
 void controlThread(int fd, ComboAddress local);
 extern NetmaskGroup g_ACL;
-void setupLua(bool client);
+
+vector<std::function<void(void)>> setupLua(bool client);
 extern std::string g_key;
 namespace po = boost::program_options;
 extern po::variables_map g_vm;
