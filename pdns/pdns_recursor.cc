@@ -1879,6 +1879,9 @@ int serviceMain(int argc, char*argv[])
   signal(SIGPIPE,SIG_IGN);
   writePid();
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
+  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
+  g_maxMThreads = ::arg().asNum("max-mthreads");
+  checkOrFixFDS();
   
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -1897,14 +1900,11 @@ int serviceMain(int argc, char*argv[])
   }
 
   Utility::dropUserPrivs(newuid);
-  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   
   makeThreadPipes();
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
-  g_maxMThreads=::arg().asNum("max-mthreads");	
-  checkOrFixFDS();
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
