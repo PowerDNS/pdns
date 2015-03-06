@@ -48,13 +48,8 @@ endif
 
 if HAVE_LINKCHECKER
 check-links: html
-	linkchecker --anchors \
-	  --ignore-url=.eot$ \
-	  --ignore-url=\.svg \
-	  --ignore-url=mailto \
-	  --ignore-url=.ttf$ \
-	  --ignore-url=woff$ \
-	  html/index.html
+	./checklinks.sh
+
 endif
 
 clean:
