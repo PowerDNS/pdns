@@ -273,7 +273,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
   case QType::CNAME:
   case QType::NS:
     if(!stripDomainSuffix(&content, domain))
-      content+=".";
+      content=stripDot(content)+".";
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<content<<endl;
     break;
   default:
