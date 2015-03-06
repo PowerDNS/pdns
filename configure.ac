@@ -153,8 +153,7 @@ darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
   ;;
 freebsd*)
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS"
+  THREADFLAGS="-pthread"
   have_freebsd="yes"
   ;;
 *)
