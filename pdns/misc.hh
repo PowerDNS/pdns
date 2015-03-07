@@ -34,7 +34,6 @@
 #include <boost/multi_index/sequenced_index.hpp>
 using namespace ::boost::multi_index;
 
-#include "utility.hh"
 #include "dns.hh"
 #include <sys/time.h>
 #include <sys/types.h>
@@ -206,13 +205,13 @@ private:
 
 inline void DTime::set()
 {
-  Utility::gettimeofday(&d_set,0);
+  gettimeofday(&d_set,0);
 }
 
 inline int DTime::udiff()
 {
   int res=udiffNoReset();
-  Utility::gettimeofday(&d_set,0);
+  gettimeofday(&d_set,0);
   return res;
 }
 
@@ -220,7 +219,7 @@ inline int DTime::udiffNoReset()
 {
   struct timeval now;
 
-  Utility::gettimeofday(&now,0);
+  gettimeofday(&now,0);
   int ret=1000000*(now.tv_sec-d_set.tv_sec)+(now.tv_usec-d_set.tv_usec);
   return ret;
 }
@@ -283,7 +282,7 @@ inline string toUpper( const string& s )
 inline double getTime()
 {
   struct timeval now;
-  Utility::gettimeofday(&now,0);
+  gettimeofday(&now,0);
   
   return now.tv_sec+now.tv_usec/1000000.0;
 }
@@ -545,4 +544,11 @@ void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
 void setSocketTimestamps(int fd);
+
+//! Sets the socket into blocking mode.
+bool setBlocking( int sock );
+
+//! Sets the socket into non-blocking mode.
+bool setNonBlocking( int sock );
+
 #endif
