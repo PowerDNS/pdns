@@ -11,7 +11,7 @@ AC_DEFUN([PDNS_WITH_LUA],[
     AS_IF([test "x$with_lua" = "xyes" -o "x$with_lua" = "xauto"],
       [for LUAPC in lua5.3 lua-5.3 lua5.2 lua-5.2 lua5.1 lua-5.1 lua; do
          PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-           AC_DEFINE([HAVE_LUA], [1], [liblua])
+           AC_DEFINE([HAVE_LUA], [1], [Define to 1 if you have lua])
            with_lua=yes
          ], [LUAPC=""]) # otherwise pkg_check will fail
          if test "x$LUA_LIBS" != "x"; then break; fi
@@ -19,7 +19,7 @@ AC_DEFUN([PDNS_WITH_LUA],[
       ],
       [LUAPC="$with_lua"
         PKG_CHECK_MODULES([LUA], $LUAPC >= 5.1, [
-          AC_DEFINE([HAVE_LUA], [1], [liblua])
+          AC_DEFINE([HAVE_LUA], [1], [Define to 1 if you have lua])
           with_lua=yes
         ])
     ])
