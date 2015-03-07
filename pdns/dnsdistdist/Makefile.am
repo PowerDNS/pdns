@@ -22,7 +22,7 @@ dnsdist_SOURCES = \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
 	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh LuaContext.hpp
+	sstuff.hh pdns/ext/luawrapper/include/LuaContext.hpp
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \

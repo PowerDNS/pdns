@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cp ../base32.hh ../base64.cc ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc ../dns.hh \
-../dnslabeltext.cc ../dnsname.cc ../dnsname.hh ../dnsparser.hh ../dnswriter.cc ../dnswriter.hh \
+../dnslabeltext.{cc,rl} ../dnsname.cc ../dnsname.hh ../dnsparser.hh ../dnswriter.cc ../dnswriter.hh \
 ../dolog.hh ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
 ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sodcrypto.cc ../sodcrypto.hh ../sstuff.hh .
 
