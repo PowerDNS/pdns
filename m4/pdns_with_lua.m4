@@ -1,9 +1,11 @@
 AC_DEFUN([PDNS_WITH_LUA],[
-  dnl Check for lua
+  AC_MSG_CHECKING([whether we will be linking in Lua])
   AC_ARG_WITH([lua],
     [AS_HELP_STRING([--with-lua], [build Lua Bindings @<:@default=auto@:>@])],
     [with_lua=$withval],
-    [with_lua=auto])
+    [with_lua=auto]
+  )
+  AC_MSG_RESULT([$with_lua])
 
   AS_IF([test "x$with_lua" != "xno"],[
     AS_IF([test "x$with_lua" = "xyes" -o "x$with_lua" = "xauto"],
