@@ -556,30 +556,19 @@ dnstcpbench_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsdist_SOURCES = \
-	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \
-	dns.cc \
 	dnsdist.cc \
 	dnsdist-lua.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
-	dnsparser.cc dnsparser.hh \
-	dnsrecords.cc \
-	dnswriter.cc dnswriter.hh \
+	dnswriter.cc \
 	dolog.hh \
 	iputils.cc \
-	logger.cc \
-	lua-iputils.cc \
 	misc.cc misc.hh \
-	nsecrecords.cc \
 	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	sillyrecords.cc \
 	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh \
-	statbag.cc \
-	unix_utility.cc
+	sstuff.hh 
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \

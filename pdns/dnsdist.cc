@@ -23,14 +23,12 @@
 #include "dnsdist.hh"
 #include "sstuff.hh"
 #include "misc.hh"
-#include "statbag.hh"
 #include <netinet/tcp.h>
 
 
 
 #include <limits>
 
-#include "arguments.hh"
 #include "dolog.hh"
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -53,12 +51,6 @@
    we offer now way to log from Lua
 */
 
-ArgvMap& arg()
-{
-  static ArgvMap a;
-  return a;
-}
-StatBag S;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 using std::atomic;
@@ -68,7 +60,8 @@ atomic<uint64_t> g_pos;
 atomic<uint64_t> g_regexBlocks;
 uint16_t g_maxOutstanding;
 bool g_console;
-NetmaskGroup g_ACL;
+
+GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 vector<ComboAddress> g_locals;
 
@@ -303,13 +296,15 @@ try
     if(candidate)
       blockFilter = *candidate;
   }
+  auto acl = g_ACL.getLocal();
   for(;;) {
     try {
       len = recvfrom(cs->udpFD, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
       if(len < (int)sizeof(struct dnsheader)) 
 	continue;
+
       
-      if(!g_ACL.match(remote))
+      if(!acl->match(remote))
 	continue;
       
       if(dh->qr)    // don't respond to responses
@@ -999,9 +994,10 @@ try
   for(auto& t : todo)
     t();
 
+  auto acl = g_ACL.getCopy();
   for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
-    g_ACL.addMask(addr);
-
+    acl->addMask(addr);
+  g_ACL.setState(acl);
 
   if(g_vm.count("remotes")) {
     for(const auto& address : g_vm["remotes"].as<vector<string>>()) {

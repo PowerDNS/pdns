@@ -106,7 +106,9 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
-      g_ACL.addMask(domain);
+      auto state=g_ACL.getCopy();
+      state->addMask(domain);
+      g_ACL.setState(state);
     });
 
   g_lua.writeFunction("addLocal", [client](const std::string& addr) {
@@ -121,19 +123,20 @@ vector<std::function<void(void)>> setupLua(bool client)
       }
     });
   g_lua.writeFunction("setACL", [](const vector<pair<int, string>>& parts) {
-    NetmaskGroup nmg;
-    for(const auto& p : parts) {
-      nmg.addMask(p.second);
-    }
-    g_ACL=nmg;
+      auto nmg = std::make_shared<NetmaskGroup>();
+      for(const auto& p : parts) {
+	nmg->addMask(p.second);
+      }
+      g_ACL.setState(nmg);
   });
   g_lua.writeFunction("showACL", []() {
       vector<string> vec;
-      g_ACL.toStringVector(&vec);
-      string ret;
+
+      g_ACL.getCopy()->toStringVector(&vec);
+
       for(const auto& s : vec)
-	ret+=s+"\n";
-      return ret;
+        g_outputBuffer+=s+"\n";
+
     });
   g_lua.writeFunction("shutdown", []() { _exit(0);} );
 
@@ -376,7 +379,7 @@ vector<std::function<void(void)>> setupLua(bool client)
 	}
 
       }
-      cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
+      // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
       vector<pair<int, DNSName>> rcounts;
       for(const auto& c : counts) 
 	rcounts.push_back(make_pair(c.second, c.first));
