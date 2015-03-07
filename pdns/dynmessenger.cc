@@ -21,6 +21,7 @@
 */
 #include "dynmessenger.hh"
 #include <cstdio>
+#include "utility.hh"
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>

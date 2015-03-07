@@ -6,7 +6,7 @@
 #include <map>
 #include "dns.hh"
 #include "namespaces.hh"
-
+#include <arpa/inet.h>
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes 
     the packet header and record headers.
 
