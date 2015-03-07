@@ -2,6 +2,7 @@
 #include <string>
 #include <stdint.h>
 #include <sodium.h>
+#include <arpa/inet.h>
 void sodTest();
 std::string newKeypair();
 

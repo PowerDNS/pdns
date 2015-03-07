@@ -104,9 +104,9 @@ void UDPNameserver::bindIPv4()
       throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
     }
   
-    Utility::setCloseOnExec(s);
+    setCloseOnExec(s);
   
-    if(!Utility::setNonBlocking(s))
+    if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
   
     memset(&locala,0,sizeof(locala));
@@ -206,8 +206,8 @@ void UDPNameserver::bindIPv6()
       throw PDNSException("Unable to acquire UDPv6 socket: "+string(strerror(errno)));
     }
 
-    Utility::setCloseOnExec(s);
-    if(!Utility::setNonBlocking(s))
+    setCloseOnExec(s);
+    if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));

@@ -64,7 +64,7 @@ DynListener::~DynListener()
 void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t len)
 {
   d_s=socket(family, SOCK_STREAM,0);
-  Utility::setCloseOnExec(d_s);
+  setCloseOnExec(d_s);
 
   if(d_s < 0) {
     if (family == AF_UNIX)

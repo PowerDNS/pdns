@@ -550,5 +550,6 @@ bool setBlocking( int sock );
 
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
-
+int closesocket(int fd);
+bool setCloseOnExec(int sock);
 #endif

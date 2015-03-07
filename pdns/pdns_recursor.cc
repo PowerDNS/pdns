@@ -303,7 +303,7 @@ public:
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
       //      returnSocket(*fd);
-      Utility::closesocket(*fd);
+      closesocket(*fd);
       if(err==ENETUNREACH) // Seth "My Interfaces Are Like A Yo Yo" Arnold special
         return -2;
       return -1;
@@ -335,7 +335,7 @@ public:
     catch(FDMultiplexerException& e) {
       // we sometimes return a socket that has not yet been assigned to t_fdm
     }
-    Utility::closesocket(*i);
+    closesocket(*i);
     
     d_socks.erase(i++);
     --d_numsocks;
@@ -352,7 +352,7 @@ public:
     if(ret<0) 
       throw PDNSException("Making a socket for resolver (family = "+lexical_cast<string>(family)+"): "+stringerror());
 
-    Utility::setCloseOnExec(ret);
+    setCloseOnExec(ret);
 
     int tries=10;
     while(--tries) {
@@ -371,7 +371,7 @@ public:
     if(!tries)
       throw PDNSException("Resolver binding to local query client socket: "+stringerror());
     
-    Utility::setNonBlocking(ret);
+    setNonBlocking(ret);
     return ret;
   }
 };
@@ -483,7 +483,7 @@ TCPConnection::TCPConnection(int fd, const ComboAddress& addr) : d_remote(addr),
 
 TCPConnection::~TCPConnection()
 {
-  if(Utility::closesocket(d_fd) < 0) 
+  if(closesocket(d_fd) < 0) 
     unixDie("closing socket for TCPConnection");
   if(t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--) 
     t_tcpClientCounts->erase(d_remote);
@@ -898,7 +898,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   if(newsock>0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
-      Utility::closesocket(newsock);
+      closesocket(newsock);
       return;
     }
 
@@ -909,16 +909,16 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
         L<<Logger::Error<<"["<<MT->getTid()<<"] dropping TCP query from "<<addr.toString()<<", address not matched by allow-from"<<endl;
 
       g_stats.unauthorizedTCP++;
-      Utility::closesocket(newsock);
+      closesocket(newsock);
       return;
     }
     if(g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       g_stats.tcpClientOverflow++;
-      Utility::closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
+      closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
       return;
     }
     
-    Utility::setNonBlocking(newsock);
+    setNonBlocking(newsock);
     shared_ptr<TCPConnection> tc(new TCPConnection(newsock, addr));
     tc->state=TCPConnection::BYTE0;
     
@@ -1112,7 +1112,7 @@ void makeTCPServerSockets()
     if(fd<0) 
       throw PDNSException("Making a TCP server socket for resolver: "+stringerror());
 
-    Utility::setCloseOnExec(fd);
+    setCloseOnExec(fd);
 
     int tmp=1;
     if(setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) {
@@ -1138,7 +1138,7 @@ void makeTCPServerSockets()
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0) 
       throw PDNSException("Binding TCP server socket for "+ st.host +": "+stringerror());
     
-    Utility::setNonBlocking(fd);
+    setNonBlocking(fd);
     setSocketSendBuffer(fd, 65000);
     listen(fd, 128);
     deferredAdd.push_back(make_pair(fd, handleNewTCPQuestion));
@@ -1194,7 +1194,7 @@ void makeUDPServerSockets()
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET6, fd);
 
-    Utility::setCloseOnExec(fd);
+    setCloseOnExec(fd);
 
     setSocketReceiveBuffer(fd, 250000);
     sin.sin4.sin_port = htons(st.port);
@@ -1203,7 +1203,7 @@ void makeUDPServerSockets()
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0) 
       throw PDNSException("Resolver binding to server socket on port "+ lexical_cast<string>(st.port) +" for "+ st.host+": "+stringerror());
     
-    Utility::setNonBlocking(fd);
+    setNonBlocking(fd);
 
     deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers

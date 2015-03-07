@@ -208,11 +208,11 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
 {
   int sock=socket(AF_INET, SOCK_STREAM, 0);
   
-  Utility::setCloseOnExec(sock);
+  setCloseOnExec(sock);
   if(sock < 0)
     throw NetworkError("Error making TCP connection socket to recursor: "+stringerror());
 
-  Utility::setNonBlocking(sock);
+  setNonBlocking(sock);
   ServiceTuple st;
   st.port=53;
   parseService(::arg()["recursor"],st);
@@ -252,7 +252,7 @@ void *TCPNameserver::doConnection(void *data)
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   pthread_detach(pthread_self());
-  Utility::setNonBlocking(fd);
+  setNonBlocking(fd);
   try {
     int mesgsize=65535;
     scoped_array<char> mesg(new char[mesgsize]);
@@ -387,7 +387,7 @@ void *TCPNameserver::doConnection(void *data)
     L << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
   }
   d_connectionroom_sem->post();
-  Utility::closesocket(fd);
+  closesocket(fd);
 
   return 0;
 }
@@ -1072,7 +1072,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw PDNSException("Unable to acquire TCP socket: "+stringerror());
 
-    Utility::setCloseOnExec(s);
+    setCloseOnExec(s);
 
     ComboAddress local(*laddr, ::arg().asNum("local-port"));
       
@@ -1113,7 +1113,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw PDNSException("Unable to acquire TCPv6 socket: "+stringerror());
 
-    Utility::setCloseOnExec(s);
+    setCloseOnExec(s);
 
     ComboAddress local(*laddr, ::arg().asNum("local-port"));
 

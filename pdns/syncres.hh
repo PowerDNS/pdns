@@ -1,6 +1,7 @@
 #ifndef PDNS_SYNCRES_HH
 #define PDNS_SYNCRES_HH
 #include <string>
+#include "utility.hh"
 #include "dns.hh"
 #include "qtype.hh"
 #include <vector>

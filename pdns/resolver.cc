@@ -54,7 +54,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   ComboAddress ourLocal(local);
   
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
-  Utility::setCloseOnExec(sock);
+  setCloseOnExec(sock);
   if(sock < 0) {
     unixDie("Creating local resolver socket for "+ourLocal.toString() + ((local.sin4.sin_family == AF_INET6) ? ", does your OS miss IPv6?" : ""));
   }
@@ -71,7 +71,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
     // cerr<<"bound udp port "<<ourLocal.sin4.sin_port<<", "<<tries<<" tries left"<<endl;
 
     if(!tries) {
-      Utility::closesocket(sock);
+      closesocket(sock);
       throw PDNSException("Resolver binding to local UDP socket on "+ourLocal.toString()+": "+stringerror());
     }
   }
@@ -153,7 +153,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     } else {
       // try to make socket
       sock = makeQuerySocket(local, true);
-      Utility::setNonBlocking( sock );
+      setNonBlocking( sock );
       locals[lstr] = sock;
     }
   }
@@ -545,12 +545,12 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes)
 
 void AXFRRetriever::connect()
 {
-  Utility::setNonBlocking( d_sock );
+  setNonBlocking( d_sock );
 
   int err;
 
   if((err=::connect(d_sock,(struct sockaddr*)&d_remote, d_remote.getSocklen()))<0 && errno!=EINPROGRESS) {
-    Utility::closesocket(d_sock);
+    closesocket(d_sock);
     d_sock=-1;
     throw ResolverException("connect: "+stringerror());
   }
@@ -561,7 +561,7 @@ void AXFRRetriever::connect()
   err=waitForRWData(d_sock, false, 10, 0); // wait for writeability
   
   if(!err) {
-    Utility::closesocket(d_sock); // timeout
+    closesocket(d_sock); // timeout
     d_sock=-1;
     errno=ETIMEDOUT;
     
@@ -580,7 +580,7 @@ void AXFRRetriever::connect()
   }
   
  done:
-  Utility::setBlocking( d_sock );
+  setBlocking( d_sock );
   // d_sock now connected
 }
 
