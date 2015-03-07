@@ -203,7 +203,7 @@ inline ComboAddress makeComboAddress(const string& str)
 {
   ComboAddress address;
   address.sin4.sin_family=AF_INET;
-  if(Utility::inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
+  if(inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
     address.sin4.sin_family=AF_INET6;
     if(makeIPv6sockaddr(str, &address.sin6) < 0)
       throw NetmaskException("Unable to convert '"+str+"' to a netmask");        
@@ -343,7 +343,7 @@ class NetmaskGroup
 public:
   //! If this IP address is matched by any of the classes within
 
-  bool match(const ComboAddress *ip)
+  bool match(const ComboAddress *ip) const
   {
     for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
       if(i->match(ip) || (ip->isMappedIPv4() && i->match(ip->mapToIPv4()) ))
@@ -352,7 +352,7 @@ public:
     return false;
   }
 
-  bool match(const ComboAddress& ip)
+  bool match(const ComboAddress& ip) const
   {
     return match(&ip);
   }
