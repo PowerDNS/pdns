@@ -1,0 +1,34 @@
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) -O3 -Wall -pthread
+
+dnslabeltext.cc: dnslabeltext.rl
+	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
+
+EXTRA_DIST=dnslabeltext.rl
+
+bin_PROGRAMS = dnsdist
+dnsdist_SOURCES = \
+	base64.cc base64.hh \
+	dns.hh \
+	dnsdist.cc dnsdist.hh \
+	dnsdist-lua.cc \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.hh \
+	dnswriter.cc dnswriter.hh \
+	dolog.hh \
+	iputils.cc iputils.hh \
+	misc.cc misc.hh \
+	namespaces.hh \
+	pdnsexception.hh \
+	qtype.cc qtype.hh \
+	sodcrypto.cc sodcrypto.hh \
+	sstuff.hh LuaContext.hpp
+
+dnsdist_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) -pthread
+
+dnsdist_LDADD = \
+	-lpolarssl -lreadline -lrt -ltermcap \
+	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
+
