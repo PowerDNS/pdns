@@ -7,9 +7,77 @@
 #include <atomic>
 #include <boost/circular_buffer.hpp>
 #include <boost/program_options.hpp>
-
 #include <mutex>
 #include <thread>
+
+template<typename T> class GlobalStateHolder;
+
+template<typename T>
+class LocalStateHolder
+{
+public:
+  explicit LocalStateHolder(GlobalStateHolder<T>* source) : d_source(source)
+  {}
+
+  const T* operator->()
+  {
+    if(d_source->getGeneration() != d_generation) {
+      d_source->getState(&d_state, & d_generation);
+    }
+
+    return d_state.get();
+  }
+
+  void reset()
+  {
+    d_generation=0;
+    d_state.reset();
+  }
+private:
+  std::shared_ptr<T> d_state;
+  unsigned int d_generation;
+  const GlobalStateHolder<T>* d_source;
+};
+
+template<typename T>
+class GlobalStateHolder
+{
+public:
+  GlobalStateHolder(){}
+  LocalStateHolder<T> getLocal()
+  {
+    return LocalStateHolder<T>(this);
+  }
+  void setState(std::shared_ptr<T> state)
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    d_state = state;
+    d_generation++;
+  }
+  unsigned int getGeneration() const
+  {
+    return d_generation;
+  }
+  void getState(std::shared_ptr<T>* state, unsigned int* generation) const
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    *state=d_state;
+    *generation = d_generation;
+  }
+  std::shared_ptr<T> getCopy() const
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    if(!d_state)
+      return std::make_shared<T>();
+    shared_ptr<T> ret = shared_ptr<T>(new T(*d_state));
+    return d_state;
+  }
+private:
+  mutable std::mutex d_lock;
+  std::shared_ptr<T> d_state;
+  std::atomic<unsigned int> d_generation{0};
+};
+
 struct StopWatch
 {
 #ifndef CLOCK_MONOTONIC_RAW
@@ -213,10 +281,9 @@ extern SuffixMatchNode g_suffixMatchNodeFilter;
 
 extern ComboAddress g_serverControl;
 void controlThread(int fd, ComboAddress local);
-extern NetmaskGroup g_ACL;
+extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 vector<std::function<void(void)>> setupLua(bool client);
 extern std::string g_key;
 namespace po = boost::program_options;
 extern po::variables_map g_vm;
-
