@@ -432,6 +432,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
 {
   ifstream f(fname);
   if(!f) {
+    L << Logger::Warning << "Unable to open " << fname << std::endl;
     return false;
   }
 
