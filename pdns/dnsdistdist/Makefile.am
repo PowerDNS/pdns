@@ -7,7 +7,7 @@ EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua
 
 bin_PROGRAMS = dnsdist
 dnsdist_SOURCES = \
-	base64.cc base64.hh \
+	base64.hh \
 	dns.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-lua.cc \
@@ -29,6 +29,6 @@ dnsdist_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) -pthread
 
 dnsdist_LDADD = \
-	-lpolarssl -lreadline -lrt -ltermcap \
+	-lreadline -lrt -ltermcap \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
 
