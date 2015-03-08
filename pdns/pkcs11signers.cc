@@ -851,7 +851,7 @@ struct LoaderStruct
   LoaderStruct()
   {
 #ifdef HAVE_P11KIT1_V2
-    p11_modules = p11_kit_modules_load(NULL, 0);
+    p11_modules = p11_kit_modules_load_and_initialize(0);
 #else
     p11_kit_initialize_registered();
 #endif
