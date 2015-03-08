@@ -512,8 +512,10 @@ vector<std::function<void(void)>> setupLua(bool client)
     });
   
   g_lua.writeFunction("setKey", [](const std::string& key) {
-      if(B64Decode(key, g_key)) 
-	throw std::runtime_error("Unable to decode "+key+" as Base64");
+      if(B64Decode(key, g_key) < 0) {
+	  g_outputBuffer=string("Unable to decode ")+key+" as Base64";
+	  errlog("%s", g_outputBuffer);
+	}
     });
 
   
