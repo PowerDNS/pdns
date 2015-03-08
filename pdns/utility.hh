@@ -141,10 +141,6 @@ public:
   //! Drops the program's user privileges.
   static void dropUserPrivs( int uid );
   
-  
-  //! Marks the socket to be closed on exec().
-  static bool setCloseOnExec ( Utility::sock_t socket );
-
   //! Sets the socket into Bind-any mode
   static void setBindAny ( int af, Utility::sock_t socket );
   
