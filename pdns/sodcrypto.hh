@@ -1,19 +1,19 @@
 #pragma once
+#include "config.h"
 #include <string>
 #include <stdint.h>
-#include <sodium.h>
+
 #include <arpa/inet.h>
-void sodTest();
-std::string newKeypair();
 
-std::string sodEncryptAsym(const std::string& msg, const std::string& secretSource,
-		       const std::string& publicDest);
-
-
-std::string sodDecryptAsym(const std::string& msg, const std::string& publicSource,
-		       const std::string& secretDest);
-
-
+#ifndef HAVE_LIBSODIUM
+struct SodiumNonce
+{
+	void init(){};
+	void increment(){};
+	unsigned char value[1];
+};
+#else
+#include <sodium.h>
 
 struct SodiumNonce
 {
@@ -36,7 +36,8 @@ struct SodiumNonce
 
   unsigned char value[crypto_secretbox_NONCEBYTES];
 };
-
+#endif
+std::string newKeypair();
 std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce&);
 std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce&);
 std::string newKey();

@@ -36,7 +36,6 @@
 #include "dnswriter.hh"
 #include "base64.hh"
 #include <fstream>
-#include <sodium.h>
 #include "sodcrypto.hh"
 #undef L
 
@@ -912,10 +911,12 @@ try
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
 
+#ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize crypto library"<<endl;
     exit(EXIT_FAILURE);
   }
+#endif
 
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()

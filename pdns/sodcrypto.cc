@@ -5,6 +5,8 @@
 #include "sodcrypto.hh"
 
 
+#ifdef HAVE_LIBSODIUM
+
 string newKey()
 {
   unsigned char key[crypto_secretbox_KEYBYTES];
@@ -32,6 +34,23 @@ std::string sodDecryptSym(const std::string& msg, const std::string& key, Sodium
   nonce.increment();
   return string((char*)decrypted, sizeof(decrypted));
 }
+#else
+std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
+{
+  return msg;
+}
+std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
+{
+  return msg;
+}
+
+string newKey()
+{
+  return "\"plaintext\"";
+}
+
+
+#endif
 
 
 #include "base64.hh"
