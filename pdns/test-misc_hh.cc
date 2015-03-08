@@ -7,6 +7,7 @@
 #include <boost/tuple/tuple.hpp>
 #include "misc.hh"
 #include "dns.hh"
+#include <arpa/inet.h>
 #include <utility>
 
 using std::string;
