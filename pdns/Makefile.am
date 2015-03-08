@@ -557,7 +557,7 @@ dnstcpbench_LDADD = \
 
 dnsdist_SOURCES = \
 	base32.cc \
-	base64.cc base64.hh \
+	base64.hh \
 	dnsdist.cc \
 	dnsdist-lua.cc \
 	dnslabeltext.cc \
@@ -575,7 +575,7 @@ dnsdist_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsdist_LDADD = \
-	$(POLARSSL_LIBS) -lreadline -lrt -ltermcap \
+	-lreadline -lrt -ltermcap \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
 
 nsec3dig_SOURCES = \
