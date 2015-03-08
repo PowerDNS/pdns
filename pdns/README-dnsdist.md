@@ -12,8 +12,17 @@ WARNING: `dnsdist` is still under HEAVY development, but we are giving it some
 publicity in hopes of getting constructive feedback that will help us guide
 our feature set.
 
-Do NOT take this into production, but please DO let us know your thoughts!
-Test packages can be found on http://xs.powerdns.com/dnsdist/
+Do not quite yet take this into production, but please DO let us know your
+thoughts!  Test packages and/or tarballs can be found on
+http://xs.powerdns.com/dnsdist/
+
+Compiling
+---------
+`dnsdist` depends on libsodium, boost, Lua or luajit and a pretty recent C++
+compiler (g++ 4.8 or higher, clang 3.5).
+
+Examples
+--------
 
 Here is a minimal configuration:
 
