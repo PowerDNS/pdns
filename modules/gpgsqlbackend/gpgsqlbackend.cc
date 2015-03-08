@@ -10,6 +10,7 @@
 #include "pdns/arguments.hh"
 #include "gpgsqlbackend.hh"
 #include "spgsql.hh"
+#include <sys/time.h>
 #include <sstream>
 
 gPgSQLBackend::gPgSQLBackend(const string &mode, const string &suffix)  : GSQLBackend(mode,suffix)
