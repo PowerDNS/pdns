@@ -3,7 +3,7 @@ AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) -O3 -Wall -pthread
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
-EXTRA_DIST=dnslabeltext.rl
+EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua
 
 bin_PROGRAMS = dnsdist
 dnsdist_SOURCES = \
