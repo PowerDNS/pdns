@@ -11,6 +11,7 @@
 #include <fstream>
 #include "pdns/logger.hh"
 #include "misc.hh"
+#include "utility.hh"
 #include <unistd.h>
 
 /*

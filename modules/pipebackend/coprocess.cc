@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "pdns/utility.hh"
 #include <sys/un.h>
 #include "pdns/misc.hh"
 #include "pdns/pdnsexception.hh"
