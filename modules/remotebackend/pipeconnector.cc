@@ -59,9 +59,9 @@ void PipeConnector::launch() {
     throw PDNSException("Unable to fork for coprocess: "+stringerror());
   else if(d_pid>0) { // parent speaking
     close(d_fd1[0]);
-    Utility::setCloseOnExec(d_fd1[1]);
+    setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
-    Utility::setCloseOnExec(d_fd2[0]);
+    setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     if (d_timeout) 
