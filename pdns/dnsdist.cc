@@ -44,7 +44,6 @@
    We neglect to do recvfromto() on 0.0.0.0
    Receiver is currently singlethreaded (not that bad actually)
    lack of help()
-   we offer no way to log from Lua
 */
 
 namespace po = boost::program_options;

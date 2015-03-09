@@ -2,6 +2,8 @@ controlSocket("0.0.0.0")
 addLocal("0.0.0.0:5200")
 setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
 
+warnlog(string.format("Script starting %s", "up!"))
+
 -- define the good servers
 newServer("8.8.8.8", 2)  -- 2 qps
 newServer("8.8.4.4", 2) 

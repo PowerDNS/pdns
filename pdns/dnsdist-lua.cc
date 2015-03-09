@@ -325,6 +325,17 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.registerMember("weight", &DownstreamState::weight);
   g_lua.registerMember("order", &DownstreamState::order);
   
+  g_lua.writeFunction("infolog", [](const string& arg) {
+      infolog("%s", arg);
+    });
+  g_lua.writeFunction("errlog", [](const string& arg) {
+      errlog("%s", arg);
+    });
+  g_lua.writeFunction("warnlog", [](const string& arg) {
+      warnlog("%s", arg);
+    });
+
+
   g_lua.writeFunction("show", [](const string& arg) {
       g_outputBuffer+=arg;
       g_outputBuffer+="\n";
