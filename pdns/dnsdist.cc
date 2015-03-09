@@ -40,14 +40,11 @@
 #undef L
 
 /* Known sins:
-   We replace g_ACL w/o locking, might crash
-     g_policy too probably
    No centralized statistics
    We neglect to do recvfromto() on 0.0.0.0
    Receiver is currently singlethreaded (not that bad actually)
-   We can't compile w/o crypto
    lack of help()
-   we offer now way to log from Lua
+   we offer no way to log from Lua
 */
 
 namespace po = boost::program_options;
@@ -96,11 +93,11 @@ vector<ComboAddress> g_locals;
 
    If all downstreams are over QPS, we pick the fastest server */
 
-vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> > g_limiters;
-vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, string> > g_poolrules;
+GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> > > g_limiters;
+GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, string> > > g_poolrules;
 Rings g_rings;
 
-servers_t g_dstates;
+GlobalStateHolder<servers_t> g_dstates;
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
@@ -162,7 +159,7 @@ std::mutex g_luamutex;
 LuaContext g_lua;
 
 
-ServerPolicy g_policy;
+GlobalStateHolder<ServerPolicy> g_policy;
 
 shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
@@ -172,9 +169,9 @@ shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const Combo
   }
   static int counter=0;
   ++counter;
-  if(g_dstates.empty())
+  if(servers.empty())
     return shared_ptr<DownstreamState>();
-  return g_dstates[counter % g_dstates.size()];
+  return servers[counter % servers.size()];
 }
 
 shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
@@ -220,9 +217,9 @@ shared_ptr<DownstreamState> roundrobin(const servers_t& servers, const ComboAddr
     }
   }
 
-  auto *res=&poss;
+  const auto *res=&poss;
   if(poss.empty())
-    res = &g_dstates;
+    res = &servers;
 
   if(res->empty())
     return shared_ptr<DownstreamState>();
@@ -250,7 +247,7 @@ static void daemonize(void)
   }
 }
 
-SuffixMatchNode g_suffixMatchNodeFilter;
+GlobalStateHolder<SuffixMatchNode> g_suffixMatchNodeFilter;
 
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
@@ -258,7 +255,7 @@ ComboAddress g_serverControl{"127.0.0.1:5199"};
 servers_t getDownstreamCandidates(const std::string& pool)
 {
   servers_t ret;
-  for(auto& s : g_dstates) 
+  for(const auto& s : *g_dstates.getCopy()) 
     if((pool.empty() && s->pools.empty()) || s->pools.count(pool))
       ret.push_back(s);
   
@@ -296,6 +293,10 @@ try
       blockFilter = *candidate;
   }
   auto acl = g_ACL.getLocal();
+  auto localPolicy = g_policy.getLocal();
+  auto localLimiters = g_limiters.getLocal();
+  auto localPool = g_poolrules.getLocal();
+  auto localMatchNodeFilter = g_suffixMatchNodeFilter.getLocal();
   for(;;) {
     try {
       len = recvfrom(cs->udpFD, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
@@ -315,7 +316,7 @@ try
       g_rings.queryRing.push_back(qname);
       
       bool blocked=false;
-      for(auto& lim : g_limiters) {
+      for(const auto& lim : *localLimiters) {
 	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
 	  if(nmg->match(remote) && !lim.second.check()) {
 	    blocked=true;
@@ -341,7 +342,7 @@ try
 	  continue;
       }
       
-      if(g_suffixMatchNodeFilter.check(qname))
+      if(localMatchNodeFilter->check(qname))
 	continue;
       
       if(re && re->match(qname.toString())) {
@@ -355,7 +356,7 @@ try
       }
 
       string pool;
-      for(auto& pr : g_poolrules) {
+      for(const auto& pr : *localPool) {
 	if(auto nmg=boost::get<NetmaskGroup>(&pr.first)) {
 	  if(nmg->match(remote)) {
 	    pool=pr.second;
@@ -370,10 +371,11 @@ try
 	}
       }
       DownstreamState* ss = 0;
+      auto candidates=getDownstreamCandidates(pool);
+      auto policy=localPolicy->policy;
       {
 	std::lock_guard<std::mutex> lock(g_luamutex);
-	auto candidates=getDownstreamCandidates(pool);
-	ss = g_policy.policy(candidates, remote, qname, qtype, dh).get();
+	ss = policy(candidates, remote, qname, qtype, dh).get();
       }
 
       if(!ss)
@@ -443,9 +445,11 @@ catch(...)
 
 int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
+  auto policy=g_policy.getCopy()->policy;
+  
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
-    *ds = g_policy.policy(g_dstates, remote, qname, qtype, dh).get();
+    *ds = policy(*g_dstates.getCopy(), remote, qname, qtype, dh).get(); // XXX I think this misses pool selection!
   }
   
   vinfolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
@@ -657,7 +661,7 @@ void* maintThread()
     if(g_tcpclientthreads.d_queued > 1 && g_tcpclientthreads.d_numthreads < 10)
       g_tcpclientthreads.addTCPClientThread();
 
-    for(auto& dss : g_dstates) {
+    for(auto& dss : *(g_dstates.getCopy())) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
 	bool newState=upCheck(dss->remote);
 	if(newState != dss->upStatus) {
@@ -951,9 +955,7 @@ try
 
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
 
-  g_policy = leastOutstandingPol;
-
-
+  g_policy.setState(std::make_shared<ServerPolicy>(leastOutstandingPol));
   if(g_vm.count("client") || g_vm.count("command")) {
     setupLua(true);
     doClient(g_serverControl);
@@ -1004,11 +1006,11 @@ try
     for(const auto& address : g_vm["remotes"].as<vector<string>>()) {
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
       ret->tid = move(thread(responderThread, ret));
-      g_dstates.push_back(ret);
+      g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
     }
   }
 
-  for(auto& dss : g_dstates) {
+  for(auto& dss : *g_dstates.getCopy()) {
     if(dss->availability==DownstreamState::Availability::Auto) {
       bool newState=upCheck(dss->remote);
       warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");

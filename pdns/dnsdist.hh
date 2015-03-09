@@ -9,74 +9,8 @@
 #include <boost/program_options.hpp>
 #include <mutex>
 #include <thread>
+#include "sholder.hh"
 
-template<typename T> class GlobalStateHolder;
-
-template<typename T>
-class LocalStateHolder
-{
-public:
-  explicit LocalStateHolder(GlobalStateHolder<T>* source) : d_source(source)
-  {}
-
-  const T* operator->()
-  {
-    if(d_source->getGeneration() != d_generation) {
-      d_source->getState(&d_state, & d_generation);
-    }
-
-    return d_state.get();
-  }
-
-  void reset()
-  {
-    d_generation=0;
-    d_state.reset();
-  }
-private:
-  std::shared_ptr<T> d_state;
-  unsigned int d_generation;
-  const GlobalStateHolder<T>* d_source;
-};
-
-template<typename T>
-class GlobalStateHolder
-{
-public:
-  GlobalStateHolder(){}
-  LocalStateHolder<T> getLocal()
-  {
-    return LocalStateHolder<T>(this);
-  }
-  void setState(std::shared_ptr<T> state)
-  {
-    std::lock_guard<std::mutex> l(d_lock);
-    d_state = state;
-    d_generation++;
-  }
-  unsigned int getGeneration() const
-  {
-    return d_generation;
-  }
-  void getState(std::shared_ptr<T>* state, unsigned int* generation) const
-  {
-    std::lock_guard<std::mutex> l(d_lock);
-    *state=d_state;
-    *generation = d_generation;
-  }
-  std::shared_ptr<T> getCopy() const
-  {
-    std::lock_guard<std::mutex> l(d_lock);
-    if(!d_state)
-      return std::make_shared<T>();
-    shared_ptr<T> ret = shared_ptr<T>(new T(*d_state));
-    return d_state;
-  }
-private:
-  mutable std::mutex d_lock;
-  std::shared_ptr<T> d_state;
-  std::atomic<unsigned int> d_generation{0};
-};
 
 struct StopWatch
 {
@@ -137,7 +71,7 @@ public:
     return d_blocked;
   }
 
-  bool check()
+  bool check() const // this is not quite fair
   {
     if(d_passthrough)
       return true;
@@ -163,10 +97,10 @@ private:
   bool d_passthrough{true};
   unsigned int d_rate;
   unsigned int d_burst;
-  double d_tokens;
-  StopWatch d_prev;
-  unsigned int d_passed{0};
-  unsigned int d_blocked{0};
+  mutable double d_tokens;
+  mutable StopWatch d_prev;
+  mutable unsigned int d_passed{0};
+  mutable unsigned int d_blocked{0};
 };
 
 
@@ -211,7 +145,7 @@ struct Rings {
   std::mutex respMutex;
 };
 
-extern Rings  g_rings;
+extern Rings g_rings; // XXX locking for this is still substandard, queryRing and clientRing need RW lock
 
 struct DownstreamState
 {
@@ -266,24 +200,30 @@ struct ServerPolicy
 void* responderThread(std::shared_ptr<DownstreamState> state);
 extern std::mutex g_luamutex;
 extern LuaContext g_lua;
-extern ServerPolicy g_policy;
-extern servers_t g_dstates;
-extern std::string g_outputBuffer;
-extern std::vector<ComboAddress> g_locals;
+extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
+
+extern GlobalStateHolder<ServerPolicy> g_policy;
+extern GlobalStateHolder<servers_t> g_dstates;
+extern GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> >> g_limiters;
+extern GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, std::string> >> g_poolrules;
+extern GlobalStateHolder<SuffixMatchNode> g_suffixMatchNodeFilter;
+extern GlobalStateHolder<NetmaskGroup> g_ACL;
+
+extern ComboAddress g_serverControl; // not changed during runtime
+
+extern std::vector<ComboAddress> g_locals; // not changed at runtime
+extern std::string g_key; // in theory needs locking
+
 struct dnsheader;
+
+void controlThread(int fd, ComboAddress local);
+vector<std::function<void(void)>> setupLua(bool client);
+
+
+namespace po = boost::program_options;
+extern po::variables_map g_vm;
+
 std::shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> wrandom(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> roundrobin(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-extern vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> > g_limiters;
-extern vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, std::string> > g_poolrules;
-extern SuffixMatchNode g_suffixMatchNodeFilter;
-
-extern ComboAddress g_serverControl;
-void controlThread(int fd, ComboAddress local);
-extern GlobalStateHolder<NetmaskGroup> g_ACL;
-
-vector<std::function<void(void)>> setupLua(bool client);
-extern std::string g_key;
-namespace po = boost::program_options;
-extern po::variables_map g_vm;

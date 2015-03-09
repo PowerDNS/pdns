@@ -567,6 +567,7 @@ dnsdist_SOURCES = \
 	iputils.cc \
 	misc.cc misc.hh \
 	qtype.cc \
+	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh 
 

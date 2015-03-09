@@ -21,6 +21,7 @@ dnsdist_SOURCES = \
 	namespaces.hh \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
+	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh pdns/ext/luawrapper/include/LuaContext.hpp
 

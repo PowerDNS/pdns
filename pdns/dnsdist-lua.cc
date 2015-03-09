@@ -24,7 +24,13 @@ vector<std::function<void(void)>> setupLua(bool client)
 			  if(qps) {
 			    ret->qps=QPSLimiter(*qps, *qps);
 			  }
-			  g_dstates.push_back(ret);
+			  g_dstates.modify([ret](servers_t& servers) { 
+			      servers.push_back(ret); 
+			      std::stable_sort(servers.begin(), servers.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
+				  return a->order < b->order;
+				});
+
+			    });
 
 			  if(g_launchWork) {
 			    g_launchWork->push_back([ret]() {
@@ -65,10 +71,12 @@ vector<std::function<void(void)>> setupLua(bool client)
 			  ret->tid = move(thread(responderThread, ret));
 			}
 
-			g_dstates.push_back(ret);
-			std::stable_sort(g_dstates.begin(), g_dstates.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
+			auto states = g_dstates.getCopy();
+			states->push_back(ret);
+			std::stable_sort(states->begin(), states->end(), [](const decltype(ret)& a, const decltype(ret)& b) {
 			    return a->order < b->order;
 			  });
+			g_dstates.setState(states);
 			return ret;
 		      } );
 
@@ -78,23 +86,25 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeFunction("rmServer", 
 		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
 		      { 
+			auto states = g_dstates.getCopy();
 			if(auto* rem = boost::get<shared_ptr<DownstreamState>>(&var))
-			  g_dstates.erase(remove(g_dstates.begin(), g_dstates.end(), *rem), g_dstates.end());
+			  states->erase(remove(states->begin(), states->end(), *rem), states->end());
 			else
-			  g_dstates.erase(g_dstates.begin() + boost::get<int>(var));
+			  states->erase(states->begin() + boost::get<int>(var));
+			g_dstates.setState(states);
 		      } );
 
 
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
-      g_policy=policy;
+      g_policy.setState(std::make_shared<ServerPolicy>(policy));
     });
 
   g_lua.writeFunction("setServerPolicyLua", [](string name, policy_t policy)  {
-      g_policy=ServerPolicy{name, policy};
+      g_policy.setState(std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
     });
 
   g_lua.writeFunction("showServerPolicy", []() {
-      g_outputBuffer=g_policy.name+"\n";
+      g_outputBuffer=g_policy.getLocal()->name+"\n";
     });
 
 
@@ -116,7 +126,7 @@ vector<std::function<void(void)>> setupLua(bool client)
 	return;
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(loc);
+	g_locals.push_back(loc); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -141,7 +151,11 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeFunction("shutdown", []() { _exit(0);} );
 
 
-  g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { g_suffixMatchNodeFilter.add(DNSName(domain)); });
+  g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 
+      g_suffixMatchNodeFilter.modify([domain](SuffixMatchNode& smn) {
+	  smn.add(DNSName(domain)); 
+	});
+    });
   g_lua.writeFunction("showServers", []() {  
       try {
       ostringstream ret;
@@ -152,7 +166,8 @@ vector<std::function<void(void)>> setupLua(bool client)
 
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
       int counter=0;
-      for(auto& s : g_dstates) {
+      auto states = g_dstates.getCopy();
+      for(const auto& s : *states) {
 	string status;
 	if(s->availability == DownstreamState::Availability::Up) 
 	  status = "UP";
@@ -204,9 +219,13 @@ vector<std::function<void(void)>> setupLua(bool client)
 	}
       }
       if(nmg.empty())
-	g_poolrules.push_back({smn, pool});
+	g_poolrules.modify([smn, pool](decltype(g_poolrules)::value_type& poolrules) {
+	    poolrules.push_back({smn, pool});
+	  });
       else
-	g_poolrules.push_back({nmg, pool});
+	g_poolrules.modify([nmg,pool](decltype(g_poolrules)::value_type& poolrules) {
+	  poolrules.push_back({nmg, pool}); 
+	  });
 
     });
 
@@ -214,7 +233,7 @@ vector<std::function<void(void)>> setupLua(bool client)
       boost::format fmt("%-3d %-50s %s\n");
       g_outputBuffer += (fmt % "#" % "Object" % "Pool").str();
       int num=0;
-      for(const auto& lim : g_poolrules) {
+      for(const auto& lim : *g_poolrules.getCopy()) {  
 	string name;
 	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
 	  name=nmg->toString();
@@ -247,20 +266,26 @@ vector<std::function<void(void)>> setupLua(bool client)
 	}
       }
       if(nmg.empty())
-	g_limiters.push_back({smn, QPSLimiter(lim, lim)});
+	g_limiters.modify([smn, lim](decltype(g_limiters)::value_type& limiters) {
+	    limiters.push_back({smn, QPSLimiter(lim, lim)});
+	  });
       else
-	g_limiters.push_back({nmg, QPSLimiter(lim, lim)});
+	g_limiters.modify([nmg, lim](decltype(g_limiters)::value_type& limiters) {
+	    limiters.push_back({nmg, QPSLimiter(lim, lim)}); 
+	  });
     });
 
   g_lua.writeFunction("rmQPSLimit", [](int i) {
-      g_limiters.erase(g_limiters.begin() + i);
+      g_limiters.modify([i](decltype(g_limiters)::value_type& limiters) { 
+	  limiters.erase(limiters.begin() + i);
+	});
     });
 
   g_lua.writeFunction("showQPSLimits", []() {
       boost::format fmt("%-3d %-50s %7d %8d %8d\n");
       g_outputBuffer += (fmt % "#" % "Object" % "Lim" % "Passed" % "Blocked").str();
       int num=0;
-      for(const auto& lim : g_limiters) {
+      for(const auto& lim : *g_limiters.getCopy()) {  
 	string name;
 	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
 	  name=nmg->toString();
@@ -277,13 +302,13 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeFunction("getServers", []() {
       vector<pair<int, std::shared_ptr<DownstreamState> > > ret;
       int count=1;
-      for(auto& s : g_dstates) {
+      for(const auto& s : *g_dstates.getCopy()) {
 	ret.push_back(make_pair(count++, s));
       }
       return ret;
     });
 
-  g_lua.writeFunction("getServer", [](int i) { return g_dstates[i]; });
+  g_lua.writeFunction("getServer", [](int i) { return (*g_dstates.getCopy())[i]; });
 
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
   g_lua.registerFunction<void(DownstreamState::*)(string)>("addPool", [](DownstreamState& s, string pool) { s.pools.insert(pool);});
@@ -361,6 +386,8 @@ vector<std::function<void(void)>> setupLua(bool client)
       }
     });
 
+
+  // something needs to be done about this, unlocked will 'mostly' work
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
       map<DNSName, int> counts;
       unsigned int total=0;
