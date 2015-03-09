@@ -46,7 +46,7 @@ public:
   const T& operator*()  // only const access, but see "read-only" above
   {
     if(d_source->getGeneration() != d_generation) {
-      d_source->getState(&d_state, & d_generation);
+      d_source->getState(&d_state, &d_generation);
     }
 
     return *d_state;
@@ -59,7 +59,7 @@ public:
   }
 private:
   std::shared_ptr<T> d_state;
-  unsigned int d_generation;
+  unsigned int d_generation{0};
   const GlobalStateHolder<T>* d_source;
 };
 
@@ -67,7 +67,8 @@ template<typename T>
 class GlobalStateHolder
 {
 public:
-  GlobalStateHolder(){}
+  GlobalStateHolder() : d_state(std::make_shared<T>())
+  {}
   LocalStateHolder<T> getLocal()
   {
     return LocalStateHolder<T>(this);
@@ -91,8 +92,6 @@ public:
   std::shared_ptr<T> getCopy() const
   {
     std::lock_guard<std::mutex> l(d_lock);
-    if(!d_state)
-      return std::make_shared<T>();
     shared_ptr<T> ret = shared_ptr<T>(new T(*d_state));
     return d_state;
   }
@@ -100,8 +99,6 @@ public:
   template<typename F>
   void modify(F act) {
     std::lock_guard<std::mutex> l(d_lock);
-    if(!d_state)
-      d_state=std::make_shared<T>();
     act(*d_state);
     ++d_generation;
   }
@@ -111,5 +108,5 @@ public:
 private:
   mutable std::mutex d_lock;
   std::shared_ptr<T> d_state;
-  std::atomic<unsigned int> d_generation{0};
+  std::atomic<unsigned int> d_generation{1};
 };
