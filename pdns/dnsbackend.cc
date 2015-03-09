@@ -146,8 +146,10 @@ void BackendMakerClass::load(const string &module)
 
 void BackendMakerClass::launch(const string &instr)
 {
-  //    if(instr.empty())
-  // throw ArgException("Not launching any backends - nameserver won't function");
+   if(instr.empty()) {
+     L<<Logger::Error<<("Not launching any backends - nameserver won't function")<<endl;
+     exit(99);
+   }
   
   vector<string> parts;
   stringtok(parts,instr,", ");
