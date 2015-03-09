@@ -94,7 +94,7 @@ To run on the command line, use the `pdns_server` binary. For example, to see op
 ```
 
 # How PowerDNS translates DNS queries into backend queries
-A DNS query is not a straightforward lookup. Many DNS queries need to check the backend for additional data, for example to determine of an unfound record should lead to an NXDOMAIN ('we know about this domain, but that record does not exist') or an unauthoritative response.
+A DNS query is not a straightforward lookup. Many DNS queries need to check the backend for additional data, for example to determine if an unfound record should lead to an NXDOMAIN ('we know about this domain, but that record does not exist') or an unauthoritative response.
 
 Simplified, without CNAME processing, wildcards, referrals and DNSSEC, the algorithm is like this:
 

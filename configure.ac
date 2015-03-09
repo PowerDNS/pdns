@@ -153,8 +153,7 @@ darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
   ;;
 freebsd*)
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS"
+  THREADFLAGS="-pthread"
   have_freebsd="yes"
   ;;
 *)
@@ -390,7 +389,10 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
-AC_MSG_NOTICE([Lua support: $with_lua])
+AS_IF([test "x$LUAPC" != "x"],
+  [AC_MSG_NOTICE([Lua support: $LUAPC])],
+  [AC_MSG_NOTICE([Lua support: no])]
+)
 AS_IF([test "$HAVE_CXX11" = "1"],
   [AC_MSG_NOTICE([C++2011 support: yes])],
   [AC_MSG_NOTICE([C++2011 support: no])]
