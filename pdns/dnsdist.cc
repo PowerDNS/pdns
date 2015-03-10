@@ -24,11 +24,7 @@
 #include "sstuff.hh"
 #include "misc.hh"
 #include <netinet/tcp.h>
-
-
-
 #include <limits>
-
 #include "dolog.hh"
 #include <readline/readline.h>
 #include <readline/history.h>

@@ -19,7 +19,7 @@ DNSName::DNSName(const char* p)
     if(e.size() > 63)
       throw std::range_error("label too long");
     d_storage.append(1, (char)e.size());
-    d_storage.append(e);
+    d_storage.append(e.c_str(), e.length());
   }
 }
 
@@ -67,7 +67,7 @@ std::string DNSName::toString() const
 
 std::string DNSName::toDNSString() const
 {
-  string ret(d_storage);
+  string ret(d_storage.c_str(), d_storage.length());
   ret.append(1,(char)0);
   return ret;
 }
@@ -92,7 +92,7 @@ void DNSName::appendRawLabel(const std::string& label)
   if(label.size() > 63)
     throw std::range_error("label too long");
   d_storage.append(1, (char)label.size());
-  d_storage.append(label);
+  d_storage.append(label.c_str(), label.length());
 }
 
 void DNSName::prependRawLabel(const std::string& label)
@@ -103,8 +103,8 @@ void DNSName::prependRawLabel(const std::string& label)
   if(label.size() > 63)
     throw std::range_error("label too long");
 
-  string prep(1, (char)label.size());
-  prep.append(label);
+  string_t prep(1, (char)label.size());
+  prep.append(label.c_str(), label.size());
   d_storage = prep+d_storage;
 }
 

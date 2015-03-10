@@ -5,6 +5,8 @@
 #include <deque>
 #include <strings.h>
 
+// #include <ext/vstring.h>
+
 /* Quest in life: 
      accept escaped ascii presentations of DNS names and store them "natively"
      accept a DNS packet with an offset, and extract a DNS name from it
@@ -51,7 +53,9 @@ public:
   }
 
 private:
-  std::string d_storage;
+  //  typedef __gnu_cxx::__sso_string string_t;
+  typedef std::string string_t;
+  string_t d_storage;
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };
