@@ -442,4 +442,5 @@ bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
+int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to);
 #endif

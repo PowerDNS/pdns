@@ -106,18 +106,20 @@ private:
 
 struct IDState
 {
-  IDState() : origFD(-1) {}
+  IDState() : origFD(-1) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
     origID = orig.origID;
     origRemote = orig.origRemote;
+    origDest = orig.origDest;
     age.store(orig.age.load());
   }
 
   int origFD;  // set to <0 to indicate this state is empty   // 4
 
   ComboAddress origRemote;                                    // 28
+  ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
   std::atomic<uint16_t> age;                                  // 4

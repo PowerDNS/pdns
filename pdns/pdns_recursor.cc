@@ -1188,7 +1188,6 @@ void makeUDPServerSockets()
       if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
 	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
       }
-
     }
 
     if( ::arg().mustDo("non-local-bind") )

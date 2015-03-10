@@ -41,7 +41,6 @@
 
 /* Known sins:
    No centralized statistics
-   We neglect to do recvfromto() on 0.0.0.0
    Receiver is currently singlethreaded
       not *that* bad actually, but now that we are thread safe, might want to scale
    lack of help()
@@ -122,7 +121,11 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
     dh->id = ids->origID;
-    sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+    
+    if(ids->origDest.sin4.sin_family == 0)
+      sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+    else
+      sendfromto(ids->origFD, packet, len, 0, ids->origDest, ids->origRemote);
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
@@ -270,8 +273,6 @@ try
 {
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
-  socklen_t socklen = cs->local.getSocklen();
-  
   char packet[1500];
   struct dnsheader* dh = (struct dnsheader*) packet;
   int len;
@@ -298,13 +299,20 @@ try
   auto localLimiters = g_limiters.getLocal();
   auto localPool = g_poolrules.getLocal();
   auto localMatchNodeFilter = g_suffixMatchNodeFilter.getLocal();
+
+  struct msghdr msgh;
+  struct iovec iov;
+  char cbuf[256];
+
+  remote.sin6.sin6_family=cs->local.sin6.sin6_family;
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), packet, sizeof(packet), &remote);
+
   for(;;) {
     try {
-      len = recvfrom(cs->udpFD, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
+      len = recvmsg(cs->udpFD, &msgh, 0);
       if(len < (int)sizeof(struct dnsheader)) 
 	continue;
 
-      
       if(!acl->match(remote))
 	continue;
       
@@ -350,9 +358,14 @@ try
 	g_regexBlocks++;
 	continue;
       }
-      
+
       if(dh->qr) { // something turned it into a response
-	sendto(cs->udpFD, packet, len, 0, (struct sockaddr*)&remote, remote.getSocklen());
+	ComboAddress dest;
+	if(HarvestDestinationAddress(&msgh, &dest)) 
+	  sendfromto(cs->udpFD, packet, len, 0, dest, remote);
+	else
+	  sendto(cs->udpFD, packet, len, 0, (struct sockaddr*)&remote, remote.getSocklen());
+
 	continue;
       }
 
@@ -399,6 +412,9 @@ try
       ids->sentTime.start();
       ids->qname = qname;
       ids->qtype = qtype;
+      ids->origDest.sin4.sin_family=0;
+      HarvestDestinationAddress(&msgh, &ids->origDest);
+      
       dh->id = idOffset;
       
       len = send(ss->fd, packet, len, 0);
@@ -1009,6 +1025,15 @@ try
     }
     if(g_vm.count("bind-non-local"))
       bindAny(local.sin4.sin_family, cs->udpFD);
+
+    //    setSocketTimestamps(cs->udpFD);
+
+    if(IsAnyAddress(local)) {
+      int one=1;
+      setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+    }
+
     SBind(cs->udpFD, cs->local);    
     toLaunch.push_back(cs);
   }
