@@ -72,8 +72,8 @@ vector<std::function<void(void)>> setupLua(bool client)
 			}
 
 			auto states = g_dstates.getCopy();
-			states->push_back(ret);
-			std::stable_sort(states->begin(), states->end(), [](const decltype(ret)& a, const decltype(ret)& b) {
+			states.push_back(ret);
+			std::stable_sort(states.begin(), states.end(), [](const decltype(ret)& a, const decltype(ret)& b) {
 			    return a->order < b->order;
 			  });
 			g_dstates.setState(states);
@@ -88,19 +88,19 @@ vector<std::function<void(void)>> setupLua(bool client)
 		      { 
 			auto states = g_dstates.getCopy();
 			if(auto* rem = boost::get<shared_ptr<DownstreamState>>(&var))
-			  states->erase(remove(states->begin(), states->end(), *rem), states->end());
+			  states.erase(remove(states.begin(), states.end(), *rem), states.end());
 			else
-			  states->erase(states->begin() + boost::get<int>(var));
+			  states.erase(states.begin() + boost::get<int>(var));
 			g_dstates.setState(states);
 		      } );
 
 
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
-      g_policy.setState(std::make_shared<ServerPolicy>(policy));
+      g_policy.setState(policy);
     });
 
   g_lua.writeFunction("setServerPolicyLua", [](string name, policy_t policy)  {
-      g_policy.setState(std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
+      g_policy.setState(ServerPolicy{name, policy});
     });
 
   g_lua.writeFunction("showServerPolicy", []() {
@@ -116,9 +116,7 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
-      auto state=g_ACL.getCopy();
-      state->addMask(domain);
-      g_ACL.setState(state);
+      g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
   g_lua.writeFunction("addLocal", [client](const std::string& addr) {
@@ -133,16 +131,16 @@ vector<std::function<void(void)>> setupLua(bool client)
       }
     });
   g_lua.writeFunction("setACL", [](const vector<pair<int, string>>& parts) {
-      auto nmg = std::make_shared<NetmaskGroup>();
+      NetmaskGroup nmg;
       for(const auto& p : parts) {
-	nmg->addMask(p.second);
+	nmg.addMask(p.second);
       }
       g_ACL.setState(nmg);
   });
   g_lua.writeFunction("showACL", []() {
       vector<string> vec;
 
-      g_ACL.getCopy()->toStringVector(&vec);
+      g_ACL.getCopy().toStringVector(&vec);
 
       for(const auto& s : vec)
         g_outputBuffer+=s+"\n";
@@ -167,7 +165,7 @@ vector<std::function<void(void)>> setupLua(bool client)
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
       int counter=0;
       auto states = g_dstates.getCopy();
-      for(const auto& s : *states) {
+      for(const auto& s : states) {
 	string status;
 	if(s->availability == DownstreamState::Availability::Up) 
 	  status = "UP";
@@ -233,7 +231,7 @@ vector<std::function<void(void)>> setupLua(bool client)
       boost::format fmt("%-3d %-50s %s\n");
       g_outputBuffer += (fmt % "#" % "Object" % "Pool").str();
       int num=0;
-      for(const auto& lim : *g_poolrules.getCopy()) {  
+      for(const auto& lim : g_poolrules.getCopy()) {  
 	string name;
 	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
 	  name=nmg->toString();
@@ -285,7 +283,7 @@ vector<std::function<void(void)>> setupLua(bool client)
       boost::format fmt("%-3d %-50s %7d %8d %8d\n");
       g_outputBuffer += (fmt % "#" % "Object" % "Lim" % "Passed" % "Blocked").str();
       int num=0;
-      for(const auto& lim : *g_limiters.getCopy()) {  
+      for(const auto& lim : g_limiters.getCopy()) {  
 	string name;
 	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
 	  name=nmg->toString();
@@ -302,13 +300,13 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeFunction("getServers", []() {
       vector<pair<int, std::shared_ptr<DownstreamState> > > ret;
       int count=1;
-      for(const auto& s : *g_dstates.getCopy()) {
+      for(const auto& s : g_dstates.getCopy()) {
 	ret.push_back(make_pair(count++, s));
       }
       return ret;
     });
 
-  g_lua.writeFunction("getServer", [](int i) { return (*g_dstates.getCopy())[i]; });
+  g_lua.writeFunction("getServer", [](int i) { return g_dstates.getCopy().at(i); });
 
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
   g_lua.registerFunction<void(DownstreamState::*)(string)>("addPool", [](DownstreamState& s, string pool) { s.pools.insert(pool);});

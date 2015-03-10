@@ -42,8 +42,10 @@
 /* Known sins:
    No centralized statistics
    We neglect to do recvfromto() on 0.0.0.0
-   Receiver is currently singlethreaded (not that bad actually)
+   Receiver is currently singlethreaded
+      not *that* bad actually, but now that we are thread safe, might want to scale
    lack of help()
+   lack of autocomplete
 */
 
 namespace po = boost::program_options;
@@ -254,7 +256,7 @@ ComboAddress g_serverControl{"127.0.0.1:5199"};
 servers_t getDownstreamCandidates(const std::string& pool)
 {
   servers_t ret;
-  for(const auto& s : *g_dstates.getCopy()) 
+  for(const auto& s : g_dstates.getCopy()) 
     if((pool.empty() && s->pools.empty()) || s->pools.count(pool))
       ret.push_back(s);
   
@@ -444,11 +446,11 @@ catch(...)
 
 int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  auto policy=g_policy.getCopy()->policy;
+  auto policy=g_policy.getCopy().policy;
   
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
-    *ds = policy(*g_dstates.getCopy(), remote, qname, qtype, dh).get(); // XXX I think this misses pool selection!
+    *ds = policy(g_dstates.getCopy(), remote, qname, qtype, dh).get(); // XXX I think this misses pool selection!
   }
   
   vinfolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
@@ -660,14 +662,11 @@ void* maintThread()
     if(g_tcpclientthreads.d_queued > 1 && g_tcpclientthreads.d_numthreads < 10)
       g_tcpclientthreads.addTCPClientThread();
 
-    for(auto& dss : *(g_dstates.getCopy())) { // this points to the actual shared_ptrs!
+    for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
 	bool newState=upCheck(dss->remote);
 	if(newState != dss->upStatus) {
-	  cout<<endl;
 	  warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
-	  cout<<"> ";
-	  cout.flush();
 	}
 	dss->upStatus = newState;
       }
@@ -954,7 +953,7 @@ try
 
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
 
-  g_policy.setState(std::make_shared<ServerPolicy>(leastOutstandingPol));
+  g_policy.setState(leastOutstandingPol);
   if(g_vm.count("client") || g_vm.count("command")) {
     setupLua(true);
     doClient(g_serverControl);
@@ -998,7 +997,7 @@ try
 
   auto acl = g_ACL.getCopy();
   for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
-    acl->addMask(addr);
+    acl.addMask(addr);
   g_ACL.setState(acl);
 
   if(g_vm.count("remotes")) {
@@ -1009,7 +1008,7 @@ try
     }
   }
 
-  for(auto& dss : *g_dstates.getCopy()) {
+  for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
       bool newState=upCheck(dss->remote);
       warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");

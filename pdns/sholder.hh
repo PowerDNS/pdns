@@ -35,7 +35,7 @@ public:
   explicit LocalStateHolder(GlobalStateHolder<T>* source) : d_source(source)
   {}
 
-  const T* operator->()  // only const access, but see "read-only" above
+  const T* operator->()  // fast const-only access, but see "read-only" above
   {
     if(d_source->getGeneration() != d_generation) {
       d_source->getState(&d_state, & d_generation);
@@ -43,13 +43,9 @@ public:
 
     return d_state.get();
   }
-  const T& operator*()  // only const access, but see "read-only" above
+  const T& operator*()  // fast const-only access, but see "read-only" above
   {
-    if(d_source->getGeneration() != d_generation) {
-      d_source->getState(&d_state, &d_generation);
-    }
-
-    return *d_state;
+    return *operator->();
   }
 
   void reset()
@@ -73,29 +69,21 @@ public:
   {
     return LocalStateHolder<T>(this);
   }
-  void setState(std::shared_ptr<T> state)
+
+  void setState(T state) //!< Safely & slowly change the global state
   {
     std::lock_guard<std::mutex> l(d_lock);
-    d_state = state;
+    d_state = std::make_shared<T>(T(state));
     d_generation++;
   }
-  unsigned int getGeneration() const
-  {
-    return d_generation;
-  }
-  void getState(std::shared_ptr<T>* state, unsigned int* generation) const
+
+  T getCopy() const  //!< Safely & slowly get a copy of the global state
   {
     std::lock_guard<std::mutex> l(d_lock);
-    *state=d_state;
-    *generation = d_generation;
-  }
-  std::shared_ptr<T> getCopy() const
-  {
-    std::lock_guard<std::mutex> l(d_lock);
-    shared_ptr<T> ret = shared_ptr<T>(new T(*d_state));
-    return d_state;
+    return *d_state;
   }
   
+  //! Safely & slowly modify the global state
   template<typename F>
   void modify(F act) {
     std::lock_guard<std::mutex> l(d_lock);
@@ -106,6 +94,17 @@ public:
 
   typedef T value_type;
 private:
+  unsigned int getGeneration() const
+  {
+    return d_generation;
+  }
+  void getState(std::shared_ptr<T>* state, unsigned int* generation) const
+  {
+    std::lock_guard<std::mutex> l(d_lock);
+    *state=d_state;
+    *generation = d_generation;
+  }
+  friend class LocalStateHolder<T>;
   mutable std::mutex d_lock;
   std::shared_ptr<T> d_state;
   std::atomic<unsigned int> d_generation{1};
