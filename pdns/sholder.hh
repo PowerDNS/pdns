@@ -1,6 +1,6 @@
 #include <memory>
 #include <atomic>
-
+#include <mutex>
 /** This is sort of a light-weight RCU idea. 
     Suitable for when you frequently consult some "readonly" state, which infrequently
     gets changed. One way of dealing with this is fully locking access to the state, but 
@@ -86,8 +86,10 @@ public:
   //! Safely & slowly modify the global state
   template<typename F>
   void modify(F act) {
-    std::lock_guard<std::mutex> l(d_lock);
-    act(*d_state);
+    std::lock_guard<std::mutex> l(d_lock); 
+    auto state=*d_state; // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
+    act(state);
+    d_state = std::make_shared<T>(T(state));
     ++d_generation;
   }
 

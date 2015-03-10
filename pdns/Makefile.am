@@ -938,6 +938,7 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-sholder_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
