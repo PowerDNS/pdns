@@ -639,7 +639,7 @@ int increaseSerial(const string& zone, DNSSECKeeper &dk)
     sd.serial++;
   }
   else if(pdns_iequals(soaEditKind,"INCEPTION-INCREMENT")) {
-    uint32_t today_serial = localtime_format_YYYYMMDDSS(time(NULL), 1);
+    uint32_t today_serial = gmtime_format_YYYYMMDDSS(time(NULL), 1);
 
     if (sd.serial < today_serial) {
       sd.serial = today_serial;
