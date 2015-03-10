@@ -18,13 +18,21 @@ http://xs.powerdns.com/dnsdist/
 
 Compiling
 ---------
-`dnsdist` depends on libsodium, boost, Lua or luajit and a pretty recent C++
-compiler (g++ 4.8 or higher, clang 3.5).
+`dnsdist` depends on boost, Lua or luajit and a pretty recent C++
+compiler (g++ 4.8 or higher, clang 3.5). It can optionally use libsodium
+for encrypted communications with its client.
 
 Examples
 --------
 
-Here is a minimal configuration:
+The absolute minimum configuration:
+
+# dnsdist 2001:4860:4860::8888 8.8.8.8
+
+This will listen on 0.0.0.0:53 and forward queries to the two listed IP
+addresses, with a sensible load balancing policy.
+
+Here is a more complete configuration:
 
 ```
 $ cat /etc/dnsdist.conf
@@ -141,6 +149,7 @@ Pool rules can be inspected with `showPoolRules()`, and can be deleted with
 `rmPoolRule()`. Servers can be added or removed to pools with:
 ```
 > getServer(7):addPool("abuse")
+> getServer(4):rmPool("abuse")
 ```
 
 More power
@@ -151,7 +160,8 @@ on any reason it wants. If you return 'true' from there, the query will get
 blocked.
 
 A demo on how to do this and many other things can be found on
-https://github.com/ahupowerdns/pdns/blob/dnsname/pdns/dnsdistconf.lua
+https://github.com/ahupowerdns/pdns/blob/dnsname/pdns/dnsdistconf.lua and 
+the exact definition of `blockFilter()` is at the end of this document.
 
 ANY or whatever to TC
 ---------------------
@@ -355,13 +365,10 @@ Here are all functions:
    * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
    * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
    * `showResponseLatency()`: show a plot of the response time latency distribution
- * Shaping related:
-   * `addQPSLimit(domain, n)`: limit queries within that domain to n per second
-   * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
-   * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
-   * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
-   * `rmQPSLimit(n)`: remove QPS limit n
-   * `showQPSLimits()`: outputs QPS limits
+ * Logging related
+   * `infolog(string)`: log at level info
+   * `warnlog(string)`: log at level warning
+   * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
    * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse"})`: instantiate
@@ -391,7 +398,7 @@ Here are all functions:
    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
    * `rmPoolRule(n)`: remove rule n
    * `showPoolRules()`: show the pool rules
-
+   * `getPoolServers(pool)`: return servers part of this pool
  * Server selection policy related:
    * `setServerPolicy(policy)`: set server selection policy to that policy
    * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
@@ -401,6 +408,13 @@ Here are all functions:
    * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
    * `roundrobin`: Simple round robin over available servers
    * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order'
+ * Shaping related:
+   * `addQPSLimit(domain, n)`: limit queries within that domain to n per second
+   * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
+   * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
+   * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
+   * `rmQPSLimit(n)`: remove QPS limit n
+   * `showQPSLimits()`: outputs QPS limits
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `tostring()`: return in human-friendly format
