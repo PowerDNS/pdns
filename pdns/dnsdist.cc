@@ -49,7 +49,7 @@ using std::atomic;
 using std::thread;
 bool g_verbose;
 atomic<uint64_t> g_pos;
-atomic<uint64_t> g_regexBlocks;
+
 uint16_t g_maxOutstanding;
 bool g_console;
 
@@ -276,10 +276,6 @@ try
   string qname;
   uint16_t qtype;
 
-  Regex* re=0;
-  if(g_vm.count("regex-drop"))
-    re=new Regex(g_vm["regex-drop"].as<string>());
-
   typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
 
@@ -350,11 +346,6 @@ try
       if(localMatchNodeFilter->check(qname))
 	continue;
       
-      if(re && re->match(qname.toString())) {
-	g_regexBlocks++;
-	continue;
-      }
-
       if(dh->qr) { // something turned it into a response
 	ComboAddress dest;
 	if(HarvestDestinationAddress(&msgh, &dest)) 
@@ -420,7 +411,7 @@ try
       vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->remote.toStringWithPort());
     }
     catch(std::exception& e){
-      errlog("Got an error: %s", e.what());
+      errlog("Got an error in UDP question thread: %s", e.what());
     }
   }
   return 0;
@@ -968,7 +959,6 @@ try
     ("daemon", po::value<bool>()->default_value(true), "run in background")
     ("local", po::value<vector<string> >(), "Listen on which addresses")
     ("max-outstanding", po::value<uint16_t>()->default_value(1024), "maximum outstanding queries per downstream")
-    ("regex-drop", po::value<string>(), "If set, block queries matching this regex. Mind trailing dot!")
     ("verbose,v", "be verbose");
     
   hidden.add_options()
