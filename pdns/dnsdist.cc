@@ -905,6 +905,32 @@ void doConsole()
   }
 }
 
+static void bindAny(int af, int sock)
+{
+  int one = 1;
+
+#ifdef IP_FREEBIND
+  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
+    warnlog("Warning: IP_FREEBIND setsockopt failed: %s", strerror(errno));
+#endif
+
+#ifdef IP_BINDANY
+  if (af == AF_INET)
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
+      warnlog("Warning: IP_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+#ifdef IPV6_BINDANY
+  if (af == AF_INET6)
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
+      warnlog("Warning: IPV6_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+#ifdef SO_BINDANY
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
+    warnlog("Warning: SO_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+}
+
+
 int main(int argc, char** argv)
 try
 {
@@ -923,6 +949,7 @@ try
   po::options_description desc("Allowed options"), hidden, alloptions;
   desc.add_options()
     ("help,h", "produce help message")
+    ("bind-non-local", "allow binding to non-local addresses")
     ("config", po::value<string>()->default_value("/etc/dnsdist.conf"), "Filename with our configuration")
     ("client", "be a client")
     ("command,c", po::value<string>(), "Execute this command on a running dnsdist")
@@ -980,6 +1007,8 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
+    if(g_vm.count("bind-non-local"))
+      bindAny(local.sin4.sin_family, cs->udpFD);
     SBind(cs->udpFD, cs->local);    
     toLaunch.push_back(cs);
   }
@@ -1035,7 +1064,8 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
-
+    if(g_vm.count("bind-non-local"))
+      bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
     warnlog("Listening on %s",cs->local.toStringWithPort());
