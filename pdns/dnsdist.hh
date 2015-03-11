@@ -190,19 +190,22 @@ struct DownstreamState
   void setAuto() { availability = Availability::Auto; }
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
-typedef std::function<shared_ptr<DownstreamState>(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
 
+template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
+
+void* responderThread(std::shared_ptr<DownstreamState> state);
+extern std::mutex g_luamutex;
+extern LuaContext g_lua;
+extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
+
+using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
+typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
 
 struct ServerPolicy
 {
   string name;
   policy_t policy;
 };
-
-void* responderThread(std::shared_ptr<DownstreamState> state);
-extern std::mutex g_luamutex;
-extern LuaContext g_lua;
-extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
@@ -224,8 +227,10 @@ vector<std::function<void(void)>> setupLua(bool client);
 
 namespace po = boost::program_options;
 extern po::variables_map g_vm;
+NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool);
 
-std::shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-std::shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-std::shared_ptr<DownstreamState> wrandom(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-std::shared_ptr<DownstreamState> roundrobin(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+
+std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);

@@ -98,7 +98,6 @@ vector<std::function<void(void)>> setupLua(bool client)
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
       g_policy.setState(policy);
     });
-
   g_lua.writeFunction("setServerPolicyLua", [](string name, policy_t policy)  {
       g_policy.setState(ServerPolicy{name, policy});
     });
@@ -304,6 +303,10 @@ vector<std::function<void(void)>> setupLua(bool client)
 	ret.push_back(make_pair(count++, s));
       }
       return ret;
+    });
+
+  g_lua.writeFunction("getPoolServers", [](string pool) {
+      return getDownstreamCandidates(g_dstates.getCopy(), pool);
     });
 
   g_lua.writeFunction("getServer", [](int i) { return g_dstates.getCopy().at(i); });

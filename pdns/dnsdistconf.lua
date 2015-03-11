@@ -39,24 +39,28 @@ function blockFilter(remote, qname, qtype, dh)
 	 return false
 end
 
+blockFilter = nil -- this is how you disable a filter
+
 counter=0
 
--- called to pick a downstream server
+-- called to pick a downstream server, ignores 'up' status
 function luaroundrobin(servers, remote, qname, qtype, dh) 
-	 print("Got called: "..#servers)
 	 counter=counter+1;
 	 return servers[1+(counter % #servers)]
 end
 
 -- setServerPolicyLua("luaroundrobin", luaroundrobin)
 
-authServer=newServer{address="2001:888:2000:1d::2", order=12}
+newServer{address="2001:888:2000:1d::2", pool="auth"}
+newServer{address="2a01:4f8:110:4389::2", pool="auth"}
 
 function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
 	 then
-		return authServer
+		return firstAvailable.policy(getPoolServers("auth"), remote, qname, qtype, dh)
 	 else
-		return firstAvailable(servers, remote, qname, qtype, dh)
+		return firstAvailable.policy(servers, remote, qname, qtype, dh)
 	 end
 end
+
+-- setServerPolicyLua("splitSetup", splitSetup)

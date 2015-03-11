@@ -41,6 +41,7 @@
       not *that* bad actually, but now that we are thread safe, might want to scale
    lack of help()
    lack of autocomplete
+   TCP is a bit wonky and may pick the wrong downstream
 */
 
 namespace po = boost::program_options;
@@ -161,26 +162,26 @@ LuaContext g_lua;
 
 GlobalStateHolder<ServerPolicy> g_policy;
 
-shared_ptr<DownstreamState> firstAvailable(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   for(auto& d : servers) {
-    if(d->isUp() && d->qps.check())
-      return d;
+    if(d.second->isUp() && d.second->qps.check())
+      return d.second;
   }
   static int counter=0;
   ++counter;
   if(servers.empty())
     return shared_ptr<DownstreamState>();
-  return servers[counter % servers.size()];
+  return servers[counter % servers.size()].second;
 }
 
-shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<pair<int,int>, shared_ptr<DownstreamState>>> poss;
 
   for(auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if(d->isUp()) {
-      poss.push_back({make_pair(d->outstanding.load(), d->order), d});
+    if(d.second->isUp()) {
+      poss.push_back({make_pair(d.second->outstanding.load(), d.second->order), d.second});
     }
   }
   if(poss.empty())
@@ -189,14 +190,14 @@ shared_ptr<DownstreamState> leastOutstanding(const servers_t& servers, const Com
   return poss.begin()->second;
 }
 
-shared_ptr<DownstreamState> wrandom(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<int, shared_ptr<DownstreamState>>> poss;
   int sum=0;
   for(auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if(d->isUp()) {
-      sum+=d->weight;
-      poss.push_back({sum, d});
+    if(d.second->isUp()) {
+      sum+=d.second->weight;
+      poss.push_back({sum, d.second});
 
     }
   }
@@ -207,12 +208,12 @@ shared_ptr<DownstreamState> wrandom(const servers_t& servers, const ComboAddress
   return p->second;
 }
 
-shared_ptr<DownstreamState> roundrobin(const servers_t& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  servers_t poss;
+  NumberedServerVector poss;
 
   for(auto& d : servers) {
-    if(d->isUp()) {
+    if(d.second->isUp()) {
       poss.push_back(d);
     }
   }
@@ -226,7 +227,7 @@ shared_ptr<DownstreamState> roundrobin(const servers_t& servers, const ComboAddr
 
   static unsigned int counter;
  
-  return (*res)[(counter++) % res->size()];
+  return (*res)[(counter++) % res->size()].second;
 }
 
 static void daemonize(void)
@@ -252,15 +253,15 @@ GlobalStateHolder<SuffixMatchNode> g_suffixMatchNodeFilter;
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 
-servers_t getDownstreamCandidates(const std::string& pool)
+NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool)
 {
-  servers_t ret;
-  for(const auto& s : g_dstates.getCopy()) 
+  NumberedServerVector ret;
+  int count=0;
+  for(const auto& s : servers) 
     if((pool.empty() && s->pools.empty()) || s->pools.count(pool))
-      ret.push_back(s);
+      ret.push_back(make_pair(++count, s));
   
   return ret;
-
 }
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
@@ -291,7 +292,7 @@ try
   auto localLimiters = g_limiters.getLocal();
   auto localPool = g_poolrules.getLocal();
   auto localMatchNodeFilter = g_suffixMatchNodeFilter.getLocal();
-
+  auto localServers = g_dstates.getLocal();
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
@@ -372,7 +373,7 @@ try
 	}
       }
       DownstreamState* ss = 0;
-      auto candidates=getDownstreamCandidates(pool);
+      auto candidates=getDownstreamCandidates(*localServers, pool);
       auto policy=localPolicy->policy;
       {
 	std::lock_guard<std::mutex> lock(g_luamutex);
@@ -447,13 +448,11 @@ catch(...)
    Let's start naively.
 */
 
-int getTCPDownstream(DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
-{
-  auto policy=g_policy.getCopy().policy;
-  
+int getTCPDownstream(policy_t policy, string pool, DownstreamState** ds, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{  
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
-    *ds = policy(g_dstates.getCopy(), remote, qname, qtype, dh).get(); // XXX I think this misses pool selection!
+    *ds = policy(getDownstreamCandidates(g_dstates.getCopy(), pool), remote, qname, qtype, dh).get(); 
   }
   
   vinfolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
@@ -546,31 +545,35 @@ void* tcpClientThread(int pipefd)
     delete citmp;
     
     uint16_t qlen, rlen;
+    string pool; // empty for now
     try {
+      auto localPolicy = g_policy.getLocal();
       for(;;) {      
         if(!getMsgLen(ci.fd, &qlen))
           break;
         
-        ds->queries++;
-        ds->outstanding++;
         char query[qlen];
         readn2(ci.fd, query, qlen);
 	uint16_t qtype;
 	DNSName qname(query, qlen, 12, false, &qtype);
 	struct dnsheader* dh =(dnsheader*)query;
 	if(dsock == -1) {
-	  dsock = getTCPDownstream(&ds, ci.remote, qname, qtype, dh);
+	  dsock = getTCPDownstream(localPolicy->policy, pool, &ds, ci.remote, qname, qtype, dh);
 	}
 	else {
 	  vinfolog("Reusing existing TCP connection to %s", ds->remote.toStringWithPort());
 	}
+        ds->queries++;
+        ds->outstanding++;
 
-        // FIXME: drop AXFR queries here, they confuse us
+	if(qtype == QType::AXFR)  // XXX fixme we really need to do better
+	  break;
+
       retry:; 
         if(!putMsgLen(dsock, qlen)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
           close(dsock);
-          dsock=getTCPDownstream(&ds, ci.remote, qname, qtype, dh);
+          dsock=getTCPDownstream(localPolicy->policy, pool, &ds, ci.remote, qname, qtype, dh);
           goto retry;
         }
       
@@ -579,7 +582,7 @@ void* tcpClientThread(int pipefd)
         if(!getMsgLen(dsock, &rlen)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
           close(dsock);
-          dsock=getTCPDownstream(&ds, ci.remote, qname, qtype, dh);
+          dsock=getTCPDownstream(localPolicy->policy, pool, &ds, ci.remote, qname, qtype, dh);
           goto retry;
         }
 
