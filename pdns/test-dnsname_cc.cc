@@ -35,6 +35,50 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK(DNSName("www.ds9a.nl.").toString() == "www.ds9a.nl.");
 
+
+  { // Check root part of root
+    DNSName name;
+    DNSName parent;
+    BOOST_CHECK(name.isPartOf(parent));
+  }
+
+  { // Check name part of root
+    DNSName name("a.");
+    DNSName parent;
+    BOOST_CHECK(name.isPartOf(parent));
+  }
+
+  { // Label boundary
+    DNSName name("a\002bb.");
+    DNSName parent("bb.");
+    BOOST_CHECK(!name.isPartOf(parent));
+  }
+
+  { // Multi label parent
+    DNSName name("a.bb.ccc.dddd.");
+    DNSName parent("ccc.dddd.");
+    BOOST_CHECK(name.isPartOf(parent));
+  }
+
+  { // Last char diff
+    DNSName name("a.bb.ccc.dddd.");
+    DNSName parent("ccc.dddx.");
+    BOOST_CHECK(!name.isPartOf(parent));
+  }
+
+  { // Equal length identical
+    DNSName name("aaaa.bbb.cc.d.");
+    DNSName parent("aaaa.bbb.cc.d.");
+    BOOST_CHECK(name.isPartOf(parent));
+  }
+
+  { // Equal length first char diff
+    DNSName name("xaaa.bbb.cc.d.");
+    DNSName parent("aaaa.bbb.cc.d.");
+    BOOST_CHECK(!name.isPartOf(parent));
+  }
+
+
   DNSName left("ds9a.nl.");
   left.prependRawLabel("www");
   BOOST_CHECK( left == DNSName("WwW.Ds9A.Nl."));
