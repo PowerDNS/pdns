@@ -125,7 +125,7 @@ For doing ANY queries within a domain. Also used internally. Default: `select co
 The last query is for listing the entire contents of a zone. This is needed when performing a zone transfer, but sometimes also internally:
 
 ### list-query
-To list an entire zone. Default: `select content,ttl,prio,type,domain_id,name from records where domain_id=%d`
+To list an entire zone. Default: `select content,ttl,prio,type,domain_id,name from records where (disabled=0 OR %d) AND domain_id=%d` The first %d is replaced by the "include disabled" flag (default 0), the second %d is replaced by the domain_id.
 
 ## DNSSEC queries
 If DNSSEC is enabled (through the `-dnssec` flag on a gsql backend), many queries are replaced by slightly extended variants that also query the auth column. The auth column is always added as the rightmost column. These are the -auth defaults:
