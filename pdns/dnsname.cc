@@ -139,7 +139,7 @@ bool DNSName::chopOff()
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p) 
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+= 1+*(unsigned char*)p) 
     ++count;
   return count;
 }
