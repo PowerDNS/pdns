@@ -398,6 +398,33 @@ vector<std::function<void(void)>> setupLua(bool client)
       }
     });
 
+  // something needs to be done about this, unlocked will 'mostly' work
+  g_lua.writeFunction("topClients", [](unsigned int top) {
+      map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
+      unsigned int total=0;
+      for(const auto& c : g_rings.clientRing) {
+	counts[c]++;
+	total++;
+      }
+      vector<pair<int, ComboAddress>> rcounts;
+      for(const auto& c : counts) 
+	rcounts.push_back(make_pair(c.second, c.first));
+
+      sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
+					      const decltype(rcounts)::value_type& b) {
+	     return b.first < a.first;
+	   });
+      unsigned int count=1, rest=0;
+      boost::format fmt("%4d  %-40s %4d %4.1f%%\n");
+      for(const auto& rc : rcounts) {
+	if(count==top+1)
+	  rest+=rc.first;
+	else
+	  g_outputBuffer += (fmt % (count++) % rc.second.toString() % rc.first % (100.0*rc.first/total)).str();
+      }
+      g_outputBuffer += (fmt % (count) % "Rest" % rest % (100.0*rest/total)).str();
+    });
+
 
   // something needs to be done about this, unlocked will 'mostly' work
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
