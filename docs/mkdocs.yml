@@ -32,6 +32,7 @@ pages:
   - [authoritative/backend-geo.md, 'Authoritative Backends', 'Geo(graphic loadbalancing)']
   - [authoritative/backend-geoip.md, 'Authoritative Backends', 'GeoIP']
   - [authoritative/backend-gsqlite.md, 'Authoritative Backends', 'Generic SQLite']
+  - [authoritative/backend-mydns.md, 'Authoritative Backends', 'MyDNS']
   - [authoritative/backend-ldap.md, 'Authoritative Backends', 'LDAP']
   - [authoritative/backend-lua.md, 'Authoritative Backends', 'Lua']
   - [authoritative/backend-lmdb.md, 'Authoritative Backends', 'LMDB']
