@@ -303,8 +303,10 @@ try
   for(;;) {
     try {
       len = recvmsg(cs->udpFD, &msgh, 0);
+      g_rings.clientRing.push_back(remote);
       if(len < (int)sizeof(struct dnsheader)) 
 	continue;
+
 
       if(!acl->match(remote))
 	continue;
