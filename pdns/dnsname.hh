@@ -107,6 +107,8 @@ struct SuffixMatchNode
 
   bool check(const DNSName& name)  const
   {
+    if(children.empty()) // speed up empty set
+      return endNode;
     return check(name.getRawLabels());
   }
 
