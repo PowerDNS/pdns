@@ -20,8 +20,10 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK_EQUAL(before, after);
 
   DNSName wwwds9anl("www.ds9a.nl.");
+  DNSName wwwds9anl1("www.ds9a\002nl.");
   DNSName nl("nl.");
   BOOST_CHECK(wwwds9anl.isPartOf(nl));
+  BOOST_CHECK(!wwwds9anl1.isPartOf(nl));
   BOOST_CHECK(wwwds9anl.isPartOf(wwwds9anl));
 
   BOOST_CHECK(!nl.isPartOf(wwwds9anl));
