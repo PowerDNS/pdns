@@ -67,7 +67,7 @@ Seconds to store packets in the PacketCache. See
 * Default: the hostname of the server
 * Available since: 3.3.1
 
-If sending carbon updates, if set, this will override our hostname. See
+If sending carbon updates, if set, this will override our hostname. Be careful not to include any dots in this setting, unless you know what you are doing. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-server`
