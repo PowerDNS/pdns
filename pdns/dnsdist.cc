@@ -168,18 +168,14 @@ shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, 
     if(d.second->isUp() && d.second->qps.check())
       return d.second;
   }
-  static int counter=0;
-  ++counter;
-  if(servers.empty())
-    return shared_ptr<DownstreamState>();
-  return servers[counter % servers.size()].second;
+  return leastOutstanding(servers, remote, qname, qtype, dh);
 }
 
 shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<pair<int,int>, shared_ptr<DownstreamState>>> poss;
-
-  for(auto& d : servers) {      // w=1, w=10 -> 1, 11
+  poss.reserve(servers.size());
+  for(auto& d : servers) {    
     if(d.second->isUp()) {
       poss.push_back({make_pair(d.second->outstanding.load(), d.second->order), d.second});
     }
