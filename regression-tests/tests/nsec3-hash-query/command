@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com A
+cleandig vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com A dnssec
