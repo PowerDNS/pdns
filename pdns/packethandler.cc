@@ -1232,12 +1232,10 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     weDone = weRedirected = weHaveUnauth =  false;
     
     while(B.get(rr)) {
-      if (p->qtype.getCode() == QType::ANY) {
-        if (rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
-          continue; // TODO: this actually means addRRSig should check if the RRSig is already there.
-        if (!p->d_dnssecOk && (rr.qtype.getCode() == QType:: DNSKEY || rr.qtype.getCode() == QType::NSEC3PARAM))
-          continue; // Don't send dnssec info to non validating resolvers.
-      }
+      if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && (rr.qtype.getCode() == QType:: DNSKEY || rr.qtype.getCode() == QType::NSEC3PARAM))
+        continue; // Don't send dnssec info to non validating resolvers.
+      if (rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
+        continue; // TODO: this actually means addRRSig should check if the RRSig is already there
 
       // cerr<<"Auth: "<<rr.auth<<", "<<(rr.qtype == p->qtype)<<", "<<rr.qtype.getName()<<endl;
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
