@@ -315,39 +315,118 @@ For further details, please see [the `pdnssec`](#pdnssec) documentation.
 **Note**: This feature is experimental, and not ready for production. Use at your own risk!
 To enable it, compile PowerDNS Authoritative Server using --experimental-pkcs11-support flag. This requires you to have p11-kit libraries and headers.
 
-Instructions on how to setup SoftHSM to work with the feature after compilation on ubuntu/debian.
--   apt-get install softhsm p11-kit
+Instructions on how to setup SoftHSM to work with the feature after compilation on ubuntu/debian (tested with Ubuntu 12 and 14).
+-   apt-get install softhsm p11-kit opensc
 -   create directory /etc/pkcs11/modules
--   Add file called 'softhsm' there with (on some versions, use softhsm.module)
+-   Add file called 'softhsm' there with (on newer versions, use softhsm.module)
 
     ```
     module: /home/cmouse/softhsm/lib/softhsm/libsofthsm.so
     managed: yes
     ```
 
--   Run p11-kit -l to verify it worked (you should see softhsm there)
+-   Verify it works
+
+    ```
+    p11-kit -l
+    ```
+
 -   Create at least two tokens (ksk and zsk) with (slot-number starts from 0)
 
     ```
-    softhsm --init-token --slot slot-number --label zone-ksk|zone-zsk --pin some-pin --so-pin another-pin 
+    sudo softhsm --init-token --slot slot-number --label zone-ksk|zone-zsk --pin some-pin --so-pin another-pin
     ```
 
--   Run p11-kit -l to verify it worked (you should see softhsm there and tokens)
+-   Using pkcs11-tool, initialize your new keys.
+
+    ```
+    sudo pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk|zone-zsk --slot-index slot-number
+    ```
+
 -   Assign the keys using
 
     ```
     pdnssec hsm assign zone rsasha256 ksk|zsk softhsm slot-id pin zone-ksk|zsk
     ```
 
--   Take note of the generated key id, if it always shows up 1, run pdnssec show-zone zone to retrieve them
--   Generate the keys using
+-   Verify that everything worked, you should see valid data there
 
     ```
-    pdnssec hsm create-key zone key-id
+    pdnssec show-zone zone
     ```
 
--   Verify that everything worked with pdnssec show-zone zone, you should see valid data there
--   Enjoy using PKCS\#11!
+-   SoftHSM signatures are fast enough to be used in live environment.
+
+Instructions on how to use CryptAS [`Athena IDProtect Key USB Token V2J`](http://www.cryptoshop.com/products/smartcards/idprotect-key-j-laser.html) Smart Card token on Ubuntu 14.
+-   install the manufacturer`s support software on your system and initialize the Smart Card token as per instructions (do not use PIV).
+-   apt-get install p11-kit opensc
+-   create directory /etc/pkcs11/modules
+-   Add file called 'athena.module' with content
+
+    ```
+    module: /lib64/libASEP11.so
+    managed: yes
+    ```
+
+-   Verify it worked, it should resemble output below. do not continue if this does not show up.
+
+    ```
+    $ p11-kit -l
+    athena: /lib64/libASEP11.so
+        library-description: ASE Cryptoki
+        library-manufacturer: Athena Smartcard Solutions
+        library-version: 3.1
+        token: IDProtect#0A50123456789
+            manufacturer: Athena Smartcard Solutions
+            model: IDProtect
+            serial-number: 0A50123456789
+            hardware-version: 1.0
+            firmware-version: 1.0
+            flags:
+                   rng
+                   login-required
+                   user-pin-initialized
+                   token-initialized
+    ```
+-   Using pkcs11-tool, initialize your new keys. After this IDProtect Manager no longer can show your token certificates and keys, at least on version v6.23.04.
+
+    ```
+    pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk
+    pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-zsk
+    ```
+
+-   Verify that keys are there.
+
+    ```
+    $ pkcs11-tool --module=/lib64/libASEP11.so -l -p some-pin -O
+    Using slot 0 with a present token (0x0)
+    Public Key Object; RSA 2048 bits
+      label:      zone-ksk
+      Usage:      encrypt, verify, wrap
+    Public Key Object; RSA 2048 bits
+      label:      zone-zsk
+      Usage:      encrypt, verify, wrap
+    Private Key Object; RSA
+      label:      zone-ksk
+      Usage:      decrypt, sign, unwrap
+    Private Key Object; RSA
+      label:      zone-zsk
+      Usage:      decrypt, sign, unwrap
+    ```
+
+-   Assign the keys using
+
+    ```
+    pdnssec hsm assign zone rsasha256 ksk|zsk softhsm slot-id pin zone-ksk|zsk
+    ```
+
+-   Verify that everything worked, you should see valid data there.
+
+    ```
+    pdnssec show-zone zone
+    ```
+
+-   Note that the physical token is pretty slow, so you have to use it as hidden master. It has been observed to produce about 1.5signatures/second.
 
 # Secure transfers
 From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in [draft-koch-dnsop-dnssec-operator-change-05](https://ietf.org/doc/draft-koch-dnsop-dnssec-operator-change/). If the [`direct-dnskey`](settings.md#direct-dnskey) option is enabled the foreign DNSKEY records stored in the database are added to the keyset and signed with the KSK. Without the direct-dnskey option DNSKEY records in the database are silently ignored.
