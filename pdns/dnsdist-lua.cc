@@ -103,9 +103,6 @@ vector<std::function<void(void)>> setupLua(bool client)
 	g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
 	return;
       }
-      if(from==to)
-	return;
-
 
       auto subject = rules[from];
       rules.erase(rules.begin()+from);

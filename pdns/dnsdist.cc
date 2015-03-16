@@ -822,6 +822,7 @@ void doClient(ComboAddress server)
   string lastline;
   for(;;) {
     char* sline = readline("> ");
+    rl_bind_key('\t',rl_complete);
     if(!sline)
       break;
 
@@ -864,6 +865,7 @@ void doConsole()
   string lastline;
   for(;;) {
     char* sline = readline("> ");
+    rl_bind_key('\t',rl_complete);
     if(!sline)
       break;
 
@@ -935,10 +937,49 @@ static void bindAny(int af, int sock)
 #endif
 }
 
+/**** CARGO CULT CODE AHEAD ****/
+extern "C" {
+char* my_generator(const char* text, int state)
+{
+  string t(text);
+  vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
+      "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
+      "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
+      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries("};
+  static int s_counter=0;
+  int counter=0;
+  if(!state)
+    s_counter=0;
+
+  for(auto w : words) {
+    if(boost::starts_with(w, t) && counter++ == s_counter)  {
+      s_counter++;
+      return strdup(w.c_str());
+    }
+  }
+  return 0;
+}
+
+static char** my_completion( const char * text , int start,  int end)
+{
+  char **matches=0;
+  if (start == 0)
+    matches = rl_completion_matches ((char*)text, &my_generator);
+  else
+    rl_bind_key('\t',rl_abort);
+ 
+  if(!matches)
+    rl_bind_key('\t', rl_abort);
+  return matches;
+}
+}
 
 int main(int argc, char** argv)
 try
 {
+  rl_attempted_completion_function = my_completion;
+  rl_completion_append_character = 0;
+
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
