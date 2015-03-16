@@ -33,6 +33,7 @@
 #include "base64.hh"
 #include <fstream>
 #include "sodcrypto.hh"
+#include "dnsrulactions.hh"
 #undef L
 
 /* Known sins:
@@ -42,7 +43,14 @@
    lack of help()
    lack of autocomplete
    TCP is a bit wonky and may pick the wrong downstream
+   ringbuffers are on a wing & a prayer because partially unlocked
 */
+
+/* the Rulaction plan
+   Set of Rules, if one matches, it leads to an Action
+   Both rules and actions could conceivably be Lua based. 
+   On the C++ side, both could be inherited from a class Rule and a class Action, 
+   on the Lua side we can't do that. */
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
@@ -90,8 +98,7 @@ vector<ComboAddress> g_locals;
 
    If all downstreams are over QPS, we pick the fastest server */
 
-GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> > > g_limiters;
-GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, string> > > g_poolrules;
+GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
@@ -244,8 +251,6 @@ static void daemonize(void)
   }
 }
 
-GlobalStateHolder<SuffixMatchNode> g_suffixMatchNodeFilter;
-
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 
@@ -259,6 +264,8 @@ NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std
   
   return ret;
 }
+
+
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 void* udpClientThread(ClientState* cs)
@@ -285,9 +292,8 @@ try
   }
   auto acl = g_ACL.getLocal();
   auto localPolicy = g_policy.getLocal();
-  auto localLimiters = g_limiters.getLocal();
-  auto localPool = g_poolrules.getLocal();
-  auto localMatchNodeFilter = g_suffixMatchNodeFilter.getLocal();
+
+  auto localRulactions = g_rulactions.getLocal();
   auto localServers = g_dstates.getLocal();
   struct msghdr msgh;
   struct iovec iov;
@@ -314,27 +320,7 @@ try
       DNSName qname(packet, len, 12, false, &qtype);
       
       g_rings.queryRing.push_back(qname);
-      
-      bool blocked=false;
-      for(const auto& lim : *localLimiters) {
-	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
-	  if(nmg->match(remote) && !lim.second.check()) {
-	    blocked=true;
-	    break;
-	  }
-	}
-	else if(auto smn=boost::get<SuffixMatchNode>(&lim.first)) {
-	  if(smn->check(qname) && !lim.second.check()) {
-	    blocked=true;
-	    break;
-	  }
-	}
-      }
-      if(blocked)
-	continue;
-
-
-      
+            
       if(blockFilter) {
 	std::lock_guard<std::mutex> lock(g_luamutex);
 	
@@ -342,9 +328,39 @@ try
 	  continue;
       }
       
-      if(localMatchNodeFilter->check(qname))
+
+      DNSAction::Action action=DNSAction::Action::None;
+      string ruleresult;
+      string pool;
+      for(const auto& lr : *localRulactions) {
+	if(lr.first->matches(remote, qname, qtype, dh)) {
+	  lr.first->d_matches++;
+	  action=(*lr.second)(remote, qname, qtype, dh, &ruleresult);
+	  if(action != DNSAction::Action::None)
+	    break;
+	}
+      }
+      switch(action) {
+      case DNSAction::Action::Drop:
 	continue;
-      
+      case DNSAction::Action::Nxdomain:
+	dh->rcode = RCode::NXDomain;
+	dh->qr=true;
+	break;
+      case DNSAction::Action::Pool: 
+	pool=ruleresult;
+	break;
+
+      case DNSAction::Action::Spoof:
+	;
+      case DNSAction::Action::HeaderModify:
+	dh->qr=true;
+	break;
+      case DNSAction::Action::Allow:
+      case DNSAction::Action::None:
+	break;
+      }
+
       if(dh->qr) { // something turned it into a response
 	ComboAddress dest;
 	if(HarvestDestinationAddress(&msgh, &dest)) 
@@ -355,21 +371,6 @@ try
 	continue;
       }
 
-      string pool;
-      for(const auto& pr : *localPool) {
-	if(auto nmg=boost::get<NetmaskGroup>(&pr.first)) {
-	  if(nmg->match(remote)) {
-	    pool=pr.second;
-	    break;
-	  }
-	}
-	else if(auto smn=boost::get<SuffixMatchNode>(&pr.first)) {
-	  if(smn->check(qname)) {
-	    pool=pr.second;
-	    break;
-	  }
-	}
-      }
       DownstreamState* ss = 0;
       auto candidates=getDownstreamCandidates(*localServers, pool);
       auto policy=localPolicy->policy;

@@ -116,7 +116,6 @@ To change the QPS for a server:
 
 Server pools
 ------------
-
 Now for some cool stuff. Let's say we know we're getting a whole bunch of
 traffic for a domain used in DoS attacks, for example 'sh43354.cn'. We can
 do two things with this kind of traffic. Either we block it outright, like
@@ -145,12 +144,33 @@ We can similarly add clients to the abuse server:
 > addPoolRule({"192.168.12.0/24", "192.168.13.14"}, "abuse")
 ```
 
-Pool rules can be inspected with `showPoolRules()`, and can be deleted with
-`rmPoolRule()`. Servers can be added or removed to pools with:
+Both `addDomainBlock` and `addPoolRule` end up the list of Rules 
+and Actions (for which see below).
+
+Servers can be added or removed to pools with:
 ```
 > getServer(7):addPool("abuse")
 > getServer(4):rmPool("abuse")
 ```
+
+
+Rules
+-----
+Rules can be inspected with `showRules()`, and can be deleted with
+`rmRule()`.  Rules are evaluated in order, and this order can be changed
+with `mvRule(from, to)` (see below for exact semantics).
+
+Rules have selectors and actions. Current selectors are:
+ * Source address
+ * Query type
+ * Query domain
+
+Current actions are:
+ * Drop
+ * Route to a pool
+ * Return with TC=1 (truncated, ie, instruction to retry with TCP)
+ * Force a ServFail, NotImp or Refused answer
+ * Send out a crafted response (NXDOMAIN or "real" data)
 
 More power
 ----------
@@ -172,6 +192,9 @@ a response, and will send the answer directly to the original client.
 If you also called setTC(1), this will tell the remote client to move to
 TCP/IP, and in this way you can implement ANY-to-TCP even for downstream
 servers that lack this feature.
+
+Note that calling `addAnyTCRule()` achieves the same thing, without
+involving Lua.
 
 Inspecting live traffic
 -----------------------
@@ -218,25 +241,24 @@ forward:
 > addQPSLimit("h4xorbooter.xyz.", 10)
 > addQPSLimit({"130.161.0.0/16", "145.14.0.0/16"} , 20)
 > addQPSLimit({"nl.", "be."}, 1)
-> showQPSLimits()
-#   Object                                                 Lim   Passed  Blocked
-0   h4xorbooter.xyz.                                        10        0        0
-1   130.161.0.0/16, 145.14.0.0/16                           20        0        0
-2   nl., be.                                                 1        2        8
+> showRules()
+#     Matches Rule                                               Action
+0           0 h4xorbooter.xyz.                                   qps limit to 10
+1           0 130.161.0.0/16, 145.14.0.0/16                      qps limit to 20
+2           0 nl., be.                                           qps limit to 1
 ```
 
-To delete a limit:
+To delete a limit (or a rule in general):
 ```
-> deleteQPSLimit(1)
-> showQPSLimits()
-#   Object                                                 Lim   Passed  Blocked
-0   h4xorbooter.xyz.                                        10        0        0
-1   nl., be.                                                 1       16      251
+> rmRule(1)
+> showRules()
+#     Matches Rule                                               Action
+0           0 h4xorbooter.xyz.                                   qps limit to 10
+1           0 nl., be.                                           qps limit to 1
 ```
 
 Dynamic load balancing
 ----------------------
-
 The default load balancing policy is called 'leastOutstanding', which means 
 we pick the server with the least queries 'in the air'. 
 
@@ -273,7 +295,7 @@ authServer=newServer{address="2001:888:2000:1d::2", pool="auth"}
 function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
 	 then
-		return authServer
+		return leastOutstanding(getPoolServers("auth"), remote, qname, qtype, dh)
 	 else
 		return leastOutstanding(servers, remote, qname, qtype, dh)
 	 end
@@ -282,9 +304,9 @@ end
 setServerPolicyLua("splitsetup", splitSetup)
 ```
 
-This will forward queries that don't want recursion to a specific
-server, and will apply the default load balancing policy to all
-other queries.
+This will forward queries that don't want recursion to the pool of auth
+servers, and will apply the default load balancing policy to all other
+queries.
 
 Running it for real
 -------------------
@@ -350,6 +372,9 @@ The '.' means 'order' is a data member, while the ':' meand addPool is a member 
 
 Here are all functions:
 
+ * Practical
+   * `shutdown()`: shut down dnsdist
+   * quit or ^D: exit the console
  * ACL related:
    * `addACL(netmask)`: add to the ACL set who can use this server
    * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
@@ -391,13 +416,16 @@ Here are all functions:
    * `upStatus`: if dnsdist considers this server available (overridden by `setDown()` and `setUp()`)
    * `order`: order of this server in order-based server selection policies
    * `weight`: weight of this server in weighted server selection policies
+ * Rule related:
+   * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
+   * `rmRule(n)`: remove rule n
+   * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
+     in which case the rule will be moved to the last position.
  * Pool related:
    * `addPoolRule(domain, pool)`: send queries to this domain to that pool
    * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
    * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
-   * `rmPoolRule(n)`: remove rule n
-   * `showPoolRules()`: show the pool rules
    * `getPoolServers(pool)`: return servers part of this pool
  * Server selection policy related:
    * `setServerPolicy(policy)`: set server selection policy to that policy
@@ -413,8 +441,6 @@ Here are all functions:
    * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
    * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
    * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
-   * `rmQPSLimit(n)`: remove QPS limit n
-   * `showQPSLimits()`: outputs QPS limits
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `tostring()`: return in human-friendly format

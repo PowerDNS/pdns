@@ -21,6 +21,10 @@ newServer{address="192.168.1.30:5300", pool="abuse"}
 addPoolRule({"ezdns.it.", "xxx."}, "abuse")
 addPoolRule("192.168.1.0/24", "abuse")
 
+addDomainBlock("powerdns.org.")
+addDomainBlock("spectre.")
+addDomainBlock("isis.")
+
 block=newDNSName("powerdns.org.")
 -- called before we distribute a question
 function blockFilter(remote, qname, qtype, dh)

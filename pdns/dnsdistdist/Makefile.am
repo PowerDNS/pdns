@@ -4,7 +4,7 @@ dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o dnslabeltext.cc
 
 
-EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua
+EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua README.md
 
 bin_PROGRAMS = dnsdist
 dnsdist_SOURCES = \
@@ -15,6 +15,7 @@ dnsdist_SOURCES = \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh \
+	dnsrulactions.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	iputils.cc iputils.hh \

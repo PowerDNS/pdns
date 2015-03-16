@@ -5,6 +5,8 @@ ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc .
 ../dolog.hh ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
 ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc ../sodcrypto.hh ../sstuff.hh .
 
+ln -fs ../README-dnsdist.md README.md
+
 ln -fs ../dnsdistconf.lua .
 mkdir -p pdns/ext/luawrapper/include
 ln -sf ../../../../../ext/luawrapper/include/LuaContext.hpp pdns/ext/luawrapper/include

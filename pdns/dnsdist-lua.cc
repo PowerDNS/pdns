@@ -1,4 +1,5 @@
 #include "dnsdist.hh"
+#include "dnsrulactions.hh"
 #include <thread>
 #include "dolog.hh"
 #include "sodcrypto.hh"
@@ -80,7 +81,43 @@ vector<std::function<void(void)>> setupLua(bool client)
 			return ret;
 		      } );
 
+  g_lua.writeFunction("addAnyTCRule", []() {
+      auto rules=g_rulactions.getCopy();
+      rules.push_back({ std::make_shared<QTypeRule>(0xff), std::make_shared<TCAction>()});
+      g_rulactions.setState(rules);
+    });
 
+  g_lua.writeFunction("rmRule", [](unsigned int num) {
+      auto rules = g_rulactions.getCopy();
+      if(num >= rules.size()) {
+	g_outputBuffer = "Error: attempt to delete non-existing rule\n";
+	return;
+      }
+      rules.erase(rules.begin()+num);
+      g_rulactions.setState(rules);
+    });
+
+  g_lua.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
+      auto rules = g_rulactions.getCopy();
+      if(from >= rules.size() || to > rules.size()) {
+	g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
+	return;
+      }
+      if(from==to)
+	return;
+
+
+      auto subject = rules[from];
+      rules.erase(rules.begin()+from);
+      if(to == rules.size())
+	rules.push_back(subject);
+      else {
+	if(from < to)
+	  --to;
+	rules.insert(rules.begin()+to, subject);
+      }
+      g_rulactions.setState(rules);
+    });
 
 
   g_lua.writeFunction("rmServer", 
@@ -149,9 +186,14 @@ vector<std::function<void(void)>> setupLua(bool client)
 
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 
-      g_suffixMatchNodeFilter.modify([domain](SuffixMatchNode& smn) {
-	  smn.add(DNSName(domain)); 
-	});
+      SuffixMatchNode smn;
+      smn.add(domain);
+	g_rulactions.modify([smn](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+				   std::make_shared<SuffixMatchNodeRule>(smn), 
+				   std::make_shared<DropAction>()  });
+	  });
+
     });
   g_lua.writeFunction("showServers", []() {  
       try {
@@ -216,31 +258,17 @@ vector<std::function<void(void)>> setupLua(bool client)
 	}
       }
       if(nmg.empty())
-	g_poolrules.modify([smn, pool](decltype(g_poolrules)::value_type& poolrules) {
-	    poolrules.push_back({smn, pool});
+	g_rulactions.modify([smn, pool](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+				   std::make_shared<SuffixMatchNodeRule>(smn), 
+				   std::make_shared<PoolAction>(pool)  });
 	  });
       else
-	g_poolrules.modify([nmg,pool](decltype(g_poolrules)::value_type& poolrules) {
-	  poolrules.push_back({nmg, pool}); 
+	g_rulactions.modify([nmg,pool](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({std::make_shared<NetmaskGroupRule>(nmg), 
+		  std::make_shared<PoolAction>(pool)}); 
 	  });
 
-    });
-
-  g_lua.writeFunction("showPoolRules", []() {
-      boost::format fmt("%-3d %-50s %s\n");
-      g_outputBuffer += (fmt % "#" % "Object" % "Pool").str();
-      int num=0;
-      for(const auto& lim : g_poolrules.getCopy()) {  
-	string name;
-	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
-	  name=nmg->toString();
-	}
-	else if(auto smn=boost::get<SuffixMatchNode>(&lim.first)) {
-	  name=smn->toString(); 
-	}
-	g_outputBuffer += (fmt % num % name % lim.second).str();
-	++num;
-      }
     });
 
 
@@ -263,38 +291,28 @@ vector<std::function<void(void)>> setupLua(bool client)
 	}
       }
       if(nmg.empty())
-	g_limiters.modify([smn, lim](decltype(g_limiters)::value_type& limiters) {
-	    limiters.push_back({smn, QPSLimiter(lim, lim)});
+	g_rulactions.modify([smn, lim](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({std::make_shared<SuffixMatchNodeRule>(smn), 
+		  std::make_shared<QPSAction>(lim)});
 	  });
       else
-	g_limiters.modify([nmg, lim](decltype(g_limiters)::value_type& limiters) {
-	    limiters.push_back({nmg, QPSLimiter(lim, lim)}); 
+	g_rulactions.modify([nmg, lim](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({std::make_shared<NetmaskGroupRule>(nmg), 
+		  std::make_shared<QPSAction>(lim)}); 
 	  });
     });
 
-  g_lua.writeFunction("rmQPSLimit", [](int i) {
-      g_limiters.modify([i](decltype(g_limiters)::value_type& limiters) { 
-	  limiters.erase(limiters.begin() + i);
-	});
-    });
 
-  g_lua.writeFunction("showQPSLimits", []() {
-      boost::format fmt("%-3d %-50s %7d %8d %8d\n");
-      g_outputBuffer += (fmt % "#" % "Object" % "Lim" % "Passed" % "Blocked").str();
-      int num=0;
-      for(const auto& lim : g_limiters.getCopy()) {  
-	string name;
-	if(auto nmg=boost::get<NetmaskGroup>(&lim.first)) {
-	  name=nmg->toString();
-	}
-	else if(auto smn=boost::get<SuffixMatchNode>(&lim.first)) {
-	  name=smn->toString(); 
-	}
-	g_outputBuffer += (fmt % num % name % lim.second.getRate() % lim.second.getPassed() % lim.second.getBlocked()).str();
+  g_lua.writeFunction("showRules", []() {
+     boost::format fmt("%-3d %9d %-50s %s\n");
+     g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
+     int num=0;
+      for(const auto& lim : g_rulactions.getCopy()) {  
+        string name = lim.first->toString();
+	g_outputBuffer += (fmt % num % lim.first->d_matches % name % lim.second->toString()).str();
 	++num;
       }
     });
-
 
   g_lua.writeFunction("getServers", []() {
       vector<pair<int, std::shared_ptr<DownstreamState> > > ret;

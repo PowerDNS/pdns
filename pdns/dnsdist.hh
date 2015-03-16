@@ -198,6 +198,31 @@ extern std::mutex g_luamutex;
 extern LuaContext g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
+class DNSRule
+{
+public:
+  virtual bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh) const =0;
+  virtual string toString() const = 0;
+  mutable std::atomic<uint64_t> d_matches{0};
+};
+
+/* so what could you do: 
+   drop, 
+   fake up nxdomain, 
+   provide actual answer, 
+   allow & and stop processing, 
+   continue processing, 
+   modify header:    (servfail|refused|notimp), set TC=1,
+   send to pool */
+
+class DNSAction
+{
+public:
+  enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, None};
+  virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const =0;
+  virtual string toString() const = 0;
+};
+
 using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
 typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
 
@@ -209,9 +234,7 @@ struct ServerPolicy
 
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
-extern GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, QPSLimiter> >> g_limiters;
-extern GlobalStateHolder<vector<pair<boost::variant<SuffixMatchNode,NetmaskGroup>, std::string> >> g_poolrules;
-extern GlobalStateHolder<SuffixMatchNode> g_suffixMatchNodeFilter;
+extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -234,3 +257,9 @@ std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& serv
 std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
