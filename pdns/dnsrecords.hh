@@ -354,7 +354,7 @@ public:
   includeboilerplate(OPENPGPKEY)
 
 private:
-  string d_cert;
+  string d_keyring;
 };
 
 
