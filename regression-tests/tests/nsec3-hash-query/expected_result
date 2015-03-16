@@ -1,3 +1,4 @@
 1	example.com.	IN	SOA	86400	ns1.example.com. ahu.example.com. 2000081501 28800 7200 604800 86400
+2	.	IN	OPT	32768	
 Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='vtnq6ocn2vkuiv3nju14oqtaen2mt5sk.example.com.', qtype=A
