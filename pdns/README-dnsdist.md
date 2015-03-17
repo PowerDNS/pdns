@@ -22,6 +22,16 @@ Compiling
 compiler (g++ 4.8 or higher, clang 3.5). It can optionally use libsodium
 for encrypted communications with its client.
 
+To compile on CentOS 6 / RHEL6:
+
+```
+wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+yum install devtoolset-2
+scl enable devtoolset-2 bash
+./configure
+make
+```
+
 Examples
 --------
 
