@@ -40,8 +40,6 @@
    No centralized statistics
    Receiver is currently singlethreaded
       not *that* bad actually, but now that we are thread safe, might want to scale
-   lack of help()
-   lack of autocomplete
    TCP is a bit wonky and may pick the wrong downstream
    ringbuffers are on a wing & a prayer because partially unlocked
 */
@@ -744,8 +742,14 @@ try
 
 
     }
-    catch(std::exception& e) {
-      response="Error: "+string(e.what());
+    catch(const LuaContext::ExecutionErrorException& e) {
+      response = "Error: " + string(e.what()) + ": ";
+      try {
+        std::rethrow_if_nested(e);
+      } catch(const std::exception& e) {
+        // e is the exception that was thrown from inside the lambda
+        response+= string(e.what());
+      }
     }
     response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
@@ -906,9 +910,15 @@ void doConsole()
 	cout << g_outputBuffer;
 
     }
-    catch(std::exception& e) {
-      cerr<<"Error: "<<e.what()<<endl;
-    }   
+    catch(const LuaContext::ExecutionErrorException& e) {
+      std::cerr << e.what() << ": ";
+      try {
+        std::rethrow_if_nested(e);
+      } catch(const std::exception& e) {
+        // e is the exception that was thrown from inside the lambda
+        std::cerr << e.what() << std::endl;      
+      }
+    }
   }
 }
 
