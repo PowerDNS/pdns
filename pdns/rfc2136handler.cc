@@ -965,7 +965,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
     }
   }
 
-  calculateIncreaseSOA(soa2Update, soaEdit2136, soaEdit);
+  soa2Update.serial = calculateIncreaseSOA(soa2Update, soaEdit2136, soaEdit);
 
   newRec.content = serializeSOAData(soa2Update);
   vector<DNSResourceRecord> rrset;
