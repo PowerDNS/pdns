@@ -595,7 +595,7 @@ Pkcs11Token::Pkcs11Token(const CK_SLOT_ID& slotId, const std::string& label, CK_
   this->f = functions;
   this->d_logged_in = false;
   this->d_session = 0;
-  this->m = PTHREAD_MUTEX_INITIALIZER;
+  pthread_mutex_init(&(this->m), NULL);
   Lock l(&m);
 
   if ((err = f->C_OpenSession(this->d_slot, CKF_SERIAL_SESSION|CKF_RW_SESSION, 0, 0, &(this->d_session)))) {
@@ -768,7 +768,6 @@ std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
 };
 
 int PKCS11DNSCryptoKeyEngine::getBits() const {
-  int bits = -1;
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
