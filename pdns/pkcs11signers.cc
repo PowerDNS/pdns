@@ -7,6 +7,7 @@
 #include <polarssl/ctr_drbg.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_of.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/foreach.hpp>
 #include <p11-kit/p11-kit.h>
 
@@ -14,22 +15,20 @@
 #include "pdns/logger.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/sha.hh"
-#include "pkcs11signers.hh"
+#include "pdns/lock.hh"
 
+#include "pkcs11signers.hh"
 /* TODO
 
   - list possible tokens and supported modes
   - Engine: <name>, Slot: <slot>, PIN: <pin>
-  - fallback if not supported to polarssl (for hashing)
   - ECDSA support (how to test?)
-  - Physical token testing?
-  - module-slot locking (as they do not support parallel)
 
 NB! If you do use this, here is a simple way to get softhsm working
 
 create /etc/pkcs11/modules/softhsm.module
 
-put 
+put
 
 module: /usr/lib/softhsm/libsofthsm.so
 managed: yes
@@ -38,7 +37,9 @@ in it. you need to use softhsm tools to manage this all.
 
 */
 
-
+#ifdef HAVE_P11KIT1_V2
+static CK_FUNCTION_LIST** p11_modules;
+#endif
 
 // map for signing algorithms
 static std::map<unsigned int,CK_MECHANISM_TYPE> dnssec2smech = boost::assign::map_list_of
@@ -58,16 +59,7 @@ static std::map<unsigned int,CK_MECHANISM_TYPE> dnssec2hmech = boost::assign::ma
 (13, CKM_SHA256)
 (14, CKM_SHA384);
 
-// p11 handler for modules
-
-class P11KitModule;
-class P11KitSlot;
-
 typedef enum { Attribute_Byte, Attribute_Long, Attribute_String } CkaValueType;
-
-#ifdef HAVE_P11KIT1_V2
-static CK_FUNCTION_LIST** p11_modules;
-#endif
 
 // Attribute handling
 class P11KitAttribute {
@@ -206,410 +198,412 @@ public:
   };
 };
 
-// representation of slot
-class P11KitSlot {
-private:
-  CK_SESSION_HANDLE d_session;
-  CK_SLOT_ID d_slot;
-  P11KitModule *d_module;
+class Pkcs11Token {
+  private:
+    CK_FUNCTION_LIST* f; // module functions
+    CK_SESSION_HANDLE d_session;
+    CK_SLOT_ID d_slot;
+    CK_OBJECT_HANDLE d_public_key;
+    CK_OBJECT_HANDLE d_private_key;
+    CK_KEY_TYPE d_key_type;
 
-public:
-  P11KitSlot();
-  P11KitSlot(CK_SLOT_ID slot, P11KitModule *module);
-  P11KitSlot(const P11KitSlot& rhs);
-  ~P11KitSlot();
+    CK_ULONG d_bits;
+    std::string d_exponent;
+    std::string d_modulus;
+    std::string d_ec_point;
+    std::string d_ecdsa_params;
 
-  void SetSlot(CK_SLOT_ID slot);
-  void SetModule(P11KitModule *module);
+    std::string d_label;
 
-  CK_RV OpenSession(CK_FLAGS flags);
-  CK_RV CloseSession();
+    CK_RV d_err;
+    bool d_logged_in;
+    pthread_mutex_t m;
 
-  CK_RV GetInfo(CK_SLOT_INFO_PTR info) const;
-  CK_RV GetTokenInfo(CK_TOKEN_INFO_PTR info) const;
-
-  CK_RV Login(const std::string& pin, CK_USER_TYPE user);
-  CK_RV Logout();
-
-  CK_RV GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey);
-  CK_RV FindObjects(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, CK_ULONG maxobjects) const;
-  CK_RV SetAttributeValue(CK_OBJECT_HANDLE object, const std::vector<P11KitAttribute>& attributes);
-  CK_RV GetAttributeValue(CK_OBJECT_HANDLE object, std::vector<P11KitAttribute>& attributes) const;
-
-  CK_RV Sign(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism, CK_OBJECT_HANDLE key) const;
-  CK_RV Verify(const std::string& data, const std::string& result, CK_MECHANISM_PTR mechanism, CK_OBJECT_HANDLE key) const;
-
-  CK_RV Digest(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) const;
-
-  CK_RV DigestInit(CK_MECHANISM_PTR mechanism) const;
-  CK_RV DigestUpdate(const std::string& data) const;
-  CK_RV DigestUpdate(CK_OBJECT_HANDLE key) const;
-  CK_RV DigestFinal(std::string& result) const;
-};
-
-// representation of module (or Engine)
-class P11KitModule
-{
-  public:
-    std::string d_module;
-    CK_FUNCTION_LIST_PTR functions;
-
-    P11KitModule() {}
-
-    P11KitModule(const std::string& module) {
-      this->d_module = module;
-    }
-
-    P11KitModule(const P11KitModule& rhs) {
-      functions = rhs.functions;
-      d_module = rhs.d_module;
-    }
-
-    void setModule(const std::string& module) {
-      this->d_module = module;
-    };
-
-// basically get the function list
-    bool initialize() {
-#ifdef HAVE_P11KIT1_V2
-      functions = p11_kit_module_for_name(p11_modules, d_module.c_str());
-#else
-      functions = p11_kit_registered_name_to_module(d_module.c_str());
-#endif
-      if (functions == NULL) return false;
-      return true;
-    };
-
-// convenience method + checking that slot exists
-    bool GetSlot(CK_SLOT_ID slotId, P11KitSlot &slot) {
-      _CK_SLOT_INFO info;
-      if (this->functions->C_GetSlotInfo(slotId, &info)) {
-        return false;
+    void logError(const std::string& operation) const {
+      if (d_err) {
+        L<<Logger::Error<<"PKCS#11 operation " << operation << " failed: " << d_err << endl;
       }
-      slot.SetSlot(slotId);
-      slot.SetModule(this);
-      return true;
     };
+
+  public:
+    Pkcs11Token(const CK_SLOT_ID& slotId, const std::string& label, CK_FUNCTION_LIST* functions);
+    ~Pkcs11Token();
+
+    int Login(const std::string& pin) {
+      if (pin.empty()) return CKR_PIN_INVALID; // no empty pin.
+
+      Lock l(&m);
+      unsigned char *uPin = new unsigned char[pin.size()];
+      memcpy(uPin, pin.c_str(), pin.size());
+      d_err = f->C_Login(this->d_session, CKU_USER, uPin, pin.size());
+      memset(uPin, 0, pin.size());
+      delete [] uPin;
+      logError("C_Login");
+      if (d_err == 0) {
+        d_logged_in = true;
+        LoadAttributes();
+      }
+      return d_err;
+    }
+
+    bool LoggedIn() const { return d_logged_in; }
+
+    void LoadAttributes() {
+      std::vector<P11KitAttribute> attr;
+      std::vector<CK_OBJECT_HANDLE> key;
+
+      attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
+      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
+      attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
+      FindObjects2(attr, key, 1);
+      if (key.size() == 0) {
+        L<<Logger::Warning<<"Cannot load PCKS#11 private key "<<d_label<<std::endl;;
+        return;
+      }
+      d_private_key = key[0];
+      attr.clear();
+      attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
+      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
+      attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
+      FindObjects2(attr, key, 1);
+      if (key.size() == 0) {
+        L<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_label<<std::endl;
+        return;
+      }
+      d_public_key = key[0];
+
+      attr.clear();
+      attr.push_back(P11KitAttribute(CKA_KEY_TYPE, 0UL));
+
+      if (GetAttributeValue2(d_public_key, attr)==0) {
+        d_key_type = attr[0].ulong();
+        if (d_key_type == CKK_RSA) {
+          attr.clear();
+          attr.push_back(P11KitAttribute(CKA_MODULUS, ""));
+          attr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, ""));
+          attr.push_back(P11KitAttribute(CKA_MODULUS_BITS, 0UL));
+
+          if (!GetAttributeValue2(d_public_key, attr)) {
+            d_modulus = attr[0].str();
+            d_exponent = attr[1].str();
+            d_bits = attr[2].ulong();
+          } else {
+            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
+          }
+        } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
+          attr.clear();
+          attr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ""));
+          attr.push_back(P11KitAttribute(CKA_EC_POINT, ""));
+          if (!GetAttributeValue2(d_public_key, attr)) {
+            d_ecdsa_params = attr[0].str();
+            if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") d_bits = 256;
+            if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
+            d_ec_point = attr[1].str();
+          } else {
+            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
+          }
+        } else {
+          throw PDNSException("Cannot determine type for PCKS#11 public key " + d_label);
+        }
+      } else {
+        throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
+      }
+    }
+
+    int GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey) {
+      Lock l(&m);
+
+      size_t k;
+      CK_ATTRIBUTE_PTR pubAttr, privAttr;
+      pubAttr = new CK_ATTRIBUTE[pubAttributes.size()];
+      privAttr = new CK_ATTRIBUTE[privAttributes.size()];
+
+      k = 0;
+      BOOST_FOREACH(P11KitAttribute& attribute, pubAttributes) {
+        attribute.rattr(pubAttr+k);
+        k++;
+      }
+
+      k = 0;
+      BOOST_FOREACH(P11KitAttribute& attribute, privAttributes) {
+        attribute.rattr(privAttr+k);
+        k++;
+      }
+
+      d_err = this->f->C_GenerateKeyPair(d_session, mechanism, pubAttr, pubAttributes.size(), privAttr, privAttributes.size(), pubKey, privKey);
+      logError("C_GenerateKeyPair");
+      delete [] pubAttr;
+      delete [] privAttr;
+
+      if (d_err == 0) LoadAttributes();
+
+      return d_err;
+    }
+
+    int Sign(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) {
+      Lock l(&m);
+
+      CK_BYTE buffer[1024];
+      CK_ULONG buflen = sizeof buffer; // should be enough for most signatures.
+
+      // perform signature
+      if ((d_err = this->f->C_SignInit(d_session, mechanism, d_private_key))) { logError("C_SignInit"); return d_err; }
+      d_err = this->f->C_Sign(d_session, (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
+
+      if (!d_err) {
+        result.assign((char*)buffer, buflen);
+      }
+
+      memset(buffer,0,sizeof buffer);
+      logError("C_Sign");
+      return d_err;
+    }
+
+    int Verify(const std::string& data, const std::string& signature, CK_MECHANISM_PTR mechanism) {
+      Lock l(&m);
+
+      if ((d_err = this->f->C_VerifyInit(d_session, mechanism, d_public_key))) { logError("C_VerifyInit"); return d_err; }
+      d_err = this->f->C_Verify(d_session, (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
+      logError("C_Verify");
+      return d_err;
+    }
+
+    int Digest(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) {
+      Lock l(&m);
+
+      CK_BYTE buffer[1024];
+      CK_ULONG buflen = sizeof buffer; // should be enough for most digests
+      if ((d_err = this->f->C_DigestInit(d_session, mechanism))) { logError("C_DigestInit"); return d_err; }
+      d_err = this->f->C_Digest(d_session, (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
+      if (!d_err) {
+        result.assign((char*)buffer, buflen);
+      }
+      memset(buffer,0,sizeof buffer);
+      logError("C_Digest");
+      return d_err;
+    }
+
+    int DigestInit(CK_MECHANISM_PTR mechanism) {
+      d_err = f->C_DigestInit(d_session, mechanism);
+      logError("C_DigestInit");
+      return d_err;
+    }
+
+    int DigestUpdate(const std::string& data) {
+      d_err = f->C_DigestUpdate(d_session, (unsigned char*)data.c_str(), data.size());
+      logError("C_DigestUpdate");
+      return d_err;
+    }
+
+    int DigestKey(std::string& result) {
+      Lock l(&m);
+      CK_MECHANISM mech;
+      mech.mechanism = CKM_SHA_1;
+
+      DigestInit(&mech);
+
+      if (d_key_type == CKK_RSA) {
+        DigestUpdate(d_modulus);
+        DigestUpdate(d_exponent);
+      } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
+        DigestUpdate(d_ec_point);
+      }
+
+      DigestFinal(result);
+
+      return d_err;
+    }
+
+    int DigestFinal(std::string& result) {
+      CK_BYTE buffer[1024] = {0};
+      CK_ULONG buflen = sizeof buffer; // should be enough for most digests
+      d_err = f->C_DigestFinal(d_session, buffer, &buflen);
+      if (!d_err) {
+        result.assign((char*)buffer, buflen);
+      }
+      memset(buffer,0,sizeof buffer);
+      logError("C_DigestFinal");
+      return d_err;
+    }
+
+    int FindObjects(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, int maxobjects) {
+      Lock l(&m);
+      return FindObjects2(attributes, objects, maxobjects);
+    }
+
+    int FindObjects2(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, int maxobjects) {
+      CK_RV rv;
+      size_t k;
+      unsigned long count;
+
+      CK_ATTRIBUTE_PTR attr;
+      CK_OBJECT_HANDLE_PTR handles = new CK_OBJECT_HANDLE[maxobjects];
+      attr = new CK_ATTRIBUTE[attributes.size()];
+
+      k = 0;
+      BOOST_FOREACH(const P11KitAttribute& attribute, attributes) {
+        attribute.rattr(attr+k);
+        k++;
+      }
+
+      // perform search
+      d_err = this->f->C_FindObjectsInit(d_session, attr, k);
+
+      if (d_err) {
+        delete [] attr;
+        delete [] handles;
+        logError("C_FindObjectsInit");
+        return d_err;
+      }
+
+      count = maxobjects;
+      rv = d_err = this->f->C_FindObjects(d_session, handles, maxobjects, &count);
+      objects.clear();
+
+      if (!rv) {
+        for(k=0;k<count;k++) {
+          objects.push_back(handles[k]);
+        }
+      }
+
+      logError("C_FindObjects");
+
+      delete [] attr;
+      delete [] handles;
+
+      d_err = this->f->C_FindObjectsFinal(d_session);
+      logError("C_FindObjectsFinal");
+
+      return rv;
+    }
+
+    int GetAttributeValue(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes) 
+    {
+      Lock l(&m);
+      return GetAttributeValue2(object, attributes);
+    }
+
+    int GetAttributeValue2(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes)
+    {
+      size_t k;
+      CK_ATTRIBUTE_PTR attr;
+      attr = new CK_ATTRIBUTE[attributes.size()];
+
+      k = 0;
+      BOOST_FOREACH(P11KitAttribute &attribute, attributes) {
+        attribute.wattr(attr+k);
+        k++;
+      }
+
+      // round 1 - get attribute sizes
+      d_err = f->C_GetAttributeValue(d_session, object, attr, attributes.size());
+      logError("C_GetAttributeValue");
+      if (d_err) {
+        delete [] attr;
+        return d_err;
+      }
+
+      // then allocate memory
+      for(size_t k=0; k < attributes.size(); k++) {
+        if (attributes[k].valueType() == Attribute_String) {
+          attr[k].pValue = attributes[k].allocate(attr[k].ulValueLen);
+        }
+      }
+
+      // round 2 - get actual values
+      d_err = f->C_GetAttributeValue(d_session, object, attr, attributes.size());
+      logError("C_GetAttributeValue");
+
+      // copy values to map and release allocated memory
+      for(size_t k=0; k < attributes.size(); k++) {
+        if (attributes[k].valueType() == Attribute_String) {
+          attributes[k].commit(attr[k].ulValueLen);
+        }
+      }
+
+      delete [] attr;
+
+      return d_err;
+    };
+
+    const std::string& Modulus() {
+      return d_modulus;
+    }
+
+    const std::string& Exponent() {
+      return d_exponent;
+    }
+
+    const std::string& ECPoint() {
+      return d_ec_point;
+    }
+
+    const std::string& ECParameters() {
+      return d_ecdsa_params;
+    }
+
+    CK_KEY_TYPE KeyType() {
+      return d_key_type;
+    }
+
+    CK_ULONG Bits() {
+      return d_bits;
+    }
+
+    static boost::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label);
 };
 
-P11KitSlot::P11KitSlot() { d_module = NULL; };
+static std::map<std::string, boost::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 
-P11KitSlot::P11KitSlot(CK_SLOT_ID slot, P11KitModule *module)
-{
-  this->d_slot = slot;
-  this->d_module = module;
+boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label) {
+  // see if we can find module
+  std::string idx = module;
+  idx.append("|");
+  idx.append(boost::lexical_cast<std::string>(slotId));
+  std::map<std::string, boost::shared_ptr<Pkcs11Token> >::iterator tokenIter;
+  CK_FUNCTION_LIST* functions;
+
+  if ((tokenIter = pkcs11_tokens.find(idx)) != pkcs11_tokens.end()) return tokenIter->second;
+
+#ifdef HAVE_P11KIT1_V2
+  functions = p11_kit_module_for_name(p11_modules, module.c_str());
+#else
+  functions = p11_kit_registered_name_to_module(module.c_str());
+#endif
+  if (functions == NULL) throw PDNSException("Cannot find PKCS#11 module " + module);
+  functions->C_Initialize(NULL); // initialize the module in case it hasn't been done yet.
+
+  // try to locate a slot
+   _CK_SLOT_INFO info;
+  if (functions->C_GetSlotInfo(slotId, &info)) {
+    throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module);
+  }
+
+  // looks ok to me.
+  pkcs11_tokens[idx] = boost::make_shared<Pkcs11Token>(slotId, label, functions);
+
+  return pkcs11_tokens[idx];
 }
 
-P11KitSlot::P11KitSlot(const P11KitSlot &rhs)
-{
-  this->d_slot = rhs.d_slot;
-  this->d_module = rhs.d_module;
-  this->d_session = rhs.d_session;
-}
-
-P11KitSlot::~P11KitSlot()
-{
-  if (this->d_module && this->d_session)
-    this->d_module->functions->C_CloseSession(this->d_session);
-}
-
-// DO NOT CALL THIS ON YOUR OWN
-void P11KitSlot::SetSlot(CK_SLOT_ID slot) {
-  this->d_slot = slot;
-}
-
-// DO NOT CALL THIS ON YOUR OWN
-void P11KitSlot::SetModule(P11KitModule *module) {
-  this->d_module = module;
-}
-
-// Create new session, mostly uses CKF_SERIAL_SESSION (which is mandatory flag)
-// Another flag you can pass is CFK_RW_SESSION
-CK_RV P11KitSlot::OpenSession(CK_FLAGS flags)
-{
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_OpenSession(this->d_slot, flags, 0, 0, &(this->d_session));
-}
-
-CK_RV P11KitSlot::CloseSession()
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv = this->d_module->functions->C_CloseSession(this->d_session);
+Pkcs11Token::Pkcs11Token(const CK_SLOT_ID& slotId, const std::string& label, CK_FUNCTION_LIST* functions) {
+  // open a session
+  int err;
+  this->d_bits = 0;
+  this->d_slot = slotId;
+  this->d_label = label;
+  this->d_err = 0;
+  this->f = functions;
+  this->d_logged_in = false;
   this->d_session = 0;
-  return rv;
+  pthread_mutex_init(&(this->m), NULL);
+  Lock l(&m);
+
+  if ((err = f->C_OpenSession(this->d_slot, CKF_SERIAL_SESSION|CKF_RW_SESSION, 0, 0, &(this->d_session)))) {
+    throw PDNSException(std::string("Could not open session: ") + boost::lexical_cast<std::string>(err));
+  }
 }
 
-CK_RV P11KitSlot::GetInfo(CK_SLOT_INFO_PTR info) const
-{
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_GetSlotInfo(this->d_slot, info);
-}
-
-CK_RV P11KitSlot::GetTokenInfo(CK_TOKEN_INFO_PTR info) const
-{  
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_GetTokenInfo(this->d_slot, info);
-}
-
-CK_RV P11KitSlot::Login(const std::string& pin, CK_USER_TYPE user)
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  unsigned char *pPin;
-  pPin = new unsigned char[pin.size()];
-  pin.copy(reinterpret_cast<char*>(pPin), pin.size());
-  rv = this->d_module->functions->C_Login(this->d_session, user, pPin, pin.size());
-  delete [] pPin;
-  return rv;
-}
-
-CK_RV P11KitSlot::Logout()
-{
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_Logout(this->d_slot);
-}
-
-CK_RV P11KitSlot::GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey) {
-  if (!this->d_module) return 0xff;
-
-  CK_RV rv;
-  size_t k;
-  CK_ATTRIBUTE_PTR pubAttr, privAttr;
-  pubAttr = new CK_ATTRIBUTE[pubAttributes.size()];
-  privAttr = new CK_ATTRIBUTE[privAttributes.size()];
-
-  k = 0;
-  BOOST_FOREACH(P11KitAttribute& attribute, pubAttributes) {
-    attribute.rattr(pubAttr+k);
-    k++;
-  }
-
-  k = 0;
-  BOOST_FOREACH(P11KitAttribute& attribute, privAttributes) {
-    attribute.rattr(privAttr+k);
-    k++;
-  }
-
-  rv = this->d_module->functions->C_GenerateKeyPair(d_session, mechanism, pubAttr, pubAttributes.size(), privAttr, privAttributes.size(), pubKey, privKey); 
-
-  delete [] pubAttr;
-  delete [] privAttr;
-
-  return rv;
-}
-
-// Finds object(s) that match exactly to attributes
-CK_RV P11KitSlot::FindObjects(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, unsigned long maxobjects) const 
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  size_t k;
-  unsigned long count;
-  CK_ATTRIBUTE_PTR attr;
-  CK_OBJECT_HANDLE_PTR handles = new CK_OBJECT_HANDLE[maxobjects];
-  attr = new CK_ATTRIBUTE[attributes.size()];
-
-  k = 0;
-  BOOST_FOREACH(const P11KitAttribute& attribute, attributes) {
-    attribute.rattr(attr+k);
-    k++;
-  }
-
-  // perform search
-  rv = this->d_module->functions->C_FindObjectsInit(d_session, attr, k);
-
-  if (rv) {
-    delete [] attr;
-    delete [] handles;
-    return rv;
-  }
-
-  count = maxobjects;
-  rv = this->d_module->functions->C_FindObjects(d_session, handles, maxobjects, &count);
-
-  if (!rv) {
-    objects.clear();
-    for(k=0;k<count;k++) {
-      objects.push_back(handles[k]);
-    }
-  }
-
-  delete [] attr;
-  delete [] handles;
-
-  this->d_module->functions->C_FindObjectsFinal(d_session);
-
-  return rv;
-};
-
-// TODO: Untested codepath
-CK_RV P11KitSlot::SetAttributeValue(CK_OBJECT_HANDLE object, const std::vector<P11KitAttribute>& attributes)
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  size_t k;
-  CK_ATTRIBUTE_PTR attr;
-  attr = new CK_ATTRIBUTE[attributes.size()];
-
-  k = 0;
-  BOOST_FOREACH(const P11KitAttribute &attribute, attributes) {
-    attribute.rattr(attr+k);
-    k++;
-  }
-
-  rv = this->d_module->functions->C_SetAttributeValue(d_session, object, attr, attributes.size());
-
-  delete [] attr;
-  return rv;
-}
-
-CK_RV P11KitSlot::GetAttributeValue(CK_OBJECT_HANDLE object, std::vector<P11KitAttribute>& attributes) const
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  size_t k;
-  CK_ATTRIBUTE_PTR attr;
-  attr = new CK_ATTRIBUTE[attributes.size()];
-
-  k = 0;
-  BOOST_FOREACH(P11KitAttribute &attribute, attributes) {
-    attribute.wattr(attr+k);
-    k++;
-  }
-
-  // round 1 - get attribute sizes
-  rv = this->d_module->functions->C_GetAttributeValue(d_session, object, attr, attributes.size());
-
-  if (rv) {
-    delete [] attr;
-    return rv;
-  }
-
-  // then allocate memory
-  for(size_t k=0; k < attributes.size(); k++) {
-    if (attributes[k].valueType() == Attribute_String) {
-      attr[k].pValue = attributes[k].allocate(attr[k].ulValueLen);
-    }
-  }
-
-  // round 2 - get actual values
-  rv = this->d_module->functions->C_GetAttributeValue(d_session, object, attr, attributes.size());
-
-  // copy values to map and release allocated memory
-  for(size_t k=0; k < attributes.size(); k++) {
-    if (attributes[k].valueType() == Attribute_String) {
-      attributes[k].commit(attr[k].ulValueLen);
-    }
-  }
-
-  delete [] attr;
-
-  return rv;
-};
-
-CK_RV P11KitSlot::Sign(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism, CK_OBJECT_HANDLE key) const
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  CK_BYTE buffer[1024];
-  CK_ULONG buflen = sizeof buffer; // should be enough for most signatures.
-
-  // perform signature
-  if ((rv = this->d_module->functions->C_SignInit(d_session, mechanism, key))) return rv; // well that failed.
-  rv = this->d_module->functions->C_Sign(d_session, (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
-  if (!rv) {
-    result.assign((char*)buffer, buflen);
-  }
-  memset(buffer,0,sizeof buffer);
-
-  return rv;
-};
-
-CK_RV P11KitSlot::Verify(const std::string& data, const std::string& signature, CK_MECHANISM_PTR mechanism, CK_OBJECT_HANDLE key) const
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  if ((rv = this->d_module->functions->C_VerifyInit(d_session, mechanism, key))) return rv;
-  rv = this->d_module->functions->C_Verify(d_session, (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
-  return rv;
-};
-
-CK_RV P11KitSlot::Digest(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) const
-{ 
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  CK_BYTE buffer[1024];
-  CK_ULONG buflen = sizeof buffer; // should be enough for most digests
-  if ((rv = this->d_module->functions->C_DigestInit(d_session, mechanism))) return rv;
-  rv = this->d_module->functions->C_Digest(d_session, (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
-  if (!rv) {
-    result.assign((char*)buffer, buflen);
-  }
-  memset(buffer,0,sizeof buffer);
-
-  return rv;
-};
-
-CK_RV P11KitSlot::DigestInit(CK_MECHANISM_PTR mechanism) const
-{
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_DigestInit(d_session, mechanism);
-}
-
-CK_RV P11KitSlot::DigestUpdate(const std::string& data) const
-{
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_DigestUpdate(d_session, (unsigned char*)data.c_str(), data.size());
-}
-
-CK_RV P11KitSlot::DigestUpdate(CK_OBJECT_HANDLE key) const
-{
-  if (!this->d_module) return 0xff;
-  return this->d_module->functions->C_DigestKey(d_session, key);
-}
-
-CK_RV P11KitSlot::DigestFinal(std::string& result) const
-{
-  if (!this->d_module) return 0xff;
-  CK_RV rv;
-  CK_BYTE buffer[1024];
-  CK_ULONG buflen = sizeof buffer; // should be enough for most digests
-  rv = this->d_module->functions->C_DigestFinal(d_session, buffer, &buflen);
-  if (!rv) {
-    result.assign((char*)buffer, buflen);
-  }
-  memset(buffer,0,sizeof buffer);
-  return rv;
-}
-
-// map between engine names and engines
-static std::map<std::string, P11KitModule> pkcs11_engines;
-// map between engine names and slots (not used now)
-//static std::map<std::string, CK_SLOT_ID> pkcs11_slots;
-
-static bool pkcs11_GetSlot(const std::string& engine, CK_SLOT_ID slotId, const std::string& pin, CK_FLAGS flags, P11KitSlot& slot) 
-{
-  CK_RV rv;
-  if (engine.empty()) return false;
-
-  // open module if necessary
-  if (pkcs11_engines.find(engine) == pkcs11_engines.end()) {
-    P11KitModule module(engine);
-    if (module.initialize() == false) {
-      throw PDNSException("Cannot initialize or unknown PKCS#11 engine " + engine);
-    }
-    pkcs11_engines[engine] = module;
-  }
-  pkcs11_engines[engine].GetSlot(slotId, slot);
-  rv = slot.OpenSession(flags);
-  if (rv) { 
-    return false; 
-  };
-  rv = slot.Login(pin, CKU_USER);
-  if (rv) {
-    L<<Logger::Error<<"Login failed for " << engine << " slot " << slotId << ": " << rv <<std::endl;
-  };
-  return rv == 0;
+Pkcs11Token::~Pkcs11Token() {
 }
 
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
@@ -622,10 +616,14 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   CK_MECHANISM mech;
   CK_OBJECT_HANDLE pubKey, privKey;
   CK_RV rv;
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION|CKF_RW_SESSION, d_slot);
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
+
   std::string pubExp("\000\001\000\001", 4); // 65537
-  
+
   pubAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
   pubAttr.push_back(P11KitAttribute(CKA_KEY_TYPE, (unsigned long)CKK_RSA));
   pubAttr.push_back(P11KitAttribute(CKA_TOKEN, (char)CK_TRUE));
@@ -633,7 +631,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   pubAttr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
   pubAttr.push_back(P11KitAttribute(CKA_WRAP, (char)CK_TRUE));
   pubAttr.push_back(P11KitAttribute(CKA_MODULUS_BITS, (unsigned long)bits));
-  pubAttr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, pubExp)); 
+  pubAttr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, pubExp));
   pubAttr.push_back(P11KitAttribute(CKA_LABEL, d_label));
 
   privAttr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
@@ -652,31 +650,24 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
 
-  if ((rv = d_slot.GenerateKeyPair(&mech, pubAttr, privAttr, &pubKey, &privKey))) {
-    std::ostringstream error;
-    error << "Keypair generation failed with " << rv;
-    throw PDNSException(error.str());
+  if ((rv = d_slot->GenerateKeyPair(&mech, pubAttr, privAttr, &pubKey, &privKey))) {
+    throw PDNSException("Keypair generation failed");
   }
 };
 
-std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const { 
+std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   std::string result;
-  std::vector<CK_OBJECT_HANDLE> key;
-  std::vector<P11KitAttribute> attr;
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
-  // find key that can be used for signing 
-  attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
-  attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
-  d_slot.FindObjects(attr, key, 1);
-  // hopefully we have a key
-  if (key.size() == 0) return "";
-  // choose mech
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
+
   CK_MECHANISM mech;
   mech.mechanism = dnssec2smech[d_algorithm];
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
-  d_slot.Sign(msg, result, &mech, key[0]);
+  if (d_slot->Sign(msg, result, &mech)) throw PDNSException("Could not sign data");
   return result;
 };
 
@@ -686,10 +677,13 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   mech.mechanism = dnssec2hmech[d_algorithm];
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
 
-  if (d_slot.Digest(msg, result, &mech)) {
+  if (d_slot->Digest(msg, result, &mech)) {
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {
@@ -723,116 +717,74 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
 };
 
 bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const {
-  bool result;
-  std::vector<CK_OBJECT_HANDLE> key;
-  std::vector<P11KitAttribute> attr;
-  // find a key that can be used to verify signatures
-  attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
-  attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
 
-  d_slot.FindObjects(attr, key, 1);
-  // hopefully we have a key
-  if (key.size() == 0) return "";
-  // choose mech
   CK_MECHANISM mech;
   mech.mechanism = dnssec2smech[d_algorithm];
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
-  result = d_slot.Verify(msg, signature, &mech, key[0]);
-  return result;
+  return (d_slot->Verify(msg, signature, &mech) == 0);
 };
 
-std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const { 
-  std::string result = "";
-  std::vector<CK_OBJECT_HANDLE> key;
-  std::vector<P11KitAttribute> attr;
+std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
   // find us a public key
-  attr.push_back(P11KitAttribute(CKA_CLASS, CKO_PUBLIC_KEY));
-  attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
 
-  d_slot.FindObjects(attr, key, 1);
-  if (key.size() > 0) {
-     attr.clear();
-     attr.push_back(P11KitAttribute(CKA_MODULUS, ""));
-     attr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, ""));
-     if (d_slot.GetAttributeValue(key[0], attr) == 0) {
-       CK_MECHANISM mech;
-       mech.mechanism = CKM_SHA_1;
-       d_slot.DigestInit(&mech);
-       d_slot.DigestUpdate(attr[0].str());
-       d_slot.DigestUpdate(attr[1].str());
-       d_slot.DigestFinal(result);
-     }
-  }
-  return result; 
+  std::string result;
+  if (d_slot->DigestKey(result) == 0) return result;
+  return "";
 };
 
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
   std::string result("");
-  std::vector<CK_OBJECT_HANDLE> key;
-  std::vector<P11KitAttribute> attr;
-  attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
 
-  d_slot.FindObjects(attr, key, 1);
-  if (key.size() > 0) {
-     attr.clear();
-     attr.push_back(P11KitAttribute(CKA_MODULUS, ""));
-     attr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, ""));
-     if (d_slot.GetAttributeValue(key[0], attr) == 0) {
-       if(attr[1].str().length() < 255)
-         result.assign(1, (char) (unsigned int) attr[1].str().length());
-       else {
-         result.assign(1, 0);
-         uint16_t len=htons(attr[1].str().length());
-         result.append((char*)&len, 2);
-       } 
-       result.append(attr[1].str());
-       result.append(attr[0].str());
-     }
-//   } else {
-//     std::cerr << "Could not find key" << std::endl;
-   }
-   return result;
+  if (d_slot->KeyType() == CKK_RSA) {
+    if (d_slot->Exponent().length() < 255) {
+      result.assign(1, (char) (unsigned int) d_slot->Exponent().length());
+    } else {
+      result.assign(1, 0);
+      uint16_t len=htons(d_slot->Exponent().length());
+      result.append((char*)&len, 2);
+    }
+    result.append(d_slot->Exponent());
+    result.append(d_slot->Modulus());
+  } else {
+    result.append(d_slot->ECPoint());
+  }
+  return result;
 };
 
 int PKCS11DNSCryptoKeyEngine::getBits() const {
-  int bits = -1;
-  std::vector<CK_OBJECT_HANDLE> key;
-  std::vector<P11KitAttribute> attr;
-  attr.push_back(P11KitAttribute(CKA_CLASS, CKO_PUBLIC_KEY));
-  attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
-  P11KitSlot d_slot;
-  pkcs11_GetSlot(d_engine, d_slot_id, d_pin, CKF_SERIAL_SESSION, d_slot);
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin))
+      throw PDNSException("Not logged in to token");
 
-//  std::cerr << "Looking for " << d_label << " from " << d_slot_id << std::endl;
-
-  d_slot.FindObjects(attr, key, 1);
-  if (key.size() > 0) {
-     attr.clear(); 
-     attr.push_back(P11KitAttribute(CKA_MODULUS_BITS, 0UL));
-     if (d_slot.GetAttributeValue(key[0], attr) == 0) {
-       bits = static_cast<int>(attr[0].ulong());
-     }
-//  } else {
-//     std::cerr << "Could not find key" << std::endl;
-  }
-  return bits;
+  return d_slot->Bits();
 };
 
-DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() const { 
+DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() const {
   storvector_t storvect;
   typedef std::vector<std::pair<std::string, std::string> > outputs_t;
   outputs_t outputs;
 
   boost::assign::push_back(storvect)
    (make_pair("Algorithm", boost::lexical_cast<std::string>(d_algorithm)))
-   (make_pair("Engine", d_engine))
+   (make_pair("Engine", d_module))
    (make_pair("Slot", boost::lexical_cast<std::string>(d_slot_id)))
    (make_pair("PIN", d_pin))
    (make_pair("Label", d_label));
@@ -846,22 +798,22 @@ DNSCryptoKeyEngine* PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
 
 // this is called during program startup
 namespace {
-struct LoaderStruct
-{
-  LoaderStruct()
+  static struct LoaderStruct
   {
+    LoaderStruct()
+    {
 #ifdef HAVE_P11KIT1_V2
-    p11_modules = p11_kit_modules_load_and_initialize(0);
+      p11_modules = p11_kit_modules_load_and_initialize(0);
 #else
-    p11_kit_initialize_registered();
+      p11_kit_initialize_registered();
 #endif
-  };
-  ~LoaderStruct() {
+    };
+    ~LoaderStruct() {
 #ifdef HAVE_P11KIT1_V2
-    p11_kit_modules_release(p11_modules);
+      p11_kit_modules_release(p11_modules);
 #else
-    p11_kit_finalize_registered();
+      p11_kit_finalize_registered();
 #endif
-  };
-} loaderPkcs11;
+    };
+  } loaderPkcs11;
 }

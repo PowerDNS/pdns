@@ -4,7 +4,7 @@
 class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
   protected:
-    std::string d_engine;
+    std::string d_module;
     unsigned long d_slot_id;
     std::string d_pin;
     std::string d_label;
@@ -34,12 +34,11 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     std::string getPubKeyHash() const;
 
     std::string getPublicKeyString() const;
-
     int getBits() const;
 
     void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) {
       drc.d_algorithm = atoi(stormap["algorithm"].c_str());
-      d_engine = stormap["engine"];
+      d_module = stormap["engine"];
       d_slot_id = atoi(stormap["slot"].c_str());
       d_pin = stormap["pin"];
       d_label = stormap["label"];
