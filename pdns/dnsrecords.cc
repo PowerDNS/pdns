@@ -285,7 +285,7 @@ boilerplate_conv(TLSA, 52,
                  )                 
                  
 boilerplate_conv(OPENPGPKEY, 61,
-                 conv.xfrHexBlob(d_keyring, true);
+                 conv.xfrBlob(d_keyring, true);
                  )
 
 #undef DS
