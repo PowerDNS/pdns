@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import socket;
-import select;
-import sys;
+import socket
+import select
+import sys
 
 def ensure(data, offset, value):
   if (data[offset:offset+len(value)] != value):
