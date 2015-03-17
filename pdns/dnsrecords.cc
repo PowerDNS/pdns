@@ -273,6 +273,10 @@ boilerplate_conv(TLSA, 52,
                  conv.xfrHexBlob(d_cert, true);
                  )                 
                  
+boilerplate_conv(OPENPGPKEY, 61,
+                 conv.xfrBlob(d_keyring, true);
+                 )
+
 #undef DS
 DSRecordContent::DSRecordContent() : DNSRecordContent(43) {}
 boilerplate_conv(DS, 43, 
@@ -492,6 +496,7 @@ void reportOtherTypes()
    NSEC3RecordContent::report();
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
+   OPENPGPKEYRecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    //TSIGRecordContent::report();
