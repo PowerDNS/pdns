@@ -511,7 +511,7 @@ Clients MUST NOT send a body.
 URL: /servers/:server\_id/zones/:zone\_id/axfr-retrieve
 -------------------------------------------------------
 
-Allowed methods: `PUT`
+Allowed methods: `GET`
 
 Retrieves the zone from the master.
 
