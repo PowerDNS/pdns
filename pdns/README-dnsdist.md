@@ -206,6 +206,19 @@ servers that lack this feature.
 Note that calling `addAnyTCRule()` achieves the same thing, without
 involving Lua.
 
+DNSSEC
+------
+To provide DNSSEC service from a separate pool, try:
+```
+newServer{address="2001:888:2000:1d::2", pool="dnssec"}
+newServer{address="2a01:4f8:110:4389::2", pool="dnssec"}
+setDNSSECPool("dnssec")
+topRule()
+```
+
+This routes all queries with a DNSSEC OK (DO) or CD bit set to on to the "dnssec" pool.
+The final `topRule()` command moves this rule to the top, so it gets evaluated first.
+
 Inspecting live traffic
 -----------------------
 This is still much in flux, but for now, try:
@@ -431,6 +444,9 @@ Here are all functions:
    * `rmRule(n)`: remove rule n
    * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
+ * Specialist rule generators
+   * addAnyTCRule(): generate TC=1 answers to ANY queries, moving them to TCP
+   * setDNSSECPool(): move queries requesting DNSSEC processing to this pool
  * Pool related:
    * `addPoolRule(domain, pool)`: send queries to this domain to that pool
    * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool

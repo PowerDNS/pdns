@@ -17,7 +17,7 @@ vector<std::function<void(void)>> setupLua(bool client)
 		      [client](boost::variant<string,std::unordered_map<std::string, std::string>> pvars, boost::optional<int> qps)
 		      { 
 			if(client) {
-			  return shared_ptr<DownstreamState>();
+			  return std::make_shared<DownstreamState>(ComboAddress());
 			}
 			if(auto address = boost::get<string>(&pvars)) {
 			  auto ret=std::make_shared<DownstreamState>(ComboAddress(*address, 53));
@@ -97,6 +97,15 @@ vector<std::function<void(void)>> setupLua(bool client)
       g_rulactions.setState(rules);
     });
 
+  g_lua.writeFunction("topRule", []() {
+      auto rules = g_rulactions.getCopy();
+      if(rules.empty())
+	return;
+      auto subject = *rules.rbegin();
+      rules.erase(std::prev(rules.end()));
+      rules.insert(rules.begin(), subject);
+      g_rulactions.setState(rules);
+    });
   g_lua.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
       auto rules = g_rulactions.getCopy();
       if(from >= rules.size() || to > rules.size()) {
