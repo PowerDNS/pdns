@@ -25,7 +25,7 @@ public:
   DNSName() {}                 //!< Constructs the root name
   DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
-  DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0); //!< Construct from a DNS Packet, taking the first question
+  DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
   bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive)
@@ -56,6 +56,7 @@ private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
   string_t d_storage;
+
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };

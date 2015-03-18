@@ -268,6 +268,12 @@ vector<std::function<void(void)>> setupLua(bool client)
 
     });
 
+  g_lua.writeFunction("setDNSSECPool", [](const std::string& pool) {
+      g_rulactions.modify([pool](decltype(g_rulactions)::value_type& rulactions) {
+	  rulactions.push_back({std::make_shared<DNSSECRule>(), 
+		std::make_shared<PoolAction>(pool)}); 
+	});
+    });
 
   g_lua.writeFunction("addQPSLimit", [](boost::variant<string,vector<pair<int, string>> > var, int lim) {
       SuffixMatchNode smn;
@@ -484,6 +490,26 @@ vector<std::function<void(void)>> setupLua(bool client)
     });
   
   g_lua.executeCode(R"(function topQueries(top, labels) for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
+
+
+  g_lua.writeFunction("getResponseRing", []() {
+      decltype(g_rings.respRing) ring;
+      {
+	std::lock_guard<std::mutex> lock(g_rings.respMutex);
+	ring = g_rings.respRing;
+      }
+      vector<std::unordered_map<string, boost::variant<string, unsigned int> > > ret;
+      ret.reserve(ring.size());
+      decltype(ret)::value_type item;
+      for(const auto& r : ring) {
+	item["name"]=r.name.toString();
+	item["qtype"]=r.qtype;
+	item["rcode"]=r.rcode;
+	item["usec"]=r.usec;
+	ret.push_back(item);
+      }
+      return ret;
+    });
 
   g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
       map<DNSName, int> counts;

@@ -201,7 +201,7 @@ extern std::string g_outputBuffer; // locking for this is ok, as locked by g_lua
 class DNSRule
 {
 public:
-  virtual bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh) const =0;
+  virtual bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const =0;
   virtual string toString() const = 0;
   mutable std::atomic<uint64_t> d_matches{0};
 };
@@ -219,7 +219,7 @@ class DNSAction
 {
 public:
   enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, None};
-  virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const =0;
+  virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const =0;
   virtual string toString() const = 0;
 };
 
@@ -257,7 +257,7 @@ std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& serv
 std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-
+int getEDNSZ(const char* packet, unsigned int len);
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {

@@ -24,7 +24,7 @@ DNSName::DNSName(const char* p)
 }
 
 // this should be the __only__ dns name parser in PowerDNS. 
-DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass)
+DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
   unsigned char labellen;
   const char *opos = pos;
@@ -45,6 +45,8 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
     appendRawLabel(string(pos, labellen));
     pos+=labellen;
   }
+  if(consumed)
+    *consumed = pos - opos - offset;
   if(qtype && pos + labellen + 2 <= end)  
     *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
 
@@ -180,3 +182,5 @@ string DNSName::escapeLabel(const std::string& label)
   }
   return ret;
 }
+
+

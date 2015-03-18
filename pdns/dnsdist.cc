@@ -263,6 +263,27 @@ NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std
   return ret;
 }
 
+// goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
+int getEDNSZ(const char* packet, unsigned int len)
+{
+  struct dnsheader* dh =(struct dnsheader*)packet;
+
+  if(dh->ancount!=0 && ntohs(dh->arcount)!=1 && dh->nscount!=0)
+    return 0;
+  
+  unsigned int consumed;
+  DNSName qname(packet, len, 12, false, 0, 0, &consumed);
+  int pos = consumed + 4;
+  uint16_t qtype, qclass;
+
+  DNSName aname(packet, len, 12+pos, false, &qtype, &qclass, &consumed);
+  
+  if(qtype!=QType::OPT || 12+pos+consumed+7 >= len)
+    return 0;
+
+  uint8_t* z = (uint8_t*)packet+12+pos+consumed+6;
+  return 0x100 * (*z) + *(z+1);
+}
 
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
@@ -329,10 +350,11 @@ try
       DNSAction::Action action=DNSAction::Action::None;
       string ruleresult;
       string pool;
+
       for(const auto& lr : *localRulactions) {
-	if(lr.first->matches(remote, qname, qtype, dh)) {
+	if(lr.first->matches(remote, qname, qtype, dh, len)) {
 	  lr.first->d_matches++;
-	  action=(*lr.second)(remote, qname, qtype, dh, &ruleresult);
+	  action=(*lr.second)(remote, qname, qtype, dh, len, &ruleresult);
 	  if(action != DNSAction::Action::None)
 	    break;
 	}
@@ -986,6 +1008,8 @@ static char** my_completion( const char * text , int start,  int end)
   return matches;
 }
 }
+
+
 
 int main(int argc, char** argv)
 try

@@ -8,7 +8,7 @@ public:
   {
 
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh) const override
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
   {
     return d_nmg.match(remote);
   }
@@ -21,13 +21,32 @@ private:
   NetmaskGroup d_nmg;
 };
 
+class DNSSECRule : public DNSRule
+{
+public:
+  DNSSECRule()
+  {
+
+  }
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  {
+    return dh->cd || (getEDNSZ((const char*)dh, len) & 32768);    // turns out dig sets ad by default..
+  }
+
+  string toString() const override
+  {
+    return "DNSSEC";
+  }
+};
+
+
 class SuffixMatchNodeRule : public DNSRule
 {
 public:
   SuffixMatchNodeRule(const SuffixMatchNode& smn) : d_smn(smn)
   {
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh) const override
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
   {
     return d_smn.check(qname);
   }
@@ -45,7 +64,7 @@ public:
   QTypeRule(uint16_t qtype) : d_qtype(qtype)
   {
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh) const override
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
   {
     return d_qtype == qtype;
   }
@@ -61,7 +80,7 @@ private:
 class DropAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const override
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
   {
     return Action::Drop;
   }
@@ -76,7 +95,7 @@ class QPSAction : public DNSAction
 public:
   QPSAction(int limit) : d_qps(limit, limit) 
   {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const override
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
   {
     if(d_qps.check())
       return Action::Allow;
@@ -95,7 +114,7 @@ class PoolAction : public DNSAction
 {
 public:
   PoolAction(const std::string& pool) : d_pool(pool) {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const override
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
   {
     *ruleresult=d_pool;
     return Action::Pool;
@@ -113,7 +132,7 @@ class RCodeAction : public DNSAction
 {
 public:
   RCodeAction(int rcode) : d_rcode(rcode) {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const override
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
   {
     dh->rcode = d_rcode;
     dh->qr = true; // for good measure
@@ -131,7 +150,7 @@ private:
 class TCAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, string* ruleresult) const override
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
   {
     dh->tc = true;
     dh->qr = true; // for good measure

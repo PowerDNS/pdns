@@ -55,8 +55,11 @@ end
 
 -- setServerPolicyLua("luaroundrobin", luaroundrobin)
 
-newServer{address="2001:888:2000:1d::2", pool="auth"}
+xs=newServer{address="2001:888:2000:1d::2", pool="auth"}
 newServer{address="2a01:4f8:110:4389::2", pool="auth"}
+
+xs:addPool("dnssec")
+setDNSSECPool("dnssec")
 
 function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
