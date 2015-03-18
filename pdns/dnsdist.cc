@@ -307,7 +307,6 @@ try
       if(len < (int)sizeof(struct dnsheader)) 
 	continue;
 
-
       if(!acl->match(remote))
 	continue;
       
@@ -316,7 +315,7 @@ try
       
       
       DNSName qname(packet, len, 12, false, &qtype);
-      
+
       g_rings.queryRing.push_back(qname);
             
       if(blockFilter) {
@@ -918,6 +917,10 @@ void doConsole()
         // e is the exception that was thrown from inside the lambda
         std::cerr << e.what() << std::endl;      
       }
+    }
+    catch(const std::exception& e) {
+      // e is the exception that was thrown from inside the lambda
+      std::cerr << e.what() << std::endl;      
     }
   }
 }
