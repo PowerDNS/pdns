@@ -520,7 +520,17 @@ configuration.
 
 Not supported for recursors.
 
-Clients MUST NOT send a body.
+**Note**: Added in 3.4.2
+
+
+URL: /servers/:server\_id/zones/:zone\_id/export
+-------------------------------------------------------
+
+Allowed methods: `GET`
+
+Returns the zone in AXFR format.
+
+Not supported for recursors.
 
 
 URL: /servers/:server\_id/zones/:zone\_id/check
