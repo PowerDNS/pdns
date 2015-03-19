@@ -198,11 +198,74 @@ public:
   };
 };
 
-class Pkcs11Token {
+
+class Pkcs11Slot {
   private:
-    CK_FUNCTION_LIST* f; // module functions
+    bool d_logged_in;
+    CK_FUNCTION_LIST* d_functions; // module functions
     CK_SESSION_HANDLE d_session;
     CK_SLOT_ID d_slot;
+    CK_RV d_err;
+    pthread_mutex_t d_m;
+
+    void logError(const std::string& operation) const {
+      if (d_err) {
+        L<<Logger::Error<<"PKCS#11 operation " << operation << " failed: " << d_err << endl;
+      }
+    }
+  public:
+    Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) {
+      CK_TOKEN_INFO tokenInfo;
+      d_slot = slot;
+      d_functions = functions;
+      d_err = 0;
+      d_logged_in = false;
+      pthread_mutex_init(&(this->d_m), NULL);
+      Lock l(&d_m);
+
+      if ((d_err = d_functions->C_OpenSession(this->d_slot, CKF_SERIAL_SESSION|CKF_RW_SESSION, 0, 0, &(this->d_session)))) {
+        logError("C_OpenSession");
+        throw PDNSException("Could not open session");
+      }
+      // check if we need to login
+      if ((d_err = d_functions->C_GetTokenInfo(d_slot, &tokenInfo)) == 0) {
+        d_logged_in = ((tokenInfo.flags && CKF_LOGIN_REQUIRED) == CKF_LOGIN_REQUIRED);
+      } else {
+        logError("C_GetTokenInfo");
+        throw PDNSException("Cannot get token info for slot " + boost::lexical_cast<std::string>(slot));
+      }
+    }
+
+    bool Login(const std::string& pin) {
+      if (d_logged_in) return true;
+
+      unsigned char *uPin = new unsigned char[pin.size()];
+      memcpy(uPin, pin.c_str(), pin.size());
+      d_err = d_functions->C_Login(this->d_session, CKU_USER, uPin, pin.size());
+      memset(uPin, 0, pin.size());
+      delete [] uPin;
+      logError("C_Login");
+
+      if (d_err == 0) {
+        d_logged_in = true;
+      }
+
+      return d_logged_in;
+    }
+
+    bool LoggedIn() const { return d_logged_in; }
+
+    CK_SESSION_HANDLE& Session() { return d_session; }
+
+    CK_FUNCTION_LIST* f() { return d_functions; }
+
+    pthread_mutex_t *m() { return &d_m; }
+};
+
+class Pkcs11Token {
+  private:
+    boost::shared_ptr<Pkcs11Slot> d_slot;
+
     CK_OBJECT_HANDLE d_public_key;
     CK_OBJECT_HANDLE d_private_key;
     CK_KEY_TYPE d_key_type;
@@ -216,8 +279,6 @@ class Pkcs11Token {
     std::string d_label;
 
     CK_RV d_err;
-    bool d_logged_in;
-    pthread_mutex_t m;
 
     void logError(const std::string& operation) const {
       if (d_err) {
@@ -226,32 +287,25 @@ class Pkcs11Token {
     };
 
   public:
-    Pkcs11Token(const CK_SLOT_ID& slotId, const std::string& label, CK_FUNCTION_LIST* functions);
+    Pkcs11Token(const boost::shared_ptr<Pkcs11Slot>& slot, const std::string& label); 
     ~Pkcs11Token();
 
-    int Login(const std::string& pin) {
+    bool Login(const std::string& pin) {
       if (pin.empty()) return CKR_PIN_INVALID; // no empty pin.
+      Lock l(d_slot->m());
 
-      Lock l(&m);
-      unsigned char *uPin = new unsigned char[pin.size()];
-      memcpy(uPin, pin.c_str(), pin.size());
-      d_err = f->C_Login(this->d_session, CKU_USER, uPin, pin.size());
-      memset(uPin, 0, pin.size());
-      delete [] uPin;
-      logError("C_Login");
-      if (d_err == 0) {
-        d_logged_in = true;
+      if (d_slot->Login(pin) == true) {
         LoadAttributes();
       }
-      return d_err;
+
+      return LoggedIn();
     }
 
-    bool LoggedIn() const { return d_logged_in; }
+    bool LoggedIn() const { return d_slot->LoggedIn(); }
 
     void LoadAttributes() {
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
-
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
       attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
@@ -311,7 +365,7 @@ class Pkcs11Token {
     }
 
     int GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey) {
-      Lock l(&m);
+      Lock l(d_slot->m());
 
       size_t k;
       CK_ATTRIBUTE_PTR pubAttr, privAttr;
@@ -330,7 +384,7 @@ class Pkcs11Token {
         k++;
       }
 
-      d_err = this->f->C_GenerateKeyPair(d_session, mechanism, pubAttr, pubAttributes.size(), privAttr, privAttributes.size(), pubKey, privKey);
+      d_err = this->d_slot->f()->C_GenerateKeyPair(d_slot->Session(), mechanism, pubAttr, pubAttributes.size(), privAttr, privAttributes.size(), pubKey, privKey);
       logError("C_GenerateKeyPair");
       delete [] pubAttr;
       delete [] privAttr;
@@ -341,14 +395,14 @@ class Pkcs11Token {
     }
 
     int Sign(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) {
-      Lock l(&m);
+      Lock l(d_slot->m());
 
       CK_BYTE buffer[1024];
       CK_ULONG buflen = sizeof buffer; // should be enough for most signatures.
 
       // perform signature
-      if ((d_err = this->f->C_SignInit(d_session, mechanism, d_private_key))) { logError("C_SignInit"); return d_err; }
-      d_err = this->f->C_Sign(d_session, (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
+      if ((d_err = this->d_slot->f()->C_SignInit(d_slot->Session(), mechanism, d_private_key))) { logError("C_SignInit"); return d_err; }
+      d_err = this->d_slot->f()->C_Sign(d_slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
 
       if (!d_err) {
         result.assign((char*)buffer, buflen);
@@ -360,21 +414,21 @@ class Pkcs11Token {
     }
 
     int Verify(const std::string& data, const std::string& signature, CK_MECHANISM_PTR mechanism) {
-      Lock l(&m);
+      Lock l(d_slot->m());
 
-      if ((d_err = this->f->C_VerifyInit(d_session, mechanism, d_public_key))) { logError("C_VerifyInit"); return d_err; }
-      d_err = this->f->C_Verify(d_session, (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
+      if ((d_err = this->d_slot->f()->C_VerifyInit(d_slot->Session(), mechanism, d_public_key))) { logError("C_VerifyInit"); return d_err; }
+      d_err = this->d_slot->f()->C_Verify(d_slot->Session(), (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
       logError("C_Verify");
       return d_err;
     }
 
     int Digest(const std::string& data, std::string& result, CK_MECHANISM_PTR mechanism) {
-      Lock l(&m);
+      Lock l(d_slot->m());
 
       CK_BYTE buffer[1024];
       CK_ULONG buflen = sizeof buffer; // should be enough for most digests
-      if ((d_err = this->f->C_DigestInit(d_session, mechanism))) { logError("C_DigestInit"); return d_err; }
-      d_err = this->f->C_Digest(d_session, (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
+      if ((d_err = this->d_slot->f()->C_DigestInit(d_slot->Session(), mechanism))) { logError("C_DigestInit"); return d_err; }
+      d_err = this->d_slot->f()->C_Digest(d_slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
       if (!d_err) {
         result.assign((char*)buffer, buflen);
       }
@@ -384,19 +438,19 @@ class Pkcs11Token {
     }
 
     int DigestInit(CK_MECHANISM_PTR mechanism) {
-      d_err = f->C_DigestInit(d_session, mechanism);
+      d_err = d_slot->f()->C_DigestInit(d_slot->Session(), mechanism);
       logError("C_DigestInit");
       return d_err;
     }
 
     int DigestUpdate(const std::string& data) {
-      d_err = f->C_DigestUpdate(d_session, (unsigned char*)data.c_str(), data.size());
+      d_err = d_slot->f()->C_DigestUpdate(d_slot->Session(), (unsigned char*)data.c_str(), data.size());
       logError("C_DigestUpdate");
       return d_err;
     }
 
     int DigestKey(std::string& result) {
-      Lock l(&m);
+      Lock l(d_slot->m());
       CK_MECHANISM mech;
       mech.mechanism = CKM_SHA_1;
 
@@ -417,7 +471,7 @@ class Pkcs11Token {
     int DigestFinal(std::string& result) {
       CK_BYTE buffer[1024] = {0};
       CK_ULONG buflen = sizeof buffer; // should be enough for most digests
-      d_err = f->C_DigestFinal(d_session, buffer, &buflen);
+      d_err = d_slot->f()->C_DigestFinal(d_slot->Session(), buffer, &buflen);
       if (!d_err) {
         result.assign((char*)buffer, buflen);
       }
@@ -427,7 +481,7 @@ class Pkcs11Token {
     }
 
     int FindObjects(const std::vector<P11KitAttribute>& attributes, std::vector<CK_OBJECT_HANDLE>& objects, int maxobjects) {
-      Lock l(&m);
+      Lock l(d_slot->m());
       return FindObjects2(attributes, objects, maxobjects);
     }
 
@@ -447,7 +501,7 @@ class Pkcs11Token {
       }
 
       // perform search
-      d_err = this->f->C_FindObjectsInit(d_session, attr, k);
+      d_err = this->d_slot->f()->C_FindObjectsInit(d_slot->Session(), attr, k);
 
       if (d_err) {
         delete [] attr;
@@ -457,7 +511,7 @@ class Pkcs11Token {
       }
 
       count = maxobjects;
-      rv = d_err = this->f->C_FindObjects(d_session, handles, maxobjects, &count);
+      rv = d_err = this->d_slot->f()->C_FindObjects(d_slot->Session(), handles, maxobjects, &count);
       objects.clear();
 
       if (!rv) {
@@ -471,7 +525,7 @@ class Pkcs11Token {
       delete [] attr;
       delete [] handles;
 
-      d_err = this->f->C_FindObjectsFinal(d_session);
+      d_err = this->d_slot->f()->C_FindObjectsFinal(d_slot->Session());
       logError("C_FindObjectsFinal");
 
       return rv;
@@ -479,7 +533,7 @@ class Pkcs11Token {
 
     int GetAttributeValue(const CK_OBJECT_HANDLE& object, std::vector<P11KitAttribute>& attributes) 
     {
-      Lock l(&m);
+      Lock l(d_slot->m());
       return GetAttributeValue2(object, attributes);
     }
 
@@ -496,7 +550,7 @@ class Pkcs11Token {
       }
 
       // round 1 - get attribute sizes
-      d_err = f->C_GetAttributeValue(d_session, object, attr, attributes.size());
+      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr, attributes.size());
       logError("C_GetAttributeValue");
       if (d_err) {
         delete [] attr;
@@ -511,7 +565,7 @@ class Pkcs11Token {
       }
 
       // round 2 - get actual values
-      d_err = f->C_GetAttributeValue(d_session, object, attr, attributes.size());
+      d_err = d_slot->f()->C_GetAttributeValue(d_slot->Session(), object, attr, attributes.size());
       logError("C_GetAttributeValue");
 
       // copy values to map and release allocated memory
@@ -553,17 +607,29 @@ class Pkcs11Token {
     static boost::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label);
 };
 
+static std::map<std::string, boost::shared_ptr<Pkcs11Slot> > pkcs11_slots;
 static std::map<std::string, boost::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 
 boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label) {
   // see if we can find module
-  std::string idx = module;
-  idx.append("|");
-  idx.append(boost::lexical_cast<std::string>(slotId));
+  std::string tidx = module;
+  tidx.append("|");
+  tidx.append(boost::lexical_cast<std::string>(slotId));
+  std::string sidx = tidx;
+  tidx.append("|");
+  tidx.append(label);
   std::map<std::string, boost::shared_ptr<Pkcs11Token> >::iterator tokenIter;
+  std::map<std::string, boost::shared_ptr<Pkcs11Slot> >::iterator slotIter;
+
   CK_FUNCTION_LIST* functions;
 
-  if ((tokenIter = pkcs11_tokens.find(idx)) != pkcs11_tokens.end()) return tokenIter->second;
+  if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
+
+  // see if we have slot
+  if ((slotIter = pkcs11_slots.find(sidx)) != pkcs11_slots.end()) {
+    pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(slotIter->second, label);
+    return pkcs11_tokens[tidx];
+  }
 
 #ifdef HAVE_P11KIT1_V2
   functions = p11_kit_module_for_name(p11_modules, module.c_str());
@@ -579,28 +645,23 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
     throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module);
   }
 
-  // looks ok to me.
-  pkcs11_tokens[idx] = boost::make_shared<Pkcs11Token>(slotId, label, functions);
+  // store slot
+  pkcs11_slots[sidx] = boost::make_shared<Pkcs11Slot>(functions, slotId);
 
-  return pkcs11_tokens[idx];
+  // looks ok to me.
+  pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(pkcs11_slots[sidx], label);
+
+  return pkcs11_tokens[tidx];
 }
 
-Pkcs11Token::Pkcs11Token(const CK_SLOT_ID& slotId, const std::string& label, CK_FUNCTION_LIST* functions) {
+Pkcs11Token::Pkcs11Token(const boost::shared_ptr<Pkcs11Slot>& slot, const std::string& label) {
   // open a session
-  int err;
   this->d_bits = 0;
-  this->d_slot = slotId;
+  this->d_slot = slot;
   this->d_label = label;
   this->d_err = 0;
-  this->f = functions;
-  this->d_logged_in = false;
-  this->d_session = 0;
-  pthread_mutex_init(&(this->m), NULL);
-  Lock l(&m);
-
-  if ((err = f->C_OpenSession(this->d_slot, CKF_SERIAL_SESSION|CKF_RW_SESSION, 0, 0, &(this->d_session)))) {
-    throw PDNSException(std::string("Could not open session: ") + boost::lexical_cast<std::string>(err));
-  }
+  Lock l(d_slot->m());
+  if (this->d_slot->LoggedIn()) LoadAttributes();
 }
 
 Pkcs11Token::~Pkcs11Token() {
@@ -619,7 +680,7 @@ void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   std::string pubExp("\000\001\000\001", 4); // 65537
@@ -660,7 +721,7 @@ std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   CK_MECHANISM mech;
@@ -680,7 +741,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   if (d_slot->Digest(msg, result, &mech)) {
@@ -720,7 +781,7 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   CK_MECHANISM mech;
@@ -735,7 +796,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   std::string result;
@@ -748,7 +809,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   if (d_slot->KeyType() == CKK_RSA) {
@@ -771,7 +832,7 @@ int PKCS11DNSCryptoKeyEngine::getBits() const {
   boost::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
-    if (d_slot->Login(d_pin))
+    if (d_slot->Login(d_pin) == false)
       throw PDNSException("Not logged in to token");
 
   return d_slot->Bits();
