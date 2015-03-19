@@ -34,7 +34,9 @@
 #include <fstream>
 #include "sodcrypto.hh"
 #include "dnsrulactions.hh"
+#include <boost/program_options.hpp>
 #undef L
+namespace po = boost::program_options;
 
 /* Known sins:
    No centralized statistics
@@ -84,6 +86,7 @@ vector<ComboAddress> g_locals;
    Round-robin with basic uptime checks
    Send to least loaded server (least outstanding)
    Send it to the first server that is not overloaded
+   Hashed weighted random
 */
 
 /* Idea:
@@ -1064,12 +1067,12 @@ try
 
   g_policy.setState(leastOutstandingPol);
   if(g_vm.count("client") || g_vm.count("command")) {
-    setupLua(true);
+    setupLua(true, g_vm["config"].as<string>());
     doClient(g_serverControl);
     exit(EXIT_SUCCESS);
   }
 
-  auto todo=setupLua(false);
+  auto todo=setupLua(false, g_vm["config"].as<string>());
 
   if(g_vm.count("local")) {
     g_locals.clear();

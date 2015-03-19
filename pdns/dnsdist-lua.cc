@@ -10,11 +10,12 @@ using std::thread;
 
 static vector<std::function<void(void)>>* g_launchWork;
 
-vector<std::function<void(void)>> setupLua(bool client)
+vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
 {
   g_launchWork= new vector<std::function<void(void)>>();
+  typedef std::unordered_map<std::string, boost::variant<std::string, vector<pair<int, std::string> > > > newserver_t;
   g_lua.writeFunction("newServer", 
-		      [client](boost::variant<string,std::unordered_map<std::string, std::string>> pvars, boost::optional<int> qps)
+		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
 		      { 
 			if(client) {
 			  return std::make_shared<DownstreamState>(ComboAddress());
@@ -44,23 +45,30 @@ vector<std::function<void(void)>> setupLua(bool client)
 
 			  return ret;
 			}
-			auto vars=boost::get<std::unordered_map<std::string, std::string>>(pvars);
-			auto ret=std::make_shared<DownstreamState>(ComboAddress(vars["address"], 53));
+			auto vars=boost::get<newserver_t>(pvars);
+			auto ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53));
 			
 			if(vars.count("qps")) {
-			  ret->qps=QPSLimiter(boost::lexical_cast<int>(vars["qps"]),boost::lexical_cast<int>(vars["qps"]));
+			  int qps=boost::lexical_cast<int>(boost::get<string>(vars["qps"]));
+			  ret->qps=QPSLimiter(qps, qps);
 			}
 
 			if(vars.count("pool")) {
-			  ret->pools.insert(vars["pool"]);
+			  if(auto* pool = boost::get<string>(&vars["pool"]))
+			    ret->pools.insert(*pool);
+			  else {
+			    auto* pools = boost::get<vector<pair<int, string> > >(&vars["pool"]);
+			    for(auto& p : *pools)
+			      ret->pools.insert(p.second);
+			  }
 			}
 
 			if(vars.count("order")) {
-			  ret->order=boost::lexical_cast<int>(vars["order"]);
+			  ret->order=boost::lexical_cast<int>(boost::get<string>(vars["order"]));
 			}
 
 			if(vars.count("weight")) {
-			  ret->weight=boost::lexical_cast<int>(vars["weight"]);
+			  ret->weight=boost::lexical_cast<int>(boost::get<string>(vars["weight"]));
 			}
 
 			if(g_launchWork) {
@@ -661,11 +669,11 @@ vector<std::function<void(void)>> setupLua(bool client)
      }});
 
   
-  std::ifstream ifs(g_vm["config"].as<string>());
+  std::ifstream ifs(config);
   if(!ifs) 
-    warnlog("Unable to read configuration from '%s'", g_vm["config"].as<string>());
+    warnlog("Unable to read configuration from '%s'", config);
   else
-    infolog("Read configuration from '%s'", g_vm["config"].as<string>());
+    infolog("Read configuration from '%s'", config);
 
   g_lua.executeCode(ifs);
   auto ret=*g_launchWork;

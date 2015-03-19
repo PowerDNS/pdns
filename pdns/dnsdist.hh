@@ -6,7 +6,6 @@
 #include "dnsname.hh"
 #include <atomic>
 #include <boost/circular_buffer.hpp>
-#include <boost/program_options.hpp>
 #include <mutex>
 #include <thread>
 #include "sholder.hh"
@@ -245,11 +244,7 @@ extern std::string g_key; // in theory needs locking
 struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);
-vector<std::function<void(void)>> setupLua(bool client);
-
-
-namespace po = boost::program_options;
-extern po::variables_map g_vm;
+vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool);
 
 std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);

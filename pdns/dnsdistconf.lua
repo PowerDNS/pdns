@@ -55,9 +55,8 @@ end
 
 -- setServerPolicyLua("luaroundrobin", luaroundrobin)
 
-xs=newServer{address="2001:888:2000:1d::2", pool="auth"}
-newServer{address="2a01:4f8:110:4389::2", pool="auth"}
-xs:addPool("dnssec")
+newServer{address="2001:888:2000:1d::2", pool={"auth", "dnssec"}}
+newServer{address="2a01:4f8:110:4389::2", pool={"auth", "dnssec"}}
 setDNSSECPool("dnssec")
 topRule()
 
