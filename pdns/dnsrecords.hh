@@ -533,6 +533,25 @@ private:
  uint8_t d_eui64[8];
 };
 
+class TKEYRecordContent : public DNSRecordContent
+{
+public:
+  TKEYRecordContent();
+  includeboilerplate(TKEY)
+
+  // storage for the bytes
+  string d_algo;
+  uint32_t d_inception;
+  uint32_t d_expiration;
+  uint16_t d_mode;
+  uint16_t d_error;
+  uint16_t d_keysize;
+  string d_key;
+  uint16_t d_othersize;
+  string d_other;
+private:
+};
+
 #define boilerplate(RNAME, RTYPE)                                                                         \
 RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSRecord& dr, PacketReader& pr) \
 {                                                                                                  \
