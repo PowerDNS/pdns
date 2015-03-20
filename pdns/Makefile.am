@@ -572,12 +572,11 @@ dnsdist_SOURCES = \
 	sstuff.hh 
 
 dnsdist_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+	$(AM_LDFLAGS) 
 
 dnsdist_LDADD = \
 	-lreadline -lrt -ltermcap \
-	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
+	$(LUA_LIBS) ${libsodium_LIBS}
 
 nsec3dig_SOURCES = \
 	base32.cc \

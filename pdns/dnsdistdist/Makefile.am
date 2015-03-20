@@ -29,9 +29,9 @@ dnsdist_SOURCES = \
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) -pthread
+	-pthread
 
 dnsdist_LDADD = \
 	-lreadline -lrt -ltermcap \
-	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS) ${libsodium_LIBS}
+	$(LUA_LIBS) ${libsodium_LIBS}
 

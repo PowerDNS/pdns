@@ -32,11 +32,13 @@
 #include "dnswriter.hh"
 #include "base64.hh"
 #include <fstream>
+
+#include <unistd.h>
 #include "sodcrypto.hh"
 #include "dnsrulactions.hh"
-#include <boost/program_options.hpp>
+
+#include <getopt.h>
 #undef L
-namespace po = boost::program_options;
 
 /* Known sins:
    No centralized statistics
@@ -52,8 +54,6 @@ namespace po = boost::program_options;
    On the C++ side, both could be inherited from a class Rule and a class Action, 
    on the Lua side we can't do that. */
 
-namespace po = boost::program_options;
-po::variables_map g_vm;
 using std::atomic;
 using std::thread;
 bool g_verbose;
@@ -65,6 +65,7 @@ bool g_console;
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 vector<ComboAddress> g_locals;
+
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -811,7 +812,7 @@ catch(std::exception& e)
 
 
 
-void doClient(ComboAddress server)
+void doClient(ComboAddress server, const std::string& command)
 {
   cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
@@ -823,8 +824,7 @@ void doClient(ComboAddress server)
   writen2(fd, (const char*)ours.value, sizeof(ours.value));
   readn2(fd, (char*)theirs.value, sizeof(theirs.value));
 
-  if(g_vm.count("command")) {
-    auto command = g_vm["command"].as<string>();
+  if(!command.empty()) {
     string response;
     string msg=sodEncryptSym(command, g_key, ours);
     putMsgLen(fd, msg.length());
@@ -1012,6 +1012,15 @@ static char** my_completion( const char * text , int start,  int end)
 }
 }
 
+struct 
+{
+  vector<string> locals;
+  vector<string> remotes;
+  bool beDaemon{false};
+  bool beClient{false};
+  string command;
+  string config;
+} g_cmdLine;
 
 
 int main(int argc, char** argv)
@@ -1032,51 +1041,80 @@ try
   }
 #endif
 
-  po::options_description desc("Allowed options"), hidden, alloptions;
-  desc.add_options()
-    ("help,h", "produce help message")
-    ("bind-non-local", "allow binding to non-local addresses")
-    ("config", po::value<string>()->default_value("/etc/dnsdist.conf"), "Filename with our configuration")
-    ("client", "be a client")
-    ("command,c", po::value<string>(), "Execute this command on a running dnsdist")
-    ("daemon", po::value<bool>()->default_value(true), "run in background")
-    ("local", po::value<vector<string> >(), "Listen on which addresses")
-    ("max-outstanding", po::value<uint16_t>()->default_value(1024), "maximum outstanding queries per downstream")
-    ("verbose,v", "be verbose");
-    
-  hidden.add_options()
-    ("remotes", po::value<vector<string> >(), "remote-host");
-
-  alloptions.add(desc).add(hidden); 
-
-  po::positional_options_description p;
-  p.add("remotes", -1);
-
-  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
-  po::notify(g_vm);
-  
-  if(g_vm.count("help")) {
-    cout << desc<<endl;
-    exit(EXIT_SUCCESS);
+  struct option longopts[]={ 
+    {"config", required_argument, 0, 'C'},
+    {"execute", required_argument, 0, 'e'},
+    {"command", optional_argument, 0, 'c'},
+    {"local",  required_argument, 0, 'l'},
+    {"daemon", optional_argument, 0, 'd'},
+    {"help", 0, 0, 'h'}, 
+    {0,0,0,0} 
+  };
+  int longindex=0;
+  for(;;) {
+    int c=getopt_long(argc, argv, "hbce:C:d:l:m:v", longopts, &longindex);
+    if(c==-1)
+      break;
+    switch(c) {
+    case 'C':
+      g_cmdLine.config=optarg;
+      break;
+    case 'c':
+      g_cmdLine.beClient=true;
+      break;
+    case 'd':
+      if(!optarg)
+	g_cmdLine.beDaemon=true;
+      else
+	g_cmdLine.beDaemon=(string(optarg)=="true");
+      break;
+    case 'e':
+      g_cmdLine.command=optarg;
+      break;
+    case 'h':
+      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon [yes|no]] [-e,--execute cmd]\n";
+      cout<<"[-h,--help] [-l,--local addr]\n";
+      cout<<"\n";
+      cout<<"-C,--config file      Load configuration from 'file'\n";
+      cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
+      cout<<"-d,--daemon=[yes|no]  Operate as a daemon or not\n";
+      cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
+      cout<<"-h,--help             Display this helpful message\n";
+      cout<<"-l,--local address    Listen on this local address\n";
+      cout<<"\n";
+      exit(EXIT_SUCCESS);
+      break;
+    case 'l':
+      g_cmdLine.locals.push_back(optarg);
+      break;
+    case 'v':
+      g_verbose=true;
+      break;
+    }
+  }
+  argc-=optind;
+  argv+=optind;
+  for(auto p = argv; *p; ++p) {
+    g_cmdLine.remotes.push_back(*p);
   }
 
-  g_verbose=g_vm.count("verbose");
-  g_maxOutstanding = g_vm["max-outstanding"].as<uint16_t>();
+
+  g_maxOutstanding = 1024;
 
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
 
   g_policy.setState(leastOutstandingPol);
-  if(g_vm.count("client") || g_vm.count("command")) {
-    setupLua(true, g_vm["config"].as<string>());
-    doClient(g_serverControl);
+  if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
+    setupLua(true, g_cmdLine.config);
+    doClient(g_serverControl, g_cmdLine.command);
     exit(EXIT_SUCCESS);
   }
 
-  auto todo=setupLua(false, g_vm["config"].as<string>());
+  auto todo=setupLua(false, g_cmdLine.config);
 
-  if(g_vm.count("local")) {
+  if(g_cmdLine.locals.size()) {
     g_locals.clear();
-    for(auto loc : g_vm["local"].as<vector<string> >())
+    for(auto loc : g_cmdLine.locals)
       g_locals.push_back(ComboAddress(loc, 53));
   }
   
@@ -1092,8 +1130,8 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
-    if(g_vm.count("bind-non-local"))
-      bindAny(local.sin4.sin_family, cs->udpFD);
+    //if(g_vm.count("bind-non-local"))
+    bindAny(local.sin4.sin_family, cs->udpFD);
 
     //    setSocketTimestamps(cs->udpFD);
 
@@ -1107,7 +1145,7 @@ try
     toLaunch.push_back(cs);
   }
 
-  if(g_vm["daemon"].as<bool>())  {
+  if(g_cmdLine.beDaemon) {
     g_console=false;
     daemonize();
   }
@@ -1123,8 +1161,8 @@ try
     acl.addMask(addr);
   g_ACL.setState(acl);
 
-  if(g_vm.count("remotes")) {
-    for(const auto& address : g_vm["remotes"].as<vector<string>>()) {
+  if(g_cmdLine.remotes.size()) {
+    for(const auto& address : g_cmdLine.remotes) {
       auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
       ret->tid = move(thread(responderThread, ret));
       g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
@@ -1158,7 +1196,7 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
-    if(g_vm.count("bind-non-local"))
+    //    if(g_vm.count("bind-non-local"))
       bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
@@ -1170,7 +1208,7 @@ try
 
   thread stattid(maintThread);
   
-  if(!g_vm["daemon"].as<bool>())  {
+  if(!g_cmdLine.beDaemon) {
     stattid.detach();
     doConsole();
   }
