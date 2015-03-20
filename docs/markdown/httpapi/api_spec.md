@@ -336,7 +336,8 @@ zone_collection
 
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
   a zone made through the API, the SOA record will be edited according to
-  the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT rules.)
+  the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT-DNSUPDATE rules.)
+  If not set at all during zone creation, defaults to `DEFAULT`.
   **Note**: Authoritative only.
 
 * `account` MAY be set. It's value is defined by local policy.

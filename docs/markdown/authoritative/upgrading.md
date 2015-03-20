@@ -2,6 +2,11 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.4.X to HEAD
+
+## API
+Incompatible change: `SOA-EDIT-API` now follows `SOA-EDIT-DNSUPDATE` instead of `SOA-EDIT` (incl. the fact that it now has a default value of `DEFAULT`). You must update your existing `SOA-EDIT-API` metadata (set `SOA-EDIT` to your previous `SOA-EDIT-API` value, and `SOA-EDIT-API` to `SOA-EDIT` to keep the old behaviour).
+
 # 3.4.2 to 3.4.3
 No breaking changes.
 

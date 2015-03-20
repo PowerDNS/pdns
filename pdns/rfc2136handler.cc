@@ -961,39 +961,14 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
       vector<string> soaEditSetting;
       B.getDomainMetadata(di->zone, "SOA-EDIT", soaEditSetting);
       if (soaEditSetting.empty()) {
-        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain. Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
+        L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
         soaEdit2136 = "DEFAULT";
       } else
         soaEdit = soaEditSetting[0];
     }
   }
 
-
-  if (pdns_iequals(soaEdit2136, "INCREASE"))
-    soa2Update.serial++;
-  else if (pdns_iequals(soaEdit2136, "SOA-EDIT-INCREASE")) {
-    uint32_t newSer = calculateEditSOA(soa2Update, soaEdit);
-    if (newSer <= soa2Update.serial)
-      soa2Update.serial++;
-    else
-      soa2Update.serial = newSer;
-  } else if (pdns_iequals(soaEdit2136, "SOA-EDIT"))
-    soa2Update.serial = calculateEditSOA(soa2Update, soaEdit);
-  else if (pdns_iequals(soaEdit2136, "EPOCH"))
-    soa2Update.serial = time(0);
-  else {
-    time_t now = time(0);
-    struct tm tm;
-    localtime_r(&now, &tm);
-    boost::format fmt("%04d%02d%02d%02d");
-    string newserdate=(fmt % (tm.tm_year+1900) % (tm.tm_mon +1 )% tm.tm_mday % 1).str();
-    uint32_t newser = atol(newserdate.c_str());
-    if (newser <= soa2Update.serial)
-      soa2Update.serial++;
-    else
-      soa2Update.serial = newser;
-  }
-
+  soa2Update.serial = calculateIncreaseSOA(soa2Update, soaEdit2136, soaEdit);
 
   newRec.content = serializeSOAData(soa2Update);
   vector<DNSResourceRecord> rrset;
