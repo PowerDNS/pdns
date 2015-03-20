@@ -429,7 +429,7 @@ Instructions on how to use CryptAS [`Athena IDProtect Key USB Token V2J`](http:/
 -   Note that the physical token is pretty slow, so you have to use it as hidden master. It has been observed to produce about 1.5signatures/second.
 
 # Secure transfers
-From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in [draft-koch-dnsop-dnssec-operator-change-05](https://ietf.org/doc/draft-koch-dnsop-dnssec-operator-change/). If the [`direct-dnskey`](settings.md#direct-dnskey) option is enabled the foreign DNSKEY records stored in the database are added to the keyset and signed with the KSK. Without the direct-dnskey option DNSKEY records in the database are silently ignored.
+From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in [draft-koch-dnsop-dnssec-operator-change](https://datatracker.ietf.org/doc/draft-koch-dnsop-dnssec-operator-change/). If the [`direct-dnskey`](settings.md#direct-dnskey) option is enabled the foreign DNSKEY records stored in the database are added to the keyset and signed with the KSK. Without the direct-dnskey option DNSKEY records in the database are silently ignored.
 
 # Security
 During typical PowerDNSSEC operation, the private part of the signing keys are 'online', which can be compared to operating an HTTPS server, where the certificate is available on the webserver for cryptographic purposes.
