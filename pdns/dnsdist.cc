@@ -280,7 +280,7 @@ int getEDNSZ(const char* packet, unsigned int len)
   int pos = consumed + 4;
   uint16_t qtype, qclass;
 
-  DNSName aname(packet, len, 12+pos, false, &qtype, &qclass, &consumed);
+  DNSName aname(packet, len, 12+pos, true, &qtype, &qclass, &consumed);
   
   if(qtype!=QType::OPT || 12+pos+consumed+7 >= len)
     return 0;
@@ -1040,7 +1040,7 @@ try
     exit(EXIT_FAILURE);
   }
 #endif
-
+  g_cmdLine.config="/etc/dnsdist.conf";
   struct option longopts[]={ 
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
