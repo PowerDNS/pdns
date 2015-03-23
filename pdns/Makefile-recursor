@@ -1,8 +1,8 @@
 # user editable stuff:
-SBINDIR=/usr/sbin/
-BINDIR=/usr/bin/
-SYSCONFDIR=/etc/powerdns/
-LOCALSTATEDIR=/var/run/
+SBINDIR?=/usr/sbin/
+BINDIR?=/usr/bin/
+SYSCONFDIR?=/etc/powerdns/
+LOCALSTATEDIR?=/var/run/
 OPTFLAGS?=-O3
 CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread -DHAVE_CONFIG_H
