@@ -424,7 +424,7 @@ boilerplate_conv(TKEY, QType::TKEY,
                  conv.xfr16BitInt(d_othersize);
                  if (d_othersize>0) conv.xfrBlobNoSpaces(d_other, d_othersize);
                  )
-TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) {}
+TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) { d_othersize = 0; } // fix CID#1288932
 
 uint16_t DNSKEYRecordContent::getTag()
 {
