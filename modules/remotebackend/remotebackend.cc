@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "remotebackend.hh"
 #include <boost/foreach.hpp>
 
@@ -33,9 +36,9 @@ bool Connector::recv(rapidjson::Document &value) {
            if (messages.IsArray()) {
               // log em all
               for (rapidjson::Value::ValueIterator iter = messages.Begin(); iter != messages.End(); ++iter)
-                 L<<Logger::Info<<"[remotebackend]:"<< getString(*iter) <<std::endl;
+                 L<<Logger::Info<<"[remotebackend]: "<< getString(*iter) <<std::endl;
            } else if (messages.IsNull() == false) { // could be just a value
-               L<<Logger::Info<<"[remotebackend]:"<< getString(messages) <<std::endl;
+               L<<Logger::Info<<"[remotebackend]: "<< getString(messages) <<std::endl;
            }
         }
         return rv;
@@ -613,7 +616,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
 
    // make sure we got zone & kind
    if (!answer["result"].IsObject() || !answer["result"].HasMember("zone")) {
-      L<<Logger::Error<<kBackendId<<"Missing zone in getDomainInfo return value"<<endl;
+      L<<Logger::Error<<kBackendId<<" Missing zone in getDomainInfo return value"<<endl;
       throw PDNSException();
    }
    value = -1;
@@ -656,7 +659,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    query.AddMember("parameters", parameters, query.GetAllocator());
  
    if (this->send(query) == false || this->recv(answer) == false) {
-      L<<Logger::Error<<kBackendId<<"Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
+      L<<Logger::Error<<kBackendId<<" Failed to execute RPC for RemoteBackend::setNotified("<<id<<","<<serial<<")"<<endl;
    }
 }
 

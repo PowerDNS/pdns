@@ -7,8 +7,9 @@ before_script:
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
- - sudo apt-get update --quiet --quiet
+ - sudo apt-get update -qq
  - sudo apt-get install --quiet --quiet --no-install-recommends
+     alien
      authbind
      bc
      bind9utils
@@ -36,6 +37,7 @@ before_script:
      p11-kit
      pkg-config
      python-virtualenv
+     rpm
      ruby-json
      ruby-sqlite3
      ruby1.9.1
@@ -52,6 +54,10 @@ before_script:
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
+ - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
+ - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
+ - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
+ - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
  - travis_retry gem install bundler --no-rdoc --no-ri
  - cd regression-tests
  - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
@@ -88,8 +94,9 @@ script:
  - cd ..
  - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
- - travis_retry timeout 240s make -j 4 check # Workaround for remotebackend failures on travis-ci
- - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$)
+ - make -j 4 check
+ - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
+ - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
  - cd pdns
  - make -k -j 4 pdns_recursor
  - rm -f pdns_recursor

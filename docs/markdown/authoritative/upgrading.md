@@ -2,6 +2,14 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.4.X to HEAD
+
+## API
+Incompatible change: `SOA-EDIT-API` now follows `SOA-EDIT-DNSUPDATE` instead of `SOA-EDIT` (incl. the fact that it now has a default value of `DEFAULT`). You must update your existing `SOA-EDIT-API` metadata (set `SOA-EDIT` to your previous `SOA-EDIT-API` value, and `SOA-EDIT-API` to `SOA-EDIT` to keep the old behaviour).
+
+# 3.4.2 to 3.4.3
+No breaking changes.
+
 # 3.4.1 to 3.4.2
 
 ## API
@@ -261,7 +269,7 @@ When compiling version 3.0, there are now more dependencies than there used to b
 
 PowerDNS Authoritative Server 3.0 comes with DNSSEC support, but this has required big changes to database schemas. Each backend lists the changes required. To facilitate a smooth upgrade, the old, non-DNSSEC schema is used by default. Features like per-domain metadata, TSIG and DNSSEC itself however need the new schema. Consult your backend documentation for the correct 'alter table' statements. Afterwards, set the relevant '-dnssec' setting for your backend (for example: gmysql-dnssec).
 
-In version 3.0, "Fancy Records", like URL, CURL and MBOXFW are no longer supported. Support may come back in later versions. In addition, the LDAP Backend has moved to 'unmaintained' status.
+In version 3.0, "Fancy Records", like URL, CURL and MBOXFW are no longer supported. In addition, the LDAP Backend has moved to 'unmaintained' status.
 
 ## Frequently Asked Questions about 3.0
 

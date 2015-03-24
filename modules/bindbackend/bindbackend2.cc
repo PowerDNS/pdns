@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <errno.h>
 #include <string>
 #include <set>
@@ -270,7 +273,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
   case QType::CNAME:
   case QType::NS:
     if(!stripDomainSuffix(&content, domain))
-      content+=".";
+      content=stripDot(content)+".";
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<content<<endl;
     break;
   default:
@@ -344,7 +347,6 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
   }
  
   BOOST_FOREACH(DomainInfo &di, *domains) {
-    soadata.db=(DNSBackend *)-1; // makes getSOA() skip the cache. 
     this->getSOA(di.zone, soadata);
     di.serial=soadata.serial;
   }
@@ -373,7 +375,6 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     SOAData soadata;
     soadata.refresh=0;
     soadata.serial=0;
-    soadata.db=(DNSBackend *)-1; // not sure if this is useful, inhibits any caches that might be around
     try {
       getSOA(sd.zone,soadata); // we might not *have* a SOA yet
     }

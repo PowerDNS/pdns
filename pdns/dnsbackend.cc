@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "dnsbackend.hh"
 #include "arguments.hh"
@@ -30,21 +33,7 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-string DNSBackend::getRemote(DNSPacket *p)
-{
-  return p->getRemote();
-}
-
-bool DNSBackend::getRemote(DNSPacket *p, struct sockaddr *sa, Utility::socklen_t *len)
-{
-  if(p->d_remote.getSocklen() < *len)
-    return false;
-  *len=p->d_remote.getSocklen();
-  memcpy(sa,&p->d_remote,*len);
-  return true;
-}
-
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len)
+bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, const int best_match_len)
 {
   bool found=false;
   string subdomain(target);
@@ -54,8 +43,6 @@ bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *z
 
     if( this->getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
-      if(zoneId)
-        *zoneId = sd->domain_id;
 
       if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
         // Found authoritative zone but look for parent zone with 'DS' record.
@@ -152,7 +139,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
   
   if(res==false) {
-    L<<Logger::Error<<"dnsbackend unable to load module in "<<module<<endl;
+    L<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
     exit(1);
   }
 }
@@ -274,7 +261,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   }
 
   if(!sd.serial) { // magic time!
-    DLOG(L<<Logger::Warning<<"Doing soa serialnumber autocalculation for "<<rr.qname<<endl);
+    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
 
     time_t serial;
     if (calculateSOASerial(domain, sd, serial)) {
@@ -378,7 +365,7 @@ bool _add_to_negcache( const string &zone ) {
     return false;
 }
 
-inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const string &querykey, const int best_match_len) {
+inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const string &querykey, const int best_match_len) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
 
     DLOG(L<<Logger::Error<<"SOA Query: " <<querykey<<endl);
@@ -424,8 +411,6 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
         /* all the keys are reversed. rather than reversing them again it is
          * presumably quicker to just substring the zone down to size */
         soa->qname = inZone.substr( inZone.length() - foundkey.length(), string::npos );
-        if(zoneId)
-            *zoneId = soa->domain_id;
 
         DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
 
@@ -435,12 +420,12 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
     return GET_AUTH_NEG_CACHE;
 }
 
-bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, int *zoneId, const int best_match_len) {
+bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const int best_match_len) {
     // Reverse the lowercased query string
     string zone = toLower(inZone);
     string querykey = labelReverse(zone);
 
-    int ret = _getAuth( p, soa, inZone, zoneId, querykey, best_match_len );
+    int ret = _getAuth( p, soa, inZone, querykey, best_match_len );
 
     /* If this is disabled then we would just cache the tree structure not the
      * leaves which should give the best performance and a nice small negcache

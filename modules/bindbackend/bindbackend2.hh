@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifndef PDNS_BINDBACKEND_HH
+#define PDNS_BINDBACKEND_HH
+
 #include <string>
 #include <map>
 #include <set>
@@ -320,3 +323,5 @@ private:
   SSqlStatement* d_deleteTSIGKeyQuery_stmt;
   SSqlStatement* d_getTSIGKeysQuery_stmt;
 };
+
+#endif /* PDNS_BINDBACKEND_HH */

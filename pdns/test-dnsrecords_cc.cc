@@ -1,9 +1,13 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/scoped_ptr.hpp>
 #include "dnsrecords.hh"
 
 #define CASE_L(type, inval, zoneval, lineval, broken) case_t(type, std::string(inval), std::string(zoneval), std::string(lineval, sizeof(lineval)-1), broken)
@@ -23,10 +27,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   MRRecordContent::report();
   IPSECKEYRecordContent::report();
   KXRecordContent::report();
-  URLRecordContent::report();
-  MBOXFWRecordContent::report();
   DHCIDRecordContent::report();
   TSIGRecordContent::report();
+  TKEYRecordContent::report();
 
 // NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO IT'S KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
@@ -153,12 +156,10 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all",false))
      (CASE_S(QType::EUI48, "00-11-22-33-44-55", "\x00\x11\x22\x33\x44\x55",false))
      (CASE_S(QType::EUI64, "00-11-22-33-44-55-66-77", "\x00\x11\x22\x33\x44\x55\x66\x77",false))
-     //(CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 0 0", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x00\x00\x00",false))
-     //(CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 18 16 TkbpD66/Mtgo8GUEFZIwhg==", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x12\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86",true))
-/*     (CASE_S(QType::URL, "http://server.rec.test/", "\x17http://server.rec.test/",false))
-       (CASE_S(QType::MBOXFW, "you@yourcompany.com", "line format",false))
-       (CASE_S(QType::CURL, "http://server.rec.test/", "\x17http://server.rec.test/",false))
-       (CASE_S(QType::ADDR, "zone format", "line format",false)) */
+     (CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 0 0", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x00\x00\x00",false))
+     (CASE_S(QType::TSIG, "HMAC-MD5.SIG-ALG.REG.INT. 1368386956 60 16 TkbpD66/Mtgo8GUEFZIwhg== 12345 18 16 TkbpD66/Mtgo8GUEFZIwhg==", "\x08HMAC-MD5\x07SIG-ALG\x03REG\x03INT\x00\x00\x00\x51\x8f\xed\x8c\x00\x3c\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86\x30\x39\x00\x12\x00\x10\x4e\x46\xe9\x0f\xae\xbf\x32\xd8\x28\xf0\x65\x04\x15\x92\x30\x86",true))
+     (CASE_S(QType::TKEY, "gss-tsig. 12345 12345 3 21 4 dGVzdA== 4 dGVzdA==", "\x08gss-tsig\x00\x00\x00\x30\x39\x00\x00\x30\x39\x00\x03\x00\x15\x00\x04test\x00\x04test", false))
+/*        (CASE_S(QType::ADDR, "zone format", "line format",false)) */
      (CASE_S(QType::DLV, "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e",false))
 ;
 
@@ -172,10 +173,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_CHECKPOINT("Checking record type " << q.getName() << " test #" << n);
    BOOST_TEST_MESSAGE("Checking record type " << q.getName() << " test #" << n);
    try {
-      DNSRecordContent *rec;
       std::string recData;
       if (q.getCode() != QType::TSIG) {
-        rec = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>());
+        boost::scoped_ptr<DNSRecordContent> rec(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()));
         BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << val.get<1>() << ") returned NULL");
         if (rec == NULL) continue;
         // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
@@ -257,9 +257,9 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     DNSPacketWriter pw(packet, "unit.test", q.getCode());
 
     if (val.get<2>()) {
-      BOOST_WARN_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     } else {
-      BOOST_CHECK_EXCEPTION( { DNSRecordContent* drc = DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>()); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     }
   };
 }

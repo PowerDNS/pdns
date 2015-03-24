@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifndef PDNS_WSRECURSOR_HH
+#define PDNS_WSRECURSOR_HH
+
 #include <boost/utility.hpp> 
 #include "namespaces.hh"
 #include "mplexer.hh"
@@ -68,3 +71,5 @@ public:
 private:
   AsyncWebServer* d_ws;
 };
+
+#endif /* PDNS_WSRECURSOR_HH */

@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include "config.h"
 #include <unistd.h>
 
 #include "namespaces.hh"
@@ -56,5 +55,6 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid);
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid);
+string DLPolicy(const vector<string>&parts, Utility::pid_t ppid);
 uint64_t udpErrorStats(const std::string& str);
 #endif /* PDNS_DYNHANDLER_HH */

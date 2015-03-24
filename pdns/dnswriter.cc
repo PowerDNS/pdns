@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
@@ -283,6 +286,11 @@ void DNSPacketWriter::xfrBlob(const string& blob, int  )
 {
   const uint8_t* ptr=reinterpret_cast<const uint8_t*>(blob.c_str());
   d_record.insert(d_record.end(), ptr, ptr+blob.size());
+}
+
+void DNSPacketWriter::xfrBlobNoSpaces(const string& blob, int  )
+{
+  xfrBlob(blob);
 }
 
 void DNSPacketWriter::xfrHexBlob(const string& blob, bool keepReading)

@@ -387,7 +387,7 @@ public:
 
   static bool s_noEDNSPing;
   static bool s_noEDNS;
-
+  static bool s_rootNXTrust;
   struct AuthDomain
   {
     vector<ComboAddress> d_servers;

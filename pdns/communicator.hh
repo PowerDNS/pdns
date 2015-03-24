@@ -181,7 +181,7 @@ public:
   bool notifyDomain(const string &domain);
 private:
   void makeNotifySockets();
-  void queueNotifyDomain(const string &domain, DNSBackend *B);
+  void queueNotifyDomain(const string &domain, UeberBackend *B);
   int d_nsock4, d_nsock6;
   map<pair<string,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;

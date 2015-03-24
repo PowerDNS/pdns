@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnssecinfra.hh"
@@ -44,6 +47,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 
+#include "common_startup.hh"
 #include "packethandler.hh"
 #include "statbag.hh"
 #include "resolver.hh"
@@ -327,8 +331,11 @@ void *TCPNameserver::doConnection(void *data)
         cached->d.rd=packet->d.rd; // copy in recursion desired bit 
         cached->commitD(); // commit d to the packet                        inlined
 
+        if(LPE) LPE->police(&(*packet), &(*cached), true);
+
         sendPacket(cached, fd); // presigned, don't do it again
         S.inc("tcp-answers");
+
         continue;
       }
       if(logDNSQueries)
@@ -342,6 +349,8 @@ void *TCPNameserver::doConnection(void *data)
         bool shouldRecurse;
 
         reply=shared_ptr<DNSPacket>(s_P->questionOrRecurse(packet.get(), &shouldRecurse)); // we really need to ask the backend :-)
+
+        if(LPE) LPE->police(&(*packet), &(*reply), true);
 
         if(shouldRecurse) {
           proxyQuestion(packet);
@@ -424,8 +433,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 
   // cerr<<"doing per-zone-axfr-acls"<<endl;
   SOAData sd;
-  sd.db=(DNSBackend *)-1;
-  if(s_P->getBackend()->getSOA(q->qdomain,sd)) {
+  if(s_P->getBackend()->getSOAUncached(q->qdomain,sd)) {
     // cerr<<"got backend and SOA"<<endl;
     DNSBackend *B=sd.db;
     vector<string> acl;
@@ -513,40 +521,14 @@ namespace {
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
 int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
 {
-  bool noAXFRBecauseOfNSEC3Narrow=false;
-  NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-  bool NSEC3Zone=false;
-  
-  DNSSECKeeper dk;
-  dk.clearCaches(target);
-  bool securedZone = dk.isSecuredZone(target);
-  bool presignedZone = dk.isPresigned(target);
-
-  if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
-    NSEC3Zone=true;
-    if(narrow) {
-      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
-      noAXFRBecauseOfNSEC3Narrow=true;
-    }
-  }
-
   shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
-  
-  if(noAXFRBecauseOfNSEC3Narrow) {
-    L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
-    outpacket->setRcode(RCode::Refused); 
-    // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
-  
+
   L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
 
+  // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
   {
     Lock l(&s_plock);
     DLOG(L<<"Looking for SOA"<<endl);    // find domain_id via SOA and list complete domain. No SOA, no AXFR
@@ -555,26 +537,44 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(target, sd) || !canDoAXFR(q)) {
+    // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
+    if(!canDoAXFR(q) || !s_P->getBackend()->getSOAUncached(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
       return 0;
     }
   }
- 
+
   UeberBackend db;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!db.getSOA(target, sd)) {
+  if(!db.getSOAUncached(target, sd)) {
     L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
-    outpacket->setRcode(9); // 'NOTAUTH'
+    outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
   }
 
-  if(!sd.db || sd.db==(DNSBackend *)-1) {
-    L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an AXFR"<<endl;
-    outpacket->setRcode(RCode::ServFail);
+  DNSSECKeeper dk;
+  dk.clearCaches(target);
+  bool securedZone = dk.isSecuredZone(target);
+  bool presignedZone = dk.isPresigned(target);
+
+  bool noAXFRBecauseOfNSEC3Narrow=false;
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow;
+  bool NSEC3Zone=false;
+  if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
+    NSEC3Zone=true;
+    if(narrow) {
+      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
+      noAXFRBecauseOfNSEC3Narrow=true;
+    }
+  }
+
+  if(noAXFRBecauseOfNSEC3Narrow) {
+    L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
+    outpacket->setRcode(RCode::Refused);
+    // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
     sendPacket(outpacket,outsock);
     return 0;
   }
@@ -933,22 +933,6 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
-  DNSSECKeeper dk;
-  NSEC3PARAMRecordContent ns3pr;
-  bool narrow;
-
-  dk.clearCaches(q->qdomain);
-  bool securedZone = dk.isSecuredZone(q->qdomain);
-  if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
-    if(narrow) {
-      L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
-      L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
-      outpacket->setRcode(RCode::Refused);
-      sendPacket(outpacket,outsock);
-      return 0;
-    }
-  }
-
   uint32_t serial = 0;
   MOADNSParser mdp(q->getString());
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
@@ -974,8 +958,8 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
   L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' initiated by "<<q->getRemote()<<" with serial "<<serial<<endl;
 
+  // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
-  sd.db=(DNSBackend *)-1; // force uncached answer
   {
     Lock l(&s_plock);
     DLOG(L<<"Looking for SOA"<<endl); // find domain_id via SOA and list complete domain. No SOA, no IXFR
@@ -984,9 +968,26 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       s_P=new PacketHandler;
     }
 
-    if(!s_P->getBackend()->getSOA(q->qdomain, sd) || !canDoAXFR(q)) {
+    // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
+    if(!canDoAXFR(q) || !s_P->getBackend()->getSOAUncached(q->qdomain, sd)) {
       L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
+      sendPacket(outpacket,outsock);
+      return 0;
+    }
+  }
+
+  DNSSECKeeper dk;
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow;
+
+  dk.clearCaches(q->qdomain);
+  bool securedZone = dk.isSecuredZone(q->qdomain);
+  if(dk.getNSEC3PARAM(q->qdomain, &ns3pr, &narrow)) {
+    if(narrow) {
+      L<<Logger::Error<<"Not doing IXFR of an NSEC3 narrow zone."<<endl;
+      L<<Logger::Error<<"IXFR of domain '"<<q->qdomain<<"' denied to "<<q->getRemote()<<endl;
+      outpacket->setRcode(RCode::Refused);
       sendPacket(outpacket,outsock);
       return 0;
     }
@@ -995,17 +996,9 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   string target = q->qdomain;
 
   UeberBackend db;
-  sd.db=(DNSBackend *)-1; // force uncached answer
-  if(!db.getSOA(target, sd)) {
+  if(!db.getSOAUncached(target, sd)) {
     L<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
-    outpacket->setRcode(9); // 'NOTAUTH'
-    sendPacket(outpacket,outsock);
-    return 0;
-  }
-
-  if(!sd.db || sd.db==(DNSBackend *)-1) {
-    L<<Logger::Error<<"Error determining backend for domain '"<<target<<"' trying to serve an IXFR"<<endl;
-    outpacket->setRcode(RCode::ServFail);
+    outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
   }
@@ -1095,13 +1088,16 @@ TCPNameserver::TCPNameserver()
       exit(1);  
     }
     
+    if( ::arg().mustDo("non-local-bind") )
+	Utility::setBindAny(AF_INET, s);
+
     if(::bind(s, (sockaddr*)&local, local.getSocklen())<0) {
       close(s);
       if( errno == EADDRNOTAVAIL && ! ::arg().mustDo("local-address-nonexist-fail") ) {
         L<<Logger::Error<<"IPv4 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"binding to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
+        L<<Logger::Error<<"Unable to bind to TCP socket " << *laddr << ": "<<strerror(errno)<<endl;
         throw PDNSException("Unable to bind to TCP socket");
       }
     }
@@ -1132,6 +1128,8 @@ TCPNameserver::TCPNameserver()
       L<<Logger::Error<<"Setsockopt failed"<<endl;
       exit(1);  
     }
+    if( ::arg().mustDo("non-local-bind") )
+	Utility::setBindAny(AF_INET6, s);
     if(setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
     }
@@ -1141,7 +1139,7 @@ TCPNameserver::TCPNameserver()
         L<<Logger::Error<<"IPv6 Address " << *laddr << " does not exist on this server - skipping TCP bind" << endl;
         continue;
       } else {
-        L<<Logger::Error<<"binding to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
+        L<<Logger::Error<<"Unable to bind to TCPv6 socket" << *laddr << ": "<<strerror(errno)<<endl;
         throw PDNSException("Unable to bind to TCPv6 socket");
       }
     }

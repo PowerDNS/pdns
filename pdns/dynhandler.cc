@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dynhandler.hh"
@@ -33,6 +36,7 @@
 #include "nameserver.hh"
 #include "responsestats.hh"
 #include "ueberbackend.hh"
+#include "common_startup.hh"
 
 extern ResponseStats g_rs;
 
@@ -230,8 +234,8 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
 
   const string& domain=parts[1];
   DomainInfo di;
-  PacketHandler P;
-  if(!P.getBackend()->getDomainInfo(domain, di))
+  UeberBackend B;
+  if(!B.getDomainInfo(domain, di))
     return "Domain '"+domain+"' unknown";
   
   if(di.masters.empty())
@@ -299,11 +303,11 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  PacketHandler P;
+  UeberBackend B;
   try {
     L<<Logger::Error<<"Rediscovery was requested"<<endl;
     string status="Ok";
-    P.getBackend()->rediscover(&status);
+    B.rediscover(&status);
     return status;
   }
   catch(PDNSException &ae) {
@@ -314,8 +318,8 @@ string DLRediscoverHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
-  PacketHandler P;
-  P.getBackend()->reload();
+  UeberBackend B;
+  B.reload();
   L<<Logger::Error<<"Reload was requested"<<endl;
   return "Ok";
 }
@@ -378,4 +382,14 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
     ret<<"All zonecount:"<<count;
 
   return ret.str();
+}
+
+string DLPolicy(const vector<string>&parts, Utility::pid_t ppid)
+{
+  if(LPE) {
+    return LPE->policycmd(parts);
+  }
+  else {
+    return "no policy script loaded";
+  }
 }

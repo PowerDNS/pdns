@@ -52,7 +52,7 @@ class Semaphore
 private:
   typedef int sem_value_t;
 
-#if DARWIN || _AIX || __APPLE__
+#if defined(_AIX) || defined(__APPLE__)
   uint32_t       m_magic;
   pthread_mutex_t m_lock;
   pthread_cond_t  m_gtzero;
@@ -149,6 +149,9 @@ public:
   
   //! Marks the socket to be closed on exec().
   static bool setCloseOnExec ( Utility::sock_t socket );
+
+  //! Sets the socket into Bind-any mode
+  static void setBindAny ( int af, Utility::sock_t socket );
   
   //! Sleeps for a number of seconds.
   static unsigned int sleep( unsigned int seconds );

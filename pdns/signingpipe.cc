@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "signingpipe.hh"
 #include "misc.hh"
 #include <poll.h>
@@ -63,7 +66,7 @@ try
   return 0;
 }
 catch(...) {
-  L<<Logger::Error<<"unknown exception in signing thread occurred"<<endl;
+  L<<Logger::Error<<"Unknown exception in signing thread occurred"<<endl;
   return 0;
 }
 

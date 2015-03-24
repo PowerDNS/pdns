@@ -81,14 +81,19 @@ bin_PROGRAMS += \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
-	dnsdist \
 	notify \
 	nproxy \
 	nsec3dig \
 	saxfr
+
+if CXX2011
+bin_PROGRAMS += dnsdist calidns dumresp
+endif
+
 endif
 
 EXTRA_PROGRAMS = \
+	calidns \
 	dnsbulktest \
 	dnsdemog \
 	dnsdist \
@@ -98,6 +103,7 @@ EXTRA_PROGRAMS = \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
+	dumresp \
 	notify \
 	nproxy \
 	nsec3dig \
@@ -466,6 +472,37 @@ sdig_SOURCES = \
 
 sdig_LDADD = $(POLARSSL_LIBS)
 
+calidns_SOURCES = \
+	base32.cc \
+	base64.cc base64.hh \
+	calidns.cc \
+	dnslabeltext.cc \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnswriter.cc dnswriter.hh \
+	iputils.cc \
+	logger.cc \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	unix_utility.cc
+
+calidns_LDADD = $(POLARSSL_LIBS) 	
+calidns_LDFLAGS=$(THREADFLAGS) 
+
+dumresp_SOURCES = \
+	dumresp.cc \
+	logger.cc \
+	misc.cc misc.hh \
+	statbag.cc \
+	unix_utility.cc \
+	qtype.cc 
+
+
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -528,6 +565,7 @@ dnsdist_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	dolog.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -545,7 +583,7 @@ dnsdist_LDFLAGS = \
 
 dnsdist_LDADD = \
 	$(POLARSSL_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS)
+	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
@@ -877,6 +915,7 @@ testrunner_SOURCES = \
 	bindparser.yy \
 	dns.cc \
 	dns_random.cc \
+	dnsbackend.cc \
 	dnslabeltext.cc \
 	dnspacket.cc \
 	dnsparser.cc \
@@ -911,15 +950,19 @@ testrunner_SOURCES = \
 	test-sha_hh.cc \
 	packetcache.cc \
 	unix_utility.cc \
+	ueberbackend.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
+	$(BOOST_SERIALIZATION_LDFLAGS)
 
 testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
-	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(BOOST_SERIALIZATION_LIBS) \
+	$(LIBDL)
 
 if PKCS11
 testrunner_SOURCES += pkcs11signers.cc pkcs11signers.hh

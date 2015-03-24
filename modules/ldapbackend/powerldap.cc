@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "powerldap.hh"
 #include "pdns/misc.hh"
 #include <sys/time.h>

@@ -3,6 +3,9 @@
 // Version : $Id$ 
 //
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <map>
 #include <unistd.h>
@@ -80,7 +83,7 @@ void CoWrapper::receive(string &line)
       return;
    }
    catch(PDNSException &ae) {
-      L<<Logger::Warning<<kBackendId<<" unable to receive data from coprocess. "<<ae.reason<<endl;
+      L<<Logger::Warning<<kBackendId<<" Unable to receive data from coprocess. "<<ae.reason<<endl;
       delete d_cp;
       d_cp=0;
       throw;
@@ -205,7 +208,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
       vector<string>parts;
       stringtok(parts,line,"\t");
       if(parts.empty()) {
-         L<<Logger::Error<<kBackendId<<" coprocess returned emtpy line in query for "<<d_qname<<endl;
+         L<<Logger::Error<<kBackendId<<" Coprocess returned empty line in query for "<<d_qname<<endl;
          throw PDNSException("Format error communicating with coprocess");
       }
       else if(parts[0]=="FAIL") {
@@ -220,7 +223,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
       }
       else if(parts[0]=="DATA") { // yay
          if(parts.size() < 7 + extraFields) {
-            L<<Logger::Error<<kBackendId<<" coprocess returned incomplete or empty line in data section for query for "<<d_qname<<endl;
+            L<<Logger::Error<<kBackendId<<" Coprocess returned incomplete or empty line in data section for query for "<<d_qname<<endl;
             throw PDNSException("Format error communicating with coprocess in data section");
             // now what?
          }
@@ -247,7 +250,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
          }
          else {
            if(parts.size()< 8 + extraFields) {
-            L<<Logger::Error<<kBackendId<<" coprocess returned incomplete MX/SRV line in data section for query for "<<d_qname<<endl;
+            L<<Logger::Error<<kBackendId<<" Coprocess returned incomplete MX/SRV line in data section for query for "<<d_qname<<endl;
             throw PDNSException("Format error communicating with coprocess in data section of MX/SRV record");
            }
            

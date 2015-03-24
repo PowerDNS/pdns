@@ -1,5 +1,7 @@
-#include "lua-recursor.hh"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+#include "lua-recursor.hh"
 // to avoid including all of syncres.hh
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
 
@@ -61,11 +63,20 @@ extern "C" {
 #include <boost/foreach.hpp>
 #include "logger.hh"
 #include "namespaces.hh"
+#include "rec_channel.hh"
+
+static int getRegisteredNameLua(lua_State *L) {
+  const char *name = luaL_checkstring(L, 1);
+  string regname=getRegisteredName(name);
+  lua_pushstring(L, regname.c_str());
+  return 1;
+}
 
 RecursorLua::RecursorLua(const std::string &fname)
   : PowerDNSLua(fname)
 {
-  // empty
+  lua_pushcfunction(d_lua, getRegisteredNameLua);
+  lua_setglobal(d_lua, "getregisteredname");
 }
 
 int followCNAMERecords(vector<DNSResourceRecord>& ret, const QType& qtype)

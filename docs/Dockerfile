@@ -8,8 +8,8 @@
 # root@07d38c7f88a5:/# su - peter
 # No directory, logging in with HOME=/
 # $ bash
-# peter@07d38c7f88a5:/$ cd /pdns/pdns/docs
-# peter@07d38c7f88a5:/pdns/pdns/docs$ make html-new/index.html
+# peter@07d38c7f88a5:/$ cd /pdns/docs
+# peter@07d38c7f88a5:/pdns/docs$ make html/index.html
 # 
 
 FROM ubuntu:14.04

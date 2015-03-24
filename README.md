@@ -1,4 +1,4 @@
-PowerDNS is copyright Ⓒ 2002-2014 by PowerDNS.COM BV and lots of
+PowerDNS is copyright Ⓒ 2002-2015 by PowerDNS.COM BV and lots of
 contributors, using the GNU GPLv2 license (see NOTICE for the
 exact license and exception used).
 
@@ -38,7 +38,7 @@ If you build from git, first build configure:
     $ ./bootstrap
 
 (You may need to do that twice. You also need libtool-1.4, 1.3 won't work.
-Autoconf 2.69 or newer and Automake 1.11 or newer are required, too.)
+Autoconf 2.61 or newer and Automake 1.11 or newer are required, too.)
 
 To compile a very clean version, use:
 

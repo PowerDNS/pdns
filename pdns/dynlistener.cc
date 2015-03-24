@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <cstring>
 #include <string>
 #include <map>
@@ -172,7 +175,7 @@ DynListener::DynListener(const string &progname)
     if(!mkdir(socketname.c_str(),0700)) // make /var directory, if needed
       L<<Logger::Warning<<"Created local state directory '"<<socketname<<"'"<<endl;
     else if(errno!=EEXIST) {
-      L<<Logger::Critical<<"FATAL: Unable to create socket directory ("<<socketname<<") and it does not exist yet"<<endl;
+      L<<Logger::Critical<<"Unable to create socket directory ("<<socketname<<") and it does not exist yet"<<endl;
       exit(1);
     }
     

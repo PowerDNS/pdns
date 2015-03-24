@@ -22,8 +22,17 @@ If set, only these IP addresses or netmasks will be able to perform AXFR.
 
 Allow DNS updates from these IP ranges.
 
+## `allow-notify-from`
+* IP ranges, separated by commas
+* Default: 0.0.0.0/0,::/0
+* Available since: 3.5.0
+
+Allow AXFR NOTIFY from these IP ranges.
+Setting this to an empty string will drop all incoming notifies.
+
 ## `allow-recursion`
 * IP ranges, separated by commas
+* Default: 0.0.0.0/0
 
 By specifying `allow-recursion`, recursion can be restricted to netmasks
 specified. The default is to allow recursion from everywhere. Example:
@@ -58,7 +67,7 @@ Seconds to store packets in the PacketCache. See
 * Default: the hostname of the server
 * Available since: 3.3.1
 
-If sending carbon updates, if set, this will override our hostname. See
+If sending carbon updates, if set, this will override our hostname. Be careful not to include any dots in this setting, unless you know what you are doing. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-server`
@@ -116,13 +125,12 @@ Must be one of:
 * dsa
 * ecc
 * rsasha1
-* dsa-nsec3-sha1
-* rsasha1-nsec3-sha1
 * rsasha256
 * rsasha512
 * ecc-gost
-* ecdsap256sha256
-* ecdsap384sha384
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
+* ed25519
 
 ## `default-ksk-size`
 * Integer
@@ -160,13 +168,12 @@ Must be one of:
 * dsa
 * ecc
 * rsasha1
-* dsa-nsec3-sha1
-* rsasha1-nsec3-sha1
 * rsasha256
 * rsasha512
 * ecc-gost
-* ecdsap256sha256
-* ecdsap384sha384
+* ecdsa256 (ECDSA P-256 with SHA256)
+* ecdsa384 (ECDSA P-384 with SHA384)
+* ed25519
 
 ## `default-zsk-size`
 * Integer
@@ -309,6 +316,16 @@ interfaces and not use the default 'bind to any'. This causes big problems if
 you have multiple IP addresses. Unix does not provide a way of figuring out what
 IP address a packet was sent to when binding to any.
 
+## `non-local-bind`
+* Boolean
+* Default: no
+
+Bind to addresses even if one or more of the [`local-address`'s](#local-address)
+do not exist on this server. Setting this option will enable the needed socket
+options to allow binding to non-local addresses.
+This feature is intended to facilitate ip-failover setups, but it may also
+mask configuration issues and for this reason it is disabled by default.
+
 ## `local-address-nonexist-fail`
 * Boolean
 * Default: no
@@ -372,9 +389,9 @@ stable, and is in fact likely to change.
 
 ## `master`
 * Boolean
-* Default: yes
+* Default: no
 
-Turn on master support.
+Turn on master support. See ["Modes of operation"](modes-of-operation.md#master-operation).
 
 ## `max-cache-entries`
 * Integer
@@ -594,7 +611,7 @@ If set, change user id to this uid for more security. See
 * Boolean
 * Default: no
 
-Turn on slave support.
+Turn on slave support. See ["Modes of operation"](modes-of-operation.md#slave-operation).
 
 ## `slave-cycle-interval`
 * Integer

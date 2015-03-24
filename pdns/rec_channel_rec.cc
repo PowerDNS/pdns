@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/lexical_cast.hpp>
@@ -587,8 +590,6 @@ static void doExit()
 
 static void doExitNicely()
 {
-  //extern void printCallers();
-  // printCallers();
   doExitGeneric(true);
 }
 
@@ -641,7 +642,7 @@ vector<ComboAddress>* pleaseGetServfailRemotes()
   vector<ComboAddress>* ret = new vector<ComboAddress>();
   if(!t_servfailremotes)
     return ret;
-  ret->reserve(t_remotes->size());
+  ret->reserve(t_servfailremotes->size());
   BOOST_FOREACH(const ComboAddress& ca, *t_servfailremotes) {
     ret->push_back(ca);
   }
@@ -653,7 +654,7 @@ vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
   vector<ComboAddress>* ret = new vector<ComboAddress>();
   if(!t_largeanswerremotes)
     return ret;
-  ret->reserve(t_remotes->size());
+  ret->reserve(t_largeanswerremotes->size());
   BOOST_FOREACH(const ComboAddress& ca, *t_largeanswerremotes) {
     ret->push_back(ca);
   }
@@ -885,12 +886,12 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
     } 
     catch(std::exception& e) 
     {
-      L<<Logger::Error<<"reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
+      L<<Logger::Error<<"Reloading ACLs failed (Exception: "<<e.what()<<")"<<endl;
       return e.what() + string("\n");
     }
     catch(PDNSException& ae)
     {
-      L<<Logger::Error<<"reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
+      L<<Logger::Error<<"Reloading ACLs failed (PDNSException: "<<ae.reason<<")"<<endl;
       return ae.reason + string("\n");
     }
     return "ok\n";

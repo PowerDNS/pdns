@@ -1,5 +1,8 @@
 // utf-8 UTF-8 utf8 UTF8
 extern "C" {
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "ext/ed25519/crypto_sign.h"
 }
 #include "dnssecinfra.hh"

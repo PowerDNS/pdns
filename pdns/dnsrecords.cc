@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include <boost/foreach.hpp>
@@ -148,12 +151,12 @@ boilerplate_conv(TSIG, QType::TSIG,
                  conv.xfr16BitInt(d_fudge);
                  uint16_t size=d_mac.size();
                  conv.xfr16BitInt(size);
-                 conv.xfrBlob(d_mac, size);
+                 if (size>0) conv.xfrBlobNoSpaces(d_mac, size);
                  conv.xfr16BitInt(d_origID);
                  conv.xfr16BitInt(d_eRcode);
-                     size=d_otherData.size();
+                 size=d_otherData.size();
                  conv.xfr16BitInt(size); 
-                 if (size>0) conv.xfrBlob(d_otherData, size);
+                 if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(QType::MX), d_preference(preference), d_mxname(mxname)
@@ -410,6 +413,18 @@ string EUI64RecordContent::getZoneRepresentation() const
 
 /* EUI64 end */
 
+boilerplate_conv(TKEY, QType::TKEY,
+                 conv.xfrLabel(d_algo);
+                 conv.xfr32BitInt(d_inception);
+                 conv.xfr32BitInt(d_expiration);
+                 conv.xfr16BitInt(d_mode);
+                 conv.xfr16BitInt(d_error);
+                 conv.xfr16BitInt(d_keysize);
+                 if (d_keysize>0) conv.xfrBlobNoSpaces(d_key, d_keysize);
+                 conv.xfr16BitInt(d_othersize);
+                 if (d_othersize>0) conv.xfrBlobNoSpaces(d_other, d_othersize);
+                 )
+TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) { d_othersize = 0; } // fix CID#1288932
 
 uint16_t DNSKEYRecordContent::getTag()
 {
@@ -425,17 +440,6 @@ uint16_t DNSKEYRecordContent::getTag()
   ac += (ac >> 16) & 0xFFFF;
   return ac & 0xFFFF;
 }
-
-// "fancy records" 
-boilerplate_conv(URL, QType::URL, 
-                 conv.xfrLabel(d_url);
-                 )
-
-boilerplate_conv(MBOXFW, QType::MBOXFW, 
-                 conv.xfrLabel(d_mboxfw);
-                 )
-
-
 
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
@@ -502,17 +506,12 @@ void reportOtherTypes()
    TLSARecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
+   DNSRecordContent::regist(QClass::ANY, QType::TKEY, &TKEYRecordContent::make, &TKEYRecordContent::make, "TKEY");
    //TSIGRecordContent::report();
    OPTRecordContent::report();
    EUI48RecordContent::report();
    EUI64RecordContent::report();
    MINFORecordContent::report();
-}
-
-void reportFancyTypes()
-{
-  URLRecordContent::report();
-  MBOXFWRecordContent::report();
 }
 
 void reportAllTypes()

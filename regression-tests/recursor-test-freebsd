@@ -1,0 +1,51 @@
+#!/bin/sh -ex
+chmod +x dnsbulktest toxml
+port=$1
+[ -z "$port" ] && port=5300
+limit=$2
+[ -z "$limit" ] && limit=100000
+
+: ${RECURSOR:=pdns-recursor-*/pdns_recursor}
+: ${CSV:="top-1m.csv"}
+: ${IPv6:="1"}
+: ${TRACE:="fail"}
+
+if [ $IPv6 = 1 ]
+then
+	QLA6="::"
+else
+	QLA6=""
+fi
+
+rm -f recursor.pid pdns_recursor.pid
+${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --local-address=0.0.0.0 --allow-from=0.0.0.0/0 --query-local-address6="${QLA6}" > recursor.log 2>&1 &
+sleep 3
+./dnsbulktest -qe 37.252.127.190 $port $limit < ${CSV} > bulktest.results
+kill $(cat pdns_recursor.pid)
+sleep 5
+
+. ./bulktest.results
+
+mkdir -p recursor-bulktest
+rm -f failed_tests passed_tests
+touch failed_tests passed_tests
+: ${THRESHOLD:="95"}
+if [ "$DBT_OKPERCENTAGEINT" -ge $THRESHOLD ]
+then
+	echo recursor-bulktest >> passed_tests
+	RETVAL=0
+else
+	echo recursor-bulktest >> failed_tests
+	RETVAL=1
+fi
+
+echo "$DBT_OKPERCENTAGE% of domains resolved" > recursor-bulktest/diff
+egrep 'PowerDNS.COM|^<measurement' recursor.log > recursor-bulktest/stdout
+echo "<measurement><name>% domains resolved</name><value>$DBT_OKPERCENTAGE</value></measurement>" >> recursor-bulktest/stdout
+
+: ${context:="recursor-bulktest"}
+
+export context
+testsdir=. ./toxml
+
+exit $RETVAL

@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "syncres.hh"
 #include "arguments.hh"
 #include "zoneparser-tng.hh"
@@ -297,7 +300,7 @@ string reloadAuthAndForwards()
     return "ok\n";
   }
   catch(std::exception& e) {
-    L<<Logger::Error<<"Had error reloading zones, keeping original data: "<<e.what()<<endl;
+    L<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<e.what()<<endl;
   }
   catch(PDNSException& ae) {
     L<<Logger::Error<<"Encountered error reloading zones, keeping original data: "<<ae.reason<<endl;

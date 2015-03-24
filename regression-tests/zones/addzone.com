@@ -27,8 +27,6 @@ _double._tcp.dc		IN	SRV 	1 100 389 server1
 _root._tcp.dc		IN	SRV	0 0 0 .
 blah			IN	NS	blah
 blah			IN	A	192.168.6.1
-;images			IN	URL	"http://www.ds9a.nl"
-;bert@auto.test.com.			IN	MBOXFW	"bert@ds9a.nl"
 very-long-txt		IN	TXT	"A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long. A very long TXT record! boy you won't believe how long!"
 within-server		IN	CNAME	outpost.example.com.
 _underscore		IN	TXT	"underscores are terrible"

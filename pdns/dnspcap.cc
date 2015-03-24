@@ -1,4 +1,7 @@
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnspcap.hh"
 #include <boost/format.hpp>
 #include <fcntl.h>
@@ -20,7 +23,11 @@ PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
   
   if( d_pfh.linktype==1) {
     d_skipMediaHeader=sizeof(struct ether_header);
-  } else if(d_pfh.linktype==113) {
+  }
+  else if(d_pfh.linktype==101) {
+    d_skipMediaHeader=0;
+  }
+  else if(d_pfh.linktype==113) {
     d_skipMediaHeader=16;
   }
   else throw runtime_error((format("Unsupported link type %d") % d_pfh.linktype).str());
@@ -77,6 +84,12 @@ try
     uint16_t contentCode=0;
     if(d_pfh.linktype==1) 
       contentCode=ntohs(d_ether->ether_type);
+    else if(d_pfh.linktype==101) {
+      if(d_ip->ip_v==4)
+	contentCode = 0x0800;
+      else
+	contentCode = 0x0806; 
+    }
     else if(d_pfh.linktype==113)
       contentCode=ntohs(d_lcc->lcc_protocol);
 

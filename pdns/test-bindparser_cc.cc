@@ -1,6 +1,9 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include "bindparserclasses.hh"
 #include "misc.hh"
@@ -15,7 +18,7 @@ using std::string;
 BOOST_AUTO_TEST_SUITE(bindparser_cc)
 
 BOOST_AUTO_TEST_CASE(test_parser) {
-        char *srcdir;
+        const char *srcdir;
         std::ostringstream pathbuf;
         BindParser BP;
         BOOST_CHECK_THROW( BP.parse("../regression-tests/named.confx"), PDNSException);

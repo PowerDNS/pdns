@@ -55,12 +55,9 @@
 #include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
- #endif // HAVE_CONFIG_H
 
 
-class DNSBackend;
+class UeberBackend;
 class DNSSECKeeper;
 
 //! This class represents DNS packets, either received or to be sent.
@@ -143,13 +140,16 @@ public:
   QType qtype;  //!< type of the question 8
 
   string qdomain;  //!< qname of the question 4 - unsure how this is used
+  string qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
+  string qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
   bool d_tcp;
   bool d_dnssecOk;
   bool d_havetsig;
 
   bool getTSIGDetails(TSIGRecordContent* tr, string* keyname, string* message) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly=false);
-  
+  bool getTKEYRecord(TKEYRecordContent* tr, string* keyname) const;
+
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
   TSIGRecordContent d_trc;
   static bool s_doEDNSSubnetProcessing;
@@ -179,6 +179,6 @@ private:
 };
 
 
-bool checkForCorrectTSIG(const DNSPacket* q, DNSBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
 
 #endif

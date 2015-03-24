@@ -43,8 +43,6 @@
 
 #include "namespaces.hh"
 
-class BackendReporter;
-
 /** This is a very magic backend that allows us to load modules dynamically,
     and query them in order. This is persistent over all UeberBackend instantiations
     across multiple threads. 
@@ -52,7 +50,7 @@ class BackendReporter;
     The UeberBackend is transparent for exceptions, which should fall straight through.
 */
 
-class UeberBackend : public DNSBackend, public boost::noncopyable
+class UeberBackend : public boost::noncopyable
 {
 public:
   UeberBackend(const string &pname="default");
@@ -60,11 +58,6 @@ public:
   typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
   bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
-
-  /** contains BackendReporter objects, which contain maker functions and information about
-      weather a module has already been reported to existing instances of the UeberBackend
-  */
-//  static vector<BackendReporter>backendmakers;
 
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
       existing threads of new modules 
@@ -74,16 +67,12 @@ public:
 
   static bool loadmodule(const string &name);
 
-  /** Thread function that listens on our unix domain socket for commands, for example
-      instructions to load new modules */
-  static void *DynListener(void *);
   static void go(void);
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
   vector<DNSBackend*> backends; 
 
-  void die();
   void cleanup();
 
   //! the very magic handle for UeberBackend questions
@@ -113,27 +102,21 @@ public:
 
   void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
-  /* 5-arg version is only valid for backends and should never be called directly */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len) {
-    throw PDNSException("5-arg version of getAuth should not be called in UeberBackend");
-  }
-
-  bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);
+  bool getAuth(DNSPacket *p, SOAData *sd, const string &target);
   bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
+  bool getSOAUncached(const string &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
   bool list(const string &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker(const map<string,string> &);
-  static void closeDynListener();
-  static void setStatus(const string &st);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   bool getDomainInfo(const string &domain, DomainInfo &di);
   bool createDomain(const string &domain);
   
-  int addDomainKey(const string& name, const KeyData& key);
-  bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
+  int addDomainKey(const string& name, const DNSBackend::KeyData& key);
+  bool getDomainKeys(const string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
   bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
   bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
@@ -156,7 +139,6 @@ public:
 private:
   unsigned int d_cache_ttl, d_negcache_ttl;
 
-  DNSResourceRecord lastrr;
   pthread_t tid;
   handle d_handle;
   bool d_negcached;
@@ -178,29 +160,10 @@ private:
   static pthread_cond_t d_cond;
   static sem_t d_dynserialize;
   static bool d_go;
-  static int s_s;
-  static string s_status; 
   int d_ancount;
   
   bool stale;
   int domain_id;
-};
-
-
-/** Class used to report new backends. It stores a maker function, and a flag that indicates that 
-    this module has been reported */
-class BackendReporter
-{
-public:
-  BackendReporter(UeberBackend::BackendMaker *p)
-  {
-    maker=p;
-    reported=false;
-  };
-  map<string,string>d_parameters;
-  UeberBackend::BackendMaker *maker; //!< function to make this backend
-  bool reported; //!< if this backend has been reported to running UeberBackend threads 
-private:
 };
 
 #endif

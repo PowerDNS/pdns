@@ -1,4 +1,6 @@
-#include "config.h"
+#ifndef PDNS_GEOIPBACKEND_HH
+#define PDNS_GEOIPBACKEND_HH
+
 #include "pdns/namespaces.hh"
 
 #include <vector>
@@ -64,3 +66,5 @@ private:
 
   vector<DNSResourceRecord> d_result;
 };
+
+#endif /* PDNS_GEOIPBACKEND_HH */

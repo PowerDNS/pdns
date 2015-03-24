@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include <errno.h>
@@ -40,7 +43,7 @@
 #include "namespaces.hh"
 
 
-void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
+void CommunicatorClass::queueNotifyDomain(const string &domain, UeberBackend *B)
 {
   bool hasQueuedItem=false;
   set<string> nsset, ips;
@@ -60,7 +63,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
         const ComboAddress caIp(*k, 53);
         if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
           if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skiped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
           else
             ips.insert(caIp.toStringWithPort());
         }
@@ -99,12 +102,12 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, DNSBackend *B)
 bool CommunicatorClass::notifyDomain(const string &domain)
 {
   DomainInfo di;
-  PacketHandler P;
-  if(!P.getBackend()->getDomainInfo(domain, di)) {
+  UeberBackend B;
+  if(!B.getDomainInfo(domain, di)) {
     L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
-  queueNotifyDomain(domain, P.getBackend());
+  queueNotifyDomain(domain, &B);
   // call backend and tell them we sent out the notification - even though that is premature    
   di.backend->setNotified(di.id, di.serial);
 
@@ -124,7 +127,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   if(!::arg().mustDo("master"))
     return; 
 
-  UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
+  UeberBackend *B=P->getBackend();
   vector<DomainInfo> cmdomains;
   B->getUpdatedMasters(&cmdomains);
   

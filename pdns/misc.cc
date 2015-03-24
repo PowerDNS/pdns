@@ -20,7 +20,11 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <netdb.h>
 #include <sys/time.h>
 #include <time.h>
@@ -915,7 +919,7 @@ void setSocketTimestamps(int fd)
 #ifdef SO_TIMESTAMP
   int on=1;
   if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
-    L<<Logger::Error<<"Warning: unable to enable timestamp reporting for socket"<<endl;
+    L<<Logger::Error<<"Unable to enable timestamp reporting for socket"<<endl;
 #endif
 }
 

@@ -61,7 +61,6 @@ Please adjust the [`pipe-command`](#pipe-command) statement to the location of t
 
 -   webserver.example.com A records pointing to 192.0.2.4, 192.0.2.5, 192.0.2.6
 -   www.example.com CNAME pointing to webserver.example.com
--   MBOXFW (mailbox forward) records pointing to powerdns@example.com. See the smtpredir documentation for information about MBOXFW.
 
 ## PipeBackend protocol
 

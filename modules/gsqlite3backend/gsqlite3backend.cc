@@ -4,6 +4,9 @@
 // Copyright (C) 2011, PowerDNS.COM BV
 //
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "pdns/utility.hh"
 #include <map>
 #include <unistd.h>
@@ -77,7 +80,7 @@ public:
     
     declare(suffix, "master-zone-query", "Data", "select master from domains where name=:domain and type='SLAVE'");
 
-    declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type from domains where name=:domain");
+    declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
 
     declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check,type from domains where type='SLAVE'");
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
@@ -103,6 +106,7 @@ public:
 
     declare(suffix, "update-master-query", "", "update domains set master=:master where name=:domain");
     declare(suffix, "update-kind-query", "", "update domains set type=:kind where name=:domain");
+    declare(suffix, "update-account-query","", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
     declare(suffix, "zone-lastchange-query", "", "select max(change_date) from records where domain_id=:domain_id");
@@ -128,7 +132,7 @@ public:
     declare(suffix, "delete-tsig-key-query","", "delete from tsigkeys where name=:key_name");
     declare(suffix, "get-tsig-keys-query","", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR :include_disabled");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR :include_disabled");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=:domain_id");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (:domain_id, :qname, :qtype, :modified_at, :account, :content)");

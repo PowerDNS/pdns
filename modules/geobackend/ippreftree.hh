@@ -4,6 +4,8 @@
  * 
  *         $Id$
  */
+#ifndef PDNS_IPPREFTREE_HH
+#define PDNS_IPPREFTREE_HH
 
 #include <string>
 #include <sys/types.h>
@@ -56,3 +58,5 @@ public:
         
         string reason;
 };
+
+#endif /* PDNS_IPPREFTREE_HH */

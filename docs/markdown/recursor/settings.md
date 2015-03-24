@@ -1,6 +1,15 @@
 # All PowerDNS Recursor Settings
 Each setting can appear on the command line, prefixed by '--', or in the configuration file. The command line overrides the configuration file.
 
+**Note**:  Settings marked as 'Boolean' can either be set to an empty value, which
+means on, or to 'no' or 'off' which means off. Anything else means on.
+
+So, as an example:
+
+ * 'serve-rfc1918' on its own means: do serve those zones. 
+ * 'serve-rfc1918=off' or 'serve-rfc1918=no' means: do not serve those zones. 
+ * Anything else means: do serve those zones.
+
 ## `aaaa-additional-processing`
 * Boolean
 * Default: No
@@ -316,6 +325,16 @@ recommended to bind to explicit addresses.
 
 Local port to bind to.
 
+## `non-local-bind`
+* Boolean
+* Default: no
+
+Bind to addresses even if one or more of the [`local-address`'s](#local-address)
+do not exist on this server. Setting this option will enable the needed socket
+options to allow binding to non-local addresses.
+This feature is intended to facilitate ip-failover setups, but it may also
+mask configuration issues and for this reason it is disabled by default.
+
 ## `loglevel`
 * Integer between 0 and 
 * Default: 4
@@ -442,7 +461,7 @@ Maximum number of seconds to cache a 'server failure' answer in the packet cache
 
 ## `pdns-distributes-queries`
 * Boolean
-* Default: no
+* Default: yes (since 3.7.0), no (before 3.7.0)
 * Available since: 3.6
 
 If set, PowerDNS will have only 1 thread listening on client sockets, and
@@ -472,7 +491,15 @@ which also disables outgoing IPv6 support.
 
 Don't log queries.
 
-## `serve-rfc-1918`
+## `root-nx-trust`
+* Boolean
+* Default: no
+* Available since: 3.7.0
+
+If set, an NXDOMAIN from the root-servers will serve as a blanket NXDOMAIN for the entire TLD
+the query belonged to. The effect of this is far fewer queries to the root-servers.
+
+## `serve-rfc1918`
 * Boolean
 * Default: yes
 

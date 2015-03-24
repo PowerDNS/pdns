@@ -10,10 +10,17 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects 1.11])
+AC_SUBST([pdns_configure_args],["$ac_configure_args"])
+AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
+  ["$pdns_configure_args"],
+  [pdns configure arguments]
+)
+
+AM_INIT_AUTOMAKE([foreign dist-bzip2 no-dist-gzip tar-ustar -Wno-portability subdir-objects parallel-tests 1.11])
 AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
+: ${CFLAGS="-Wall -g -O2"}
 : ${CXXFLAGS="-Wall -g -O2"}
 
 AC_PROG_CC
@@ -22,6 +29,7 @@ PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
+
 
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
@@ -34,9 +42,25 @@ AC_DEFINE([_GNU_SOURCE], [1],
   [Define _GNU_SOURCE so that we get all necessary prototypes]
 )
 
-AC_ARG_ENABLE([hardening], [
-  AS_HELP_STRING([--disable-hardening, disable compiler security checks])
+# Warn when pkg.m4 is missing
+m4_pattern_forbid([^_?PKG_[A-Z_]+$],[*** pkg.m4 missing, please install pkg-config])
+
+PDNS_WITH_LUAJIT
+AS_IF([test "x$with_luajit" = "xno"], [
+  PDNS_WITH_LUA
 ])
+
+AX_CXX_COMPILE_STDCXX_11(,optional)
+AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
+
+AC_MSG_CHECKING([whether we will enable compiler security checks])
+AC_ARG_ENABLE([hardening],
+  [AS_HELP_STRING([--disable-hardening],[disable compiler security checks @<:@default=no@:>@])],
+  [enable_hardening=$enableval],
+  [enable_hardening=yes]
+)
+AC_MSG_RESULT([$enable_hardening])
+
 AS_IF([test "x$enable_hardening" != "xno"], [
   AC_CC_PIE
   AC_CC_STACK_PROTECTOR
@@ -49,11 +73,8 @@ AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([gethostent], [nsl])
 AC_SEARCH_LIBS([inet_aton], [resolv])
 
-m4_ifndef([LT_INIT],[
-AC_PROG_LIBTOOL([disable-static])
-],[
-LT_INIT([disable-static])
-])
+LT_PREREQ([2.2.2])
+LT_INIT([disable-static dlopen])
 
 
 MC_TM_GMTOFF
@@ -94,8 +115,6 @@ AC_CHECK_HEADERS(
 
 PDNS_CHECK_RAGEL
 
-PDNS_WITH_LUA
-
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
 BOOST_PROGRAM_OPTIONS([mt])
@@ -112,27 +131,11 @@ PDNS_CHECK_LINKCHECKER
 dnl Checks for library functions.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
 
-# Check for libdl
-my_save_LIBS="$LIBS"
-LIBS=""
-AC_CHECK_LIB(dl,dlopen)
-LIBDL=$LIBS
-LIBS="$my_save_LIBS"
-AC_SUBST(LIBDL)
+AS_IF([test "x$lt_cv_dlopen" = "xno"],
+  [AC_MSG_ERROR([Your system does not support dlopen])]
+)
 
-AC_MSG_CHECKING([for RTLD_NOW]);
-ac_save_LIBS="$LIBS"
-LIBS="$LIBS $LIBDL"
-AC_LINK_IFELSE(
-  [AC_LANG_PROGRAM([[#include <dlfcn.h>]],
-    [[(void) dlopen("",RTLD_NOW);]])],
-  [has_RTLD_NOW=yes],
-  [has_RTLD_NOW=no])
-AC_MSG_RESULT([$has_RTLD_NOW])
-if test "$has_RTLD_NOW" = "no"; then
-  AC_DEFINE(NEED_RTLD_NOW,,[If host OS misses RTLD_NOW])
-fi
-LIBS=$ac_save_LIBS
+AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 THREADFLAGS=""
 
@@ -157,8 +160,7 @@ darwin*)
   CXXFLAGS="-D__APPLE_USE_RFC_3542 -D_XOPEN_SOURCE $CXXFLAGS"
   ;;
 freebsd*)
-  LDFLAGS="-pthread $LDFLAGS"
-  CXXFLAGS="-pthread $CXXFLAGS"
+  THREADFLAGS="-pthread"
   have_freebsd="yes"
   ;;
 *)
@@ -180,7 +182,6 @@ PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_ED25519
-PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
 AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
@@ -234,6 +235,7 @@ AC_ARG_ENABLE([tools],
 AC_MSG_RESULT([$enable_tools])
 AM_CONDITIONAL([TOOLS],[test "x$enable_tools" != "xno"])
 
+
 for a in $modules $dynmodules; do
   case "$a" in
     oracle|goracle)
@@ -260,6 +262,13 @@ for a in $modules $dynmodules; do
     opendbx)
       PDNS_CHECK_OPENDBX
       ;;
+    remote)
+      AS_IF([test "x$enable_unit_tests" = "xyes"],
+        [PDNS_CHECK_CURL_PROGRAM]
+      )
+
+      have_remotebackend=yes
+      ;;
     tinydns)
       PDNS_CHECK_CDB
       ;;
@@ -276,6 +285,8 @@ for a in $modules $dynmodules; do
       ;;
   esac
 done
+
+PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 
 AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 
@@ -309,6 +320,7 @@ AS_IF([test "x$static" != "xyes"], [
 AC_SUBST([PROGRAM_LDFLAGS])
 
 PDNS_ENABLE_COVERAGE
+PDNS_ENABLE_SANITIZERS
 
 AC_SUBST(LIBS)
 
@@ -318,6 +330,13 @@ AC_SUBST([AM_CPPFLAGS],
 
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
+
+CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
+
+AC_ARG_VAR(PACKAGEVERSION,[The version used in secpoll queries])
+AS_IF([test "x$PACKAGEVERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([PACKAGEVERSION], "$PACKAGEVERSION", [Set to the package version used for secpoll])]
+)
 
 export moduledirs moduleobjects modulelibs
 
@@ -359,8 +378,12 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Configuration summary])
 AC_MSG_NOTICE([=====================])
 AC_MSG_NOTICE([])
+AC_MSG_NOTICE([Configured with:$pdns_configure_args])
+AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Modules: $modules])
 AC_MSG_NOTICE([Dynamic Modules: $dynmodules])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([With ZeroMQ connector for remotebackend: $enable_remotebackend_zeromq])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([CC: $CC])
 AC_MSG_NOTICE([CXX: $CXX])
@@ -373,5 +396,12 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
-AC_MSG_NOTICE([Lua support: $with_lua])
+AS_IF([test "x$LUAPC" != "x"],
+  [AC_MSG_NOTICE([Lua support: $LUAPC])],
+  [AC_MSG_NOTICE([Lua support: no])]
+)
+AS_IF([test "$HAVE_CXX11" = "1"],
+  [AC_MSG_NOTICE([C++2011 support: yes])],
+  [AC_MSG_NOTICE([C++2011 support: no])]
+)
 AC_MSG_NOTICE([])

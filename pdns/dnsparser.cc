@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include <boost/lexical_cast.hpp>
@@ -508,6 +511,10 @@ try
 catch(...)
 {
   throw std::out_of_range("xfrBlob out of range");
+}
+
+void PacketReader::xfrBlobNoSpaces(string& blob, int length) {
+  xfrBlob(blob, length);
 }
 
 void PacketReader::xfrBlob(string& blob, int length)

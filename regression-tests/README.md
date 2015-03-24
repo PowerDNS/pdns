@@ -126,9 +126,6 @@ instance:
 $ nameserver=127.0.0.1 port=5300 ./runtests
 ```
 
-The BIND backend can't do MBOXFW. The `any-query` test is known to fail
-with bind,gsqlite3.
-
 
 Analysing results
 -----------------

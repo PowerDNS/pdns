@@ -1,6 +1,9 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include "iputils.hh"
 #include "nameserver.hh"
@@ -9,7 +12,6 @@
 #include <utility>
 
 extern vector<ComboAddress> g_localaddresses;
-StatBag S;
 
 ArgvMap &arg()
 {

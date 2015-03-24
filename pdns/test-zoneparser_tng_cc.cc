@@ -1,5 +1,8 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
@@ -17,10 +20,12 @@ BOOST_AUTO_TEST_SUITE(test_zoneparser_tng_cc)
 
 BOOST_AUTO_TEST_CASE(test_tng_record_types) {
   reportAllTypes();
-  reportFancyTypes();
 
   std::ostringstream pathbuf;
-  pathbuf << std::getenv("SRCDIR") << "/../regression-tests/zones/unit.test";
+  const char* p = std::getenv("SRCDIR");
+  if(!p)
+    p = ".";
+  pathbuf << p << "/../regression-tests/zones/unit.test";
   ZoneParserTNG zp(pathbuf.str(), "unit.test");
   DNSResourceRecord rr;
 

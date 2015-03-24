@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "gsqlbackend.hh"
@@ -72,6 +75,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckofZoneQuery=getArg("update-lastcheck-query");
+  d_UpdateAccountOfZoneQuery=getArg("update-account-query");
   d_ZoneLastChangeQuery=getArg("zone-lastchange-query");
   d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
@@ -142,6 +146,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_UpdateKindOfZoneQuery_stmt = NULL;
   d_UpdateSerialOfZoneQuery_stmt = NULL;
   d_UpdateLastCheckofZoneQuery_stmt = NULL;
+  d_UpdateAccountOfZoneQuery_stmt = NULL;
   d_InfoOfAllMasterDomainsQuery_stmt = NULL;
   d_DeleteDomainQuery_stmt = NULL;
   d_DeleteZoneQuery_stmt = NULL;
@@ -270,10 +275,25 @@ bool GSQLBackend::setKind(const string &domain, const DomainInfo::DomainKind kin
   return true;
 }
 
+bool GSQLBackend::setAccount(const string &domain, const string &account)
+{
+  try {
+    d_UpdateAccountOfZoneQuery_stmt->
+            bind("account", account)->
+            bind("domain", toLower(domain))->
+            execute()->
+            reset();
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to set account of domain \""+domain+"\": "+e.txtReason());
+  }
+  return true;
+}
+
 bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
 {
   /* fill DomainInfo from database info:
-     id,name,master IP(s),last_check,notified_serial,type */
+     id,name,master IP(s),last_check,notified_serial,type,account */
   try {
     d_InfoOfDomainsZoneQuery_stmt->
       bind("domain", toLower(domain))->
@@ -295,6 +315,7 @@ bool GSQLBackend::getDomainInfo(const string &domain, DomainInfo &di)
   di.last_check=atol(d_result[0][3].c_str());
   di.notified_serial = atol(d_result[0][4].c_str());
   string type=d_result[0][5];
+  di.account=d_result[0][6];
   di.backend=this;
 
   di.serial = 0;
@@ -1153,15 +1174,14 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       if (!row[4].empty()) {
         stringtok(di.masters, row[4], " ,\t");
       }
-      di.last_check=atol(row[6].c_str());
-  
+
       SOAData sd;
       fillSOAData(row[2], sd);
       di.serial = sd.serial;
-      if (!row[5].empty()) {
-        di.notified_serial = atol(row[5].c_str());
-      }
-      
+      di.notified_serial = atol(row[5].c_str());
+      di.last_check = atol(row[6].c_str());
+      di.account = row[7];
+
       if (pdns_iequals(row[3], "MASTER"))
         di.kind = DomainInfo::Master;
       else if (pdns_iequals(row[3], "SLAVE"))

@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <netdb.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -127,7 +130,7 @@ listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threa
 
 __thread MT_t* MT; // the big MTasker
 
-unsigned int g_numThreads;
+unsigned int g_numThreads, g_numWorkerThreads;
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 // Bad Nets taken from both:
@@ -264,7 +267,7 @@ void setSocketBuffer(int fd, int optname, uint32_t size)
   }
 
   if (setsockopt(fd, SOL_SOCKET, optname, (char*)&size, sizeof(size)) < 0 )
-    L<<Logger::Error<<"Warning: unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Unable to raise socket buffer size to "<<size<<": "<<strerror(errno)<<endl;
 }
 
 
@@ -469,7 +472,7 @@ static void writePid(void)
   if(of)
     of<< Utility::getpid() <<endl;
   else
-    L<<Logger::Error<<"Requested to write pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
+    L<<Logger::Error<<"Writing pid for "<<Utility::getpid()<<" to "<<s_pidfname<<" failed: "<<strerror(errno)<<endl;
 }
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
@@ -623,13 +626,13 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::DROP) {
+    if(res == PolicyDecision::DROP) {
       g_stats.policyDrops++;
       delete dc;
       dc=0;
       return;
     }  
-    if(tracedQuery || res == RecursorBehaviour::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
+    if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
     {
       string trace(sr.getTrace());
       if(!trace.empty()) {
@@ -642,7 +645,7 @@ void startDoResolve(void *p)
       }
     }
     
-    if(res == RecursorBehaviour::PASS) {
+    if(res == PolicyDecision::PASS) {
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
@@ -688,6 +691,8 @@ void startDoResolve(void *p)
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
       if(dc->d_local.sin4.sin_family)
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local);
+      else
+        msgh.msg_control=NULL;
       sendmsg(dc->d_socket, &msgh, 0);
       if(!SyncRes::s_nopacketcache && !variableAnswer ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
@@ -934,7 +939,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   struct timeval diff = g_now - tv;
   double delta=(diff.tv_sec*1000 + diff.tv_usec/1000.0);
 
-  if(delta > 1000.0) {
+  if(tv.tv_sec && delta > 1000.0) {
     g_stats.tooOldDrops++;
     return 0;
   }
@@ -960,6 +965,9 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
       if(destaddr.sin4.sin_family) {
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr);
+      }
+      else {
+        msgh.msg_control=NULL;
       }
       sendmsg(fd, &msgh, 0);
 
@@ -1125,6 +1133,9 @@ void makeTCPServerSockets()
     }
 #endif
 
+    if( ::arg().mustDo("non-local-bind") )
+	Utility::setBindAny(AF_INET, fd);
+
     sin.sin4.sin_port = htons(st.port);
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen )<0) 
@@ -1146,6 +1157,7 @@ void makeTCPServerSockets()
 
 void makeUDPServerSockets()
 {
+  int one=1;
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
 
@@ -1174,7 +1186,6 @@ void makeUDPServerSockets()
     setSocketTimestamps(fd);
 
     if(IsAnyAddress(sin)) {
-      int one=1;
       setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
       setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
       if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
@@ -1182,6 +1193,9 @@ void makeUDPServerSockets()
       }
 
     }
+
+    if( ::arg().mustDo("non-local-bind") )
+	Utility::setBindAny(AF_INET6, fd);
 
     Utility::setCloseOnExec(fd);
 
@@ -1296,9 +1310,9 @@ static void houseKeeping(void *)
       DTime dt;
       dt.setTimeval(now);
       t_RC->doPrune(); // this function is local to a thread, so fine anyhow
-      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numThreads);
+      t_packetCache->doPruneTo(::arg().asNum("max-packetcache-entries") / g_numWorkerThreads);
       
-      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numThreads * 10), 200);
+      pruneCollection(t_sstorage->negcache, ::arg().asNum("max-cache-entries") / (g_numWorkerThreads * 10), 200);
       
       if(!((cleanCounter++)%40)) {  // this is a full scan!
 	time_t limit=now.tv_sec-300;
@@ -1785,20 +1799,19 @@ static void checkLinuxIPv6Limits()
 }
 static void checkOrFixFDS()
 {
-  unsigned int availFDs=getFilenumLimit();
-  if(g_maxMThreads * g_numThreads > availFDs) {
-    if(getFilenumLimit(true) >= g_maxMThreads * g_numThreads) {
-      setFilenumLimit(g_maxMThreads * g_numThreads);
-      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numThreads<<" to match max-mthreads and threads settings"<<endl;
+  unsigned int availFDs=getFilenumLimit()-10; // some healthy margin, thanks AJ ;-)
+  if(g_maxMThreads * g_numWorkerThreads > availFDs) {
+    if(getFilenumLimit(true) >= g_maxMThreads * g_numWorkerThreads) {
+      setFilenumLimit(g_maxMThreads * g_numWorkerThreads);
+      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numWorkerThreads<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
-      int newval = getFilenumLimit(true) / g_numThreads;
-      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numThreads<<"), reducing max-mthreads to "<<newval<<endl;
+      int newval = getFilenumLimit(true) / g_numWorkerThreads;
+      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numWorkerThreads<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
-      setFilenumLimit(g_maxMThreads * g_numThreads);
+      setFilenumLimit(g_maxMThreads * g_numWorkerThreads);
     }
   }
-
 }
 
 void* recursorThread(void*);
@@ -1990,6 +2003,7 @@ int serviceMain(int argc, char*argv[])
   SyncRes::s_serverID=::arg()["server-id"];
   SyncRes::s_maxqperq=::arg().asNum("max-qperq");
   SyncRes::s_maxtotusec=1000*::arg().asNum("max-total-msec");
+  SyncRes::s_rootNXTrust = ::arg().mustDo( "root-nx-trust");
   if(SyncRes::s_serverID.empty()) {
     char tmp[128];
     gethostname(tmp, sizeof(tmp)-1);
@@ -2030,6 +2044,9 @@ int serviceMain(int argc, char*argv[])
   signal(SIGPIPE,SIG_IGN);
   writePid();
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
+  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
+  g_maxMThreads = ::arg().asNum("max-mthreads");
+  checkOrFixFDS();
   
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -2049,13 +2066,11 @@ int serviceMain(int argc, char*argv[])
 
   Utility::dropUserPrivs(newuid);
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
-  
+  g_numWorkerThreads = ::arg().asNum("threads");
   makeThreadPipes();
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
   g_maxTCPPerClient=::arg().asNum("max-tcp-per-client");
-  g_maxMThreads=::arg().asNum("max-mthreads");	
-  checkOrFixFDS();
 
   if(g_numThreads == 1) {
     L<<Logger::Warning<<"Operating unthreaded"<<endl;
@@ -2104,15 +2119,17 @@ try
   }
   
   t_traceRegex = new shared_ptr<Regex>();
-  unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numThreads;
+  unsigned int ringsize=::arg().asNum("stats-ringbuffer-entries") / g_numWorkerThreads;
   if(ringsize) {
     t_remotes = new addrringbuf_t();
-    t_remotes->set_capacity(ringsize);   
+    if(g_weDistributeQueries)  // if so, only 1 thread does recvfrom
+      t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries"));   
+    else
+      t_remotes->set_capacity(ringsize);   
     t_servfailremotes = new addrringbuf_t();
     t_servfailremotes->set_capacity(ringsize);   
     t_largeanswerremotes = new addrringbuf_t();
     t_largeanswerremotes->set_capacity(ringsize);   
-
 
     t_queryring = new boost::circular_buffer<pair<string, uint16_t> >();
     t_queryring->set_capacity(ringsize);   
@@ -2240,6 +2257,7 @@ int main(int argc, char **argv)
     ::arg().set("no-shuffle","Don't change")="off";
     ::arg().set("local-port","port to listen on")="53";
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
+    ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
@@ -2310,6 +2328,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= ""; 
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no"; 
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
+    ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";

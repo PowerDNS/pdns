@@ -1,4 +1,9 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "iputils.hh"
+#include <sys/socket.h> 
+
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
 static void RuntimeError(const boost::format& fmt)
@@ -63,7 +68,7 @@ bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 #ifdef SO_TIMESTAMP
   struct cmsghdr *cmsg;
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP) && 
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && 
 	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
       return true;
@@ -113,6 +118,7 @@ bool IsAnyAddress(const ComboAddress& addr)
   return false;
 }
 
+// FIXME: this function is unused, and using it could reduce some code duplication
 int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
   struct msghdr msgh;
@@ -131,11 +137,15 @@ int sendfromto(int sock, const char* data, int len, int flags, const ComboAddres
   if(from.sin4.sin_family) {
     addCMsgSrcAddr(&msgh, cbuf, &from);
   }
+  else {
+    msgh.msg_control=NULL;
+  }
   return sendmsg(sock, &msgh, flags);
 }
 
 // be careful: when using this for receive purposes, make sure addr->sin4.sin_family is set appropriately so getSocklen works!
 // be careful: when using this function for *send* purposes, be sure to set cbufsize to 0!
+// be careful: if you don't call addCMsgSrcAddr after fillMSGHdr, make sure to set msg_control to NULL
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr)
 {
   iov->iov_base = data;

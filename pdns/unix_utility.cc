@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include <cstring>
 #include <fcntl.h>
@@ -105,6 +108,31 @@ bool Utility::setCloseOnExec(sock_t sock)
   if(flags<0 || fcntl(sock, F_SETFD,flags|FD_CLOEXEC) <0)
     return false;
   return true;
+}
+
+void Utility::setBindAny(int af, sock_t sock)
+{
+  int one = 1;
+
+#ifdef IP_FREEBIND
+  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<strerror(errno)<<endl;
+#endif
+
+#ifdef IP_BINDANY
+  if (af == AF_INET)
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: IP_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+#endif
+#ifdef IPV6_BINDANY
+  if (af == AF_INET6)
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: IPV6_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+#endif
+#ifdef SO_BINDANY
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
+      theL()<<Logger::Warning<<"Warning: SO_BINDANY setsockopt failed: "<<strerror(errno)<<endl;
+#endif
 }
 
 const char *Utility::inet_ntop(int af, const char *src, char *dst, size_t size)

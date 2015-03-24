@@ -180,6 +180,10 @@ In `preoutquery`, `getlocaladdress()` returns the address of the client that cau
 To indicate that an answer should not be cached in the packet cache, use
 `setvariable()`.  Available since version 3.3.
 
+`getregisteredname('www.powerdns.com')` returns `powerdns.com.`, based on Mozilla's
+Public Suffix List. In general it will tell you the 'registered domain' for a given
+name.
+
 To get fake AAAA records for DNS64 usage, use `return "getFakeAAAARecords",
 domain, "fe80::21b:77ff:0:0"`.  Available since version 3.4.
 

@@ -15,16 +15,14 @@ class Zones(ApiTestCase):
         example_com = example_com[0]
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
-            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial']
+            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
         elif is_recursor():
             required_fields = required_fields + ['recursion_desired', 'servers']
         for field in required_fields:
             self.assertIn(field, example_com)
 
 
-@unittest.skipIf(not is_auth(), "Not applicable")
-class AuthZones(ApiTestCase):
-
+class AuthZonesHelperMixin(object):
     def create_zone(self, name=None, **kwargs):
         if name is None:
             name = unique_zone_name()
@@ -47,9 +45,14 @@ class AuthZones(ApiTestCase):
         self.assertEquals(r.status_code, 201)
         return payload, r.json()
 
+
+@unittest.skipIf(not is_auth(), "Not applicable")
+class AuthZones(ApiTestCase, AuthZonesHelperMixin):
+
     def test_create_zone(self):
-        payload, data = self.create_zone(serial=22)
-        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit'):
+        # soa_edit_api has a default, override with empty for this test
+        payload, data = self.create_zone(serial=22, soa_edit_api='')
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
@@ -74,6 +77,15 @@ class AuthZones(ApiTestCase):
         soa_serial = int([r['content'].split(' ')[2] for r in data['records'] if r['type'] == 'SOA'][0])
         self.assertGreater(soa_serial, payload['serial'])
         self.assertEquals(soa_serial, data['serial'])
+
+    def test_create_zone_with_account(self):
+        # soa_edit_api wins over serial
+        payload, data = self.create_zone(account='anaccount', serial=10)
+        print data
+        for k in ('account', ):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
 
     def test_create_zone_with_records(self):
         name = unique_zone_name()
@@ -378,7 +390,7 @@ fred   IN  A      192.168.0.4
             self.assertEquals(counter[et], 0)
 
     def test_export_zone_json(self):
-        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'], soa_edit_api='')
         name = payload['name']
         # export it
         r = self.session.get(
@@ -395,7 +407,7 @@ fred   IN  A      192.168.0.4
         self.assertEquals(data['zone'].strip().split('\n'), expected_data)
 
     def test_export_zone_text(self):
-        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'], soa_edit_api='')
         name = payload['name']
         # export it
         r = self.session.get(
@@ -704,6 +716,53 @@ fred   IN  A      192.168.0.4
         self.assertEquals(r.status_code, 422)
         self.assertIn('out of zone', r.json()['error'])
 
+    def test_rrset_unknown_type(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'FAFAFA',
+            'records': [
+                {
+                    "name": name,
+                    "type": "FAFAFA",
+                    "ttl": 3600,
+                    "content": "4.3.2.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('unknown type', r.json()['error'])
+
+    def test_create_zone_with_leading_space(self):
+        # Actual regression.
+        payload, zone = self.create_zone()
+        name = payload['name']
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'records': [
+                {
+                    "name": name,
+                    "type": "A",
+                    "ttl": 3600,
+                    "content": " 4.3.2.1",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(self.url("/servers/localhost/zones/" + name), data=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Not in expected format', r.json()['error'])
+
     def test_zone_rr_delete_out_of_zone(self):
         payload, zone = self.create_zone()
         name = payload['name']
@@ -946,6 +1005,78 @@ fred   IN  A      192.168.0.4
         print r.json()
         # should return zone, SOA, ns1, ns2
         self.assertEquals(len(r.json()), 1)  # FIXME test disarmed for now (should be 4)
+
+
+@unittest.skipIf(not is_auth(), "Not applicable")
+class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
+
+    def setUp(self):
+        super(AuthRootZone, self).setUp()
+        # zone name is not unique, so delete the zone before each individual test.
+        self.session.delete(self.url("/servers/localhost/zones/=2E"))
+
+    def test_create_zone(self):
+        payload, data = self.create_zone(name='', serial=22, soa_edit_api='')
+        for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
+            self.assertIn(k, data)
+            if k in payload:
+                self.assertEquals(data[k], payload[k])
+        self.assertEquals(data['comments'], [])
+        # validate generated SOA
+        self.assertEquals(
+            [r['content'] for r in data['records'] if r['type'] == 'SOA'][0],
+            "a.misconfigured.powerdns.server hostmaster." + payload['name'] + " " + str(payload['serial']) +
+            " 10800 3600 604800 3600"
+        )
+        # Regression test: verify zone list works
+        zonelist = self.session.get(self.url("/servers/localhost/zones")).json()
+        print "zonelist:", zonelist
+        self.assertIn(payload['name'], [zone['name'] for zone in zonelist])
+        # Also test that fetching the zone works.
+        print "id:", data['id']
+        self.assertEquals(data['id'], '=2E')
+        data = self.session.get(self.url("/servers/localhost/zones/" + data['id'])).json()
+        print "zone (fetched):", data
+        for k in ('name', 'kind'):
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
+        self.assertEqual(data['records'][0]['name'], '')
+
+    def test_update_zone(self):
+        payload, zone = self.create_zone(name='')
+        name = ''
+        zone_id = '=2E'
+        # update, set as Master and enable SOA-EDIT-API
+        payload = {
+            'kind': 'Master',
+            'masters': ['192.0.2.1', '192.0.2.2'],
+            'soa_edit_api': 'EPOCH',
+            'soa_edit': 'EPOCH'
+        }
+        r = self.session.put(
+            self.url("/servers/localhost/zones/" + zone_id),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+        data = r.json()
+        for k in payload.keys():
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
+        # update, back to Native and empty(off)
+        payload = {
+            'kind': 'Native',
+            'soa_edit_api': '',
+            'soa_edit': ''
+        }
+        r = self.session.put(
+            self.url("/servers/localhost/zones/" + zone_id),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success_json(r)
+        data = r.json()
+        for k in payload.keys():
+            self.assertIn(k, data)
+            self.assertEquals(data[k], payload[k])
 
 
 @unittest.skipIf(not is_recursor(), "Not applicable")

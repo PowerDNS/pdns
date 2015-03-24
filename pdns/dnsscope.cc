@@ -1,4 +1,7 @@
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
@@ -270,7 +273,7 @@ try
   vector<string> files;
   if(g_vm.count("files")) 
     files = g_vm["files"].as<vector<string> >(); 
-  if(files.size() != 1 || g_vm.count("help")) {
+  if(files.empty() || g_vm.count("help")) {
     cerr<<"Syntax: dnsscope filename.pcap"<<endl;
     cout << desc << endl;
     exit(1);
@@ -292,162 +295,165 @@ try
   bool doIPv4 = g_vm["ipv4"].as<bool>();
   bool doIPv6 = g_vm["ipv6"].as<bool>();
   bool doServFailTree = g_vm.count("servfail-tree");
-
-  PcapPacketReader pr(files[0]);
-  PcapPacketWriter* pw=0;
-  if(!g_vm["write-failures"].as<string>().empty())
-    pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
- 
-
   int dnserrors=0, bogus=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
   unsigned int ipv4DNSPackets=0, ipv6DNSPackets=0, fragmented=0, rdNonRAAnswers=0;
   unsigned int answers=0, nonDNSIP=0, rdFilterMismatch=0;
-
+  
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
-
+  
   time_t lowestTime=2000000000, highestTime=0;
   time_t lastsec=0;
   LiveCounts lastcounts;
   set<ComboAddress, comboCompare> requestors, recipients, rdnonra;
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
-  while(pr.getUDPPacket()) {
-    if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
-        ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
-        pr.d_len > 12) {
-      try {
-        if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
-          continue;
-	if(pr.d_ip->ip_v == 4) {
-	  uint16_t frag = ntohs(pr.d_ip->ip_off);
-	  if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
-	    fragmented++;
+
+  for(unsigned int fno=0; fno < files.size(); ++fno) {
+    PcapPacketReader pr(files[fno]);
+    PcapPacketWriter* pw=0;
+    if(!g_vm["write-failures"].as<string>().empty())
+      pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
+ 
+
+    while(pr.getUDPPacket()) {
+
+      if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
+	  ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
+	 pr.d_len > 12) {
+	try {
+	  if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
+	    continue;
+	  if(pr.d_ip->ip_v == 4) {
+	    uint16_t frag = ntohs(pr.d_ip->ip_off);
+	    if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
+	      fragmented++;
+	      continue;
+	    }
+	  }
+	  MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
+	  if(haveRDFilter && mdp.d_header.rd != rdFilter) {
+	    rdFilterMismatch++;
 	    continue;
 	  }
-	}
-        MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
-        if(haveRDFilter && mdp.d_header.rd != rdFilter) {
-          rdFilterMismatch++;
-          continue;
-        }
 
-        if(pr.d_ip->ip_v == 4) 
-          ++ipv4DNSPackets;
-        else
-          ++ipv6DNSPackets;
+	  if(pr.d_ip->ip_v == 4) 
+	    ++ipv4DNSPackets;
+	  else
+	    ++ipv6DNSPackets;
         
-	if(pr.d_pheader.ts.tv_sec != lastsec) {
-	  LiveCounts lc;
-	  if(lastsec) {
-	    lc.questions = queries;
-	    lc.answers = answers;
-	    lc.outstanding = liveQuestions(); 
+	  if(pr.d_pheader.ts.tv_sec != lastsec) {
+	    LiveCounts lc;
+	    if(lastsec) {
+	      lc.questions = queries;
+	      lc.answers = answers;
+	      lc.outstanding = liveQuestions(); 
 
-	    LiveCounts diff = lc - lastcounts;
-	    pcounts.push_back(make_pair(pr.d_pheader.ts.tv_sec, diff));
+	      LiveCounts diff = lc - lastcounts;
+	      pcounts.push_back(make_pair(pr.d_pheader.ts.tv_sec, diff));
 
+	    }
+	    lastsec = pr.d_pheader.ts.tv_sec;
+	    lastcounts = lc;
 	  }
-	  lastsec = pr.d_pheader.ts.tv_sec;
-	  lastcounts = lc;
-	}
 
-        lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
-        highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
+	  lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
+	  highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
-        string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
+	  string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
         
-        QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
+	  QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
-        if(!mdp.d_header.qr) { // question
-          if(!mdp.d_header.rd)
-            nonRDQueries++;
-          queries++;
+	  if(!mdp.d_header.qr) { // question
+	    if(!mdp.d_header.rd)
+	      nonRDQueries++;
+	    queries++;
 
-	  ComboAddress rem = pr.getSource();
-	  rem.sin4.sin_port=0;
-	  requestors.insert(rem);	  
+	    ComboAddress rem = pr.getSource();
+	    rem.sin4.sin_port=0;
+	    requestors.insert(rem);	  
 
-          QuestionData& qd=statmap[qi];
+	    QuestionData& qd=statmap[qi];
           
-          if(!qd.d_firstquestiontime.tv_sec)
-            qd.d_firstquestiontime=pr.d_pheader.ts;
-          qd.d_qcount++;
-        }
-        else  {  // answer
-          rcodes[mdp.d_header.rcode]++;
-          answers++;
-	  if(mdp.d_header.rd && !mdp.d_header.ra) {
-	    rdNonRAAnswers++;
-            rdnonra.insert(pr.getDest());
+	    if(!qd.d_firstquestiontime.tv_sec)
+	      qd.d_firstquestiontime=pr.d_pheader.ts;
+	    qd.d_qcount++;
 	  }
+	  else  {  // answer
+	    rcodes[mdp.d_header.rcode]++;
+	    answers++;
+	    if(mdp.d_header.rd && !mdp.d_header.ra) {
+	      rdNonRAAnswers++;
+	      rdnonra.insert(pr.getDest());
+	    }
 	  
-	  if(mdp.d_header.ra) {
-	    ComboAddress rem = pr.getDest();
-	    rem.sin4.sin_port=0;
-	    recipients.insert(rem);	  
-	  }
+	    if(mdp.d_header.ra) {
+	      ComboAddress rem = pr.getDest();
+	      rem.sin4.sin_port=0;
+	      recipients.insert(rem);	  
+	    }
 
-          QuestionData& qd=statmap[qi];
+	    QuestionData& qd=statmap[qi];
 
-          if(!qd.d_qcount)
-            untracked++;
+	    if(!qd.d_qcount)
+	      untracked++;
 
-          qd.d_answercount++;
+	    qd.d_answercount++;
 
-          if(qd.d_qcount) {
-            uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
-                            (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
-            //            cout<<"Took: "<<usecs<<"usec\n";
-            if(usecs<2049000)
-              cumul[usecs]++;
-            else
-              reallylate++;
+	    if(qd.d_qcount) {
+	      uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +  
+		(pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
+	      //            cout<<"Took: "<<usecs<<"usec\n";
+	      if(usecs<2049000)
+		cumul[usecs]++;
+	      else
+		reallylate++;
             
-            if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
-              errorresult++;
-	    ComboAddress rem = pr.getDest();
-	    rem.sin4.sin_port=0;
+	      if(mdp.d_header.rcode != 0 && mdp.d_header.rcode!=3) 
+		errorresult++;
+	      ComboAddress rem = pr.getDest();
+	      rem.sin4.sin_port=0;
 
-	    if(doServFailTree)
-	      root.submit(mdp.d_qname, mdp.d_header.rcode, rem);
-          }
+	      if(doServFailTree)
+		root.submit(mdp.d_qname, mdp.d_header.rcode, rem);
+	    }
 
-          if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
-            statmap.erase(qi);
-         }
+	    if(!qd.d_qcount || qd.d_qcount == qd.d_answercount)
+	      statmap.erase(qi);
+	  }
 
         
-      }
-      catch(MOADNSException& mde) {
-        if(verbose)
-	  cout<<"error parsing packet: "<<mde.what()<<endl;
-        if(pw)
-          pw->write();
-        dnserrors++;
-        continue;
-      }
-      catch(std::exception& e) {
-        if(verbose)
-	  cout<<"error parsing packet: "<<e.what()<<endl;
+	}
+	catch(MOADNSException& mde) {
+	  if(verbose)
+	    cout<<"error parsing packet: "<<mde.what()<<endl;
+	  if(pw)
+	    pw->write();
+	  dnserrors++;
+	  continue;
+	}
+	catch(std::exception& e) {
+	  if(verbose)
+	    cout<<"error parsing packet: "<<e.what()<<endl;
 
-        if(pw)
-          pw->write();
-        bogus++;
-        continue;
+	  if(pw)
+	    pw->write();
+	  bogus++;
+	  continue;
+	}
+      }
+      else { // non-DNS ip
+	nonDNSIP++;
       }
     }
-    else { // non-DNS ip
-      nonDNSIP++;
-    }
-   
+    cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP.\n";
+
   }
   cout<<"Timespan: "<<(highestTime-lowestTime)/3600.0<<" hours"<<endl;
 
-  cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP,\n";
   cout<<nonDNSIP<<" non-DNS UDP, "<<dnserrors<<" dns decoding errors, "<<bogus<<" bogus packets"<<endl;
   cout<<"Ignored fragment packets: "<<fragmented<<endl;
   cout<<"Dropped DNS packets based on recursion-desired filter: "<<rdFilterMismatch<<endl;

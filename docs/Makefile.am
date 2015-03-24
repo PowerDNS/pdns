@@ -32,6 +32,9 @@ html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/**
 	mkdocs build --clean
 	./process-md.sh post
 
+html.tar.bz2: html
+	tar cjf html.tar.bz2 html/
+
 manpages: $(MANPAGES_TARGET)
 
 if HAVE_PANDOC
@@ -45,17 +48,13 @@ endif
 
 if HAVE_LINKCHECKER
 check-links: html
-	linkchecker --anchors \
-	  --ignore-url=.eot$ \
-	  --ignore-url=\.svg \
-	  --ignore-url=mailto \
-	  --ignore-url=.ttf$ \
-	  --ignore-url=woff$ \
-	  html/index.html
+	./checklinks.sh
+
 endif
 
 clean:
-	rm -rf html *.8 *.1
+	rm -rf html html.tar.bz2 *.8 *.1
 
-publish3:
+publish: html html.tar.bz2
 	rsync -crv --exclude '*~' ./html/ pdnsdocs@xs.powerdns.com:md/
+	rsync -crv --exclude '*~' ./html.tar.bz2 pdnsdocs@xs.powerdns.com:html.tar.bz2

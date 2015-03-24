@@ -1,7 +1,9 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "lua-pdns.hh"
 // #include "syncres.hh"
 #include <boost/foreach.hpp>
-#include "config.h"
 
 #if !defined(HAVE_LUA)
 
@@ -312,10 +314,12 @@ PowerDNSLua::PowerDNSLua(const std::string& fname)
   // set syslog codes used by Logger/enum Urgency
   pushSyslogSecurityLevelTable(d_lua);
   lua_setfield(d_lua, -2, "loglevels");
-  lua_pushnumber(d_lua, RecursorBehaviour::PASS);
+  lua_pushnumber(d_lua, PolicyDecision::PASS);
   lua_setfield(d_lua, -2, "PASS");
-  lua_pushnumber(d_lua, RecursorBehaviour::DROP);
+  lua_pushnumber(d_lua, PolicyDecision::DROP);
   lua_setfield(d_lua, -2, "DROP");
+  lua_pushnumber(d_lua, PolicyDecision::TRUNCATE);
+  lua_setfield(d_lua, -2, "TRUNCATE");
 
   lua_setglobal(d_lua, "pdns");
 

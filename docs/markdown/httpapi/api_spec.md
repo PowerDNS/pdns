@@ -297,6 +297,7 @@ zone_collection
       "presigned": <bool>,
       "soa_edit": "<string>",
       "soa_edit_api": "<string>",
+      "account": "<string>",
       "nameservers": ["<string>", ...],
       "servers": ["<string>", ...],
       "recursion_desired": <bool>,
@@ -335,7 +336,11 @@ zone_collection
 
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
   a zone made through the API, the SOA record will be edited according to
-  the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT rules.)
+  the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT-DNSUPDATE rules.)
+  If not set at all during zone creation, defaults to `DEFAULT`.
+  **Note**: Authoritative only.
+
+* `account` MAY be set. It's value is defined by local policy.
   **Note**: Authoritative only.
 
 * `notified_serial`, `serial` MUST NOT be sent in client bodies.

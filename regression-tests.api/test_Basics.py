@@ -8,7 +8,7 @@ class TestBasics(ApiTestCase):
 
     def test_unauth(self):
         r = requests.get(self.url("/servers/localhost"))
-        self.assertEquals(r.status_code, requests.codes.bad_request)
+        self.assertEquals(r.status_code, requests.codes.unauthorized)
 
     def test_split_request(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

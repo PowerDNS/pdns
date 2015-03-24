@@ -86,7 +86,7 @@ public:
   bool unsetNSEC3PARAM(const std::string& zname);
   void clearAllCaches();
   void clearCaches(const std::string& name);
-  bool getPreRRSIGs(DNSBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
+  bool getPreRRSIGs(UeberBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
   bool isPresigned(const std::string& zname);
   bool setPresigned(const std::string& zname);
   bool unsetPresigned(const std::string& zname);
@@ -167,8 +167,12 @@ private:
 };
 
 class DNSPacket;
-uint32_t calculateEditSOA(SOAData sd, const string& kind);
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
+// for SOA-EDIT
+uint32_t calculateEditSOA(SOAData sd, const string& kind);
 bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp);
 bool editSOARecord(DNSResourceRecord& rr, const string& kind);
+// for SOA-EDIT-DNSUPDATE/API
+uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);
 #endif

@@ -505,23 +505,6 @@ public:
 private:
 };
 
-
-class URLRecordContent : public DNSRecordContent // Fake, 'fancy record' with type 256
-{
-public:
-  includeboilerplate(URL)
-private:
-  string d_url;
-};
-
-class MBOXFWRecordContent : public DNSRecordContent // Fake, 'fancy record' with type 256
-{
-public:
-  includeboilerplate(MBOXFW)
-private:
-  string d_mboxfw;
-};
-
 class EUI48RecordContent : public DNSRecordContent 
 {
 public:
@@ -548,6 +531,25 @@ public:
 private:
  // storage for the bytes
  uint8_t d_eui64[8];
+};
+
+class TKEYRecordContent : public DNSRecordContent
+{
+public:
+  TKEYRecordContent();
+  includeboilerplate(TKEY)
+
+  // storage for the bytes
+  string d_algo;
+  uint32_t d_inception;
+  uint32_t d_expiration;
+  uint16_t d_mode;
+  uint16_t d_error;
+  uint16_t d_keysize;
+  string d_key;
+  uint16_t d_othersize;
+  string d_other;
+private:
 };
 
 #define boilerplate(RNAME, RTYPE)                                                                         \
@@ -628,6 +630,5 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
 void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();
-void reportFancyTypes();
 
 #endif 
