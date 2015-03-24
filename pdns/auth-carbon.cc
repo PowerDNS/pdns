@@ -42,8 +42,8 @@ try
 	char *p = strchr(tmp, '.');
 	if(p) *p=0;
 	hostname=tmp;
-	boost::replace_all(hostname, ".", "_");
       }
+      boost::replace_all(hostname, ".", "_");
       BOOST_FOREACH(const string& entry, entries) {
 	str<<"pdns."<<hostname<<".auth."<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
       }
