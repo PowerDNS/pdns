@@ -1537,18 +1537,23 @@ try
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
     bool narrow = cmds.size() > 3 && cmds[3]=="narrow";
     NSEC3PARAMRecordContent ns3pr(nsec3params);
-    
-    string zone=cmds[1];
-    if(!dk.isSecuredZone(zone)) {
-      cerr<<"Zone '"<<zone<<"' is not secured, can't set NSEC3 parameters"<<endl;
-      exit(EXIT_FAILURE);
+
+    if (! dk.setNSEC3PARAM(cmds[1], ns3pr, narrow)) {
+      cerr<<"Cannot set NSEC3 param for " << cmds[1] << endl;
+      return 1;
     }
-    dk.setNSEC3PARAM(zone, ns3pr, narrow);
-    
+
     if (!ns3pr.d_flags)
-      cerr<<"NSEC3 set, please rectify-zone if your backend needs it"<<endl;
+      cerr<<"NSEC3 set, ";
     else
-      cerr<<"NSEC3 (opt-out) set, please rectify-zone if your backend needs it"<<endl;
+      cerr<<"NSEC3 (opt-out) set, ";
+
+    if(dk.isSecuredZone(cmds[1]))
+      cerr<<"please rectify your zone if your backend needs it"<<endl;
+    else
+      cerr<<"please secure and rectify your zone."<<endl;
+
+    return 0;
   }
   else if(cmds[0]=="set-presigned") {
     if(cmds.size() < 2) {
