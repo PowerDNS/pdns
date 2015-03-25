@@ -267,9 +267,11 @@ string doSetCarbonServer(T begin, T end)
   ret="set carbon-server to '"+::arg()["carbon-server"]+"'\n";
   ++begin;
   if(begin != end) {
-    boost::replace_all(*begin, ".", "_")
-    ::arg().set("carbon-ourname")=*begin;
-    ret+="set carbon-ourname to '"+*begin+"'\n";
+    using boost::replace_all;
+    string ourname=*begin;
+    replace_all(ourname, ".", "_");
+    ::arg().set("carbon-ourname")=ourname;
+    ret+="set carbon-ourname to '"+ourname+"'\n";
   }
   return ret;
 }
