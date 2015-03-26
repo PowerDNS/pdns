@@ -162,12 +162,12 @@ boilerplate_conv(TSIG, ns_t_tsig,
                  conv.xfr16BitInt(d_fudge);
                  uint16_t size=d_mac.size();
                  conv.xfr16BitInt(size);
-                 conv.xfrBlob(d_mac, size);
+                 if (size>0) conv.xfrBlobNoSpaces(d_mac, size);
                  conv.xfr16BitInt(d_origID);
                  conv.xfr16BitInt(d_eRcode);
-                     size=d_otherData.size();
+                 size=d_otherData.size();
                  conv.xfr16BitInt(size); 
-                 if (size>0) conv.xfrBlob(d_otherData, size);
+                 if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
 MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(ns_t_mx), d_preference(preference), d_mxname(mxname)

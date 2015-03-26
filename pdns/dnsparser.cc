@@ -510,6 +510,10 @@ catch(...)
   throw std::out_of_range("xfrBlob out of range");
 }
 
+void PacketReader::xfrBlobNoSpaces(string& blob, int length) {
+  xfrBlob(blob, length);
+}
+
 void PacketReader::xfrBlob(string& blob, int length)
 {
   if(length) {

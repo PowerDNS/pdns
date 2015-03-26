@@ -128,6 +128,7 @@ public:
   }
 
   void xfrBlob(string& blob);
+  void xfrBlobNoSpaces(string& blob, int len);
   void xfrBlob(string& blob, int length);
   void xfrHexBlob(string& blob, bool keepReading=false);
 

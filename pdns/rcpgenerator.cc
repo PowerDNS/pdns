@@ -207,10 +207,10 @@ void RecordTextReader::xfrLabel(string& val, bool)
   }
 }
 
-static bool isbase64(char c)
+static bool isbase64(char c, bool acceptspace)
 {
   if(dns_isspace(c))
-    return true;
+    return acceptspace;
   if(c >= '0' && c <= '9')
     return true;
   if(c >= 'a' && c <= 'z') 
@@ -222,12 +222,29 @@ static bool isbase64(char c)
   return false;
 }
 
+void RecordTextReader::xfrBlobNoSpaces(string& val, int len) {
+  skipSpaces();
+  int pos=(int)d_pos;
+  const char* strptr=d_string.c_str();
+  while(d_pos < d_end && isbase64(strptr[d_pos], false)) 
+    d_pos++;
+
+  string tmp;
+  tmp.assign(d_string.c_str()+pos, d_string.c_str() + d_pos);
+  boost::erase_all(tmp," ");
+  val.clear();
+  B64Decode(tmp, val);
+  
+  if (len>-1 && val.size() != static_cast<size_t>(len))
+    throw RecordTextException("Record length "+lexical_cast<string>(val.size()) + " does not match expected length '"+lexical_cast<string>(len));
+}
+
 void RecordTextReader::xfrBlob(string& val, int)
 {
   skipSpaces();
   int pos=(int)d_pos;
   const char* strptr=d_string.c_str();
-  while(d_pos < d_end && isbase64(strptr[d_pos]))
+  while(d_pos < d_end && isbase64(strptr[d_pos], true))
     d_pos++;
   
   string tmp;
@@ -482,6 +499,11 @@ void RecordTextWriter::xfrLabel(const string& val, bool)
     d_string.append(1,' ');
   
   d_string+=val;
+}
+
+void RecordTextWriter::xfrBlobNoSpaces(const string& val, int size)
+{
+  xfrBlob(val, size);
 }
 
 void RecordTextWriter::xfrBlob(const string& val, int)
