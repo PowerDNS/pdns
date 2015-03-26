@@ -45,8 +45,8 @@ try
     if(p) *p=0;
 
     hostname=tmp;
-    boost::replace_all(hostname, ".", "_");    
   }
+  boost::replace_all(hostname, ".", "_");    
   BOOST_FOREACH(const all_t::value_type& val, all) {
     str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
   }
