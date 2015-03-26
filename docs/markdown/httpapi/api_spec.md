@@ -453,7 +453,7 @@ Client body for PATCH:
       ]
     }
 
-Having `type` inside an RR differ from `type` at the top level is an error.
+Having `type` inside an RR differ from `type` at the RRset level is an error.
 
 * `name`
   Full name of the RRset to modify. (Example: `foo.example.org`)
