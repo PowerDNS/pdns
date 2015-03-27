@@ -405,7 +405,15 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     cout<<"Checked 0 records of '"<<zone<<"', 1 errors, 0 warnings."<<endl;
     return 1;
   }
+
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow = false;
+  bool haveNSEC3 = dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
+
+  bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
+
   sd.db->list(zone, sd.domain_id, true);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
@@ -492,6 +500,12 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
       numerrors++;
       continue;
+    }
+
+    if (isSecure && isOptOut && (rr.qname.size() && rr.qname[0] == '*') && (rr.qname.size() < 2 || rr.qname[1] == '.' )) {
+      cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' is insecure"<<endl;
+      cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnssec set-nsec3 "<<zone<<endl;
+      numwarnings++;
     }
 
     if(pdns_iequals(rr.qname, zone)) {
