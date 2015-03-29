@@ -989,6 +989,10 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
       string algname;
       algorithm2name(value.first.d_algorithm, algname);
+      if (value.first.getKey()->getBits() < 1) {
+        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<") <key missing or defunct>" <<endl;
+        continue;
+      }
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< " ( " + algname + " ) "<<endl;
       if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey") || g_verbose)
