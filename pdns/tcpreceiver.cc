@@ -537,8 +537,15 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       s_P=new PacketHandler;
     }
 
+    if (!canDoAXFR(q)) {
+      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: "<<q->getRemote()<<" cannot request AXFR"<<endl;
+      outpacket->setRcode(9); // 'NOTAUTH'
+      sendPacket(outpacket,outsock);
+      return 0;
+    }
+
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
-    if(!canDoAXFR(q) || !s_P->getBackend()->getSOAUncached(target, sd)) {
+    if(!s_P->getBackend()->getSOAUncached(target, sd)) {
       L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
