@@ -2016,7 +2016,23 @@ try
        return 1;
      }
 
+     // figure out key id.
+
+     std::vector<DNSBackend::KeyData> keys;
+
+     B.getDomainKeys(zone, 0, keys);
+
+     // validate which one got the key...
+     BOOST_FOREACH(DNSBackend::KeyData& kd, keys) {
+       if (kd.content == iscString.str()) {
+         // it's this one, I guess...
+         id = kd.id;
+         break;
+       }
+     }
+
      cerr << "Module " << module << " slot " << slot << " assigned to " << zone << " with key id " << id << endl;
+
      return 0;
     } else if (cmds[1] == "create-key") {
 
