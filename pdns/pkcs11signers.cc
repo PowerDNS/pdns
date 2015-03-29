@@ -806,7 +806,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
 
   std::string result;
   if (d_slot->DigestKey(result) == 0) return result;
-  return "";
+  throw PDNSException("Could not digest key (maybe it's missing?)");
 };
 
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
