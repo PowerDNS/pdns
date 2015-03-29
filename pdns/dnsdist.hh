@@ -10,6 +10,24 @@
 #include <thread>
 #include "sholder.hh"
 
+struct DNSDistStats
+{
+  using stat_t=std::atomic<uint64_t>;
+  stat_t responses{0};
+  stat_t servfailResponses{0};
+  stat_t queries{0};
+  stat_t aclDrops{0};
+  stat_t blockFilter{0};
+  stat_t ruleDrop{0};
+  stat_t ruleNXDomain{0};
+  stat_t selfAnswered{0};
+  stat_t downstreamTimeouts{0};
+  stat_t downstreamSendErrors{0};
+  
+};
+
+extern struct DNSDistStats g_stats;
+
 
 struct StopWatch
 {

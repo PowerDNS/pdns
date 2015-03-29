@@ -14,6 +14,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 {
   g_launchWork= new vector<std::function<void(void)>>();
   typedef std::unordered_map<std::string, boost::variant<std::string, vector<pair<int, std::string> > > > newserver_t;
+
   g_lua.writeFunction("newServer", 
 		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
 		      { 

@@ -38,10 +38,9 @@
 #include "dnsrulactions.hh"
 
 #include <getopt.h>
-#undef L
 
 /* Known sins:
-   No centralized statistics
+
    Receiver is currently singlethreaded
       not *that* bad actually, but now that we are thread safe, might want to scale
    TCP is a bit wonky and may pick the wrong downstream
@@ -57,8 +56,8 @@
 using std::atomic;
 using std::thread;
 bool g_verbose;
-atomic<uint64_t> g_pos;
 
+struct DNSDistStats g_stats;
 uint16_t g_maxOutstanding;
 bool g_console;
 
@@ -127,7 +126,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
     dh->id = ids->origID;
-    
+    g_stats.responses++;
     if(ids->origDest.sin4.sin_family == 0)
       sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
     else
@@ -135,9 +134,12 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
-    std::lock_guard<std::mutex> lock(g_rings.respMutex);
-    g_rings.respRing.push_back({ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff});
-    
+    {
+      std::lock_guard<std::mutex> lock(g_rings.respMutex);
+      g_rings.respRing.push_back({ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff});
+    }
+    if(dh->rcode == 2)
+      g_stats.servfailResponses++;
     state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
 
     ids->origFD = -1;
@@ -332,8 +334,11 @@ try
       if(len < (int)sizeof(struct dnsheader)) 
 	continue;
 
-      if(!acl->match(remote))
+      g_stats.queries++;
+      if(!acl->match(remote)) {
+	g_stats.aclDrops++;
 	continue;
+      }
       
       if(dh->qr)    // don't respond to responses
 	continue;
@@ -346,8 +351,10 @@ try
       if(blockFilter) {
 	std::lock_guard<std::mutex> lock(g_luamutex);
 	
-	if(blockFilter(remote, qname, qtype, dh))
+	if(blockFilter(remote, qname, qtype, dh)) {
+	  g_stats.blockFilter++;
 	  continue;
+	}
       }
       
 
@@ -365,10 +372,12 @@ try
       }
       switch(action) {
       case DNSAction::Action::Drop:
+	g_stats.ruleDrop++;
 	continue;
       case DNSAction::Action::Nxdomain:
 	dh->rcode = RCode::NXDomain;
 	dh->qr=true;
+	g_stats.ruleNXDomain++;
 	break;
       case DNSAction::Action::Pool: 
 	pool=ruleresult;
@@ -385,6 +394,7 @@ try
       }
 
       if(dh->qr) { // something turned it into a response
+	g_stats.selfAnswered++;
 	ComboAddress dest;
 	if(HarvestDestinationAddress(&msgh, &dest)) 
 	  sendfromto(cs->udpFD, packet, len, 0, dest, remote);
@@ -412,8 +422,10 @@ try
       
       if(ids->origFD < 0) // if we are reusing, no change in outstanding
 	ss->outstanding++;
-      else
+      else {
 	ss->reuseds++;
+	g_stats.downstreamTimeouts++;
+      }
       
       ids->origFD = cs->udpFD;
       ids->age = 0;
@@ -428,8 +440,10 @@ try
       dh->id = idOffset;
       
       len = send(ss->fd, packet, len, 0);
-      if(len < 0) 
+      if(len < 0) {
 	ss->sendErrors++;
+	g_stats.downstreamSendErrors++;
+      }
       
       vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->remote.toStringWithPort());
     }
