@@ -2076,6 +2076,7 @@ try
     if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
+      std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
         std::cout << "Usage: pdnssec hsm assign zone algorithm ksk|zsk module slot pin label" << std::endl;
@@ -2111,14 +2112,29 @@ try
      dpk.d_flags = (keyOrZone ? 257 : 256);
      dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
  
+     // make sure this key isn't being reused.
+     B.getDomainKeys(zone, 0, keys);
+     id = -1;
+
+     BOOST_FOREACH(DNSBackend::KeyData& kd, keys) {
+       if (kd.content == iscString.str()) {
+         // it's this one, I guess...
+         id = kd.id;
+         break;
+       }
+     }
+
+     if (id > -1) {
+       cerr << "You have already assigned this key with ID=" << id << std::endl;
+       return 1;
+     }
+
      if (!(id = dk.addKey(zone, dpk))) {
        cerr << "Unable to assign module slot to zone" << std::endl;
        return 1;
      }
 
      // figure out key id.
-
-     std::vector<DNSBackend::KeyData> keys;
 
      B.getDomainKeys(zone, 0, keys);
 
