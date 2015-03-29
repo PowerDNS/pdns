@@ -16,6 +16,9 @@ BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 #define REC_CHECK_EQUAL(a,b) { if (val.get<4>()) { BOOST_WARN_EQUAL(a,b); } else {  BOOST_CHECK_EQUAL(a,b); } }
 #define REC_CHECK_MESSAGE(cond,msg) { if (val.get<4>()) { BOOST_WARN_MESSAGE(cond,msg); } else {  BOOST_CHECK_MESSAGE(cond,msg); } }
+#define REC_FAIL_XSUCCESS(msg) { if (val.get<4>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds
+#define REC_FAIL_XSUCCESS2(msg) { if (val.get<2>()) { BOOST_CHECK_MESSAGE(false, std::string("Test has unexpectedly passed: ") + msg); } } // fail if test succeeds (for the bad records test case)
+
 typedef enum { zone, wire } case_type_enum_t;
 
 
@@ -210,7 +213,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       REC_CHECK_EQUAL(recData, cmpData);
    } catch (std::runtime_error &err) {
       REC_CHECK_MESSAGE(false, "Failed to verify " << q.getName() << ": " << err.what());
+      continue;
    }
+   REC_FAIL_XSUCCESS(q.getName() << " test #" << n << " has unexpectedly passed")
  }
 }
 
@@ -257,7 +262,9 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     DNSPacketWriter pw(packet, "unit.test", q.getCode());
 
     if (val.get<2>()) {
-      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      bool success=true;
+      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); success=false; }, std::runtime_error, test_dnsrecords_cc_predicate );
+      if (success==false) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
       BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     }
