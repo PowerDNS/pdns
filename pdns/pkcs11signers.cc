@@ -641,6 +641,11 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
    _CK_SLOT_INFO info;
   unsigned long slots;
 
+  // this is required by certain tokens, otherwise C_GetSlotInfo will not return a token
+  err = functions->C_GetSlotList(CK_FALSE, NULL_PTR, &slots);
+  if (err)
+    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
+
   if ((err = functions->C_GetSlotInfo(slotId, &info))) {
     throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module + std::string(": error code ") + boost::lexical_cast<std::string>(err));
   }
