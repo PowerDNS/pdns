@@ -859,6 +859,21 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
   return storvect;
 };
 
+void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) {
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  d_module = stormap["engine"];
+  d_slot_id = atoi(stormap["slot"].c_str());
+  d_pin = stormap["pin"];
+  d_label = stormap["label"];
+  // validate parameters
+
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_pin != "" && d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin) == false)
+      throw PDNSException("Could not log in to token (PIN wrong?)");
+};
+
 DNSCryptoKeyEngine* PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
 {
   return new PKCS11DNSCryptoKeyEngine(algorithm);
