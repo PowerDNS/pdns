@@ -618,7 +618,7 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
   tidx.append(label);
   std::map<std::string, boost::shared_ptr<Pkcs11Token> >::iterator tokenIter;
   std::map<std::string, boost::shared_ptr<Pkcs11Slot> >::iterator slotIter;
-
+  CK_RV err;
   CK_FUNCTION_LIST* functions;
 
   if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
@@ -639,8 +639,10 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
 
   // try to locate a slot
    _CK_SLOT_INFO info;
-  if (functions->C_GetSlotInfo(slotId, &info)) {
-    throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module);
+  unsigned long slots;
+
+  if ((err = functions->C_GetSlotInfo(slotId, &info))) {
+    throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module + std::string(": error code ") + boost::lexical_cast<std::string>(err));
   }
 
   // store slot
