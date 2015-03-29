@@ -307,7 +307,7 @@ class Pkcs11Token {
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
-      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
+//      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
@@ -317,7 +317,7 @@ class Pkcs11Token {
       d_private_key = key[0];
       attr.clear();
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
-      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
+//      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
