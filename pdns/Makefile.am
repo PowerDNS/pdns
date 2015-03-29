@@ -560,23 +560,26 @@ dnsdist_SOURCES = \
 	base64.hh \
 	dnsdist.cc \
 	dnsdist-lua.cc \
+	dnsdist-web.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnswriter.cc \
 	dolog.hh \
 	iputils.cc \
+	htmfiles.h \
 	misc.cc misc.hh \
 	qtype.cc \
 	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh 
+	sstuff.hh \
+	ext/json11/json11.cpp
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) 
 
 dnsdist_LDADD = \
 	-lreadline -lrt -ltermcap \
-	$(LUA_LIBS) ${libsodium_LIBS}
+	$(LUA_LIBS) ${libsodium_LIBS} $(YAHTTP_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
@@ -1058,6 +1061,9 @@ endif
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
+
+htmlfiles.h: dnsdistdist/html/*
+	./dnsdistdist/incfiles dnsdistdist > $@
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@

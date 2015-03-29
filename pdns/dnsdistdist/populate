@@ -3,11 +3,20 @@
 ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc ../dns.hh \
 ../dnslabeltext.rl ../dnsname.cc ../dnsname.hh ../dnsparser.hh ../dnsrulactions.hh ../dnswriter.cc ../dnswriter.hh \
 ../dolog.hh ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
-../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc ../sodcrypto.hh ../sstuff.hh .
+../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc ../sodcrypto.hh \
+../dnsdist-web.cc ../sstuff.hh .
 
 ln -fs ../README-dnsdist.md README.md
 
 ln -fs ../dnsdistconf.lua .
 mkdir -p pdns/ext/luawrapper/include
+mkdir -p pdns/ext/yahttp/yahttp
+mkdir -p pdns/ext/json11
 ln -sf ../../../../../ext/luawrapper/include/LuaContext.hpp pdns/ext/luawrapper/include
+ln -sf ../../../../ext/yahttp/Makefile.am pdns/ext/yahttp
+ln -sf ../../../../ext/json11/json11.{hpp,cpp} pdns/ext/json11
+cd pdns/ext/yahttp/yahttp
+ln -sf ../../../../../ext/yahttp/yahttp/{Makefile.am,*.cpp,*.hpp,*.h} .
+cd -
+
 

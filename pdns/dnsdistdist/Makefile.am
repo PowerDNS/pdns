@@ -1,8 +1,12 @@
-AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) -O3 -Wall -pthread
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) -O3 -Wall -pthread 
+
+SUBDIRS=pdns/ext/yahttp
 
 dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o dnslabeltext.cc
 
+htmlfiles.h: html/*
+	./incfiles > $@
 
 EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua README.md
 
@@ -12,6 +16,7 @@ dnsdist_SOURCES = \
 	dns.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-lua.cc \
+	dnsdist-web.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh \
@@ -25,13 +30,14 @@ dnsdist_SOURCES = \
 	qtype.cc qtype.hh \
 	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh pdns/ext/luawrapper/include/LuaContext.hpp
+	sstuff.hh pdns/ext/luawrapper/include/LuaContext.hpp \
+	pdns/ext/json11/json11.cpp 
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	-pthread
+	-pthread 
 
 dnsdist_LDADD = \
 	-lreadline -lrt -ltermcap \
-	$(LUA_LIBS) ${libsodium_LIBS}
+	$(LUA_LIBS) $(YAHTTP_LIBS) ${libsodium_LIBS}
 

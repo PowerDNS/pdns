@@ -276,3 +276,4 @@ std::unique_ptr<T> make_unique(Args&&... args)
 {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password);

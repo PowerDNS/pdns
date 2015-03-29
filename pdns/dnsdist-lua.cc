@@ -409,6 +409,29 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
+  g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password) {
+      if(client)
+	return;
+      ComboAddress local(address);
+      try {
+	int sock = socket(local.sin4.sin_family, SOCK_STREAM, 0);
+	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+	SBind(sock, local);
+	SListen(sock, 5);
+	auto launch=[sock, local, password]() {
+	  thread t(dnsdistWebserverThread, sock, local, password);
+	  t.detach();
+	};
+	if(g_launchWork) 
+	  g_launchWork->push_back(launch);
+	else
+	  launch();	    
+      }
+      catch(std::exception& e) {
+	errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
+      }
+
+    });
   g_lua.writeFunction("controlSocket", [client](const std::string& str) {
       ComboAddress local(str, 5199);
 

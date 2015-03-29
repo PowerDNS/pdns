@@ -1,4 +1,5 @@
 controlSocket("0.0.0.0")
+webserver("0.0.0.0:8083", "geheim2")
 addLocal("0.0.0.0:5200")
 setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
 
@@ -57,8 +58,8 @@ end
 
 newServer{address="2001:888:2000:1d::2", pool={"auth", "dnssec"}}
 newServer{address="2a01:4f8:110:4389::2", pool={"auth", "dnssec"}}
-setDNSSECPool("dnssec")
-topRule()
+--setDNSSECPool("dnssec")
+--topRule()
 
 function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
