@@ -34,7 +34,7 @@ public:
     string errmsg(PQresultErrorMessage(res));
     PQclear(res);
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
-      throw SSqlException("Fatal error during prepare: " + errmsg);
+      throw SSqlException("Fatal error during prepare: " + d_query + string(": ") + errmsg);
     } 
     paramValues=NULL;
     d_paridx=d_residx=d_resnum=0;
@@ -52,7 +52,7 @@ public:
   SSqlStatement* bind(const string& name, const std::string& value) {
     allocate();
     if (d_paridx>=d_nparams) 
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     paramValues[d_paridx] = new char[value.size()+1];
     memset(paramValues[d_paridx], 0, sizeof(char)*(value.size()+1));
     value.copy(paramValues[d_paridx], value.size());
@@ -72,7 +72,7 @@ public:
       string errmsg(PQresultErrorMessage(d_res));
       PQclear(d_res);
       d_res = NULL;
-      throw SSqlException("Fatal error during query: " + errmsg);
+      throw SSqlException("Fatal error during query: " + d_query + string(": ") + errmsg);
     }
     d_resnum = PQntuples(d_res);
     return this;
