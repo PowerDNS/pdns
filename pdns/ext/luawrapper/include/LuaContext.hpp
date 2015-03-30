@@ -58,6 +58,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   include "misc/exception.hpp"
 #endif
 
+#ifdef _GNUC
+#   define ATTR_UNUSED __attribute__((unused))
+#else
+#   define ATTR_UNUSED
+#endif
+
 /**
  * Defines a Lua context
  * A Lua context is used to interpret Lua code. Since everything in Lua is a variable (including functions),
@@ -1702,10 +1708,10 @@ private:
 };
 
 /// @deprecated
-static LuaContext::EmptyArray_t
+static LuaContext::EmptyArray_t ATTR_UNUSED
     LuaEmptyArray {};
 /// @deprecated
-static LuaContext::Metatable_t
+static LuaContext::Metatable_t ATTR_UNUNSED
     LuaMetatable {};
     
 /**************************************************/
