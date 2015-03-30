@@ -307,7 +307,7 @@ class Pkcs11Token {
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
-      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
+//      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
@@ -317,7 +317,7 @@ class Pkcs11Token {
       d_private_key = key[0];
       attr.clear();
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
-      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
+//      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
       FindObjects2(attr, key, 1);
       if (key.size() == 0) {
@@ -620,7 +620,7 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
   tidx.append(label);
   std::map<std::string, boost::shared_ptr<Pkcs11Token> >::iterator tokenIter;
   std::map<std::string, boost::shared_ptr<Pkcs11Slot> >::iterator slotIter;
-
+  CK_RV err;
   CK_FUNCTION_LIST* functions;
 
   if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
@@ -641,8 +641,15 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
 
   // try to locate a slot
    _CK_SLOT_INFO info;
-  if (functions->C_GetSlotInfo(slotId, &info)) {
-    throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module);
+  unsigned long slots;
+
+  // this is required by certain tokens, otherwise C_GetSlotInfo will not return a token
+  err = functions->C_GetSlotList(CK_FALSE, NULL_PTR, &slots);
+  if (err)
+    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
+
+  if ((err = functions->C_GetSlotInfo(slotId, &info))) {
+    throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module + std::string(": error code ") + boost::lexical_cast<std::string>(err));
   }
 
   // store slot
@@ -801,7 +808,7 @@ std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
 
   std::string result;
   if (d_slot->DigestKey(result) == 0) return result;
-  return "";
+  throw PDNSException("Could not digest key (maybe it's missing?)");
 };
 
 std::string PKCS11DNSCryptoKeyEngine::getPublicKeyString() const {
@@ -850,6 +857,21 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
    (make_pair("PIN", d_pin))
    (make_pair("Label", d_label));
   return storvect;
+};
+
+void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) {
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  d_module = stormap["engine"];
+  d_slot_id = atoi(stormap["slot"].c_str());
+  d_pin = stormap["pin"];
+  d_label = stormap["label"];
+  // validate parameters
+
+  boost::shared_ptr<Pkcs11Token> d_slot;
+  d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
+  if (d_pin != "" && d_slot->LoggedIn() == false)
+    if (d_slot->Login(d_pin) == false)
+      throw PDNSException("Could not log in to token (PIN wrong?)");
 };
 
 DNSCryptoKeyEngine* PKCS11DNSCryptoKeyEngine::maker(unsigned int algorithm)
