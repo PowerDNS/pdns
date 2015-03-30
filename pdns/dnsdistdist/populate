@@ -15,7 +15,9 @@ mkdir -p pdns/ext/json11
 ln -sf ../../../../../ext/luawrapper/include/LuaContext.hpp pdns/ext/luawrapper/include
 ln -sf ../../../../ext/yahttp/Makefile.am pdns/ext/yahttp
 ln -sf ../../../../ext/json11/json11.{hpp,cpp} pdns/ext/json11
-cd pdns/ext/yahttp/yahttp
+cd pdns/ext/yahttp/
+ln -sf ../../../../ext/yahttp/{LICENSE,README.md} .
+cd yahttp
 ln -sf ../../../../../ext/yahttp/yahttp/{Makefile.am,*.cpp,*.hpp,*.h} .
 cd -
 
