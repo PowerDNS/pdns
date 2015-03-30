@@ -12,9 +12,11 @@ ln -fs ../dnsdistconf.lua .
 mkdir -p pdns/ext/luawrapper/include
 mkdir -p pdns/ext/yahttp/yahttp
 mkdir -p pdns/ext/json11
+mkdir -p pdns/ext/incbin
 ln -sf ../../../../../ext/luawrapper/include/LuaContext.hpp pdns/ext/luawrapper/include
 ln -sf ../../../../ext/yahttp/Makefile.am pdns/ext/yahttp
 ln -sf ../../../../ext/json11/json11.{hpp,cpp} pdns/ext/json11
+ln -sf ../../../../ext/incbin/incbin.h pdns/ext/incbin
 cd pdns/ext/yahttp/
 ln -sf ../../../../ext/yahttp/{LICENSE,README.md} .
 cd yahttp
