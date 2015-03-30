@@ -968,9 +968,6 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
 
-      if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
-        throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
-
       if (changetype == "DELETE") {
         // delete all matching qname/qtype RRs (and, implictly comments).
         if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
@@ -978,7 +975,11 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         }
       }
       else if (changetype == "REPLACE") {
-        new_records.clear();
+		// we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
+        if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
+          throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
+
+		new_records.clear();
         new_comments.clear();
         // new_ptrs is merged
         gatherRecords(rrset, new_records, new_ptrs);
