@@ -5,6 +5,8 @@ SUBDIRS=pdns/ext/yahttp
 dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o dnslabeltext.cc
 
+BUILT_SOURCES=htmlfiles.h
+
 htmlfiles.h: html/*
 	./incfiles > $@
 
