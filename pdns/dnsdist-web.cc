@@ -99,7 +99,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       { "qa-latency", (int)g_stats.latency},
       { "something", Json::array { 1, 2, 3 } },
     };
-    cout<<g_stats.latency<<endl;
+
     resp.headers["Content-Type"] = "application/json";
     resp.body=my_json.dump();
   }
