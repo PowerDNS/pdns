@@ -23,6 +23,7 @@ struct DNSDistStats
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
+  double latency{0};
   
 };
 

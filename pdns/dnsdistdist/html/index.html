@@ -13,7 +13,7 @@
 
 <script src="local.js"></script>
 <body>                                                                  
-<a href="https://github.com/ahuPowerDNS/recuweb"><img style="position: absolute; top: 0;
+<a href="https://github.com/ahuPowerDNS/pdns"><img style="position: absolute; top: 0;
 right: 0; border: 0;"
 src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"
 alt="Fork me on GitHub"></a>
@@ -51,8 +51,6 @@ alt="Fork me on GitHub"></a>
 </tr></table>
 <p>
 Version: <span id="version"></span>, uptime: <span id="uptime"></span>, Number of queries: <span id="questions"></span> (<span id="qps"></span> qps)<br/>
-Over-capacity-drops: <span id="over-capacity-drops"></span>, too old: <span id="too-old"></span><br/>
-Packet cache hitrate: <span id="phitrate"></span>%, 
 Average response time: <span id="latency"></span> ms, CPU Usage: <span id="cpu"></span>% <br/>
 </p>
 <table width="100%" cellpadding="20">
@@ -80,11 +78,6 @@ Average response time: <span id="latency"></span> ms, CPU Usage: <span id="cpu">
     <td>
       <table cellpadding="15">
 	<tr>
-	  <td><form>Public filtered: <input id="filter1" type="checkbox"></input></form></td>
-	  <td><form>Public filtered: <input id="filter2" type="checkbox"></input></form></td>
-	</tr>
-	<tr>
-	
 	  <td><div id="queryring"></div> </td>
 	  <td><div id="servfailqueryring"></div></td>
 	</tr>

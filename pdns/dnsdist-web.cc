@@ -96,10 +96,10 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       { "over-capacity-drops", 0 },
       { "too-old-drops", 0 },
       { "uptime", uptimeOfProcess()},
-      { "qa-latency", 1234},
+      { "qa-latency", (int)g_stats.latency},
       { "something", Json::array { 1, 2, 3 } },
     };
-    
+    cout<<g_stats.latency<<endl;
     resp.headers["Content-Type"] = "application/json";
     resp.body=my_json.dump();
   }
@@ -117,25 +117,43 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	status = "DOWN";
       else 
 	status = (a->upStatus ? "up" : "down");
-      
+      string pools;
+      for(const auto& p: a->pools)
+	pools+=p+" ";
       Json::object server{ 
 	{"id", num++}, 
 	{"address", a->remote.toStringWithPort()}, 
         {"state", status}, 
-	  {"qps", (int)a->queryLoad}, 
-	    {"qpsLimit", (int)a->qps.getRate()}, 
-	    {"outstanding", (int)a->outstanding}, 
-	  {"weight", (int)a->weight}, 
-	  {"order", (int)a->order}, 
-	  {"queries", (int)a->queries}};
+	{"qps", (int)a->queryLoad}, 
+	{"qpsLimit", (int)a->qps.getRate()}, 
+	{"outstanding", (int)a->outstanding}, 
+	{"reuseds", (int)a->reuseds},
+	{"weight", (int)a->weight}, 
+	{"order", (int)a->order}, 
+	{"pools", pools},
+	{"queries", (int)a->queries}};
       
       servers.push_back(server);
     }
+
+    Json::array rules;
+    auto localRules = g_rulactions.getCopy();
+    num=0;
+    for(const auto& a : localRules) {
+      Json::object rule{
+	{"id", num++},
+	{"matches", (int)a.first->d_matches},
+	{"rule", a.first->toString()},
+	  {"action", a.second->toString()} };
+      rules.push_back(rule);
+    }
+
  
     Json my_json = Json::object {
       { "daemon_type", "dnsdist" },
       { "version", "0.1"},
-      { "servers", servers}
+      { "servers", servers},
+      { "rules", rules},
     };
     resp.headers["Content-Type"] = "application/json";
     resp.body=my_json.dump();

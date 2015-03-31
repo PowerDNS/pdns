@@ -142,6 +142,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       g_stats.servfailResponses++;
     state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
 
+    g_stats.latency = (1023.0*g_stats.latency/1024.0) + udiff/1024.0;
+
     ids->origFD = -1;
   }
   return 0;
@@ -696,7 +698,7 @@ catch(...)
 
 void* maintThread()
 {
-  int interval = 2;
+  int interval = 1;
 
   for(;;) {
     sleep(interval);
@@ -1040,6 +1042,7 @@ struct
 int main(int argc, char** argv)
 try
 {
+  g_stats.latency=0;
   rl_attempted_completion_function = my_completion;
   rl_completion_append_character = 0;
 

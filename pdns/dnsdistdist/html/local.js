@@ -186,14 +186,23 @@ $(document).ready(function() {
 	$.ajax({ url: '/servers/localhost', type: 'GET', dataType: 'json',
 		 success: function(data) {
 		     $("#version").text("PowerDNS "+data["daemon_type"]+" "+data["version"]);
-		     var bouw="<table><tr align=right><th>#</th><th align=left>Address</th><th>Status</th><th>Queries</th><th>QPS</th><th>Outstanding</th><th>Weight</th><th>Order</th></tr>";
+		     var bouw="<table><tr align=right><th>#</th><th align=left>Address</th><th>Status</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>";
 		     $.each(data["servers"], function(a,b) {
 		         bouw = bouw + ("<tr align=right><td>"+b["id"]+"</td><td align=left>"+b["address"]+"</td><td>"+b["state"]+"</td>");
-                         bouw = bouw + ("<td>"+b["queries"]+"</td><td>"+b["qps"]+"</td><td>"+b["outstanding"]+"</td>");
-                         bouw = bouw + ("<td>"+b["weight"]+"</td><td>"+b["order"]+"</td></tr>");
+                         bouw = bouw + ("<td>"+b["queries"]+"</td><td>"+b["reuseds"]+"</td><td>"+b["qps"]+"</td><td>"+b["outstanding"]+"</td>");
+                         bouw = bouw + ("<td>"+b["weight"]+"</td><td>"+b["order"]+"</td><td align=left>"+b["pools"]+"</td></tr>");
 		         }); 
                      bouw = bouw + "</table>";
                      $("#queryring").html(bouw);
+
+		     bouw="<table><tr align=left><th>#</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr>";
+		     $.each(data["rules"], function(a,b) {
+		         bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
+                         bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
+		         }); 
+                     bouw = bouw + "</table>";
+                     $("#remotering").html(bouw);
+
                      
 		 }
 	       });
