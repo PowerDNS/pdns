@@ -766,7 +766,6 @@ fred   IN  A      192.168.0.4
     def test_zone_rr_delete_out_of_zone(self):
         payload, zone = self.create_zone()
         name = payload['name']
-        # replace with qname mismatch
         rrset = {
             'changetype': 'delete',
             'name': 'not-in-zone',
@@ -777,8 +776,8 @@ fred   IN  A      192.168.0.4
             self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 422)
-        self.assertIn('out of zone', r.json()['error'])
+        print r.content
+        self.assertEquals(r.status_code, 200)  # succeed so users can fix their wrong, old data
 
     def test_zone_delete(self):
         payload, zone = self.create_zone()
