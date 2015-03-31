@@ -19,6 +19,10 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   string after(b.toString());
   BOOST_CHECK_EQUAL(before, after);
 
+  DNSName jpmens("ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.test.xxx.yyy-yyyy.zzzzzzzzz-test.");
+
+  BOOST_CHECK_EQUAL(jpmens.toString(), "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.test.xxx.yyy-yyyy.zzzzzzzzz-test.");
+
   DNSName wwwds9anl("www.ds9a.nl.");
   DNSName wwwds9anl1("www.ds9a\002nl.");
   DNSName nl("nl.");
