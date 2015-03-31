@@ -124,6 +124,16 @@ To change the QPS for a server:
 > getServer(0):setQPS(1000)
 ```
 
+Webserver
+---------
+To visually interact with dnsdist, try adding:
+```
+webserver("127.0.0.1:8083", "supersecret")
+```
+
+to the configuration, and point your browser at http://127.0.0.1:8083 and
+log in with any username, and that password. Enjoy!
+
 Server pools
 ------------
 Now for some cool stuff. Let's say we know we're getting a whole bunch of
@@ -398,6 +408,7 @@ Here are all functions:
  * Practical
    * `shutdown()`: shut down dnsdist
    * quit or ^D: exit the console
+   * `webserver(address, password)`: launch a webserver with stats on that address with that password
  * ACL related:
    * `addACL(netmask)`: add to the ACL set who can use this server
    * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
