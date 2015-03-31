@@ -1711,7 +1711,7 @@ private:
 static LuaContext::EmptyArray_t ATTR_UNUSED
     LuaEmptyArray {};
 /// @deprecated
-static LuaContext::Metatable_t ATTR_UNUNSED
+static LuaContext::Metatable_t ATTR_UNUSED
     LuaMetatable {};
     
 /**************************************************/
