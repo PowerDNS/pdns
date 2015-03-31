@@ -1996,6 +1996,11 @@ try
       }
 
       int algorithm = shorthand2algorithm(cmds[3]);
+      if (algorithm<0) {
+        cerr << "Unable to use unknown algorithm '" << cmds[3] << "'" << std::endl;
+        return 1;
+      }
+
       int id;
       bool keyOrZone = (cmds[4] == "ksk" ? true : false);
       string module = cmds[5];
