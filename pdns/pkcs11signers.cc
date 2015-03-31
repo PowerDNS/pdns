@@ -9,6 +9,7 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
 #include <p11-kit/p11-kit.h>
 
 #include "pdns/dnssecinfra.hh"
@@ -210,7 +211,8 @@ class Pkcs11Slot {
 
     void logError(const std::string& operation) const {
       if (d_err) {
-        L<<Logger::Error<<"PKCS#11 operation " << operation << " failed: " << d_err << endl;
+        std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X)") % operation % p11_kit_strerror(d_err) % d_err );
+        L<<Logger::Error<< msg << endl;
       }
     }
   public:
@@ -282,9 +284,10 @@ class Pkcs11Token {
 
     void logError(const std::string& operation) const {
       if (d_err) {
-        L<<Logger::Error<<"PKCS#11 operation " << operation << " failed: " << d_err << endl;
+        std::string msg = boost::str( boost::format("PKCS#11 operation %s failed: %s (0x%X)") % operation % p11_kit_strerror(d_err) % d_err );
+        L<<Logger::Error<< msg << endl;
       }
-    };
+    }
 
   public:
     Pkcs11Token(const boost::shared_ptr<Pkcs11Slot>& slot, const std::string& label); 
