@@ -736,7 +736,12 @@ std::string PKCS11DNSCryptoKeyEngine::sign(const std::string& msg) const {
   mech.mechanism = dnssec2smech[d_algorithm];
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
-  if (d_slot->Sign(msg, result, &mech)) throw PDNSException("Could not sign data");
+
+  if (mech.mechanism == CKM_ECDSA) {
+    if (d_slot->Sign(this->hash(msg), result, &mech)) throw PDNSException("Could not sign data");
+  } else {
+    if (d_slot->Sign(msg, result, &mech)) throw PDNSException("Could not sign data");
+  }
   return result;
 };
 
@@ -796,7 +801,11 @@ bool PKCS11DNSCryptoKeyEngine::verify(const std::string& msg, const std::string&
   mech.mechanism = dnssec2smech[d_algorithm];
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
-  return (d_slot->Verify(msg, signature, &mech) == 0);
+  if (mech.mechanism == CKM_ECDSA) {
+    return (d_slot->Verify(this->hash(msg), signature, &mech)==0);
+  } else {
+    return (d_slot->Verify(msg, signature, &mech) == 0);
+  }
 };
 
 std::string PKCS11DNSCryptoKeyEngine::getPubKeyHash() const {
