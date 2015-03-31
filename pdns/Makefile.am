@@ -51,7 +51,7 @@ SUBDIRS = ext
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
 	version_generated.h \
-	bindparser.h
+	bindparser.h htmlfiles.h 
 
 CLEANFILES = \
 	version_generated.h \
