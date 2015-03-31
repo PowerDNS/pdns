@@ -566,7 +566,7 @@ dnsdist_SOURCES = \
 	dnswriter.cc \
 	dolog.hh \
 	iputils.cc \
-	htmfiles.h \
+	htmlfiles.h \
 	misc.cc misc.hh \
 	qtype.cc \
 	sholder.hh \
