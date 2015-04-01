@@ -22,7 +22,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  return std::make_shared<DownstreamState>(ComboAddress());
 			}
 			if(auto address = boost::get<string>(&pvars)) {
-			  auto ret=std::make_shared<DownstreamState>(ComboAddress(*address, 53));
+			  std::shared_ptr<DownstreamState> ret;
+			  try {
+			    ret=std::make_shared<DownstreamState>(ComboAddress(*address, 53));
+			  }
+			  catch(std::exception& e) {
+			    g_outputBuffer="Error creating new server: "+string(e.what());
+			    errlog("Error creating new server with address %s: %s", *address, e.what());
+			    return ret;
+			  }
 
 			  if(qps) {
 			    ret->qps=QPSLimiter(*qps, *qps);
@@ -47,7 +55,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  return ret;
 			}
 			auto vars=boost::get<newserver_t>(pvars);
-			auto ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53));
+			std::shared_ptr<DownstreamState> ret;
+			try {
+			  ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53));
+			}
+			catch(std::exception& e) {
+			  g_outputBuffer="Error creating new server: "+string(e.what());
+			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.what());
+			  return ret;
+			}
 			
 			if(vars.count("qps")) {
 			  int qps=boost::lexical_cast<int>(boost::get<string>(vars["qps"]));
