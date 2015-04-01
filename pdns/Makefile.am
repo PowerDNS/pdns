@@ -560,6 +560,7 @@ dnsdist_SOURCES = \
 	base64.hh \
 	dnsdist.cc \
 	dnsdist-lua.cc \
+	dnsdist-tcp.cc \
 	dnsdist-web.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \

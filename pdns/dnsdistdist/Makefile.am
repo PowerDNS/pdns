@@ -18,6 +18,7 @@ dnsdist_SOURCES = \
 	dns.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-lua.cc \
+	dnsdist-tcp.cc \
 	dnsdist-web.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \

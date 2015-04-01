@@ -167,6 +167,35 @@ struct Rings {
 
 extern Rings g_rings; // XXX locking for this is still substandard, queryRing and clientRing need RW lock
 
+struct ClientState
+{
+  ComboAddress local;
+  int udpFD;
+  int tcpFD;
+};
+
+class TCPClientCollection {
+  std::vector<int> d_tcpclientthreads;
+  std::atomic<uint64_t> d_pos;
+public:
+  std::atomic<uint64_t> d_queued, d_numthreads;
+
+  TCPClientCollection()
+  {
+    d_tcpclientthreads.reserve(1024);
+  }
+
+  int getThread() 
+  {
+    int pos = d_pos++;
+    ++d_queued;
+    return d_tcpclientthreads[pos % d_numthreads];
+  }
+  void addTCPClientThread();
+};
+
+extern TCPClientCollection g_tcpclientthreads;
+
 struct DownstreamState
 {
   DownstreamState(const ComboAddress& remote_);
@@ -278,3 +307,6 @@ std::unique_ptr<T> make_unique(Args&&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password);
+bool getMsgLen(int fd, uint16_t* len);
+bool putMsgLen(int fd, uint16_t len);
+void* tcpAcceptorThread(void* p);
