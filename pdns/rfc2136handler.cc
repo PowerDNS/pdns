@@ -951,6 +951,11 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   fillSOAData(rec.content, soa2Update);
   int oldSerial = soa2Update.serial;
 
+  if (oldSerial == 0) { // using Autoserial, leave the serial alone.
+    L<<Logger::Notice<<msgPrefix<<"AutoSerial being used, not updating SOA serial."<<endl;
+    return;
+  }
+
   vector<string> soaEdit2136Setting;
   B.getDomainMetadata(di->zone, "SOA-EDIT-DNSUPDATE", soaEdit2136Setting);
   string soaEdit2136 = "DEFAULT";
