@@ -411,11 +411,21 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
 
-          res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);    
+          res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);
+
+          // handle RCode in right way
+          if (res <=0) {
+            res=RCode::ServFail;
+          } else {
+            res=lwr.d_rcode;
+          }
+
           // filter out the good stuff from lwr.result()
 
           for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
             if(i->d_place == DNSResourceRecord::ANSWER)
+              ret.push_back(*i);
+            if((i->d_place == DNSResourceRecord::AUTHORITY)&&(i->qtype.getCode()==QType::SOA))
               ret.push_back(*i);
           }
           return res;
