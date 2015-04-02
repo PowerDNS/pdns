@@ -921,6 +921,10 @@ bool showZone(DNSSECKeeper& dk, const std::string& zone)
     BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
       string algname;
       algorithm2name(value.first.d_algorithm, algname);
+      if (value.first.getKey()->getBits() < 1) {
+        cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<") <key missing or defunct>" <<endl;
+        continue;
+      }
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< " ( " + algname + " ) "<<endl;
       if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey") || g_verbose)
@@ -1193,9 +1197,9 @@ try
     cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
 #ifdef HAVE_P11KIT1
-    cerr<<"hsm assign zone zsk|ksk module slot pin label"<<endl<<
+    cerr<<"hsm assign zone algorithm ksk|zsk module slot pin label"<<endl<<
           "                                   Assign a hardware signing module to a ZONE"<<endl;
-    cerr<<"hsm create-key zone [bits]         Create a key using hardware signing module for ZONE (use assign first)"<<endl; 
+    cerr<<"hsm create-key zone key-id [bits]  Create a key using hardware signing module for ZONE (use assign first)"<<endl; 
     cerr<<"                                   bits defaults to 2048"<<endl;
 #endif
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
@@ -1976,6 +1980,7 @@ try
     if (cmds[1] == "assign") {
       DNSCryptoKeyEngine::storvector_t storvect;
       DomainInfo di;
+      std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
         std::cout << "Usage: pdnssec hsm assign zone algorithm ksk|zsk module slot pin label" << std::endl;
@@ -1991,6 +1996,11 @@ try
       }
 
       int algorithm = shorthand2algorithm(cmds[3]);
+      if (algorithm<0) {
+        cerr << "Unable to use unknown algorithm '" << cmds[3] << "'" << std::endl;
+        return 1;
+      }
+
       int id;
       bool keyOrZone = (cmds[4] == "ksk" ? true : false);
       string module = cmds[5];
@@ -2011,12 +2021,43 @@ try
      dpk.d_flags = (keyOrZone ? 257 : 256);
      dpk.setKey(shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str())));
  
+     // make sure this key isn't being reused.
+     B.getDomainKeys(zone, 0, keys);
+     id = -1;
+
+     BOOST_FOREACH(DNSBackend::KeyData& kd, keys) {
+       if (kd.content == iscString.str()) {
+         // it's this one, I guess...
+         id = kd.id;
+         break;
+       }
+     }
+
+     if (id > -1) {
+       cerr << "You have already assigned this key with ID=" << id << std::endl;
+       return 1;
+     }
+
      if (!(id = dk.addKey(zone, dpk))) {
        cerr << "Unable to assign module slot to zone" << std::endl;
        return 1;
      }
 
+     // figure out key id.
+
+     B.getDomainKeys(zone, 0, keys);
+
+     // validate which one got the key...
+     BOOST_FOREACH(DNSBackend::KeyData& kd, keys) {
+       if (kd.content == iscString.str()) {
+         // it's this one, I guess...
+         id = kd.id;
+         break;
+       }
+     }
+
      cerr << "Module " << module << " slot " << slot << " assigned to " << zone << " with key id " << id << endl;
+
      return 0;
     } else if (cmds[1] == "create-key") {
 
