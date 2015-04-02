@@ -93,3 +93,33 @@ CREATE TABLE tsigkeys (
 );
 
 CREATE UNIQUE INDEX namealgoindex ON tsigkeys(name, algorithm);
+
+CREATE FUNCTION pdns_autoserial_update_change_date() RETURNS trigger
+    LANGUAGE plpgsql STRICT
+    AS $$BEGIN
+  PERFORM * FROM domains WHERE id = NEW.domain_id AND (type = 'NATIVE' OR type = 'MASTER');
+  IF FOUND THEN
+      NEW.change_date = EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::integer;
+  END IF;
+
+  RETURN NEW;
+END;$$;
+
+CREATE TRIGGER pdns_autoserial_update_change_date_trigger BEFORE INSERT OR UPDATE ON records FOR EACH ROW EXECUTE PROCEDURE pdns_autoserial_update_change_date();
+
+CREATE FUNCTION pdns_autoserial_update_soa() RETURNS trigger
+    LANGUAGE plpgsql STRICT
+    AS $$BEGIN
+  IF OLD.change_date IS NULL OR OLD.type = 'SOA' THEN
+    RETURN OLD;
+  END IF;
+
+  PERFORM * FROM domains WHERE id = OLD.domain_id AND (type = 'NATIVE' OR type = 'MASTER');
+  IF FOUND THEN
+    UPDATE records SET change_date = EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) WHERE domain_id = OLD.domain_id AND type = 'SOA';
+  END IF;
+
+  RETURN OLD;
+END;$$;
+
+CREATE TRIGGER pdns_autoserial_update_soa_trigger AFTER DELETE ON records FOR EACH ROW EXECUTE PROCEDURE pdns_autoserial_update_soa();
