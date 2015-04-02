@@ -71,6 +71,24 @@ EOF
 
 test_flags
 
+# export all variables passed to configure
+
+# we need to disable this check here
+# because $1 becomes undefined at the end
+set +u
+
+while [ "$1" != "" ]; do
+ keyval="$1"
+ arg=${keyval%=*}
+ val="${keyval#*=}"
+ if [ "$val" != "" ] && [ "$val" != "$arg" ]; then
+   export $arg="$val"
+ fi
+ shift
+done
+
+set -u
+
 sed -e "s/@LD_RELRO@/$LD_RELRO/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g" -e "s/@CF_STACK@/$CF_STACK/g" < Makefile.in > Makefile
 
 echo Testing dependencies and compiler.
