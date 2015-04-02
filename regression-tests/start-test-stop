@@ -178,7 +178,7 @@ spectest=$5
 
 testsdir=./tests
 
-if [ "$port" = help ] || [ "$context" = help ]
+if [ "$port" = help ] || [ "$context" = help ] || [ "$port" = "--help" ] || [ "$context" = "--help" ]
 then
 	set +x
 	grep -v '^#' << '__EOF__'
