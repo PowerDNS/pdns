@@ -58,7 +58,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   include "misc/exception.hpp"
 #endif
 
-#ifdef _GNUC
+#ifdef __GNUC__
 #   define ATTR_UNUSED __attribute__((unused))
 #else
 #   define ATTR_UNUSED
@@ -1711,7 +1711,7 @@ private:
 static LuaContext::EmptyArray_t ATTR_UNUSED
     LuaEmptyArray {};
 /// @deprecated
-static LuaContext::Metatable_t ATTR_UNUNSED
+static LuaContext::Metatable_t ATTR_UNUSED
     LuaMetatable {};
     
 /**************************************************/
