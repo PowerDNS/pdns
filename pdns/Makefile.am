@@ -1,5 +1,5 @@
 AM_CPPFLAGS += \
-	-I$(top_srcdir)/pdns/ext/rapidjson/include \
+	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS)
 
@@ -45,8 +45,6 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist
-
-SUBDIRS = ext
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \

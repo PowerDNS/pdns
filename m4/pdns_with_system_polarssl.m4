@@ -28,8 +28,8 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
   )
 
   POLARSSL_SUBDIR=polarssl
-  POLARSSL_CFLAGS=-I\$\(top_srcdir\)/pdns/ext/$POLARSSL_SUBDIR/include/
-  POLARSSL_LIBS="-L\$(top_builddir)/pdns/ext/$POLARSSL_SUBDIR/library/ -lpolarssl"
+  POLARSSL_CFLAGS=-I\$\(top_srcdir\)/ext/$POLARSSL_SUBDIR/include/
+  POLARSSL_LIBS="-L\$(top_builddir)/ext/$POLARSSL_SUBDIR/library/ -lpolarssl"
 
   AS_IF([test "x$have_system_polarssl" = "xyes"],[
     POLARSSL_CFLAGS=
