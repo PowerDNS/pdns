@@ -8,6 +8,8 @@ EXTRA_DIST = \
 	INSTALL \
 	NOTICE \
 	README \
+	.version \
+	build-aux/gen-version \
 	build-scripts/redhat/pdns-server-test.spec \
 	build-scripts/semistaticg++ \
 	codedocs/doxygen.conf \

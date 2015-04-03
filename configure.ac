@@ -1,9 +1,6 @@
 AC_PREREQ([2.61])
 
-dnl The following lines may be patched by set-version-auth.
-AC_INIT([pdns], [git])
-dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
-dnl End patch area.
+AC_INIT([pdns], m4_esyscmd_s(build-aux/gen-version))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
