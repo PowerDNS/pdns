@@ -404,8 +404,12 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
       line+=pline;
 
     // strip everything after a #
-    if((pos=line.find("#"))!=string::npos)
-      line=line.substr(0,pos);
+    if((pos=line.find("#"))!=string::npos) {
+      // make sure it's either first char or has whitespace before
+      // fixes issue #354
+      if (pos == 0 || std::isspace(line[pos-1]))
+        line=line.substr(0,pos);
+    }
 
     // strip trailing spaces
     trim_right(line);
@@ -457,8 +461,12 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
       line+=pline;
 
     // strip everything after a #
-    if((pos=line.find("#"))!=string::npos)
-      line=line.substr(0,pos);
+    if((pos=line.find("#"))!=string::npos) {
+      // make sure it's either first char or has whitespace before
+      // fixes issue #354
+      if (pos == 0 || std::isspace(line[pos-1]))
+        line=line.substr(0,pos);
+    }
 
     // strip trailing spaces
     trim(line);
