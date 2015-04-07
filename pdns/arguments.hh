@@ -92,7 +92,7 @@ public:
   {
     return file(fname,true);
   }
-  bool parseLine(ifstream& f, const string& arg, string& line, bool lax); //<! parse one line
+  bool parseFile(const char *fname, const string& arg, bool lax); //<! parse one line
   typedef map<string,string> param_t; //!< use this if you need to know the content of the map
   bool parmIsset(const string &var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string &var); //!< if a switch is given, if we must do something (--help)
