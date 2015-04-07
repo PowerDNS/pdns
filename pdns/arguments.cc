@@ -378,6 +378,42 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
   }
 }
 
+bool ArgvMap::parseLine(ifstream& f, const string& arg, string& line, bool lax) {
+  string pline;
+  string::size_type pos;
+
+  if (!getline(f, pline)) return false;
+  trim_right(pline);
+  if(pline[pline.size()-1]=='\\') {
+    line+=pline.substr(0,pline.length()-1);
+    return true;
+  }
+  else
+   line+=pline;
+
+  // strip everything after a #
+  if((pos=line.find("#"))!=string::npos) {
+    // make sure it's either first char or has whitespace before
+    // fixes issue #354
+    if (pos == 0 || std::isspace(line[pos-1]))
+      line=line.substr(0,pos);
+  }
+
+  // strip trailing spaces
+  trim_right(line);
+
+  // strip leading spaces
+  if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
+    line=line.substr(pos);
+
+  // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
+
+  parseOne( string("--") + line, arg, lax );
+  line="";
+  return true;
+}
+
+
 bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
 {
   params[arg]=theDefault;
@@ -387,39 +423,8 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
     return false;
 
   string line;
-  string pline;
-  string::size_type pos;
 
-  while(getline(f,pline)) {
-    trim_right(pline);
-    
-    if(pline[pline.size()-1]=='\\') {
-      line+=pline.substr(0,pline.length()-1);
-      continue;
-    }
-    else
-      line+=pline;
-
-    // strip everything after a #
-    if((pos=line.find("#"))!=string::npos) {
-      // make sure it's either first char or has whitespace before
-      // fixes issue #354
-      if (pos == 0 || std::isspace(line[pos-1]))
-        line=line.substr(0,pos);
-    }
-
-    // strip trailing spaces
-    trim_right(line);
-
-    // strip leading spaces
-    if((pos=line.find_first_not_of(" \t\r\n"))!=string::npos)
-      line=line.substr(pos);
-
-    // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
-
-    parseOne( string("--") + line, arg );
-    line="";
-  }
+  while(parseLine(f, arg, line, false));
 
   return true;
 }
@@ -440,36 +445,8 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
     set("include-dir","Directory to include configuration files from");
 
   string line;
-  string pline;
-  string::size_type pos;
 
-  while(getline(f,pline)) {
-    trim_right(pline);
-    if(pline.empty())
-      continue;
-
-    if(pline[pline.size()-1]=='\\') {
-      line+=pline.substr(0,pline.length()-1);
-
-      continue;
-    }
-    else
-      line+=pline;
-
-    // strip everything after a #
-    if((pos=line.find("#"))!=string::npos) {
-      // make sure it's either first char or has whitespace before
-      // fixes issue #354
-      if (pos == 0 || std::isspace(line[pos-1]))
-        line=line.substr(0,pos);
-    }
-
-    // strip trailing spaces
-    trim(line);
-
-    parseOne(string("--")+line,"",lax);
-    line="";
-  }
+  while(parseLine(f, "", line, lax));
 
   // handle include here (avoid re-include)
   if (!included && !params["include-dir"].empty()) {
