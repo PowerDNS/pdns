@@ -20170,6 +20170,7 @@ C\052.test.test.com:server1.test.com.:3600
 &sub.test.test.com::ns-test.example.net.test.com.:3600
 +www.test.test.com:4.3.2.1:3600
 Ctoroot.test.com:..:3600
+:urc65226.test.com:65226:ABC:3600
 :very-long-txt.test.com:16:\377A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\030\040won\047t\040believe\040how\040long\041:3600
 Cwithin-server.test.com:outpost.example.com.:3600
 Cwww.test.com:server1.test.com.:3600
