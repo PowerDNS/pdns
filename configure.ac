@@ -395,7 +395,10 @@ AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([SQLite3 support: $with_sqlite3])
+AS_IF([test "x$needsqlite3" != "x"],
+  [AC_MSG_NOTICE([SQLite3 support: yes])],
+  [AC_MSG_NOTICE([SQLite3 support: no])]
+)
 AS_IF([test "x$LUAPC" != "x"],
   [AC_MSG_NOTICE([Lua support: $LUAPC])],
   [AC_MSG_NOTICE([Lua support: no])]
