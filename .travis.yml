@@ -106,8 +106,9 @@ script:
  - cd pdns
  - make -k -j 4 pdns_recursor
  - rm -f pdns_recursor
- - ./dist-recursor
- - cd pdns-recursor-*/
+ - cd ..
+ - ./build-scripts/dist-recursor
+ - cd pdns/pdns-recursor-*/
  - ./configure
  - make -k -j 4
  - cd ..

@@ -2,16 +2,19 @@
 
 set -e
 
+if [ "$0" != "./build-scripts/dist-recursor" ]; then
+  echo "Please run me from the root checkout dir"
+  exit 1
+fi
+
+cd pdns
+
 ragel dnslabeltext.rl -o dnslabeltext.cc
 
 cd ../docs
 pandoc -s -t man manpages/pdns_recursor.1.md -o pdns_recursor.1
 pandoc -s -t man manpages/rec_control.1.md -o rec_control.1
 cd -
-## The following lines will be patched by set-version-recursor.
-VERSION=""
-DIST_HOST=""
-## End patch area.
 
 if [ -z "$VERSION" ]; then
   VERSION=$(git describe --always --dirty=+ 2>/dev/null || true)
@@ -20,8 +23,9 @@ if [ -z "$VERSION" ]; then
   else
     VERSION="git-"$VERSION
   fi
-  DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 fi
+
+DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
@@ -77,6 +81,7 @@ cp powerdns-example-script.lua $DIRNAME
 mkdir -p $DIRNAME/contrib
 cp ../contrib/systemd-pdns-recursor.service $DIRNAME/contrib
 mkdir -p $DIRNAME/build-scripts/redhat
+cp ../build-scripts/build-recursor $DIRNAME/build-scripts
 cp ../build-scripts/redhat/pdns-recursor-test.spec $DIRNAME/build-scripts/redhat
 cp pdns-recursor.spec $DIRNAME
 

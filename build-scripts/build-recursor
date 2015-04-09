@@ -2,19 +2,19 @@
 set -e
 set -x
 
-if [ -z "$1" ]; then
+if [ -z "$VERSION" ]; then
   VERSION=$(git describe --always --dirty=+ 2>/dev/null || true)
   if [ -z "$VERSION" ]; then
     VERSION="UNKNOWN"
   else
     VERSION="git-"$VERSION
   fi
-  DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 else
   VERSION=$1
 fi
 
-cd pdns-recursor-$VERSION
+DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
+
 export DEBFULLNAME="PowerDNS.COM BV"
 DEBPKGNAME=pdns-recursor_$VERSION
 
