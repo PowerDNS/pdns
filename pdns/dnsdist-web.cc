@@ -45,148 +45,156 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 {
   using namespace json11;
   infolog("Webserver handling connection from %s", remote.toStringWithPort());
-  FILE* fp=fdopen(sock, "r");
+  FILE* fp=0;
+  fp=fdopen(sock, "r");
+  try {
+    string line;
+    string request;
+    while(stringfgets(fp, line)) {
+      request+=line;
+      trim(line);
 
-  string line;
-  string request;
-  while(stringfgets(fp, line)) {
-    request+=line;
-    trim(line);
-
-    if(line.empty())
-      break;
-  }
+      if(line.empty())
+	break;
+    }
   
-  std::istringstream ifs(request);
-  YaHTTP::Request req;
-  ifs >> req;
+    std::istringstream ifs(request);
+    YaHTTP::Request req;
+    ifs >> req;
 
-  string command=req.getvars["command"];
+    string command=req.getvars["command"];
 
-  string callback;
+    string callback;
 
-  if(req.getvars.count("callback")) {
-    callback=req.getvars["callback"];
-    req.getvars.erase("callback");
-  }
+    if(req.getvars.count("callback")) {
+      callback=req.getvars["callback"];
+      req.getvars.erase("callback");
+    }
 
-  req.getvars.erase("_"); // jQuery cache buster
+    req.getvars.erase("_"); // jQuery cache buster
 
-  YaHTTP::Response resp(req);
+    YaHTTP::Response resp(req);
 
-  if (!compareAuthorization(req, password)) {
-    errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
-    resp.status=401;
-    resp.body="<h1>Unauthorized</h1>";
-    resp.headers["WWW-Authenticate"] = "basic realm=\"PowerDNS\"";
+    if (!compareAuthorization(req, password)) {
+      errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
+      resp.status=401;
+      resp.body="<h1>Unauthorized</h1>";
+      resp.headers["WWW-Authenticate"] = "basic realm=\"PowerDNS\"";
 
-  }
-  else if(command=="stats") {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
+    }
+    else if(command=="stats") {
+      struct rusage ru;
+      getrusage(RUSAGE_SELF, &ru);
 
-    resp.status=200;
-    Json my_json = Json::object {
-      { "questions", (int)g_stats.queries },
-      { "servfail-answers", (int)g_stats.servfailResponses },
-      { "packetcache-hits", 0},
-      { "packetcache-misses", 0},
-      { "user-msec", (int)(ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000) },
-      { "sys-msec", (int)(ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000) },
-      { "over-capacity-drops", 0 },
-      { "too-old-drops", 0 },
-      { "uptime", uptimeOfProcess()},
-      { "qa-latency", (int)g_stats.latency},
-      { "something", Json::array { 1, 2, 3 } },
-    };
+      resp.status=200;
+      Json my_json = Json::object {
+	{ "questions", (int)g_stats.queries },
+	{ "servfail-answers", (int)g_stats.servfailResponses },
+	{ "packetcache-hits", 0},
+	{ "packetcache-misses", 0},
+	{ "user-msec", (int)(ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000) },
+	{ "sys-msec", (int)(ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000) },
+	{ "over-capacity-drops", 0 },
+	{ "too-old-drops", 0 },
+	{ "uptime", uptimeOfProcess()},
+	{ "qa-latency", (int)g_stats.latency},
+	{ "something", Json::array { 1, 2, 3 } },
+      };
 
-    resp.headers["Content-Type"] = "application/json";
-    resp.body=my_json.dump();
-  }
-  else if(req.url.path=="/servers/localhost") {
-    resp.status=200;
+      resp.headers["Content-Type"] = "application/json";
+      resp.body=my_json.dump();
+    }
+    else if(req.url.path=="/servers/localhost") {
+      resp.status=200;
 
-    Json::array servers;
-    auto localServers = g_dstates.getCopy();
-    int num=0;
-    for(const auto& a : localServers) {
-      string status;
-      if(a->availability == DownstreamState::Availability::Up) 
-	status = "UP";
-      else if(a->availability == DownstreamState::Availability::Down) 
-	status = "DOWN";
-      else 
-	status = (a->upStatus ? "up" : "down");
-      string pools;
-      for(const auto& p: a->pools)
-	pools+=p+" ";
-      Json::object server{ 
-	{"id", num++}, 
-	{"address", a->remote.toStringWithPort()}, 
-        {"state", status}, 
-	{"qps", (int)a->queryLoad}, 
-	{"qpsLimit", (int)a->qps.getRate()}, 
-	{"outstanding", (int)a->outstanding}, 
-	{"reuseds", (int)a->reuseds},
-	{"weight", (int)a->weight}, 
-	{"order", (int)a->order}, 
-	{"pools", pools},
-	{"queries", (int)a->queries}};
+      Json::array servers;
+      auto localServers = g_dstates.getCopy();
+      int num=0;
+      for(const auto& a : localServers) {
+	string status;
+	if(a->availability == DownstreamState::Availability::Up) 
+	  status = "UP";
+	else if(a->availability == DownstreamState::Availability::Down) 
+	  status = "DOWN";
+	else 
+	  status = (a->upStatus ? "up" : "down");
+	string pools;
+	for(const auto& p: a->pools)
+	  pools+=p+" ";
+	Json::object server{ 
+	  {"id", num++}, 
+	    {"address", a->remote.toStringWithPort()}, 
+	      {"state", status}, 
+		{"qps", (int)a->queryLoad}, 
+		  {"qpsLimit", (int)a->qps.getRate()}, 
+		    {"outstanding", (int)a->outstanding}, 
+		      {"reuseds", (int)a->reuseds},
+			{"weight", (int)a->weight}, 
+			  {"order", (int)a->order}, 
+			    {"pools", pools},
+			      {"queries", (int)a->queries}};
       
-      servers.push_back(server);
-    }
+	servers.push_back(server);
+      }
 
-    Json::array rules;
-    auto localRules = g_rulactions.getCopy();
-    num=0;
-    for(const auto& a : localRules) {
-      Json::object rule{
-	{"id", num++},
-	{"matches", (int)a.first->d_matches},
-	{"rule", a.first->toString()},
-	  {"action", a.second->toString()} };
-      rules.push_back(rule);
-    }
+      Json::array rules;
+      auto localRules = g_rulactions.getCopy();
+      num=0;
+      for(const auto& a : localRules) {
+	Json::object rule{
+	  {"id", num++},
+	    {"matches", (int)a.first->d_matches},
+	      {"rule", a.first->toString()},
+		{"action", a.second->toString()} };
+	rules.push_back(rule);
+      }
 
  
-    Json my_json = Json::object {
-      { "daemon_type", "dnsdist" },
-      { "version", "0.1"},
-      { "servers", servers},
-      { "rules", rules},
-    };
-    resp.headers["Content-Type"] = "application/json";
-    resp.body=my_json.dump();
+      Json my_json = Json::object {
+	{ "daemon_type", "dnsdist" },
+	{ "version", "0.1"},
+	{ "servers", servers},
+	{ "rules", rules},
+      };
+      resp.headers["Content-Type"] = "application/json";
+      resp.body=my_json.dump();
 
+    }
+    else if(!resp.url.path.empty() && g_urlmap.count(resp.url.path.c_str()+1)) {
+      resp.body.assign(g_urlmap[resp.url.path.c_str()+1]);
+      resp.status=200;
+    }
+    else if(resp.url.path=="/") {
+      resp.body.assign(g_urlmap["index.html"]);
+      resp.status=200;
+    }
+    else {
+      // cerr<<"404 for: "<<resp.url.path<<endl;
+      resp.status=404;
+    }
+
+    if(!callback.empty()) {
+      resp.body = callback + "(" + resp.body + ");";
+    }
+
+
+
+    std::ostringstream ofs;
+    ofs << resp;
+    string done;
+    done=ofs.str();
+    writen2(sock, done.c_str(), done.size());
+
+    fclose(fp);
+    fp=0;
   }
-  else if(!resp.url.path.empty() && g_urlmap.count(resp.url.path.c_str()+1)) {
-    resp.body.assign(g_urlmap[resp.url.path.c_str()+1]);
-    resp.status=200;
-  }
-  else if(resp.url.path=="/") {
-    resp.body.assign(g_urlmap["index.html"]);
-    resp.status=200;
-  }
-  else {
-    // cerr<<"404 for: "<<resp.url.path<<endl;
-    resp.status=404;
-  }
-
-  if(!callback.empty()) {
-    resp.body = callback + "(" + resp.body + ");";
-  }
-
-
-
-  std::ostringstream ofs;
-  ofs << resp;
-  string done;
-  done=ofs.str();
-  writen2(sock, done.c_str(), done.size());
-
-  close(sock);
+  catch(...)
+    {
+      errlog("Webserver thread died with exception");
+      if(fp)
+	fclose(fp);
+    }
 }
-
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password)
 {
   infolog("Webserver launched on %s", local.toStringWithPort());
