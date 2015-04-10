@@ -160,11 +160,8 @@ DownstreamState::DownstreamState(const ComboAddress& remote_)
   infolog("Added downstream server %s", remote.toStringWithPort());
 }
 
-
-
 std::mutex g_luamutex;
 LuaContext g_lua;
-
 
 GlobalStateHolder<ServerPolicy> g_policy;
 
