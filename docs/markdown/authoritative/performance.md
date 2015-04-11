@@ -57,6 +57,10 @@ A number of counters and variables are set during PDNS Authoritative Server oper
 * **servfail-packets**: Amount of packets that could not be answered due to database problems
 * **tcp-answers**: Number of answers sent out over TCP
 * **tcp-questions**: Number of questions received over TCP
+* **tcp4-answers**: Number of answers sent out over IPv4 TCP 
+* **tcp4-questions**: Number of questions received over IPv4 TCP
+* **tcp6-answers**: Number of answers sent out over IPv6 TCP 
+* **tcp6-questions**: Number of questions received over IPv6 TCP
 * **timedout-questions**: Amount of packets that were dropped because they had to wait too long internally
 * **udp-answers**: Number of answers sent out over UDP
 * **udp-queries**: Number of questions received over UDP

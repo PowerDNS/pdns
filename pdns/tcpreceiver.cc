@@ -246,6 +246,15 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
   return;
 }
 
+
+static void incTCPAnswerCount(const ComboAddress& remote)
+{
+  S.inc("tcp-answers");
+  if(remote.sin4.sin_family == AF_INET6)
+    S.inc("tcp6-answers");
+  else
+    S.inc("tcp4-answers");
+}
 void *TCPNameserver::doConnection(void *data)
 {
   shared_ptr<DNSPacket> packet;
@@ -287,6 +296,10 @@ void *TCPNameserver::doConnection(void *data)
       
       getQuestion(fd, mesg.get(), pktlen, remote);
       S.inc("tcp-queries");      
+      if(remote.sin4.sin_family == AF_INET6)
+        S.inc("tcp6-queries");
+      else
+        S.inc("tcp4-queries");
 
       packet=shared_ptr<DNSPacket>(new DNSPacket);
       packet->setRemote(&remote);
@@ -297,13 +310,13 @@ void *TCPNameserver::doConnection(void *data)
       
       if(packet->qtype.getCode()==QType::AXFR) {
         if(doAXFR(packet->qdomain, packet, fd))
-          S.inc("tcp-answers");
+          incTCPAnswerCount(remote);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
         if(doIXFR(packet, fd))
-          S.inc("tcp-answers");
+          incTCPAnswerCount(remote);
         continue;
       }
 
@@ -331,7 +344,7 @@ void *TCPNameserver::doConnection(void *data)
         if(LPE) LPE->police(&(*packet), &(*cached), true);
 
         sendPacket(cached, fd); // presigned, don't do it again
-        S.inc("tcp-answers");
+        incTCPAnswerCount(remote);
 
         continue;
       }
@@ -358,7 +371,7 @@ void *TCPNameserver::doConnection(void *data)
       if(!reply)  // unable to write an answer?
         break;
         
-      S.inc("tcp-answers");
+      incTCPAnswerCount(remote);
       sendPacket(reply, fd);
     }
   }

@@ -241,6 +241,12 @@ void declareStats(void)
   S.declare("signatures", "Number of DNSSEC signatures made");
   S.declare("tcp-queries","Number of TCP queries received");
   S.declare("tcp-answers","Number of answers sent out over TCP");
+  S.declare("tcp4-queries","Number of IPv4 TCP queries received");
+  S.declare("tcp4-answers","Number of IPv4 answers sent out over TCP");
+  
+  S.declare("tcp6-queries","Number of IPv6 TCP queries received");
+  S.declare("tcp6-answers","Number of IPv6 answers sent out over TCP");
+    
 
   S.declare("qsize-q","Number of questions waiting for database attention", getQCount);
 
