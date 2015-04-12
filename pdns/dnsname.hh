@@ -4,6 +4,7 @@
 #include <set>
 #include <deque>
 #include <strings.h>
+#include "misc.hh"
 
 // #include <ext/vstring.h>
 
@@ -39,6 +40,9 @@ public:
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
+    if(d_storage.size() + rhs.d_storage.size() > 254) // reserve one byte for the root label
+      throw std::range_error("name too long");
+
     d_storage+=rhs.d_storage;
     return *this;
   }
@@ -57,6 +61,7 @@ private:
   typedef std::string string_t;
   string_t d_storage;
 
+  void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0);
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };

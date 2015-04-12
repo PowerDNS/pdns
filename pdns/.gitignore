@@ -48,3 +48,6 @@ version_generated.h
 /testrunner.log
 /testrunner.trs
 /pubsuffix.cc
+/calidns
+/dumresp
+/htmlfiles.h

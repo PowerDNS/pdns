@@ -2,7 +2,6 @@
 #include <boost/format.hpp>
 #include <string>
 #include "dnswriter.hh"
-#include "misc.hh"
 
 /* raw storage
    in DNS label format, without trailing 0. So the root is of length 0.
@@ -15,17 +14,19 @@
 DNSName::DNSName(const char* p)
 {
   auto labels = segmentDNSName(p);
-  for(const auto& e : labels) {
-    if(e.size() > 63)
-      throw std::range_error("label too long");
-    d_storage.append(1, (char)e.size());
-    d_storage.append(e.c_str(), e.length());
-  }
+  for(const auto& e : labels)
+    appendRawLabel(e);
 }
 
-// this should be the __only__ dns name parser in PowerDNS. 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
+  packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
+}
+
+// this should be the __only__ dns name parser in PowerDNS.
+void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
+{
+  bool labelAdded = false;
   unsigned char labellen;
   const char *opos = pos;
   pos += offset;
@@ -33,16 +34,21 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
   while((labellen=*pos++) && pos < end) { // "scan and copy"
     if(labellen & 0xc0) {
       if(!uncompress)
-	throw std::range_error("Found compressed label, instructed not to follow");
+        throw std::range_error("Found compressed label, instructed not to follow");
 
       labellen &= (~0xc0);
       int newpos = (labellen << 8) + *(const unsigned char*)pos;
 
-      (*this) += DNSName(opos, len, newpos, false);
+      packetParser(opos, len, newpos, labelAdded);
       pos++;
       break;
     }
-    appendRawLabel(string(pos, labellen));
+    if (pos + labellen < end) {
+      labelAdded = true;
+      appendRawLabel(string(pos, labellen));
+    }
+    else
+      throw std::range_error("Found an invalid label length in qname");
     pos+=labellen;
   }
   if(consumed)
@@ -102,6 +108,9 @@ void DNSName::appendRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label");
   if(label.size() > 63)
     throw std::range_error("label too long");
+  if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
+    throw std::range_error("name too long");
+
   d_storage.append(1, (char)label.size());
   d_storage.append(label.c_str(), label.length());
 }
@@ -110,9 +119,10 @@ void DNSName::prependRawLabel(const std::string& label)
 {
   if(label.empty())
     throw std::range_error("no such thing as an empty label");
-
   if(label.size() > 63)
     throw std::range_error("label too long");
+  if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
+    throw std::range_error("name too long");
 
   string_t prep(1, (char)label.size());
   prep.append(label.c_str(), label.size());
@@ -124,9 +134,8 @@ vector<string> DNSName::getRawLabels() const
   vector<string> ret;
 
   // 3www4ds9a2nl
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1) {
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1)
     ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
-  }
   return ret;
 }
 
@@ -141,7 +150,7 @@ bool DNSName::chopOff()
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+= 1+*(unsigned char*)p) 
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1)
     ++count;
   return count;
 }
