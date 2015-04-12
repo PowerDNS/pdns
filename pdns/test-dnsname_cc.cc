@@ -11,8 +11,6 @@ using std::string;
 
 BOOST_AUTO_TEST_SUITE(dnsname_cc)
 
-bool test_dnsname_cc_predicate( std::runtime_error const &ex ) { return true; }
-
 BOOST_AUTO_TEST_CASE(test_basic) {
   string before("www.ds9a.nl.");
   DNSName b(before);
@@ -116,8 +114,10 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   build.appendRawLabel("Donald E. Eastlake 3rd");
   build.appendRawLabel("example");
   BOOST_CHECK_EQUAL(build.toString(), R"(Donald\032E\.\032Eastlake\0323rd.example.)");
-
-  BOOST_CHECK_EXCEPTION( DNSName broken("bert..hubert."), std::runtime_error, test_dnsname_cc_predicate);
+  try {
+    DNSName broken("bert..hubert.");
+    BOOST_CHECK(0);
+  }catch(...){}
 
   DNSName n;
   n.appendRawLabel("powerdns.dnsmaster");
@@ -148,8 +148,20 @@ BOOST_AUTO_TEST_CASE(test_trim) {
 }
 
 BOOST_AUTO_TEST_CASE(test_toolong) {
-  BOOST_CHECK_EXCEPTION( DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com."), std::range_error, test_dnsname_cc_predicate);
-  BOOST_CHECK_EXCEPTION( { DNSName w("com."); w.prependRawLabel("1234567890123456789012345678901234567890123456789012345678901234567890"); }, std::range_error, test_dnsname_cc_predicate);
+  try {
+    DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com.");
+    BOOST_CHECK(0);
+  }
+  catch(...){}
+
+
+  try {
+    DNSName w("com.");
+    w.prependRawLabel("1234567890123456789012345678901234567890123456789012345678901234567890");
+    BOOST_CHECK(0);
+  }
+  catch(...){}
+
 }
 
 BOOST_AUTO_TEST_CASE(test_dnsstrings) {
@@ -222,7 +234,11 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   DNSName dn3((char*)&packet[0], packet.size(), 12+13+4+2 + 4 + 4 + 2, true);
   BOOST_CHECK_EQUAL(dn3.toString(), "ns1.powerdns.com."); 
 
-  BOOST_CHECK_EXCEPTION( DNSName dn4((char*)&packet[0], packet.size(), 12+13+4, false), std::range_error, test_dnsname_cc_predicate);
+  try {
+    DNSName dn4((char*)&packet[0], packet.size(), 12+13+4, false); // compressed, should fail
+    BOOST_CHECK(0); 
+  }
+  catch(...){}
 }
 
 BOOST_AUTO_TEST_CASE(test_escaping) {
