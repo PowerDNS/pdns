@@ -1,0 +1,3 @@
+Tests: smoke
+Depends: pdns-server, dnsutils
+Restrictions: needs-root

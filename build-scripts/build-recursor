@@ -16,9 +16,10 @@ fi
 DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 
 export DEBFULLNAME="PowerDNS.COM BV"
+export DEBEMAIL="noreply@powerdns.com"
 DEBPKGNAME=pdns-recursor_$VERSION
 
-dh_make -e powerdns.support@powerdns.com -s -f ../pdns-recursor-$VERSION.tar.bz2 -p $DEBPKGNAME < /dev/null
+dh_make -s -f ../pdns-recursor-$VERSION.tar.bz2 -p $DEBPKGNAME < /dev/null
 cp pdns-recursor.init.d debian/init.d
 #[ -e debian/control ] || dh_make -e powerdns.support@powerdns.com -s -r cdbs  -f ../pdns-recursor-$VERSION.tar.bz2  < /dev/null
 perl -i -pe 's/Description: <.*>/Description: extremely powerful and versatile recursing nameserver/' debian/control
