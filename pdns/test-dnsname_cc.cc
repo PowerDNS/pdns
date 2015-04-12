@@ -244,7 +244,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
 BOOST_AUTO_TEST_CASE(test_escaping) {
   DNSName n;
   string label;
-  for(int i = 0; i < 256; ++i) {
+  for(int i = 0; i < 250; ++i) {
     if(!((i+1)%63)) {
       n.appendRawLabel(label);
       label.clear();
@@ -286,4 +286,130 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
 
 }
+
+
+BOOST_AUTO_TEST_CASE(test_empty_label) { // empty label
+
+  { // append
+    DNSName dn("www.");
+    BOOST_CHECK_THROW(dn.appendRawLabel(""), std::range_error);
+  }
+
+  { // prepend
+    DNSName dn("www.");
+    BOOST_CHECK_THROW(dn.prependRawLabel(""), std::range_error);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_label_length_max) { // 63 char label
+
+  string label("123456789012345678901234567890123456789012345678901234567890123");
+
+  { // append
+    DNSName dn("www.");
+    dn.appendRawLabel(label);
+    BOOST_CHECK_EQUAL(dn.toString(), "www." + label + ".");
+  }
+
+  { // prepend
+    DNSName dn("www.");
+    dn.prependRawLabel(label);
+    BOOST_CHECK_EQUAL(dn.toString(), label + ".www.");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_label_length_too_long) { // 64 char label
+
+  string label("1234567890123456789012345678901234567890123456789012345678901234");
+
+  { // append
+    DNSName dn("www.");
+    BOOST_CHECK_THROW(dn.appendRawLabel(label), std::range_error);
+  }
+
+  { // prepend
+    DNSName dn("www.");
+    BOOST_CHECK_THROW(dn.prependRawLabel(label), std::range_error);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_name_length_max) { // 255 char name
+
+  string name("123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789."
+              "123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789."
+              "123456789.123456789.123456789.123456789.123456789.");
+  string label("123");
+
+  { // append
+    DNSName dn(name);
+    dn.appendRawLabel(label);
+    BOOST_CHECK_EQUAL(dn.toString().size(), 254);
+  }
+
+  { // prepend
+    DNSName dn(name);
+    dn.prependRawLabel(label);
+    BOOST_CHECK_EQUAL(dn.toString().size(), 254);
+  }
+
+  { // concat
+    DNSName dn(name);
+    dn += DNSName(label + ".");
+    BOOST_CHECK_EQUAL(dn.toString().size(), 254);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_name_length_too_long) { // 256 char name
+
+  string name("123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789."
+              "123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789.123456789."
+              "123456789.123456789.123456789.123456789.123456789.");
+  string label("1234");
+
+  { // append
+    DNSName dn(name);
+    BOOST_CHECK_THROW(dn.appendRawLabel(label), std::range_error);
+  }
+
+  { // prepend
+    DNSName dn(name);
+    BOOST_CHECK_THROW(dn.prependRawLabel(label), std::range_error);
+  }
+
+  { // concat
+    DNSName dn(name);
+    BOOST_CHECK_THROW(dn += DNSName(label + "."), std::range_error);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_invalid_label_length) { // Invalid label length in qname
+
+  string name("\x02""ns\x07""example\x04""com\x00", 16);
+
+  BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 0, true), std::range_error);
+}
+
+BOOST_AUTO_TEST_CASE(test_compression) { // Compression test
+
+  string name("\x03""com\x00""\x07""example\xc0""\x00""\x03""www\xc0""\x05", 21);
+
+  DNSName dn(name.c_str(), name.size(), 15, true);
+  BOOST_CHECK_EQUAL(dn.toString(), "www.example.com.");
+}
+
+BOOST_AUTO_TEST_CASE(test_compression_loop) { // Compression loop (add one label)
+
+  std::string name("\x03""www\xc0""\x00", 6);
+
+  BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.length(), 0, true), std::range_error);
+}
+
+BOOST_AUTO_TEST_CASE(test_compression_loop1) { // Compression loop (pointer loop)
+
+  string name("\xc0""\x00", 2);
+
+  BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 0, true), std::range_error);
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()
