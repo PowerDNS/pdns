@@ -128,6 +128,30 @@ private:
   string d_pool;
 };
 
+
+class QPSPoolAction : public DNSAction
+{
+public:
+  QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(limit, limit), d_pool(pool) {}
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
+  {
+    if(d_qps.check()) {
+      *ruleresult=d_pool;
+      return Action::Pool;
+    }
+    else 
+      return Action::None;
+  }
+  string toString() const override
+  {
+    return "max " +std::to_string(d_qps.getRate())+" to pool "+d_pool;
+  }
+
+private:
+  QPSLimiter d_qps;
+  string d_pool;
+};
+
 class RCodeAction : public DNSAction
 {
 public:

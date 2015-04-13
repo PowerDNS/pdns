@@ -301,6 +301,37 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	  });
 
     });
+  g_lua.writeFunction("addQPSPoolRule", [](boost::variant<string,vector<pair<int, string>> > var, int limit, string pool) {
+      SuffixMatchNode smn;
+      NetmaskGroup nmg;
+
+      auto add=[&](string src) {
+	try {
+	  smn.add(DNSName(src));
+	} catch(...) {
+	  nmg.addMask(src);
+	}
+      };
+      if(auto src = boost::get<string>(&var))
+	add(*src);
+      else {
+	for(auto& a : boost::get<vector<pair<int, string>>>(var)) {
+	  add(a.second);
+	}
+      }
+      if(nmg.empty())
+	g_rulactions.modify([smn, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+				   std::make_shared<SuffixMatchNodeRule>(smn), 
+				     std::make_shared<QPSPoolAction>(limit, pool)  });
+	  });
+      else
+	g_rulactions.modify([nmg,pool,limit](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({std::make_shared<NetmaskGroupRule>(nmg), 
+		  std::make_shared<QPSPoolAction>(limit, pool)}); 
+	  });
+
+    });
 
   g_lua.writeFunction("setDNSSECPool", [](const std::string& pool) {
       g_rulactions.modify([pool](decltype(g_rulactions)::value_type& rulactions) {

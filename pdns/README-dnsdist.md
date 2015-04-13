@@ -164,6 +164,13 @@ We can similarly add clients to the abuse server:
 > addPoolRule({"192.168.12.0/24", "192.168.13.14"}, "abuse")
 ```
 
+To define a pool that should receive a QPS-limited amount of traffic, do:
+
+```
+> addQPSPoolRule("com.", 10000, "gtld-cluster")
+```
+
+
 Both `addDomainBlock` and `addPoolRule` end up the list of Rules 
 and Actions (for which see below).
 
@@ -463,6 +470,7 @@ Here are all functions:
    * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
    * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
+   * `addQPsPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
    * `getPoolServers(pool)`: return servers part of this pool
  * Server selection policy related:
    * `setServerPolicy(policy)`: set server selection policy to that policy
