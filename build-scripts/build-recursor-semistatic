@@ -1,23 +1,31 @@
 #!/bin/sh
-set -e
-set -x
-
-if [ -z "$VERSION" ]; then
-  VERSION=$(git describe --always --dirty=+ 2>/dev/null || true)
-  if [ -z "$VERSION" ]; then
-    VERSION="UNKNOWN"
-  else
-    VERSION="git-"$VERSION
-  fi
-else
-  VERSION=$1
+if [ "$0" != "./build-scripts/build-recursor-semistatic" ]; then
+  echo "Please run me from the root checkout dir" >&2
+  exit 1
 fi
 
-DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
+if [ -z "$VERSION" ]; then
+  echo 'Please set $VERSION' >&2
+  exit 1
+fi
+
+if [ -z "$RELEASE" ];then
+  echo 'Please set $RELEASE' >&2
+  exit 1
+fi
+
+if [ -z "$DISTDIR" ]; then
+  DISTDIR=pdns
+fi
+
+set -e
+set -x
 
 export DEBFULLNAME="PowerDNS.COM BV"
 export DEBEMAIL="noreply@powerdns.com"
 DEBPKGNAME=pdns-recursor_$VERSION
+
+cd $DISTDIR
 
 dh_make -s -f ../pdns-recursor-$VERSION.tar.bz2 -p $DEBPKGNAME < /dev/null
 cp pdns-recursor.init.d debian/init.d
@@ -25,10 +33,21 @@ cp pdns-recursor.init.d debian/init.d
 perl -i -pe 's/Description: <.*>/Description: extremely powerful and versatile recursing nameserver/' debian/control
 # only to be nice to people usind the generated .dsc
 perl -i -pe 's/(Build-Depends: .*)/$1, libboost-dev, libboost-serialization-dev, liblua5.2-0-dev/' debian/control
+
+cat > debian/changelog << EOF
+pdns-recursor (${VERSION}-${RELEASE}) unstable; urgency=medium
+
+  * Automatic build
+
+ -- PowerDNS.COM AutoBuilder <noreply@powerdns.com>  $(date -R)
+
+EOF
+
 # Fix the rpm version number
 perl -i -pe "s/Version: .*/Version: ${VERSION}/" pdns-recursor.spec
+perl -i -pe "s/Release: .*/Release: ${RELEASE}/" pdns-recursor.spec
 export LUA=1
 export STATIC=semi
-./configure
 fakeroot debian/rules binary
+./configure
 fakeroot rpmbuild -bb pdns-recursor.spec
