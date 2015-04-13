@@ -458,6 +458,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
   if(recurs > 1000) // the forward reference-check below should make this test 100% obsolete
     throw MOADNSException("Loop");
   // it is tempting to call reserve on ret, but it turns out it creates a malloc/free storm in the loop
+  int pos = frompos;
   for(;;) {
     unsigned char labellen=content.at(frompos++);
 
@@ -470,7 +471,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //        cout<<"This is an offset, need to go to: "<<offset<<endl;
 
-      if(offset >= frompos-2)
+      if(offset >= pos-2)
         throw MOADNSException("forward reference during label decompression");
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
