@@ -39,7 +39,10 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       labellen &= (~0xc0);
       int newpos = (labellen << 8) + *(const unsigned char*)pos;
 
-      packetParser(opos, len, newpos, labelAdded);
+      if(newpos < len)
+        packetParser(opos, len, newpos, labelAdded);
+      else
+        throw std::range_error("Found an invalid compression pointer");
       pos++;
       break;
     }

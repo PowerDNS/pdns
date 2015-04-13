@@ -381,6 +381,13 @@ BOOST_AUTO_TEST_CASE(test_compression) { // Compression test
   BOOST_CHECK_EQUAL(dn.toString(), "www.example.com.");
 }
 
+BOOST_AUTO_TEST_CASE(test_bad_compression_pointer) { // Pointing beyond packet boundary
+
+  std::string name("\x03""com\x00""\x07""example\xc0""\x11""xc0""\x00", 17);
+
+  BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.length(), 5, true), std::range_error);
+}
+
 BOOST_AUTO_TEST_CASE(test_compression_loop) { // Compression loop (add one label)
 
   std::string name("\x03""www\xc0""\x00", 6);
