@@ -114,10 +114,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   build.appendRawLabel("Donald E. Eastlake 3rd");
   build.appendRawLabel("example");
   BOOST_CHECK_EQUAL(build.toString(), R"(Donald\032E\.\032Eastlake\0323rd.example.)");
-  try {
-    DNSName broken("bert..hubert.");
-    BOOST_CHECK(0);
-  }catch(...){}
+  BOOST_CHECK_THROW(DNSName broken("bert..hubert."), std::runtime_error);
 
   DNSName n;
   n.appendRawLabel("powerdns.dnsmaster");
@@ -148,20 +145,7 @@ BOOST_AUTO_TEST_CASE(test_trim) {
 }
 
 BOOST_AUTO_TEST_CASE(test_toolong) {
-  try {
-    DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com.");
-    BOOST_CHECK(0);
-  }
-  catch(...){}
-
-
-  try {
-    DNSName w("com.");
-    w.prependRawLabel("1234567890123456789012345678901234567890123456789012345678901234567890");
-    BOOST_CHECK(0);
-  }
-  catch(...){}
-
+  BOOST_CHECK_THROW(DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com."), std::range_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnsstrings) {
