@@ -455,7 +455,7 @@ string PacketReader::getText(bool multi)
 
 void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs) 
 {
-  if(recurs > 1000) // the forward reference-check below should make this test 100% obsolete
+  if(recurs > 100) // the forward reference-check below should make this test 100% obsolete
     throw MOADNSException("Loop");
   // it is tempting to call reserve on ret, but it turns out it creates a malloc/free storm in the loop
   int pos = frompos;
