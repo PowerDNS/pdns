@@ -1,5 +1,106 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 3.7.2
+
+UNRELEASED
+
+Bug fixes:
+
+- [commit a7be3f1](https://github.com/PowerDNS/pdns/commit/a7be3f1): make sure
+we never call sendmsg with msg_control!=NULL && msg_controllen>0. Fixes
+[ticket #2227](https://github.com/PowerDNS/pdns/issues/2227)
+- [commit 9d835ed](https://github.com/PowerDNS/pdns/commit/9d835ed): Improve
+robustness of root-nx-trust.
+
+Improvements:
+
+- [commit bcca91e](https://github.com/PowerDNS/pdns/commit/bcca91e): move
+recursor-git build script from jenkins config into git
+- [commit 99c595b](https://github.com/PowerDNS/pdns/commit/99c595b): Silence
+warnings that always occur on FreeBSD (Ruben Kerkhof)
+- [commit c085978](https://github.com/PowerDNS/pdns/commit/c085978): Start
+pdns-recursor before nss-lookup.target (Ruben Kerkhof)
+- [commit 7a18b45](https://github.com/PowerDNS/pdns/commit/7a18b45): remove
+the parts that are wrong from this readme, add some stuff that is right
+
+# PowerDNS Authoritative Server 3.4.4
+
+**Warning**: Version 3.4.4 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
+
+UNRELEASED
+
+Bug fixes:
+
+- [commit 21cdbe5](https://github.com/PowerDNS/pdns/commit/21cdbe5): Blocking
+IO in busy-wait for remote backend (Wieger Opmeer)
+- [commit cc7b2ac](https://github.com/PowerDNS/pdns/commit/cc7b2ac): fix
+double dot for root MX/SRV in bind slave zone files (Kees Monshouwer)
+- [commit c40307b](https://github.com/PowerDNS/pdns/commit/c40307b): Properly
+lock lmdb database, fixes [ticket #1954](https://github.com/PowerDNS/pdns/issues/1954)
+(Aki Tuomi)
+- [commit 662e76d](https://github.com/PowerDNS/pdns/commit/662e76d): Fix
+segfault in zone2lmdb (Ruben Kerkhof)
+
+New Features:
+
+- commits [cd3f21c](https://github.com/PowerDNS/pdns/commit/cd3f21c),
+[8b582f6](https://github.com/PowerDNS/pdns/commit/8b582f6),
+[0b7e766](https://github.com/PowerDNS/pdns/commit/0b7e766),
+[f743af9](https://github.com/PowerDNS/pdns/commit/f743af9),
+[dcde3c8](https://github.com/PowerDNS/pdns/commit/dcde3c8) and
+[f12fcf7](https://github.com/PowerDNS/pdns/commit/f12fcf7):
+TKEY record type (Aki Tuomi)
+- commits [0fda1d9](https://github.com/PowerDNS/pdns/commit/0fda1d9),
+[3dd139d](https://github.com/PowerDNS/pdns/commit/3dd139d),
+[ba146ce](https://github.com/PowerDNS/pdns/commit/ba146ce),
+[25109e2](https://github.com/PowerDNS/pdns/commit/25109e2),
+[c011a01](https://github.com/PowerDNS/pdns/commit/c011a01),
+[0600350](https://github.com/PowerDNS/pdns/commit/0600350),
+[fc96b5e](https://github.com/PowerDNS/pdns/commit/fc96b5e),
+[4414468](https://github.com/PowerDNS/pdns/commit/4414468),
+[c163d41](https://github.com/PowerDNS/pdns/commit/c163d41),
+[f52c7f6](https://github.com/PowerDNS/pdns/commit/f52c7f6),
+[8d56a31](https://github.com/PowerDNS/pdns/commit/8d56a31),
+[7821417](https://github.com/PowerDNS/pdns/commit/7821417),
+[ea62bd9](https://github.com/PowerDNS/pdns/commit/ea62bd9),
+[c5ababd](https://github.com/PowerDNS/pdns/commit/c5ababd),
+[91c8351](https://github.com/PowerDNS/pdns/commit/91c8351) and
+[073ac49](https://github.com/PowerDNS/pdns/commit/073ac49): Many
+PKCS#11 improvements (Aki Tuomi)
+- commits [6f0d4f1](https://github.com/PowerDNS/pdns/commit/6f0d4f1) and
+[5eb33cb](https://github.com/PowerDNS/pdns/commit/5eb33cb): Introduce
+xfrBlobNoSpaces and use them for TSIG (Aki Tuomi)
+
+Improvements:
+
+- commits [cce95b9](https://github.com/PowerDNS/pdns/commit/cce95b9),
+[e2e9243](https://github.com/PowerDNS/pdns/commit/e2e9243) and
+[e82da97](https://github.com/PowerDNS/pdns/commit/e82da97): Improvements
+to the config-file parsing (Aki Tumomi)
+- [commit 2180e21](https://github.com/PowerDNS/pdns/commit/2180e21):
+postgresql check should not touch LDFLAGS (Ruben Kerkhof)
+- [commit 0481021](https://github.com/PowerDNS/pdns/commit/0481021): Log error
+when remote cannot do AXFR (Aki Tuomi)
+- [commit 1ecc3a5](https://github.com/PowerDNS/pdns/commit/1ecc3a5): Speed
+improvements when AXFR is disabled (Christian Hofstaedtler)
+- commits [1f7334e](https://github.com/PowerDNS/pdns/commit/1f7334e) and
+[b17799a](https://github.com/PowerDNS/pdns/commit/b17799a): NSEC3 and
+related RRSIGS are not part of the dnstree (Kees Monshouwer)
+- commits [dd943dd](https://github.com/PowerDNS/pdns/commit/dd943dd) and
+[58c4834](https://github.com/PowerDNS/pdns/commit/58c4834): Change
+ifdef to check for `__GLIBC__` instead of `__linux__` to prevent errors with other
+libc's (James Taylor)
+- [commit c929d50](https://github.com/PowerDNS/pdns/commit/c929d50): Try to
+raise open files before dropping privileges (Aki Tuomi)
+- [commit 69fd3dc](https://github.com/PowerDNS/pdns/commit/69fd3dc): Add
+newline to carbon error message on auth (Aki Tuomi)
+- [commit 3064f80](https://github.com/PowerDNS/pdns/commit/3064f80): Make sure
+we send servfail on error (Aki Tuomi)
+- [commit b004529](https://github.com/PowerDNS/pdns/commit/b004529): Ship
+lmdb-example.pl in tarball (Ruben Kerkhof)
+- [commit 9e6b24f](https://github.com/PowerDNS/pdns/commit/9e6b24f): Allocate
+TCP buffer dynamically, decreasing stack usage
+
 # PowerDNS Authoritative Server 3.4.3
 
 **Warning**: Version 3.4.3 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
