@@ -223,6 +223,29 @@ servers that lack this feature.
 Note that calling `addAnyTCRule()` achieves the same thing, without
 involving Lua.
 
+Lua actions in rules
+--------------------
+While we can pass every packet through the `blockFilter()` functions, it is also
+possible to configure `dnsdist` to only hand off some packets for Lua inspection. 
+If you think Lua is too slow for your query load, or if you are doing heavy processing in Lua, 
+this may make sense.
+
+To select specific packets for Lua attention, use `addLuaAction(x, func)`,
+where x is either a netmask, or a domain suffix, or a table of netmasks or a
+table of domain suffixes.  This is identical to how `addPoolRule()` selects.
+
+The function should look like this:
+```
+function luarule(remote, qname, qtype, dh, len)
+        if(qtype==35) -- NAPTR
+        then
+                return DNSAction.Pool, "abuse" -- send to abuse pool
+        else
+                return DNSAction.None, ""      -- no action
+        end
+end
+```
+
 DNSSEC
 ------
 To provide DNSSEC service from a separate pool, try:
@@ -470,8 +493,12 @@ Here are all functions:
    * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
    * `addPoolRule(netmask, pool)`: send queries to this netmask to that pool
    * `addPoolRule({netmask, netmask}, pool)`: send queries to these netmasks to that pool  
-   * `addQPsPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
+   * `addQPSPoolRule(x, limit, pool)`: like `addPoolRule`, but only select at most 'limit' queries/s for this pool
    * `getPoolServers(pool)`: return servers part of this pool
+ * Lua Action related:
+   * `addLuaAction(x, func)`: where 'x' is all the combinations from `addPoolRule`, and func is a 
+      function with parameters remote, qname, qtype, dh and len, which returns an action to be taken 
+      on this packet. Good for rare packets but where you want to do a lot of processing.
  * Server selection policy related:
    * `setServerPolicy(policy)`: set server selection policy to that policy
    * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'

@@ -23,6 +23,17 @@ addPoolRule({"ezdns.it.", "xxx."}, "abuse")
 addPoolRule("192.168.1.0/24", "abuse")
 addQPSPoolRule("com.", 100, "abuse")
 
+function luarule(remote, qname, qtype, dh, len)
+	if(qtype==35) -- NAPTR
+	then
+		return DNSAction.Pool, "abuse" -- send to abuse pool
+	else
+		return DNSAction.None, ""      -- no action
+	end
+end
+addLuaAction("192.168.1.0/24", luarule)
+topRule()
+
 addDomainBlock("powerdns.org.")
 addDomainBlock("spectre.")
 addDomainBlock("isis.")
