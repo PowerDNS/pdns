@@ -268,11 +268,12 @@ setting is intended to forward queries to authoritative servers.
 
 Same as [`forward-zones`](#forward-zones), parsed from a file. Only 1 zone is
 allowed per line, specified as follows: `example.org=203.0.113.210, 192.0.2.4:5300`.
-No comments are allowed.
 
 Since version 3.2, zones prefixed with a '+' are forwarded with the
 recursion-desired bit set to one, for which see ['forward-zones-recurse'](#forward-zones-recurse).
 Default behaviour without '+' is as with [`forward-zones`](#forward-zones).
+
+Comments are allowed since version 4.0.0. Everything behind '#' is ignored.
 
 ## `forward-zones-recurse`
 * 'zonename=IP' pairs, comma separated

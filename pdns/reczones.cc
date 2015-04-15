@@ -449,8 +449,12 @@ SyncRes::domainmap_t* parseAuthAndForwards()
     int linenum=0;
     uint64_t before = newMap->size();
     while(linenum++, stringfgets(fp.get(), line)) {
+      trim(line);
+      if (line[0] == '#') // Comment line, skip to the next line
+        continue;
       string domain, instructions;
       tie(domain, instructions)=splitField(line, '=');
+      instructions = splitField(instructions, '#').first; // Remove EOL comments
       trim(domain);
       trim(instructions);
       if(domain.empty() && instructions.empty()) { // empty line
