@@ -532,6 +532,7 @@ times for this many seconds.
 
 The PowerDNS recursor by replies to a query for 'id.server' with its hostname,
 useful for in clusters. Use this setting to override the answer it gives.
+* e.g. dig @YourServer id.server chaos txt
 
 ## `setgid`, `setuid`
 * String
