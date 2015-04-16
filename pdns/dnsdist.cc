@@ -857,13 +857,13 @@ try
     {"execute", required_argument, 0, 'e'},
     {"command", optional_argument, 0, 'c'},
     {"local",  required_argument, 0, 'l'},
-    {"daemon", optional_argument, 0, 'd'},
+    {"daemon", 0, 0, 'd'},
     {"help", 0, 0, 'h'}, 
     {0,0,0,0} 
   };
   int longindex=0;
   for(;;) {
-    int c=getopt_long(argc, argv, "hbce:C:d:l:m:v", longopts, &longindex);
+    int c=getopt_long(argc, argv, "hbcde:C:l:m:v", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -874,21 +874,18 @@ try
       g_cmdLine.beClient=true;
       break;
     case 'd':
-      if(!optarg)
-	g_cmdLine.beDaemon=true;
-      else
-	g_cmdLine.beDaemon=(string(optarg)=="true");
+      g_cmdLine.beDaemon=true;
       break;
     case 'e':
       g_cmdLine.command=optarg;
       break;
     case 'h':
-      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon [yes|no]] [-e,--execute cmd]\n";
+      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon] [-e,--execute cmd]\n";
       cout<<"[-h,--help] [-l,--local addr]\n";
       cout<<"\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
       cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
-      cout<<"-d,--daemon=[yes|no]  Operate as a daemon or not\n";
+      cout<<"-d,--daemon           Operate as a daemon\n";
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
       cout<<"-h,--help             Display this helpful message\n";
       cout<<"-l,--local address    Listen on this local address\n";
