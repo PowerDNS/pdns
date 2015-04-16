@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) -O3 -Wall -pthread 
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
 SUBDIRS=pdns/ext/yahttp
 

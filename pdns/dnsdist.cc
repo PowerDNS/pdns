@@ -851,7 +851,7 @@ try
     exit(EXIT_FAILURE);
   }
 #endif
-  g_cmdLine.config="/etc/dnsdist.conf";
+  g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
