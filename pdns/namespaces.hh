@@ -55,6 +55,7 @@ using boost::any_cast;
 using boost::any;
 using boost::function;
 using boost::trim;
+using boost::trim_copy;
 using boost::trim_left;
 using boost::trim_right;
 using boost::is_any_of;

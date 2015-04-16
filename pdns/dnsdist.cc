@@ -893,7 +893,7 @@ try
       exit(EXIT_SUCCESS);
       break;
     case 'l':
-      g_cmdLine.locals.push_back(optarg);
+      g_cmdLine.locals.push_back(trim_copy(string(optarg)));
       break;
     case 'v':
       g_verbose=true;
