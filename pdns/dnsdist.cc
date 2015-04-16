@@ -828,6 +828,7 @@ struct
   vector<string> remotes;
   bool beDaemon{false};
   bool beClient{false};
+  bool beSupervised{false};
   string command;
   string config;
 } g_cmdLine;
@@ -858,6 +859,7 @@ try
     {"command", optional_argument, 0, 'c'},
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
+    {"supervised", 0, 0, 's'},
     {"help", 0, 0, 'h'}, 
     {0,0,0,0} 
   };
@@ -889,12 +891,16 @@ try
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
       cout<<"-h,--help             Display this helpful message\n";
       cout<<"-l,--local address    Listen on this local address\n";
+      cout<<"--supervised          Don't open a console, I'm supervised\n";
+      cout<<"                        (use with e.g. systemd and daemontools)\n";
       cout<<"\n";
       exit(EXIT_SUCCESS);
       break;
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
       break;
+    case 's':
+      g_cmdLine.beSupervised=true;
     case 'v':
       g_verbose=true;
       break;
@@ -1016,12 +1022,12 @@ try
 
   thread stattid(maintThread);
   
-  if(!g_cmdLine.beDaemon) {
-    stattid.detach();
-    doConsole();
+  if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {
+    stattid.join();
   }
   else {
-    stattid.join();
+    stattid.detach();
+    doConsole();
   }
   _exit(EXIT_SUCCESS);
 
