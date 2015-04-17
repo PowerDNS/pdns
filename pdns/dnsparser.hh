@@ -37,6 +37,8 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "dns.hh"
 #include "dnswriter.hh"
+#include "dnsname.hh"
+#include "pdnsexception.hh"
 
 /** DNS records have three representations:
     1) in the packet
@@ -133,13 +135,12 @@ public:
   void xfrHexBlob(string& blob, bool keepReading=false);
 
   static uint16_t get16BitInt(const vector<unsigned char>&content, uint16_t& pos);
-  static void getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs);
 
   void getDnsrecordheader(struct dnsrecordheader &ah);
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
 
-  string getLabel(unsigned int recurs=0);
+  string getLabel();
   string getText(bool multi);
 
   uint16_t d_pos;

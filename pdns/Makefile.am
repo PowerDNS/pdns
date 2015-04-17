@@ -138,6 +138,7 @@ pdns_server_SOURCES = \
 	dns_random.cc dns_random.hh \
 	dnsbackend.cc dnsbackend.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnspacket.cc dnspacket.hh \
 	dnsparser.cc \
 	dnsproxy.cc dnsproxy.hh \
@@ -255,6 +256,7 @@ pdnssec_SOURCES = \
 	dnsbackend.cc \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnspacket.cc \
 	dnsparser.cc dnsparser.hh \
 	dns_random.cc \
@@ -342,6 +344,7 @@ zone2sql_SOURCES = \
 	bindparserclasses.hh \
 	dns.cc \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -369,6 +372,7 @@ zone2json_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -402,6 +406,7 @@ zone2ldap_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -433,6 +438,7 @@ zone2lmdb_SOURCES = \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -456,6 +462,7 @@ sdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -477,6 +484,7 @@ calidns_SOURCES = \
 	base64.cc base64.hh \
 	calidns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -507,6 +515,7 @@ saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
@@ -533,6 +542,7 @@ dnstcpbench_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnstcpbench.cc \
@@ -585,6 +595,7 @@ dnsdist_LDADD = \
 nsec3dig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
@@ -612,6 +623,7 @@ toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
@@ -638,6 +650,7 @@ tsig_tests_SOURCES = \
 	dns.cc \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
@@ -666,6 +679,7 @@ speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -697,6 +711,7 @@ dnsbulktest_SOURCES = \
 	base64.cc \
 	dnsbulktest.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -722,6 +737,7 @@ dnsscan_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -744,6 +760,7 @@ dnsreplay_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -771,6 +788,7 @@ nproxy_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -800,6 +818,7 @@ notify_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -828,6 +847,7 @@ dnsscope_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -856,6 +876,7 @@ dnsgram_SOURCES = \
 	base64.cc base64.hh \
 	dnsgram.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -877,6 +898,7 @@ dnsdemog_SOURCES = \
 	base64.cc base64.hh \
 	dnsdemog.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -980,6 +1002,7 @@ pdns_recursor_SOURCES = \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
