@@ -681,15 +681,14 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
 // accepts . terminated names, www.powerdns.com. -> com.
 static const string getLastLabel(const std::string& qname)
 {
-  if(qname.empty())
+  if(qname.empty() || qname == ".")
     return qname;
-  string ret=qname.substr(0, qname.length()-1); // strip .
 
-  string::size_type pos = ret.rfind('.');
-  if(pos != string::npos) {
-    ret = ret.substr(pos+1) + ".";
-  }
-  return ret;
+  labelparts_t parts;
+  labeltokUnescape(parts, qname);
+  int offset = (parts.end()-1)->first;
+
+  return qname.substr(offset, qname.size()-offset);
 }
 
 bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
