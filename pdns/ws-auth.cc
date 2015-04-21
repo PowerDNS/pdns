@@ -628,17 +628,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     Document document;
     req->json(document);
     string zonename = stringFromJson(document, "name");
-    string dotsuffix = "." + zonename;
-    string zonestring = stringFromJson(document, "zone", "");
 
-    // TODO: better validation of zonename
-    if(zonename.empty())
-      throw ApiException("Zone name empty");
-
-    // strip any trailing dots
-    while (zonename.substr(zonename.size()-1) == ".") {
+    // strip trailing dot (from spec PoV this is wrong, but be nice to clients)
+    if (zonename.size() > 0 && zonename.substr(zonename.size()-1) == ".") {
       zonename.resize(zonename.size()-1);
     }
+
+    string dotsuffix = "." + zonename;
+    string zonestring = stringFromJson(document, "zone", "");
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
@@ -656,8 +653,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("Nameservers list must be given (but can be empty if NS records are supplied)");
 
     string soa_edit_api_kind;
-    if (document["soa_edit_api"].IsString())
+    if (document["soa_edit_api"].IsString()) {
       soa_edit_api_kind = document["soa_edit_api"].GetString();
+    }
+    else {
+      soa_edit_api_kind = "DEFAULT";
+    }
+    string soa_edit_kind;
+    if (document["soa_edit"].IsString())
+      soa_edit_kind = document["soa_edit"].GetString();
 
     // if records/comments are given, load and check them
     bool have_soa = false;
@@ -681,7 +685,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
       if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
         have_soa = true;
-        editSOARecord(rr, soa_edit_api_kind);
+        increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
     }
 
@@ -711,7 +715,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
       rr.content = serializeSOAData(sd);
       rr.qtype = "SOA";
-      editSOARecord(rr, soa_edit_api_kind);
+      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       new_records.push_back(rr);
     }
 
@@ -982,7 +986,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
   try {
     string soa_edit_api_kind;
+    string soa_edit_kind;
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
     for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
@@ -993,9 +999,6 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
 
-      if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
-        throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
-
       if (changetype == "DELETE") {
         // delete all matching qname/qtype RRs (and, implictly comments).
         if (!di.backend->replaceRRSet(di.id, qname, qtype, vector<DNSResourceRecord>())) {
@@ -1003,7 +1006,11 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         }
       }
       else if (changetype == "REPLACE") {
-        new_records.clear();
+		// we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
+        if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
+          throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
+
+		new_records.clear();
         new_comments.clear();
         // new_ptrs is merged
         gatherRecords(rrset, new_records, new_ptrs);
@@ -1016,7 +1023,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
             throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
-            soa_edit_done = editSOARecord(rr, soa_edit_api_kind);
+            soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
           }
         }
 
@@ -1060,7 +1067,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       rr.auth = 1;
       rr.ttl = sd.ttl;
       rr.priority = 0;
-      editSOARecord(rr, soa_edit_api_kind);
+      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
 
       if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
         throw ApiException("Hosting backend does not support editing records.");

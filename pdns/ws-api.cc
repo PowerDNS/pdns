@@ -259,7 +259,7 @@ string apiZoneIdToName(const string& id) {
   zonename = ss.str();
 
   // strip trailing dot
-  if (zonename.substr(zonename.size()-1) == ".") {
+  if (zonename.size() > 0 && zonename.substr(zonename.size()-1) == ".") {
     zonename.resize(zonename.size()-1);
   }
   return zonename;
@@ -282,14 +282,14 @@ string apiZoneNameToId(const string& name) {
   string id = ss.str();
 
   // add trailing dot
-  if (id.substr(id.size()-1) != ".") {
+  if (id.size() == 0 || id.substr(id.size()-1) != ".") {
     id += ".";
   }
 
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
   if (id == ".") {
-    id = (boost::format("=%02x") % (int)('.')).str();
+    id = (boost::format("=%02X") % (int)('.')).str();
   }
   return id;
 }
