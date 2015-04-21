@@ -229,11 +229,28 @@ shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, cons
   return (*res)[(counter++) % res->size()].second;
 }
 
+static void writepid(string pidfile) {
+  if (!pidfile.empty()) {
+    // Clean up possible stale file
+    unlink(pidfile.c_str());
+
+    // Write the pidfile
+    ofstream of(pidfile.c_str());
+    if (of) {
+      of << getpid();
+    } else {
+      errlog("Unable to write PID-file to '%s'.", pidfile);
+    }
+    of.close();
+  }
+}
+
 static void daemonize(void)
 {
   if(fork())
     _exit(0); // bye bye
-  
+  /* We are child */
+
   setsid(); 
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
@@ -829,6 +846,7 @@ struct
   bool beDaemon{false};
   bool beClient{false};
   bool beSupervised{false};
+  string pidfile;
   string command;
   string config;
 } g_cmdLine;
@@ -859,13 +877,14 @@ try
     {"command", optional_argument, 0, 'c'},
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
+    {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
-    {"help", 0, 0, 'h'}, 
+    {"help", 0, 0, 'h'},
     {0,0,0,0} 
   };
   int longindex=0;
   for(;;) {
-    int c=getopt_long(argc, argv, "hbcde:C:l:m:v", longopts, &longindex);
+    int c=getopt_long(argc, argv, "hbcde:C:l:m:vp:", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -882,8 +901,8 @@ try
       g_cmdLine.command=optarg;
       break;
     case 'h':
-      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon] [-e,--execute cmd]\n";
-      cout<<"[-h,--help] [-l,--local addr]\n";
+      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
+      cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
       cout<<"\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
       cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
@@ -893,12 +912,15 @@ try
       cout<<"-l,--local address    Listen on this local address\n";
       cout<<"--supervised          Don't open a console, I'm supervised\n";
       cout<<"                        (use with e.g. systemd and daemontools)\n";
+      cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
       cout<<"\n";
       exit(EXIT_SUCCESS);
       break;
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
       break;
+    case 'p':
+      g_cmdLine.pidfile=optarg;
     case 's':
       g_cmdLine.beSupervised=true;
     case 'v':
@@ -962,6 +984,7 @@ try
   if(g_cmdLine.beDaemon) {
     g_console=false;
     daemonize();
+    writepid(g_cmdLine.pidfile);
   }
   else {
     vinfolog("Running in the foreground");
