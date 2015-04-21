@@ -475,7 +475,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //        cout<<"This is an offset, need to go to: "<<offset<<endl;
 
-      if(offset >= pos-2)
+      if(offset >= pos)
         throw MOADNSException("forward reference during label decompression");
       return getLabelFromContent(content, offset, ret, ++recurs);
     }
