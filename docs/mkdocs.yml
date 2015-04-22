@@ -53,6 +53,7 @@ pages:
   - [recursor/internals.md, 'Recursor', 'Internals']
   - [recursor/settings.md, 'Recursor', 'List of Settings']
   - [security/index.md, 'Security', 'Security Policy']
+  - [security/powerdns-advisory-2015-01.md, 'Security', 'Advisory 2015-01']
   - [security/powerdns-advisory-2014-02.md, 'Security', 'Advisory 2014-02']
   - [security/powerdns-advisory-2014-01.md, 'Security', 'Advisory 2014-01']
   - [security/powerdns-advisory-2012-01.md, 'Security', 'Advisory 2012-01']

@@ -2,10 +2,14 @@
 
 # PowerDNS Recursor 3.7.2
 
-UNRELEASED
+Released 23rd of April, 2015
+
+Among other bug fixes and improvements (as listed below), this release incorporates a fix for 
+CVE-2015-1868, as detailed in [PowerDNS Security Advisory 2015-01](security/powerdns-advisory-2015-01.md)
 
 Bug fixes:
 
+- [commit adb10be](https://github.com/PowerDNS/pdns/commit/adb10be) [commit 3ec3e0f](https://github.com/PowerDNS/pdns/commit/3ec3e0f) [commit dc02ebf](https://github.com/PowerDNS/pdns/commit/dc02ebf) Fix handling of forward references in label compressed packets; fixes CVE-2015-1868
 - [commit a7be3f1](https://github.com/PowerDNS/pdns/commit/a7be3f1): make sure
 we never call sendmsg with msg_control!=NULL && msg_controllen>0. Fixes
 [ticket #2227](https://github.com/PowerDNS/pdns/issues/2227)
@@ -14,23 +18,28 @@ robustness of root-nx-trust.
 
 Improvements:
 
-- [commit bcca91e](https://github.com/PowerDNS/pdns/commit/bcca91e): move
-recursor-git build script from jenkins config into git
 - [commit 99c595b](https://github.com/PowerDNS/pdns/commit/99c595b): Silence
 warnings that always occur on FreeBSD (Ruben Kerkhof)
-- [commit c085978](https://github.com/PowerDNS/pdns/commit/c085978): Start
-pdns-recursor before nss-lookup.target (Ruben Kerkhof)
-- [commit 7a18b45](https://github.com/PowerDNS/pdns/commit/7a18b45): remove
-the parts that are wrong from this readme, add some stuff that is right
+
+# PowerDNS Recursor 3.6.3
+
+Released 23rd of April, 2015
+
+The only difference between Recursor 3.6.2 and 3.6.3 is a fix for CVE-2015-1868, as detailed in [PowerDNS Security Advisory 2015-01](security/powerdns-advisory-2015-01.md)
 
 # PowerDNS Authoritative Server 3.4.4
 
+Released 23rd of April, 2015
+
 **Warning**: Version 3.4.4 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
 
-UNRELEASED
+Among other bug fixes and improvements (as listed below), this release incorporates a fix for 
+CVE-2015-1868, as detailed in [PowerDNS Security Advisory 2015-01](security/powerdns-advisory-2015-01.md)
 
 Bug fixes:
 
+- [commit ac3ae09](https://github.com/PowerDNS/pdns/commit/ac3ae09): fix rectify-(all)-zones for mixed case domain names
+- [commit 2dea55e](https://github.com/PowerDNS/pdns/commit/2dea55e), [commit 032d565](https://github.com/PowerDNS/pdns/commit/032d565), [commit 55f2dbf](https://github.com/PowerDNS/pdns/commit/55f2dbf): fix CVE-2015-1868
 - [commit 21cdbe5](https://github.com/PowerDNS/pdns/commit/21cdbe5): Blocking
 IO in busy-wait for remote backend (Wieger Opmeer)
 - [commit cc7b2ac](https://github.com/PowerDNS/pdns/commit/cc7b2ac): fix
@@ -43,6 +52,7 @@ segfault in zone2lmdb (Ruben Kerkhof)
 
 New Features:
 
+- [commit 5ae212e](https://github.com/PowerDNS/pdns/commit/5ae212e): pdnssec: warn for insecure wildcards in opt-out zones
 - commits [cd3f21c](https://github.com/PowerDNS/pdns/commit/cd3f21c),
 [8b582f6](https://github.com/PowerDNS/pdns/commit/8b582f6),
 [0b7e766](https://github.com/PowerDNS/pdns/commit/0b7e766),
@@ -73,10 +83,11 @@ xfrBlobNoSpaces and use them for TSIG (Aki Tuomi)
 
 Improvements:
 
+- [commit e4f48ab](https://github.com/PowerDNS/pdns/commit/e4f48ab): allow "pdnssec set-nsec3 ZONE" for insecure zones; this saves on one rectify when securing a NSEC3 zone
 - commits [cce95b9](https://github.com/PowerDNS/pdns/commit/cce95b9),
 [e2e9243](https://github.com/PowerDNS/pdns/commit/e2e9243) and
 [e82da97](https://github.com/PowerDNS/pdns/commit/e82da97): Improvements
-to the config-file parsing (Aki Tumomi)
+to the config-file parsing (Aki Tuomi)
 - [commit 2180e21](https://github.com/PowerDNS/pdns/commit/2180e21):
 postgresql check should not touch LDFLAGS (Ruben Kerkhof)
 - [commit 0481021](https://github.com/PowerDNS/pdns/commit/0481021): Log error
@@ -100,6 +111,7 @@ we send servfail on error (Aki Tuomi)
 lmdb-example.pl in tarball (Ruben Kerkhof)
 - [commit 9e6b24f](https://github.com/PowerDNS/pdns/commit/9e6b24f): Allocate
 TCP buffer dynamically, decreasing stack usage
+- [commit 267fdde](https://github.com/PowerDNS/pdns/commit/267fdde): throw if getSOA gets non-SOA record
 
 # PowerDNS Authoritative Server 3.4.3
 
