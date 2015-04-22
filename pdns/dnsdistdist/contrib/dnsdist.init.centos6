@@ -1,0 +1,77 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          dnsdist
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: dnsdist
+### END INIT INFO
+# chkconfig: 2345 80 75
+# description: dnsdist is a powerful, scriptable DNS loadbalancer
+# processname: dnsdist
+
+# Source function library.
+. /etc/init.d/functions
+
+PROG=dnsdist
+DNSDIST=/usr/bin/${PROG}
+PIDFILE=/var/run/${PROG}.pid
+DNSDIST_OPTIONS="-l 127.0.0.1:53"
+
+if [ -f /etc/default/${PROG} ]; then
+  . /etc/default/${PROG}
+fi
+
+RETVAL=0
+
+do_start() {
+  echo -n "Starting ${PROG}..."
+  daemon --pidfile=${PIDFILE} $DNSDIST -d -p ${PIDFILE} ${DNSDIST_OPTIONS}
+  ret=$?
+  echo
+  return $ret
+}
+
+do_stop() {
+  echo -n "Stopping ${PROG}..."
+  killproc -p ${PIDFILE} -b $DNSDIST $PROG
+  ret=$?
+  echo
+  return $ret
+}
+
+do_status() {
+  status -p ${PIDFILE} -b ${DNSDIST} ${PROG}
+  return $?
+}
+
+case "$1" in
+  start)
+    do_start
+    RETVAL=$?;;
+  stop)
+    do_stop
+    RETVAL=$?;;
+  restart)
+    do_status >/dev/null 2>&1
+    ret=$?
+
+    if [ $? -eq 0 ]; then
+      do_stop
+      ret=$?
+    fi
+
+    do_start
+    ;;
+  status)
+    do_status
+    exit $?
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+
+exit $RETVAL

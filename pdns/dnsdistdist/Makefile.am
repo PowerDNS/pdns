@@ -16,8 +16,9 @@ EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   README.md \
 	   html \
-	   dnsdist.1\
-	   .version
+	   dnsdist.1 \
+	   .version \
+	   contrib
 
 bin_PROGRAMS = dnsdist
 dnsdist_SOURCES = \

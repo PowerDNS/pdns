@@ -1,0 +1,1 @@
+DNSDIST_OPTIONS='-l 127.0.0.1'
