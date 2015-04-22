@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -x
+
 ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc ../dns.hh \
 ../dnslabeltext.rl ../dnsname.cc ../dnsname.hh ../dnsparser.hh ../dnsrulactions.hh ../dnswriter.cc ../dnswriter.hh \
 ../dolog.hh ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
@@ -7,20 +10,24 @@ ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc .
 ../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc .
 
 ln -fs ../README-dnsdist.md README.md
-
 ln -fs ../dnsdistconf.lua .
+
 mkdir -p pdns/ext/luawrapper/include
-mkdir -p pdns/ext/yahttp/yahttp
-mkdir -p pdns/ext/json11
-mkdir -p pdns/ext/incbin
 ln -sf ../../../../../ext/luawrapper/include/LuaContext.hpp pdns/ext/luawrapper/include
-ln -sf ../../../../ext/yahttp/Makefile.am pdns/ext/yahttp
+
+mkdir -p pdns/ext/json11
 ln -sf ../../../../ext/json11/json11.{hpp,cpp} pdns/ext/json11
+
+mkdir -p pdns/ext/incbin
 ln -sf ../../../../ext/incbin/incbin.h pdns/ext/incbin
+
+pandoc -s -t man ../../docs/manpages/dnsdist.1.md > dnsdist.1
+
+mkdir -p pdns/ext/yahttp/yahttp
+ln -sf ../../../../ext/yahttp/Makefile.am pdns/ext/yahttp
 cd pdns/ext/yahttp/
 ln -sf ../../../../ext/yahttp/{LICENSE,README.md} .
 cd yahttp
 ln -sf ../../../../../ext/yahttp/yahttp/{Makefile.am,*.cpp,*.hpp,*.h} .
 cd -
-
 

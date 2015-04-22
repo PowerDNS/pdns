@@ -10,7 +10,13 @@ BUILT_SOURCES=htmlfiles.h
 htmlfiles.h: html/*
 	./incfiles > $@
 
-EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua README.md html
+man_MANS=dnsdist.1
+
+EXTRA_DIST=dnslabeltext.rl \
+	   dnsdistconf.lua \
+	   README.md \
+	   html \
+	   dnsdist.1
 
 bin_PROGRAMS = dnsdist
 dnsdist_SOURCES = \
