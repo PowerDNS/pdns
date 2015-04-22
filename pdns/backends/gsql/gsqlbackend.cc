@@ -372,7 +372,7 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
     return false;
   char output[1024];
 
-  snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ordername).c_str(), auth, sqlEscape(qname).c_str(), domain_id);
+  snprintf(output, sizeof(output)-1, d_setOrderAuthQuery.c_str(), sqlEscape(ordername).c_str(), auth, sqlEscape(toLower(qname)).c_str(), domain_id);
   try {
     d_db->doCommand(output);
   }
@@ -388,7 +388,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const 
     return false;
   char output[1024];
 
-  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndUpdateAuthQuery.c_str(), auth, domain_id, sqlEscape(qname).c_str());
+  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndUpdateAuthQuery.c_str(), auth, domain_id, sqlEscape(toLower(qname)).c_str());
   try {
     d_db->doCommand(output);
   }
@@ -404,7 +404,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
     return false;
   char output[1024];
 
-  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(qname).c_str(), sqlEscape(type).c_str(), domain_id);
+  snprintf(output, sizeof(output)-1, d_nullifyOrderNameAndAuthQuery.c_str(), sqlEscape(toLower(qname)).c_str(), sqlEscape(type).c_str(), domain_id);
   try {
     d_db->doCommand(output);
   }
