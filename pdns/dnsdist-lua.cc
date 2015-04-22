@@ -540,6 +540,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   // something needs to be done about this, unlocked will 'mostly' work
+#if 0 
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
       map<DNSName, int> counts;
       unsigned int total=0;
@@ -602,7 +603,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       return ret;
     });
-
+#endif
   g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
       map<DNSName, int> counts;
       unsigned int total=0;
