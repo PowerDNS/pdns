@@ -110,6 +110,7 @@ BOOST_AUTO_TEST_CASE(test_labelReverse) {
 
 BOOST_AUTO_TEST_CASE(test_makeRelative) {
     BOOST_CHECK_EQUAL(makeRelative("www.powerdns.com", "powerdns.com"), "www");
+    BOOST_CHECK_EQUAL(makeRelative("PoWeRdNs.CoM", "powerdns.com"), "");
 }
 
 BOOST_AUTO_TEST_CASE(test_AtomicCounter) {

@@ -654,7 +654,7 @@ string makeRelative(const std::string& fqdn, const std::string& zone)
 {
   if(zone.empty())
     return fqdn;  
-  if(fqdn != zone)
+  if(toLower(fqdn) != toLower(zone))
     return fqdn.substr(0, fqdn.size() - zone.length() - 1); // strip domain name
   return "";
 }
