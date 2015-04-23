@@ -177,8 +177,9 @@ void loadMainConfig(const std::string& configdir)
 
 // irritatingly enough, rectifyZone needs its own ueberbackend and can't therefore benefit from transactions outside its scope
 // I think this has to do with interlocking transactions between B and DK, but unsure.
-bool rectifyZone(DNSSECKeeper& dk, const std::string& zone)
+bool rectifyZone(DNSSECKeeper& dk, const std::string& zone2)
 {
+  std::string zone = toLower(zone2);
   if(dk.isPresigned(zone)){
     cerr<<"Rectify presigned zone '"<<zone<<"' is not allowed/necessary."<<endl;
     return false;
