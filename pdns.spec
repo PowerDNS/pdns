@@ -72,6 +72,4 @@ These are the tools
 %{_mandir}/man1/dnstcpbench.1
 %{_mandir}/man1/dnswasher.1
 %{_mandir}/man1/nsec3dig.1
-%{_mandir}/man1/pdns_recursor.1
-%{_mandir}/man1/rec_control.1
 %{_mandir}/man1/saxfr.1

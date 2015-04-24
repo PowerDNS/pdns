@@ -1,5 +1,10 @@
-MANPAGES_TARGET = dnsbulktest.1 \
-	dnsdist.1 \
+MANPAGES_TARGET_AUTH = pdns_server.1 \
+	pdns_control.1 \
+	pdnssec.1 \
+	zone2ldap.1 \
+	zone2sql.1
+
+MANPAGES_TARGET_TOOLS = dnsbulktest.1 \
 	dnsgram.1 \
 	dnsreplay.1 \
 	dnsscan.1 \
@@ -7,27 +12,30 @@ MANPAGES_TARGET = dnsbulktest.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
 	nsec3dig.1 \
-	pdns_control.1 \
-	pdns_recursor.1 \
-	pdnssec.1 \
-	pdns_server.1 \
-	rec_control.1 \
-	saxfr.1 \
-	zone2ldap.1 \
-	zone2sql.1
+	saxfr.1
 
+MANPAGES_TARGET_DNSDIST = dnsdist.1
+
+MANPAGES_TARGET_RECURSOR = pdns_recursor.1 \
+	rec_control.1
+
+MANPAGES_TARGET_ALL=$(MANPAGES_TARGET_AUTH) \
+		$(MANPAGES_TARGET_RECURSOR) \
+		$(MANPAGES_TARGET_TOOLS) \
+		$(MANPAGES_TARGET_DNSDIST)
+
+# The manpages to distribute and install are only those for the
+# auth server and tools. For the recursor and dnsdist tarballs,
+# the respective dist- scripts will take care of this
 if HAVE_PANDOC
-man_MANS = $(MANPAGES_TARGET)
-else
-if HAVE_MANPAGES
-dist_man_MANS = $(MANPAGES_TARGET)
+dist_man_MANS = $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
 endif
+if HAVE_MANPAGES
+dist_man_MANS = $(MANPAGES_TARGET_AUTH) $(MANPAGES_TARGET_TOOLS)
 endif
 
 EXTRA_DIST = manpages \
-	markdown \
-	$(MANPAGES_TARGET) 
-#	html
+	markdown
 
 .PHONY: html manpages
 html: html/index.html
@@ -43,13 +51,13 @@ html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/** manpages/*
 html.tar.bz2: html
 	tar cjf html.tar.bz2 html/
 
-manpages: $(MANPAGES_TARGET)
+manpages: $(MANPAGES_TARGET_ALL)
 
 if HAVE_PANDOC
-$(MANPAGES_TARGET): %: manpages/%.md
+$(MANPAGES_TARGET_ALL): %: manpages/%.md
 	$(PANDOC) -s -t man $< -o $@
 else
-$(MANPAGES_TARGET):
+$(MANPAGES_TARGET_ALL):
 	echo "You need pandoc to generate the manpages"
 	exit 1
 endif
@@ -57,7 +65,6 @@ endif
 if HAVE_LINKCHECKER
 check-links: html
 	./checklinks.sh
-
 endif
 
 clean:
