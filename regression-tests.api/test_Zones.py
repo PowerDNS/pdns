@@ -50,7 +50,8 @@ class AuthZonesHelperMixin(object):
 class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone(self):
-        payload, data = self.create_zone(serial=22)
+        # soa_edit_api has a default, override with empty for this test
+        payload, data = self.create_zone(serial=22, soa_edit_api='')
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
             self.assertIn(k, data)
             if k in payload:
@@ -389,7 +390,7 @@ fred   IN  A      192.168.0.4
             self.assertEquals(counter[et], 0)
 
     def test_export_zone_json(self):
-        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'], soa_edit_api='')
         name = payload['name']
         # export it
         r = self.session.get(
@@ -406,7 +407,7 @@ fred   IN  A      192.168.0.4
         self.assertEquals(data['zone'].strip().split('\n'), expected_data)
 
     def test_export_zone_text(self):
-        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'])
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'], soa_edit_api='')
         name = payload['name']
         # export it
         r = self.session.get(
@@ -765,7 +766,6 @@ fred   IN  A      192.168.0.4
     def test_zone_rr_delete_out_of_zone(self):
         payload, zone = self.create_zone()
         name = payload['name']
-        # replace with qname mismatch
         rrset = {
             'changetype': 'delete',
             'name': 'not-in-zone',
@@ -776,8 +776,8 @@ fred   IN  A      192.168.0.4
             self.url("/servers/localhost/zones/" + name),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
-        self.assertEquals(r.status_code, 422)
-        self.assertIn('out of zone', r.json()['error'])
+        print r.content
+        self.assertEquals(r.status_code, 200)  # succeed so users can fix their wrong, old data
 
     def test_zone_delete(self):
         payload, zone = self.create_zone()
@@ -1015,7 +1015,7 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
         self.session.delete(self.url("/servers/localhost/zones/=2E"))
 
     def test_create_zone(self):
-        payload, data = self.create_zone(name='', serial=22)
+        payload, data = self.create_zone(name='', serial=22, soa_edit_api='')
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
             self.assertIn(k, data)
             if k in payload:

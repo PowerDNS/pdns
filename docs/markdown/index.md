@@ -1,6 +1,6 @@
 > It is a book about a Spanish guy called Manual. You should read it.
-
->       -- Dilbert
+>
+>   -- Dilbert
 
 # PowerDNS Nameserver
 There are two PowerDNS nameserver products: the [Authoritative Server](authoritative/index.md) and the [Recursor](recursor/index.md). While most other nameservers fully combine these functions, PowerDNS offers them separately, but can mix both authoritative and recursive usage seamlessly.
@@ -26,10 +26,8 @@ for spotting problems.
 There are several ways of getting help:
 
 * [The pretty .com website](https://www.powerdns.com) for commercial support
-* This documentation
-  * [Getting support](common/support.md)
+* This documentation => [Getting support](common/support.md)
 * [The mailing lists](https://www.powerdns.com/mailing-lists.html)
-  * 
 * \#powerdns on [irc.oftc.net](irc://irc.oftc.net/#powerdns)
 
 # About this document

@@ -100,10 +100,11 @@ basic_checks:
 	-$(CXX) $(CXXFLAGS) pdns_hw.cc -o pdns_hw
 	@echo
 	@if test -x ./pdns_hw ; \
-		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; fi; \
+		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; exit 1 ; fi; \
 	 else 	\
 	 	echo; echo Could not compile simple binary, read README please; \
 		rm -f dep ; \
+		exit 1 ; \
 	 fi
 
 install: build-stamp

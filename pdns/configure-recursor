@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+if [ "$HARDENING" = "" ]; then
+  HARDENING="yes"
+fi
+
 if [ "$CXX" = "" ]; then
   CXX="g++"
 fi
@@ -69,7 +73,9 @@ EOF
   rm -f $src a.out a2.out
 }
 
-test_flags
+if [ "$HARDENING" != "no" ]; then
+  test_flags
+fi
 
 sed -e "s/@LD_RELRO@/$LD_RELRO/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g" -e "s/@CF_STACK@/$CF_STACK/g" < Makefile.in > Makefile
 

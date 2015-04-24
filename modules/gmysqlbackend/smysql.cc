@@ -34,15 +34,15 @@ public:
     }
 
     if ((d_stmt = mysql_stmt_init(d_db))==NULL) 
-      throw SSqlException("Could not initialize mysql statement, out of memory");
+      throw SSqlException("Could not initialize mysql statement, out of memory: " + d_query);
     
     if ((err = mysql_stmt_prepare(d_stmt, query.c_str(), query.size()))) {
       string error(mysql_stmt_error(d_stmt));
-      throw SSqlException("Could not prepare statement: " + error);
+      throw SSqlException("Could not prepare statement: " + d_query + string(": ") + error);
     }
 
     if (static_cast<int>(mysql_stmt_param_count(d_stmt)) != nparams) 
-      throw SSqlException("Provided parameter count does not match statement");
+      throw SSqlException("Provided parameter count does not match statement: " + d_query);
    
     d_parnum = nparams;
     if (d_parnum>0) {
@@ -53,7 +53,7 @@ public:
 
   SSqlStatement* bind(const string& name, bool value) {
     if (d_paridx >= d_parnum) 
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_TINY;
     d_req_bind[d_paridx].buffer = new char[1];
     *((char*)d_req_bind[d_paridx].buffer) = (value?1:0);
@@ -68,7 +68,7 @@ public:
   }
   SSqlStatement* bind(const string& name, long value) {
     if (d_paridx >= d_parnum)
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
     d_req_bind[d_paridx].buffer = new long[1];
     *((long*)d_req_bind[d_paridx].buffer) = value;
@@ -77,7 +77,7 @@ public:
   }
   SSqlStatement* bind(const string& name, unsigned long value) {
     if (d_paridx >= d_parnum)
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
     d_req_bind[d_paridx].buffer = new unsigned long[1];
     d_req_bind[d_paridx].is_unsigned = 1;
@@ -87,7 +87,7 @@ public:
   }
   SSqlStatement* bind(const string& name, long long value) {
     if (d_paridx >= d_parnum)
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG;
     d_req_bind[d_paridx].buffer = new long long[1];
     *((long long*)d_req_bind[d_paridx].buffer) = value;
@@ -96,7 +96,7 @@ public:
   }
   SSqlStatement* bind(const string& name, unsigned long long value) {
     if (d_paridx >= d_parnum)
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG;
     d_req_bind[d_paridx].buffer = new unsigned long long[1];
     d_req_bind[d_paridx].is_unsigned = 1;
@@ -106,7 +106,7 @@ public:
   }
   SSqlStatement* bind(const string& name, const std::string& value) {
     if (d_paridx >= d_parnum)
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_STRING;
     d_req_bind[d_paridx].buffer = new char[value.size()+1];
     d_req_bind[d_paridx].length = new unsigned long[1];
@@ -119,7 +119,7 @@ public:
   }
   SSqlStatement* bindNull(const string& name) { 
     if (d_paridx >= d_parnum)
-      throw SSqlException("Attempt to bind more parameters than query has");
+      throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_NULL;
     d_paridx++;
     return this;
@@ -136,19 +136,19 @@ public:
 
     if ((err = mysql_stmt_bind_param(d_stmt, d_req_bind))) {
       string error(mysql_stmt_error(d_stmt));
-      throw SSqlException("Could not bind mysql statement: " + error);
+      throw SSqlException("Could not bind mysql statement: " + d_query + string(": ") + error);
     }
 
     if ((err = mysql_stmt_execute(d_stmt))) {
       string error(mysql_stmt_error(d_stmt));
-      throw SSqlException("Could not execute mysql statement: " + error);
+      throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
 
     if ((d_fnum = static_cast<int>(mysql_stmt_field_count(d_stmt)))>0) {
       // prepare for result
       if ((err = mysql_stmt_store_result(d_stmt))) {
         string error(mysql_stmt_error(d_stmt));
-        throw SSqlException("Could not store mysql statement: " + error);
+        throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
       }
       d_resnum = mysql_stmt_num_rows(d_stmt);
       
@@ -172,7 +172,7 @@ public:
   
         if ((err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
           string error(mysql_stmt_error(d_stmt));
-          throw SSqlException("Could not bind parameters to mysql statement: " + error);
+          throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
         }
       }
     }
@@ -192,7 +192,7 @@ public:
     if ((err =mysql_stmt_fetch(d_stmt))) {
       if (err != MYSQL_DATA_TRUNCATED) {
         string error(mysql_stmt_error(d_stmt));
-        throw SSqlException("Could not fetch result: " + error);
+        throw SSqlException("Could not fetch result: " + d_query + string(": ") + error);
       }
     }
 
@@ -363,7 +363,7 @@ void SMySQL::execute(const string& query)
 
   int err;
   if((err=mysql_query(&d_db,query.c_str())))
-    throw sPerrorException("Failed to execute mysql_query, perhaps connection died? Err="+itoa(err));
+    throw sPerrorException("Failed to execute mysql_query '" + query + "', perhaps connection died? Err="+itoa(err));
 }
 
 void SMySQL::startTransaction() {

@@ -42,7 +42,24 @@ public:
 
   UnknownRecordContent(const string& zone) : DNSRecordContent(0)
   {
-    d_record.insert(d_record.end(), zone.begin(), zone.end());
+    // parse the input
+    vector<string> parts;
+    stringtok(parts, zone);
+    if(parts.size()!=3 && !(parts.size()==2 && equals(parts[1],"0")) )
+      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size())+": "+zone );
+    const string& relevant=(parts.size() > 2) ? parts[2] : "";
+    unsigned int total=atoi(parts[1].c_str());
+    if(relevant.size()!=2*total)
+      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.c_str() % relevant.size() % (2*total)).str());
+    string out;
+    out.reserve(total+1);
+    for(unsigned int n=0; n < total; ++n) {
+      int c;
+      sscanf(relevant.c_str()+2*n, "%02x", &c);
+      out.append(1, (char)c);
+    }
+
+    d_record.insert(d_record.end(), out.begin(), out.end());
   }
   
   string getZoneRepresentation() const
@@ -59,23 +76,7 @@ public:
   
   void toPacket(DNSPacketWriter& pw)
   {
-    string tmp((char*)&*d_record.begin(), d_record.size());
-    vector<string> parts;
-    stringtok(parts, tmp);
-    if(parts.size()!=3 && !(parts.size()==2 && equals(parts[1],"0")) )
-      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size())+": "+tmp );
-    const string& relevant=(parts.size() > 2) ? parts[2] : "";
-    unsigned int total=atoi(parts[1].c_str());
-    if(relevant.size()!=2*total)
-      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.c_str() % relevant.size() % (2*total)).str());
-    string out;
-    out.reserve(total+1);
-    for(unsigned int n=0; n < total; ++n) {
-      int c;
-      sscanf(relevant.c_str()+2*n, "%02x", &c);
-      out.append(1, (char)c);
-    }
-    pw.xfrBlob(out);
+    pw.xfrBlob(string(d_record.begin(),d_record.end()));
   }
 private:
   DNSRecord d_dr;
@@ -458,9 +459,10 @@ string PacketReader::getText(bool multi)
 
 void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs) 
 {
-  if(recurs > 1000) // the forward reference-check below should make this test 100% obsolete
+  if(recurs > 100) // the forward reference-check below should make this test 100% obsolete
     throw MOADNSException("Loop");
   // it is tempting to call reserve on ret, but it turns out it creates a malloc/free storm in the loop
+  int pos = frompos;
   for(;;) {
     unsigned char labellen=content.at(frompos++);
 
@@ -473,7 +475,7 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
       //        cout<<"This is an offset, need to go to: "<<offset<<endl;
 
-      if(offset >= frompos-2)
+      if(offset >= pos)
         throw MOADNSException("forward reference during label decompression");
       return getLabelFromContent(content, offset, ret, ++recurs);
     }

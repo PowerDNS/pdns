@@ -90,9 +90,9 @@ case "$1" in
 		then 
 			echo "already running"
 		else
-			$pdns_server --daemon=no --quiet=no --control-console --loglevel=9
+			$pdns_server --daemon=no --quiet=no --loglevel=9
 		fi 
-	;;		
+	;;
 
 	*)
 	echo pdns [start\|stop\|force-reload\|restart\|status\|monitor]

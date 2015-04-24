@@ -95,6 +95,7 @@ script:
  - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
  - make -j 4 check
+ - test -f pdns/test-suite.log && cat pdns/test-suite.log || true
  - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
  - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
  - cd pdns

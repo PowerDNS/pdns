@@ -111,21 +111,21 @@ As said earlier, there are 8 SQL queries for regular lookups. To configure them,
 # Queries and settings
 ## Regular Queries
 ### `basic-query`
-Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'` This is the most used query, needed for doing 1:1 lookups of qtype/name values. First %s is replaced by the ASCII representation of the qtype of the question, the second by the name.
+Default: `select content,ttl,prio,type,domain_id,disabled,name,auth from records where type='%s' and name='%s'` This is the most used query, needed for doing 1:1 lookups of qtype/name values. First %s is replaced by the ASCII representation of the qtype of the question, the second by the name.
 
 ### id-query
-Default: `select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s' and domain_id=%d` Used for doing lookups within a domain. First %s is replaced by the qtype, the %d which should appear after the %s by the numeric domain\_id.
+Default: `select content,ttl,prio,type,domain_id,disabled,name,auth from records where type='%s' and name='%s' and domain_id=%d` Used for doing lookups within a domain. First %s is replaced by the qtype, the %d which should appear after the %s by the numeric domain\_id.
 
 ### any-query
-For doing ANY queries. Also used internally. Default: `select content,ttl,prio,type,domain_id,name from records where name='%s'` The %s is replaced by the qname of the question.
+For doing ANY queries. Also used internally. Default: `select content,ttl,prio,type,domain_id,disabled,name,auth from records where name='%s'` The %s is replaced by the qname of the question.
 
 ### any-id-query
-For doing ANY queries within a domain. Also used internally. Default: `select content,ttl,prio,type,domain_id,name from records where name='%s' and domain_id=%d` The %s is replaced by the name of the domain, the %d by the numerical domain id.
+For doing ANY queries within a domain. Also used internally. Default: `select content,ttl,prio,type,domain_id,disabled,name,auth from records where name='%s' and domain_id=%d` The %s is replaced by the name of the domain, the %d by the numerical domain id.
 
 The last query is for listing the entire contents of a zone. This is needed when performing a zone transfer, but sometimes also internally:
 
 ### list-query
-To list an entire zone. Default: `select content,ttl,prio,type,domain_id,name from records where domain_id=%d`
+To list an entire zone. Default: `select content,ttl,prio,type,domain_id,disabled,name,auth from records where (disabled=0 OR %d) AND domain_id=%d` The first %d is replaced by the "include disabled" flag (default 0), the second %d is replaced by the domain_id.
 
 ## DNSSEC queries
 If DNSSEC is enabled (through the `-dnssec` flag on a gsql backend), many queries are replaced by slightly extended variants that also query the auth column. The auth column is always added as the rightmost column. These are the -auth defaults:
@@ -245,7 +245,7 @@ For doing wildcard ANY queries within a domain. Default: `select content,ttl,pri
 The queries above are specified in pdns.conf. For example, the basic-query would appear as:
 
 ```
-gpgsql-basic-query=select content,ttl,prio,type,domain_id,name from records where type='%s' and name='%s'
+gpgsql-basic-query=select content,ttl,prio,type,domain_id,disabled,name,auth from records where type='%s' and name='%s'
 ```
 
 When using the Generic PostgreSQL backend, they appear as above. When using the generic MySQL backend, change the "gpgsql-" prefix to "gmysql-".

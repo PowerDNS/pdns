@@ -96,7 +96,9 @@ private:
   bool tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, string &target, string &wildcard, bool& retargeted, bool& nodata);
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
-  
+
+  void tkeyHandler(DNSPacket *p, DNSPacket *r);
+
   static AtomicCounter s_count;
   static pthread_mutex_t s_rfc2136lock;
   bool d_doRecursion;

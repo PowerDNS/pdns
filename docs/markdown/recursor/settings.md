@@ -461,7 +461,7 @@ Maximum number of seconds to cache a 'server failure' answer in the packet cache
 
 ## `pdns-distributes-queries`
 * Boolean
-* Default: no
+* Default: yes (since 3.7.0), no (before 3.7.0)
 * Available since: 3.6
 
 If set, PowerDNS will have only 1 thread listening on client sockets, and
@@ -532,6 +532,11 @@ times for this many seconds.
 
 The PowerDNS recursor by replies to a query for 'id.server' with its hostname,
 useful for in clusters. Use this setting to override the answer it gives.
+
+Query example (where 192.0.2.14 is your server):
+```
+dig @192.0.2.14 CHAOS TXT id.server.
+```
 
 ## `setgid`, `setuid`
 * String
