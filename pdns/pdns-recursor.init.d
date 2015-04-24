@@ -18,7 +18,7 @@ pdns_server=$SBINARYPATH/pdns_recursor
 
 [ -f "$pdns_server" ] || exit 0
 
-. /etc/default/pdns-recursor
+[ -r /etc/default/pdns-recursor ] && . /etc/default/pdns-recursor
 
 [ "$START" = "no" ] && exit 0
 
