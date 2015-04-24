@@ -26,7 +26,6 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
 // this should be the __only__ dns name parser in PowerDNS.
 void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
-  bool labelAdded = false;
   unsigned char labellen;
   const char *opos = pos;
   pos += offset;
@@ -39,12 +38,14 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       labellen &= (~0xc0);
       int newpos = (labellen << 8) + *(const unsigned char*)pos;
 
-      packetParser(opos, len, newpos, labelAdded);
+      if(newpos < offset)
+        packetParser(opos, len, newpos, true);
+      else
+        throw std::range_error("Found a forward reference during label decompression");
       pos++;
       break;
     }
     if (pos + labellen < end) {
-      labelAdded = true;
       appendRawLabel(string(pos, labellen));
     }
     else

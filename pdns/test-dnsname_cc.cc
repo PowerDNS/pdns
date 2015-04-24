@@ -114,10 +114,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   build.appendRawLabel("Donald E. Eastlake 3rd");
   build.appendRawLabel("example");
   BOOST_CHECK_EQUAL(build.toString(), R"(Donald\032E\.\032Eastlake\0323rd.example.)");
-  try {
-    DNSName broken("bert..hubert.");
-    BOOST_CHECK(0);
-  }catch(...){}
+  BOOST_CHECK_THROW(DNSName broken("bert..hubert."), std::runtime_error);
 
   DNSName n;
   n.appendRawLabel("powerdns.dnsmaster");
@@ -148,20 +145,7 @@ BOOST_AUTO_TEST_CASE(test_trim) {
 }
 
 BOOST_AUTO_TEST_CASE(test_toolong) {
-  try {
-    DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com.");
-    BOOST_CHECK(0);
-  }
-  catch(...){}
-
-
-  try {
-    DNSName w("com.");
-    w.prependRawLabel("1234567890123456789012345678901234567890123456789012345678901234567890");
-    BOOST_CHECK(0);
-  }
-  catch(...){}
-
+  BOOST_CHECK_THROW(DNSName w("1234567890123456789012345678901234567890123456789012345678901234567890.com."), std::range_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnsstrings) {
@@ -395,6 +379,21 @@ BOOST_AUTO_TEST_CASE(test_compression) { // Compression test
 
   DNSName dn(name.c_str(), name.size(), 15, true);
   BOOST_CHECK_EQUAL(dn.toString(), "www.example.com.");
+}
+
+BOOST_AUTO_TEST_CASE(test_pointer_pointer_root) { // Pointer to pointer to root
+
+  string name("\x00""\xc0""\x00""\x03""com\xc0""\x01",9);
+
+  DNSName dn(name.c_str(), name.size(), 3, true);
+  BOOST_CHECK_EQUAL(dn.toString(), "com.");
+}
+
+BOOST_AUTO_TEST_CASE(test_bad_compression_pointer) { // Pointing beyond packet boundary
+
+  std::string name("\x03""com\x00""\x07""example\xc0""\x11""xc0""\x00", 17);
+
+  BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.length(), 5, true), std::range_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_compression_loop) { // Compression loop (add one label)
