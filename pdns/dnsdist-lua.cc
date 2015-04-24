@@ -603,7 +603,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       return ret;
     });
-#endif
+
   g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
       map<DNSName, int> counts;
       unsigned int total=0;
@@ -653,6 +653,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
     });
   
+#endif
   g_lua.executeCode(R"(function topResponses(top, kind, labels) for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
 

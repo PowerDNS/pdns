@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) -O3 -Wall -pthread 
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
 SUBDIRS=pdns/ext/yahttp
 
@@ -10,7 +10,15 @@ BUILT_SOURCES=htmlfiles.h
 htmlfiles.h: html/*
 	./incfiles > $@
 
-EXTRA_DIST=dnslabeltext.rl dnsdistconf.lua README.md html
+man_MANS=dnsdist.1
+
+EXTRA_DIST=dnslabeltext.rl \
+	   dnsdistconf.lua \
+	   README.md \
+	   html \
+	   dnsdist.1 \
+	   .version \
+	   contrib
 
 bin_PROGRAMS = dnsdist
 dnsdist_SOURCES = \
@@ -44,6 +52,6 @@ dnsdist_LDFLAGS = \
 	-pthread 
 
 dnsdist_LDADD = \
-	-lreadline -lrt -ltermcap \
-	$(LUA_LIBS) $(YAHTTP_LIBS) ${libsodium_LIBS}
+	-lreadline -lrt \
+	$(LUA_LIBS) $(YAHTTP_LIBS) ${LIBSODIUM_LIBS}
 

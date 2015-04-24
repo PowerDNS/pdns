@@ -1,11 +1,11 @@
-AC_INIT([dnsdist], [0.1])
+AC_INIT([dnsdist], m4_esyscmd_s(build-aux/gen-version))
 AM_INIT_AUTOMAKE([foreign dist-bzip2 parallel-tests 1.11 subdir-objects])
 AM_SILENT_RULES([yes])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 AC_PROG_CXX
-PKG_CHECK_MODULES([libsodium], [libsodium], [AC_DEFINE([HAVE_LIBSODIUM], [1], [Define to 1 if you have libsodium])], [true])
+PDNS_CHECK_LIBSODIUM
 AC_PROG_LIBTOOL
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
