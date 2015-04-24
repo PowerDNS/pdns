@@ -17,7 +17,6 @@ PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
 
   d_pid = -1;
   d_fp = NULL;
-  launch();
 }
 
 PipeConnector::~PipeConnector(){
