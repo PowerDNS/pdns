@@ -18,6 +18,10 @@ pdns_server=$SBINARYPATH/pdns_recursor
 
 [ -f "$pdns_server" ] || exit 0
 
+. /etc/default/pdns-recursor
+
+[ "$START" = "no" ] && exit 0
+
 doPC()
 {
 	ret=`$BINARYPATH/rec_control $EXTRAOPTS $1 $2 2> /dev/null`
