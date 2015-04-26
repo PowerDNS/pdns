@@ -538,9 +538,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_outputBuffer += (fmt % (count) % "Rest" % rest % (100.0*rest/total)).str();
     });
 
-
-  // something needs to be done about this, unlocked will 'mostly' work
-#if 0 
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
       map<DNSName, int> counts;
       unsigned int total=0;
@@ -583,6 +580,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
   
   g_lua.executeCode(R"(function topQueries(top, labels) for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
+
 
 
   g_lua.writeFunction("getResponseRing", []() {
@@ -652,8 +650,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return ret;
 
     });
-  
-#endif
+
   g_lua.executeCode(R"(function topResponses(top, kind, labels) for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
 
