@@ -21,6 +21,7 @@ newServer{address="192.168.1.30:5300", pool="abuse"}
 
 addPoolRule({"ezdns.it.", "xxx."}, "abuse")
 addPoolRule("192.168.1.0/24", "abuse")
+
 addQPSPoolRule("com.", 100, "abuse")
 
 function luarule(remote, qname, qtype, dh, len)
@@ -32,6 +33,7 @@ function luarule(remote, qname, qtype, dh, len)
 	end
 end
 addLuaAction("192.168.1.0/24", luarule)
+
 topRule()
 
 addDomainBlock("powerdns.org.")
