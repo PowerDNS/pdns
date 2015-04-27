@@ -1122,9 +1122,13 @@ Tickets closed but not associated with a commit
 -   [ticket 422](https://github.com/PowerDNS/pdns/issues/422): "ecdsa256 keys bug"
 
 # Authoritative Server version 2.9.22.6
+**Warning**: The 2.9.22.x series of releases is end-of-life and unsupported. It contains many issues and potential security problems. We urge you to upgrade to a recent version of PowerDNS!
+
 The improvements to the master/slave engine in 2.9.22.5 contained one serious bug that can cause crashes on busy setups. 2.9.22.6 fixes this crash.
 
 # Authoritative Server version 2.9.22.5
+**Warning**: The 2.9.22.x series of releases is end-of-life and unsupported. It contains many issues and potential security problems. We urge you to upgrade to a recent version of PowerDNS!
+
 2.9.22.5 is an interim release for those not yet ready to make the jump to 3.0, but do need a more recent version of the Authoritative Server. It also contains the patch from [PowerDNS Security Advisory 2012-01](security/powerdns-advisory-2012-01.md "PowerDNS Security Advisory 2012-01: PowerDNS Authoritative Server can be caused to generate a traffic loop").
 
 -   Improved performance of master/slave engine, especially when hosting tens or hundreds of thousands of slave zones. Code in commits [1657](http://wiki.powerdns.com/projects/trac/changeset/1657), [1658](http://wiki.powerdns.com/projects/trac/changeset/1658), [1661](http://wiki.powerdns.com/projects/trac/changeset/1661) (which also brings multi-master support), [1662](http://wiki.powerdns.com/projects/trac/changeset/1662) (non-standard ports for masters), [1664](http://wiki.powerdns.com/projects/trac/changeset/1664), [1665](http://wiki.powerdns.com/projects/trac/changeset/1665), [1666](http://wiki.powerdns.com/projects/trac/changeset/1666), [1667](http://wiki.powerdns.com/projects/trac/changeset/1667), [1672](http://wiki.powerdns.com/projects/trac/changeset/1672), [1673](http://wiki.powerdns.com/projects/trac/changeset/1673), [2063](http://wiki.powerdns.com/projects/trac/changeset/2063)).
@@ -1448,6 +1452,8 @@ FreeBSD users may want to upgrade because of a very remote chance of 3.1.7 and p
 -   No longer exit because of the changed behaviour of the Solaris 'completion ports' in more recent versions of Solaris. Fix in [commit 1372](http://wiki.powerdns.com/projects/trac/changeset/1372), reported by Jan Gyselinck.
 
 # Authoritative Server version 2.9.22
+**Warning**: The 2.9.22.x series of releases is end-of-life and unsupported. It contains many issues and potential security problems. We urge you to upgrade to a recent version of PowerDNS!
+
 Released on the 27th of January 2009.
 
 This is a huge release, spanning almost 20 months of development. Besides fixing a lot of bugs, of note is the addition of the so called 'Notification Proxy', which allows PowerDNS to function as a master server behind a firewall, plus the huge performance improvement of the internal caches.
