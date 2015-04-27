@@ -20,6 +20,8 @@ PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
 
   d_pid = -1;
   d_fp = NULL;
+  d_fd1[0] = d_fd1[1] = -1;
+  d_fd2[0] = d_fd2[1] = -1;
 }
 
 PipeConnector::~PipeConnector(){
