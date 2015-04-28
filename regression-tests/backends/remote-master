@@ -43,7 +43,7 @@ case $context in
 			;;
 		unix)
 			connstr="unix:path=$testsdir/remote.socket"
-                        rm -f $testsdir/remote.socket
+			rm -f $testsdir/remote.socket
 			socat unix-listen:$testsdir/remote.socket,fork exec:$testsdir/unix-backend.rb &
 			echo $! > pdns-remotebackend.pid
 			;;
