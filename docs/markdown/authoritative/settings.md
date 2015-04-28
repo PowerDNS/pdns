@@ -22,8 +22,17 @@ If set, only these IP addresses or netmasks will be able to perform AXFR.
 
 Allow DNS updates from these IP ranges.
 
+## `allow-notify-from`
+* IP ranges, separated by commas
+* Default: 0.0.0.0/0,::/0
+* Available since: 3.5.0
+
+Allow AXFR NOTIFY from these IP ranges.
+Setting this to an empty string will drop all incoming notifies.
+
 ## `allow-recursion`
 * IP ranges, separated by commas
+* Default: 0.0.0.0/0
 
 By specifying `allow-recursion`, recursion can be restricted to netmasks
 specified. The default is to allow recursion from everywhere. Example:
@@ -58,7 +67,7 @@ Seconds to store packets in the PacketCache. See
 * Default: the hostname of the server
 * Available since: 3.3.1
 
-If sending carbon updates, if set, this will override our hostname. See
+If sending carbon updates, if set, this will override our hostname. Be careful not to include any dots in this setting, unless you know what you are doing. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-server`
@@ -382,7 +391,7 @@ stable, and is in fact likely to change.
 * Boolean
 * Default: no
 
-Turn on master support.
+Turn on master support. See ["Modes of operation"](modes-of-operation.md#master-operation).
 
 ## `max-cache-entries`
 * Integer
@@ -602,7 +611,7 @@ If set, change user id to this uid for more security. See
 * Boolean
 * Default: no
 
-Turn on slave support.
+Turn on slave support. See ["Modes of operation"](modes-of-operation.md#slave-operation).
 
 ## `slave-cycle-interval`
 * Integer

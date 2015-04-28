@@ -19,11 +19,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "bindbackend2.hh"
 #include "pdns/dnsrecords.hh"
 #include "pdns/bind-dnssec.schema.sqlite3.sql.h"
 #include <boost/foreach.hpp>
-#include "config.h"
 #include "pdns/arguments.hh"
 
 #ifndef HAVE_SQLITE3

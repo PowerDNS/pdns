@@ -1,4 +1,7 @@
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnspcap.hh"
 #include <boost/format.hpp>
 #include <fcntl.h>

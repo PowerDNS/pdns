@@ -12,6 +12,9 @@ otherwise, obfuscate the response IP address
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cleandig urc65226.test.com TYPE65226

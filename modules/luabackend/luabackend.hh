@@ -11,7 +11,6 @@
 
 #include "pdns/dnsbackend.hh"
 
-#undef VERSION
 #include <string>
 using std::string;
 

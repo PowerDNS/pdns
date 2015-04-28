@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "logger.hh"
 #include "version.hh"
 #include "version_generated.h"
@@ -110,6 +113,13 @@ void showBuildConfiguration()
 #endif
 #ifndef POLARSSL_SYSTEM
   theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
+#endif
+#ifdef PDNS_CONFIG_ARGS
+#define double_escape(s) #s
+#define escape_quotes(s) double_escape(s)
+  theL()<<Logger::Warning<<"Configured with: "<<escape_quotes(PDNS_CONFIG_ARGS)<<endl;
+#undef escape_quotes
+#undef double_escape
 #endif
 }
 

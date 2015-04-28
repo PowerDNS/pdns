@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "gsqlbackend.hh"
@@ -427,7 +430,7 @@ bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std
     d_setOrderAuthQuery_stmt->
       bind("ordername", ordername)->
       bind("auth", auth)->
-      bind("qname", qname)->
+      bind("qname", toLower(qname))->
       bind("domain_id", domain_id)->
       execute()->
       reset();
@@ -447,7 +450,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const 
     d_nullifyOrderNameAndUpdateAuthQuery_stmt->
       bind("auth", auth)->
       bind("domain_id", domain_id)->
-      bind("qname", qname)->
+      bind("qname", toLower(qname))->
       execute()->
       reset();
   }
@@ -464,7 +467,7 @@ bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::s
   
   try {
     d_nullifyOrderNameAndAuthQuery_stmt->
-      bind("qname", qname)->
+      bind("qname", toLower(qname))->
       bind("qtype", type)->
       bind("domain_id", domain_id)->
       execute()->

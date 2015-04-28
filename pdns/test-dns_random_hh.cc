@@ -2,8 +2,7 @@
 #define BOOST_TEST_NO_MAIN
 
 #include "config.h"
-#ifndef HAVE_CXX11 
-
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/std/map.hpp>
 #include <boost/foreach.hpp>

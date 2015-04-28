@@ -94,6 +94,9 @@ public:
     return false;
   }
 
+  ~SingleThreadDistributor() {
+    if (b) delete b;
+  }
 private:
   Backend *b;
 };

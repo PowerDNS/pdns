@@ -52,7 +52,6 @@ if REMOTEBACKEND_ZEROMQ
 libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
 endif
 
-if UNIT_TESTS
 TESTS_ENVIRONMENT = \
 	BOOST_TEST_LOG_LEVEL=message; \
 	export BOOST_TEST_LOG_LEVEL; \
@@ -62,14 +61,6 @@ TESTS_ENVIRONMENT = \
 TEST_EXTENSIONS = .test
 
 TEST_LOG_COMPILER = $(abs_srcdir)/testrunner.sh
-
-TESTS = \
-	remotebackend_pipe.test \
-	remotebackend_unix.test \
-	remotebackend_http.test \
-	remotebackend_post.test \
-	remotebackend_json.test \
-	remotebackend_zeromq.test
 
 RECHECK_LOGS = \
 	$(TEST_LOGS) \
@@ -85,6 +76,16 @@ RECHECK_LOGS = \
 remotebackend_post.log: remotebackend_http.log
 
 remotebackend_json.log: remotebackend_http.log remotebackend_post.log
+
+if UNIT_TESTS
+TESTS = \
+	remotebackend_pipe.test \
+	remotebackend_unix.test \
+	remotebackend_http.test \
+	remotebackend_post.test \
+	remotebackend_json.test \
+	remotebackend_zeromq.test
+
 endif
 
 BUILT_SOURCES = ../../pdns/dnslabeltext.cc

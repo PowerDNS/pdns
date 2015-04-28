@@ -4,6 +4,9 @@
 // Copyright (C) 2011, PowerDNS.COM BV
 //
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "pdns/utility.hh"
 #include <map>
 #include <unistd.h>

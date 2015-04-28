@@ -19,7 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#pragma once
+#ifndef PDNS_COMMENT_HH
+#define PDNS_COMMENT_HH
+
 #include "utility.hh"
 #include "qtype.hh"
 #include <sys/types.h>
@@ -38,3 +40,5 @@ public:
   string account; //!< account last updating this comment
   string content; //!< The actual comment. Example: blah blah
 };
+
+#endif /* PDNS_COMMENT_HH */

@@ -20,5 +20,5 @@ optional/portsmplexer.o: portsmplexer.cc
 
 
 optional/devpollmplexer.o: devpollmplexer.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@  ; true
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 

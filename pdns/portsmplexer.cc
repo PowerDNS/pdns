@@ -1,4 +1,7 @@
 #if defined(__sun__) && defined(__svr4__)
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <port.h>
 #include <sys/port_impl.h>
 #endif

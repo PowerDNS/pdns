@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "remotebackend.hh"
 #include <sys/socket.h>
 #include "pdns/lock.hh" 
@@ -53,6 +56,14 @@ int UnixsocketConnector::recv_message(rapidjson::Document &output) {
   s_output = "";       
 
   while((t.tv_sec - t0.tv_sec)*1000 + (t.tv_usec - t0.tv_usec)/1000 < this->timeout) { 
+    int avail = waitForData(this->fd, 0, this->timeout * 500); // use half the timeout as poll timeout
+    if (avail < 0) // poll error
+      return -1;
+    if (avail == 0) { // timeout
+      gettimeofday(&t, NULL);
+      continue;
+    }
+
     std::string temp;
     temp.clear();
 
@@ -110,7 +121,7 @@ ssize_t UnixsocketConnector::write(const std::string &data) {
     nbuf = data.copy(buf, sizeof buf, pos); // copy data and write
     nwrite = ::write(fd, buf, nbuf);
     pos = pos + sizeof(buf);
-    if (nwrite == -1) {
+    if (nwrite < 1) {
       connected = false;
       close(fd);
       return -1;
@@ -141,17 +152,7 @@ void UnixsocketConnector::reconnect() {
      return;
   }
 
-  if (fcntl(fd, F_SETFL, O_NONBLOCK, &fd)) {
-     connected = false;
-     L<<Logger::Error<<"Cannot manipulate socket: " << strerror(errno) << std::endl;;
-     close(fd);
-     return;
-  }
-
-  if((rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock))==-1 && (errno == EINPROGRESS)) {
-    waitForData(fd, 0, -1);
-    rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
-  }
+  rv = connect(fd, reinterpret_cast<struct sockaddr*>(&sock), sizeof sock);
 
   if (rv != 0 && errno != EISCONN && errno != 0) {
      L<<Logger::Error<<"Cannot connect to socket: " << strerror(errno) << std::endl;

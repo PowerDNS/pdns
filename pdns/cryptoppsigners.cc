@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <cryptopp/osrng.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/integer.h>

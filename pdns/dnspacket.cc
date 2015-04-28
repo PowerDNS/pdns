@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include <cstdio>
 #include <cstdlib>
@@ -307,7 +310,7 @@ void DNSPacket::wrapup()
           pos->content=".";
         
         pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
-        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), 1, pos->content)); 
+        shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), pos->qclass, pos->content));
               drc->toPacket(pw);
         if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0
           pw.rollback();
@@ -473,6 +476,27 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
     *message = makeTSIGMessageFromTSIGPacket(d_rawpacket, mdp.getTSIGPos(), *keyname, *trc, d_tsigprevious, false); // if you change rawpacket to getString it breaks!
   
   return true;
+}
+
+bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, string *keyname) const
+{
+  MOADNSParser mdp(d_rawpacket);
+  bool gotit=false;
+
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+    if (gotit) {
+      L<<Logger::Error<<"More than one TKEY record found in query"<<endl;
+      return false;
+    }
+
+    if(i->first.d_type == QType::TKEY) {
+      *tr = *std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      *keyname = i->first.d_label;
+      gotit=true;
+    }
+  }
+
+  return gotit;
 }
 
 /** This function takes data from the network, possibly received with recvfrom, and parses

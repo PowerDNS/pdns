@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "lua-auth.hh"
 
 #if !defined(HAVE_LUA)

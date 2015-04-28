@@ -2,6 +2,9 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE unit
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 StatBag S;
 PacketCache PC;

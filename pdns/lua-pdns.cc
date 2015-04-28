@@ -1,7 +1,9 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "lua-pdns.hh"
 // #include "syncres.hh"
 #include <boost/foreach.hpp>
-#include "config.h"
 
 #if !defined(HAVE_LUA)
 

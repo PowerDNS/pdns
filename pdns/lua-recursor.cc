@@ -1,5 +1,7 @@
-#include "lua-recursor.hh"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+#include "lua-recursor.hh"
 // to avoid including all of syncres.hh
 int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
 

@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "dnsbackend.hh"
 #include "arguments.hh"
@@ -235,6 +238,7 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   int hits=0;
 
   while(this->get(rr)) {
+    if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA"); 
     hits++;
     fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;

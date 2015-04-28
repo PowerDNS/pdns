@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "rec_channel.hh"
 #include "utility.hh"
 #include <sys/socket.h>

@@ -29,9 +29,6 @@
 #include <lber.h>
 #include <ldap.h>
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 
 

@@ -4,8 +4,8 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
-CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread -DHAVE_CONFIG_H
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @CF_STACK@ @LD_PIE@
 STRIP_BINARIES?=1
 
@@ -100,10 +100,11 @@ basic_checks:
 	-$(CXX) $(CXXFLAGS) pdns_hw.cc -o pdns_hw
 	@echo
 	@if test -x ./pdns_hw ; \
-		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; fi; \
+		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; exit 1 ; fi; \
 	 else 	\
 	 	echo; echo Could not compile simple binary, read README please; \
 		rm -f dep ; \
+		exit 1 ; \
 	 fi
 
 install: build-stamp

@@ -19,11 +19,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "rec_channel.hh"
 #include <iostream>
 #include "pdnsexception.hh"
 #include "arguments.hh"
-#include "config.h"
 
 #include "namespaces.hh"
 
@@ -98,6 +100,10 @@ try
   }
   rccS.send(command);
   string receive=rccS.recv(0, arg().asNum("timeout"));
+  if(receive.compare(0, 7, "Unknown") == 0) {
+    cerr<<receive<<endl;
+    return 1;
+  }
   cout<<receive;
   return 0;
 }

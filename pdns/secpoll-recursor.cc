@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "secpoll-recursor.hh"
 #include "syncres.hh"
 #include "logger.hh"

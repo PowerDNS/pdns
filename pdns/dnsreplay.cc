@@ -38,6 +38,9 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <bitset>
 #include "statbag.hh"
 #include "dnspcap.hh"

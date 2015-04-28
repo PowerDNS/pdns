@@ -21,6 +21,9 @@
 */
 /* accepts a named.conf or a zone as parameter and outputs heaps of sql */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <unistd.h>
 #include <string>
 #include <map>

@@ -4,6 +4,9 @@
 // Copyright (C) 2003, Michel Stol <michel@powerdns.com>
 //
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <sstream>
 #include "ssqlite3.hh"

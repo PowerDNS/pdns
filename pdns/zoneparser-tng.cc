@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -119,7 +122,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
       break;
 
     default:
-      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' "+getLineOfFile());
+      throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
     }
   return val;
 }

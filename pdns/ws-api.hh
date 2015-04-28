@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifndef PDNS_WSAPI_HH
+#define PDNS_WSAPI_HH
+
 #include <map>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -37,3 +40,5 @@ string apiZoneNameToId(const string& name);
 
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string,string>& out);
+
+#endif /* PDNS_WSAPI_HH */

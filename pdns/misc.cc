@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -654,7 +657,7 @@ string makeRelative(const std::string& fqdn, const std::string& zone)
 {
   if(zone.empty())
     return fqdn;  
-  if(fqdn != zone)
+  if(toLower(fqdn) != toLower(zone))
     return fqdn.substr(0, fqdn.size() - zone.length() - 1); // strip domain name
   return "";
 }

@@ -1,4 +1,3 @@
-// $Id$
 /*
  * Copyright (c) 2010-2011
  *
@@ -7,6 +6,8 @@
  * Karlsruhe Institute of Technology <http://www.kit.edu/> 
  *
  */
+#ifndef PDNS_ORACLEBACKEND_HH
+#define PDNS_ORACLEBACKEND_HH
 
 #include <string>
 #include <map>
@@ -202,4 +203,4 @@ private:
 
 };
 
-/* vi: set sw=2 et : */
+#endif /* PDNS_ORACLEBACKEND_HH */

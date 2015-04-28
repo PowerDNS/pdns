@@ -55,9 +55,6 @@
 #include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
- #endif // HAVE_CONFIG_H
 
 
 class UeberBackend;
@@ -151,7 +148,8 @@ public:
 
   bool getTSIGDetails(TSIGRecordContent* tr, string* keyname, string* message) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly=false);
-  
+  bool getTKEYRecord(TKEYRecordContent* tr, string* keyname) const;
+
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
   TSIGRecordContent d_trc;
   static bool s_doEDNSSubnetProcessing;

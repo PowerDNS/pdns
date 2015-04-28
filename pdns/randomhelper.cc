@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "misc.hh"
 #include "logger.hh"
 #include <sys/types.h>

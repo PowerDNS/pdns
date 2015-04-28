@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <errno.h>
 #include <string>
 #include <set>
@@ -270,7 +273,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
   case QType::CNAME:
   case QType::NS:
     if(!stripDomainSuffix(&content, domain))
-      content+=".";
+      content=stripDot(content)+".";
     *d_of<<qname<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<content<<endl;
     break;
   default:

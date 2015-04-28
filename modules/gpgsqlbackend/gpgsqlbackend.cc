@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <map>
 #include "pdns/namespaces.hh"
@@ -138,7 +141,6 @@ public:
   gPgSQLLoader()
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
-    BackendMakers().report(new gPgSQLFactory("gpgsql2"));
     L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
   }
 };

@@ -17,6 +17,9 @@
 
 #define LUABACKEND_EXTERN_F_HH
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "luabackend.hh"
 
 #include "pdns/logger.hh"
