@@ -40,7 +40,7 @@ class DNSBackend;
 
 struct SOAData
 {
-  SOAData() : db(0), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), domain_id(-1), db(0), scopeMask(0) {};
 
   string qname;
   string nameserver;
