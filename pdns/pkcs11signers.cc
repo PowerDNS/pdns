@@ -630,7 +630,7 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
 
   // see if we have slot
   if ((slotIter = pkcs11_slots.find(sidx)) != pkcs11_slots.end()) {
-    pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(slotIter->second, label);
+    pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slotIter->second, label);
     return pkcs11_tokens[tidx];
   }
 
@@ -656,10 +656,10 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   }
 
   // store slot
-  pkcs11_slots[sidx] = boost::make_shared<Pkcs11Slot>(functions, slotId);
+  pkcs11_slots[sidx] = std::make_shared<Pkcs11Slot>(functions, slotId);
 
   // looks ok to me.
-  pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(pkcs11_slots[sidx], label);
+  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(pkcs11_slots[sidx], label);
 
   return pkcs11_tokens[tidx];
 }
