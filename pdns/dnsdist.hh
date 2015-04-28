@@ -12,7 +12,7 @@
 
 struct DNSDistStats
 {
-  using stat_t=std::atomic<uint64_t>;
+  using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
   stat_t responses{0};
   stat_t servfailResponses{0};
   stat_t queries{0};
@@ -23,6 +23,7 @@ struct DNSDistStats
   stat_t selfAnswered{0};
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
+  stat_t truncFail{0};
   double latency{0};
   
 };
@@ -288,7 +289,7 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<ComboAddress> g_locals; // not changed at runtime
 extern std::string g_key; // in theory needs locking
-
+extern bool g_truncateTC;
 struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);

@@ -104,6 +104,21 @@ Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
 
+bool g_truncateTC{1};
+void truncateTC(const char* packet, unsigned int* len)
+try
+{
+  unsigned int consumed;
+  DNSName qname(packet, *len, 12, false, 0, 0, &consumed);
+  *len=consumed+12+4;
+  struct dnsheader* dh =(struct dnsheader*)packet;
+  dh->ancount = dh->arcount = dh->nscount=0;
+}
+catch(...)
+{
+  g_stats.truncFail++;
+}
+
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
@@ -124,6 +139,10 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       continue;
     else
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
+
+    if(dh->tc && g_truncateTC) {
+      truncateTC(packet, (unsigned int*)&len);
+    }
 
     dh->id = ids->origID;
     g_stats.responses++;

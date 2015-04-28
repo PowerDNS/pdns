@@ -2,6 +2,7 @@ controlSocket("0.0.0.0")
 webserver("0.0.0.0:8083", "geheim2")
 addLocal("0.0.0.0:5200")
 setKey("MXNeLFWHUe4363BBKrY06cAsH8NWNb+Se2eXU5+Bb74=")
+truncateTC(true) -- fix up possibly badly truncated answers from pdns 2.9.22
 
 warnlog(string.format("Script starting %s", "up!"))
 

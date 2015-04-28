@@ -235,6 +235,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_outputBuffer=g_policy.getLocal()->name+"\n";
     });
 
+  g_lua.writeFunction("truncateTC", [](bool tc) { g_truncateTC=tc; });
 
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);

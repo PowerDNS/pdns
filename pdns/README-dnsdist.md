@@ -513,6 +513,8 @@ Here are all functions:
    * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
    * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
    * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
+ * Answer changing functions:
+   * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `tostring()`: return in human-friendly format
