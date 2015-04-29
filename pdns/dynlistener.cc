@@ -31,7 +31,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/shared_ptr.hpp>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
@@ -67,7 +67,7 @@ DynListener::~DynListener()
 void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t len)
 {
   d_s=socket(family, SOCK_STREAM,0);
-  Utility::setCloseOnExec(d_s);
+  setCloseOnExec(d_s);
 
   if(d_s < 0) {
     if (family == AF_UNIX)
@@ -227,7 +227,7 @@ string DynListener::getLine()
         continue;
       }
 
-      boost::shared_ptr<FILE> fp=boost::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
+      std::shared_ptr<FILE> fp=std::shared_ptr<FILE>(fdopen(dup(d_client), "r"), fclose);
       if(d_tcp) {
         if(!fgets(&mesg[0], mesg.size(), fp.get())) {
           L<<Logger::Error<<"Unable to receive password from controlsocket ("<<d_client<<"): "<<strerror(errno)<<endl;

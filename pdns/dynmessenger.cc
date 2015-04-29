@@ -24,6 +24,7 @@
 #endif
 #include "dynmessenger.hh"
 #include <cstdio>
+#include "utility.hh"
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
@@ -36,7 +37,7 @@ DynMessenger::DynMessenger(const string &fname,
     int timeout_usec)
 {
   d_s=socket(AF_UNIX,SOCK_STREAM,0);
-  Utility::setCloseOnExec(d_s);
+  setCloseOnExec(d_s);
   
   if(d_s<0) {
     throw PDNSException(string("socket")+strerror(errno));
@@ -76,7 +77,7 @@ DynMessenger::DynMessenger(const ComboAddress& remote,
     int timeout_usec)
 {
   d_s=socket(AF_INET, SOCK_STREAM,0);
-  Utility::setCloseOnExec(d_s);
+  setCloseOnExec(d_s);
  
   if(d_s<0) {
     throw PDNSException(string("socket")+strerror(errno));

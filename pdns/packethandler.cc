@@ -1419,7 +1419,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
 void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   TKEYRecordContent tkey_in;
-  boost::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
+  std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
   string label, lcLabel;
 
   if (!p->getTKEYRecord(&tkey_in, &label)) {

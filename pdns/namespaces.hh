@@ -2,7 +2,7 @@
 #define PDNS_NAMESPACES_HH
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/shared_ptr.hpp>
+
 #include <boost/shared_array.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/optional.hpp>
@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <memory>
 #include <vector>
 #include <map>
 #include <set>
@@ -43,7 +44,7 @@ typedef pdns::string string;
 
 using boost::lexical_cast;
 using boost::tie;
-using boost::shared_ptr;
+using std::shared_ptr;
 using boost::shared_array;
 using boost::scoped_array;
 using boost::tuple;
@@ -54,6 +55,7 @@ using boost::any_cast;
 using boost::any;
 using boost::function;
 using boost::trim;
+using boost::trim_copy;
 using boost::trim_left;
 using boost::trim_right;
 using boost::is_any_of;

@@ -34,7 +34,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/types.h>
-#include <boost/shared_ptr.hpp>
+
 
 #include <sys/stat.h>
 #include "pdnsexception.hh"

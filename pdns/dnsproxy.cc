@@ -61,7 +61,7 @@ DNSProxy::DNSProxy(const string &remote)
       break;
   }
   if(n==10) {
-    Utility::closesocket(d_sock);
+    closesocket(d_sock);
     d_sock=-1;
     throw PDNSException(string("binding dnsproxy socket: ")+strerror(errno));
   }

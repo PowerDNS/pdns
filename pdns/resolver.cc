@@ -46,7 +46,7 @@
 #include "base64.hh"
 #include "dnswriter.hh"
 #include "dnsparser.hh"
-#include <boost/shared_ptr.hpp>
+
 #include <boost/foreach.hpp>
 #include "dns_random.hh"
 
@@ -57,7 +57,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   ComboAddress ourLocal(local);
   
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
-  Utility::setCloseOnExec(sock);
+  setCloseOnExec(sock);
   if(sock < 0) {
     unixDie("Creating local resolver socket for "+ourLocal.toString() + ((local.sin4.sin_family == AF_INET6) ? ", does your OS miss IPv6?" : ""));
   }
@@ -74,7 +74,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
     // cerr<<"bound udp port "<<ourLocal.sin4.sin_port<<", "<<tries<<" tries left"<<endl;
 
     if(!tries) {
-      Utility::closesocket(sock);
+      closesocket(sock);
       throw PDNSException("Resolver binding to local UDP socket on "+ourLocal.toString()+": "+stringerror());
     }
   }
@@ -156,7 +156,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     } else {
       // try to make socket
       sock = makeQuerySocket(local, true);
-      Utility::setNonBlocking( sock );
+      setNonBlocking( sock );
       locals[lstr] = sock;
     }
   }
@@ -274,12 +274,12 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
   bool gotSOA=false;
   BOOST_FOREACH(const MOADNSParser::answers_t::value_type& drc, mdp.d_answers) {
     if(drc.first.d_type == QType::SOA) {
-      shared_ptr<SOARecordContent> src=boost::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
+      shared_ptr<SOARecordContent> src=std::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
       *theirSerial=src->d_st.serial;
       gotSOA = true;
     }
     if(drc.first.d_type == QType::RRSIG) {
-      shared_ptr<RRSIGRecordContent> rrc=boost::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
+      shared_ptr<RRSIGRecordContent> rrc=std::dynamic_pointer_cast<RRSIGRecordContent>(drc.first.d_content);
       if(rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
         *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);
@@ -478,7 +478,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
         checkTSIG = true;
       
       if(answer.first.d_type == QType::TSIG) {
-        shared_ptr<TSIGRecordContent> trc = boost::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
+        shared_ptr<TSIGRecordContent> trc = std::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;
         checkTSIG = true;
@@ -548,12 +548,12 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes)
 
 void AXFRRetriever::connect()
 {
-  Utility::setNonBlocking( d_sock );
+  setNonBlocking( d_sock );
 
   int err;
 
   if((err=::connect(d_sock,(struct sockaddr*)&d_remote, d_remote.getSocklen()))<0 && errno!=EINPROGRESS) {
-    Utility::closesocket(d_sock);
+    closesocket(d_sock);
     d_sock=-1;
     throw ResolverException("connect: "+stringerror());
   }
@@ -564,7 +564,7 @@ void AXFRRetriever::connect()
   err=waitForRWData(d_sock, false, 10, 0); // wait for writeability
   
   if(!err) {
-    Utility::closesocket(d_sock); // timeout
+    closesocket(d_sock); // timeout
     d_sock=-1;
     errno=ETIMEDOUT;
     
@@ -583,7 +583,7 @@ void AXFRRetriever::connect()
   }
   
  done:
-  Utility::setBlocking( d_sock );
+  setBlocking( d_sock );
   // d_sock now connected
 }
 

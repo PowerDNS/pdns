@@ -2,7 +2,7 @@
 #define PDNS_DNSSECINFRA_HH
 
 #include "dnsrecords.hh"
-#include <boost/shared_ptr.hpp>
+
 #include <string>
 #include <vector>
 #include <map>
@@ -106,8 +106,8 @@ struct CanonicalCompare: public std::binary_function<string, string, bool>
   }
 };
 
-bool sharedDNSSECCompare(const boost::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
-string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<boost::shared_ptr<DNSRecordContent> >& signRecords);
+bool sharedDNSSECCompare(const std::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
+string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<std::shared_ptr<DNSRecordContent> >& signRecords);
 
 DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest=1);
 

@@ -6,7 +6,7 @@
 #include <map>
 #include "dns.hh"
 #include "namespaces.hh"
-
+#include <arpa/inet.h>
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes 
     the packet header and record headers.
 
@@ -132,4 +132,5 @@ private:
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
 bool labeltokUnescape(labelparts_t& parts, const string& label);
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
+std::deque<string> segmentDNSName(const string& input ); // from dnslabeltext.rl
 #endif

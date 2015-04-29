@@ -5,7 +5,7 @@
 #endif
 #include <string>
 #include "spgsql.hh"
-
+#include <sys/time.h>
 #include <iostream>
 #include "pdns/logger.hh"
 #include "pdns/dns.hh"

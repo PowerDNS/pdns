@@ -29,7 +29,7 @@
 #include <time.h>
 #include <fstream>
 #include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/multi_index_container.hpp>

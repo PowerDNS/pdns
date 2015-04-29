@@ -26,6 +26,7 @@
 #include "rcpgenerator.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
+#include "utility.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>

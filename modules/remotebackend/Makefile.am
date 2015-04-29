@@ -99,6 +99,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/base64.cc \
 	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
 	../../pdns/dnslabeltext.cc \
+	../../pdns/dnsname.cc ../../pdns/dnsname.hh \
 	../../pdns/dnspacket.cc \
 	../../pdns/dnsparser.cc \
 	../../pdns/dnsrecords.cc \

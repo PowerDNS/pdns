@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<head>                                                                  
+<meta charset="utf-8" />
+<script src="js/jquery-1.8.3.min.js"></script>        
+<script src="js/d3.v3.js"></script>        
+<script src="js/rickshaw.min.js"></script>        
+<script src="js/purl.js"></script>
+<script src="js/moment.min.js"></script>
+<link type="text/css" rel="stylesheet" href="graph.css">
+<link type="text/css" rel="stylesheet" href="detail.css">
+<link type="text/css" rel="stylesheet" href="legend.css">
+<link type="text/css" rel="stylesheet" href="lines.css">
+
+<script src="local.js"></script>
+<body>                                                                  
+<a href="https://github.com/ahuPowerDNS/pdns"><img style="position: absolute; top: 0;
+right: 0; border: 0;"
+src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"
+alt="Fork me on GitHub"></a>
+
+<style>
+#qpschart {
+	position: relative;
+	left: 40px;
+}
+#qpsy_axis {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 40px;
+}
+
+#cpuchart {
+	position: relative; 
+	left: 40px;
+}
+#cpuy_axis {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 40px;
+}
+
+
+</style>
+
+
+<table width="100%" border="0"><tr><td><img src="https://www.powerdns.com/img/powerdns-logo-220px.png"/></td>
+<td width="75%">
+</td>
+</tr></table>
+<p>
+Version: <span id="version"></span>, uptime: <span id="uptime"></span>, Number of queries: <span id="questions"></span> (<span id="qps"></span> qps)<br/>
+Average response time: <span id="latency"></span> ms, CPU Usage: <span id="cpu"></span>% <br/>
+</p>
+<table width="100%" cellpadding="20">
+  <tr valign="top">
+    <td>
+      <table cellpadding="12">
+	<tr><td align="center">QPS / SERVFAILPS</td></tr>
+	<tr><td>
+	    <div id="chart_container">
+	      <div id="qpsy_axis"></div>
+	      <div id="qpschart"></div>
+	    </div>
+	</td></tr>
+	<tr><td align="center">CPU</td></tr>
+	<tr><td>
+	    <div id="chart_container">
+	      <div id="cpuy_axis"></div>
+	      <div id="cpuchart"></div>
+	    </div>
+	  </td>
+	</tr>
+      </table>
+    </td>
+    
+    <td>
+      <table cellpadding="15">
+	<tr>
+	  <td><div id="queryring"></div> </td>
+	  <td><div id="servfailqueryring"></div></td>
+	</tr>
+	<tr>
+	  <td><div id="remotering"></div></td>
+	  <td><div id="servfailremotering"></div></td>
+	</tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div>
+  <br/><br/>
+  <p></p><p></p>
+</div>
+</body>                                                                 
+</html>

@@ -30,9 +30,6 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
-
-
-#include "utility.hh"
 #include "qtype.hh"
 #include <time.h>
 #include <sys/types.h>

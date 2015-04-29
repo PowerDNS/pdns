@@ -150,7 +150,7 @@ static string logGrep(const string& q, const string& fname, const string& prefix
   if(!ptr) {
     throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
   }
-  boost::shared_ptr<FILE> fp(ptr, fclose);
+  std::shared_ptr<FILE> fp(ptr, fclose);
 
   string line;
   string needle = q;

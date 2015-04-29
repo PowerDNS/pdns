@@ -602,7 +602,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 
     if( connect(sock, (struct sockaddr*)&remote, remote.getSocklen()) < 0 ) {
       L<<Logger::Error<<msgPrefix<<"Failed to connect to "<<remote.toStringWithPort()<<": "<<stringerror()<<endl;
-      Utility::closesocket(sock);
+      closesocket(sock);
       continue;
     }
 
@@ -614,19 +614,19 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     buffer.append(forwardPacket.getString());
     if(write(sock, buffer.c_str(), buffer.length()) < 0) {
       L<<Logger::Error<<msgPrefix<<"Unable to forward update message to "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
-      Utility::closesocket(sock);
+      closesocket(sock);
       continue;
     }
 
     int res = waitForData(sock, 10, 0);
     if (!res) {
       L<<Logger::Error<<msgPrefix<<"Timeout waiting for reply from master at "<<remote.toStringWithPort()<<endl;
-      Utility::closesocket(sock);
+      closesocket(sock);
       continue;
     }
     if (res < 0) {
       L<<Logger::Error<<msgPrefix<<"Error waiting for answer from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
-      Utility::closesocket(sock);
+      closesocket(sock);
       continue;
     }
 
@@ -635,7 +635,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     recvRes = recv(sock, &lenBuf, sizeof(lenBuf), 0);
     if (recvRes < 0) {
       L<<Logger::Error<<msgPrefix<<"Could not receive data (length) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
-      Utility::closesocket(sock);
+      closesocket(sock);
       continue;
     }
     int packetLen = lenBuf[0]*256+lenBuf[1];
@@ -645,10 +645,10 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
     recvRes = recv(sock, &buf, packetLen, 0);
     if (recvRes < 0) {
       L<<Logger::Error<<msgPrefix<<"Could not receive data (dnspacket) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
-      Utility::closesocket(sock);
+      closesocket(sock);
       continue;
     }
-    Utility::closesocket(sock);
+    closesocket(sock);
 
     try {
       MOADNSParser mdp(buf, recvRes);

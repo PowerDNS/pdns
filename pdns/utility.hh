@@ -141,15 +141,6 @@ public:
   //! Drops the program's user privileges.
   static void dropUserPrivs( int uid );
   
-  //! Sets the socket into blocking mode.
-  static bool setBlocking( Utility::sock_t socket );
-
-  //! Sets the socket into non-blocking mode.
-  static bool setNonBlocking( Utility::sock_t socket );
-  
-  //! Marks the socket to be closed on exec().
-  static bool setCloseOnExec ( Utility::sock_t socket );
-
   //! Sets the socket into Bind-any mode
   static void setBindAny ( int af, Utility::sock_t socket );
   

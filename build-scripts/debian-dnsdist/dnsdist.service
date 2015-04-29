@@ -1,0 +1,10 @@
+[Unit]
+Description=DNSdist
+After=syslog.target
+
+[Service]
+EnvironmentFile=-/etc/default/dnsdist
+ExecStart=/usr/bin/dnsdist --supervised ${OPTIONS}
+
+[Install]
+WantedBy=multi-user.target

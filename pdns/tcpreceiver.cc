@@ -211,11 +211,11 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
 {
   int sock=socket(AF_INET, SOCK_STREAM, 0);
   
-  Utility::setCloseOnExec(sock);
+  setCloseOnExec(sock);
   if(sock < 0)
     throw NetworkError("Error making TCP connection socket to recursor: "+stringerror());
 
-  Utility::setNonBlocking(sock);
+  setNonBlocking(sock);
   ServiceTuple st;
   st.port=53;
   parseService(::arg()["recursor"],st);
@@ -249,13 +249,22 @@ static void proxyQuestion(shared_ptr<DNSPacket> packet)
   return;
 }
 
+
+static void incTCPAnswerCount(const ComboAddress& remote)
+{
+  S.inc("tcp-answers");
+  if(remote.sin4.sin_family == AF_INET6)
+    S.inc("tcp6-answers");
+  else
+    S.inc("tcp4-answers");
+}
 void *TCPNameserver::doConnection(void *data)
 {
   shared_ptr<DNSPacket> packet;
   // Fix gcc-4.0 error (on AMD64)
   int fd=(int)(long)data; // gotta love C (generates a harmless warning on opteron)
   pthread_detach(pthread_self());
-  Utility::setNonBlocking(fd);
+  setNonBlocking(fd);
   try {
     int mesgsize=65535;
     scoped_array<char> mesg(new char[mesgsize]);
@@ -290,6 +299,10 @@ void *TCPNameserver::doConnection(void *data)
       
       getQuestion(fd, mesg.get(), pktlen, remote);
       S.inc("tcp-queries");      
+      if(remote.sin4.sin_family == AF_INET6)
+        S.inc("tcp6-queries");
+      else
+        S.inc("tcp4-queries");
 
       packet=shared_ptr<DNSPacket>(new DNSPacket);
       packet->setRemote(&remote);
@@ -300,13 +313,13 @@ void *TCPNameserver::doConnection(void *data)
       
       if(packet->qtype.getCode()==QType::AXFR) {
         if(doAXFR(packet->qdomain, packet, fd))
-          S.inc("tcp-answers");
+          incTCPAnswerCount(remote);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
         if(doIXFR(packet, fd))
-          S.inc("tcp-answers");
+          incTCPAnswerCount(remote);
         continue;
       }
 
@@ -334,7 +347,7 @@ void *TCPNameserver::doConnection(void *data)
         if(LPE) LPE->police(&(*packet), &(*cached), true);
 
         sendPacket(cached, fd); // presigned, don't do it again
-        S.inc("tcp-answers");
+        incTCPAnswerCount(remote);
 
         continue;
       }
@@ -361,7 +374,7 @@ void *TCPNameserver::doConnection(void *data)
       if(!reply)  // unable to write an answer?
         break;
         
-      S.inc("tcp-answers");
+      incTCPAnswerCount(remote);
       sendPacket(reply, fd);
     }
   }
@@ -390,7 +403,7 @@ void *TCPNameserver::doConnection(void *data)
     L << Logger::Error << "TCP Connection Thread caught unknown exception." << endl;
   }
   d_connectionroom_sem->post();
-  Utility::closesocket(fd);
+  closesocket(fd);
 
   return 0;
 }
@@ -1085,7 +1098,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw PDNSException("Unable to acquire TCP socket: "+stringerror());
 
-    Utility::setCloseOnExec(s);
+    setCloseOnExec(s);
 
     ComboAddress local(*laddr, ::arg().asNum("local-port"));
       
@@ -1126,7 +1139,7 @@ TCPNameserver::TCPNameserver()
     if(s<0) 
       throw PDNSException("Unable to acquire TCPv6 socket: "+stringerror());
 
-    Utility::setCloseOnExec(s);
+    setCloseOnExec(s);
 
     ComboAddress local(*laddr, ::arg().asNum("local-port"));
 

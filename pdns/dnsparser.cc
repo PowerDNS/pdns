@@ -20,9 +20,6 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include <boost/lexical_cast.hpp>
@@ -279,7 +276,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       dr.d_label=label;
       dr.d_clen=ah.d_clen;
 
-      dr.d_content=boost::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+      dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
       d_answers.push_back(make_pair(dr, pr.d_pos));
 
       if(dr.d_type == QType::TSIG && dr.d_class == 0xff) 
@@ -403,11 +400,15 @@ uint8_t PacketReader::get8BitInt()
   return d_content.at(d_pos++);
 }
 
-string PacketReader::getLabel(unsigned int recurs)
+string PacketReader::getLabel()
 {
-  string ret;
-  ret.reserve(40);
-  getLabelFromContent(d_content, d_pos, ret, recurs++);
+  unsigned int consumed;
+  vector<uint8_t> content(d_content);
+  content.insert(content.begin(), sizeof(dnsheader), 0);
+
+  string ret = DNSName((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed).toString();
+
+  d_pos+=consumed;
   return ret;
 }
 
@@ -457,49 +458,6 @@ string PacketReader::getText(bool multi)
 }
 
 
-void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t& frompos, string& ret, int recurs) 
-{
-  if(recurs > 100) // the forward reference-check below should make this test 100% obsolete
-    throw MOADNSException("Loop");
-  // it is tempting to call reserve on ret, but it turns out it creates a malloc/free storm in the loop
-  int pos = frompos;
-  for(;;) {
-    unsigned char labellen=content.at(frompos++);
-
-    if(!labellen) {
-      if(ret.empty())
-              ret.append(1,'.');
-      break;
-    }
-    else if((labellen & 0xc0) == 0xc0) {
-      uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)content.at(frompos++) - sizeof(dnsheader);
-      //        cout<<"This is an offset, need to go to: "<<offset<<endl;
-
-      if(offset >= pos)
-        throw MOADNSException("forward reference during label decompression");
-      return getLabelFromContent(content, offset, ret, ++recurs);
-    }
-    else if(labellen > 63) 
-      throw MOADNSException("Overly long label during label decompression ("+lexical_cast<string>((unsigned int)labellen)+")");
-    else {
-      // XXX FIXME THIS MIGHT BE VERY SLOW!
-
-      for(string::size_type n = 0 ; n < labellen; ++n, frompos++) {
-        if(content.at(frompos)=='.' || content.at(frompos)=='\\') {
-          ret.append(1, '\\');
-          ret.append(1, content[frompos]);
-        }
-        else if(content.at(frompos)==' ') {
-          ret+="\\032";
-        }
-        else 
-          ret.append(1, content[frompos]);
-      }
-      ret.append(1,'.');
-    }
-  }
-}
-
 void PacketReader::xfrBlob(string& blob)
 try
 {
@@ -539,7 +497,7 @@ void PacketReader::xfrHexBlob(string& blob, bool keepReading)
 string simpleCompress(const string& elabel, const string& root)
 {
   string label=elabel;
-  // FIXME: this relies on the semi-canonical escaped output from getLabelFromContent
+  // FIXME: this relies on the semi-canonical escaped output from getLabel
   if(strchr(label.c_str(), '\\')) {
     boost::replace_all(label, "\\.", ".");
     boost::replace_all(label, "\\032", " ");

@@ -118,7 +118,6 @@ bool IsAnyAddress(const ComboAddress& addr)
   return false;
 }
 
-// FIXME: this function is unused, and using it could reduce some code duplication
 int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to)
 {
   struct msghdr msgh;

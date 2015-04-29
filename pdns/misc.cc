@@ -25,6 +25,7 @@
 #endif
 #include <sys/param.h>
 #include <sys/socket.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <sys/time.h>
 #include <time.h>
@@ -47,9 +48,7 @@
 #include <stdio.h>
 #include "pdnsexception.hh"
 #include <sys/types.h>
-#include "utility.hh"
 #include <boost/algorithm/string.hpp>
-#include "logger.hh"
 #include "iputils.hh"
 
 bool g_singleThreaded;
@@ -479,7 +478,7 @@ bool IpToU32(const string &str, uint32_t *ip)
   }
   
   struct in_addr inp;
-  if(Utility::inet_aton(str.c_str(), &inp)) {
+  if(inet_aton(str.c_str(), &inp)) {
     *ip=inp.s_addr;
     return true;
   }
@@ -719,7 +718,7 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
   
   string::size_type pos = str.find(':');
   if(pos == string::npos) { // no port specified, not touching the port
-    if(Utility::inet_aton(str.c_str(), &inp)) {
+    if(inet_aton(str.c_str(), &inp)) {
       ret->sin_addr.s_addr=inp.s_addr;
       return 0;
     }
@@ -734,7 +733,7 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
     return -1;
   
   ret->sin_port = htons(port);
-  if(Utility::inet_aton(str.substr(0, pos).c_str(), &inp)) {
+  if(inet_aton(str.substr(0, pos).c_str(), &inp)) {
     ret->sin_addr.s_addr=inp.s_addr;
     return 0;
   }
@@ -919,7 +918,7 @@ void setSocketTimestamps(int fd)
 #ifdef SO_TIMESTAMP
   int on=1;
   if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
-    L<<Logger::Error<<"Unable to enable timestamp reporting for socket"<<endl;
+    ; // L<<Logger::Error<<"Unable to enable timestamp reporting for socket"<<endl;
 #endif
 }
 
@@ -937,3 +936,38 @@ uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
   return val;
 #endif
 }
+bool setNonBlocking(int sock)
+{
+  int flags=fcntl(sock,F_GETFL,0);    
+  if(flags<0 || fcntl(sock, F_SETFL,flags|O_NONBLOCK) <0)
+    return false;
+  return true;
+}
+
+bool setBlocking(int sock)
+{
+  int flags=fcntl(sock,F_GETFL,0);    
+  if(flags<0 || fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) <0)
+    return false;
+  return true;
+}
+
+// Closes a socket.
+int closesocket( int socket )
+{
+  int ret=::close(socket);
+  if(ret < 0 && errno == ECONNRESET) // see ticket 192, odd BSD behaviour
+    return 0;
+  if(ret < 0) 
+    throw PDNSException("Error closing socket: "+stringerror());
+  return ret;
+}
+
+bool setCloseOnExec(int sock)
+{
+  int flags=fcntl(sock,F_GETFD,0);    
+  if(flags<0 || fcntl(sock, F_SETFD,flags|FD_CLOEXEC) <0)
+    return false;
+  return true;
+}
+

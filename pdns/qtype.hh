@@ -25,7 +25,6 @@
 // $Id$
 #include <string>
 #include <vector>
-#include <utility>
 #include "namespaces.hh"
 
 /** The QType class is meant to deal easily with the different kind of resource types, like 'A', 'NS',

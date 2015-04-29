@@ -51,7 +51,7 @@ SUBDIRS = ext
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
 	version_generated.h \
-	bindparser.h
+	bindparser.h htmlfiles.h 
 
 CLEANFILES = \
 	version_generated.h \
@@ -138,6 +138,7 @@ pdns_server_SOURCES = \
 	dns_random.cc dns_random.hh \
 	dnsbackend.cc dnsbackend.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnspacket.cc dnspacket.hh \
 	dnsparser.cc \
 	dnsproxy.cc dnsproxy.hh \
@@ -255,6 +256,7 @@ pdnssec_SOURCES = \
 	dnsbackend.cc \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnspacket.cc \
 	dnsparser.cc dnsparser.hh \
 	dns_random.cc \
@@ -342,6 +344,7 @@ zone2sql_SOURCES = \
 	bindparserclasses.hh \
 	dns.cc \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -369,6 +372,7 @@ zone2json_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -402,6 +406,7 @@ zone2ldap_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -433,6 +438,7 @@ zone2lmdb_SOURCES = \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -456,6 +462,7 @@ sdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -477,6 +484,7 @@ calidns_SOURCES = \
 	base64.cc base64.hh \
 	calidns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -507,6 +515,7 @@ saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
@@ -533,6 +542,7 @@ dnstcpbench_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnstcpbench.cc \
@@ -556,38 +566,36 @@ dnstcpbench_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsdist_SOURCES = \
-	arguments.cc \
 	base32.cc \
-	base64.cc base64.hh \
-	dns.cc \
+	base64.hh \
 	dnsdist.cc \
+	dnsdist-lua.cc \
+	dnsdist-tcp.cc \
+	dnsdist-web.cc \
 	dnslabeltext.cc \
-	dnsparser.cc dnsparser.hh \
-	dnsrecords.cc \
-	dnswriter.cc dnswriter.hh \
+	dnsname.cc dnsname.hh \
+	dnswriter.cc \
 	dolog.hh \
 	iputils.cc \
-	logger.cc \
+	htmlfiles.h \
 	misc.cc misc.hh \
-	nsecrecords.cc \
 	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	sillyrecords.cc \
+	sholder.hh \
+	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
-	statbag.cc \
-	unix_utility.cc
+	ext/json11/json11.cpp
 
 dnsdist_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+	$(AM_LDFLAGS) 
 
 dnsdist_LDADD = \
-	$(POLARSSL_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS)
+	-lreadline -lrt -ltermcap \
+	$(LUA_LIBS) ${libsodium_LIBS} $(YAHTTP_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
@@ -615,6 +623,7 @@ toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
@@ -641,6 +650,7 @@ tsig_tests_SOURCES = \
 	dns.cc \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
@@ -669,6 +679,7 @@ speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -700,6 +711,7 @@ dnsbulktest_SOURCES = \
 	base64.cc \
 	dnsbulktest.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -725,6 +737,7 @@ dnsscan_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -747,6 +760,7 @@ dnsreplay_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -774,6 +788,7 @@ nproxy_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -803,6 +818,7 @@ notify_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
@@ -831,6 +847,7 @@ dnsscope_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -859,6 +876,7 @@ dnsgram_SOURCES = \
 	base64.cc base64.hh \
 	dnsgram.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -880,6 +898,7 @@ dnsdemog_SOURCES = \
 	base64.cc base64.hh \
 	dnsdemog.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
@@ -944,6 +963,7 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-sholder_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
@@ -952,6 +972,11 @@ testrunner_SOURCES = \
 	unix_utility.cc \
 	ueberbackend.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
+
+if CXX2011
+testrunner_SOURCES += test-dnsname_cc.cc dnsname.cc dnsname.hh
+endif
+
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -977,6 +1002,7 @@ pdns_recursor_SOURCES = \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
@@ -1059,6 +1085,9 @@ endif
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
+
+htmlfiles.h: dnsdistdist/html/*
+	./dnsdistdist/incfiles dnsdistdist > $@
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@

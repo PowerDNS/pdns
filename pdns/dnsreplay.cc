@@ -556,6 +556,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
       qd.d_assignedID = s_idmanager.getID();
       uint16_t tmp=dh->id;
       dh->id=htons(qd.d_assignedID);
+      //      dh->rd=1; // useful to replay traffic to auths to a recursor
       s_socket->sendTo((const char*)pr.d_payload, pr.d_len, remote);
       sent=true;
       dh->id=tmp;

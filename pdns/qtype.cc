@@ -19,10 +19,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "utility.hh"
 #include "dns.hh"
 #include <iostream>
 #include <string>
@@ -31,7 +27,6 @@
 #include <sstream>
 #include "qtype.hh"
 #include "misc.hh"
-#include "lock.hh"
 
 vector<QType::namenum> QType::names;
 // XXX FIXME we need to do something with initializer order here!
