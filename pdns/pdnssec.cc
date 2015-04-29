@@ -350,10 +350,19 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   SOAData sd;
   sd.db=(DNSBackend*)-1;
   if(!B.getSOA(zone, sd)) {
-    cout<<"No SOA for zone '"<<zone<<"'"<<endl;
-    return -1;
+    cout<<"[error] No SOA record present, or active, in zone '"<<zone<<"'"<<endl;
+    cout<<"Checked 0 records of '"<<zone<<"', 1 errors, 0 warnings."<<endl;
+    return 1;
   }
+
+  NSEC3PARAMRecordContent ns3pr;
+  bool narrow = false;
+  bool haveNSEC3 = dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
+
+  bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
+
   sd.db->list(zone, sd.domain_id);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
@@ -396,20 +405,14 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       if (rr.qtype.getCode() != QType::AAAA) {
         if (!pdns_iequals(tmp, rr.content)) {
           cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
-          rr.content=tmp;
           numwarnings++;
         }
       } else {
-        struct addrinfo hint, *res;
-        memset(&hint, 0, sizeof(hint));
-        hint.ai_family = AF_INET6;
-        hint.ai_flags = AI_NUMERICHOST;
-        if(getaddrinfo(rr.content.c_str(), 0, &hint, &res)) {
-          cout<<"[Warning] Folowing record is not a vallid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
+        struct in6_addr tmpbuf;
+        if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1 || rr.content.find('.') != string::npos) {
+          cout<<"[Warning] Following record is not a valid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
           numwarnings++;
-        } else
-          freeaddrinfo(res);
-        rr.content=tmp;
+        }
       }
     }
     catch(std::exception& e)
@@ -437,6 +440,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
     content.str("");
     content<<rr.qname<<" "<<rr.qtype.getName();
+    if (rr.qtype.getCode() == QType::RRSIG) {
+      RRSIGRecordContent rrc(rr.content);
+      content<<" ("<<DNSRecordContent::NumberToType(rrc.d_type)<<")";
+    }
     ret = ttl.insert(pair<string, unsigned int>(toLower(content.str()), rr.ttl));
     if (ret.second == false && ret.first->second != rr.ttl) {
       cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
@@ -444,11 +451,17 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       continue;
     }
 
+    if (isSecure && isOptOut && (rr.qname.size() && rr.qname[0] == '*') && (rr.qname.size() < 2 || rr.qname[1] == '.' )) {
+      cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' is insecure"<<endl;
+      cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnssec set-nsec3 "<<zone<<endl;
+      numwarnings++;
+    }
+
     if(pdns_iequals(rr.qname, zone)) {
       if (rr.qtype.getCode() == QType::NS) {
         hasNsAtApex=true;
       } else if (rr.qtype.getCode() == QType::DS) {
-        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should no be here."<<endl;
+        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
       }
     } else {
@@ -472,7 +485,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       }
     } else {
       if (rr.qtype.getCode() == QType::RRSIG) {
-        if(presigned) {
+        if(!presigned) {
           cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
           numerrors++;
           continue;
@@ -503,12 +516,6 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
         cout<<"[Warning] DNSKEY at '"<<rr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
         numwarnings++;
       }
-    }
-
-    if(rr.qtype.getCode() == QType::URL || rr.qtype.getCode() == QType::MBOXFW) {
-      cout<<"[Error] The recordtype "<<rr.qtype.getName()<<" for record '"<<rr.qname<<"' is no longer supported."<<endl;
-      numerrors++;
-      continue;
     }
 
     if (rr.qname[rr.qname.size()-1] == '.') {
