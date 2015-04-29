@@ -14,7 +14,6 @@ AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
 PDNS_WITH_LUA
 AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
-AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
 
 AC_CONFIG_FILES([Makefile
 	pdns/ext/yahttp/Makefile
