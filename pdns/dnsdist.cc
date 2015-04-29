@@ -993,7 +993,9 @@ try
     if(IsAnyAddress(local)) {
       int one=1;
       setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+#ifdef IPV6_RECVPKTINFO
       setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+#endif
     }
 
     SBind(cs->udpFD, cs->local);    
