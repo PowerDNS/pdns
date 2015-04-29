@@ -50,8 +50,7 @@ AS_IF([test "x$with_luajit" = "xno"], [
   PDNS_WITH_LUA
 ])
 
-AX_CXX_COMPILE_STDCXX_11(,optional)
-AM_CONDITIONAL([CXX2011],[test "$HAVE_CXX11" = "1"])
+AX_CXX_COMPILE_STDCXX_11()
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],
@@ -113,6 +112,8 @@ AC_CHECK_HEADERS(
 	[have_mmap=no]
 )
 
+
+AX_LIB_READLINE
 PDNS_CHECK_RAGEL
 PDNS_CHECK_LIBSODIUM
 
@@ -403,9 +404,5 @@ AS_IF([test "x$needsqlite3" != "x"],
 AS_IF([test "x$LUAPC" != "x"],
   [AC_MSG_NOTICE([Lua support: $LUAPC])],
   [AC_MSG_NOTICE([Lua support: no])]
-)
-AS_IF([test "$HAVE_CXX11" = "1"],
-  [AC_MSG_NOTICE([C++2011 support: yes])],
-  [AC_MSG_NOTICE([C++2011 support: no])]
 )
 AC_MSG_NOTICE([])

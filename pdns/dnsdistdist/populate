@@ -9,7 +9,8 @@ ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc .
 ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc ../sodcrypto.hh \
 ../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc .
 
-ln -fs ../../m4/pdns_check_libsodium.m4 m4/
+ln -fs ../../../m4/pdns_check_libsodium.m4 m4/
+ln -fs ../../../m4/ax_lib_readline.m4 m4/
 
 ln -fs ../README-dnsdist.md README.md
 ln -fs ../dnsdistconf.lua .

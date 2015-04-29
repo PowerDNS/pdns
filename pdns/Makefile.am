@@ -74,22 +74,20 @@ bin_PROGRAMS = \
 
 if TOOLS
 bin_PROGRAMS += \
+	calidns\
 	dnsbulktest \
+	dnsdist \
 	dnsgram \
 	dnsreplay \
 	dnsscan \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
+	dumresp \
 	notify \
 	nproxy \
 	nsec3dig \
 	saxfr
-
-if CXX2011
-bin_PROGRAMS += dnsdist calidns dumresp
-endif
-
 endif
 
 EXTRA_PROGRAMS = \
@@ -936,6 +934,8 @@ testrunner_SOURCES = \
 	dns_random.cc \
 	dnsbackend.cc \
 	dnslabeltext.cc \
+	dnsname.cc \
+	dnsname.hh \
 	dnspacket.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -947,6 +947,7 @@ testrunner_SOURCES = \
 	misc.cc \
 	nameserver.cc \
 	nsecrecords.cc \
+	packetcache.cc \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
@@ -956,6 +957,7 @@ testrunner_SOURCES = \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
 	test-dns_random_hh.cc \
+	test-dnsname_cc.cc \
 	test-dnsrecords_cc.cc \
 	test-iputils_hh.cc \
 	test-md5_hh.cc \
@@ -963,20 +965,14 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-sha_hh.cc \
 	test-sholder_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
-	test-sha_hh.cc \
-	packetcache.cc \
-	unix_utility.cc \
 	ueberbackend.cc \
+	unix_utility.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
-
-if CXX2011
-testrunner_SOURCES += test-dnsname_cc.cc dnsname.cc dnsname.hh
-endif
-
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
