@@ -76,7 +76,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
     L<<Logger::Warning<<"Unable to poll PowerDNS security status, did not get any servers from resolv.conf"<<endl;
 
   BOOST_FOREACH(ComboAddress& dest, s_servers) {
-    Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
+    Socket sock((AddressFamily) dest.sin4.sin_family, Datagram);
     sock.setNonBlocking();
     sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
     
@@ -153,7 +153,7 @@ void doSecPoll(bool first)
 
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" + string(PACKAGEVERSION) + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    L<<Logger::Warning<<"Could not retrieve security status update for '" + string(PACKAGEVERSION) + "' on '"+query+"', RCODE = "<<res<<endl;
     if(security_status == 1) // it was ok, not it is unknown
       security_status = 0;
   }
