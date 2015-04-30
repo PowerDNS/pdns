@@ -7,7 +7,7 @@ AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AM_INIT_AUTOMAKE([foreign tar-ustar -Wno-portability subdir-objects])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CANONICAL_HOST
-LT_INIT
+LT_INIT([disable-static])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_C_BIGENDIAN
@@ -21,7 +21,7 @@ AC_PROG_YACC
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
+AC_PROG_LIBTOOL([disable-static])
 AC_LANG_CPLUSPLUS
 
 dnl Check for lua
