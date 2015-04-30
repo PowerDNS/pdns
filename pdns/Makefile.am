@@ -44,7 +44,8 @@ EXTRA_DIST = \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
-	pdns.conf-dist
+	pdns.conf-dist \
+	dnsdistdist/html
 
 SUBDIRS = ext
 
