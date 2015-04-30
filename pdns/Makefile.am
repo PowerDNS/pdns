@@ -76,7 +76,6 @@ if TOOLS
 bin_PROGRAMS += \
 	calidns\
 	dnsbulktest \
-	dnsdist \
 	dnsgram \
 	dnsreplay \
 	dnsscan \
