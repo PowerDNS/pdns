@@ -8,9 +8,9 @@ Among other bug fixes and improvements (as listed below), this release
 incorporates a fix for CVE-2015-1868, as detailed in [PowerDNS Security
 Advisory 2015-01](security/powerdns-advisory-2015-01.md)
 
-If you are running DNSSEC with version 3.3.1, and you cannot currently upgrade
-to 3.4.4, please consider upgrading to 3.3.2; it has a lot of improvements and
-bug fixes and tremendously increases compliance.
+If you are running DNSSEC with version 3.3.1 or below, and you cannot
+currently upgrade to 3.4.4, please consider upgrading to 3.3.2; it has a lot
+of improvements and bug fixes and tremendously increases compliance.
 
 We want to explicitly thank Kees Monshouwer for digging up all the DNSSEC
 improvements and porting them back to this release.
