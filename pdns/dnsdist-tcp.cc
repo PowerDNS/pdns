@@ -112,6 +112,10 @@ void* tcpClientThread(int pipefd)
 	  ds = localPolicy->policy(getDownstreamCandidates(g_dstates.getCopy(), pool), ci.remote, qname, qtype, dh);
 	}
 	int dsock;
+	if(!ds) {
+	  g_stats.noPolicy++;
+	  break;
+	}
 	if(sockets.count(ds->remote) == 0) {
 	  dsock=sockets[ds->remote]=setupTCPDownstream(ds->remote);
 	}

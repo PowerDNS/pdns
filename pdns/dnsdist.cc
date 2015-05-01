@@ -442,8 +442,11 @@ try
 	ss = policy(candidates, remote, qname, qtype, dh).get();
       }
 
-      if(!ss)
+      if(!ss) {
+	g_stats.noPolicy++;
 	continue;
+	
+      }
       
       ss->queries++;
       

@@ -24,6 +24,7 @@ struct DNSDistStats
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
   stat_t truncFail{0};
+  stat_t noPolicy{0};
   double latency{0};
   
 };
