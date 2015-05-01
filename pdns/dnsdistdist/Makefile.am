@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
-SUBDIRS=pdns/ext/yahttp
+SUBDIRS=ext/yahttp
 
 dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o dnslabeltext.cc
@@ -42,10 +42,11 @@ dnsdist_SOURCES = \
 	qtype.cc qtype.hh \
 	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh pdns/ext/luawrapper/include/LuaContext.hpp \
-	pdns/ext/json11/json11.cpp \
-	pdns/ext/json11/json11.hpp \
-	pdns/ext/incbin/incbin.h
+	sstuff.hh \
+	ext/luawrapper/include/LuaContext.hpp \
+	ext/json11/json11.cpp \
+	ext/json11/json11.hpp \
+	ext/incbin/incbin.h
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
