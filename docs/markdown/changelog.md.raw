@@ -19,7 +19,6 @@ When upgrading, please run "pdnssec rectify-all-zones" and trigger an AXFR for
 all DNSSEC zones to make sure you benefit from all the compliance improvements
 present in this version.
 
-
 Security fixes:
 
 - [commit 9df4944](https://github.com/PowerDNS/pdns/commit/9df4944): import CVE-2015-1868 patch (Peter van Dijk)
