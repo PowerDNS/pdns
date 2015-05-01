@@ -2,7 +2,7 @@
 #################################
 # add-superfluous-nsec3-for-old-bind	Add superfluous NSEC3 record to positive wildcard response
 #
-# add-superfluous-nsec3-for-old-bind=yes
+# add-superfluous-nsec3-for-old-bind=no
 
 #################################
 # allow-axfr-ips	Allow zonetransfers only to these subnets
