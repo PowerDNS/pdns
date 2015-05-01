@@ -112,7 +112,15 @@ script:
  - make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
- - cd ../regression-tests.recursor
+ - cd ..
+ - ./build-scripts/dist-dnsdist
+ - cd pdns/dnsdistdist
+ - tar xf dnsdist*.tar.bz2
+ - cd dnsdist-*
+ - ./configure
+ - make -k -j 4
+ - cd ../../../
+ - cd regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
  - ./start.sh
