@@ -64,7 +64,10 @@ PDNS is normally controlled via a SysV-style init.d script, often located in `/e
 * `mrtg`: Dump statistics in mrtg format. See the performance [monitoring](../common/logging.md#performance-monitoring) documentation.
 
 # Basic setup: configuring database connectivity
-This shows you how to configure the Generic MySQL backend, which we like a lot. But feel free to use any of the myriad other backends. This backend is called 'gmysql', and needs to be configured in `pdns.conf`. Add the following lines, adjusted for your local setup:
+This shows you how to configure the Generic MySQL backend. This backend
+is called 'gmysql', and needs to be configured in `pdns.conf`.  Add the
+following lines, adjusted for your local setup (specifically, you may not
+want to use the 'root' user):
 
 ```
 launch=gmysql
@@ -78,7 +81,7 @@ Remove any earlier [`launch`](settings.md#launch) statements. Also remove the **
 
 **Warning**: Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply an IP address here to prevent chicken/egg problems!
 
-Now start PDNS using the monitor command:
+Now start PowerDNS using the monitor command:
 
 ```
 # /etc/init.d/pdns monitor
