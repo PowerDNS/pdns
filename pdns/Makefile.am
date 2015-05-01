@@ -585,8 +585,10 @@ dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) 
 
 dnsdist_LDADD = \
-	-lreadline -lrt \
-	$(LUA_LIBS) ${LIBSODIUM_LIBS} $(YAHTTP_LIBS)
+	-lrt \
+	$(LUA_LIBS) \
+	${LIBSODIUM_LIBS} \
+	$(YAHTTP_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
