@@ -579,7 +579,7 @@ dnsdist_SOURCES = \
 	sholder.hh \
 	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
-	$(top_srcdir)/ext/json11/json11.cpp
+	../ext/json11/json11.cpp
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) 
