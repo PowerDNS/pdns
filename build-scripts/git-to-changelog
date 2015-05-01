@@ -4,5 +4,5 @@ if [ "$1" = "-" ]; then
   cat
 else
   git log --no-merges --pretty=format:'- [commit %h](https://github.com/PowerDNS/pdns/commit/%h): %s (%an)' "$@" |\
-    sed -r 's!#([[:digit:]]+)![ticket #\1](https://github.com/PowerDNS/pdns/issues/\1)!g;'
+    perl -pe 's!#([[:digit:]]+)![ticket #\1](https://github.com/PowerDNS/pdns/issues/\1)!g;'
 fi
