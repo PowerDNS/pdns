@@ -1,5 +1,7 @@
 AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS=ext/yahttp
 
 dnslabeltext.cc: dnslabeltext.rl
