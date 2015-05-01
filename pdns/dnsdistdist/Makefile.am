@@ -53,5 +53,7 @@ dnsdist_LDFLAGS = \
 
 dnsdist_LDADD = \
 	-lrt \
-	$(LUA_LIBS) $(YAHTTP_LIBS) ${LIBSODIUM_LIBS}
+	$(LUA_LIBS) \
+	$(YAHTTP_LIBS) \
+	${LIBSODIUM_LIBS}
 
