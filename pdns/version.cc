@@ -37,7 +37,7 @@ string compilerVersion()
 void showProductVersion()
 {
   theL()<<Logger::Warning<<"PowerDNS "<<productName<<" "<<PDNS_VERSION<<" ("DIST_HOST") "
-    "(C) 2001-2013 PowerDNS.COM BV" << endl;
+    "(C) 2001-2015 PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built on "BUILD_DATE" by "BUILD_HOST", "<<compilerVersion()<<"."<<endl;
   theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "

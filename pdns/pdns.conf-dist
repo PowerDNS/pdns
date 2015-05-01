@@ -2,7 +2,7 @@
 #################################
 # add-superfluous-nsec3-for-old-bind	Add superfluous NSEC3 record to positive wildcard response
 #
-# add-superfluous-nsec3-for-old-bind=yes
+# add-superfluous-nsec3-for-old-bind=no
 
 #################################
 # allow-axfr-ips	Allow zonetransfers only to these subnets
@@ -220,6 +220,11 @@
 # max-ent-entries=100000
 
 #################################
+# max-nsec3-iterations	Limit the number of NSEC3 hash iterations
+#
+# max-nsec3-iterations=500
+
+#################################
 # max-queue-length	Maximum queuelength before considering situation lost
 #
 # max-queue-length=5000
@@ -308,6 +313,11 @@
 # retrieval-threads	Number of AXFR-retrieval threads for slave operation
 #
 # retrieval-threads=2
+
+#################################
+# security-poll-suffix	Domain name from which to query security update notifications
+#
+# security-poll-suffix=secpoll.powerdns.com.
 
 #################################
 # send-root-referral	Send out old-fashioned root-referral instead of ServFail in case of no authority

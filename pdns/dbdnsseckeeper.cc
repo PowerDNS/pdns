@@ -231,11 +231,16 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   if(value.empty()) { // "no NSEC3"
     return false;
   }
-     
+
+  static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if(ns3p) {
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;
     delete tmp;
+    if (ns3p->d_iterations > maxNSEC3Iterations) {
+      ns3p->d_iterations = maxNSEC3Iterations;
+      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
+    }
   }
   if(narrow) {
     getFromMeta(zname, "NSEC3NARROW", value);
@@ -246,6 +251,10 @@ bool DNSSECKeeper::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
 
 bool DNSSECKeeper::setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
 {
+  static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
+  if (ns3p.d_iterations > maxNSEC3Iterations)
+    throw runtime_error("Can't set NSEC3PARAM for zone '"+zname+"': number of NSEC3 iterations is above 'max-nsec3-iterations'");
+
   clearCaches(zname);
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
