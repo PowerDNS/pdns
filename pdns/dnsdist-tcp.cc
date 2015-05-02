@@ -84,6 +84,8 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
   auto localPolicy = g_policy.getLocal();
+  auto localRulactions = g_rulactions.getLocal();
+
   map<ComboAddress,int> sockets;
   for(;;) {
     ConnectionInfo* citmp, ci;
@@ -94,7 +96,10 @@ void* tcpClientThread(int pipefd)
     delete citmp;    
 
     uint16_t qlen, rlen;
-    string pool; // empty for now, we actually should do ACL, rulactions, the works here! XXX
+    string pool; 
+
+
+
     shared_ptr<DownstreamState> ds;
     try {
       for(;;) {      
@@ -105,7 +110,49 @@ void* tcpClientThread(int pipefd)
         readn2(ci.fd, query, qlen);
 	uint16_t qtype;
 	DNSName qname(query, qlen, 12, false, &qtype);
+	string ruleresult;
 	struct dnsheader* dh =(dnsheader*)query;
+	DNSAction::Action action=DNSAction::Action::None;
+	for(const auto& lr : *localRulactions) {
+	  if(lr.first->matches(ci.remote, qname, qtype, dh, qlen)) {
+	    action=(*lr.second)(ci.remote, qname, qtype, dh, qlen, &ruleresult);
+	    if(action != DNSAction::Action::None) {
+	      lr.first->d_matches++;
+	      break;
+	    }
+	  }
+	}
+	switch(action) {
+	case DNSAction::Action::Drop:
+	  g_stats.ruleDrop++;
+	  goto drop;
+
+	case DNSAction::Action::Nxdomain:
+	  dh->rcode = RCode::NXDomain;
+	  dh->qr=true;
+	  g_stats.ruleNXDomain++;
+	  break;
+	case DNSAction::Action::Pool: 
+	  pool=ruleresult;
+	  break;
+	  
+	case DNSAction::Action::Spoof:
+	  ;
+	case DNSAction::Action::HeaderModify:
+	  dh->qr=true;
+	  break;
+	case DNSAction::Action::Allow:
+	case DNSAction::Action::None:
+	  break;
+	}
+	
+	if(dh->qr) { // something turned it into a response
+	  putMsgLen(ci.fd, qlen);
+	  writen2(ci.fd, query, rlen);
+	  goto drop;
+
+	}
+
 
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
@@ -153,6 +200,8 @@ void* tcpClientThread(int pipefd)
       }
     }
     catch(...){}
+
+  drop:;
     
     vinfolog("Closing client connection with %s", ci.remote.toStringWithPort());
     close(ci.fd); 

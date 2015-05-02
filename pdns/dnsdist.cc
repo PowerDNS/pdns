@@ -392,7 +392,6 @@ try
 
       for(const auto& lr : *localRulactions) {
 	if(lr.first->matches(remote, qname, qtype, dh, len)) {
-
 	  action=(*lr.second)(remote, qname, qtype, dh, len, &ruleresult);
 	  if(action != DNSAction::Action::None) {
 	    lr.first->d_matches++;
