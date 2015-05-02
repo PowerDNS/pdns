@@ -11,7 +11,7 @@ case $context in
 			|| echo ignoring mysqladmin drop failure
 		mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
 		mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-			"$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
+			"$GMYSQLDB" < $BUILDDIR/modules/gmysqlbackend/schema.mysql.sql
 
 		tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 			"$GMYSQLDB"
