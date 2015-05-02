@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
+. ./test.vars
 
 spectest=$1
 [ -z $spectest ] && spectest=""

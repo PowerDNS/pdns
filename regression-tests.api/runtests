@@ -4,6 +4,8 @@ if [ ! -d .venv ]; then
 	virtualenv .venv
 fi
 . .venv/bin/activate
+. ./test.vars
+
 python -V
 pip install -r requirements.txt
 

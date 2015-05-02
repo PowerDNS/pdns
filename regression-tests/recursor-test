@@ -4,6 +4,7 @@ port=$1
 limit=$2
 [ -z "$limit" ] && limit=100000
 
+. ./test.vars
 : ${RECURSOR:="../pdns/pdns_recursor"}
 : ${CSV:="top-1m.csv"}
 : ${IPv6:="1"}

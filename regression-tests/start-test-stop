@@ -4,6 +4,7 @@ set -x
 
 PDNS=${PDNS:-../pdns/pdns_server}
 PDNS2=${PDNS2:-../pdns/pdns_server}
+. ./test.vars
 
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}

@@ -3,6 +3,7 @@ set -e
 set -x
 
 PDNS=../pdns/pdns_server
+. ./test.vars
 AMOUNT=${1:-1000}
 DNSPERF=${DNSPERF}
 [ -z "$DNSPERF" ] && DNSPERF=$(which dnsperf)
