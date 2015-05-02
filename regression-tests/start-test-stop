@@ -15,6 +15,12 @@ export KEY
 
 trap "kill_process 2" EXIT INT TERM
 
+update_modules()
+{
+        rm -f modules/*
+        for n in `find ${BUILDDIR}/modules -name '*.so' -exec readlink -m '{}' ';'`; do ln -s $n modules; done
+}
+
 tosql ()
 {
 	${MAKE} -C ../pdns zone2sql > /dev/null
@@ -277,6 +283,8 @@ else
   lua_prequery=""
   skiplua=1
 fi
+
+update_modules
 
 source backends/common
 
