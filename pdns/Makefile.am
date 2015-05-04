@@ -1080,8 +1080,8 @@ endif
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
-htmlfiles.h: dnsdistdist/html/*
-	./dnsdistdist/incfiles dnsdistdist > $@
+htmlfiles.h: $(srcdir)/dnsdistdist/html/*
+	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@
