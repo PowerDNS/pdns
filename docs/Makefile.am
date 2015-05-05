@@ -37,7 +37,7 @@ endif
 EXTRA_DIST = manpages \
 	markdown
 
-.PHONY: html manpages
+.PHONY: html all-manpages
 html: html/index.html
 
 html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/** manpages/*
@@ -51,7 +51,7 @@ html/index.html: process-md.sh mkdocs.yml markdown/** markdown/*/** manpages/*
 html.tar.bz2: html
 	tar cjf html.tar.bz2 html/
 
-manpages: $(MANPAGES_TARGET_ALL)
+all-manpages: $(MANPAGES_TARGET_ALL)
 
 if HAVE_PANDOC
 $(MANPAGES_TARGET_ALL): %: manpages/%.md
