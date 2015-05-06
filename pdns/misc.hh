@@ -21,6 +21,7 @@
 */
 #ifndef MISC_HH
 #define MISC_HH
+#include <errno.h>
 #include <inttypes.h>
 #include <cstring>
 #include <cstdio>
