@@ -89,7 +89,7 @@ ${SODIUM_BUILDREQUIRES}
 ${INIT_BUILDREQUIRES}
 
 %description
-dnsdist is a high-performance DNS loadbalancer that is scriptable in LUA.
+dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 
 %prep
 ${SETUP}
