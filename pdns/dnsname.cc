@@ -20,6 +20,7 @@ DNSName::DNSName(const char* p)
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
+  d_recurse = 0;
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
 }
 
@@ -38,9 +39,11 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       labellen &= (~0xc0);
       int newpos = (labellen << 8) + *(const unsigned char*)pos;
 
-      if(newpos < offset)
+      if(newpos < offset) {
+        if (++d_recurse > 100)
+          throw std::range_error("Abort label decompression after 100 redirects");
         packetParser(opos, len, newpos, true);
-      else
+      } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;
       break;
