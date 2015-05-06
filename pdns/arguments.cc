@@ -390,7 +390,7 @@ bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
   while(getline(f,pline)) {
     trim_right(pline);
     
-    if(pline[pline.size()-1]=='\\') {
+    if(!pline.empty() && pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
       continue;
     }
