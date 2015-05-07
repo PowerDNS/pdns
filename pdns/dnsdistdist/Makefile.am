@@ -55,6 +55,6 @@ dnsdist_LDFLAGS = \
 	-pthread 
 
 dnsdist_LDADD = \
-	$(READLINE_LIBS) -lrt \
+	$(READLINE_LIBS) $(RT_LIBS) \
 	$(LUA_LIBS) $(YAHTTP_LIBS) ${LIBSODIUM_LIBS}
 

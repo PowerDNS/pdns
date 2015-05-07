@@ -116,6 +116,7 @@ AC_CHECK_HEADERS(
 PDNS_CHECK_READLINE
 PDNS_CHECK_RAGEL
 PDNS_CHECK_LIBSODIUM
+PDNS_CHECK_CLOCK_GETTIME
 
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
@@ -143,7 +144,7 @@ THREADFLAGS=""
 
 case "$host_os" in
 solaris2.10)
-  LIBS="-lposix4 -lpthread -lrt $LIBS"
+  LIBS="-lposix4 -lpthread $RT_LIBS $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   have_solaris="yes"
   ;;
