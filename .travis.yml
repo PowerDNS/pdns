@@ -175,10 +175,16 @@ script:
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
+ - rm -f tests/verify-dnssec-zone/allow-missing
+ - rm -f tests/verify-dnssec-zone/skip.nsec3
+ - rm -f tests/verify-dnssec-zone/skip.optout
  - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
+ - cd ..
+ - git status
+ - git status | grep -q clean
 notifications:
   irc:
     channels:
