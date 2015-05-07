@@ -263,7 +263,7 @@ The 3.0 release of the PowerDNS Authoritative Server is significantly different 
 
 **Warning**: Version 3.0 of the PowerDNS Authoritative Server is the biggest change in PowerDNS history. In some senses, this means that it behaves somewhat like a '1.0' version. We advise operators to carefully perform the upgrade process from 2.9.x, and if possible test on a copy of the database beforehand.
 
-In addition, it may also be useful to have a support agreement in place during such upgrades. For first class and rapid support, please contact <a href="mailto:powerdns-support@netherlabs.nl">powerdns-support@netherlabs.nl</a>, or see [www.powerdns.com](http://www.powerdns.com). Alternatively, the [PowerDNS Community](http://wiki.powerdns.com) can be very helpful too.
+In addition, it may also be useful to have a support agreement in place during such upgrades. For first class and rapid support, please contact <a href="mailto:powerdns.support@powerdns.com">powerdns.support@powerdns.com</a>, or see [www.powerdns.com](http://www.powerdns.com). Alternatively, the [PowerDNS Community](http://wiki.powerdns.com) can be very helpful too.
 
 With similar settings, version 3.0 will most likely use a lot more memory than 2.9. This is due to the new DNSSEC key & signature caches, but also because the database query cache will now store multiple row answers, which it did not do previously. Memory use can be brought down again by tuning the cache-ttl settings.
 
