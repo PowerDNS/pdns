@@ -144,7 +144,7 @@ THREADFLAGS=""
 
 case "$host_os" in
 solaris2.10)
-  LIBS="-lposix4 -lpthread $RT_LIBS $LIBS"
+  LIBS="-lposix4 -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   have_solaris="yes"
   ;;
