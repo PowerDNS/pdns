@@ -20,6 +20,11 @@ CF_PIE=""
 LD_PIE=""
 CF_FORTIFY=""
 CF_STACK=""
+BUILD_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
+
+cat >> config.h << EOF
+#define BUILD_HOST "${BUILD_HOST}"
+EOF
 
 test_flags() {
   # test for relocation
