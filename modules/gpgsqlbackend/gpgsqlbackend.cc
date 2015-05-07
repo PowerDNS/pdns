@@ -141,7 +141,11 @@ public:
   gPgSQLLoader()
   {
     BackendMakers().report(new gPgSQLFactory("gpgsql"));
-    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION " reporting" << endl;
+    L << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 static gPgSQLLoader gpgsqlloader;

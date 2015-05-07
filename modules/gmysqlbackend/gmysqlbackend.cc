@@ -146,7 +146,11 @@ public:
   gMySQLLoader()
   {
     BackendMakers().report(new gMySQLFactory("gmysql"));
-    L << Logger::Info << "[gmysqlbackend] This is the gmysql backend version " VERSION " reporting" << endl;
+    L << Logger::Info << "[gmysqlbackend] This is the gmysql backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 static gMySQLLoader gmysqlloader;

@@ -103,7 +103,11 @@ public:
   RandomLoader()
   {
     BackendMakers().report(new RandomFactory);
-    L << Logger::Info << "[randombackend] This is the random backend version " VERSION " reporting" << endl;
+    L << Logger::Info << "[randombackend] This is the random backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }  
 };
 

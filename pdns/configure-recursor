@@ -13,6 +13,12 @@ if [ "$STATIC" = "" ]; then
   STATIC="no"
 fi
 
+if [ "$REPRODUCIBLE" = "1" ]; then
+  cat >> config.h << EOF
+#define REPRODUCIBLE 1
+EOF
+fi
+
 set -u
 
 LD_RELRO=""

@@ -72,7 +72,11 @@ void showProductVersion()
   theL()<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2015 "
     "PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
-    "Built using " << compilerVersion() << endl;
+    "Built using " << compilerVersion()
+#ifndef REPRODUCIBLE
+    <<" on " __DATE__ " " __TIME__ " by " BUILD_HOST
+#endif
+    <<"."<< endl;
   theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2." << endl;
@@ -126,6 +130,9 @@ string fullVersionString()
 {
   ostringstream s;
   s<<productName()<<" " VERSION;
+#ifndef REPRODUCIBLE
+  s<<" (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
+#endif
   return s.str();
 }
 

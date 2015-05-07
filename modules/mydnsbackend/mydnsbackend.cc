@@ -462,7 +462,11 @@ class MyDNSLoader {
 public:
   MyDNSLoader() {
     BackendMakers().report(new MyDNSFactory());
-    L << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION " reporting" << endl;
+    L << Logger::Info << "[mydnsbackend] This is the mydns backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 

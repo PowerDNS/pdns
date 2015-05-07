@@ -159,7 +159,11 @@ public:
   gSQLite3Loader()
   {
     BackendMakers().report( new gSQLite3Factory( "gsqlite3" ));
-    L << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION " reporting" << std::endl;
+    L << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 
