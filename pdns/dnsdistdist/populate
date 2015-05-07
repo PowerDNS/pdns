@@ -1,15 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 set -x
 
-ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc ../dns.hh \
-../dnslabeltext.rl ../dnsname.cc ../dnsname.hh ../dnsparser.hh ../dnsrulactions.hh ../dnswriter.cc ../dnswriter.hh \
-../dolog.hh ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
-../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc ../sodcrypto.hh \
-../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc .
+ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc \
+  ../dns.hh ../dnslabeltext.rl ../dnsname.cc ../dnsname.hh ../dnsparser.hh \
+  ../dnsrulactions.hh ../dnswriter.cc ../dnswriter.hh ../dolog.hh \
+  ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
+  ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc \
+  ../sodcrypto.hh ../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc .
 
-mkdir m4
+mkdir -p m4
 ln -fs ../../../m4/pdns_check_libsodium.m4 m4/
 ln -fs ../../../m4/pdns_check_readline.m4 m4/
 ln -fs ../../../m4/ax_lib_readline.m4 m4/
