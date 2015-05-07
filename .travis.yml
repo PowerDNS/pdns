@@ -119,7 +119,9 @@ script:
  - cd dnsdist-*
  - ./configure
  - make -k -j 4
- - cd ../../../
+ - cd ..
+ - rm -rf dnsdist-*/
+ - cd ../../
  - cd regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
