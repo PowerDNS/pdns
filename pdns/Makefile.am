@@ -370,7 +370,7 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	cp $< $@
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host=$(shell id -u -n)@$(shell hostname -f)
+build_host=$(shell id -u -n)@$(shell hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)
 if RELEASE_BUILD
 pdns_version=$(PACKAGE_VERSION)
 dist_host=$(DIST_HOST)
