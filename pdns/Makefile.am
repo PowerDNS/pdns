@@ -951,6 +951,7 @@ testrunner_SOURCES = \
 	responsestats.cc \
 	sillyrecords.cc \
 	statbag.cc \
+	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
