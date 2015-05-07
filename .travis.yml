@@ -57,15 +57,17 @@ before_script:
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
+ - cd ..
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
  - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
- - travis_retry gem install bundler --no-rdoc --no-ri
- - cd regression-tests
+ - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
+ - sudo dpkg -i libsodium_1.0.2-1_amd64.deb
  - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
- - unzip top-1m.csv.zip
- - cd ..
+ - unzip top-1m.csv.zip -d ./pdns/regression-tests
+ - cd pdns
+ - travis_retry gem install bundler --no-rdoc --no-ri
  - cd modules/remotebackend
  - travis_retry ruby -S bundle install
  - cd ../..
@@ -76,8 +78,6 @@ before_script:
  - sudo chmod 0644 /etc/softhsm/softhsm.conf
  - sudo chmod 0777 /var/lib/softhsm
  - p11-kit -l # ensure it's ok
- - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
- - sudo dpkg -i libsodium_1.0.2-1_amd64.deb
 script:
  - ./bootstrap
  - ./configure
