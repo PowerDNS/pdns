@@ -9,7 +9,7 @@ if [ -z "$1" ]; then
   else
     VERSION="git-"$VERSION
   fi
-  DIST_HOST="$(id -u -n)@$(hostname -f || hostname)"
+  DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 else
   VERSION=$1
 fi
