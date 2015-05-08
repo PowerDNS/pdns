@@ -585,8 +585,11 @@ dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) 
 
 dnsdist_LDADD = \
-	$(READLINE_LIBS) -lrt \
-	$(LUA_LIBS) ${LIBSODIUM_LIBS} $(YAHTTP_LIBS)
+	$(LUA_LIBS) \
+	$(READLINE_LIBS) \
+	$(RT_LIBS) \
+	$(YAHTTP_LIBS) \
+	$(LIBSODIUM_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
@@ -689,7 +692,8 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDADD = $(POLARSSL_LIBS) -lrt
+speedtest_LDADD = $(POLARSSL_LIBS) \
+	$(RT_LIBS)
 
 dnswasher_SOURCES = \
 	dnsparser.hh \
