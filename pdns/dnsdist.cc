@@ -65,7 +65,6 @@ GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 vector<ComboAddress> g_locals;
 
-
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
    We send directly to those sockets.
@@ -161,6 +160,13 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       g_stats.servfailResponses++;
     state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
 
+    if(udiff < 1000) g_stats.latency0_1++;
+    else if(udiff < 10000) g_stats.latency1_10++;
+    else if(udiff < 50000) g_stats.latency10_50++;
+    else if(udiff < 100000) g_stats.latency50_100++;
+    else if(udiff < 1000000) g_stats.latency100_1000++;
+    else g_stats.latencySlow++;
+    
     g_stats.latency = (1023.0*g_stats.latency/1024.0) + udiff/1024.0;
 
     ids->origFD = -1;
@@ -1065,6 +1071,9 @@ try
     thread t1(tcpAcceptorThread, cs);
     t1.detach();
   }
+
+  thread carbonthread(carbonDumpThread);
+  carbonthread.detach();
 
   thread stattid(maintThread);
   

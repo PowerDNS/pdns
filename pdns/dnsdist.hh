@@ -9,7 +9,7 @@
 #include <mutex>
 #include <thread>
 #include "sholder.hh"
-
+void* carbonDumpThread();
 struct DNSDistStats
 {
   using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
@@ -25,8 +25,20 @@ struct DNSDistStats
   stat_t downstreamSendErrors{0};
   stat_t truncFail{0};
   stat_t noPolicy{0};
-  double latency{0};
+  stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
   
+  double latency{0};
+  std::vector<std::pair<std::string, stat_t*>> entries{
+    {"responses", &responses}, {"servfail-responses", &servfailResponses},
+    {"queries", &queries}, {"acl-drops", &aclDrops},
+    {"block-filter", &blockFilter}, {"rule-drop", &ruleDrop},
+    {"rule-nxdomain", &ruleNXDomain}, {"self-answered", &selfAnswered},
+    {"downstream-timeouts", &downstreamTimeouts}, {"downstream-send-errors", &downstreamSendErrors}, 
+    {"trunc-failures", &truncFail}, {"no-policy", &noPolicy},
+    {"latency0-1", &latency0_1}, {"latency1-10", &latency1_10},
+    {"latency10-50", &latency10_50}, {"latency50-100", &latency50_100}, 
+    {"latency100-1000", &latency100_1000}, {"latency-slow", &latencySlow}
+  };
 };
 
 extern struct DNSDistStats g_stats;
@@ -281,6 +293,14 @@ struct ServerPolicy
   policy_t policy;
 };
 
+struct CarbonConfig
+{
+  ComboAddress server{"0.0.0.0", 0};
+  std::string ourname;
+  unsigned int interval{30};
+};
+
+extern GlobalStateHolder<CarbonConfig> g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;

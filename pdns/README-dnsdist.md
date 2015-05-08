@@ -412,6 +412,19 @@ fe80::/10
 ::/0
 ```
 
+Carbon/Graphite/Metronome
+-------------------------
+To emit metrics to Graphite, or any other software supporting the Carbon protocol, use:
+```
+carbonServer('ip-address-of-carbon-server', 'ourname', 30)
+```
+
+Where 'ourname' can be used to override your hostname, and '30' is the
+reporting interval in seconds.  The last two arguments can be omitted.  The
+latest version of [PowerDNS
+Metronome](https://github.com/ahupowerdns/metronome) comes with attractive
+graphs for dnsdist by default.
+
 All functions and types
 -----------------------
 Within `dnsdist` several core object types exist:
@@ -445,6 +458,8 @@ Here are all functions:
    * `showACL()`: show our ACL set
  * Blocking related:
    * `addDomainBlock(domain)`: block queries within this domain
+ * Carbon/Graphite/Metronome statistics related:
+   * `carbonServer(serverIP, [ourname], [interval])`: report statistics to serverIP using our hostname, or 'ourname' if provided, every 'interval' seconds
  * Control socket related:
    * `makeKey()`: generate a new server access key, emit configuration line ready for pasting
    * `setKey(key)`: set access key to that key. 

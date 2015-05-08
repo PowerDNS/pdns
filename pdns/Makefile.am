@@ -565,6 +565,7 @@ dnsdist_SOURCES = \
 	base32.cc \
 	base64.hh \
 	dnsdist.cc \
+	dnsdist-carbon.cc \
 	dnsdist-lua.cc \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
