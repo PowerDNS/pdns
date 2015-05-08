@@ -20,7 +20,7 @@ if [ -z "$VERSION" ]; then
   else
     VERSION="git-"$VERSION
   fi
-  DIST_HOST="$(id -u -n)@$(hostname -f || hostname)"
+  DIST_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 fi
 
 INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
