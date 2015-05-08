@@ -59,5 +59,5 @@ dnsdist_LDADD = \
 	$(READLINE_LIBS) \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
-	${LIBSODIUM_LIBS}
+	$(LIBSODIUM_LIBS)
 
