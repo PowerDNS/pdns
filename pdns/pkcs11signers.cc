@@ -231,7 +231,7 @@ class Pkcs11Slot {
       }
       // check if we need to login
       if ((d_err = d_functions->C_GetTokenInfo(d_slot, &tokenInfo)) == 0) {
-        d_logged_in = ((tokenInfo.flags && CKF_LOGIN_REQUIRED) == CKF_LOGIN_REQUIRED);
+        d_logged_in = ((tokenInfo.flags & CKF_LOGIN_REQUIRED) == CKF_LOGIN_REQUIRED);
       } else {
         logError("C_GetTokenInfo");
         throw PDNSException("Cannot get token info for slot " + boost::lexical_cast<std::string>(slot));
