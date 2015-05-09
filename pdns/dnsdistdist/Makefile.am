@@ -27,6 +27,7 @@ dnsdist_SOURCES = \
 	base64.hh \
 	dns.hh \
 	dnsdist.cc dnsdist.hh \
+	dnsdist-carbon.cc \
 	dnsdist-lua.cc \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
