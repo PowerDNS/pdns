@@ -28,6 +28,7 @@
 /dnsdistconf.lua
 /dnslabeltext.cc
 /dnslabeltext.rl
+/dnsdist-carbon.cc
 /dnsname.cc
 /dnsname.hh
 /dnsparser.hh
