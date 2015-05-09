@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 24
+# serial 25
 ], [#
 ], [])])
 
@@ -1296,6 +1296,8 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    _BOOST_mingw_test(5, 1) \
+    _BOOST_gcc_test(5, 1) \
     _BOOST_mingw_test(5, 0) \
     _BOOST_gcc_test(5, 0) \
     _BOOST_mingw_test(4, 10) \
