@@ -503,11 +503,11 @@ int main(int argc, char **argv)
 
     if(::arg().mustDo("list-modules")) {
       vector<string>modules=BackendMakers().getModules();
-      cerr<<"Modules available:"<<endl;
+      cout<<"Modules available:"<<endl;
       for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i)
         cout<<*i<<endl;
 
-      exit(99);
+      _exit(99);
     }
 
     if(!::arg().asNum("local-port")) {
