@@ -22,13 +22,13 @@
 string g_security_message;
 
 extern StatBag S;
+static vector<ComboAddress> s_servers;
 
-static vector<ComboAddress> parseResolveConf()
+void secPollParseResolveConf()
 {
-  vector<ComboAddress> ret;
   ifstream ifs("/etc/resolv.conf");
   if(!ifs)
-    return ret;
+    return;
 
   string line;
   while(std::getline(ifs, line)) {
@@ -45,7 +45,7 @@ static vector<ComboAddress> parseResolveConf()
       for(vector<string>::const_iterator iter = parts.begin()+1; iter != parts.end(); ++iter) {
 	
 	try {
-	  ret.push_back(ComboAddress(*iter, 53));
+	  s_servers.push_back(ComboAddress(*iter, 53));
 	}
 	catch(...)
 	{
@@ -54,11 +54,9 @@ static vector<ComboAddress> parseResolveConf()
     }
 
   }
-  if(ret.empty()) {
-    ret.push_back(ComboAddress("127.0.0.1", 53));
+  if(s_servers.empty()) {
+    s_servers.push_back(ComboAddress("127.0.0.1", 53));
   }
-
-  return ret;
 }
 
 int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& ret) 
@@ -69,13 +67,16 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
 
-  static vector<ComboAddress> s_servers;
-  vector<ComboAddress> servers = parseResolveConf();
-  if(!servers.empty())
-    s_servers = servers; // in case we chrooted in the meantime
+  if (s_servers.empty()) {
+    L<<Logger::Warning<<"No recursors set, secpoll impossible."<<endl;
+    return RCode::ServFail;
+  }
 
-  if(s_servers.empty())
-    L<<Logger::Warning<<"Unable to poll PowerDNS security status, did not get any servers from resolv.conf"<<endl;
+  string msg ="Doing secpoll, using resolvers: ";
+  for (ComboAddress server : s_servers) {
+    msg += server.toString() + ", ";
+  }
+  L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
   BOOST_FOREACH(ComboAddress& dest, s_servers) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
@@ -113,7 +114,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
 	ret.push_back(rr);
       }
     }
-   
+    L<<Logger::Debug<<"Secpoll got answered by "<<dest.toString()<<endl;
     return mdp.d_header.rcode;
   }
   return RCode::ServFail;
@@ -123,6 +124,9 @@ void doSecPoll(bool first)
 {
   if(::arg()["security-poll-suffix"].empty())
     return;
+
+  if(::arg().mustDo("recursor") && first)
+    s_servers.push_back(ComboAddress(::arg()["recursor"], 53));
 
   struct timeval now;
   gettimeofday(&now, 0);
