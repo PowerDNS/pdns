@@ -75,13 +75,13 @@ statistics:
 
 ```
 > showServers()
-#   Address                   State     Qps    Qlim    Queries   Drops Drate    Lat
-0   [2001:4860:4860::8888]:53    up     0.0       1          1       0 0.0      0.1
-1   [2001:4860:4860::8844]:53    up     0.0       1          0       0 0.0      0.0
-2   [2620:0:ccc::2]:53           up     0.0      10          0       0 0.0      0.0
-3   [2620:0:ccd::2]:53           up     0.0      10          0       0 0.0      0.0
-4   192.168.1.2:53               up     0.0       0          0       0 0.0      0.0
-All                                     0.0                  1       0             
+#   Address                   State     Qps    Qlim Ord Wt    Queries   Drops Drate   Lat Pools
+0   [2001:4860:4860::8888]:53    up     0.0       1   1  1          1       0   0.0   0.0
+1   [2001:4860:4860::8844]:53    up     0.0       1   1  1          0       0   0.0   0.0
+2   [2620:0:ccc::2]:53           up     0.0      10   1  1          0       0   0.0   0.0
+3   [2620:0:ccd::2]:53           up     0.0      10   1  1          0       0   0.0   0.0
+4   192.168.1.2:53               up     0.0       0   1  1          0       0   0.0   0.0
+All                                     0.0                         1       0     
 ```
 
 Here we also see our configuration. 5 downstream servers have been configured, of
@@ -90,14 +90,14 @@ respectively). The final server has no limit, which we can easily test:
 
 ```
 $ for a in {0..1000}; do dig powerdns.com @127.0.0.1 -p 5200 +noall > /dev/null; done
-> listServers()
-#   Address                   State     Qps    Qlim    Queries   Drops Drate    Lat
-0   [2001:4860:4860::8888]:53    up     1.0       1          7       0 0.0      1.6
-1   [2001:4860:4860::8844]:53    up     1.0       1          6       0 0.0      0.6
-2   [2620:0:ccc::2]:53           up    10.3      10         64       0 0.0      2.4
-3   [2620:0:ccd::2]:53           up    10.3      10         63       0 0.0      2.4
-4   192.168.1.2:53               up   125.8       0        671       0 0.0      0.4
-All                                   145.0                811       0             
+> showServers()
+#   Address                   State     Qps    Qlim Ord Wt    Queries   Drops Drate   Lat Pools
+0   [2001:4860:4860::8888]:53    up     1.0       1   1  1          7       0   0.0   1.6
+1   [2001:4860:4860::8844]:53    up     1.0       1   1  1          6       0   0.0   0.6
+2   [2620:0:ccc::2]:53           up    10.3      10   1  1         64       0   0.0   2.4
+3   [2620:0:ccd::2]:53           up    10.3      10   1  1         63       0   0.0   2.4
+4   192.168.1.2:53               up   125.8       0   1  1        671       0   0.0   0.4
+All                                   145.0                       811       0     
 ```
 
 Note that the first 4 servers were all limited to near their configured QPS,
@@ -108,9 +108,9 @@ To force a server down, try:
 
 ```
 > getServer(0):setDown()
-> listServers()
-#   Address                   State     Qps    Qlim    Queries   Drops Drate    Lat
-0   [2001:4860:4860::8888]:53  DOWN     0.0       1          8       0 0.0      1.7
+> showServers()
+#   Address                   State     Qps    Qlim Ord Wt    Queries   Drops Drate   Lat Pools
+0   [2001:4860:4860::8888]:53  DOWN     0.0       1   1  1          8       0   0.0   0.0 
 ...
 ```
 
