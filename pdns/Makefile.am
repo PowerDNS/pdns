@@ -73,7 +73,6 @@ bin_PROGRAMS = \
 
 if TOOLS
 bin_PROGRAMS += \
-	calidns\
 	dnsbulktest \
 	dnsgram \
 	dnsreplay \
@@ -86,6 +85,11 @@ bin_PROGRAMS += \
 	nproxy \
 	nsec3dig \
 	saxfr
+
+if HAVE_RECVMMSG
+bin_PROGRAMS += calidns
+endif
+
 endif
 
 EXTRA_PROGRAMS = \
