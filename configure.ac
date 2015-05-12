@@ -132,7 +132,9 @@ PDNS_CHECK_MKDOCS
 PDNS_CHECK_LINKCHECKER
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg])
+
+AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
 AS_IF([test "x$lt_cv_dlopen" = "xno"],
   [AC_MSG_ERROR([Your system does not support dlopen])]
