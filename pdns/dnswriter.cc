@@ -26,7 +26,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, 
   memcpy(dptr, ptr, sizeof(dnsheader));
   d_stuff=0;
 
-  xfrLabel(qname, false);
+  xfrName(qname, false);
   
   len=d_content.size();
   d_content.resize(len + d_record.size() + 4);
@@ -76,7 +76,7 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
   else {
-    xfrLabel(d_recordqname, compress);
+    xfrName(d_recordqname, compress);
     d_content.insert(d_content.end(), d_record.begin(), d_record.end());
     d_record.clear();
   }
@@ -196,7 +196,7 @@ bool labeltokUnescape(labelparts_t& parts, const string& label)
 }
 
 // this is the absolute hottest function in the pdns recursor 
-void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
+void DNSPacketWriter::xfrName(const string& Label, bool compress)
 {
   string label = d_lowerCase ? toLower(Label) : Label;
   labelparts_t parts;
@@ -231,7 +231,7 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
     if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {
       // cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
       if (d_record.size() - startRecordSize + chopped.size() > 253) // chopped does not include a length octet for the first label and the root label
-        throw MOADNSException("DNSPacketWriter::xfrLabel() found overly large (compressed) name");
+        throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
       uint16_t offset=li->second;
       offset|=0xc000;
       d_record.push_back((char)(offset >> 8));
@@ -270,14 +270,14 @@ void DNSPacketWriter::xfrLabel(const string& Label, bool compress)
     }
 
     if(pos - startPos == 1)
-      throw MOADNSException("DNSPacketWriter::xfrLabel() found empty label in the middle of name");
+      throw MOADNSException("DNSPacketWriter::xfrName() found empty label in the middle of name");
     if(pos - startPos > 64)
-      throw MOADNSException("DNSPacketWriter::xfrLabel() found overly large label in name");
+      throw MOADNSException("DNSPacketWriter::xfrName() found overly large label in name");
   }
   d_record.push_back(0); // insert root label
 
   if (d_record.size() - startRecordSize > 255)
-    throw MOADNSException("DNSPacketWriter::xfrLabel() found overly large name");
+    throw MOADNSException("DNSPacketWriter::xfrName() found overly large name");
 
   out:;
 }
