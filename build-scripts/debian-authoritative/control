@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Standards-Version: 3.9.6
 Maintainer: PowerDNS AutoBuilder
-Build-Depends: debhelper (>= 9~), dh-autoreconf, dh-systemd, po-debconf, libtool, flex, bison, libmysqlclient-dev, libpq-dev, libssl-dev, libpolarssl-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libboost-program-options-dev, libboost-test-dev, autotools-dev, automake, autoconf, liblua5.2-dev, pkg-config, libcrypto++-dev, ragel, libgmp-dev, libbotan1.10-dev, libcurl4-openssl-dev, libzmq-dev, liblmdb-dev
+Build-Depends: debhelper (>= 9~), dh-autoreconf, dh-systemd, po-debconf, libtool, flex, bison, libmysqlclient-dev, libpq-dev, libssl-dev, libpolarssl-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libboost-program-options-dev, libboost-test-dev, autotools-dev, automake, autoconf, liblua5.2-dev, pkg-config, libcrypto++-dev, ragel, libgmp-dev, libbotan1.10-dev, libcurl4-openssl-dev, libzmq-dev, liblmdb-dev, libyaml-cpp-dev (>= 0.5), libgeoip-dev
 Homepage: http://www.powerdns.com/
 
 Package: pdns-server
@@ -98,6 +98,22 @@ Description: geo backend for PowerDNS
  This package contains a geobackend for the PowerDNS nameserver. This backend
  balances the load throughout the world so that people access the
  geographically nearest available server.
+
+Package: pdns-backend-geoip
+Architecture: any
+Depends: pdns-server (>= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
+Recommends: geoip-database
+Provides: pdns-backend
+Description: geoip backend for PowerDNS
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains a geoipbackend for the PowerDNS nameserver. This backend
+ balances the load throughout the world so that people access the
+ geographically nearest available server based on the zonefile that is written
+ in yaml.
 
 Package: pdns-backend-mysql
 Architecture: any
