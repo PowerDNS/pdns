@@ -120,7 +120,7 @@ bool dnspacketLessThan(const std::string& a, const std::string& b)
   } while(aLabelLen && bLabelLen);
   
   if(aLabelLen || bLabelLen) //
-    throw runtime_error("Error in label comparison routing, should not happen");
+    throw runtime_error("Error in label comparison routine, should not happen");
       
   uint16_t aQtype = aSafe[aPos]*256 + aSafe[aPos + 1];
   uint16_t bQtype = bSafe[bPos]*256 + bSafe[bPos + 1];
