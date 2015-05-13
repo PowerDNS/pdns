@@ -246,7 +246,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     d_qtype = d_qclass = 0; // sometimes replies come in with no question, don't present garbage then
 
     for(n=0;n < d_header.qdcount; ++n) {
-      d_qname=pr.getLabel();
+      d_qname=pr.getName();
       d_qtype=pr.get16BitInt();
       d_qclass=pr.get16BitInt();
     }
@@ -266,7 +266,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       unsigned int recordStartPos=pr.d_pos;
 
-      string label=pr.getLabel();
+      string label=pr.getName();
       
       pr.getDnsrecordheader(ah);
       dr.d_ttl=ah.d_ttl;
@@ -400,7 +400,7 @@ uint8_t PacketReader::get8BitInt()
   return d_content.at(d_pos++);
 }
 
-string PacketReader::getLabel()
+string PacketReader::getName()
 {
   unsigned int consumed;
   vector<uint8_t> content(d_content);
@@ -497,7 +497,7 @@ void PacketReader::xfrHexBlob(string& blob, bool keepReading)
 string simpleCompress(const string& elabel, const string& root)
 {
   string label=elabel;
-  // FIXME: this relies on the semi-canonical escaped output from getLabel
+  // FIXME: this relies on the semi-canonical escaped output from getName
   if(strchr(label.c_str(), '\\')) {
     boost::replace_all(label, "\\.", ".");
     boost::replace_all(label, "\\032", " ");

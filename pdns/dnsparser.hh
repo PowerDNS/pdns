@@ -121,7 +121,7 @@ public:
 
   void xfrName(string &label, bool compress=false)
   {
-    label=getLabel();
+    label=getName();
   }
 
   void xfrText(string &text, bool multi=false)
@@ -140,7 +140,7 @@ public:
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
 
-  string getLabel();
+  string getName();
   string getText(bool multi);
 
   uint16_t d_pos;

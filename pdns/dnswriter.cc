@@ -249,7 +249,7 @@ void DNSPacketWriter::xfrName(const string& Label, bool compress)
     if(unescaped) {
       string part(label.c_str() + i -> first, i->second - i->first);
 
-      // FIXME: this relies on the semi-canonical escaped output from getLabel
+      // FIXME: this relies on the semi-canonical escaped output from getName
       boost::replace_all(part, "\\.", ".");
       boost::replace_all(part, "\\032", " ");
       boost::replace_all(part, "\\\\", "\\"); 
