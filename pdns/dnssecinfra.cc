@@ -561,10 +561,10 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   vector<uint8_t> signVect;
   DNSPacketWriter dw(signVect, "", 0);
   if(!timersonly) {
-    dw.xfrLabel(keyname, false);
+    dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    dw.xfrLabel(toLower(trc.d_algoName), false);
+    dw.xfrName(toLower(trc.d_algoName), false);
   }
   
   uint32_t now = trc.d_time; 
@@ -625,10 +625,10 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   vector<uint8_t> signVect;
   DNSPacketWriter dw(signVect, "", 0);
   if(!timersonly) {
-    dw.xfrLabel(tsigkeyname, false);
+    dw.xfrName(tsigkeyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    dw.xfrLabel(trc->d_algoName, false);
+    dw.xfrName(trc->d_algoName, false);
   }  
   uint32_t now = trc->d_time; 
   dw.xfr48BitInt(now);
