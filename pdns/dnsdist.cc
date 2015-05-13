@@ -167,7 +167,14 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     else if(udiff < 1000000) g_stats.latency100_1000++;
     else g_stats.latencySlow++;
     
-    g_stats.latency = (1023.0*g_stats.latency/1024.0) + udiff/1024.0;
+    auto doAvg = [](double& var, double n, double weight) {
+      var = (weight -1) * var/weight + n/weight;
+    };
+
+    doAvg(g_stats.latencyAvg100,     udiff,     100);
+    doAvg(g_stats.latencyAvg1000,    udiff,    1000);
+    doAvg(g_stats.latencyAvg10000,   udiff,   10000);
+    doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 
     ids->origFD = -1;
   }
@@ -882,7 +889,6 @@ struct
 int main(int argc, char** argv)
 try
 {
-  g_stats.latency=0;
   rl_attempted_completion_function = my_completion;
   rl_completion_append_character = 0;
 
@@ -970,7 +976,7 @@ try
   if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
     setupLua(true, g_cmdLine.config);
     doClient(g_serverControl, g_cmdLine.command);
-    exit(EXIT_SUCCESS);
+    _exit(EXIT_SUCCESS);
   }
 
   auto todo=setupLua(false, g_cmdLine.config);

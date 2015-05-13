@@ -42,7 +42,12 @@ try
 	boost::replace_all(hostname, ".", "_");
       }
       for(const auto& e : g_stats.entries) {
-	str<<"dnsdist."<<hostname<<".main."<<e.first<<' '<<e.second->load()<<' '<<now<<"\r\n";
+	str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
+	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+	  str<<(*val)->load();
+	else
+	  str<<*boost::get<double*>(e.second);
+	str<<' '<<now<<"\r\n";
       }
       const string msg = str.str();
       
