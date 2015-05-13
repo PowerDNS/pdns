@@ -79,7 +79,7 @@ void RecordTextReader::xfrTime(uint32_t &val)
   memset(&tm, 0, sizeof(tm));
   
   string tmp;
-  xfrLabel(tmp); // ends on number, so this works 
+  xfrName(tmp); // ends on number, so this works 
 
   sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d", 
          &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
@@ -184,7 +184,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 }
 
 // this code should leave all the escapes around 
-void RecordTextReader::xfrLabel(string& val, bool) 
+void RecordTextReader::xfrName(string& val, bool) 
 {
   skipSpaces();
   val.clear();
@@ -498,7 +498,7 @@ void RecordTextWriter::xfr8BitInt(const uint8_t& val)
 }
 
 // should not mess with the escapes
-void RecordTextWriter::xfrLabel(const string& val, bool)
+void RecordTextWriter::xfrName(const string& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
@@ -562,7 +562,7 @@ try
   rtr.xfrText(flags);
   rtr.xfrText(services);
   rtr.xfrText(regexp);
-  rtr.xfrLabel(replacement);
+  rtr.xfrName(replacement);
 
   cout<<"order: "<<order<<", pref: "<<pref<<"\n";
   cout<<"flags: \""<<flags<<"\", services: \""<<services<<"\", regexp: \""<<regexp<<"\", replacement: "<<replacement<<"\n";
@@ -575,7 +575,7 @@ try
   rtw.xfrText(flags);
   rtw.xfrText(services);
   rtw.xfrText(regexp);
-  rtw.xfrLabel(replacement);
+  rtw.xfrName(replacement);
 
   cout<<"Regenerated: '"<<out<<"'\n";
   
