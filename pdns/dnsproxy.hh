@@ -79,7 +79,7 @@ private:
     ComboAddress remote;
     int outsock;
     time_t created;
-    string qname;
+    DNSName qname;
     uint16_t qtype;
     DNSPacket* complete;
     string aname;

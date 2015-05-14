@@ -43,7 +43,7 @@
 #include "namespaces.hh"
 
 
-void CommunicatorClass::queueNotifyDomain(const string &domain, UeberBackend *B)
+void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B)
 {
   bool hasQueuedItem=false;
   set<string> nsset, ips;
@@ -99,7 +99,7 @@ void CommunicatorClass::queueNotifyDomain(const string &domain, UeberBackend *B)
 }
 
 
-bool CommunicatorClass::notifyDomain(const string &domain)
+bool CommunicatorClass::notifyDomain(const DNSName &domain)
 {
   DomainInfo di;
   UeberBackend B;
@@ -177,12 +177,12 @@ time_t CommunicatorClass::doNotifications()
     }
 
     if(p.d.rcode)
-      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<from.toStringWithPort()<<", error: "<<RCode::to_s(p.d.rcode)<<endl;      
+      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain.toString()<<"' from "<<from.toStringWithPort()<<", error: "<<RCode::to_s(p.d.rcode)<<endl;      
 
     if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
-      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<<" "<< (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)")<<endl;      
+      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain.toString()<<"' to "<<from.toStringWithPort()<<" "<< (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)")<<endl;      
     else {
-      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<< from.toStringWithPort()<<endl;
+      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain.toString()<<"' from "<< from.toStringWithPort()<<endl;
       //d_nq.dump();
     }
   }
@@ -228,13 +228,13 @@ void CommunicatorClass::sendNotification(int sock, const string& domain, const C
   }
 }
 
-void CommunicatorClass::drillHole(const string &domain, const string &ip)
+void CommunicatorClass::drillHole(const DNSName &domain, const string &ip)
 {
   Lock l(&d_holelock);
   d_holes[make_pair(domain,ip)]=time(0);
 }
 
-bool CommunicatorClass::justNotified(const string &domain, const string &ip)
+bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 {
   Lock l(&d_holelock);
   if(d_holes.find(make_pair(domain,ip))==d_holes.end()) // no hole
@@ -256,7 +256,7 @@ void CommunicatorClass::makeNotifySockets()
     d_nsock6 = -1;
 }
 
-void CommunicatorClass::notify(const string &domain, const string &ip)
+void CommunicatorClass::notify(const DNSName &domain, const string &ip)
 {
   d_nq.add(domain, ip);
   d_any_sem.post();

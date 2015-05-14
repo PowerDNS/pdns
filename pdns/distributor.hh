@@ -194,7 +194,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
-        S.ringAccount("servfail-queries",QD->Q->qdomain);
+        S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
 
 	delete QD->Q;
       }
@@ -206,7 +206,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 	
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
-        S.ringAccount("servfail-queries",QD->Q->qdomain);
+        S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
 	delete QD->Q;
       }
 
@@ -238,7 +238,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a=q->replyPacket();
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",q->qdomain);
+    S.ringAccount("servfail-queries",q->qdomain.toString());
   }
   catch(...) {
     L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
@@ -247,7 +247,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a=q->replyPacket();
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",q->qdomain);
+    S.ringAccount("servfail-queries",q->qdomain.toString());
   }
   callback(a);
   return 0;

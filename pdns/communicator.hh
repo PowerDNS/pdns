@@ -44,7 +44,7 @@ using namespace boost::multi_index;
 
 struct SuckRequest
 {
-  string domain;
+  DNSName domain;
   string master;
   bool operator<(const SuckRequest& b) const
   {
@@ -66,7 +66,7 @@ typedef UniQueue::index<IDTag>::type domains_by_name_t;
 class NotificationQueue
 {
 public:
-  void add(const string &domain, const string &ip)
+  void add(const DNSName &domain, const string &ip)
   {
     const ComboAddress caIp(ip);
 
@@ -80,7 +80,7 @@ public:
     d_nqueue.push_back(nr);
   }
 
-  bool removeIf(const string &remote, uint16_t id, const string &domain)
+  bool removeIf(const string &remote, uint16_t id, const DNSName &domain)
   {
     ServiceTuple stRemote, stQueued;
     parseService(remote, stRemote);
@@ -95,7 +95,7 @@ public:
     return false;
   }
 
-  bool getOne(string &domain, string &ip, uint16_t *id, bool &purged)
+  bool getOne(DNSName &domain, string &ip, uint16_t *id, bool &purged)
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       if(i->next <= time(0)) {
@@ -128,7 +128,7 @@ public:
 private:
   struct NotificationRequest
   {
-    string domain;
+    DNSName domain;
     string ip;
     int attempts;
     uint16_t id;
@@ -158,15 +158,15 @@ public:
   void go();
   
   
-  void drillHole(const string &domain, const string &ip);
-  bool justNotified(const string &domain, const string &ip);
-  void addSuckRequest(const string &domain, const string &master);
+  void drillHole(const DNSName &domain, const string &ip);
+  bool justNotified(const DNSName &domain, const string &ip);
+  void addSuckRequest(const DNSName &domain, const string &master);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(DNSPacket *p);
-  void notify(const string &domain, const string &ip);
+  void notify(const DNSName &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
-  void sendNotification(int sock, const string &domain, const ComboAddress& remote, uint16_t id);
+  void sendNotification(int sock, const DNSName &domain, const ComboAddress& remote, uint16_t id);
 
   static void *launchhelper(void *p)
   {
@@ -178,15 +178,15 @@ public:
     static_cast<CommunicatorClass *>(p)->retrievalLoopThread();
     return 0;
   }
-  bool notifyDomain(const string &domain);
+  bool notifyDomain(const DNSName &domain);
 private:
   void makeNotifySockets();
-  void queueNotifyDomain(const string &domain, UeberBackend *B);
+  void queueNotifyDomain(const DNSName &domain, UeberBackend *B);
   int d_nsock4, d_nsock6;
   map<pair<string,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
   void launchRetrievalThreads();
-  void suck(const string &domain, const string &remote);
+  void suck(const DNSName &domain, const string &remote);
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;

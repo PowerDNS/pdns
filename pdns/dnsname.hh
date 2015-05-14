@@ -30,6 +30,8 @@ public:
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
   bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive)
+  bool operator!=(const DNSName& other) const { return !(*this == other); }
+
   std::string toString() const;              //!< Our human-friendly, escaped, representation
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
