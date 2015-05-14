@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "dns.hh"
+#include "dnsname.hh"
 #include "namespaces.hh"
 #include <arpa/inet.h>
 /** this class can be used to write DNS packets. It knows about DNS in the sense that it makes 
@@ -86,7 +87,7 @@ public:
 
   void xfr8BitInt(uint8_t val);
 
-  void xfrName(const string& label, bool compress=false);
+  void xfrName(const DNSName& label, bool compress=false);
   void xfrText(const string& text, bool multi=false);
   void xfrBlob(const string& blob, int len=-1);
   void xfrBlobNoSpaces(const string& blob, int len=-1);

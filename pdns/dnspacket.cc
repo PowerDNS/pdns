@@ -349,7 +349,7 @@ void DNSPacket::wrapup()
     }
   }
   
-  if(!d_trc.d_algoName.empty())
+  if(d_trc.d_algoName.countLabels())
     addTSIG(pw, &d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   
   d_rawpacket.assign((char*)&packet[0], packet.size());

@@ -196,7 +196,7 @@ bool labeltokUnescape(labelparts_t& parts, const string& label)
 }
 
 // this is the absolute hottest function in the pdns recursor 
-void DNSPacketWriter::xfrName(const string& Label, bool compress)
+void DNSPacketWriter::xfrName(const DNSName& Label, bool compress)
 {
   string label = d_lowerCase ? toLower(Label) : Label;
   labelparts_t parts;

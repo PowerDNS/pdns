@@ -502,7 +502,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
 
       TSIGHashEnum algo;
       if (!getTSIGHashEnum(d_trc.d_algoName, algo)) {
-        throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName);
+        throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName.toString());
       }
 
       if (algo == TSIG_GSS) {

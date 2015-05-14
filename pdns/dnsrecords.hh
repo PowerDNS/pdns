@@ -46,13 +46,14 @@
 class NAPTRRecordContent : public DNSRecordContent
 {
 public:
-  NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, string replacement);
+  NAPTRRecordContent(uint16_t order, uint16_t preference, string flags, string services, string regexp, DNSName replacement);
 
   includeboilerplate(NAPTR);
   template<class Convertor> void xfrRecordContent(Convertor& conv);
 private:
   uint16_t d_order, d_preference;
-  string d_flags, d_services, d_regexp, d_replacement;
+  string d_flags, d_services, d_regexp;
+  DNSName d_replacement;
 };
 
 
