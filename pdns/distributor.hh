@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2011  PowerDNS.COM BV
+    Copyright (C) 2002 - 2015  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -63,12 +63,12 @@ public:
   static Distributor *Create(int n=1); //!< Create a new Distributor with \param n threads
 
   virtual void cleanup();
-  virtual int question(Question *, void (*)(const AnswerData<Answer> &)) {return 0;}; //!< Submit a question to the Distributor
-  virtual void getQueueSizes(int &questions, int &answers) {}; //!< Returns length of question queue
+  virtual int question(Question *, void (*)(const AnswerData<Answer> &)) =0; //!< Submit a question to the Distributor
+  virtual void getQueueSizes(int &questions, int &answers) =0; //!< Returns length of question queue
 
-  virtual int getNumBusy() {return 0;};
+  virtual int getNumBusy() =0;
 
-  virtual bool isOverloaded() {return false;};
+  virtual bool isOverloaded() =0;
 
 private:
 };
@@ -193,11 +193,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
     MultiThreadDistributor *us=static_cast<MultiThreadDistributor *>(p);
     int qcount;
 
-    // this is so gross
-#ifndef SMTPREDIR 
     int queuetimeout=::arg().asNum("queue-limit"); 
-#endif 
-    // ick ick ick!
     static int overloadQueueLength=::arg().asNum("overload-queue-length");
     for(;;) {
       ++(us->d_idle_threads);
@@ -223,13 +219,11 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       
       Answer *a; 
 
-#ifndef SMTPREDIR
       if(queuetimeout && q->d_dt.udiff()>queuetimeout*1000) {
         delete q;
         S.inc("timedout-packets");
         continue;
       }        
-#endif  
       // this is the only point where we interact with the backend (synchronous)
       try {
         a=b->question(q); // a can be NULL!
