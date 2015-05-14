@@ -97,7 +97,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   string value;
   bool haveSomething;
   {
-    MapCombo& mc=getMap(pcReverse(p->qdomain));
+    MapCombo& mc=getMap(pcReverse(p->qdomain.toString())); // FIXME
     TryReadLock l(&mc.d_mut); // take a readlock here
     if(!l.gotIt()) {
       S.inc("deferred-cache-lookup");
@@ -105,7 +105,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
     }
 
     uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
-    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, recursive, maxReplyLen, p->d_dnssecOk, p->hasEDNS(), &age);
+    haveSomething=getEntryLocked(p->qdomain.toString() /*FIXME*/, p->qtype, PacketCache::PACKETCACHE, value, -1, recursive, maxReplyLen, p->d_dnssecOk, p->hasEDNS(), &age);
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -155,7 +155,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned in
     if(minttl<ourttl)
       ourttl=minttl;
   }
-  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, recursive,
+  insert(q->qdomain.toString() /*FIXME*/, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, recursive,
     maxReplyLen, q->d_dnssecOk, q->hasEDNS());
 }
 

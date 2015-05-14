@@ -80,31 +80,20 @@ private:
   vector<uint8_t> d_record;
 };
 
-static const string EncodeDNSLabel(const string& input)
+//FIXME lots of overlap with DNSPacketWriter::xfrName
+static const string EncodeDNSLabel(const DNSName& input)
 {  
-  if(input.length() == 1 && input[0]=='.') // otherwise we encode .. (long story)
+  if(!input.countLabels()) // otherwise we encode .. (long story)
     return string (1, 0);
     
-  labelparts_t parts;
-  bool unescapedSomething = labeltokUnescape(parts, input);
+  auto parts = input.getRawLabels();
   string ret;
 
-  if(!unescapedSomething) {
-    for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-      ret.append(1, i->second - i->first);
-      ret.append(input.c_str() + i->first, i->second - i->first);
-    }
+  for(auto &label: parts) {
+    ret.append(1, label.size());
+    ret.append(label);
+  }
 
-  } else {
-    for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-      string part(input.c_str() + i->first, i->second - i->first);
-      boost::replace_all(part, "\\\\", "\\");
-      boost::replace_all(part, "\\.", ".");
-    
-      ret.append(1, part.length());
-      ret.append(part);
-    }  
-  }    
   ret.append(1, 0);
   return ret;
 }

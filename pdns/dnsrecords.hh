@@ -104,13 +104,14 @@ private:
 class IPSECKEYRecordContent : public DNSRecordContent
 {
 public:
-  IPSECKEYRecordContent(uint16_t preference, uint8_t gatewaytype, uint8_t algo, const DNSName& gateway, const DNSName& publickey);
+  IPSECKEYRecordContent(uint16_t preference, uint8_t gatewaytype, uint8_t algo, const DNSName& gateway, const string& publickey);
 
   includeboilerplate(IPSECKEY)
 
 private:
   uint8_t d_preference, d_gatewaytype, d_algorithm;
-  DNSName d_gateway, d_publickey;
+  DNSName d_gateway;
+  string d_publickey;
   uint32_t d_ip4;
   string d_ip6;
 };

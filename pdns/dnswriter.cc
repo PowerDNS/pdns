@@ -7,7 +7,7 @@
 #include <boost/foreach.hpp>
 #include <limits.h>
 
-DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
+DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
   : d_pos(0), d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
 {
   d_content.clear();
@@ -57,7 +57,7 @@ dnsheader* DNSPacketWriter::getHeader()
   return (dnsheader*)&*d_content.begin();
 }
 
-void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place, bool compress)
+void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place, bool compress)
 {
   if(!d_record.empty()) 
     commit();
@@ -71,7 +71,7 @@ void DNSPacketWriter::startRecord(const string& name, uint16_t qtype, uint32_t t
   d_stuff = 0;
   d_rollbackmarker=d_content.size();
 
-  if(compress && !d_recordqname.empty() && pdns_iequals(d_qname, d_recordqname)) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
+  if(compress && d_recordqname.countLabels() && d_qname==d_recordqname) {  // don't do the whole label compression thing if we *know* we can get away with "see question" - except when compressing the root
     static unsigned char marker[2]={0xc0, 0x0c};
     d_content.insert(d_content.end(), (const char *) &marker[0], (const char *) &marker[2]);
   }
@@ -169,68 +169,69 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& lmap, const stri
   return ret;
 }
 
-//! tokenize a label into parts, the parts describe a begin offset and an end offset
-bool labeltokUnescape(labelparts_t& parts, const string& label)
-{
-  string::size_type epos = label.size(), lpos(0), pos;
-  bool unescapedSomething = false;
-  const char* ptr=label.c_str();
+// //! tokenize a label into parts, the parts describe a begin offset and an end offset
+// bool labeltokUnescape(labelparts_t& parts, const string& label)
+// {
+//   string::size_type epos = label.size(), lpos(0), pos;
+//   bool unescapedSomething = false;
+//   const char* ptr=label.c_str();
 
-  parts.clear();
+//   parts.clear();
 
-  for(pos = 0 ; pos < epos; ++pos) {
-    if(ptr[pos]=='\\') {
-      pos++;
-      unescapedSomething = true;
-      continue;
-    }
-    if(ptr[pos]=='.') {
-      parts.push_back(make_pair(lpos, pos));
-      lpos=pos+1;
-    }
-  }
+//   for(pos = 0 ; pos < epos; ++pos) {
+//     if(ptr[pos]=='\\') {
+//       pos++;
+//       unescapedSomething = true;
+//       continue;
+//     }
+//     if(ptr[pos]=='.') {
+//       parts.push_back(make_pair(lpos, pos));
+//       lpos=pos+1;
+//     }
+//   }
   
-  if(lpos < pos)
-    parts.push_back(make_pair(lpos, pos));
-  return unescapedSomething;
-}
+//   if(lpos < pos)
+//     parts.push_back(make_pair(lpos, pos));
+//   return unescapedSomething;
+// }
 
 // this is the absolute hottest function in the pdns recursor 
-void DNSPacketWriter::xfrName(const DNSName& Label, bool compress)
+void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
 {
-  string label = d_lowerCase ? toLower(Label) : Label;
-  labelparts_t parts;
+  // string label = d_lowerCase ? toLower(Label) : Label;
+  // FIXME: we ignore d_lowerCase for now
+  std::vector<std::string> parts = name.getRawLabels();
+  // labelparts_t parts;
 
   if(d_canonic)
     compress=false;
 
-  string::size_type labellen = label.size();
-  if(labellen==1 && label[0]=='.') { // otherwise we encode '..'
+  // string::size_type labellen = label.size();
+  if(!parts.size()) { // otherwise we encode '..'
     d_record.push_back(0);
     return;
   }
-  bool unescaped=labeltokUnescape(parts, label); 
+  // bool unescaped=labeltokUnescape(parts, label); 
   
   // d_stuff is amount of stuff that is yet to be written out - the dnsrecordheader for example
   unsigned int pos=d_content.size() + d_record.size() + d_stuff; 
-  string chopped;
-  bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
+  // bool deDot = labellen && (label[labellen-1]=='.'); // make sure we don't store trailing dots in the labelmap
 
   unsigned int startRecordSize=d_record.size();
   unsigned int startPos;
 
-  for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-    if(deDot)
-      chopped.assign(label.c_str() + i->first, labellen - i->first -1);
-    else
-      chopped.assign(label.c_str() + i->first);
+  for(auto &label: parts) {
+    // if(deDot)
+    //   chopped.assign(label.c_str() + i->first, labellen - i->first -1);
+    // else
+    //   chopped.assign(label.c_str() + i->first);
 
     lmap_t::iterator li=d_labelmap.end();
     // see if we've written out this domain before
     // cerr<<"Searching for compression pointer to '"<<chopped<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
-    if(compress && (li=find(d_labelmap, chopped))!=d_labelmap.end()) {
+    if(compress && (li=find(d_labelmap, label))!=d_labelmap.end()) {
       // cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
-      if (d_record.size() - startRecordSize + chopped.size() > 253) // chopped does not include a length octet for the first label and the root label
+      if (d_record.size() - startRecordSize + label.size() > 253) // chopped does not include a length octet for the first label and the root label
         throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
       uint16_t offset=li->second;
       offset|=0xc000;
@@ -241,33 +242,33 @@ void DNSPacketWriter::xfrName(const DNSName& Label, bool compress)
 
     if(li==d_labelmap.end() && pos< 16384) {
       //      cerr<<"\tStoring a compression pointer to '"<<chopped<<"': "<<pos<<endl;
-      d_labelmap.push_back(make_pair(chopped, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
+      d_labelmap.push_back(make_pair(label, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
     }
 
     startPos=pos;
 
-    if(unescaped) {
-      string part(label.c_str() + i -> first, i->second - i->first);
+    // if(unescaped) {
+    //   string part(label.c_str() + i -> first, i->second - i->first);
 
-      // FIXME: this relies on the semi-canonical escaped output from getName
-      boost::replace_all(part, "\\.", ".");
-      boost::replace_all(part, "\\032", " ");
-      boost::replace_all(part, "\\\\", "\\"); 
+    //   // FIXME: this relies on the semi-canonical escaped output from getName
+    //   boost::replace_all(part, "\\.", ".");
+    //   boost::replace_all(part, "\\032", " ");
+    //   boost::replace_all(part, "\\\\", "\\"); 
 
-      d_record.push_back(part.size());
-      unsigned int len=d_record.size();
-      d_record.resize(len + part.size());
-      memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
-      pos+=(part.size())+1;
-    }
-    else {
-      char labelsize=(char)(i->second - i->first);
+    //   d_record.push_back(part.size());
+    //   unsigned int len=d_record.size();
+    //   d_record.resize(len + part.size());
+    //   memcpy(((&*d_record.begin()) + len), part.c_str(), part.size());
+    //   pos+=(part.size())+1;
+    // }
+    // else {
+      char labelsize=label.size();
       d_record.push_back(labelsize);
       unsigned int len=d_record.size();
-      d_record.resize(len + i->second - i->first);
-      memcpy(((&*d_record.begin()) + len), label.c_str() + i-> first, i->second - i->first);
-      pos+=(i->second - i->first)+1;
-    }
+      d_record.resize(len + labelsize);
+      memcpy(((&*d_record.begin()) + len), label.c_str(), labelsize); // FIXME do not want memcpy
+      pos+=labelsize+1;
+    // }
 
     if(pos - startPos == 1)
       throw MOADNSException("DNSPacketWriter::xfrName() found empty label in the middle of name");

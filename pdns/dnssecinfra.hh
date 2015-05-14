@@ -135,7 +135,7 @@ string calculateMD5HMAC(const std::string& key, const std::string& text);
 string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
 string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
 
-string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
-void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
+string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
+void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
 uint64_t signatureCacheSize(const std::string& str);
 #endif

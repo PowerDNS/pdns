@@ -42,11 +42,11 @@ public:
   enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
-  DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
+  DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
   
   /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order - 
       ANSWER, AUTHORITY, ADDITIONAL */
-  void startRecord(const string& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, Place place=ANSWER, bool compress=true);
+  void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, Place place=ANSWER, bool compress=true);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   typedef vector<pair<uint16_t,std::string> > optvect_t;
@@ -117,8 +117,8 @@ public:
 private:
   vector <uint8_t>& d_content;
   vector <uint8_t> d_record;
-  string d_qname;
-  string d_recordqname;
+  DNSName d_qname;
+  DNSName d_recordqname;
   uint16_t d_recordqtype, d_recordqclass;
   uint32_t d_recordttl;
   lmap_t d_labelmap;
@@ -131,7 +131,7 @@ private:
 };
 
 typedef vector<pair<string::size_type, string::size_type> > labelparts_t;
-bool labeltokUnescape(labelparts_t& parts, const string& label);
+// bool labeltokUnescape(labelparts_t& parts, const DNSName& label);
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
 std::deque<string> segmentDNSName(const string& input ); // from dnslabeltext.rl
 #endif

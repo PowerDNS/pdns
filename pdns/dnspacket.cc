@@ -361,7 +361,7 @@ void DNSPacket::wrapup()
   d.arcount = pw.getHeader()->arcount;
 }
 
-void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
+void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 {
   memset(&d,0,sizeof(d));
   d.id=Utility::random();
@@ -561,8 +561,8 @@ try
 
   memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   qdomain=mdp.d_qname;
-  if(!qdomain.empty()) // strip dot
-    boost::erase_tail(qdomain, 1);
+  // if(!qdomain.empty()) // strip dot
+  //   boost::erase_tail(qdomain, 1);
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {
@@ -629,11 +629,11 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
   q->getTSIGDetails(trc, keyname, &message);
   int64_t now = time(0);
   if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
+    L<<Logger::Error<<"Packet for '"<<q->qdomain.toString()<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
 
-  string algoName = toLowerCanonic(trc->d_algoName);
+  string algoName = trc->d_algoName.toString(); // FIXME
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 
@@ -647,7 +647,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
     return false;
   }
   if (trc->d_algoName == "hmac-md5")
@@ -655,14 +655,14 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
 
   TSIGHashEnum algo;
   if(!getTSIGHashEnum(trc->d_algoName, algo)) {
-     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName.toString() << endl;
      return false;
   }
 
   B64Decode(secret64, *secret);
   bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
   if(!result) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName.toString()<<"'"<<endl;
   }
 
   return result;
