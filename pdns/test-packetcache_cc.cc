@@ -15,6 +15,11 @@
 extern StatBag S;
 
 
+std::ostream & operator<<(std::ostream &os, const DNSName& d)
+{
+    return os <<"DNSName("<<d.toString()<<")";
+}
+
 BOOST_AUTO_TEST_SUITE(packetcache_cc)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
