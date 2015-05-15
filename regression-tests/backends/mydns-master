@@ -26,7 +26,7 @@ __EOF__
 			--config-dir=. --config-name=mydns \
 			--no-shuffle --master --send-root-referral \
 			--cache-ttl=0 --experimental-dname-processing \
-			--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no &
+			--mydns-use-minimal-ttl=no &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;
 
