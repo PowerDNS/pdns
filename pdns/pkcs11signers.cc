@@ -353,7 +353,7 @@ class Pkcs11Token {
             d_ecdsa_params = attr[0].str();
             if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") d_bits = 256;
             if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
-            d_ec_point = attr[1].str();
+            d_ec_point = attr[1].str().substr(3);
           } else {
             throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
           }
