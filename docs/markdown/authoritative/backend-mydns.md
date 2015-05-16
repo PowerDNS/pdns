@@ -16,6 +16,10 @@
 The MyDNS backend makes PowerDNS a drop-in replacement for the
 [MyDNS](http://mydns.bboy.net/) nameserver, as it uses the same database schema.
 
+Please note that if you are upgrading from previous version, you need to either
+upgrade your schema to the latest version, or alter the queries. Also, there are
+several options that are removed.
+
 ## Configuration Parameters
 ### `mydns-host`
 Database host to connect to.
@@ -35,23 +39,23 @@ The user password.
 ### `mydns-socket`
 Unix socket to connect to the database.
 
-### `mydns-rr-table`
-Name of the resource record table in the database, "rr" by default.
+### `mydns-domain-id-query`
+Query for looking up domain from SOA table when id is known.
 
-### `mydns-soa-table`
-Name of the SOA table in the database, "soa" by default.
+### `mydns-domain-no-id-query`
+Query for looking up domain from SOA table using domain name.
 
-### `mydns-soa-where`
-Additional WHERE clause for SOA, default is "1 = 1".
+### `mydns-soa-query`
+Query for looking up SOA record.
 
-### `mydns-rr-where`
-Additional WHERE clause for resource records, default is "1 = 1".
+### `mydns-basic-query`
+Query for performing lookup using name and type.
 
-### `mydns-soa-active`
-Use the active column in the SOA table, "yes" by default.
+### `mydns-any-query`
+Query for performing lookup using name and any type. Includes SOA record.
 
-### `mydns-rr-active`
-Use the active column in the resource record table, "yes" by default.
+### `mydns-list-query`
+Query for listing all records for domain.
 
 ### `mydns-use-minimal-ttl`
 Setting this to 'yes' will make the backend behave like MyDNS on the TTL values.
