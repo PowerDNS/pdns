@@ -762,6 +762,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
       throw PDNSException("Not logged in to token");
 
   if (d_slot->Digest(msg, result, &mech)) {
+    L<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {
