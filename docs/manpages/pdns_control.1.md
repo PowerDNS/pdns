@@ -107,6 +107,9 @@ status
 :    Show usage statistics. This only works if the server is running in guardian
      mode.
 
+token-login *MODULE* *SLOT* *PIN*
+:    Log on to a PKCS#11 slot.
+
 uptime
 :    Show the uptime of the running server.
 
