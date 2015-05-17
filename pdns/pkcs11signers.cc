@@ -297,7 +297,6 @@ class Pkcs11Token {
 
     bool Login(const std::string& pin) {
       if (pin.empty()) return false; // no empty pin.
-      Lock l(d_slot->m());
       if (d_slot->Login(pin) == true) {
         LoadAttributes();
       }
@@ -307,13 +306,13 @@ class Pkcs11Token {
 
     bool LoggedIn() {
       if (d_loaded == false && d_slot->LoggedIn() == true) {
-        Lock l(d_slot->m());
         LoadAttributes();
       }
       return d_slot->LoggedIn();
     }
 
     void LoadAttributes() {
+      Lock l(d_slot->m());
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
@@ -377,6 +376,7 @@ class Pkcs11Token {
     }
 
     int GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey) {
+      {
       Lock l(d_slot->m());
 
       size_t k;
@@ -400,6 +400,7 @@ class Pkcs11Token {
       logError("C_GenerateKeyPair");
       delete [] pubAttr;
       delete [] privAttr;
+      }
 
       if (d_err == 0) LoadAttributes();
 
