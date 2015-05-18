@@ -74,12 +74,12 @@ pdns_server_LDADD= $(POLARSSL_LIBS) $(BOOST_SERIALIZATION_LIBS) $(LUA_LIBS) $(SQ
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
+pdns_server_LDADD += $(BOTAN110_LIBS)
 endif
 
 if BOTAN18
 pdns_server_SOURCES += botan18signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN18_LIBS) -lgmp
+pdns_server_LDADD += $(BOTAN18_LIBS)
 endif
 
 if CRYPTOPP
@@ -161,12 +161,12 @@ endif
 
 if BOTAN110
 pdnssec_SOURCES += botan110signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN110_LIBS) -lgmp -lrt
+pdnssec_LDADD += $(BOTAN110_LIBS)
 endif
 
 if BOTAN18
 pdnssec_SOURCES += botan18signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN18_LIBS) -lgmp
+pdnssec_LDADD += $(BOTAN18_LIBS)
 endif
 
 if CRYPTOPP
@@ -370,7 +370,7 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	cp $< $@
 
 build_date=$(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host=$(shell id -u -n)@$(shell hostname -f)
+build_host=$(shell id -u -n)@$(shell hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)
 if RELEASE_BUILD
 pdns_version=$(PACKAGE_VERSION)
 dist_host=$(DIST_HOST)
