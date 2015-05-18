@@ -21,8 +21,7 @@
 */
 // $Id$ 
 /* (C) 2002 POWERDNS.COM BV */
-#ifndef DNS_HH
-#define DNS_HH
+#pragma once
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -225,4 +224,3 @@ void fillSOAData(const string &content, SOAData &data);
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);
 string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
-#endif

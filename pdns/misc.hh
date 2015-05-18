@@ -19,8 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifndef MISC_HH
-#define MISC_HH
+#pragma once
 #include <errno.h>
 #include <inttypes.h>
 #include <cstring>
@@ -558,4 +557,3 @@ bool setNonBlocking( int sock );
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);
-#endif
