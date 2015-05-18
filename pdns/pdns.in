@@ -27,6 +27,8 @@ DAEMON_ARGS=""
 
 [ -r /etc/default/pdns ] && . /etc/default/pdns
 
+[ "$START" = "no" ] && exit 0
+
 # Make sure that /var/run exists
 mkdir -p $SOCKETPATH
 cd $SOCKETPATH
