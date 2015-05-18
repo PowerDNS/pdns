@@ -58,8 +58,8 @@ EOF
   fi
 
   # test for fortified source
-  if $CXX $src -c -o a.out -O3 -D_FORTIFY_SOURCE=2; then
-    CF_FORTIFY="-D_FORTIFY_SOURCE=2"
+  if $CXX $src -c -o a.out -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2; then
+    CF_FORTIFY="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
   fi
 
   # test for stack protector
