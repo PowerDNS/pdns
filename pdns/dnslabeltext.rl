@@ -19,6 +19,7 @@ void appendSplit(vector<string>& ret, string& segment, char c)
 
 vector<string> segmentDNSText(const string& input )
 {
+  cerr<<"segmentDNSText("<<input<<")"<<endl; 
 %%{
         machine dnstext;
         write data;
@@ -82,6 +83,7 @@ vector<string> segmentDNSText(const string& input )
 
 deque<string> segmentDNSName(const string& input )
 {
+  cerr<<"segmentDNSName("<<input<<")"<<endl; 
 %%{
         machine dnsname;
         write data;
@@ -89,13 +91,21 @@ deque<string> segmentDNSName(const string& input )
 }%%
 	(void)dnsname_error;  // silence warnings
 	(void)dnsname_en_main;
-        const char *p = input.c_str(), *pe = input.c_str() + input.length();
+
+        deque<string> ret;
+
+        string realinput;
+        if(input.empty() || input == ".") return ret;
+
+        if(input[input.size()-1]!='.') realinput=input+".";  // FIXME YOLO
+        else realinput=input;
+
+        const char *p = realinput.c_str(), *pe = realinput.c_str() + realinput.length();
         const char* eof = pe;
         int cs;
         char val = 0;
 
         string label;
-        deque<string> ret;
 
         %%{
                 action labelEnd { 
@@ -137,7 +147,7 @@ deque<string> segmentDNSName(const string& input )
         }%%
 
         if ( cs < dnsname_first_final ) {
-                throw runtime_error("Unable to parse DNS name '"+input+"': cs="+std::to_string(cs));
+                throw runtime_error("Unable to parse DNS name '"+input+"' ('"+realinput+"'): cs="+std::to_string(cs));
         }
 
         return ret;
