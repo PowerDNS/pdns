@@ -3,7 +3,7 @@ case $context in
 		remotetype=$(echo $context | cut -d- -f 2)
 		remotesec=$(echo $context | cut -d- -f 3)
 		narrow=$(echo $context | cut -d- -f 4)
-		testsdir=../tmpmodules/remotebackend/regression-tests/
+		testsdir=../modules/remotebackend/regression-tests/
 
 		# cleanup unbound-host.conf to avoid failures
 		rm -f unbound-host.conf
