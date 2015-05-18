@@ -16,8 +16,10 @@ trap "kill_process 2" EXIT INT TERM
 
 update_modules()
 {
-        rm -f modules/*
-        for n in `find ${BUILDDIR}/modules -name '*.so' -exec readlink -m '{}' ';'`; do ln -s $n modules; done
+        rm -rf tmpmodules
+        mkdir tmpmodules
+	curdir=`pwd`
+        for n in `find ${BUILDDIR}/modules -name '*.so' -exec $curdir/readlink.py '{}' ';'`; do ln -s $n tmpmodules; done
 }
 
 tosql ()
