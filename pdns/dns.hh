@@ -30,17 +30,19 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
 #include "qtype.hh"
+#include "dnsname.hh"
 #include <time.h>
 #include <sys/types.h>
 class DNSBackend;
+class DNSName; // FIXME
 
 struct SOAData
 {
   SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), domain_id(-1), db(0), scopeMask(0) {};
 
-  string qname;
-  string nameserver;
-  string hostmaster;
+  DNSName qname;
+  DNSName nameserver;
+  DNSName hostmaster;
   uint32_t ttl;
   uint32_t serial;
   uint32_t refresh;
@@ -82,8 +84,8 @@ public:
   
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
   uint16_t qclass; //!< class of this record
-  string qname; //!< the name of this record, for example: www.powerdns.com
-  string wildcardname;
+  DNSName qname; //!< the name of this record, for example: www.powerdns.com
+  DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
   uint32_t ttl; //!< Time To Live of this record
   uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG

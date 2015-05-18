@@ -97,7 +97,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   string value;
   bool haveSomething;
   {
-    MapCombo& mc=getMap(pcReverse(p->qdomain.toString())); // FIXME
+    MapCombo& mc=getMap(pcReverse(p->qdomain));
     TryReadLock l(&mc.d_mut); // take a readlock here
     if(!l.gotIt()) {
       S.inc("deferred-cache-lookup");
@@ -160,7 +160,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned in
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
-void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
+void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
   bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk, bool EDNS)
 {
   if(!((++d_ops) % 300000)) {
@@ -249,7 +249,7 @@ int PacketCache::purge(const string &match)
   return delcount;
 }
 // called from ueberbackend
-bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
+bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
   unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS, unsigned int *age)
 {
   if(d_ttl<0) 
@@ -271,7 +271,7 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
 }
 
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
   unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS, unsigned int *age)
 {
   uint16_t qt = qtype.getCode();
@@ -291,10 +291,11 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 }
 
 
-string PacketCache::pcReverse(const string &content)
+string PacketCache::pcReverse(const DNSName &DNcontent)
 {
   typedef vector<pair<unsigned int, unsigned int> > parts_t;
   parts_t parts;
+  string content = DNcontent.toString();
   vstringtok(parts,toLower(content), ".");
   string ret;
   ret.reserve(content.size()+1);

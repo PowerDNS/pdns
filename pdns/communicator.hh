@@ -183,7 +183,7 @@ private:
   void makeNotifySockets();
   void queueNotifyDomain(const DNSName &domain, UeberBackend *B);
   int d_nsock4, d_nsock6;
-  map<pair<string,string>,time_t>d_holes;
+  map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
   void launchRetrievalThreads();
   void suck(const DNSName &domain, const string &remote);

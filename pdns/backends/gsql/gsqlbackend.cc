@@ -497,7 +497,7 @@ bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string&
   return true;
 }
 
-bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert, set<string>& erase, bool remove)
+bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   if(remove) {
     try {
@@ -513,7 +513,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string&
   }
   else
   {
-    BOOST_FOREACH(const string qname, erase) {
+    for(auto &qname: erase) {
       try {
         d_deleteEmptyNonTerminalQuery_stmt->
           bind("domain_id", domain_id)->
@@ -522,13 +522,13 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string&
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr "+qname+" from domain_id "+itoa(domain_id)+": "+e.txtReason());
+        throw PDNSException("GSQLBackend unable to delete empty non-terminal rr "+qname.toString()+" from domain_id "+itoa(domain_id)+": "+e.txtReason());
         return false;
       }
     }
   }
 
-  BOOST_FOREACH(const string qname, insert) {
+  for(auto &qname: insert) {
     try {
       d_insertEmptyNonTerminalQuery_stmt->
         bind("domain_id", domain_id)->
@@ -537,7 +537,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const std::string&
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr "+qname+" in domain_id "+itoa(domain_id)+": "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to insert empty non-terminal rr "+qname.toString()+" in domain_id "+itoa(domain_id)+": "+e.txtReason());
       return false;
     }
   }
@@ -1264,7 +1264,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
         bind("qtype",r.qtype.getName())->
         bind("domain_id",r.domain_id)->
         bind("disabled",r.disabled)->
-        bind("qname",toLower(r.qname));
+        bind("qname",stripDot(r.qname.toString())); // FIXME lowercase?
         if (ordername == NULL)
           d_InsertRecordOrderQuery_stmt->bindNull("ordername");
         else 
@@ -1283,7 +1283,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
         bind("qtype",r.qtype.getName())-> 
         bind("domain_id",r.domain_id)->
         bind("disabled",r.disabled)->
-        bind("qname",toLower(r.qname))->
+        bind("qname",stripDot(r.qname.toString()))->
         bind("auth", (r.auth || !d_dnssecQueries))->
         execute()->
         reset();

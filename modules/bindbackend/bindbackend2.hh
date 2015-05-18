@@ -185,12 +185,12 @@ public:
   ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains);
   void getUpdatedMasters(vector<DomainInfo> *changedDomains);
-  bool getDomainInfo(const string &domain, DomainInfo &di);
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
    // DNSSEC
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-  void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int id, bool include_disabled=false);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
+  bool list(const DNSName &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
@@ -199,24 +199,24 @@ public:
 
   void setFresh(uint32_t domain_id);
   void setNotified(uint32_t id, uint32_t serial);
-  bool startTransaction(const string &qname, int id);
+  bool startTransaction(const DNSName &qname, int id);
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
   bool commitTransaction();
   bool abortTransaction();
-  void alsoNotifies(const string &domain, set<string> *ips);
+  void alsoNotifies(const DNSName &domain, set<string> *ips);
 
 // the DNSSEC related (getDomainMetadata has broader uses too)
-  virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-  virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
-  virtual bool removeDomainKey(const string& name, unsigned int id);
-  virtual int addDomainKey(const string& name, const KeyData& key);
-  virtual bool activateDomainKey(const string& name, unsigned int id);
-  virtual bool deactivateDomainKey(const string& name, unsigned int id);
-  virtual bool getTSIGKey(const string& name, string* algorithm, string* content);
-  virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  virtual bool deleteTSIGKey(const string& name);
+  virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
+  virtual bool removeDomainKey(const DNSName& name, unsigned int id);
+  virtual int addDomainKey(const DNSName& name, const KeyData& key);
+  virtual bool activateDomainKey(const DNSName& name, unsigned int id);
+  virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
+  virtual bool getTSIGKey(const DNSName& name, string* algorithm, string* content);
+  virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  virtual bool deleteTSIGKey(const DNSName& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
   virtual bool doesDNSSEC();
   // end of DNSSEC 
@@ -232,12 +232,12 @@ public:
   void insertRecord(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
-  bool isMaster(const string &name, const string &ip);
+  bool isMaster(const DNSName &name, const string &ip);
 
   // for supermaster support
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
   static pthread_mutex_t s_supermaster_config_lock;
-  bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
+  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account);
 
 private:
   void setupDNSSEC();

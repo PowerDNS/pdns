@@ -220,7 +220,7 @@ string serializeSOAData(const SOAData &d)
 {
   ostringstream o;
   //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
-  o<<d.nameserver<<" "<< d.hostmaster <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
+  o<<d.nameserver.toString()<<" "<< d.hostmaster.toString() <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
 
   return o.str();
 }

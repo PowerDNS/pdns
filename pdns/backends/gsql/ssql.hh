@@ -44,6 +44,7 @@ public:
   virtual SSqlStatement* bind(const string& name, long long value)=0;;
   virtual SSqlStatement* bind(const string& name, unsigned long long value)=0;
   virtual SSqlStatement* bind(const string& name, const std::string& value)=0;
+  virtual SSqlStatement* bind(const string& name, const DNSName& value)=0;
   virtual SSqlStatement* bindNull(const string& name)=0;
   virtual SSqlStatement* execute()=0;;
   virtual bool hasNextRow()=0;

@@ -36,19 +36,17 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
+ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir) : d_reldir(reldir), 
                                                                                                d_zonename(zname), d_defaultttl(3600), 
                                                                                                d_havedollarttl(false)
 {
-  d_zonename = toCanonic("", d_zonename);
   stackFile(fname);
 }
 
-ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const string& zname):
+ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname):
                                                                         d_zonename(zname), d_defaultttl(3600), 
                                                                         d_havedollarttl(false)
 {
-  d_zonename = toCanonic("", d_zonename);
   d_zonedata = zonedata;
   d_zonedataline = d_zonedata.begin();
   d_fromfile = false;
@@ -280,7 +278,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       stackFile(fname);
     }
     else if(pdns_iequals(command, "$ORIGIN") && parts.size() > 1) {
-      d_zonename = toCanonic("", makeString(d_line, parts[1]));
+      d_zonename = DNSName(toCanonic(string(""), makeString(d_line, parts[1])));
     }
     else if(pdns_iequals(command, "$GENERATE") && parts.size() > 2) {
       // $GENERATE 1-127 $ CNAME $.0
@@ -305,17 +303,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   else {
     rr.qname=makeString(d_line, parts[0]); 
     parts.pop_front();
-    if(rr.qname.empty() || rr.qname[0]==';')
+    if(!rr.qname.countLabels() || rr.qname.toString()[0]==';')
       goto retry;
   }
   if(rr.qname=="@")
     rr.qname=d_zonename;
-  else if(!isCanonical(rr.qname)) {
-    if(d_zonename.empty() || d_zonename[0]!='.') // prevent us from adding a double dot
-      rr.qname.append(1,'.');
-    
-    rr.qname.append(d_zonename);
-  }
+  else
+    rr.qname += d_zonename;
   d_prevqname=rr.qname;
 
   if(parts.empty()) 
@@ -374,7 +368,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   trim(rr.content);
 
   if(equals(rr.content, "@"))
-    rr.content=d_zonename;
+    rr.content=d_zonename.toString();
 
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {

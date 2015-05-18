@@ -133,7 +133,7 @@ bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 {
   ++d_submitted;
   // check if we have a full RRSET to sign
-  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  !pdns_iequals(d_rrsetToSign->begin()->qname, rr.qname))) 
+  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  d_rrsetToSign->begin()->qname != rr.qname)) 
   {
     dedupRRSet();
     sendRRSetToWorker();

@@ -789,15 +789,15 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   throw HttpMethodNotAllowedException();
 }
 
-static string makeDotted(string in) {
-  if (in.empty()) {
-    return ".";
-  }
-  if (in[in.size()-1] != '.') {
-    return in + ".";
-  }
-  return in;
-}
+// static string makeDotted(string in) {
+//   if (in.empty()) {
+//     return ".";
+//   }
+//   if (in[in.size()-1] != '.') {
+//     return in + ".";
+//   }
+//   return in;
+// }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   string zonename = apiZoneIdToName(req->parameters["id"]);
@@ -824,8 +824,8 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     switch(rr.qtype.getCode()) {
     case QType::SOA:
       fillSOAData(rr.content, sd);
-      sd.nameserver = makeDotted(sd.nameserver);
-      sd.hostmaster = makeDotted(sd.hostmaster);
+      sd.nameserver = sd.nameserver.toString();
+      sd.hostmaster = sd.hostmaster.toString();
       content = serializeSOAData(sd);
       break;
     case QType::MX:
@@ -833,14 +833,14 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     case QType::CNAME:
     case QType::NS:
     case QType::AFSDB:
-      content = makeDotted(rr.content);
+      content = rr.content.toString()
       break;
     default:
       break;
     }
 
     ss <<
-      makeDotted(rr.qname) << "\t" <<
+      rr.qname.toString() << "\t" <<
       rr.ttl << "\t" <<
       rr.qtype.getName() << "\t" <<
       content <<
@@ -923,13 +923,13 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
     // reverse and append arpa domain
     ptr->qname = string(tmp.rbegin(), tmp.rend()) + ".ip6.arpa";
   } else {
-    throw ApiException("Unsupported PTR source '" + rr.qname + "' type '" + rr.qtype.getName() + "'");
+    throw ApiException("Unsupported PTR source '" + rr.qname.toString() + "' type '" + rr.qtype.getName() + "'");
   }
 
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->content = rr.qname;
+  ptr->content = rr.qname.toString();
 }
 
 static void patchZone(HttpRequest* req, HttpResponse* resp) {
@@ -989,7 +989,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           rr.domain_id = di.id;
 
           if (rr.qname != qname || rr.qtype != qtype)
-            throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
+            throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname.toString() + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
             soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);

@@ -402,7 +402,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
  
-  if(!d_tsigkeyname.empty()) {
+  if(d_tsigkeyname.countLabels()) {
     r->d_tsigkeyname = d_tsigkeyname;
     r->d_tsigprevious = d_tsigprevious;
     r->d_trc = d_trc;
@@ -444,7 +444,7 @@ int DNSPacket::noparse(const char *mesg, int length)
   return 0;
 }
 
-void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly)
+void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly)
 {
   d_trc=tr;
   d_tsigkeyname = keyname;
@@ -453,7 +453,7 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const string& keynam
   d_tsigtimersonly=timersonly;
 }
 
-bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* message) const
+bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string* message) const
 {
   MOADNSParser mdp(d_rawpacket);
 
@@ -467,8 +467,6 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
       
       gotit=true;
       *keyname = i->first.d_label;
-      if(!keyname->empty())
-        keyname->resize(keyname->size()-1); // drop the trailing dot
     }
   }
   if(!gotit)
@@ -479,7 +477,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   return true;
 }
 
-bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, string *keyname) const
+bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 {
   MOADNSParser mdp(d_rawpacket);
   bool gotit=false;
@@ -622,20 +620,20 @@ void DNSPacket::commitD()
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
 
-bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
 
   q->getTSIGDetails(trc, keyname, &message);
   int64_t now = time(0);
   if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain.toString()<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
+    L<<Logger::Error<<"Packet for '"<<q->qdomain.toString()<<"' denied: TSIG (key '"<<keyname->toString()<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
 
-  string algoName = trc->d_algoName.toString(); // FIXME
-  if (algoName == "hmac-md5.sig-alg.reg.int")
-    algoName = "hmac-md5";
+  DNSName algoName = trc->d_algoName; // FIXME
+  if (algoName == DNSName("hmac-md5.sig-alg.reg.int"))
+    algoName = DNSName("hmac-md5");
 
   if (algoName == "gss-tsig") {
     if (!gss_verify_signature(*keyname, message, trc->d_mac)) {
@@ -647,11 +645,11 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: can't find TSIG key with name '"<<keyname->toString()<<"' and algorithm '"<<algoName.toString()<<"'"<<endl;
     return false;
   }
-  if (trc->d_algoName == "hmac-md5")
-    trc->d_algoName += ".sig-alg.reg.int.";
+  if (trc->d_algoName == DNSName("hmac-md5"))
+    trc->d_algoName += DNSName("sig-alg.reg.int.");
 
   TSIGHashEnum algo;
   if(!getTSIGHashEnum(trc->d_algoName, algo)) {
@@ -662,7 +660,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
   B64Decode(secret64, *secret);
   bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
   if(!result) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName.toString()<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: TSIG signature mismatch using '"<<keyname->toString()<<"' and algorithm '"<<trc->d_algoName.toString()<<"'"<<endl;
   }
 
   return result;

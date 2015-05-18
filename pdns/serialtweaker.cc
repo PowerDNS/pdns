@@ -43,7 +43,7 @@ bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp)
 {
   vector<DNSResourceRecord>& rrs = dp->getRRS();
   BOOST_FOREACH(DNSResourceRecord& rr, rrs) {
-    if(rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname,qname)) {
+    if(rr.qtype.getCode() == QType::SOA && rr.qname == qname) {
       string kind;
       dk.getFromMeta(qname, "SOA-EDIT", kind);
       return editSOARecord(rr, kind);

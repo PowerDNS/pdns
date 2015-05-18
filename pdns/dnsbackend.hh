@@ -40,13 +40,14 @@ class DNSPacket;
 #include <vector>
 #include "namespaces.hh"
 #include "comment.hh"
+#include "dnsname.hh"
 
 class DNSBackend;  
 struct DomainInfo
 {
   DomainInfo() : backend(0) {}
   uint32_t id;
-  string zone;
+  DNSName zone;
   vector<string> masters;
   uint32_t notified_serial;
   uint32_t serial;
@@ -84,8 +85,8 @@ struct DomainInfo
 };
 
 struct TSIGKey {
-   std::string name;
-   std::string algorithm;
+   DNSName name;
+   DNSName algorithm;
    std::string key;
 };
 
@@ -106,7 +107,7 @@ class DNSBackend
 {
 public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
+  virtual void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1)=0; 
   virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
 
   //! Initiates a list of the specified domain
@@ -114,22 +115,22 @@ public:
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(const string &target, int domain_id, bool include_disabled=false)=0;
+  virtual bool list(const DNSName &target, int domain_id, bool include_disabled=false)=0;
 
   virtual ~DNSBackend(){};
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0);
+  virtual bool getSOA(const DNSName &name, SOAData &soadata, DNSPacket *p=0);
 
   //! Calculates a SOA serial for the zone and stores it in the third argument.
-  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
+  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
 
-  virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+  virtual bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
   {
     return false;
   }
 
-  virtual bool listSubZone(const string &zone, int domain_id)
+  virtual bool listSubZone(const DNSName &zone, int domain_id)
   {
     return false;
   }
@@ -138,9 +139,9 @@ public:
   bool isDnssecDomainMetadata (const string& name) {
     return (name == "PRESIGNED" || name == "NSEC3PARAM" || name == "NSEC3NARROW");
   }
-  virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta) { return false; };
-  virtual bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
-  virtual bool getDomainMetadataOne(const string& name, const std::string& kind, std::string& value)
+  virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) { return false; };
+  virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) { return false; }
+  virtual bool getDomainMetadataOne(const DNSName& name, const std::string& kind, std::string& value)
   {
     std::vector<std::string> meta;
     if (getDomainMetadata(name, kind, meta)) {
@@ -152,8 +153,8 @@ public:
     return false;
   }
 
-  virtual bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
-  virtual bool setDomainMetadataOne(const string& name, const std::string& kind, const std::string& value)
+  virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) {return false;}
+  virtual bool setDomainMetadataOne(const DNSName& name, const std::string& kind, const std::string& value)
   {
     const std::vector<std::string> meta(1, value);
     return setDomainMetadata(name, kind, meta);
@@ -163,7 +164,7 @@ public:
   virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) { }
 
   /** Determines if we are authoritative for a zone, and at what level */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, const int best_match_len);
+  virtual bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const int best_match_len);
 
   struct KeyData {
     unsigned int id;
@@ -172,52 +173,52 @@ public:
     std::string content;
   };
 
-  virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
-  virtual bool removeDomainKey(const string& name, unsigned int id) { return false; }
-  virtual int addDomainKey(const string& name, const KeyData& key){ return -1; }
-  virtual bool activateDomainKey(const string& name, unsigned int id) { return false; }
-  virtual bool deactivateDomainKey(const string& name, unsigned int id) { return false; }
+  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
+  virtual bool removeDomainKey(const DNSName& name, unsigned int id) { return false; }
+  virtual int addDomainKey(const DNSName& name, const KeyData& key){ return -1; }
+  virtual bool activateDomainKey(const DNSName& name, unsigned int id) { return false; }
+  virtual bool deactivateDomainKey(const DNSName& name, unsigned int id) { return false; }
 
-  virtual bool getTSIGKey(const string& name, string* algorithm, string* content) { return false; }
-  virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content) { return false; }
-  virtual bool deleteTSIGKey(const string& name) { return false; }
+  virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content) { return false; }
+  virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) { return false; }
+  virtual bool deleteTSIGKey(const DNSName& name) { return false; }
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys) { return false; }
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
   {
     std::cerr<<"Default beforeAndAfterAbsolute called!"<<std::endl;
     abort();
     return false;
   }
 
-  virtual bool getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after);
+  virtual bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
 
-  virtual bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
+  virtual bool updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth)
   {
     return false;
   }
 
-  virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth)
+  virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSName& qname, const std::string& ordername, bool auth)
   {
     return false;
   }
 
-  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert, set<string>& erase, bool remove)
+  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
   {
     return false;
   }
 
-  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth)
+  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const DNSName& qname, bool auth)
   {
     return false;
   }
 
-  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type)
+  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const std::string& type)
   {
     return false;
   }
 
-  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname)
+  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const DNSName& qname)
   {
     return false;
   }
@@ -244,19 +245,19 @@ public:
   {
   }
 
-  virtual bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments)
+  virtual bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
   {
     return false;
   }
 
   //! returns true if master ip is master for domain name.
-  virtual bool isMaster(const string &name, const string &ip)
+  virtual bool isMaster(const DNSName &name, const string &ip)
   {
     return false;
   }
   
   //! starts the transaction for updating domain qname (FIXME: what is id?)
-  virtual bool startTransaction(const string &qname, int id=-1)
+  virtual bool startTransaction(const DNSName &qname, int id=-1)
   {
     return false;
   }
@@ -286,17 +287,17 @@ public:
   {
     return false; // no problem!
   }
-  virtual bool feedEnts(int domain_id, map<string,bool> &nonterm)
+  virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm)
   {
     return false;
   }
-  virtual bool feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
+  virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
   {
     return false;
   }
 
   //! if this returns true, DomainInfo di contains information about the domain
-  virtual bool getDomainInfo(const string &domain, DomainInfo &di)
+  virtual bool getDomainInfo(const DNSName &domain, DomainInfo &di)
   {
     return false;
   }
@@ -306,7 +307,7 @@ public:
   }
 
   //! get a list of IP addresses that should also be notified for a domain
-  virtual void alsoNotifies(const string &domain, set<string> *ips)
+  virtual void alsoNotifies(const DNSName &domain, set<string> *ips)
   {
   }
 
@@ -326,19 +327,19 @@ public:
   }
 
   //! Called when the Master of a domain should be changed
-  virtual bool setMaster(const string &domain, const string &ip)
+  virtual bool setMaster(const DNSName &domain, const string &ip)
   {
     return false;
   }
 
   //! Called when the Kind of a domain should be changed (master -> native and similar)
-  virtual bool setKind(const string &domain, const DomainInfo::DomainKind kind)
+  virtual bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
   {
     return false;
   }
 
   //! Called when the Account of a domain should be changed
-  virtual bool setAccount(const string &domain, const string &account)
+  virtual bool setAccount(const DNSName &domain, const string &account)
   {
     return false;
   }
@@ -347,36 +348,36 @@ public:
   void setArgPrefix(const string &prefix);
 
   //! determine if ip is a supermaster or a domain
-  virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
+  virtual bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
   {
     return false;
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const string &domain)
+  virtual bool createDomain(const DNSName &domain)
   {
     return false;
   }
 
   //! called by PowerDNS to create a slave record for a superMaster
-  virtual bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account)
+  virtual bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account)
   {
     return false;
   }
 
   //! called to delete a domain, incl. all metadata, zone contents, etc.
-  virtual bool deleteDomain(const string &domain)
+  virtual bool deleteDomain(const DNSName &domain)
   {
     return false;
   }
 
   //! called to get a NSECx record from backend
-  virtual bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
+  virtual bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, DNSName &before, DNSResourceRecord &rr)
   {
     return false;
   }
   //! called to get RRSIG record(s) from backend
-  virtual bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
+  virtual bool getDirectRRSIGs(const DNSName &signer, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
   {
     return false;
   }

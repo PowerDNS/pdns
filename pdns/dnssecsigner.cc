@@ -35,7 +35,7 @@ extern StatBag S;
 
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL,
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName signQName, uint16_t signQType, uint32_t signTTL,
                      vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent>& rrcs)
 {
   if(toSign.empty())
@@ -44,11 +44,11 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
   RRSIGRecordContent rrc;
   rrc.d_type=signQType;
 
-  rrc.d_labels=countLabels(signQName); 
+  rrc.d_labels=signQName.countLabels(); 
   rrc.d_originalttl=signTTL; 
   rrc.d_siginception=startOfWeek - 7*86400; // XXX should come from zone metadata
   rrc.d_sigexpire=startOfWeek + 14*86400;
-  rrc.d_signer = signer.empty() ? "." : toLower(signer);
+  rrc.d_signer = signer;
   rrc.d_tag = 0;
   
   // we sign the RRSET in toSign + the rrc w/o hash
@@ -91,7 +91,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::st
 }
 
 // this is the entrypoint from DNSPacket
-void addSignature(DNSSECKeeper& dk, UeberBackend& db, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType,
+void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName signQName, const DNSName& wildcardname, uint16_t signQType,
   uint32_t signTTL, DNSPacketWriter::Place signPlace, 
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL)
 {
@@ -104,7 +104,7 @@ void addSignature(DNSSECKeeper& dk, UeberBackend& db, const std::string& signer,
     dk.getPreRRSIGs(db, signer, signQName, wildcardname, QType(signQType), signPlace, outsigned, origTTL); // does it all
   }
   else {
-    if(getRRSIGsForRRSET(dk, signer, wildcardname.empty() ? signQName : wildcardname, signQType, signTTL, toSign, rrcs) < 0)  {
+    if(getRRSIGsForRRSET(dk, signer, wildcardname.countLabels() ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {
       // cerr<<"Error signing a record!"<<endl;
       return;
     } 
@@ -186,26 +186,26 @@ static bool rrsigncomp(const DNSResourceRecord& a, const DNSResourceRecord& b)
   return tie(a.d_place, a.qtype) < tie(b.d_place, b.qtype);
 }
 
-static bool getBestAuthFromSet(const set<string, CIStringCompare>& authSet, const string& name, string& auth)
+static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name, DNSName& auth)
 {
-  auth.clear();
-  string sname(name);
+  auth.trimToLabels(0);
+  DNSName sname(name);
   do {
     if(authSet.find(sname) != authSet.end()) {
       auth = sname;
       return true;
     }
   }
-  while(chopOff(sname));
+  while(sname.chopOff());
   
   return false;
 }
 
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<string, CIStringCompare>& authSet, vector<DNSResourceRecord>& rrs)
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSResourceRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
   
-  string signQName, wildcardQName;
+  DNSName signQName, wildcardQName;
   uint16_t signQType=0;
   uint32_t signTTL=0;
   uint32_t origTTL=0;
@@ -215,7 +215,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<string, CIStringCom
 
   vector<DNSResourceRecord> signedRecords;
   
-  string signer;
+  DNSName signer;
   for(vector<DNSResourceRecord>::const_iterator pos = rrs.begin(); pos != rrs.end(); ++pos) {
     if(pos != rrs.begin() && (signQType != pos->qtype.getCode()  || signQName != pos->qname)) {
       if(getBestAuthFromSet(authSet, signQName, signer))

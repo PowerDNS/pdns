@@ -193,7 +193,7 @@ public:
   virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth);
   virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type);
   virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname);
-  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert ,set<string>& erase, bool remove);
+  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert ,set<DNSName>& erase, bool remove);
   virtual bool doesDNSSEC();
 
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);

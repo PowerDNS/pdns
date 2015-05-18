@@ -63,12 +63,9 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
   string lcontent=toLower(content);
   string rcontent=toLower(rhs.content);
 
-  string llabel=toLower(qname);
-  string rlabel=toLower(rhs.qname);
-
   return
-    tie(llabel, qtype, lcontent, ttl) ==
-    tie(rlabel, rhs.qtype, rcontent, rhs.ttl);
+    tie(qname, qtype, lcontent, ttl) ==
+    tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
 
@@ -77,8 +74,8 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   auth=true;
   disabled=false;
   qname = p.d_label;
-  if(!qname.empty())
-    boost::erase_tail(qname, 1); // strip .
+  // if(!qname.empty())
+  //   boost::erase_tail(qname, 1); // strip .
 
   qtype = p.d_type;
   ttl = p.d_ttl;

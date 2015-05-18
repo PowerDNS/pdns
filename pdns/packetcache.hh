@@ -56,11 +56,11 @@ public:
 
   void insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  void insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
+  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
     unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
 
   int get(DNSPacket *p, DNSPacket *q, bool recursive); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
-  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
+  bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
 
   int size(); //!< number of entries in the cache
@@ -70,9 +70,9 @@ public:
 
   map<char,int> getCounts();
 private:
-  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
+  bool getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
-  string pcReverse(const string &content);
+  string pcReverse(const DNSName &content);
   struct CacheEntry
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}

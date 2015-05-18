@@ -165,7 +165,7 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
-  virtual string serialize(const string& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
+  virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
     string empty;

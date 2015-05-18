@@ -69,30 +69,30 @@ public:
     if(d_ourDB)
       delete d_keymetadb;
   }
-  bool isSecuredZone(const std::string& zone);
+  bool isSecuredZone(const DNSName& zone);
   static uint64_t dbdnssecCacheSizes(const std::string& str);  
-  keyset_t getKeys(const std::string& zone, boost::tribool allOrKeyOrZone = boost::indeterminate, bool useCache = true);
-  DNSSECPrivateKey getKeyById(const std::string& zone, unsigned int id);
-  bool addKey(const std::string& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
-  bool addKey(const std::string& zname, const DNSSECPrivateKey& dpk, bool active=true);
-  bool removeKey(const std::string& zname, unsigned int id);
-  bool activateKey(const std::string& zname, unsigned int id);
-  bool deactivateKey(const std::string& zname, unsigned int id);
+  keyset_t getKeys(const DNSName& zone, boost::tribool allOrKeyOrZone = boost::indeterminate, bool useCache = true);
+  DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
+  bool addKey(const DNSName& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);
+  bool addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, bool active=true);
+  bool removeKey(const DNSName& zname, unsigned int id);
+  bool activateKey(const DNSName& zname, unsigned int id);
+  bool deactivateKey(const DNSName& zname, unsigned int id);
 
-  bool secureZone(const std::string& fname, int algorithm, int size);
+  bool secureZone(const DNSName& fname, int algorithm, int size);
 
-  bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
-  bool setNSEC3PARAM(const std::string& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
-  bool unsetNSEC3PARAM(const std::string& zname);
+  bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=0, bool* narrow=0);
+  bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
+  bool unsetNSEC3PARAM(const DNSName& zname);
   void clearAllCaches();
-  void clearCaches(const std::string& name);
-  bool getPreRRSIGs(UeberBackend& db, const std::string& signer, const std::string& qname, const std::string& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
-  bool isPresigned(const std::string& zname);
-  bool setPresigned(const std::string& zname);
-  bool unsetPresigned(const std::string& zname);
+  void clearCaches(const DNSName& name);
+  bool getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname, const DNSName& wildcardname, const QType& qtype, DNSPacketWriter::Place, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL);
+  bool isPresigned(const DNSName& zname);
+  bool setPresigned(const DNSName& zname);
+  bool unsetPresigned(const DNSName& zname);
 
-  bool TSIGGrantsAccess(const string& zone, const string& keyname);
-  bool getTSIGForAccess(const string& zone, const string& master, string* keyname);
+  bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
+  bool getTSIGForAccess(const DNSName& zone, const string& master, DNSName* keyname);
   
   void startTransaction()
   {
@@ -104,7 +104,7 @@ public:
     (*d_keymetadb->backends.begin())->commitTransaction();
   }
   
-  void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
+  void getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
 private:
 
 
@@ -117,7 +117,7 @@ private:
       return d_ttd;
     }
   
-    string d_domain;
+    DNSName d_domain;
     unsigned int d_ttd;
     mutable keys_t d_keys;
   };
@@ -129,7 +129,7 @@ private:
       return d_ttd;
     }
   
-    string d_domain;
+    DNSName d_domain;
     unsigned int d_ttd;
   
     mutable std::string d_key, d_value;
@@ -139,7 +139,7 @@ private:
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<
-      ordered_unique<member<KeyCacheEntry, std::string, &KeyCacheEntry::d_domain>, CIStringCompare >,
+      ordered_unique<member<KeyCacheEntry, DNSName, &KeyCacheEntry::d_domain> >,
       sequenced<>
     >
   > keycache_t;
@@ -149,9 +149,9 @@ private:
       ordered_unique<
         composite_key< 
           METACacheEntry, 
-          member<METACacheEntry, std::string, &METACacheEntry::d_domain> ,
+          member<METACacheEntry, DNSName, &METACacheEntry::d_domain> ,
           member<METACacheEntry, std::string, &METACacheEntry::d_key>
-        >, composite_key_compare<CIStringCompare, CIStringCompare> >,
+        >, composite_key_compare<std::less<DNSName>, CIStringCompare> >,
       sequenced<>
     >
   > metacache_t;
@@ -170,7 +170,7 @@ class DNSPacket;
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
 uint32_t calculateEditSOA(SOAData sd, const string& kind);
-bool editSOA(DNSSECKeeper& dk, const string& qname, DNSPacket* dp);
+bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp);
 bool editSOARecord(DNSResourceRecord& rr, const string& kind);
 // for SOA-EDIT-DNSUPDATE/API
 uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);

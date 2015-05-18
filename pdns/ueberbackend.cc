@@ -83,7 +83,7 @@ void UeberBackend::go(void)
   pthread_mutex_unlock(&d_mut);
 }
 
-bool UeberBackend::getDomainInfo(const string &domain, DomainInfo &di)
+bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
 {
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->getDomainInfo(domain, di))
@@ -91,7 +91,7 @@ bool UeberBackend::getDomainInfo(const string &domain, DomainInfo &di)
   return false;
 }
 
-bool UeberBackend::createDomain(const string &domain)
+bool UeberBackend::createDomain(const DNSName &domain)
 {
   BOOST_FOREACH(DNSBackend* mydb, backends) {
     if(mydb->createDomain(domain)) {
@@ -101,7 +101,7 @@ bool UeberBackend::createDomain(const string &domain)
   return false;
 }
 
-int UeberBackend::addDomainKey(const string& name, const DNSBackend::KeyData& key)
+int UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key)
 {
   int ret;
   BOOST_FOREACH(DNSBackend* db, backends) {
@@ -110,7 +110,7 @@ int UeberBackend::addDomainKey(const string& name, const DNSBackend::KeyData& ke
   }
   return -1;
 }
-bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
+bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDomainKeys(name, kind, keys))
@@ -119,7 +119,7 @@ bool UeberBackend::getDomainKeys(const string& name, unsigned int kind, std::vec
   return false;
 }
 
-bool UeberBackend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta)
+bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getAllDomainMetadata(name, meta))
@@ -128,7 +128,7 @@ bool UeberBackend::getAllDomainMetadata(const string& name, std::map<std::string
   return false;
 }
 
-bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta)
+bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDomainMetadata(name, kind, meta))
@@ -137,7 +137,7 @@ bool UeberBackend::getDomainMetadata(const string& name, const std::string& kind
   return false;
 }
 
-bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta)
+bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->setDomainMetadata(name, kind, meta))
@@ -146,7 +146,7 @@ bool UeberBackend::setDomainMetadata(const string& name, const std::string& kind
   return false;
 }
 
-bool UeberBackend::activateDomainKey(const string& name, unsigned int id)
+bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int id)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->activateDomainKey(name, id))
@@ -155,7 +155,7 @@ bool UeberBackend::activateDomainKey(const string& name, unsigned int id)
   return false;
 }
 
-bool UeberBackend::deactivateDomainKey(const string& name, unsigned int id)
+bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->deactivateDomainKey(name, id))
@@ -164,7 +164,7 @@ bool UeberBackend::deactivateDomainKey(const string& name, unsigned int id)
   return false;
 }
 
-bool UeberBackend::removeDomainKey(const string& name, unsigned int id)
+bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int id)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->removeDomainKey(name, id))
@@ -174,7 +174,7 @@ bool UeberBackend::removeDomainKey(const string& name, unsigned int id)
 }
 
 
-bool UeberBackend::getTSIGKey(const string& name, string* algorithm, string* content)
+bool UeberBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getTSIGKey(name, algorithm, content))
@@ -184,7 +184,7 @@ bool UeberBackend::getTSIGKey(const string& name, string* algorithm, string* con
 }
 
 
-bool UeberBackend::setTSIGKey(const string& name, const string& algorithm, const string& content)
+bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->setTSIGKey(name, algorithm, content))
@@ -193,7 +193,7 @@ bool UeberBackend::setTSIGKey(const string& name, const string& algorithm, const
   return false;
 }
 
-bool UeberBackend::deleteTSIGKey(const string& name)
+bool UeberBackend::deleteTSIGKey(const DNSName& name)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->deleteTSIGKey(name))
@@ -210,7 +210,7 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
-bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr)
+bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, DNSName &before, DNSResourceRecord &rr)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDirectNSECx(id, hashed, qtype, before, rr))
@@ -219,7 +219,7 @@ bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType
   return false;
 }
 
-bool UeberBackend::getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
+bool UeberBackend::getDirectRRSIGs(const DNSName &signer, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
 {
   BOOST_FOREACH(DNSBackend* db, backends) {
     if(db->getDirectRRSIGs(signer, qname, qtype, rrsigs))
@@ -267,7 +267,7 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>* domains)
   }
 }
 
-bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target)
+bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 {
   int best_match_len = -1;
   bool from_cache = false;  // Was this result fetched from the cache?
@@ -276,7 +276,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target)
   // find the best match from the cache. If DS then we need to find parent so
   // dont bother with caching as it confuses matters.
   if( sd->db != (DNSBackend *)-1 && d_cache_ttl && p->qtype != QType::DS ) {
-      string subdomain(target);
+      DNSName subdomain(target);
       int cstat, loops = 0;
       do {
         d_question.qtype = QType::SOA;
@@ -298,23 +298,23 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target)
             return true;
 
           from_cache = true;
-          best_match_len = sd->qname.length();
+          best_match_len = sd->qname.countLabels();
 
           break;
         }
         loops++;
       }
-      while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
+      while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   }
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
     if((*i)->getAuth(p, sd, target, best_match_len)) {
-        best_match_len = sd->qname.length();
+        best_match_len = sd->qname.countLabels(); // FIXME
         from_cache = false;
 
         // Shortcut for the case that we got a direct hit - no need to go
         // through the other backends then.
-        if( best_match_len == (int)target.length() )
+        if( best_match_len == (int)target.countLabels() )
             goto auth_found;
     }
 
@@ -343,7 +343,7 @@ auth_found:
     return true;
 }
 
-bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
+bool UeberBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
@@ -365,7 +365,7 @@ bool UeberBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   return getSOAUncached(domain, sd, p);
 }
 
-bool UeberBackend::getSOAUncached(const string &domain, SOAData &sd, DNSPacket *p)
+bool UeberBackend::getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p)
 {
   d_question.qtype=QType::SOA;
   d_question.qname=domain;
@@ -391,7 +391,7 @@ bool UeberBackend::getSOAUncached(const string &domain, SOAData &sd, DNSPacket *
   return false;
 }
 
-bool UeberBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
+bool UeberBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
 {
   for(vector<DNSBackend *>::const_iterator i=backends.begin();i!=backends.end();++i)
     if((*i)->superMasterBackend(ip, domain, nsset, nameserver, account, db))
@@ -498,7 +498,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
   PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), store_ttl, q.zoneId);
 }
 
-void UeberBackend::alsoNotifies(const string &domain, set<string> *ips)
+void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )
     (*i)->alsoNotifies(domain,ips);
@@ -511,14 +511,14 @@ UeberBackend::~UeberBackend()
 }
 
 // this handle is more magic than most
-void UeberBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int zoneId)
+void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int zoneId)
 {
   if(stale) {
     L<<Logger::Error<<"Stale ueberbackend received question, signalling that we want to be recycled"<<endl;
     throw PDNSException("We are stale, please recycle");
   }
 
-  DLOG(L<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname<<endl);
+  DLOG(L<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname.toString()<<endl);
   if(!d_go) {
     pthread_mutex_lock(&d_mut);
     while (d_go==false) {
@@ -588,7 +588,7 @@ bool UeberBackend::get(DNSResourceRecord &rr)
     return false;
   }
   if(!d_handle.get(rr)) {
-    if(!d_ancount && !d_handle.qname.empty()) // don't cache axfr
+    if(!d_ancount && d_handle.qname.countLabels()) // don't cache axfr
       addNegCache(d_question);
 
     addCache(d_question, d_answers);
@@ -600,7 +600,7 @@ bool UeberBackend::get(DNSResourceRecord &rr)
   return true;
 }
 
-bool UeberBackend::list(const string &target, int domain_id, bool include_disabled)
+bool UeberBackend::list(const DNSName &target, int domain_id, bool include_disabled)
 {
   L<<Logger::Error<<"UeberBackend::list called, should NEVER EVER HAPPEN"<<endl;
   exit(1);

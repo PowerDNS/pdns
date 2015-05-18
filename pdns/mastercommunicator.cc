@@ -57,13 +57,13 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
     vector<string> nsips=fns.lookup(*j, B);
     if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
+      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain.toString()<<"': nameservers do not resolve!"<<endl;
     else
       for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
         const ComboAddress caIp(*k, 53);
         if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
           if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            L<<Logger::Info<<"Skipped notification of domain '"<<domain.toString()<<"' to "<<*j<<" because it does not match only-notify."<<endl;
           else
             ips.insert(caIp.toStringWithPort());
         }
@@ -71,7 +71,7 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   }
 
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-    L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
+    L<<Logger::Warning<<"Queued notification of domain '"<<domain.toString()<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
     hasQueuedItem=true;
   }
@@ -82,7 +82,7 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
     try {
       const ComboAddress caIp(*j, 53);
-      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
+      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain.toString()<<"' to "<<caIp.toStringWithPort()<<endl;
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
         d_nq.add(domain, caIp.toStringWithPort());
@@ -90,12 +90,12 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
       hasQueuedItem=true;
     }
     catch(PDNSException &e) {
-      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
+      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain.toString()<<"'. Warning: "<<e.reason<<endl;
     }
   }
 
   if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain.toString()<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
 
 
@@ -104,7 +104,7 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain)
   DomainInfo di;
   UeberBackend B;
   if(!B.getDomainInfo(domain, di)) {
-    L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
+    L<<Logger::Error<<"No such domain '"<<domain.toString()<<"' in our database"<<endl;
     return false;
   }
   queueNotifyDomain(domain, &B);
@@ -118,7 +118,7 @@ void NotificationQueue::dump()
 {
   cerr<<"Waiting for notification responses: "<<endl;
   BOOST_FOREACH(NotificationRequest& nr, d_nqueue) {
-    cerr<<nr.domain<<", "<<nr.ip<<endl;
+    cerr<<nr.domain.toString()<<", "<<nr.ip<<endl;
   }
 }
 
@@ -148,7 +148,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
     extern PacketCache PC;
-    PC.purge(i->zone); // fixes cvstrac ticket #30
+    PC.purge(i->zone.toString()); // fixes cvstrac ticket #30
     queueNotifyDomain(i->zone,P->getBackend());
     i->backend->setNotified(i->id,i->serial); 
   }
@@ -188,7 +188,8 @@ time_t CommunicatorClass::doNotifications()
   }
 
   // send out possible new notifications
-  string domain, ip;
+  DNSName domain;
+  string ip;
   uint16_t id;
 
   bool purged;
@@ -206,17 +207,17 @@ time_t CommunicatorClass::doNotifications()
         drillHole(domain, ip);
       }
       catch(ResolverException &re) {
-        L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain+"' to server: "+re.reason<<endl;
+        L<<Logger::Error<<"Error trying to resolve '"+ip+"' for notifying '"+domain.toString()+"' to server: "+re.reason<<endl;
       }
     }
     else
-      L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
+      L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain.toString()<<" to "<<ip<<" failed after retries"<<endl;
   }
 
   return d_nq.earliest();
 }
 
-void CommunicatorClass::sendNotification(int sock, const string& domain, const ComboAddress& remote, uint16_t id)
+void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);

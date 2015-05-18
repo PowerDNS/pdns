@@ -4,7 +4,7 @@
 #include <set>
 #include <deque>
 #include <strings.h>
-#include "misc.hh"
+// #include "dns.hh"
 
 // #include <ext/vstring.h>
 

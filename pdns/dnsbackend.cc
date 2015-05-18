@@ -33,25 +33,25 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, const int best_match_len)
+bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const int best_match_len)
 {
   bool found=false;
-  string subdomain(target);
+  DNSName subdomain(target);
   do {
-    if( best_match_len >= (int)subdomain.length() )
+    if( best_match_len >= (int)subdomain.toString().length() )
       break;
 
     if( this->getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
 
-      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
+      if(p->qtype.getCode() == QType::DS && subdomain==target) {
         // Found authoritative zone but look for parent zone with 'DS' record.
         found=true;
       } else
         return true;
     }
   }
-  while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
+  while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
 
   return found;
 }
@@ -228,7 +228,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     \param domain Domain we want to get the SOA details of
     \param sd SOAData which is filled with the SOA details
 */
-bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
+bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 {
   this->lookup(QType(QType::SOA),domain,p);
   
@@ -249,27 +249,27 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   if(!hits)
     return false;
   sd.qname = domain;
-  if(sd.nameserver.empty())
+  if(!sd.nameserver.countLabels())
     sd.nameserver=arg()["default-soa-name"];
   
-  if(sd.hostmaster.empty()) {
+  if(!sd.hostmaster.countLabels()) {
     if (!arg().isEmpty("default-soa-mail")) {
       sd.hostmaster=arg()["default-soa-mail"];
-      attodot(sd.hostmaster);
+      // attodot(sd.hostmaster); FIXME
     }
     else
       sd.hostmaster="hostmaster."+domain;
   }
 
   if(!sd.serial) { // magic time!
-    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
+    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname.toString()<<endl);
 
     time_t serial;
     if (calculateSOASerial(domain, sd, serial)) {
       sd.serial = serial;
       //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
     } else {
-      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
+      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname.toString()<<endl);
     }
 
   }
@@ -277,18 +277,18 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   return true;
 }
 
-bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
+bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
-  string lcqname=toLower(qname);
-  string lczonename=toLower(zonename);
-  lcqname=makeRelative(lcqname, lczonename);
+  // string lcqname=toLower(qname); FIXME tolower?
+  // string lczonename=toLower(zonename); FIXME tolower?
+  // lcqname=makeRelative(lcqname, lczonename);
   
-  lcqname=labelReverse(lcqname);
-  string dnc;
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, lcqname, dnc, before, after);
+  // lcqname=labelReverse(lcqname);
+  DNSName dnc;
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname, dnc, before, after);
   
-  before=dotConcat(labelReverse(before), lczonename);
-  after=dotConcat(labelReverse(after), lczonename);
+  // before=dotConcat(labelReverse(before), lczonename); FIXME
+  // after=dotConcat(labelReverse(after), lczonename); FIXME
   return ret;
 }
 
@@ -303,7 +303,7 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename
  * \param sd Information about the SOA record already available
  * \param serial Output parameter. Only inspected when we return true
  */
-bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial)
+bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial)
 {
     // we do this by listing the domain and taking the maximum last modified timestamp
 
@@ -311,7 +311,7 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
     time_t newest=0;
 
     if(!(this->list(domain, sd.domain_id))) {
-      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
+      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain.toString()<<"'"<<endl);
       return false;
     }
   
@@ -413,7 +413,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
          * presumably quicker to just substring the zone down to size */
         soa->qname = inZone.substr( inZone.length() - foundkey.length(), string::npos );
 
-        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
+        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname.toString()<<endl);
 
         return GET_AUTH_SUCCESS;
     }

@@ -114,7 +114,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
   uint changedRecords = 0;
   DNSResourceRecord rec;
   vector<DNSResourceRecord> rrset, recordsToDelete;
-  set<string> delnonterm, insnonterm; // used to (at the end) fix ENT records.
+  set<DNSName> delnonterm, insnonterm; // used to (at the end) fix ENT records.
 
 
   if (rr->d_class == QClass::IN) { // 3.4.2.2 QClass::IN means insert or update
@@ -280,7 +280,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 
       // because we added a record, we need to fix DNSSEC data.
-      string shorter(rrLabel);
+      DNSName shorter(rrLabel);
       bool auth=newRec.auth;
       bool fixDS = (rrType == QType::DS);
 
@@ -305,7 +305,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             insnonterm.insert(shorter);
           if (foundShorter)
             break; // if we find a shorter record, we can stop searching
-        } while(chopOff(shorter));
+        } while(shorter.chopOff());
       }
 
       if(*haveNSEC3)
@@ -465,7 +465,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
       // If we've removed a delegate, we need to reset ordername/auth for some records.
       if (rrType == QType::NS && rrLabel != di->zone) { 
-        vector<string> belowOldDelegate, nsRecs, updateAuthFlag;
+        vector<DNSName> belowOldDelegate, nsRecs, updateAuthFlag;
         di->backend->listSubZone(rrLabel, di->id);
         while (di->backend->get(rec)) {
           if (rec.qtype.getCode()) // skip ENT records, they are always auth=false
@@ -474,7 +474,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             nsRecs.push_back(rec.qname);
         }
 
-        for(vector<string>::const_iterator belowOldDel=belowOldDelegate.begin(); belowOldDel!= belowOldDelegate.end(); belowOldDel++)
+        for(auto &belowOldDel: belowOldDelegate)
         {
           bool isBelowDelegate = false;
           for(vector<string>::const_iterator ns=nsRecs.begin(); ns!= nsRecs.end(); ns++) {
@@ -518,9 +518,9 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else if (!foundOtherWithSameName) {
         // If we didn't have to insert an ENT, we might have deleted a record at very deep level
         // and we must then clean up the ENT's above the deleted record.
-        string shorter(rrLabel);
+        DNSName shorter(rrLabel);
         while (shorter != di->zone) {
-          chopOff(shorter);
+          shorter.chopOff();
           bool foundRealRR = false;
           bool foundEnt = false;
 

@@ -379,10 +379,10 @@ uint32_t getStartOfWeek()
   return now;
 }
 
-std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname)
+std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const DNSName& qname)
 {
   string toHash;
-  toHash.assign(simpleCompress(toLower(qname)));
+  toHash.assign(qname.toDNSString());
   toHash.append(salt);
 
 //  cerr<<makeHexDump(toHash)<<endl;

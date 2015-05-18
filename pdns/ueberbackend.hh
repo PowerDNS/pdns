@@ -57,7 +57,7 @@ public:
   ~UeberBackend();
   typedef DNSBackend *BackendMaker(); //!< typedef for functions returning pointers to new backends
 
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
 
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
       existing threads of new modules 
@@ -93,47 +93,47 @@ public:
 
     //! DNSPacket who asked this question
     DNSPacket *pkt_p;
-    string qname;
+    DNSName qname;
     QType qtype;
   private:
 
     static AtomicCounter instances;
   };
 
-  void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
-  bool getAuth(DNSPacket *p, SOAData *sd, const string &target);
-  bool getSOA(const string &domain, SOAData &sd, DNSPacket *p=0);
-  bool getSOAUncached(const string &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
-  bool list(const string &target, int domain_id, bool include_disabled=false);
+  bool getAuth(DNSPacket *p, SOAData *sd, const DNSName &target);
+  bool getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p=0);
+  bool getSOAUncached(const DNSName &domain, SOAData &sd, DNSPacket *p=0);  // same, but ignores cache
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
   static DNSBackend *maker(const map<string,string> &);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
-  bool getDomainInfo(const string &domain, DomainInfo &di);
-  bool createDomain(const string &domain);
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
+  bool createDomain(const DNSName &domain);
   
-  int addDomainKey(const string& name, const DNSBackend::KeyData& key);
-  bool getDomainKeys(const string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
-  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  int addDomainKey(const DNSName& name, const DNSBackend::KeyData& key);
+  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
 
-  bool removeDomainKey(const string& name, unsigned int id);
-  bool activateDomainKey(const string& name, unsigned int id);
-  bool deactivateDomainKey(const string& name, unsigned int id);
+  bool removeDomainKey(const DNSName& name, unsigned int id);
+  bool activateDomainKey(const DNSName& name, unsigned int id);
+  bool deactivateDomainKey(const DNSName& name, unsigned int id);
 
-  bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, string &before, DNSResourceRecord &rr);
-  bool getDirectRRSIGs(const string &signer, const string &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs);
+  bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, DNSName &before, DNSResourceRecord &rr);
+  bool getDirectRRSIGs(const DNSName &signer, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs);
 
-  bool getTSIGKey(const string& name, string* algorithm, string* content);
-  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  bool deleteTSIGKey(const string& name);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  bool deleteTSIGKey(const DNSName& name);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
-  void alsoNotifies(const string &domain, set<string> *ips); 
+  void alsoNotifies(const DNSName &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();
 private:
@@ -146,7 +146,7 @@ private:
   struct Question
   {
     QType qtype;
-    string qname;
+    DNSName qname;
     int zoneId;
   }d_question;
   vector<DNSResourceRecord> d_answers;

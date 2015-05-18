@@ -187,7 +187,7 @@ void Bind2Backend::setFresh(uint32_t domain_id)
   }
 }
 
-bool Bind2Backend::startTransaction(const string &qname, int id)
+bool Bind2Backend::startTransaction(const DNSName &qname, int id)
 {
   if(id < 0) {
     d_transaction_tmpname.clear();
@@ -254,7 +254,7 @@ bool Bind2Backend::abortTransaction()
 
 bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
 {
-  string qname=r.qname;
+  string qname=r.qname.toString();
 
   BB2DomainInfo bbd;
   safeGetBBDomainInfo(d_transaction_id, &bbd);
@@ -453,7 +453,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo *bbd)
       else
         hashed="";
     }
-    insertRecord(*bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed);
+    insertRecord(*bbd, rr.qname.toString(), rr.qtype, rr.content, rr.ttl, hashed);
   }
   fixupAuth(bbd->d_records.getWRITABLE());
   doEmptyNonTerminals(*bbd, nsec3zone, ns3pr);
@@ -728,7 +728,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
     rr.qname=nt.first+"."+bbd.d_name+".";
     if(nsec3zone)
       hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
-    insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
+    insertRecord(bbd, rr.qname.toString(), rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
   }
 }
 
@@ -880,9 +880,9 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
   }
 }
 
-bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after)
+bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
-  string domain=toLower(qname);
+  string domain=qname.toString();
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
   recordstorage_t::const_iterator iter = records->upper_bound(domain);
 
@@ -1026,10 +1026,10 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
   }
 }
 
-void Bind2Backend::lookup(const QType &qtype, const string &qname, DNSPacket *pkt_p, int zoneId )
+void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *pkt_p, int zoneId )
 {
   d_handle.reset();
-  string domain=toLower(qname);
+  string domain=qname.toString();
 
   static bool mustlog=::arg().mustDo("query-logging");
   if(mustlog) 
@@ -1126,7 +1126,7 @@ bool Bind2Backend::get(DNSResourceRecord &r)
     return false;
   }
   if(d_handle.mustlog)
-    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"'"<<endl;
+    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname.toString()<<"', content: '"<<r.content<<"'"<<endl;
   return true;
 }
 

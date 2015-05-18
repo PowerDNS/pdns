@@ -39,16 +39,16 @@ public:
   RandomBackend(const string &suffix="") 
   {
     setArgPrefix("random"+suffix);
-    d_ourname=getArg("hostname");
+    d_ourname=DNSName(getArg("hostname"));
   }
 
-  bool list(const string &target, int id, bool include_disabled) {
+  bool list(const DNSName &target, int id, bool include_disabled) {
     return false; // we don't support AXFR
   }
     
-  void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
+  void lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId)
   {
-    if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || !pdns_iequals(qdomain, d_ourname))  // we only know about random.example.com A by default
+    if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || qdomain==d_ourname)  // we only know about random.example.com A by default
       d_answer="";                                                  // no answer
     else {
       ostringstream os;
@@ -76,7 +76,7 @@ public:
   
 private:
   string d_answer;
-  string d_ourname;
+  DNSName d_ourname;
 };
 
 /* SECOND PART */
