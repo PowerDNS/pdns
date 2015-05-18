@@ -352,8 +352,10 @@ class Pkcs11Token {
           if (!GetAttributeValue2(d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
             if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") d_bits = 256;
-            if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
-            d_ec_point = attr[1].str();
+            else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
+            else throw PDNSException("Unsupported EC key");
+            if (attr[1].str().length() != (d_bits*2/8 + 3)) throw PDNSException("EC Point data invalid");
+            d_ec_point = attr[1].str().substr(3);
           } else {
             throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
           }
