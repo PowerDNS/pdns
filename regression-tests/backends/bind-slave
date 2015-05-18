@@ -31,6 +31,6 @@
 		--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
 		--experimental-dnsupdate=yes \
 		--cache-ttl=$cachettl --no-config --experimental-dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 \
-		--module-dir=./modules &
+		--module-dir=./tmpmodules &
 	echo 'waiting for zones to be loaded'
 	bindwait bind-slave

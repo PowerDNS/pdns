@@ -77,7 +77,7 @@ case $context in
 			--no-shuffle --launch=lmdb \
 			--send-root-referral \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--lmdb-datapath=./ --lmdb-experimental-dnssec --module-dir=./modules &
+			--lmdb-datapath=./ --lmdb-experimental-dnssec --module-dir=./tmpmodules &
 
 		skipreasons="noent nodyndns nometa lmdb"
 

@@ -15,7 +15,7 @@ case $context in
 			"$MYDNSDB"
 
 		cat > pdns-mydns.conf << __EOF__
-module-dir=./modules
+module-dir=./tmpmodules
 launch=mydns
 mydns-dbname=$MYDNSDB
 mydns-user=$MYDNSUSER
