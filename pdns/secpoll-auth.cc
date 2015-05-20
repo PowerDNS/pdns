@@ -22,8 +22,14 @@
 string g_security_message;
 
 extern StatBag S;
-static vector<ComboAddress> s_servers;
 
+// s_secpollresolvers contains the ComboAddresses that are used to resolve the
+// secpoll status of PowerDNS
+static vector<ComboAddress> s_secpollresolvers;
+
+/** Parse /etc/resolv.conf and add the nameservers to the vector
+ * s_secpollresolvers.
+ */
 void secPollParseResolveConf()
 {
   ifstream ifs("/etc/resolv.conf");
@@ -54,8 +60,9 @@ void secPollParseResolveConf()
     }
 
   }
-  if(s_servers.empty()) {
-    s_servers.push_back(ComboAddress("127.0.0.1", 53));
+  // Last resort, add 127.0.0.1
+  if(s_secpollresolvers.empty()) {
+    s_secpollresolvers.push_back(ComboAddress("127.0.0.1", 53));
   }
 }
 
@@ -66,19 +73,18 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
   DNSPacketWriter pw(packet, qname, qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
-
-  if (s_servers.empty()) {
+  if (s_secpollresolvers.empty()) {
     L<<Logger::Warning<<"No recursors set, secpoll impossible."<<endl;
     return RCode::ServFail;
   }
 
   string msg ="Doing secpoll, using resolvers: ";
-  for (ComboAddress server : s_servers) {
+  for (const auto& server : s_secpollresolvers) {
     msg += server.toString() + ", ";
   }
   L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
-  BOOST_FOREACH(ComboAddress& dest, s_servers) {
+  BOOST_FOREACH(ComboAddress& dest, s_secpollresolvers) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
@@ -120,13 +126,16 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
   return RCode::ServFail;
 }
 
+/** Do an actual secpoll for the current version
+ * @param first bool that tells if this is the first secpoll run since startup
+ */
 void doSecPoll(bool first)
 {
   if(::arg()["security-poll-suffix"].empty())
     return;
 
   if(::arg().mustDo("recursor") && first)
-    s_servers.push_back(ComboAddress(::arg()["recursor"], 53));
+    s_secpollresolvers.push_back(ComboAddress(::arg()["recursor"], 53));
 
   struct timeval now;
   gettimeofday(&now, 0);
