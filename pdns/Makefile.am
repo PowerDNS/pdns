@@ -35,6 +35,10 @@ if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
+if GSS_TSIG
+AM_CPPFLAGS +=$(GSS_CFLAGS)
+endif
+
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
@@ -151,6 +155,7 @@ pdns_server_SOURCES = \
 	dynlistener.cc dynlistener.hh \
 	dynmessenger.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
 	json.cc json.hh \
 	lock.hh \
@@ -243,6 +248,10 @@ if LUA
 pdns_server_LDADD += $(LUA_LIBS)
 endif
 
+if GSS_TSIG
+pdns_server_LDADD += $(GSS_LIBS)
+endif
+
 pdnssec_SOURCES = \
 	arguments.cc \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
@@ -332,6 +341,10 @@ endif
 if PKCS11
 pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
 pdnssec_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+pdnssec_LDADD += $(GSS_LIBS)
 endif
 
 zone2sql_SOURCES = \
@@ -538,6 +551,10 @@ saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+saxfr_LDADD += $(GSS_LIBS)
+endif
+
 dnstcpbench_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -623,6 +640,10 @@ nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+nsec3dig_LDADD += $(GSS_LIBS)
+endif
+
 toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -659,6 +680,7 @@ tsig_tests_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -679,6 +701,9 @@ tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+tsig_tests_LDADD += $(GSS_LIBS)
+endif
 speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
