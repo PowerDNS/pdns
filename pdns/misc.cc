@@ -913,13 +913,13 @@ uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t initval)
   return c;
 }
 
-void setSocketTimestamps(int fd)
+bool setSocketTimestamps(int fd)
 {
 #ifdef SO_TIMESTAMP
   int on=1;
-  if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
-    ; // L<<Logger::Error<<"Unable to enable timestamp reporting for socket"<<endl;
+  return setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) == 0;
 #endif
+  return true; // we pretend this happened.
 }
 
 uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)

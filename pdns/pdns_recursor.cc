@@ -1183,7 +1183,8 @@ void makeUDPServerSockets()
     if(fd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: "+netstringerror());
     }
-    setSocketTimestamps(fd);
+    if (!setSocketTimestamps(fd))
+      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
     if(IsAnyAddress(sin)) {
       setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
