@@ -701,9 +701,21 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       return RCode::Refused;
     }
 
-    for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-      if (inputkey == *key) // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
-        validKey=true;
+    if (p->d_tsig_algo == TSIG_GSS) {
+      GssName inputname(p->d_peer_principal); // match against principal since GSS
+      for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
+        if (inputname.match(*key)) {
+          validKey = true;
+          break;
+        }
+      }
+    } else {
+      for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
+        if (inputkey == *key) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
+          validKey=true;
+          break;
+        }
+      }
     }
 
     if (!validKey) {
