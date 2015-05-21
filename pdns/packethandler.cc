@@ -1058,6 +1058,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       else
         r->setRcode(RCode::NotAuth);
       return r;
+    } else {
+      getTSIGHashEnum(trc.d_algoName, p->d_tsig_algo);
+      if (p->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(p->d_peer_principal)) {
+          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
     }
     p->setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
@@ -1420,7 +1428,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
-  string label, lcLabel;
+  string label;
+  bool sign = false;
 
   if (!p->getTKEYRecord(&tkey_in, &label)) {
     L<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
@@ -1429,17 +1438,38 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   }
 
   // retain original label for response
-  lcLabel = toLowerCanonic(label);
-
   tkey_out->d_error = 0;
   tkey_out->d_mode = tkey_in.d_mode;
   tkey_out->d_algo = tkey_in.d_algo;
   tkey_out->d_inception = time((time_t*)NULL);
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
-  if (tkey_in.d_mode == 3) {
-    tkey_out->d_error = 19; // BADMODE
-  } else if (tkey_in.d_mode == 5) {
+  GssContext ctx(label);
+
+  if (tkey_in.d_mode == 3) { // establish context
+    if (tkey_in.d_algo == "gss-tsig.") {
+      std::vector<std::string> meta;
+      string tmpLabel = toLowerCanonic(label);
+      bool ok = true;
+      while(ok) {
+        if (B.getDomainMetadata(tmpLabel, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
+          break;
+        }
+        ok = chopOff(tmpLabel);
+      }
+
+      if (meta.size()>0) {
+        ctx.setLocalPrincipal(meta[0]);
+      }
+      // try to get a context
+      if (!ctx.accept(tkey_in.d_key, tkey_out->d_key))
+        tkey_out->d_error = 19;
+      else
+        sign = true;
+    } else {
+      tkey_out->d_error = 21; // BADALGO
+    }
+  } else if (tkey_in.d_mode == 5) { // destroy context
     if (p->d_havetsig == false) { // unauthenticated
       if (p->d.opcode == Opcode::Update)
         r->setRcode(RCode::Refused);
@@ -1447,7 +1477,10 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
         r->setRcode(RCode::NotAuth);
       return;
     }
-    tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
+    if (ctx.valid())
+      ctx.destroy();
+    else
+      tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
   } else {
     if (p->d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
       if (p->d.opcode == Opcode::Update)
@@ -1474,5 +1507,20 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   rr.qtype = QType::TKEY;
   rr.d_place = DNSResourceRecord::ANSWER;
   r->addRecord(rr);
+
+  if (sign)
+  {
+    TSIGRecordContent trc;
+    trc.d_algoName = "gss-tsig";
+    trc.d_time = tkey_out->d_inception;
+    trc.d_fudge = 300;
+    trc.d_mac = "";
+    trc.d_origID = p->d.id;
+    trc.d_eRcode = 0;
+    trc.d_otherData = "";
+    // this should cause it to lookup label context
+    r->setTSIGDetails(trc, label, label, "", false);
+  }
+
   r->commitD();
 }

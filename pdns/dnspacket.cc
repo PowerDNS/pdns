@@ -47,6 +47,7 @@
 #include "dnssecinfra.hh" 
 #include "base64.hh"
 #include "ednssubnet.hh"
+#include "gss_context.hh"
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 uint16_t DNSPacket::s_udpTruncationThreshold;
@@ -635,6 +636,14 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
   string algoName = toLowerCanonic(trc->d_algoName);
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
+
+  if (algoName == "gss-tsig") {
+    if (!gss_verify_signature(*keyname, message, trc->d_mac)) {
+      L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
+      return false;
+    }
+    return true;
+  }
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {

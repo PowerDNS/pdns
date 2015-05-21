@@ -146,6 +146,9 @@ public:
   bool d_dnssecOk;
   bool d_havetsig;
 
+  string d_peer_principal;
+  TSIGHashEnum d_tsig_algo;
+
   bool getTSIGDetails(TSIGRecordContent* tr, string* keyname, string* message) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly=false);
   bool getTKEYRecord(TKEYRecordContent* tr, string* keyname) const;

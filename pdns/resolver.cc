@@ -505,11 +505,18 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
         throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName);
       }
 
-      string ourMac=calculateHMAC(d_tsigsecret, message, algo);
+      if (algo == TSIG_GSS) {
+        GssContext gssctx(d_tsigkeyname);
+        if (!gss_verify_signature(d_tsigkeyname, message, theirMac)) {
+          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+        }
+      } else {
+        string ourMac=calculateHMAC(d_tsigsecret, message, algo);
 
-      // ourMac[0]++; // sabotage == for testing :-)
-      if(ourMac != theirMac) {
-        throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+        // ourMac[0]++; // sabotage == for testing :-)
+        if(ourMac != theirMac) {
+          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+        }
       }
 
       // Reset and store some values for the next chunks. 

@@ -420,7 +420,16 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     string keyname, secret;
     if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc))
       return false;
-    
+    } else {
+      getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+      if (q->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
+          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
+    }
+
     DNSSECKeeper dk;
 
     string algorithm=toLowerCanonic(trc.d_algoName);
