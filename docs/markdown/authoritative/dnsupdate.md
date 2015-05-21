@@ -47,7 +47,7 @@ sql> insert into domainmetadata(domain_id, kind, content) values(5, ‘ALLOW-DNS
 This will allow 198.51.100.0/8 and 203.0.113.2/32 to send DNS update messages for the example.org domain.
 
 ## TSIG-ALLOW-DNSUPDATE
-This setting allows you to set the TSIG key required to do an DNS update. An example:
+This setting allows you to set the TSIG key required to do an DNS update. If you have GSS-TSIG enabled, you can use Kerberos principals here. An example:
 
 ```
 sql> insert into tsigkeys (name, algorithm, secret) values ('test', 'hmac-md5', 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys=');
