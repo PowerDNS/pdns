@@ -315,6 +315,9 @@ For further details, please see [the `pdnssec`](#pdnssec) documentation.
 **Note**: This feature is experimental, and not ready for production. Use at your own risk!
 To enable it, compile PowerDNS Authoritative Server using --enable-experimental-pkcs11 flag on configure. This requires you to have p11-kit libraries and headers.
 
+You can also log on to the tokens after starting server, in this case you need to edit your PKCS#11 cryptokey record and remove PIN or set it empty. PIN is required
+for assigning keys to zone.
+
 Instructions on how to setup SoftHSM to work with the feature after compilation on ubuntu/debian (tested with Ubuntu 12 and 14).
 -   apt-get install softhsm p11-kit opensc
 -   create directory /etc/pkcs11/modules

@@ -393,3 +393,24 @@ string DLPolicy(const vector<string>&parts, Utility::pid_t ppid)
     return "no policy script loaded";
   }
 }
+
+#ifdef HAVE_P11KIT1
+extern bool PKCS11ModuleSlotLogin(const std::string& module, int slot, const std::string& pin);
+#endif
+
+string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
+{
+#ifndef HAVE_P11KIT1
+  return "PKCS#11 support not compiled in";
+#else
+  if (parts.size() != 4) {
+    return "invalid number of parameters, needs 4, got " + boost::lexical_cast<string>(parts.size());
+  }
+
+  if (PKCS11ModuleSlotLogin(parts[1], boost::lexical_cast<int>(parts[2]), parts[3])) {
+    return "logged in";
+  } else {
+    return "could not log in, check logs";
+  }
+#endif
+}

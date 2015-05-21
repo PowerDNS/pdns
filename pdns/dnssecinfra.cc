@@ -80,6 +80,10 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
 
   if (pkcs11) {
 #ifdef HAVE_P11KIT1
+    if (stormap.find("slot") == stormap.end())
+      throw PDNSException("Cannot load PKCS#11 key, no Slot specified");
+    // we need PIN to be at least empty
+    if (stormap.find("pin") == stormap.end()) stormap["pin"] = "";
     dpk = PKCS11DNSCryptoKeyEngine::maker(algorithm); 
 #else
     throw PDNSException("Cannot load PKCS#11 key without support for it");

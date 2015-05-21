@@ -56,6 +56,9 @@ Retrieve a slave domain from its master. Done nearly immediately.
 ## `set VARIABLE VALUE`
 Set a configuration parameter. Currently only the 'query-logging' parameter can be set.
 
+## `token-login MODULE SLOT PIN`
+Logs on to a PKCS#11 slot. You only need to login once per slot, even if you have multiple keys on single slot.
+
 ## `uptime`
 Reports the uptime of the daemon in human readable form.
 
