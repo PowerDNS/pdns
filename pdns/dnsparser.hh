@@ -263,12 +263,12 @@ protected:
 struct DNSRecord
 {
   std::string d_label;
+  std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-  enum {Answer=1, Nameserver, Additional} d_place;
-  std::shared_ptr<DNSRecordContent> d_content;
+  enum : uint8_t {Answer=1, Nameserver, Additional} d_place;
 
   bool operator<(const DNSRecord& rhs) const
   {
