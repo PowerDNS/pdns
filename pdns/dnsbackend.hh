@@ -45,15 +45,18 @@ class DNSBackend;
 struct DomainInfo
 {
   DomainInfo() : backend(0) {}
-  uint32_t id;
+
   string zone;
-  vector<string> masters;
-  uint32_t notified_serial;
-  uint32_t serial;
   time_t last_check;
   string account;
-  enum DomainKind { Master, Slave, Native } kind;
+  vector<string> masters;
   DNSBackend *backend;
+
+  uint32_t id;
+  uint32_t notified_serial;
+
+  uint32_t serial;
+  enum DomainKind : uint8_t { Master, Slave, Native } kind;
   
   bool operator<(const DomainInfo& rhs) const
   {
