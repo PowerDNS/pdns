@@ -972,7 +972,6 @@ bool setCloseOnExec(int sock)
   return true;
 }
 
-// please feel free to add other operating systems here. What we need are stats on dropped UDP packets
 uint64_t udpErrorStats(const std::string& str)
 {
 #ifdef __linux__
@@ -1000,4 +999,26 @@ uint64_t udpErrorStats(const std::string& str)
   }
 #endif
   return 0;
+}
+
+bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
+{
+  string normalizedName = toLowerCanonic(algoName);
+
+  if (normalizedName == "hmac-md5.sig-alg.reg.int")
+    algoEnum = TSIG_MD5;
+  else if (normalizedName == "hmac-sha1")
+    algoEnum = TSIG_SHA1;
+  else if (normalizedName == "hmac-sha224")
+    algoEnum = TSIG_SHA224;
+  else if (normalizedName == "hmac-sha256")
+    algoEnum = TSIG_SHA256;
+  else if (normalizedName == "hmac-sha384")
+    algoEnum = TSIG_SHA384;
+  else if (normalizedName == "hmac-sha512")
+    algoEnum = TSIG_SHA512;
+  else {
+     return false;
+  }
+  return true;
 }

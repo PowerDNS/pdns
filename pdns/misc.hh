@@ -48,6 +48,8 @@ using namespace ::boost::multi_index;
 #include <vector>
 
 #include "namespaces.hh"
+typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512 } TSIGHashEnum;
+
 bool chopOff(string &domain);
 bool chopOffDotted(string &domain);
 
@@ -68,6 +70,7 @@ uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
 uint32_t pdns_strtoui(const char *nptr, char **endptr, int base);
+bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
 

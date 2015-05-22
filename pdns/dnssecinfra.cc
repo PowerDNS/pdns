@@ -23,6 +23,7 @@
 #include "pkcs11signers.hh"
 #endif
 #include "gss_context.hh"
+#include "misc.hh"
 
 using namespace boost::assign;
 
@@ -584,30 +585,6 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   message.append(&*signRecord.begin(), &*signRecord.end());
   return message;
 }
-
-
-bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
-{
-  string normalizedName = toLowerCanonic(algoName);
-
-  if (normalizedName == "hmac-md5.sig-alg.reg.int")
-    algoEnum = TSIG_MD5;
-  else if (normalizedName == "hmac-sha1")
-    algoEnum = TSIG_SHA1;
-  else if (normalizedName == "hmac-sha224")
-    algoEnum = TSIG_SHA224;
-  else if (normalizedName == "hmac-sha256")
-    algoEnum = TSIG_SHA256;
-  else if (normalizedName == "hmac-sha384")
-    algoEnum = TSIG_SHA384;
-  else if (normalizedName == "hmac-sha512")
-    algoEnum = TSIG_SHA512;
-  else {
-     return false;
-  }
-  return true;
-}
-
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
