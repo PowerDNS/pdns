@@ -92,8 +92,8 @@ struct SuffixMatchNode
   {}
   std::string name;
   std::string d_human;
-  mutable bool endNode;
   mutable std::set<SuffixMatchNode> children;
+  mutable bool endNode;
   bool operator<(const SuffixMatchNode& rhs) const
   {
     return strcasecmp(name.c_str(), rhs.name.c_str()) < 0;
