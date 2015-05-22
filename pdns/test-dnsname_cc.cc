@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   uint16_t qtype, qclass;
   DNSName dn((char*)&packet[0], packet.size(), 12, false, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn.toString(), "www.ds9a.nl.");
-  BOOST_CHECK_EQUAL(qtype, QType::AAAA);
+  BOOST_CHECK(qtype == QType::AAAA);
   BOOST_CHECK_EQUAL(qclass, 1);
 
   dpw.startRecord("ds9a.nl.", DNSRecordContent::TypeToNumber("NS"));
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
 
   DNSName dn2((char*)&packet[0], packet.size(), 12+13+4, true, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn2.toString(), "ds9a.nl."); 
-  BOOST_CHECK_EQUAL(qtype, QType::NS);
+  BOOST_CHECK(qtype == QType::NS);
   BOOST_CHECK_EQUAL(qclass, 1);
 
   DNSName dn3((char*)&packet[0], packet.size(), 12+13+4+2 + 4 + 4 + 2, true);
