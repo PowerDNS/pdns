@@ -48,7 +48,7 @@ using namespace ::boost::multi_index;
 #include <vector>
 
 #include "namespaces.hh"
-typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512 } TSIGHashEnum;
+typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
 
 bool chopOff(string &domain);
 bool chopOffDotted(string &domain);

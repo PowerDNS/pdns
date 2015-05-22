@@ -1017,6 +1017,8 @@ bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
     algoEnum = TSIG_SHA384;
   else if (normalizedName == "hmac-sha512")
     algoEnum = TSIG_SHA512;
+  else if (normalizedName == "gss-tsig")
+    algoEnum = TSIG_GSS;
   else {
      return false;
   }
