@@ -275,6 +275,7 @@ pdnssec_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dynlistener.cc \
 	ednssubnet.cc \
+	gss_context.cc gss_context.hh \
 	json.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -533,6 +534,7 @@ saxfr_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
@@ -622,6 +624,7 @@ nsec3dig_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+        gss_context.cc gss_context.hh \
 	logger.cc \
 	misc.cc misc.hh \
 	nsec3dig.cc \
@@ -974,6 +977,7 @@ testrunner_SOURCES = \
 	dnssecinfra.cc \
 	dnswriter.cc \
 	ednssubnet.cc \
+        gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
