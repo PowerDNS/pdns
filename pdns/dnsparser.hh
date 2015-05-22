@@ -319,10 +319,10 @@ public:
     init(packet, len);
   }
 
-  dnsheader d_header;
   string d_qname;
   uint16_t d_qclass, d_qtype;
   //uint8_t d_rcode;
+  dnsheader d_header;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
   
