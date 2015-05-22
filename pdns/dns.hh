@@ -37,7 +37,7 @@ class DNSBackend;
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), domain_id(-1), db(0), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0),  db(0), domain_id(-1), scopeMask(0) {};
 
   string qname;
   string nameserver;
@@ -48,8 +48,8 @@ struct SOAData
   uint32_t retry;
   uint32_t expire;
   uint32_t default_ttl;
-  int domain_id;
   DNSBackend *db;
+  int domain_id;
   uint8_t scopeMask;
 };
 
