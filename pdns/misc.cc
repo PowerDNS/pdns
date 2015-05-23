@@ -1024,3 +1024,17 @@ bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
   }
   return true;
 }
+
+string getTSIGAlgoName(TSIGHashEnum& algoEnum)
+{
+  switch(algoEnum) {
+  case TSIG_MD5: return "hmac-md5.sig-alg.reg.int";
+  case TSIG_SHA1: return "hmac-sha1";
+  case TSIG_SHA224: return "hmac-sha224";
+  case TSIG_SHA256: return "hmac-sha256";
+  case TSIG_SHA384: return "hmac-sha384";
+  case TSIG_SHA512: return "hmac-sha512";
+  case TSIG_GSS: return "gss-tsig";
+  }
+  throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
+}
