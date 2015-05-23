@@ -528,6 +528,7 @@ dumresp_SOURCES = \
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+        dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
