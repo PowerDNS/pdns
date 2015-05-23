@@ -4,7 +4,7 @@ After=syslog.target
 
 [Service]
 EnvironmentFile=-/etc/sysconfig/dnsdist
-ExecStart=/usr/bin/dnsdist --supervised ${DNSDIST_OPTIONS}
+ExecStart=/usr/bin/dnsdist --supervised $DNSDIST_OPTIONS
 
 [Install]
 WantedBy=multi-user.target
