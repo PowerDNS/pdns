@@ -1005,7 +1005,7 @@ bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
 {
   string normalizedName = toLowerCanonic(algoName);
 
-  if (normalizedName == "hmac-md5.sig-alg.reg.int")
+  if (normalizedName == "hmac-md5.sig-alg.reg.int" || normalizedName == "hmac-md5")
     algoEnum = TSIG_MD5;
   else if (normalizedName == "hmac-sha1")
     algoEnum = TSIG_SHA1;
