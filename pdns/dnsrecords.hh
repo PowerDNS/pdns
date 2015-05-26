@@ -462,8 +462,8 @@ public:
 
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;
-  uint8_t d_saltlength;
   string d_salt;
+  uint8_t d_saltlength;
 };
 
 
