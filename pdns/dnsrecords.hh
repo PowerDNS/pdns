@@ -108,9 +108,9 @@ public:
   includeboilerplate(IPSECKEY)
 
 private:
+  uint32_t d_ip4;
   string d_gateway, d_publickey;
   string d_ip6;
-  uint32_t d_ip4;
   uint8_t d_preference, d_gatewaytype, d_algorithm;
 };
 
