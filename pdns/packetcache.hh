@@ -129,14 +129,14 @@ private:
     return d_maps[burtle((const unsigned char*)qname.c_str(), qname.length(), 0) % d_maps.size()];
   }
 
-
   AtomicCounter d_ops;
-  int d_ttl;
-  int d_recursivettl;
-  bool d_doRecursion;
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
+
+  int d_ttl;
+  int d_recursivettl;
+  bool d_doRecursion;
 };
 
 
