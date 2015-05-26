@@ -616,11 +616,11 @@ void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
 
 struct EDNSOpts
 {
-  uint16_t d_packetsize;
-  uint8_t d_extRCode, d_version;
-  uint16_t d_Z;
-  vector<pair<uint16_t, string> > d_options;
   enum zFlags { DNSSECOK=32768 };
+  vector<pair<uint16_t, string> > d_options;
+  uint16_t d_packetsize;
+  uint16_t d_Z;
+  uint8_t d_extRCode, d_version;
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any
 
