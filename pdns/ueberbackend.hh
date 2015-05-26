@@ -88,13 +88,14 @@ public:
     //! The current real backend, which is answering questions
     DNSBackend *d_hinterBackend;
 
-    //! Index of the current backend within the backends vector
-    unsigned int i;
-
     //! DNSPacket who asked this question
     DNSPacket *pkt_p;
     string qname;
+
+    //! Index of the current backend within the backends vector
+    unsigned int i;
     QType qtype;
+
   private:
 
     static AtomicCounter instances;
