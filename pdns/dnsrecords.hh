@@ -108,10 +108,10 @@ public:
   includeboilerplate(IPSECKEY)
 
 private:
-  uint8_t d_preference, d_gatewaytype, d_algorithm;
   string d_gateway, d_publickey;
-  uint32_t d_ip4;
   string d_ip6;
+  uint32_t d_ip4;
+  uint8_t d_preference, d_gatewaytype, d_algorithm;
 };
 
 class DHCIDRecordContent : public DNSRecordContent
@@ -540,15 +540,17 @@ public:
   includeboilerplate(TKEY)
 
   // storage for the bytes
-  string d_algo;
+  uint16_t d_othersize;
+  uint16_t d_mode;
   uint32_t d_inception;
   uint32_t d_expiration;
-  uint16_t d_mode;
+
+  string d_algo;
+  string d_key;
+  string d_other;
+
   uint16_t d_error;
   uint16_t d_keysize;
-  string d_key;
-  uint16_t d_othersize;
-  string d_other;
 private:
 };
 
