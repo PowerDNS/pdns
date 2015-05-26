@@ -78,16 +78,18 @@ private:
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}
 
     string qname;
+    string value;
+    time_t created;
+    time_t ttd;
+
     uint16_t qtype;
     uint16_t ctype;
     int zoneID;
-    time_t created;
-    time_t ttd;
-    bool meritsRecursion;
     unsigned int maxReplyLen;
+
+    bool meritsRecursion;
     bool dnssecOk;
     bool hasEDNS;
-    string value;
   };
 
   void getTTLS();
