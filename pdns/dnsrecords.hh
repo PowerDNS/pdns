@@ -142,14 +142,14 @@ public:
   TSIGRecordContent() : DNSRecordContent(QType::TSIG) {}
 
   string d_algoName;
+  string d_mac;
+  string d_otherData;
   uint64_t d_time; // 48 bits
   uint16_t d_fudge;
   //  uint16_t d_macSize;
-  string d_mac;
   uint16_t d_origID;
   uint16_t d_eRcode;
   // uint16_t d_otherLen
-  string d_otherData;
 };
 
 
