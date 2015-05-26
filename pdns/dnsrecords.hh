@@ -344,8 +344,8 @@ public:
 
 private:
   uint16_t d_type, d_tag;
-  uint8_t d_algorithm;
   string d_certificate;
+  uint8_t d_algorithm;
 };
 
 class TLSARecordContent : public DNSRecordContent
