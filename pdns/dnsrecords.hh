@@ -372,8 +372,6 @@ public:
   uint8_t d_algorithm, d_labels;
 };
 
-
-
 //namespace {
   struct soatimes 
   {
@@ -401,9 +399,9 @@ public:
   includeboilerplate(SOA)
   SOARecordContent(const string& mname, const string& rname, const struct soatimes& st);
 
+  struct soatimes d_st;
   string d_mname;
   string d_rname;
-  struct soatimes d_st;
 };
 
 class NSECRecordContent : public DNSRecordContent
