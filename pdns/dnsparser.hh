@@ -150,6 +150,7 @@ public:
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
+  uint16_t not_used; // Alighns the whole class on 8-byte boundries
   const vector<uint8_t>& d_content;
 };
 
