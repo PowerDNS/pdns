@@ -141,13 +141,14 @@ public:
   includeboilerplate(TSIG)
   TSIGRecordContent() : DNSRecordContent(QType::TSIG) {}
 
+  uint16_t d_origID;
+  uint16_t d_fudge;
+
   string d_algoName;
   string d_mac;
   string d_otherData;
-  uint64_t d_time; // 48 bits
-  uint16_t d_fudge;
+  uint64_t d_time;
   //  uint16_t d_macSize;
-  uint16_t d_origID;
   uint16_t d_eRcode;
   // uint16_t d_otherLen
 };
