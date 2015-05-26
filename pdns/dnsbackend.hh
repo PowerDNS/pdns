@@ -169,10 +169,10 @@ public:
   virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, const int best_match_len);
 
   struct KeyData {
+    std::string content;
     unsigned int id;
     unsigned int flags;
     bool active;
-    std::string content;
   };
 
   virtual bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys) { return false;}
