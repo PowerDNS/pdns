@@ -131,8 +131,9 @@ public:
 
   includeboilerplate(SRV)
 
-  uint16_t d_preference, d_weight, d_port;
+  uint16_t d_weight, d_port;
   string d_target;
+  uint16_t d_preference;
 };
 
 class TSIGRecordContent : public DNSRecordContent

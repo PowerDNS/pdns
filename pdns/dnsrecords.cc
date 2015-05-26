@@ -226,7 +226,7 @@ boilerplate_conv(NAPTR, QType::NAPTR,
 
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
-: DNSRecordContent(QType::SRV), d_preference(preference), d_weight(weight), d_port(port), d_target(target)
+: DNSRecordContent(QType::SRV), d_weight(weight), d_port(port), d_target(target), d_preference(preference)
 {}
 
 boilerplate_conv(SRV, QType::SRV, 
