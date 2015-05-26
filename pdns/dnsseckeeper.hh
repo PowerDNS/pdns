@@ -130,9 +130,9 @@ private:
     }
   
     string d_domain;
+    mutable std::string d_key, d_value;
     unsigned int d_ttd;
   
-    mutable std::string d_key, d_value;
   };
   
   
