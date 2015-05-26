@@ -82,9 +82,10 @@ struct DNSSECPrivateKey
     d_key = key;
   }
   DNSKEYRecordContent getDNSKEY() const;
-  uint8_t d_algorithm;
+
   uint16_t d_flags;
-  
+  uint8_t d_algorithm;
+
 private:
   shared_ptr<DNSCryptoKeyEngine> d_key;
 };
