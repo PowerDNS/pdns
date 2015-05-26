@@ -436,11 +436,11 @@ public:
 
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;
-  uint8_t d_saltlength;
   string d_salt;
-  uint8_t d_nexthashlength;
   string d_nexthash;
   std::set<uint16_t> d_set;
+  uint8_t d_saltlength;
+  uint8_t d_nexthashlength;
 
 private:
 };
