@@ -23,8 +23,9 @@ public:
   ~ChunkedSigningPipe();
   bool submit(const DNSResourceRecord& rr);
   chunk_t getChunk(bool final=false);
-  int d_queued;
+
   AtomicCounter d_signed;
+  int d_queued;
   int d_outstanding;
   unsigned int getReady();
 private:
@@ -37,6 +38,10 @@ private:
   void worker(int n, int fd);
   
   static void* helperWorker(void* p);
+
+  unsigned int d_numworkers;
+  int d_submitted;
+
   rrset_t* d_rrsetToSign;
   std::deque< std::vector<DNSResourceRecord> > d_chunks;
   string d_signer;
@@ -45,11 +50,9 @@ private:
   
   std::vector<int> d_sockets;
   std::set<int> d_eof;
-  unsigned int d_numworkers;
   vector<pthread_t> d_tids;
   bool d_mustSign;
   bool d_final;
-  int d_submitted;
 };
 
 #endif
