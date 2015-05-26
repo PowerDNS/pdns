@@ -118,8 +118,8 @@ private:
     }
   
     string d_domain;
-    unsigned int d_ttd;
     mutable keys_t d_keys;
+    unsigned int d_ttd;
   };
   
   struct METACacheEntry
