@@ -366,10 +366,10 @@ public:
   includeboilerplate(RRSIG)
 
   uint16_t d_type;
-  uint8_t d_algorithm, d_labels;
-  uint32_t d_originalttl, d_sigexpire, d_siginception;
   uint16_t d_tag;
   string d_signer, d_signature;
+  uint32_t d_originalttl, d_sigexpire, d_siginception;
+  uint8_t d_algorithm, d_labels;
 };
 
 
