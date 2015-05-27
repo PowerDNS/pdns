@@ -65,14 +65,6 @@ public:
   }
   bool recurseFor(DNSPacket* p);
 private:
-  NetmaskGroup d_ng;
-  int d_sock;
-  AtomicCounter* d_resanswers;
-  AtomicCounter* d_udpanswers;
-  AtomicCounter* d_resquestions;
-  pthread_mutex_t d_lock;
-  uint16_t d_xor;
-  int getID_locked();
   struct ConntrackEntry
   {
     time_t created;
@@ -87,7 +79,17 @@ private:
   };
 
   typedef map<int,ConntrackEntry> map_t;
+
+  // Data
+  NetmaskGroup d_ng;
+  AtomicCounter* d_resanswers;
+  AtomicCounter* d_udpanswers;
+  AtomicCounter* d_resquestions;
+  pthread_mutex_t d_lock;
   map_t d_conntrack;
+  int d_sock;
+  int getID_locked();
+  uint16_t d_xor;
 };
 
 #endif
