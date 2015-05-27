@@ -75,15 +75,15 @@ private:
   int getID_locked();
   struct ConntrackEntry
   {
-    uint16_t id;
-    ComboAddress remote;
-    int outsock;
     time_t created;
+    boost::optional<ComboAddress> anyLocal;
     string qname;
-    uint16_t qtype;
     DNSPacket* complete;
     string aname;
-    boost::optional<ComboAddress> anyLocal;
+    ComboAddress remote;
+    uint16_t id;
+    uint16_t qtype;
+    int outsock;
   };
 
   typedef map<int,ConntrackEntry> map_t;
