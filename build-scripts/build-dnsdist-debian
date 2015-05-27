@@ -14,6 +14,11 @@ if [ -z "$DISTDIR" ]; then
   DISTDIR='pdns/dnsdistdist'
 fi
 
+if [ -z "$RELEASE" ];then
+  echo 'Please set $RELEASE' >&2
+  exit 1
+fi
+
 set -e
 set -x
 
@@ -23,7 +28,7 @@ cp -r build-scripts/debian-dnsdist $DISTDIR/debian
 cd $DISTDIR
 
 cat > debian/changelog << EOF
-dnsdist (${VERSION}-1) unstable; urgency=medium
+dnsdist (${VERSION}-${RELEASE}) unstable; urgency=medium
 
   * Automatic build
 

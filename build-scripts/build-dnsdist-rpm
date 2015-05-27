@@ -10,6 +10,11 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
+if [ -z "$RELEASE" ];then
+  echo 'Please set $RELEASE' >&2
+  exit 1
+fi
+
 set -e
 set -x
 
@@ -24,7 +29,6 @@ else
   exit 1
 fi
 
-DIST=''
 
 # libsodium is not available on all RPM platforms (like CentOS 7)
 SODIUM_BUILDREQUIRES=''
@@ -51,7 +55,6 @@ if [ -f /etc/redhat-release ]; then
     Fedora\ *\ 21*)
       SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
       SODIUM_CONFIGURE='--enable-libsodium'
-      DIST='.fc21'
       ;;
     CentOS\ *\ 6*)
       INIT_BUILDREQUIRES=''
@@ -59,10 +62,8 @@ if [ -f /etc/redhat-release ]; then
       INIT_FILES='%{_initrddir}/dnsdist'
       SETUP='%setup -n %{name}-%{version}'
       RPMBUILD_COMMAND="scl enable devtoolset-2 -- ${RPMBUILD_COMMAND}"
-      DIST='.el6'
       ;;
     CentOS\ Linux\ *\ 7*)
-      DIST='.el7'
       ;;
     *)
       echo "No support for $OS (yet?)"
@@ -75,7 +76,7 @@ fi
 cat > dnsdist.spec << EOF
 Name: dnsdist
 Version: ${VERSION}
-Release: 1${DIST}
+Release: ${RELEASE}
 Summary: Powerful and scriptable DNS loadbalancer
 License: GPLv2
 Vendor: PowerDNS.COM BV
@@ -118,4 +119,4 @@ EOF
 
 ${RPMBUILD_COMMAND}
 
-mv $HOME/rpmbuild/RPMS/x86_64/dnsdist-${VERSION}-1${DIST}.x86_64.rpm .
+mv $HOME/rpmbuild/RPMS/x86_64/dnsdist-${VERSION}-${RELEASE}.x86_64.rpm .
