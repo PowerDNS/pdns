@@ -130,9 +130,9 @@ private:
   {
     string domain;
     string ip;
+    time_t next;
     int attempts;
     uint16_t id;
-    time_t next;
   };
 
   typedef std::list<NotificationRequest> d_nqueue_t;
