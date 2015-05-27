@@ -249,7 +249,6 @@ private:
   static bool safeRemoveBBDomainInfo(const std::string& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
-  bool d_hybrid;
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
@@ -265,6 +264,7 @@ private:
     recordstorage_t::const_iterator d_qname_end;
     string qname;
     string domain;
+
     int id;
     QType qtype;
     bool d_list;
@@ -277,34 +277,6 @@ private:
     void operator=(const handle& ); // don't go copying this
     handle(const handle &);
   };
-
-  static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
-  static bool s_ignore_broken_records;
-
-  static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
-  string d_logprefix;
-
-  set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
-
-  BB2DomainInfo createDomainEntry(const string &domain, const string &filename); //!< does not insert in s_state
-
-  int d_transaction_id;
-  string d_transaction_tmpname;
-
-  ofstream *d_of;
-  handle d_handle;
-
-  void queueReloadAndStore(unsigned int id);
-  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-  void reload();
-  static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static void fixupAuth(shared_ptr<recordstorage_t> records);
-  void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
-  void loadConfig(string *status=0);
-  static void nukeZoneRecords(BB2DomainInfo *bbd);
 
   SSqlStatement* d_getAllDomainMetadataQuery_stmt;
   SSqlStatement* d_getDomainMetadataQuery_stmt;
@@ -319,6 +291,32 @@ private:
   SSqlStatement* d_setTSIGKeyQuery_stmt;
   SSqlStatement* d_deleteTSIGKeyQuery_stmt;
   SSqlStatement* d_getTSIGKeysQuery_stmt;
+
+  string d_transaction_tmpname;
+  string d_logprefix;
+  set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
+  ofstream *d_of;
+  handle d_handle;
+  static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
+  static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
+  int d_transaction_id;
+  static bool s_ignore_broken_records;
+  bool d_hybrid;
+
+  BB2DomainInfo createDomainEntry(const string &domain, const string &filename); //!< does not insert in s_state
+
+  void queueReloadAndStore(unsigned int id);
+  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
+  void reload();
+  static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static void fixupAuth(shared_ptr<recordstorage_t> records);
+  void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
+  void loadConfig(string *status=0);
+  static void nukeZoneRecords(BB2DomainInfo *bbd);
+
 };
 
 #endif /* PDNS_BINDBACKEND_HH */
