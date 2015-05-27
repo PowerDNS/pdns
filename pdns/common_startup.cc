@@ -464,10 +464,7 @@ void mainthread()
    DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
 
-   try {
-     doSecPoll(true); // this must be BEFORE chroot
-   }
-   catch(...) {}
+   secPollParseResolveConf();
 
    if(!::arg()["chroot"].empty()) {  
      triggerLoadOfLibraries();
@@ -487,11 +484,18 @@ void mainthread()
   AuthWebServer webserver;
   Utility::dropUserPrivs(newuid);
 
+  // We need to start the Recursor Proxy before doing secpoll, see issue #2453
   if(::arg().mustDo("recursor")){
     DP=new DNSProxy(::arg()["recursor"]);
     DP->onlyFrom(::arg()["allow-recursion"]);
     DP->go();
   }
+
+  try {
+    doSecPoll(true);
+  }
+  catch(...) {}
+
   // NOW SAFE TO CREATE THREADS!
   dl->go();
 
