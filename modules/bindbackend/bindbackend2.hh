@@ -263,13 +263,11 @@ private:
     recordstorage_t::const_iterator d_iter, d_end_iter;
     recordstorage_t::const_iterator d_qname_iter;
     recordstorage_t::const_iterator d_qname_end;
-
-    bool d_list;
-    int id;
-
     string qname;
     string domain;
+    int id;
     QType qtype;
+    bool d_list;
     bool mustlog;
 
   private:
