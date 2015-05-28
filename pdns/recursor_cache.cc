@@ -107,7 +107,7 @@ unsigned int MemRecursorCache::bytes()
   return ret;
 }
 
-int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res)
+int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
 {
   unsigned int ttd=0;
   //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
@@ -137,6 +137,8 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
             }
           }
         }
+	if(signatures)  // if you do an ANY lookup you are hosed XXXX
+	  *signatures=i->d_signatures;
         if(res) {
           if(res->empty())
             moveCacheItemToFront(d_cache, i);
@@ -186,7 +188,7 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResou
 /* the code below is rather tricky - it basically replaces the stuff cached for qname by content, but it is special
    cased for when inserting identical records with only differing ttls, in which case the entry is not
    touched, but only given a new ttd */
-void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth)
+void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth)
 {
   d_cachecachevalid=false;
   boost::tuple<string, uint16_t> key=boost::make_tuple(qname, qt.getCode());
@@ -202,7 +204,7 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
   StoredRecord dr;
   CacheEntry ce=*stored;
-
+  ce.d_signatures=signatures;
   //~ cerr<<"asked to store "<< qname+"|"+qt.getName()<<" -> '"<<content.begin()->content<<"', isnew="<<isNew<<", auth="<<auth<<", ce.auth="<<ce.d_auth<<"\n";
 
   if(qt.getCode()==QType::SOA || qt.getCode()==QType::CNAME)  { // you can only have one (1) each of these

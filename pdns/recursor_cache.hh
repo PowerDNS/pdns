@@ -6,7 +6,7 @@
 #include "qtype.hh"
 #include "misc.hh"
 #include <iostream>
-
+#include "dnsrecords.hh"
 #include <boost/utility.hpp>
 #undef L
 #include <boost/multi_index_container.hpp>
@@ -31,10 +31,10 @@ public:
   }
   unsigned int size();
   unsigned int bytes();
-  int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res);
+  int get(time_t, const string &qname, const QType& qt, set<DNSResourceRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0);
 
   int getDirect(time_t now, const char* qname, const QType& qt, uint32_t ttd[10], char* data[10], uint16_t len[10]);
-  void replace(time_t, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth);
+  void replace(time_t, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, const vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool auth);
   void doPrune(void);
   void doSlash(int perc);
   uint64_t doDump(int fd);
@@ -48,7 +48,6 @@ private:
   struct StoredRecord
   {
     mutable uint32_t d_ttd;
-
     string d_string;
 
     bool operator<(const StoredRecord& rhs) const
@@ -70,7 +69,7 @@ private:
     {}
 
     typedef vector<StoredRecord> records_t;
-
+    vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
     uint32_t getTTD() const
     {
       if(d_records.size()==1)

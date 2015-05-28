@@ -555,6 +555,7 @@ void startDoResolve(void *p)
     pw.getHeader()->tc=0;
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
+    pw.getHeader()->cd=dc->d_mdp.d_header.cd;
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
@@ -563,6 +564,10 @@ void startDoResolve(void *p)
       sr.setLuaEngine(*t_pdl);
       sr.d_requestor=dc->d_remote;
     }
+    
+    if(pw.getHeader()->cd || edo.d_Z & EDNSOpts::DNSSECOK)
+      sr.d_doDNSSEC=true;
+
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
 
@@ -1985,12 +1990,6 @@ int serviceMain(int argc, char*argv[])
   catch(std::exception& e) {
     L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
     exit(99);
-  }
-
-  SyncRes::s_noEDNSPing = true; // ::arg().mustDo("disable-edns-ping");
-  SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
-  if(!SyncRes::s_noEDNS) {
-    L<<Logger::Warning<<"Running in experimental EDNS mode - may cause problems"<<endl;
   }
 
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");

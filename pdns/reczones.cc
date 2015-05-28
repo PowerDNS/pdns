@@ -64,13 +64,13 @@ void primeHints(void)
       arr.content=ips[c-'a'];
       set<DNSResourceRecord> aset;
       aset.insert(arr);
-      t_RC->replace(time(0), string(templ), QType(QType::A), aset, true); // auth, nuke it all
+      t_RC->replace(time(0), string(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, nuke it all
       if (ip6s[c-'a'] != NULL) {
         aaaarr.content=ip6s[c-'a'];
 
         set<DNSResourceRecord> aaaaset;
         aaaaset.insert(aaaarr);
-        t_RC->replace(time(0), string(templ), QType(QType::AAAA), aaaaset, true);
+        t_RC->replace(time(0), string(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), true);
       }
       
       nsset.insert(nsrr);
@@ -85,18 +85,18 @@ void primeHints(void)
       if(rr.qtype.getCode()==QType::A) {
         set<DNSResourceRecord> aset;
         aset.insert(rr);
-        t_RC->replace(time(0), rr.qname, QType(QType::A), aset, true); // auth, etc see above
+        t_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, etc see above
       } else if(rr.qtype.getCode()==QType::AAAA) {
         set<DNSResourceRecord> aaaaset;
         aaaaset.insert(rr);
-        t_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, true);
+        t_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), true);
       } else if(rr.qtype.getCode()==QType::NS) {
         rr.content=toLower(rr.content);
         nsset.insert(rr);
       }
     }
   }
-  t_RC->replace(time(0),".", QType(QType::NS), nsset, true); // and stuff in the cache (auth)
+  t_RC->replace(time(0),".", QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // and stuff in the cache (auth)
 }
 
 static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const string& hostname, const string& ip)

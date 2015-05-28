@@ -68,18 +68,11 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
-    if(EDNS0Level > 1) {
-      uint32_t nonce=dns_random(0xffffffff);
-      ping.assign((char*) &nonce, 4);
 
-      opts.push_back(make_pair(5, ping));
-    }
-
-    pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
+    pw.addOpt(1200, 0, EDNSOpts::DNSSECOK, opts); // 1200 bytes answer size
     pw.commit();
   }
   lwr->d_rcode = 0;
-  lwr->d_pingCorrect = false;
   lwr->d_haveEDNS = false;
   int ret;
 
@@ -177,28 +170,12 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       goto out;
     }
 
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-      DNSResourceRecord rr;
-      rr.qtype=i->first.d_type;
-      rr.qname=i->first.d_label;
-      rr.ttl=i->first.d_ttl;
-      rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
-      rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
-      lwr->d_result.push_back(rr);
-    }
+    lwr->d_records = mdp.d_answers;
+    
 
     EDNSOpts edo;
-    if(EDNS0Level > 1 && getEDNSOpts(mdp, &edo)) {
+    if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
-      for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-          iter != edo.d_options.end(); 
-          ++iter) {
-        if(iter->first == 5 || iter->first == 4) {// 'EDNS PING'
-          if(iter->second == ping)  {
-            lwr->d_pingCorrect = true;
-          }
-        }
-      }
     }
         
     return 1;
@@ -223,4 +200,18 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   return -1;
 }
 
-
+vector<DNSResourceRecord>& LWResult::getResult()
+{
+  if(d_result.empty()) {
+    for(auto i=d_records.begin(); i != d_records.end(); ++i) {          
+      DNSResourceRecord rr;
+      rr.qtype=i->first.d_type;
+      rr.qname=i->first.d_label;
+      rr.ttl=i->first.d_ttl;
+      rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
+      rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
+      d_result.push_back(rr);
+    }
+  }
+  return d_result;
+}

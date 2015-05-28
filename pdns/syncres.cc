@@ -30,6 +30,7 @@
 #include "syncres.hh"
 #include <iostream>
 #include <map>
+#include "dnsrecords.hh"
 #include <algorithm>
 #include <set>
 #include <cerrno>
@@ -74,12 +75,11 @@ SyncRes::LogMode SyncRes::s_lm;
 
 #define LOG(x) if(d_lm == Log) { L <<Logger::Warning << x; } else if(d_lm == Store) { d_trace << x; }
 
-bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
-					       d_totUsec(0), d_now(now),
-					       d_cacheonly(false), d_nocache(false),   d_doEDNS0(false), d_lm(s_lm)
+					       d_totUsec(0), d_doDNSSEC(false), d_now(now),
+					       d_cacheonly(false), d_nocache(false), d_doEDNS0(false), d_lm(s_lm)
                                                  
 { 
   if(!t_sstorage) {
@@ -243,9 +243,8 @@ void SyncRes::doEDNSDumpAndClose(int fd)
 {
   FILE* fp=fdopen(fd, "w");
   fprintf(fp,"IP Address\tMode\tMode last updated at\n");
-
-  for(ednsstatus_t::const_iterator iter = t_sstorage->ednsstatus.begin(); iter != t_sstorage->ednsstatus.end(); ++iter) {
-    fprintf(fp, "%s\t%d\t%s", iter->first.toString().c_str(), (int)iter->second.mode, ctime(&iter->second.modeSetAt));
+  for(const auto& eds : t_sstorage->ednsstatus) {
+    fprintf(fp, "%s\t%d\t%s", eds.first.toString().c_str(), (int)eds.second.mode, ctime(&eds.second.modeSetAt));
   }
 
   fclose(fp);
@@ -254,50 +253,34 @@ void SyncRes::doEDNSDumpAndClose(int fd)
 int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res) 
 {
   /* what is your QUEST?
-     the goal is to get as many remotes as possible on the highest level of hipness: EDNS PING responders.
+     the goal is to get as many remotes as possible on the highest level of EDNS support
      The levels are:
 
-     -1) CONFIRMEDPINGER: Confirmed pinger!
      0) UNKNOWN Unknown state 
-     1) EDNSNOPING: Honors EDNS0 if no PING is included
-     2) EDNSPINGOK: Ignores EDNS0+PING, but does generate EDNS0 response
-     3) EDNSIGNORANT: Ignores EDNS0+PING, gives replies without EDNS0 nor PING
-     4) NOEDNS: Generates FORMERR on EDNS queries
+     1) EDNS: Honors EDNS0
+     2) EDNSIGNORANT: Ignores EDNS0, gives replies without EDNS0
+     3) NOEDNS: Generates FORMERR on EDNS queries
 
      Everybody starts out assumed to be '0'.
-     If '-1', send out EDNS0+Ping
-        If we get a FormErr, ignore
-        If we get a incorrect PING, ignore
-        If we get no PING, ignore
-     If '0', send out EDNS0+Ping
-        If we get a pure EDNS response, you are downgraded to '2'. 
-        If you FORMERR us, go to '1', 
-        If no EDNS in response, go to '3' - 3 and 0 are really identical, except confirmed
-        If with correct PING, upgrade to -1
-     If '1', send out EDNS0, no PING
-        If FORMERR, downgrade to 4
-     If '2', keep on including EDNS0+PING, just don't expect PING to be correct
-        If PING correct, move to '0', and cheer in the log file!
-     If '3', keep on including EDNS0+PING, see what happens
+     If '0', send out EDNS0
+        If you FORMERR us, go to '3', 
+        If no EDNS in response, go to '2'
+     If '1', send out EDNS0
+        If FORMERR, downgrade to 3
+     If '2', keep on including EDNS0, see what happens
         Same behaviour as 0 
-     If '4', send bare queries
+     If '3', send bare queries
   */
 
-  if(s_noEDNS) {
-    g_stats.noEdnsOutQueries++;
-    return asyncresolve(ip, domain, type, doTCP, sendRDQuery, 0, now, res);
-  }
-
+  g_stats.noEdnsOutQueries++;
+  
   SyncRes::EDNSStatus* ednsstatus;
-  ednsstatus = &t_sstorage->ednsstatus[ip];
+  ednsstatus = &t_sstorage->ednsstatus[ip]; // does this include port? 
 
   if(ednsstatus->modeSetAt && ednsstatus->modeSetAt + 3600 < d_now.tv_sec) {
     *ednsstatus=SyncRes::EDNSStatus();
     //    cerr<<"Resetting EDNS Status for "<<ip.toString()<<endl);
   }
-
-  if(s_noEDNSPing && ednsstatus->mode == EDNSStatus::UNKNOWN)
-    ednsstatus->mode = EDNSStatus::EDNSNOPING;
 
   SyncRes::EDNSStatus::EDNSMode& mode=ednsstatus->mode;
   SyncRes::EDNSStatus::EDNSMode oldmode = mode;
@@ -305,81 +288,42 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
 
   int ret;
   for(int tries = 0; tries < 3; ++tries) {
-    //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl);
-
-    if(mode==EDNSStatus::CONFIRMEDPINGER || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode==EDNSStatus::EDNSIGNORANT)
-      EDNSLevel = 2;
-    else if(mode==EDNSStatus::EDNSNOPING) {
+    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
+    
+    if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
-      g_stats.noPingOutQueries++;
-    }
     else if(mode==EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
       EDNSLevel = 0;
     }
-
+    
     ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, res);
+
     if(ret == 0 || ret < 0) {
-      //      cerr<<"Transport error or timeout (ret="<<ret<<"), no change in mode"<<endl);
+      cerr<<"Transport error or timeout (ret="<<ret<<"), no change in mode"<<endl;
       return ret;
     }
-
-    if(mode== EDNSStatus::CONFIRMEDPINGER) {  // confirmed pinger!
-      if(!res->d_pingCorrect) {
-        L<<Logger::Error<<"Confirmed EDNS-PING enabled host "<<ip.toString()<<" did not send back correct ping"<<endl;
-        //        perhaps lower some kind of count here, don't want to punnish a downgrader too long!
-        ret = 0;
-        res->d_rcode = RCode::ServFail;
-        g_stats.ednsPingMismatches++;
-      }
-      else {
-        g_stats.ednsPingMatches++;
-        ednsstatus->modeSetAt=d_now.tv_sec; // only the very best mode self-perpetuates
-      }
-    }
-    else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSPINGOK || mode == EDNSStatus::EDNSIGNORANT ) {
-      if(res->d_rcode == RCode::FormErr)  {
-        //        cerr<<"Downgrading to EDNSNOPING because of FORMERR!"<<endl);
-        mode = EDNSStatus::EDNSNOPING;
+    else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
+      if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp)  {
+	cerr<<"Downgrading to NOEDNS because of FORMERR or NotImp!"<<endl;
+        mode = EDNSStatus::NOEDNS;
         continue;
-      }
-      else if(mode==EDNSStatus::UNKNOWN && (res->d_rcode == RCode::Refused || res->d_rcode == RCode::NotImp) ) { // this "fixes" F5
-        //        cerr<<"Downgrading an unknown status to EDNSNOPING because of RCODE="<<res->d_rcode<<endl;
-        mode = EDNSStatus::EDNSNOPING;
-        continue;
-      }
-      else if(!res->d_pingCorrect && res->d_haveEDNS) 
-        mode = EDNSStatus::EDNSPINGOK;
-      else if(res->d_pingCorrect) {
-        L<<Logger::Warning<<"We welcome "<<ip.toString()<<" to the land of EDNS-PING!"<<endl;
-        mode = EDNSStatus::CONFIRMEDPINGER;
-        g_stats.ednsPingMatches++;
       }
       else if(!res->d_haveEDNS) {
         if(mode != EDNSStatus::EDNSIGNORANT) {
           mode = EDNSStatus::EDNSIGNORANT;
-          //          cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer, moving to mode 3"<<endl);
-        }
+	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer, moving to mode 3"<<endl;
+	}
       }
-    }
-    else if(mode==EDNSStatus::EDNSNOPING) {
-      if(res->d_rcode == RCode::FormErr) {
-        //                cerr<<"Downgrading to mode 4, FORMERR!"<<endl);
-        mode = EDNSStatus::NOEDNS;
-        continue;
+      else {
+	mode = EDNSStatus::EDNSOK;
+	cerr<<"We find that "<<ip.toString()<<" is EDNS OK!"<<endl;
       }
-    }
-    else if(mode==EDNSStatus::EDNSPINGOK) {
-      if(res->d_pingCorrect) {
-        // an upgrade!
-        L<<Logger::Warning<<"We welcome "<<ip.toString()<<" to the land of EDNS-PING!"<<endl;
-        mode = EDNSStatus::CONFIRMEDPINGER;
-      }
+      
     }
     if(oldmode != mode)
       ednsstatus->modeSetAt=d_now.tv_sec;
-    //        cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", EDNS-PING correct: "<<res->d_pingCorrect<<", new mode: "<<mode<<endl);  
-    
+    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return ret;
   }
   return ret;
@@ -414,7 +358,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
           res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);    
           // filter out the good stuff from lwr.result()
 
-          for(LWResult::res_t::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
+          for(LWResult::res_t::const_iterator i=lwr.getResult().begin();i!=lwr.getResult().end();++i) {
             if(i->d_place == DNSResourceRecord::ANSWER)
               ret.push_back(*i);
           }
@@ -757,14 +701,15 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   }
   set<DNSResourceRecord> cset;
   bool found=false, expired=false;
-
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset) > 0) {
+  vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  uint32_t ttl=0;
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_doDNSSEC ? &signatures : 0) > 0) {
     LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG(j->content);
       if(j->ttl>(unsigned int) d_now.tv_sec) {
         DNSResourceRecord rr=*j;
-        rr.ttl-=d_now.tv_sec;
+        ttl=rr.ttl-=d_now.tv_sec;
         if(giveNegative) {
           rr.d_place=DNSResourceRecord::AUTHORITY;
           rr.ttl=sttl;
@@ -777,6 +722,17 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
         LOG("[expired] ");
         expired=true;
       }
+    }
+
+    for(const auto& signature : signatures) {
+      DNSResourceRecord rr;
+      rr.qtype=QType(QType::RRSIG);
+      rr.qname=sqname;
+      rr.ttl=ttl; 
+      rr.content=signature->getZoneRepresentation();  
+      rr.d_place=DNSResourceRecord::ANSWER;
+      
+      ret.push_back(rr);
     }
   
     LOG(endl);
@@ -912,7 +868,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       LWResult lwr;
       if(tns->empty()) {
         LOG(prefix<<qname<<": Domain is out-of-band"<<endl);
-        doOOBResolve(qname, qtype, lwr.d_result, depth, lwr.d_rcode);
+        doOOBResolve(qname, qtype, lwr.getResult(), depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;
       }
@@ -986,7 +942,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	    if(s_maxtotusec && d_totUsec > s_maxtotusec) 
 	      throw ImmediateServFailException("Too much time waiting for "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries) + ", queries: "+lexical_cast<string>(d_outqueries)+", "+lexical_cast<string>(d_totUsec/1000)+"msec");
 
-	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_result, resolveret)) {
+	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.getResult(), resolveret)) {
 	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
 	    }
 	    else 
@@ -1058,7 +1014,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           return RCode::ServFail;
         }
         
-        LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.d_result.size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
+        LOG(prefix<<qname<<": Got "<<(unsigned int)lwr.getResult().size()<<" answers from "<<*tns<<" ("<< remoteIP->toString() <<"), rcode="<<lwr.d_rcode<<" ("<<RCode::to_s(lwr.d_rcode)<<"), aa="<<lwr.d_aabit<<", in "<<lwr.d_usec/1000<<"ms"<<endl);
 
         /*  // for you IPv6 fanatics :-)
         if(remoteIP->sin4.sin_family==AF_INET6)
@@ -1070,16 +1026,31 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       }
 
       if(s_minimumTTL) {
-	for(LWResult::res_t::iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
+	for(LWResult::res_t::iterator i=lwr.getResult().begin();i != lwr.getResult().end();++i) {
 	  i->ttl = max(i->ttl, s_minimumTTL);
 	}
       }
 
-      typedef map<pair<string, QType>, set<DNSResourceRecord>, TCacheComp > tcache_t;
+      struct CachePair
+      {
+	set<DNSResourceRecord> records;
+	vector<shared_ptr<RRSIGRecordContent>> signatures;
+      };
+      typedef map<pair<string, QType>, CachePair, TCacheComp > tcache_t;
       tcache_t tcache;
 
+      if(d_doDNSSEC) {
+	for(const auto& rec : lwr.d_records) {
+	  if(rec.first.d_type == QType::RRSIG) {
+	    auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.first.d_content);
+	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<stripDot(rec.first.d_label)<<"'"<<endl;
+	    tcache[make_pair(rec.first.d_label, QType(rrsig->d_type))].signatures.push_back(rrsig);
+	  }
+	}
+      }
+
       // reap all answers from this packet that are acceptable
-      for(LWResult::res_t::iterator i=lwr.d_result.begin();i != lwr.d_result.end();++i) {
+      for(LWResult::res_t::iterator i=lwr.getResult().begin();i != lwr.getResult().end();++i) {
         if(i->qtype.getCode() == QType::OPT) {
           LOG(prefix<<qname<<": skipping OPT answer '"<<i->qname<<"' from '"<<auth<<"' nameservers" <<endl);
           continue;
@@ -1096,6 +1067,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             s_nodelegated++;
             return RCode::NXDomain;
           }
+	  else if(i->qtype.getCode() == QType::RRSIG) {
+	    LOG("RRSIG - separate"<<endl);
+	  }
           else {
             LOG("YES!"<<endl);
 
@@ -1109,7 +1083,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             if(rr.qtype.getCode() == QType::NS) // people fiddle with the case
               rr.content=toLower(rr.content); // this must stay! (the cache can't be case-insensitive on the RHS of records)
             
-            tcache[make_pair(i->qname,i->qtype)].insert(rr);
+            tcache[make_pair(i->qname,i->qtype)].records.insert(rr);
           }
         }          
         else
@@ -1118,24 +1092,27 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     
       // supplant
       for(tcache_t::iterator i=tcache.begin();i!=tcache.end();++i) {
-        if(i->second.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
+        if(i->second.records.size() > 1) {  // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
           uint32_t lowestTTL=std::numeric_limits<uint32_t>::max();
-          for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
-            lowestTTL=min(lowestTTL, j->ttl);
+	  for(auto& record : i->second.records) 
+            lowestTTL=min(lowestTTL, record.ttl);
           
-          for(tcache_t::value_type::second_type::iterator j=i->second.begin(); j != i->second.end(); ++j)
-            ((tcache_t::value_type::second_type::value_type*)&(*j))->ttl=lowestTTL;
+	  for(auto& record : i->second.records) 
+	    *const_cast<uint32_t*>(&record.ttl)=lowestTTL;
         }
 
-        t_RC->replace(d_now.tv_sec, i->first.first, i->first.second, i->second, lwr.d_aabit);
+	cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.first;
+	cout<<'|'<<DNSRecordContent::NumberToType(i->first.second.getCode())<<endl;
+        t_RC->replace(d_now.tv_sec, i->first.first, i->first.second, i->second.records, i->second.signatures, lwr.d_aabit);
       }
       set<string, CIStringCompare> nsset;  
       LOG(prefix<<qname<<": determining status after receiving this packet"<<endl);
 
-      bool done=false, realreferral=false, negindic=false;
+      bool done=false, realreferral=false, negindic=false, sawDS=false;
       string newauth, soaname, newtarget;
 
-      for(LWResult::res_t::iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
+
+      for(LWResult::res_t::iterator i=lwr.getResult().begin();i!=lwr.getResult().end();++i) {
         if(i->d_place==DNSResourceRecord::AUTHORITY && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NXDomain && dottedEndsOn(qname,i->qname) && dottedEndsOn(i->qname, auth)) {
           LOG(prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"' (accept="<<dottedEndsOn(i->qname, auth)<<"), newtarget='"<<newtarget<<"'"<<endl);
@@ -1165,6 +1142,9 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
           ret.push_back(*i);
           newtarget=i->content;
         }
+	else if(d_doDNSSEC && (i->qtype==QType::RRSIG || i->qtype==QType::NSEC || i->qtype==QType::NSEC3) && i->d_place==DNSResourceRecord::ANSWER){
+	  ret.push_back(*i); // enjoy your DNSSEC
+	}
         // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
         else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
                 (
@@ -1188,6 +1168,10 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             LOG(prefix<<qname<<": got upwards/level NS record '"<<i->qname<<"' -> '"<<i->content<<"', had '"<<auth<<"'"<<endl);
           nsset.insert(i->content);
         }
+        else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::DS) { 
+	  LOG(prefix<<qname<<": got DS record '"<<i->qname<<"' -> '"<<i->content<<"'"<<endl);
+	  sawDS=true;
+	}
         else if(!done && i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
            lwr.d_rcode==RCode::NoError) {
           LOG(prefix<<qname<<": got negative caching indication for '"<< (qname+"|"+qtype.getName()+"'") <<endl);
@@ -1239,6 +1223,12 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       }
       else if(realreferral) {
         LOG(prefix<<qname<<": status=did not resolve, got "<<(unsigned int)nsset.size()<<" NS, looping to them"<<endl);
+	if(sawDS) {
+	  t_sstorage->dnssecmap[newauth]=true;
+	  for(const auto& e : t_sstorage->dnssecmap)
+	    cout<<e.first<<' ';
+	  cout<<endl;
+	}
         auth=newauth;
         nameservers=nsset;
         break; 

@@ -308,6 +308,7 @@ public:
   unsigned int d_unreachables;
   unsigned int d_totUsec;
   ComboAddress d_requestor;
+  bool d_doDNSSEC;
 
   typedef multi_index_container <
     NegCacheEntry,
@@ -378,10 +379,9 @@ public:
 
   struct EDNSStatus
   {
-    EDNSStatus() : mode(UNKNOWN), modeSetAt(0), EDNSPingHitCount(0) {}
-    enum EDNSMode { CONFIRMEDPINGER=-1, UNKNOWN=0, EDNSNOPING=1, EDNSPINGOK=2, EDNSIGNORANT=3, NOEDNS=4 } mode;
+    EDNSStatus() : mode(UNKNOWN), modeSetAt(0) {}
+    enum EDNSMode { UNKNOWN=0, EDNSOK=1, EDNSIGNORANT=2, NOEDNS=3 } mode;
     time_t modeSetAt;
-    int EDNSPingHitCount;
   };
 
   typedef map<ComboAddress, EDNSStatus> ednsstatus_t;
@@ -434,6 +434,7 @@ public:
     throttle_t throttle;
     fails_t fails;
     domainmap_t* domainmap;
+    map<string,bool> dnssecmap;
   };
 
 private:
@@ -451,6 +452,7 @@ private:
   inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
   vector<ComboAddress> getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
+
 private:
   ostringstream d_trace;
   shared_ptr<RecursorLua> d_pdl;
@@ -458,6 +460,7 @@ private:
   bool d_cacheonly;
   bool d_nocache;
   bool d_doEDNS0;
+
   static LogMode s_lm;
   LogMode d_lm;
 
