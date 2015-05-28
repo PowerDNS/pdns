@@ -81,7 +81,7 @@ before_script:
 script:
  - ./bootstrap
  - ./configure
-     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
+     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lua'
      --with-modules=''
      --with-sqlite3
      --enable-botan1.10
