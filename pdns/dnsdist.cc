@@ -1002,7 +1002,9 @@ try
     //if(g_vm.count("bind-non-local"))
     bindAny(local.sin4.sin_family, cs->udpFD);
 
-    //    setSocketTimestamps(cs->udpFD);
+    //    if (!setSocketTimestamps(cs->udpFD))
+    //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+
 
     if(IsAnyAddress(local)) {
       int one=1;

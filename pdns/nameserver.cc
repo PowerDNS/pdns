@@ -118,7 +118,8 @@ void UDPNameserver::bindIPv4()
     if(localname=="0.0.0.0")
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
-    setSocketTimestamps(s);
+    if (!setSocketTimestamps(s))
+      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
@@ -223,7 +224,8 @@ void UDPNameserver::bindIPv6()
       setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
     }
 
-    setSocketTimestamps(s);
+    if (setSocketTimestamps(s))
+      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
