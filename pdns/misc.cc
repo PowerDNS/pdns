@@ -33,6 +33,7 @@
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fstream>
 #include "misc.hh"
 #include <vector>
 #include <sstream>
@@ -971,3 +972,32 @@ bool setCloseOnExec(int sock)
   return true;
 }
 
+// please feel free to add other operating systems here. What we need are stats on dropped UDP packets
+uint64_t udpErrorStats(const std::string& str)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/net/snmp");
+  if(!ifs)
+    return 0;
+  string line;
+  vector<string> parts;
+  while(getline(ifs,line)) {
+    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
+      stringtok(parts, line, " \n\t\r");
+      if(parts.size() < 7)
+	break;
+      if(str=="udp-rcvbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[5]);
+      else if(str=="udp-sndbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[6]);
+      else if(str=="udp-noport-errors")
+	return boost::lexical_cast<uint64_t>(parts[2]);
+      else if(str=="udp-in-errors")
+	return boost::lexical_cast<uint64_t>(parts[3]);
+      else
+	return 0;
+    }
+  }
+#endif
+  return 0;
+}

@@ -553,4 +553,5 @@ bool setBlocking( int sock );
 bool setNonBlocking( int sock );
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
+uint64_t udpErrorStats(const std::string& str);
 #endif
