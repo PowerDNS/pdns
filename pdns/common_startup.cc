@@ -202,10 +202,7 @@ try
   BOOST_FOREACH(DNSDistributor* d, g_distributors) {
     if(!d)
       continue;
-    int qcount, acount;
-    
-    d->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
-    totcount+=qcount;
+    totcount += d->getQueueSize();  // this does locking and other things, so don't get smart
   }
   return totcount;
 }
@@ -303,16 +300,16 @@ int isGuarded(char **argv)
   return !!p;
 }
 
-void sendout(const AnswerData<DNSPacket> &AD)
+void sendout(DNSPacket* a)
 {
-  if(!AD.A)
+  if(!a)
     return;
   
-  N->send(AD.A);
+  N->send(a);
 
-  int diff=AD.A->d_dt.udiff();
+  int diff=a->d_dt.udiff();
   avg_latency=(int)(0.999*avg_latency+0.001*diff);
-  delete AD.A;  
+  delete a;  
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
@@ -429,7 +426,12 @@ void *qthread(void *number)
     if(logDNSQueries) 
       L<<"packetcache MISS"<<endl;
 
-    distributor->question(P, &sendout); // otherwise, give to the distributor
+    try {
+      distributor->question(P, &sendout); // otherwise, give to the distributor
+    }
+    catch(DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
+      _exit(1);
+    }
   }
   return 0;
 }
