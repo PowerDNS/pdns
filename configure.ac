@@ -188,9 +188,9 @@ AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
 ])
 
-modules="bind gmysql geo random"
+modules="bind gmysql random"
 AC_ARG_WITH([modules],
-  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=bind gmysql geo random@:>@])],
+  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=bind gmysql random@:>@])],
   [modules="$withval"]
 )
 
@@ -356,7 +356,6 @@ AC_CONFIG_FILES([
   ext/polarssl/library/Makefile
   ext/rapidjson/Makefile
   modules/bindbackend/Makefile
-  modules/geobackend/Makefile
   modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
   modules/goraclebackend/Makefile

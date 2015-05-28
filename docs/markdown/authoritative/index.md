@@ -16,7 +16,6 @@ The following table describes the capabilities of the backends.
 | Name | Status | Native | Master | Slave | Superslave | Autoserial | DNSSEC | Disabled Data | Comments | Launch Name |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
 | [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No | `bind` |
-| [Geo](backend-geo.md) | Beta | Partial | No | No | No | No | Yes (no key storage) | Unknown (No) | Unknown (No) | Unknown (No) | `geo` |
 | [LDAP](backend-ldap.md) | Unmaintained | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | Unknown |
 | [LMDB](backend-lmdb.md) | Supported | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | `lmdb`|
 | [MySQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
