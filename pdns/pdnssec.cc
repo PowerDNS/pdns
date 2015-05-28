@@ -439,7 +439,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
 
   bool hasNsAtApex = false;
-  set<DNSName> cnames, noncnames, glue, checkglue;
+  set<DNSName> tlsas, cnames, noncnames, glue, checkglue;
   set<string> records;
   map<string, unsigned int> ttl;
 
@@ -454,6 +454,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
     numrecords++;
 
+    if(rr.qtype.getCode() == QType::TLSA)
+      tlsas.insert(rr.qname);
     if(rr.qtype.getCode() == QType::SOA) {
       vector<string>parts;
       stringtok(parts, rr.content);
@@ -615,6 +617,26 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
     if (noncnames.find(i) != noncnames.end()) {
       cout<<"[Error] CNAME "<<i.toString()<<" found, but other records with same label exist."<<endl;
       numerrors++;
+    }
+  }
+
+  for(const auto &i: tlsas) {
+    DNSName name = DNSName(i);
+    name.trimToLabels(name.getRawLabels().size()-2);
+    if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
+      // No specific record for the name in the TLSA record exists, this
+      // is already worth emitting a warning. Let's see if a wildcard exist.
+      cout<<"[Warning] ";
+      DNSName wcname(name);
+      wcname.chopOff();
+      wcname.prependRawLabel("*");
+      if (cnames.find(wcname) != cnames.end() || noncnames.find(wcname) != noncnames.end()) {
+        cout<<"A wildcard record exist for '"<<wcname.toString()<<"' and a TLSA record for '"<<i.toString()<<"'.";
+      } else {
+        cout<<"No record for '"<<name.toString()<<"' exists, but a TLSA record for '"<<i.toString()<<"' does.";
+      }
+      numwarnings++;
+      cout<<" A query for '"<<name.toString()<<"' will yield an empty response. This is most likely a mistake, please create records for '"<<name.toString()<<"'."<<endl;
     }
   }
 
