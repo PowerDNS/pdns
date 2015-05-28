@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "dnsseckeeper.hh"
 #include "dns.hh"
-using std::vector;
 
 void writeLStringToSocket(int fd, const string& msg);
 bool readLStringFromSocket(int fd, string& msg);
