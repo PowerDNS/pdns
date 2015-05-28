@@ -21,6 +21,7 @@ pages:
   - [authoritative/modes-of-operation.md, 'Authoritative', 'Modes of Operation']
   - [authoritative/domainmetadata.md, 'Authoritative', 'Domain metadata']
   - [authoritative/dnsupdate.md, 'Authoritative', 'Dynamic DNS Update']
+  - [authoritative/gss-tsig.md, 'Authoritative', 'GSS-TSIG']
   - [authoritative/internals.md, 'Authoritative', 'Internals']
   - [authoritative/virtual.md, 'Authoritative', 'Virtual Hosting']
   - [authoritative/performance.md, 'Authoritative', 'Performance Tuning and Monitoring']

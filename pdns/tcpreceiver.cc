@@ -418,20 +418,39 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
   if(q->d_havetsig) { // if you have one, it must be good
     TSIGRecordContent trc;
     string keyname, secret;
-    if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc))
+    if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc)) {
       return false;
-    
+    } else {
+      getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+      if (q->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
+          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
+    }
+
     DNSSECKeeper dk;
 
-    string algorithm=toLowerCanonic(trc.d_algoName);
-    if (algorithm == "hmac-md5.sig-alg.reg.int")
-      algorithm = "hmac-md5";
+    if (q->d_tsig_algo == TSIG_GSS) {
+      vector<string> princs;
+      s_P->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
+      BOOST_FOREACH(const std::string& princ, princs) {
+        if (q->d_peer_principal == princ) {
+          L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
+          return true;
+        }
+      }
+      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
+      return false;
+    }
+
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
-      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<algorithm<<"' does not grant access to zone"<<endl;
+      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access to zone"<<endl;
       return false;
     }
     else {
-      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<algorithm<<"'"<<endl;
+      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
       return true;
     }
   }
@@ -609,9 +628,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     string algorithm=toLowerCanonic(trc.d_algoName);
     if (algorithm == "hmac-md5.sig-alg.reg.int")
       algorithm = "hmac-md5";
-    Lock l(&s_plock);
-    s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
-    B64Decode(tsig64, tsigsecret);
+    if (algorithm != "gss-tsig") {
+      Lock l(&s_plock);
+      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
+      B64Decode(tsig64, tsigsecret);
+    }
   }
   
   

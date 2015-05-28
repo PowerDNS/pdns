@@ -30,6 +30,7 @@
 #include "packetcache.hh"
 #include "dnsseckeeper.hh"
 #include "lua-auth.hh"
+#include "gss_context.hh"
 
 #include "namespaces.hh"
 

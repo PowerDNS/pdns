@@ -22,6 +22,8 @@
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
 #endif
+#include "gss_context.hh"
+#include "misc.hh"
 
 using namespace boost::assign;
 
@@ -584,36 +586,11 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   return message;
 }
 
-
-bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
-{
-  string normalizedName = toLowerCanonic(algoName);
-
-  if (normalizedName == "hmac-md5.sig-alg.reg.int")
-    algoEnum = TSIG_MD5;
-  else if (normalizedName == "hmac-sha1")
-    algoEnum = TSIG_SHA1;
-  else if (normalizedName == "hmac-sha224")
-    algoEnum = TSIG_SHA224;
-  else if (normalizedName == "hmac-sha256")
-    algoEnum = TSIG_SHA256;
-  else if (normalizedName == "hmac-sha384")
-    algoEnum = TSIG_SHA384;
-  else if (normalizedName == "hmac-sha512")
-    algoEnum = TSIG_SHA512;
-  else {
-     return false;
-  }
-  return true;
-}
-
-
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
   TSIGHashEnum algo;
   if (!getTSIGHashEnum(trc->d_algoName, algo)) {
-     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
-     return;
+    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName);
   }
 
   string toSign;
@@ -647,8 +624,14 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
   const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
   toSign.append(&*signRecord.begin(), &*signRecord.end());
 
-  trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
-  //  d_trc->d_mac[0]++; // sabotage
+  if (algo == TSIG_GSS) {
+    if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {
+      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname+string("'"));
+    }
+  } else {
+    trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
+    //  d_trc->d_mac[0]++; // sabotage
+  }
   pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
   trc->toPacket(pw);
   pw.commit();

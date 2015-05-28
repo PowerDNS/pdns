@@ -187,6 +187,7 @@ PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_ED25519
+PDNS_ENABLE_GSS_TSIG
 
 AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
@@ -407,5 +408,9 @@ AS_IF([test "x$needsqlite3" != "x"],
 AS_IF([test "x$LUAPC" != "x"],
   [AC_MSG_NOTICE([Lua support: $LUAPC])],
   [AC_MSG_NOTICE([Lua support: no])]
+)
+AS_IF(test "x$enable_experimental_gss_tsig" != "xno"],
+  [AC_MSG_NOTICE([GSS-TSIG support: yes])],
+  [AC_MSG_NOTICE([GSS-TSIG support: no])]
 )
 AC_MSG_NOTICE([])
