@@ -50,7 +50,9 @@ void doSecPoll(time_t* last_secpoll)
     *last_secpoll=now.tv_sec;
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" +string(PACKAGEVERSION)+ "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    string pkgv(PACKAGEVERSION);
+    if(pkgv.find("git"))
+      L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     if(g_security_status == 1) // it was ok, not it is unknown
       g_security_status = 0;
     if(res == RCode::NXDomain) // if we had servfail, keep on trying more more frequently

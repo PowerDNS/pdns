@@ -166,7 +166,9 @@ void doSecPoll(bool first)
 
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" + string(PACKAGEVERSION) + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    string pkgv(PACKAGEVERSION);
+    if(pkgv.find("git"))
+      L<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     if(security_status == 1) // it was ok, not it is unknown
       security_status = 0;
   }
