@@ -164,7 +164,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
           continue;
 
         if(!endsOn(i->qname, domain)) {
-          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
+          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname.toString()<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
 
@@ -435,14 +435,15 @@ struct DomainNotificationInfo
   DomainInfo di;
   bool dnssecOk;
   ComboAddress localaddr;
-  string tsigkeyname, tsigalgname, tsigsecret;
+  DNSName tsigkeyname, tsigalgname;
+  string tsigsecret;
 };
 }
 
 
 struct SlaveSenderReceiver
 {
-  typedef pair<string, uint16_t> Identifier;
+  typedef pair<DNSName, uint16_t> Identifier;
 
   struct Answer {
     uint32_t theirSerial;

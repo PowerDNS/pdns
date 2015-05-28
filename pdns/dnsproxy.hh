@@ -55,7 +55,7 @@ public:
   void go(); //!< launches the actual thread
   void onlyFrom(const string &ips); //!< Only these netmasks are allowed to recurse via us
   bool sendPacket(DNSPacket *p);    //!< send out a packet and make a conntrack entry to we can send back the answer
-  bool completePacket(DNSPacket *r, const std::string& target,const std::string& aname);
+  bool completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
   static void *launchhelper(void *p)
@@ -82,7 +82,7 @@ private:
     DNSName qname;
     uint16_t qtype;
     DNSPacket* complete;
-    string aname;
+    DNSName aname;
     boost::optional<ComboAddress> anyLocal;
   };
 

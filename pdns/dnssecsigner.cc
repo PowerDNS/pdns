@@ -139,7 +139,7 @@ uint64_t signatureCacheSize(const std::string& str)
   return g_signatures.size();
 }
 
-void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
+void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign) 
 {
   if(!g_signatureCount)
     g_signatureCount = S.getPointer("signatures");

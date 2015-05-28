@@ -279,13 +279,19 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 
 bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
+  // FIXME FIXME FIXME
   // string lcqname=toLower(qname); FIXME tolower?
   // string lczonename=toLower(zonename); FIXME tolower?
   // lcqname=makeRelative(lcqname, lczonename);
   
   // lcqname=labelReverse(lcqname);
   DNSName dnc;
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname, dnc, before, after);
+  string sbefore, safter;
+  sbefore = before.toString();
+  safter = after.toString();
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname, dnc, sbefore, safter);
+  before = DNSName(sbefore);
+  after = DNSName(safter);
   
   // before=dotConcat(labelReverse(before), lczonename); FIXME
   // after=dotConcat(labelReverse(after), lczonename); FIXME

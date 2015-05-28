@@ -78,7 +78,7 @@ private:
   void addNSEC(DNSPacket *p, DNSPacket* r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, int mode);
   void addNSEC3(DNSPacket *p, DNSPacket* r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(const DNSName& before, const DNSName& after, const DNSName& toNSEC, const SOAData& sd, DNSPacket *r, int mode);
-  void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const DNSName& unhashed, const DNSName& begin, const DNSName& end, const DNSName& toNSEC3, DNSPacket *r, int mode);
+  void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const DNSName& unhashed, /* FIXME should this be DNSName? */ const string& begin, const string& end, const DNSName& toNSEC3, DNSPacket *r, int mode);
   int processUpdate(DNSPacket *p);
   int forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di);
   uint performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
@@ -112,5 +112,5 @@ private:
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
-bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, string& unhashed, string& before, string& after, int mode=0);
+bool getNSEC3Hashes(bool narrow, DNSBackend* db, int id, const std::string& hashed, bool decrement, DNSName& unhashed, string& before, string& after, int mode=0);
 #endif /* PACKETHANDLER */

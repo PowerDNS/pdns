@@ -126,7 +126,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 }
 
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
-bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std::string& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
   uint16_t id;
   {
@@ -139,7 +139,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std:
     ce.outsock  = r->getSocket();
     ce.created  = time( NULL );
     ce.qtype = r->qtype.getCode();
-    ce.qname = stripDot(target);
+    ce.qname = target;
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;

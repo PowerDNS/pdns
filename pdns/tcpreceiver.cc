@@ -733,7 +733,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       }
       rrs.push_back(rr);
     } else {
-      L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.getName()<<"', ignoring"<<endl;
+      L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname.toString()<<"'|"<<rr.qtype.getName()<<"', ignoring"<<endl;
       continue;
     }
   }

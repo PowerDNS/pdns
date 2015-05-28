@@ -185,11 +185,11 @@ public:
     return record;
   }
 
-  static shared_ptr<DNSRecordContent> unserialize(const string& qname, uint16_t qtype, const string& serialized);
+  static shared_ptr<DNSRecordContent> unserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
 
   void doRecordCheck(const struct DNSRecord&){}
 
-  std::string label;
+  DNSName label; // FIXME rename
   struct dnsrecordheader header;
 
   typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
@@ -262,7 +262,7 @@ protected:
 
 struct DNSRecord
 {
-  std::string d_label;
+  DNSName d_label; //FIXME rename
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
@@ -278,8 +278,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label);
-    string rlabel=toLower(rhs.d_label);
+    string llabel=toLower(d_label.toString()); //FIXME
+    string rlabel=toLower(rhs.d_label.toString()); //FIXME
 
     return 
       tie(llabel,     d_type,     d_class, lzrp) <
@@ -294,8 +294,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label);
-    string rlabel=toLower(rhs.d_label);
+    string llabel=toLower(d_label.toString()); //FIXME
+    string rlabel=toLower(rhs.d_label.toString()); //FIXME
     
     return 
       tie(llabel,     d_type,     d_class, lzrp) ==
@@ -320,7 +320,7 @@ public:
   }
 
   dnsheader d_header;
-  string d_qname;
+  DNSName d_qname;
   uint16_t d_qclass, d_qtype;
   //uint8_t d_rcode;
 

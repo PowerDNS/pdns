@@ -285,7 +285,7 @@ bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr
   return a->serialize("", true, true) < b->serialize("", true, true);
 }
 
-string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
 {
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
@@ -294,7 +294,7 @@ string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rr
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    toHash.append(toLower(simpleCompress(qname, "")));
+    toHash.append(qname.toDNSString()); // FIXME tolower?
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
@@ -310,10 +310,10 @@ string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rr
   return toHash;
 }
 
-DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest)
+DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest)
 {
   string toHash;
-  toHash.assign(toLower(simpleCompress(qname)));
+  toHash.assign(qname.toDNSString()); // FIXME tolower?
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
   
   DSRecordContent dsrc;

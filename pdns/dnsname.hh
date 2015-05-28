@@ -5,6 +5,7 @@
 #include <deque>
 #include <strings.h>
 // #include "dns.hh"
+#include "logger.hh"
 
 // #include <ext/vstring.h>
 
@@ -19,6 +20,7 @@
 
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
+
 
 class DNSName
 {
@@ -39,6 +41,8 @@ public:
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
   unsigned int countLabels() const;
+  bool empty() const { return countLabels()==0; } // FIXME remove me?
+  void clear() { trimToLabels(0); } // FIXME remove me?
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
