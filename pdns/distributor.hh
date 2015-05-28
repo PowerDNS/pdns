@@ -56,7 +56,6 @@ public:
   virtual int question(Question *, callback_t callback) =0; //!< Submit a question to the Distributor
   virtual int getQueueSize() =0; //!< Returns length of question queue
   virtual bool isOverloaded() =0;
-
 };
 
 template<class Answer, class Question, class Backend> class SingleThreadDistributor
