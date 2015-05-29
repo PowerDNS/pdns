@@ -5,10 +5,8 @@
 #include <stdio.h>
 #include "dnsseckeeper.hh"
 #include "dns.hh"
-using std::string;
-using std::vector;
 
-void writeLStringToSocket(int fd, const pdns::string& msg);
+void writeLStringToSocket(int fd, const string& msg);
 bool readLStringFromSocket(int fd, string& msg);
 
 /** input: DNSResourceRecords ordered in qname,qtype (we emit a signature chunk on a break)
@@ -21,7 +19,7 @@ public:
   typedef vector<DNSResourceRecord> rrset_t; 
   typedef rrset_t chunk_t; // for now
   
-  ChunkedSigningPipe(const std::string& signerName, bool mustSign, const pdns::string& servers=pdns::string(), unsigned int numWorkers=3);
+  ChunkedSigningPipe(const string& signerName, bool mustSign, const string& servers=string(), unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
   bool submit(const DNSResourceRecord& rr);
   chunk_t getChunk(bool final=false);
