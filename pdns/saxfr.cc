@@ -321,7 +321,7 @@ try
       if (i != hashes.end())
         label=i->second;
     }
-    cout<<label.toString()<<"."<<record.second<<endl;
+    cout<<label.toString()<<record.second<<endl;
   }
 
 }
