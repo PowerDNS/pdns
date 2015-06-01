@@ -258,7 +258,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
       // attodot(sd.hostmaster); FIXME
     }
     else
-      sd.hostmaster="hostmaster."+domain;
+      sd.hostmaster=DNSName("hostmaster")+domain;
   }
 
   if(!sd.serial) { // magic time!

@@ -116,7 +116,7 @@ class AXFRRetriever : public boost::noncopyable
 class FindNS
 {
 public:
-  vector<string> lookup(const string &name, DNSBackend *b)
+  vector<string> lookup(const DNSName &name, DNSBackend *b)
   {
     vector<string> addresses;
 
@@ -131,7 +131,7 @@ public:
     return addresses;
   }
 
-  vector<string> lookup(const string &name, UeberBackend *b)
+  vector<string> lookup(const DNSName &name, UeberBackend *b)
   {
     vector<string> addresses;
 
@@ -147,7 +147,7 @@ public:
   }
 
 private:
-  void resolve_name(vector<string>* addresses, const string& name)
+  void resolve_name(vector<string>* addresses, const DNSName& name)
   {
     struct addrinfo* res;
     struct addrinfo hints;
@@ -157,7 +157,7 @@ private:
       hints.ai_family = n ? AF_INET : AF_INET6;
       ComboAddress remote;
       remote.sin4.sin_family = AF_INET6;
-      if(!getaddrinfo(name.c_str(), 0, &hints, &res)) {
+      if(!getaddrinfo(name.toString().c_str(), 0, &hints, &res)) {
         struct addrinfo* address = res;
         do {
           memcpy(&remote, address->ai_addr, address->ai_addrlen);

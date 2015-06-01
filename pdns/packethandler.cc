@@ -1045,7 +1045,8 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   }
 
   if(p->d_havetsig) {
-    string keyname, secret;
+    DNSName keyname;
+    string secret;
     TSIGRecordContent trc;
     if(!checkForCorrectTSIG(p, &B, &keyname, &secret, &trc)) {
       r=p->replyPacket();  // generate an empty reply packet

@@ -19,8 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifndef LOGGER_HH
-#define LOGGER_HH
+#pragma once
 /* (C) 2002 POWERDNS.COM BV */
 
 #include <string>
@@ -31,6 +30,7 @@
 #include <pthread.h>
 
 #include "namespaces.hh"
+#include "dnsname.hh"
 
 //! The Logger class can be used to log messages in various ways.
 class Logger
@@ -67,6 +67,7 @@ public:
       L<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
+  Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
   Logger& operator<<(int);   //!< log an int
   Logger& operator<<(double);   //!< log a double
@@ -74,6 +75,8 @@ public:
   Logger& operator<<(long);   //!< log an unsigned int
   Logger& operator<<(unsigned long);   //!< log an unsigned int
   Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
+  Logger& operator<<(const DNSName&); 
+
   Logger& operator<<(Urgency);    //!< set the urgency, << style
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
@@ -108,7 +111,4 @@ extern Logger &theL(const string &pname="");
 #define DLOG(x) x
 #else
 #define DLOG(x) ((void)0)
-#endif
-
-
 #endif

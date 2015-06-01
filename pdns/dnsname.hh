@@ -5,7 +5,7 @@
 #include <deque>
 #include <strings.h>
 // #include "dns.hh"
-#include "logger.hh"
+// #include "logger.hh"
 
 // #include <ext/vstring.h>
 

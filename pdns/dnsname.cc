@@ -3,6 +3,7 @@
 #include <string>
 
 #include "dnswriter.hh"
+#include "logger.hh"
 
 /* raw storage
    in DNS label format, without trailing 0. So the root is of length 0.
@@ -205,3 +206,9 @@ string DNSName::escapeLabel(const std::string& label)
 }
 
 
+Logger& Logger::operator<<(const DNSName &d)
+{
+  *this<<d.toString();
+
+  return *this;
+}

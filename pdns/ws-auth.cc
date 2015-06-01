@@ -290,13 +290,13 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   DNSSECKeeper dk;
   jdi.SetObject();
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-  string zoneId = apiZoneNameToId(di.zone);
+  string zoneId = apiZoneNameToId(di.zone.toString());
   Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("id", jzoneId, doc.GetAllocator());
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
-  jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
+  jdi.AddMember("name", di.zone.toString().c_str(), doc.GetAllocator());
   jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
   jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
   jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());
@@ -339,7 +339,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
 
     Value object;
     object.SetObject();
-    Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+    Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
     object.AddMember("name", jname, doc.GetAllocator());
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
@@ -584,7 +584,7 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
       if(rr.qtype.getCode() == QType::SOA)
         seenSOA=true;
 
-      rr.qname = stripDot(rr.qname);
+      // rr.qname = stripDot(rr.qname);
       new_records.push_back(rr);
     }
   }
@@ -674,7 +674,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       sd.nameserver = arg()["default-soa-name"];
       if (!arg().isEmpty("default-soa-mail")) {
         sd.hostmaster = arg()["default-soa-mail"];
-        attodot(sd.hostmaster);
+        // attodot(sd.hostmaster); FIXME
       } else {
         sd.hostmaster = "hostmaster." + zonename;
       }
@@ -833,7 +833,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     case QType::CNAME:
     case QType::NS:
     case QType::AFSDB:
-      content = rr.content.toString()
+      content = rr.content;
       break;
     default:
       break;
@@ -977,7 +977,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       else if (changetype == "REPLACE") {
 		// we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
         if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
-          throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
+          throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
 
 		new_records.clear();
         new_comments.clear();
@@ -989,7 +989,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           rr.domain_id = di.id;
 
           if (rr.qname != qname || rr.qtype != qtype)
-            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype+" "+rr.content+": Record wrongly bundled with RRset " + qname.toString() + "/" + qtype.getName());
+            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
             soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
@@ -1067,7 +1067,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
     }
     sd.db->commitTransaction();
-    PC.purge(rr.qname);
+    PC.purge(rr.qname.toString());
   }
 
   // success

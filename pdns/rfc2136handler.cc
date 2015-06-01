@@ -693,7 +693,8 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     bool validKey = false;
 
     TSIGRecordContent trc;
-    string inputkey, message;
+    DNSName inputkey;
+    string message;
     if (! p->getTSIGDetails(&trc,  &inputkey, 0)) {
       L<<Logger::Error<<msgPrefix<<"TSIG key required, but packet does not contain key. Sending REFUSED"<<endl;
       return RCode::Refused;
@@ -717,7 +718,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     }
 
     if (!validKey) {
-      L<<Logger::Error<<msgPrefix<<"TSIG key ("<<inputkey<<") required, but no matching key found in domainmetadata, tried "<<tsigKeys.size()<<". Sending REFUSED"<<endl;
+      L<<Logger::Error<<msgPrefix<<"TSIG key ("<<inputkey.toString()<<") required, but no matching key found in domainmetadata, tried "<<tsigKeys.size()<<". Sending REFUSED"<<endl;
       return RCode::Refused;
     }
   }
@@ -747,7 +748,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   DomainInfo di;
   di.backend=0;
   if(!B.getDomainInfo(p->qdomain, di) || !di.backend) {
-    L<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p->qdomain<<"' (or backend does not support DNS update operation)"<<endl;
+    L<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<p->qdomain.toString()<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
   }
 
@@ -762,9 +763,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     if (! (rr->d_place == DNSRecord::Answer || rr->d_place == DNSRecord::Nameserver))
       continue;
 
-    string label = stripDot(rr->d_label);
-
-    if (!label.isPartOf(di.zone)) {
+    if (!rr->d_label.isPartOf(di.zone)) {
       L<<Logger::Error<<msgPrefix<<"Received update/record out of zone, sending NotZone."<<endl;
       return RCode::NotZone;
     }
@@ -774,7 +773,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   Lock l(&s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   L<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
   if (!di.backend->startTransaction(p->qdomain, -1)) { // Not giving the domain_id means that we do not delete the existing records.
-    L<<Logger::Error<<msgPrefix<<"Backend for domain "<<p->qdomain<<" does not support transaction. Can't do Update packet."<<endl;
+    L<<Logger::Error<<msgPrefix<<"Backend for domain "<<p->qdomain.toString()<<" does not support transaction. Can't do Update packet."<<endl;
     return RCode::NotImp;
   }
 
@@ -869,7 +868,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
       if (rr->d_place == DNSRecord::Nameserver) {
-        if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && stripDot(rr->d_label) == di.zone)
+        if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && rr->d_label == di.zone)
           nsRRtoDelete.push_back(rr);
         else
           changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
@@ -907,7 +906,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       S.deposit("dnsupdate-changes", changedRecords);
 
       // Purge the records!
-      DNSName zone(di.zone);
+      string zone(di.zone.toString());
       zone.append("$");
       PC.purge(zone);
 
