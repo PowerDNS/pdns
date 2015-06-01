@@ -632,8 +632,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
 
   BOOST_FOREACH(const string& qname, checkglue) {
     if (!glue.count(qname)) {
-      cerr<<"[Error] Missing glue for '"<<qname<<"' in zone '"<<zone<<"'"<<endl;
-      numerrors++;
+      cerr<<"[Warning] Missing glue for '"<<qname<<"' in zone '"<<zone<<"'"<<endl;
+      numwarnings++;
     }
   }
 
