@@ -13,6 +13,7 @@
 #include <vector>
 #include "../../namespaces.hh"
 #include <inttypes.h>
+#include "../../dnsname.hh"
 
 class SSqlException 
 {

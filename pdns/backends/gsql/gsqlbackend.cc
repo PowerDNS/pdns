@@ -917,22 +917,20 @@ bool GSQLBackend::setDomainMetadata(const string& name, const std::string& kind,
   return true;
 }
 
-void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p, int domain_id)
+void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt_p, int domain_id)
 {
-  string lcqname=toLower(qname);
-
   try {
     if(qtype.getCode()!=QType::ANY) {
       if(domain_id < 0) {
         d_query_stmt = d_NoIdQuery_stmt;
         d_query_stmt->
           bind("qtype", qtype.getName())->
-          bind("qname", lcqname);
+          bind("qname", qname); // DNSNameFIXME: toLower()?
       } else {
         d_query_stmt = d_IdQuery_stmt;
         d_query_stmt->
           bind("qtype", qtype.getName())->
-          bind("qname", lcqname)->
+          bind("qname", qname)->
           bind("domain_id", domain_id);
       }
     } else {
@@ -940,11 +938,11 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
       if(domain_id < 0) {
         d_query_stmt = d_ANYNoIdQuery_stmt;
         d_query_stmt->
-          bind("qname", lcqname);
+          bind("qname", qname);
       } else {
         d_query_stmt = d_ANYIdQuery_stmt;
         d_query_stmt->
-          bind("qname", lcqname)->
+          bind("qname", qname)->
           bind("domain_id", domain_id);
       }
     }
@@ -959,7 +957,7 @@ void GSQLBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
   d_qname=qname;
 }
 
-bool GSQLBackend::list(const string &target, int domain_id, bool include_disabled)
+bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabled)
 {
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
