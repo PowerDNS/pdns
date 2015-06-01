@@ -95,7 +95,7 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& r
     // "row" table
     lua_newtable(lua);
     
-    lua_pushstring(lua, rr.qname.c_str());
+    lua_pushstring(lua, rr.qname.toString().c_str());
     lua_setfield(lua, -2, "qname");  // pushes value at the top of the stack to the table immediately below that (-1 = top, -2 is below)
     
     lua_pushstring(lua, rr.content.c_str());
@@ -188,7 +188,8 @@ void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSReso
     if(!getFromTable(lua, "ttl", rr.ttl))
       rr.ttl=3600;
 
-    if(!getFromTable(lua, "qname", rr.qname))
+    string qname = rr.qname.toString();
+    if(!getFromTable(lua, "qname", qname))
       rr.qname = query;
 
     if(!getFromTable(lua, "place", tmpnum))

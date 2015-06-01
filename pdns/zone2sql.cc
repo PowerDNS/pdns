@@ -146,8 +146,9 @@ static void emitDomain(const string& domain, const vector<string> *masters = 0) 
 }
 
 bool g_doJSONComments;
-static void emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl, const string& comment="")
+static void emitRecord(const string& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl, const string& comment="")
 {
+  string qname = stripDot(DNSqname.toString());
   int prio=0;
   int disabled=0;
   string recordcomment;
@@ -158,7 +159,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       string json = comment.substr(pos+5);
       rapidjson::Document document;
       if(document.Parse<0>(json.c_str()).HasParseError())
-	throw runtime_error("Could not parse JSON '"+json+"'");
+        throw runtime_error("Could not parse JSON '"+json+"'");
 
       disabled=boolFromJson(document, "disabled", false);
       recordcomment=stringFromJson(document, "comment", "");
@@ -181,14 +182,14 @@ static void emitRecord(const string& zoneName, const string &qname, const string
   }
 
   bool auth = true;
-  if(qtype == "NS" && !pdns_iequals(stripDot(qname), zoneName)) {
+  if(qtype == "NS" && !pdns_iequals(qname, zoneName)) {
     auth=false;
   }
 
   if(g_mode==MYSQL || g_mode==SQLITE) {
     if(!g_doDNSSEC) {
       cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(stripDot(qname)))<<", "<<
+        sqlstr(toLower(qname))<<", "<<
         sqlstr(qtype)<<", "<<
         sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
@@ -201,8 +202,8 @@ static void emitRecord(const string& zoneName, const string &qname, const string
     } else
     {
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(stripDot(qname)))<<", "<<
-        sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", "<<auth<<", "<<
+        sqlstr(toLower(qname))<<", "<<
+        sqlstr(toLower(labelReverse(makeRelative(qname, zoneName))))<<", "<<auth<<", "<<
         sqlstr(qtype)<<", "<<
         sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
         " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
@@ -211,15 +212,15 @@ static void emitRecord(const string& zoneName, const string &qname, const string
   else if(g_mode==POSTGRES) {
     if(!g_doDNSSEC) {
       cout<<"insert into records (domain_id, name,type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(stripDot(qname)))<<", "<<
+        sqlstr(toLower(qname))<<", "<<
         sqlstr(qtype)<<", "<<
         sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<< (disabled ? 't': 'f')<<
         "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     } else
     {
       cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(stripDot(qname)))<<", "<<
-        sqlstr(toLower(labelReverse(makeRelative(stripDot(qname), zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
+        sqlstr(toLower(qname))<<", "<<
+        sqlstr(toLower(labelReverse(makeRelative(qname, zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
         sqlstr(qtype)<<", "<<
         sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
         "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
@@ -227,14 +228,14 @@ static void emitRecord(const string& zoneName, const string &qname, const string
   }
   else if(g_mode==GORACLE) {
     cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio, disabled) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
-      sqlstr(toLower(stripDot(qname)))<<", "<<
+      sqlstr(toLower(qname))<<", "<<
       sqlstr(qtype)<<", "<<
       sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
       " from Domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if(g_mode==ORACLE) {
     cout<<"INSERT INTO Records (id, zone_id, fqdn, ttl, type, content) SELECT records_id_seq.nextval, id, "<<
-      sqlstr(toLower(stripDot(qname)))<<", "<<
+      sqlstr(toLower(qname))<<", "<<
       ttl<<", "<<sqlstr(qtype)<<", "<<
       sqlstr(stripDotContent(content))<<
       " FROM Zones WHERE name="<<toLower(sqlstr(zoneName))<<";"<<endl;
@@ -249,7 +250,7 @@ static void emitRecord(const string& zoneName, const string &qname, const string
       cout<<"INSERT INTO rr(zone, name, type, data, aux, ttl) VALUES("<<
       "(SELECT id FROM soa WHERE origin = "<< 
       sqlstr(toLower(zoneNameDot))<<"), "<<
-      sqlstr(toLower(qname))<<", "<<
+      sqlstr(toLower(DNSqname.toString()))<<", "<<
       sqlstr(qtype)<<", "<<sqlstr(content)<<", "<<prio<<", "<<ttl<<");\n";
     }
     else if (qtype == "SOA") {
@@ -398,15 +399,16 @@ try
             
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
-	    bool seenSOA=false;
-	    string comment;
+            bool seenSOA=false;
+            string comment;
             while(zpt.get(rr, &comment)) {
-	      if(filterDupSOA && seenSOA && rr.qtype.getCode() == QType::SOA)
-		continue;
-	      if(rr.qtype.getCode() == QType::SOA)
-		seenSOA=true;
+              if(filterDupSOA && seenSOA && rr.qtype.getCode() == QType::SOA)
+                continue;
+              if(rr.qtype.getCode() == QType::SOA)
+                seenSOA=true;
+
               emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
-	    }
+            }
             num_domainsdone++;
           }
           catch(std::exception &ae) {

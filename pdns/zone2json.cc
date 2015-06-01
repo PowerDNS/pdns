@@ -71,7 +71,7 @@ static void quoteValue(string &value)
 }
 
 
-static string emitRecord(const string& zoneName, const string &qname, const string &qtype, const string &ocontent, int ttl)
+static string emitRecord(const string& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
 {
   int prio=0;
   string retval;
@@ -90,7 +90,7 @@ static string emitRecord(const string& zoneName, const string &qname, const stri
  
   retval = "{";
   retval += "\"name\":\"";
-  retval += qname;
+  retval += DNSqname.toString();
   retval += "\",";
   retval += "\"type\":\"";
   retval += qtype;

@@ -4,6 +4,7 @@
 #include <set>
 #include <deque>
 #include <strings.h>
+#include <stdexcept>
 // #include "dns.hh"
 // #include "logger.hh"
 
