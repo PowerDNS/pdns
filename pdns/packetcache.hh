@@ -77,7 +77,7 @@ private:
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}
 
-    string qname;
+    DNSName qname;
     uint16_t qtype;
     uint16_t ctype;
     int zoneID;

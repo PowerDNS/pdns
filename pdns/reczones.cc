@@ -99,13 +99,13 @@ void primeHints(void)
   t_RC->replace(time(0),".", QType(QType::NS), nsset, true); // and stuff in the cache (auth)
 }
 
-static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const string& hostname, const string& ip)
+static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostname, const string& ip)
 {
   SyncRes::AuthDomain ad;
   ad.d_rdForward=false;
 
   DNSResourceRecord rr;
-  rr.qname=toCanonic("", hostname);
+  rr.qname=hostname;
   rr.d_place=DNSResourceRecord::ANSWER;
   rr.ttl=86400;
   rr.qtype=QType::SOA;
@@ -143,10 +143,10 @@ static void makeIPToNamesZone(SyncRes::domainmap_t* newMap, const vector<string>
 
   DNSResourceRecord rr;
   for(int n=ipparts.size()-1; n>=0 ; --n) {
-    rr.qname.append(ipparts[n]);
-    rr.qname.append(1,'.');
+    rr.qname.appendRawLabel(ipparts[n]);
   }
-  rr.qname.append("in-addr.arpa.");
+  rr.qname.appendRawLabel("in-addr");
+  rr.qname.appendRawLabel("arpa");
 
   rr.d_place=DNSResourceRecord::ANSWER;
   rr.ttl=86400;
@@ -163,7 +163,7 @@ static void makeIPToNamesZone(SyncRes::domainmap_t* newMap, const vector<string>
 
   if(ipparts.size()==4)  // otherwise this is a partial zone
     for(unsigned int n=1; n < parts.size(); ++n) {
-      rr.content=toCanonic("", parts[n]);
+      rr.content=DNSName(parts[n]).toString();
       ad.d_records.insert(rr);
     }
 
@@ -329,11 +329,11 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       pair<string,string> headers=splitField(*iter, '=');
       trim(headers.first);
       trim(headers.second);
-      headers.first=toCanonic("", headers.first);
+      // headers.first=toCanonic("", headers.first);
       if(n==0) {
         ad.d_rdForward = false;
         L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
-        ZoneParserTNG zpt(headers.second, headers.first);
+        ZoneParserTNG zpt(headers.second, DNSName(headers.first));
         DNSResourceRecord rr;
         while(zpt.get(rr)) {
           try {
@@ -342,11 +342,11 @@ SyncRes::domainmap_t* parseAuthAndForwards()
           }
           catch(std::exception &e) {
             delete newMap;
-            throw PDNSException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
+            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"': "+e.what());
           }
           catch(...) {
             delete newMap;
-            throw PDNSException("Error parsing record '"+rr.qname+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
+            throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
           ad.d_records.insert(rr);
@@ -413,7 +413,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         throw PDNSException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
-      (*newMap)[toCanonic("", domain)]=ad;
+      (*newMap)[domain]=ad;
     }
     L<<Logger::Warning<<"Done parsing " << newMap->size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-file"]<<"'"<<endl;
   }

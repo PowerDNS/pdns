@@ -88,7 +88,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(
 }
 
 /** everything begins here - this is the entry point just after receiving a packet */
-int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
+int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret)
 {
   s_queries++;
 
@@ -96,7 +96,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
     return -1;
 
   if( (qtype.getCode()==QType::PTR && pdns_iequals(qname, "1.0.0.127.in-addr.arpa.")) ||
-      (qtype.getCode()==QType::A && qname.length()==10 && pdns_iequals(qname, "localhost."))) {
+      (qtype.getCode()==QType::A && pdns_iequals(qname, "localhost."))) {
     ret.clear();
     DNSResourceRecord rr;
     rr.qname=qname;
@@ -139,7 +139,7 @@ int SyncRes::beginResolve(const string &qname, const QType &qtype, uint16_t qcla
 }
 
 //! This is the 'out of band resolver', in other words, the authoritative server
-bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int& res)
+bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int& res)
 {
   string prefix;
   if(doLog()) {
@@ -147,15 +147,15 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
     prefix.append(depth, ' ');
   }
 
-  LOG(prefix<<qname<<": checking auth storage for '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
-  string authdomain(qname);
+  LOG(prefix<<qname.toString()<<": checking auth storage for '"<<qname.toString()<<"|"<<qtype.getName()<<"'"<<endl);
+  DNSName authdomain(qname);
 
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter==t_sstorage->domainmap->end()) {
-    LOG(prefix<<qname<<": auth storage has no zone for this query!"<<endl);
+    LOG(prefix<<qname.toString()<<": auth storage has no zone for this query!"<<endl);
     return false;
   }
-  LOG(prefix<<qname<<": auth storage has data, zone='"<<authdomain<<"'"<<endl);
+  LOG(prefix<<qname.toString()<<": auth storage has data, zone='"<<authdomain.toString()<<"'"<<endl);
   pair<AuthDomain::records_t::const_iterator, AuthDomain::records_t::const_iterator> range;
 
   range=iter->second.d_records.equal_range(tie(qname)); // partial lookup
@@ -169,12 +169,12 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
       ret.push_back(*ziter);
   }
   if(!ret.empty()) {
-    LOG(prefix<<qname<<": exact match in zone '"<<authdomain<<"'"<<endl);
+    LOG(prefix<<qname.toString()<<": exact match in zone '"<<authdomain.toString()<<"'"<<endl);
     res=0;
     return true;
   }
   if(somedata) {
-    LOG(prefix<<qname<<": found record in '"<<authdomain<<"', but nothing of the right type, sending SOA"<<endl);
+    LOG(prefix<<qname.toString()<<": found record in '"<<authdomain.toString()<<"', but nothing of the right type, sending SOA"<<endl);
     ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType(QType::SOA)));
     if(ziter!=iter->second.d_records.end()) {
       DNSResourceRecord rr=*ziter;
@@ -182,16 +182,16 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
       ret.push_back(rr);
     }
     else
-      LOG(prefix<<qname<<": can't find SOA record '"<<authdomain<<"' in our zone!"<<endl);
+      LOG(prefix<<qname.toString()<<": can't find SOA record '"<<authdomain.toString()<<"' in our zone!"<<endl);
     res=RCode::NoError;
     return true;
   }
 
-  LOG(prefix<<qname<<": nothing found so far in '"<<authdomain<<"', trying wildcards"<<endl);
-  string wcarddomain(qname);
-  while(!pdns_iequals(wcarddomain, iter->first) && chopOffDotted(wcarddomain)) {
-    LOG(prefix<<qname<<": trying '*."+wcarddomain+"' in "<<authdomain<<endl);
-    range=iter->second.d_records.equal_range(boost::make_tuple("*."+wcarddomain));
+  LOG(prefix<<qname.toString()<<": nothing found so far in '"<<authdomain.toString()<<"', trying wildcards"<<endl);
+  DNSName wcarddomain(qname);
+  while(!pdns_iequals(wcarddomain, iter->first) && wcarddomain.chopOff()) {
+    LOG(prefix<<qname.toString()<<": trying '*."+wcarddomain.toString()+"' in "<<authdomain.toString()<<endl);
+    range=iter->second.d_records.equal_range(boost::make_tuple(DNSName("*")+wcarddomain)); 
     if(range.first==range.second)
       continue;
 
@@ -203,15 +203,15 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
         ret.push_back(rr);
       }
     }
-    LOG(prefix<<qname<<": in '"<<authdomain<<"', had wildcard match on '*."+wcarddomain+"'"<<endl);
+    LOG(prefix<<qname.toString()<<": in '"<<authdomain.toString()<<"', had wildcard match on '*."+wcarddomain.toString()+"'"<<endl);
     res=RCode::NoError;
     return true;
   }
 
-  string nsdomain(qname);
+  DNSName nsdomain(qname);
 
-  while(chopOffDotted(nsdomain) && !pdns_iequals(nsdomain, iter->first)) {
-    range=iter->second.d_records.equal_range(boost::make_tuple(nsdomain,QType(QType::NS)));
+  while(nsdomain.chopOff() && !pdns_iequals(nsdomain, iter->first)) {
+    range=iter->second.d_records.equal_range(boost::make_tuple(nsdomain,QType(QType::NS))); 
     if(range.first==range.second)
       continue;
 
@@ -221,8 +221,8 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
       ret.push_back(rr);
     }
   }
-  if(ret.empty()) {
-    LOG(prefix<<qname<<": no NS match in zone '"<<authdomain<<"' either, handing out SOA"<<endl);
+  if(ret.empty()) { 
+    LOG(prefix<<qname.toString()<<": no NS match in zone '"<<authdomain.toString()<<"' either, handing out SOA"<<endl);
     ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType(QType::SOA)));
     if(ziter!=iter->second.d_records.end()) {
       DNSResourceRecord rr=*ziter;
@@ -230,7 +230,7 @@ bool SyncRes::doOOBResolve(const string &qname, const QType &qtype, vector<DNSRe
       ret.push_back(rr);
     }
     else
-      LOG(prefix<<qname<<": can't find SOA record '"<<authdomain<<"' in our zone!"<<endl);
+      LOG(prefix<<qname.toString()<<": can't find SOA record '"<<authdomain.toString()<<"' in our zone!"<<endl);
     res=RCode::NXDomain;
   }
   else
@@ -251,7 +251,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   fclose(fp);
 }
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res)
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res) 
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of hipness: EDNS PING responders.
@@ -385,7 +385,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const string& domain, i
   return ret;
 }
 
-int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
+int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere)
 {
   string prefix;
   if(doLog()) {
@@ -397,8 +397,8 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
   if(!(d_nocache && qtype.getCode()==QType::NS && qname==".")) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
-      LOG(prefix<<qname<<": Recursion not requested for '"<<qname<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
-      string authname(qname);
+      LOG(prefix<<qname.toString()<<": Recursion not requested for '"<<qname.toString()<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
+      DNSName authname(qname);
       domainmap_t::const_iterator iter=getBestAuthZone(&authname);
       if(iter != t_sstorage->domainmap->end()) {
         const vector<ComboAddress>& servers = iter->second.d_servers;
@@ -409,7 +409,7 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
         }
         else {
           const ComboAddress remoteIP = servers.front();
-          LOG(prefix<<qname<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname<<"'"<<endl);
+          LOG(prefix<<qname.toString()<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname.toString()<<"'"<<endl);
 
           res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);
           // filter out the good stuff from lwr.result()
@@ -432,12 +432,12 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 
   if(d_cacheonly)
     return 0;
+    
+  LOG(prefix<<qname.toString()<<": No cache hit for '"<<qname.toString()<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl);
 
-  LOG(prefix<<qname<<": No cache hit for '"<<qname<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl);
+  DNSName subdomain(qname);
 
-  string subdomain(qname);
-
-  set<string, CIStringCompare> nsset;
+  set<DNSName> nsset;
   bool flawedNSSet=false;
 
   // the two retries allow getBestNSNamesFromCache&co to reprime the root
@@ -448,8 +448,8 @@ int SyncRes::doResolve(const string &qname, const QType &qtype, vector<DNSResour
 
   if(!(res=doResolveAt(nsset, subdomain, flawedNSSet, qname, qtype, ret, depth, beenthere)))
     return 0;
-
-  LOG(prefix<<qname<<": failed (res="<<res<<")"<<endl);
+  
+  LOG(prefix<<qname.toString()<<": failed (res="<<res<<")"<<endl);
   return res<0 ? RCode::ServFail : res;
 }
 
@@ -463,7 +463,7 @@ static bool ipv6First(const ComboAddress& a, const ComboAddress& b)
 
 /** This function explicitly goes out for A or AAAA addresses
 */
-vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere)
 {
   typedef vector<DNSResourceRecord> res_t;
   res_t res;
@@ -532,9 +532,10 @@ vector<ComboAddress> SyncRes::getAddrs(const string &qname, int depth, set<GetBe
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
+void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere)
 {
-  string prefix, subdomain(qname);
+  string prefix;
+  DNSName subdomain(qname);
   if(doLog()) {
     prefix=d_prefix;
     prefix.append(depth, ' ');
@@ -543,7 +544,7 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
   bool brokeloop;
   do {
     brokeloop=false;
-    LOG(prefix<<qname<<": Checking if we have NS in cache for '"<<subdomain<<"'"<<endl);
+    LOG(prefix<<qname.toString()<<": Checking if we have NS in cache for '"<<subdomain.toString()<<"'"<<endl);
     set<DNSResourceRecord> ns;
     *flawedNSSet = false;
     if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), &ns) > 0) {
@@ -553,11 +554,11 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
 
           DNSResourceRecord rr=*k;
           rr.content=k->content;
-          if(!dottedEndsOn(rr.content, subdomain) || t_RC->get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
+          if(!DNSName(rr.content).isPartOf(subdomain) || t_RC->get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
                                                             doLog() ? &aset : 0) > 5) {
             bestns.insert(rr);
-            LOG(prefix<<qname<<": NS (with ip, or non-glue) in cache for '"<<subdomain<<"' -> '"<<rr.content<<"'"<<endl);
-            LOG(prefix<<qname<<": within bailiwick: "<<dottedEndsOn(rr.content, subdomain));
+            LOG(prefix<<qname.toString()<<": NS (with ip, or non-glue) in cache for '"<<subdomain.toString()<<"' -> '"<<rr.content<<"'"<<endl);
+            LOG(prefix<<qname.toString()<<": within bailiwick: "<<DNSName(rr.content).isPartOf(subdomain) /* ugh */);
             if(!aset.empty()) {
               LOG(",  in cache, ttl="<<(unsigned int)(((time_t)aset.begin()->ttl- d_now.tv_sec ))<<endl);
             }
@@ -567,7 +568,7 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
           }
           else {
             *flawedNSSet=true;
-            LOG(prefix<<qname<<": NS in cache for '"<<subdomain<<"', but needs glue ("<<k->content<<") which we miss or is expired"<<endl);
+            LOG(prefix<<qname.toString()<<": NS in cache for '"<<subdomain.toString()<<"', but needs glue ("<<k->content<<") which we miss or is expired"<<endl);
           }
         }
       }
@@ -580,46 +581,46 @@ void SyncRes::getBestNSFromCache(const string &qname, const QType& qtype, set<DN
 
         if(beenthere.count(answer)) {
 	  brokeloop=true;
-          LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' but part of LOOP (already seen "<<answer.qname<<")! Trying less specific NS"<<endl);
+          LOG(prefix<<qname.toString()<<": We have NS in cache for '"<<subdomain.toString()<<"' but part of LOOP (already seen "<<answer.qname.toString()<<")! Trying less specific NS"<<endl);
           if(doLog())
             for( set<GetBestNSAnswer>::const_iterator j=beenthere.begin();j!=beenthere.end();++j) {
 	      bool neo = !(*j< answer || answer<*j);
-	      LOG(prefix<<qname<<": beenthere"<<(neo?"*":"")<<": "<<j->qname<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
+	      LOG(prefix<<qname.toString()<<": beenthere"<<(neo?"*":"")<<": "<<j->qname.toString()<<"|"<<DNSRecordContent::NumberToType(j->qtype)<<" ("<<(unsigned int)j->bestns.size()<<")"<<endl);
             }
           bestns.clear();
         }
         else {
 	  beenthere.insert(answer);
-          LOG(prefix<<qname<<": We have NS in cache for '"<<subdomain<<"' (flawedNSSet="<<*flawedNSSet<<")"<<endl);
+          LOG(prefix<<qname.toString()<<": We have NS in cache for '"<<subdomain.toString()<<"' (flawedNSSet="<<*flawedNSSet<<")"<<endl);
           return;
         }
       }
     }
-    LOG(prefix<<qname<<": no valid/useful NS in cache for '"<<subdomain<<"'"<<endl);
-    if(subdomain=="." && !brokeloop) {
-      primeHints();
-      LOG(prefix<<qname<<": reprimed the root"<<endl);
+    LOG(prefix<<qname.toString()<<": no valid/useful NS in cache for '"<<subdomain.toString()<<"'"<<endl);
+    if(subdomain=="." && !brokeloop) { 
+      primeHints(); 
+      LOG(prefix<<qname.toString()<<": reprimed the root"<<endl);
     }
-  }while(chopOffDotted(subdomain));
+  }while(subdomain.chopOff());
 }
 
-SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(string* qname)
+SyncRes::domainmap_t::const_iterator SyncRes::getBestAuthZone(DNSName* qname)
 {
   SyncRes::domainmap_t::const_iterator ret;
   do {
     ret=t_sstorage->domainmap->find(*qname);
     if(ret!=t_sstorage->domainmap->end())
       break;
-  }while(chopOffDotted(*qname));
+  }while(qname->chopOff());
   return ret;
 }
 
 /** doesn't actually do the work, leaves that to getBestNSFromCache */
-string SyncRes::getBestNSNamesFromCache(const string &qname, const QType& qtype, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
+DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtype, set<DNSName>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere)
 {
-  string subdomain(qname);
-  string authdomain(qname);
-
+  DNSName subdomain(qname);
+  DNSName authdomain(qname);
+  
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter!=t_sstorage->domainmap->end()) {
     if( iter->second.d_servers.empty() )
@@ -643,7 +644,7 @@ string SyncRes::getBestNSNamesFromCache(const string &qname, const QType& qtype,
   return subdomain;
 }
 
-bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   string prefix;
   if(doLog()) {
@@ -652,18 +653,18 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
   }
 
   if((depth>9 && d_outqueries>10 && d_throttledqueries>5) || depth > 15) {
-    LOG(prefix<<qname<<": recursing (CNAME or other indirection) too deep, depth="<<depth<<endl);
+    LOG(prefix<<qname.toString()<<": recursing (CNAME or other indirection) too deep, depth="<<depth<<endl);
     res=RCode::ServFail;
     return true;
   }
-
-  LOG(prefix<<qname<<": Looking for CNAME cache hit of '"<<(qname+"|CNAME")<<"'"<<endl);
+  
+  LOG(prefix<<qname.toString()<<": Looking for CNAME cache hit of '"<<(qname.toString()+"|CNAME")<<"'"<<endl);
   set<DNSResourceRecord> cset;
   if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME),&cset) > 0) {
 
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       if(j->ttl>(unsigned int) d_now.tv_sec) {
-        LOG(prefix<<qname<<": Found cache CNAME hit for '"<< (qname+"|CNAME") <<"' to '"<<j->content<<"'"<<endl);
+        LOG(prefix<<qname.toString()<<": Found cache CNAME hit for '"<< (qname.toString()+"|CNAME") <<"' to '"<<j->content<<"'"<<endl);    
         DNSResourceRecord rr=*j;
         rr.ttl-=d_now.tv_sec;
         ret.push_back(rr);
@@ -677,24 +678,18 @@ bool SyncRes::doCNAMECacheCheck(const string &qname, const QType &qtype, vector<
       }
     }
   }
-  LOG(prefix<<qname<<": No CNAME cache hit of '"<< (qname+"|CNAME") <<"' found"<<endl);
+  LOG(prefix<<qname.toString()<<": No CNAME cache hit of '"<< (qname.toString()+"|CNAME") <<"' found"<<endl);
   return false;
 }
 
 // accepts . terminated names, www.powerdns.com. -> com.
-static const string getLastLabel(const std::string& qname)
+static const string getLastLabel(const DNSName& qname)
 {
-  if(qname.empty() || qname == ".")
-    return qname;
-
-  labelparts_t parts;
-  labeltokUnescape(parts, qname);
-  int offset = (parts.end()-1)->first;
-
-  return qname.substr(offset, qname.size()-offset);
+  auto parts = qname.getRawLabels();
+  return parts[parts.size()-1];
 }
 
-bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
+bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
 {
   bool giveNegative=false;
 
@@ -704,7 +699,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
     prefix.append(depth, ' ');
   }
 
-  string sqname(qname);
+  DNSName sqname(qname);
   QType sqt(qtype);
   uint32_t sttl=0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.getName()<<"' -> "<<getLastLabel(qname)<<endl;
@@ -716,9 +711,9 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
      (range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull))) != t_sstorage->negcache.end() &&
       range.first->d_qname=="." && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
     sttl=range.first->d_ttd - d_now.tv_sec;
-
-    LOG(prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<range.first->d_name<<"' & '"<<range.first->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
-    res = RCode::NXDomain;
+    
+    LOG(prefix<<qname.toString()<<": Entire name '"<<qname.toString()<<"', is negatively cached via '"<<range.first->d_name.toString()<<"' & '"<<range.first->d_qname.toString()<<"' for another "<<sttl<<" seconds"<<endl);
+    res = RCode::NXDomain; 
     sqname=range.first->d_qname;
     sqt=QType::SOA;
     moveCacheItemToBack(t_sstorage->negcache, range.first);
@@ -735,12 +730,12 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 	if((uint32_t)d_now.tv_sec < ni->d_ttd) {
 	  sttl=ni->d_ttd - d_now.tv_sec;
 	  if(ni->d_qtype.getCode()) {
-	    LOG(prefix<<qname<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
+	    LOG(prefix<<qname.toString()<<": "<<qtype.getName()<<" is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
 	    res = RCode::NoError;
 	  }
 	  else {
-	    LOG(prefix<<qname<<": Entire record '"<<qname<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
-	    res= RCode::NXDomain;
+	    LOG(prefix<<qname.toString()<<": Entire name '"<<qname.toString()<<"', is negatively cached via '"<<ni->d_qname<<"' for another "<<sttl<<" seconds"<<endl);
+	    res= RCode::NXDomain; 
 	  }
 	  giveNegative=true;
 	  sqname=ni->d_qname;
@@ -749,7 +744,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
 	  break;
 	}
 	else {
-	  LOG(prefix<<qname<<": Entire record '"<<qname<<"' or type was negatively cached, but entry expired"<<endl);
+	  LOG(prefix<<qname.toString()<<": Entire name '"<<qname<<"' or type was negatively cached, but entry expired"<<endl);
 	  moveCacheItemToFront(t_sstorage->negcache, ni);
 	}
       }
@@ -759,7 +754,7 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
   bool found=false, expired=false;
 
   if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset) > 0) {
-    LOG(prefix<<sqname<<": Found cache hit for "<<sqt.getName()<<": ");
+    LOG(prefix<<sqname.toString()<<": Found cache hit for "<<sqt.getName()<<": ");
     for(set<DNSResourceRecord>::const_iterator j=cset.begin();j!=cset.end();++j) {
       LOG(j->content);
       if(j->ttl>(unsigned int) d_now.tv_sec) {
@@ -786,12 +781,13 @@ bool SyncRes::doCacheCheck(const string &qname, const QType &qtype, vector<DNSRe
       return true;
     }
     else
-      LOG(prefix<<qname<<": cache had only stale entries"<<endl);
+      LOG(prefix<<qname.toString()<<": cache had only stale entries"<<endl);
   }
 
   return false;
 }
 
+// FIXME use DNSName.isPartOf
 bool SyncRes::moreSpecificThan(const string& a, const string &b)
 {
   static string dot(".");
@@ -871,8 +867,8 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
 }
 
 /** returns -1 in case of no results, rcode otherwise */
-int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype,
-                         vector<DNSResourceRecord>&ret,
+int SyncRes::doResolveAt(set<DNSName> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, 
+                         vector<DNSResourceRecord>&ret, 
                          int depth, set<GetBestNSAnswer>&beenthere)
 {
   string prefix;
@@ -880,25 +876,25 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
     prefix=d_prefix;
     prefix.append(depth, ' ');
   }
-
-  LOG(prefix<<qname<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl);
+  
+  LOG(prefix<<qname.toString()<<": Cache consultations done, have "<<(unsigned int)nameservers.size()<<" NS to contact"<<endl);
 
   for(;;) { // we may get more specific nameservers
     vector<string > rnameservers = shuffleInSpeedOrder(nameservers, doLog() ? (prefix+qname+": ") : string() );
 
     for(vector<string >::const_iterator tns=rnameservers.begin();;++tns) {
       if(tns==rnameservers.end()) {
-        LOG(prefix<<qname<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
+        LOG(prefix<<qname.toString()<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth<<"'"<<endl);
         if(auth!="." && flawedNSSet) {
-          LOG(prefix<<qname<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
+          LOG(prefix<<qname.toString()<<": Ageing nameservers for level '"<<auth<<"', next query might succeed"<<endl);
           if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
             g_stats.nsSetInvalidations++;
         }
         return -1;
       }
       // this line needs to identify the 'self-resolving' behaviour, but we get it wrong now
-      if(pdns_iequals(qname, *tns) && qtype.getCode()==QType::A && rnameservers.size() > (unsigned)(1+1*s_doIPv6)) {
-        LOG(prefix<<qname<<": Not using NS to resolve itself!"<<endl);
+      if(pdns_iequals(qname, *tns) && qtype.getCode()==QType::A && rnameservers.size() > (unsigned)(1+1*s_doIPv6)) { 
+        LOG(prefix<<qname.toString()<<": Not using NS to resolve itself!"<<endl);
         continue;
       }
 
@@ -911,16 +907,16 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
       bool sendRDQuery=false;
       LWResult lwr;
       if(tns->empty()) {
-        LOG(prefix<<qname<<": Domain is out-of-band"<<endl);
+        LOG(prefix<<qname.toString()<<": Domain is out-of-band"<<endl);
         doOOBResolve(qname, qtype, lwr.d_result, depth, lwr.d_rcode);
         lwr.d_tcbit=false;
         lwr.d_aabit=true;
       }
       else {
-        LOG(prefix<<qname<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
+        LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<*tns<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
 
         if(!isCanonical(*tns)) {
-          LOG(prefix<<qname<<": Domain has hardcoded nameserver(s)"<<endl);
+          LOG(prefix<<qname.toString()<<": Domain has hardcoded nameserver(s)"<<endl);
 
           string txtAddr = *tns;
           if(!tns->empty()) {
@@ -938,13 +934,13 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
 
         if(remoteIPs.empty()) {
-          LOG(prefix<<qname<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
+          LOG(prefix<<qname.toString()<<": Failed to get IP for NS "<<*tns<<", trying next if available"<<endl);
           flawedNSSet=true;
           continue;
         }
         else {
 
-          LOG(prefix<<qname<<": Resolved '"+auth+"' NS "<<*tns<<" to: ");
+          LOG(prefix<<qname.toString()<<": Resolved '"+auth+"' NS "<<*tns<<" to: ");
           for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
             if(remoteIP != remoteIPs.begin()) {
               LOG(", ");
@@ -956,21 +952,21 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
         }
 
         for(remoteIP = remoteIPs.begin(); remoteIP != remoteIPs.end(); ++remoteIP) {
-          LOG(prefix<<qname<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname<<"|"<<qtype.getName()<<"'"<<endl);
+          LOG(prefix<<qname.toString()<<": Trying IP "<< remoteIP->toStringWithPort() <<", asking '"<<qname.toString()<<"|"<<qtype.getName()<<"'"<<endl);
           extern NetmaskGroup* g_dontQuery;
 
           if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0))) {
-            LOG(prefix<<qname<<": server throttled "<<endl);
+            LOG(prefix<<qname.toString()<<": server throttled "<<endl);
             s_throttledqueries++; d_throttledqueries++;
             continue;
           }
           else if(t_sstorage->throttle.shouldThrottle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()))) {
-            LOG(prefix<<qname<<": query throttled "<<endl);
+            LOG(prefix<<qname.toString()<<": query throttled "<<endl);
             s_throttledqueries++; d_throttledqueries++;
             continue;
           }
           else if(!pierceDontQuery && g_dontQuery && g_dontQuery->match(&*remoteIP)) {
-            LOG(prefix<<qname<<": not sending query to " << remoteIP->toString() << ", blocked by 'dont-query' setting" << endl);
+            LOG(prefix<<qname.toString()<<": not sending query to " << remoteIP->toString() << ", blocked by 'dont-query' setting" << endl);
             s_dontqueries++;
             continue;
           }
@@ -979,7 +975,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
             if(d_outqueries + d_throttledqueries > s_maxqperq) throw ImmediateServFailException("more than "+lexical_cast<string>(s_maxqperq)+" (max-qperq) queries sent while resolving "+qname);
           TryTCP:
             if(doTCP) {
-              LOG(prefix<<qname<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);
+              LOG(prefix<<qname.toString()<<": using TCP with "<< remoteIP->toStringWithPort() <<endl);
               s_tcpoutqueries++; d_tcpoutqueries++;
             }
 
@@ -987,7 +983,7 @@ int SyncRes::doResolveAt(set<string, CIStringCompare> nameservers, string auth, 
 	      throw ImmediateServFailException("Too much time waiting for "+qname+"|"+qtype.getName()+", timeouts: "+boost::lexical_cast<string>(d_timeouts) +", throttles: "+boost::lexical_cast<string>(d_throttledqueries) + ", queries: "+lexical_cast<string>(d_outqueries)+", "+lexical_cast<string>(d_totUsec/1000)+"msec");
 
 	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_result, resolveret)) {
-	      LOG(prefix<<qname<<": query handled by Lua"<<endl);
+	      LOG(prefix<<qname.toString()<<": query handled by Lua"<<endl);
 	    }
 	    else
 	      resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(),

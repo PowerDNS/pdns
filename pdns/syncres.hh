@@ -27,9 +27,9 @@ void primeHints(void);
 class RecursorLua;
 struct NegCacheEntry
 {
-  string d_name;
+  DNSName d_name;
   QType d_qtype;
-  string d_qname;
+  DNSName d_qname;
   uint32_t d_ttd;
   uint32_t getTTD() const
   {
@@ -239,7 +239,7 @@ public:
 
   explicit SyncRes(const struct timeval& now);
 
-  int beginResolve(const string &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
+  int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
   void setId(int id)
   {
     if(doLog())
@@ -285,7 +285,7 @@ public:
   }
 
 
-  int asyncresolveWrapper(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
   
   static void doEDNSDumpAndClose(int fd);
 
@@ -315,10 +315,10 @@ public:
        ordered_unique<
            composite_key<
                  NegCacheEntry,
-                    member<NegCacheEntry, string, &NegCacheEntry::d_name>,
+                    member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
                     member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>
            >,
-           composite_key_compare<CIStringCompare, std::less<QType> >
+           composite_key_compare<std::less<DNSName>, std::less<QType> >
        >,
        sequenced<> 
     >
@@ -374,7 +374,7 @@ public:
     ComboAddress d_best;
   };
 
-  typedef map<string, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;  
+  typedef map<DNSName, DecayingEwmaCollection, CIStringCompare> nsspeeds_t;  
 
   struct EDNSStatus
   {
@@ -398,10 +398,10 @@ public:
       indexed_by < 
         ordered_non_unique< 
           composite_key< DNSResourceRecord,
-        	         member<DNSResourceRecord, string, &DNSResourceRecord::qname>,
+        	         member<DNSResourceRecord, DNSName, &DNSResourceRecord::qname>,
         	         member<DNSResourceRecord, QType, &DNSResourceRecord::qtype>
                        >,
-          composite_key_compare<CIStringCompare, std::less<QType> >
+          composite_key_compare<std::less<DNSName>, std::less<QType> >
         >
       >
     > records_t;
@@ -409,10 +409,10 @@ public:
   };
   
 
-  typedef map<string, AuthDomain, CIStringCompare> domainmap_t;
+  typedef map<DNSName, AuthDomain> domainmap_t;
   
 
-  typedef Throttle<boost::tuple<ComboAddress,string,uint16_t> > throttle_t;
+  typedef Throttle<boost::tuple<ComboAddress,DNSName,uint16_t> > throttle_t;
 
   typedef Counters<ComboAddress> fails_t;
   
@@ -438,19 +438,19 @@ public:
 
 private:
   struct GetBestNSAnswer;
-  int doResolveAt(set<string, CIStringCompare> nameservers, string auth, bool flawedNSSet, const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
+  int doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
         	  int depth, set<GetBestNSAnswer>&beenthere);
-  int doResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
-  bool doOOBResolve(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  domainmap_t::const_iterator getBestAuthZone(string* qname);
-  bool doCNAMECacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  bool doCacheCheck(const string &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const string &qname, const QType &qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
-  string getBestNSNamesFromCache(const string &qname, const QType &qtype, set<string, CIStringCompare>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
+  int doResolve(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
+  bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+  domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
+  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+  void getBestNSFromCache(const DNSName &qname, const QType &qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
+  DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, set<DNSName>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
-  inline vector<string> shuffleInSpeedOrder(set<string, CIStringCompare> &nameservers, const string &prefix);
+  inline vector<DNSName> shuffleInSpeedOrder(set<DNSName> &nameservers, const string &prefix);
   bool moreSpecificThan(const string& a, const string &b);
-  vector<ComboAddress> getAddrs(const string &qname, int depth, set<GetBestNSAnswer>& beenthere);
+  vector<ComboAddress> getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere);
 private:
   ostringstream d_trace;
   shared_ptr<RecursorLua> d_pdl;
@@ -463,8 +463,8 @@ private:
 
   struct GetBestNSAnswer
   {
-    string qname;
-    set<pair<string,string> > bestns;
+    DNSName qname;
+    set<pair<DNSName,string> > bestns; // FIXME right side really should be DNSName too
     uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
@@ -491,7 +491,7 @@ struct PacketID
 
   uint16_t id;  // wait for a specific id/remote pair
   ComboAddress remote;  // this is the remote
-  string domain;             // this is the question 
+  DNSName domain;             // this is the question 
   uint16_t type;             // and this is its type
 
   Socket* sock;  // or wait for an event on a TCP fd
@@ -516,12 +516,7 @@ struct PacketID
     if( tie(remote, ourSock, type) > tie(b.remote, bSock, b.type))
       return false;
 
-    if(pdns_ilexicographical_compare(domain, b.domain))
-      return true;
-    if(pdns_ilexicographical_compare(b.domain, domain))
-      return false;
-
-    return tie(fd, id) < tie(b.fd, b.id);
+    return tie(domain, fd, id) < tie(b.domain, b.fd, b.id);
   }
 };
 
@@ -536,7 +531,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
       return false;
 
-    return pdns_ilexicographical_compare(a.domain, b.domain);
+    return pdns_ilexicographical_compare(a.domain.toString(), b.domain.toString()); // FIXME
   }
 };
 extern __thread MemRecursorCache* t_RC;
@@ -616,7 +611,7 @@ typedef boost::circular_buffer<ComboAddress> addrringbuf_t;
 #endif
 extern __thread addrringbuf_t* t_servfailremotes, *t_largeanswerremotes, *t_remotes;
 
-extern __thread boost::circular_buffer<pair<std::string,uint16_t> >* t_queryring, *t_servfailqueryring;
+extern __thread boost::circular_buffer<pair<DNSName,uint16_t> >* t_queryring, *t_servfailqueryring;
 extern __thread NetmaskGroup* t_allowFrom;
 string doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_iterator end);
@@ -629,9 +624,9 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
 typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
-void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
+void distributeAsyncFunction(const DNSName& question, const pipefunc_t& func);
 
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
+int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
 
@@ -646,7 +641,7 @@ uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
-uint64_t* pleaseWipeCache(const std::string& canon);
-uint64_t* pleaseWipeAndCountNegCache(const std::string& canon);
+uint64_t* pleaseWipeCache(const DNSName& canon);
+uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon);
 void doCarbonDump(void*);
 #endif

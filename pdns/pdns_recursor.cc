@@ -70,6 +70,7 @@
 #include "version.hh"
 #include "responsestats.hh"
 #include "secpoll-recursor.hh"
+#include "dnsname.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
@@ -87,7 +88,7 @@ __thread shared_ptr<RecursorLua>* t_pdl;
 
 __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
 
-__thread boost::circular_buffer<pair<std::string, uint16_t> >* t_queryring, *t_servfailqueryring;
+__thread boost::circular_buffer<pair<DNSName, uint16_t> >* t_queryring, *t_servfailqueryring;
 __thread shared_ptr<Regex>* t_traceRegex;
 
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -384,7 +385,7 @@ static __thread UDPClientSocks* t_udpclientsocks;
 /* these two functions are used by LWRes */
 // -2 is OS error, -1 is error that depends on the remote, > 0 is success
 int asendto(const char *data, int len, int flags, 
-            const ComboAddress& toaddr, uint16_t id, const string& domain, uint16_t qtype, int* fd) 
+            const ComboAddress& toaddr, uint16_t id, const DNSName& domain, uint16_t qtype, int* fd) 
 {
 
   PacketID pident;
@@ -429,7 +430,7 @@ int asendto(const char *data, int len, int flags,
 
 // -1 is error, 0 is timeout, 1 is success
 int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int *d_len, 
-              uint16_t id, const string& domain, uint16_t qtype, int fd, struct timeval* now)
+              uint16_t id, const DNSName& domain, uint16_t qtype, int fd, struct timeval* now)
 {
   static optional<unsigned int> nearMissLimit;
   if(!nearMissLimit) 
@@ -497,7 +498,7 @@ AtomicCounter TCPConnection::s_currentConnections;
 void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 // the idea is, only do things that depend on the *response* here. Incoming accounting is on incoming.
-void updateResponseStats(int res, const ComboAddress& remote, unsigned int packetsize, const std::string* query, uint16_t qtype)
+void updateResponseStats(int res, const ComboAddress& remote, unsigned int packetsize, const DNSName* query, uint16_t qtype)
 {
   if(packetsize > 1000 && t_largeanswerremotes)
     t_largeanswerremotes->push_back(remote);
@@ -524,7 +525,7 @@ ResponseStats g_rs;
 static string makeLoginfo(DNSComboWriter* dc)
 try
 {
-  return "("+dc->d_mdp.d_qname+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
+  return "("+dc->d_mdp.d_qname.toString()+"/"+DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)+" from "+(dc->d_remote.toString())+")";
 }
 catch(...)
 {
@@ -575,7 +576,7 @@ void startDoResolve(void *p)
       goto sendit;
     }
 
-    if(t_traceRegex->get() && (*t_traceRegex)->match(dc->d_mdp.d_qname)) {
+    if(t_traceRegex->get() && (*t_traceRegex)->match(dc->d_mdp.d_qname.toString())) {
       sr.setLogMode(SyncRes::Store);
       tracedQuery=true;
     }
@@ -2133,9 +2134,9 @@ try
     t_largeanswerremotes = new addrringbuf_t();
     t_largeanswerremotes->set_capacity(ringsize);   
 
-    t_queryring = new boost::circular_buffer<pair<string, uint16_t> >();
+    t_queryring = new boost::circular_buffer<pair<DNSName, uint16_t> >();
     t_queryring->set_capacity(ringsize);   
-    t_servfailqueryring = new boost::circular_buffer<pair<string, uint16_t> >();
+    t_servfailqueryring = new boost::circular_buffer<pair<DNSName, uint16_t> >();
     t_servfailqueryring->set_capacity(ringsize);   
   }
   

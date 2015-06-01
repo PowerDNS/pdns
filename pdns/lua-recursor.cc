@@ -13,28 +13,28 @@ RecursorLua::RecursorLua(const std::string &fname)
   // empty
 }
 
-bool RecursorLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::nodata(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nodata(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::postresolve(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
 
-bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
 {
   return false;
 }

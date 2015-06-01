@@ -53,6 +53,7 @@ bool chopOff(string &domain);
 bool chopOffDotted(string &domain);
 
 bool endsOn(const string &domain, const string &suffix);
+bool dottedEndsOn(const DNSName &domain, const DNSName &suffix); // REMOVE ME
 bool dottedEndsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
@@ -346,7 +347,7 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   return true;
 }
 
-// FIXME remove this
+// FIXME remove this, it's just here to move faster while we DNSName the things
 inline bool pdns_iequals(const DNSName& a, const DNSName& b) __attribute__((pure));
 inline bool pdns_iequals(const DNSName& a, const DNSName& b)
 {
@@ -435,7 +436,7 @@ private:
     #endif
 };
 
-
+// FIXME this should probably go?
 struct CIStringCompare: public std::binary_function<string, string, bool>  
 {
   bool operator()(const string& a, const string& b) const
@@ -493,11 +494,13 @@ inline bool isCanonical(const string& dom)
   return dom[dom.size()-1]=='.';
 }
 
+// get rid of this?
 inline string toCanonic(const DNSName& zone, const string& domain)
 {
   return toCanonic(zone.toString(), domain);
 }
 
+// and this?
 inline string toCanonic(const string& zone, const string& domain)
 {
   if(domain.length()==1 && domain[0]=='@')

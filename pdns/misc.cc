@@ -222,6 +222,12 @@ bool endsOn(const string &domain, const string &suffix)
   return true;
 }
 
+// REMOVE ME
+bool dottedEndsOn(const DNSName &domain, const DNSName &suffix)
+{
+  return domain.isPartOf(suffix);
+}
+
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
 bool dottedEndsOn(const string &domain, const string &suffix) 
 {
