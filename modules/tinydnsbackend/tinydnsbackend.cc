@@ -155,20 +155,20 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
 	}
 }
 
-bool TinyDNSBackend::list(const string &target, int domain_id, bool include_disabled) {
+bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_disabled) {
 	d_isAxfr=true;
-	string key = simpleCompress(target);
+	string key = simpleCompress(target.toString()); // FIXME bug: no lowercase here? or do we promise lowercase from core now?
 	d_cdbReader=new CDB(getArg("dbfile"));
 	return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p, int zoneId) {
+void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p, int zoneId) {
 	d_isAxfr = false;
-	string queryDomain = toLowerCanonic(qdomain);
+	string queryDomain = toLowerCanonic(qdomain.toString());
 
 	string key=simpleCompress(queryDomain);
 
-	DLOG(L<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain<<"]"<<endl);
+	DLOG(L<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain.toString()<<"]"<<endl);
 	DLOG(L<<Logger::Debug<<"[lookup] key ["<<makeHexDump(key)<<"]"<<endl);
 
 	d_isWildcardQuery = false;
@@ -253,8 +253,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				key.insert(0, 1, '\001');
 			}
 			rr.qname.clear(); 
-			simpleExpandTo(key, 0, rr.qname);
-			rr.qname = stripDot(rr.qname); // strip the last dot, packethandler needs this.
+			rr.qname=key;
 			rr.domain_id=-1;
 			// 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
 			// We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre. 

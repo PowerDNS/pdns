@@ -87,6 +87,7 @@ struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
     return a.canonCompare(b);
   }
 };
+size_t hash_value(DNSName const& d);
 
 inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
 {

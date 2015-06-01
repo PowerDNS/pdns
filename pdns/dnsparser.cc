@@ -483,6 +483,7 @@ void PacketReader::xfrHexBlob(string& blob, bool keepReading)
   xfrBlob(blob);
 }
 
+//FIXME remove this method completely
 string simpleCompress(const string& elabel, const string& root)
 {
   string label=elabel;
@@ -511,6 +512,7 @@ string simpleCompress(const string& elabel, const string& root)
 }
 
 
+// FIXME this function needs to go
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
 {
   unsigned int labellen=0;

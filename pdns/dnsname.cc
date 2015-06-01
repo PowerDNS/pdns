@@ -4,6 +4,9 @@
 
 #include "dnswriter.hh"
 #include "logger.hh"
+#include "misc.hh"
+
+#include <boost/functional/hash.hpp>
 
 /* raw storage
    in DNS label format, without trailing 0. So the root is of length 0.
@@ -186,6 +189,12 @@ bool DNSName::operator==(const DNSName& rhs) const
       return false;
   }
   return true;
+}
+
+size_t hash_value(DNSName const& d)
+{
+  boost::hash<string> hasher;
+  return hasher(toLower(d.toString())); // FIXME HACK
 }
 
 string DNSName::escapeLabel(const std::string& label)
