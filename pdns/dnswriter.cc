@@ -200,8 +200,10 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
 {
   // string label = d_lowerCase ? toLower(Label) : Label;
   // FIXME: we ignore d_lowerCase for now
+  cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
   std::vector<std::string> parts = name.getRawLabels();
   // labelparts_t parts;
+  cerr<<"labelcount: "<<parts.size()<<endl;
 
   if(d_canonic)
     compress=false;
@@ -221,6 +223,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
   unsigned int startPos;
 
   for(auto &label: parts) {
+    cerr<<"xfrName labelpart ["<<label<<"]"<<endl;
     // if(deDot)
     //   chopped.assign(label.c_str() + i->first, labellen - i->first -1);
     // else
@@ -229,16 +232,17 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
     lmap_t::iterator li=d_labelmap.end();
     // see if we've written out this domain before
     // cerr<<"Searching for compression pointer to '"<<chopped<<"', "<<d_labelmap.size()<<" cmp-records"<<endl;
-    if(compress && (li=find(d_labelmap, label))!=d_labelmap.end()) {
-      // cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
-      if (d_record.size() - startRecordSize + label.size() > 253) // chopped does not include a length octet for the first label and the root label
-        throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
-      uint16_t offset=li->second;
-      offset|=0xc000;
-      d_record.push_back((char)(offset >> 8));
-      d_record.push_back((char)(offset & 0xff));
-      goto out;                                 // skip trailing 0 in case of compression
-    }
+    // if(compress && (li=find(d_labelmap, label))!=d_labelmap.end()) {
+    //   cerr<<"doing compression, my label=["<<label<<"] found match ["<<li->first<<"]"<<endl;
+    //   // cerr<<"\tFound a compression pointer to '"<<chopped<<"': "<<li->second<<endl;
+    //   if (d_record.size() - startRecordSize + label.size() > 253) // chopped does not include a length octet for the first label and the root label
+    //     throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
+    //   uint16_t offset=li->second;
+    //   offset|=0xc000;
+    //   d_record.push_back((char)(offset >> 8));
+    //   d_record.push_back((char)(offset & 0xff));
+    //   goto out;                                 // skip trailing 0 in case of compression
+    // }
 
     if(li==d_labelmap.end() && pos< 16384) {
       //      cerr<<"\tStoring a compression pointer to '"<<chopped<<"': "<<pos<<endl;
@@ -263,6 +267,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
     // }
     // else {
       char labelsize=label.size();
+      cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
       d_record.push_back(labelsize);
       unsigned int len=d_record.size();
       d_record.resize(len + labelsize);

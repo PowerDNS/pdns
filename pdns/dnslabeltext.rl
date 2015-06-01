@@ -19,7 +19,7 @@ void appendSplit(vector<string>& ret, string& segment, char c)
 
 vector<string> segmentDNSText(const string& input )
 {
-  cerr<<"segmentDNSText("<<input<<")"<<endl; 
+  // cerr<<"segmentDNSText("<<input<<")"<<endl; 
 %%{
         machine dnstext;
         write data;
@@ -83,7 +83,7 @@ vector<string> segmentDNSText(const string& input )
 
 deque<string> segmentDNSName(const string& input )
 {
-  cerr<<"segmentDNSName("<<input<<")"<<endl; 
+  // cerr<<"segmentDNSName("<<input<<")"<<endl; 
 %%{
         machine dnsname;
         write data;

@@ -1245,6 +1245,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     weDone = weRedirected = weHaveUnauth =  false;
     
     while(B.get(rr)) {
+      cerr<<"got content: ["<<rr.content<<"]"<<endl;
       if (p->qtype.getCode() == QType::ANY && !p->d_dnssecOk && (rr.qtype.getCode() == QType:: DNSKEY || rr.qtype.getCode() == QType::NSEC3PARAM))
         continue; // Don't send dnssec info to non validating resolvers.
       if (rr.qtype.getCode() == QType::RRSIG) // RRSIGS are added later any way.
