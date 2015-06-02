@@ -42,7 +42,7 @@ public:
   uint64_t doDumpNSSpeeds(int fd);
 
   int doWipeCache(const DNSName& name, uint16_t qtype=0xffff);
-  bool doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL);
+  bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, int32_t newTTL);
   uint64_t cacheHits, cacheMisses;
 
 private:

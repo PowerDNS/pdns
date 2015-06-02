@@ -312,7 +312,7 @@ int MemRecursorCache::doWipeCache(const DNSName& name, uint16_t qtype)
   return count;
 }
 
-bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL)
+bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtype, int32_t newTTL)
 {
   cache_t::iterator iter = d_cache.find(tie(name, qtype));
   uint32_t maxTTD=std::numeric_limits<uint32_t>::min();
