@@ -163,6 +163,14 @@ bool DNSName::chopOff()
   return true;
 }
 
+bool DNSName::isWildcard() const
+{
+  if(d_storage.empty())
+    return false;
+  auto p = d_storage.begin();
+  return (*p == 0x01 && *++p == '*');
+}
+
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;

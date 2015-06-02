@@ -41,6 +41,7 @@ public:
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
+  bool isWildcard() const;
   unsigned int countLabels() const;
   bool empty() const { return countLabels()==0; } // FIXME remove me?
   void clear() { trimToLabels(0); } // FIXME remove me?
