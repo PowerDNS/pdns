@@ -118,7 +118,7 @@ public:
     return this;
   }
   SSqlStatement* bind(const string& name, const DNSName& value) {
-    return bind(name, stripDot(value.toString()));
+    return bind(name, stripDot(value.toString())); // FIXME toLower() ?
   }
   SSqlStatement* bindNull(const string& name) { 
     if (d_paridx >= d_parnum)

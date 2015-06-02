@@ -167,7 +167,7 @@ public:
   bool get(DNSResourceRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
   bool isMaster(const string &domain, const string &ip);
-  void alsoNotifies(const string &domain, set<string> *ips);
+  void alsoNotifies(const DNSName &domain, set<string> *ips);
   bool startTransaction(const string &domain, int domain_id=-1);
   bool commitTransaction();
   bool abortTransaction();
@@ -181,7 +181,7 @@ public:
   void setFresh(uint32_t domain_id);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
-  bool getDomainInfo(const string &domain, DomainInfo &di);
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
   bool setMaster(const string &domain, const string &ip);
   bool setKind(const string &domain, const DomainInfo::DomainKind kind);
@@ -198,28 +198,28 @@ public:
 
   virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
 
-  bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
-  bool listSubZone(const string &zone, int domain_id);
-  int addDomainKey(const string& name, const KeyData& key);
-  bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
-  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
-  bool clearDomainAllMetadata(const string& domain);
+  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
+  bool listSubZone(const DNSName &zone, int domain_id);
+  int addDomainKey(const DNSName& name, const KeyData& key);
+  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool clearDomainAllMetadata(const DNSName& domain);
   
-  bool removeDomainKey(const string& name, unsigned int id);
-  bool activateDomainKey(const string& name, unsigned int id);
-  bool deactivateDomainKey(const string& name, unsigned int id);
+  bool removeDomainKey(const DNSName& name, unsigned int id);
+  bool activateDomainKey(const DNSName& name, unsigned int id);
+  bool deactivateDomainKey(const DNSName& name, unsigned int id);
   
-  bool getTSIGKey(const string& name, string* algorithm, string* content);
-  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  bool deleteTSIGKey(const string& name);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  bool deleteTSIGKey(const DNSName& name);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
   bool listComments(const uint32_t domain_id);
   bool getComment(Comment& comment);
   void feedComment(const Comment& comment);
-  bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
+  bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments);
 
 private:
   DNSName d_qname;
