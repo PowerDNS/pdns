@@ -40,15 +40,21 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK(DNSName("www.ds9a.nl.").toString() == "www.ds9a.nl.");
 
 
+  { // Check root vs empty
+    DNSName name("."); // root
+    DNSName parent; // empty
+    BOOST_CHECK(name != parent);
+  }
+
   { // Check root part of root
     DNSName name;
     DNSName parent;
-    BOOST_CHECK(name.isPartOf(parent));
+    BOOST_CHECK(!name.isPartOf(parent));
   }
 
   { // Check name part of root
     DNSName name("a.");
-    DNSName parent;
+    DNSName parent(".");
     BOOST_CHECK(name.isPartOf(parent));
   }
 
@@ -82,6 +88,26 @@ BOOST_AUTO_TEST_CASE(test_basic) {
     BOOST_CHECK(!name.isPartOf(parent));
   }
 
+  { // Make relative
+    DNSName name("aaaa.bbb.cc.d.");
+    DNSName parent("cc.d.");
+    BOOST_CHECK( name.makeRelative(parent) == DNSName("aaaa.bbb."));
+  }
+
+  { // Labelreverse
+    DNSName name("aaaa.bbb.cc.d.");
+    BOOST_CHECK( name.labelReverse() == DNSName("d.cc.bbb.aaaa."));
+  }
+
+  { // empty() empty
+    DNSName name;
+    BOOST_CHECK(name.empty());
+  }
+  
+  { // empty() root
+    DNSName name(".");
+    BOOST_CHECK(!name.empty());
+  }
 
   DNSName left("ds9a.nl.");
   left.prependRawLabel("www");
@@ -92,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK( left == DNSName("WwW.Ds9A.Nl.com."));
   
   DNSName root;
-  BOOST_CHECK(root.toString() == ".");
+  BOOST_CHECK(root.toString() != ".");
 
   root.appendRawLabel("www");
   root.appendRawLabel("powerdns.com");
@@ -123,7 +149,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK_EQUAL(n.toString(), "powerdns\\.dnsmaster.powerdns.com.");
 
-  BOOST_CHECK_EQUAL(DNSName().toString(), ".");
+  BOOST_CHECK(DNSName().toString() != ".");
 
   DNSName p;
   string label("power");

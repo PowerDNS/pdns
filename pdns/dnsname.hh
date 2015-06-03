@@ -26,7 +26,7 @@
 class DNSName
 {
 public:
-  DNSName() {}                 //!< Constructs the root name
+  DNSName() : d_empty(true) {}                 //!< Don't constructs the root name
   DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question
@@ -35,17 +35,21 @@ public:
   bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive)
   bool operator!=(const DNSName& other) const { return !(*this == other); }
 
-  std::string toString() const;              //!< Our human-friendly, escaped, representation
+  std::string toString(const std::string& separator=".", const bool trailing=true) const;              //!< Our human-friendly, escaped, representation
+  std::string toStringNoDot() const { return toString(".", false); }
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
+  DNSName makeRelative(const DNSName& zone) const;
+  DNSName labelReverse() const;
   bool isWildcard() const;
   unsigned int countLabels() const;
-  bool empty() const { return countLabels()==0; } // FIXME remove me?
   size_t length() const; // FIXME remove me?
-  void clear() { trimToLabels(0); } // FIXME remove me?
+  bool empty() const { return d_empty; }
+  bool isRoot() const { return !d_empty && d_storage.empty(); }
+  void clear() { d_storage.clear(); d_empty=true; }
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
@@ -53,6 +57,7 @@ public:
       throw std::range_error("name too long");
 
     d_storage+=rhs.d_storage;
+    d_empty&=rhs.d_empty;
     return *this;
   }
 
@@ -71,11 +76,13 @@ public:
   void serialize(Archive &ar, const unsigned int version)
   {
     ar & d_storage;
+    ar & d_empty;
   }
 private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
   string_t d_storage;
+  bool d_empty;
   int d_recurse;
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0);

@@ -13,6 +13,7 @@
 #include "dns.hh"
 #include "zoneparser-tng.hh"
 #include "dnsrecords.hh"
+#include "dnsname.hh"
 #include <fstream>
 #include <cstdlib>
 

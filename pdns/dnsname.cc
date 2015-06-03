@@ -18,6 +18,7 @@
 
 DNSName::DNSName(const char* p)
 {
+  d_empty=false;
   auto labels = segmentDNSName(p);
   for(const auto& e : labels)
     appendRawLabel(e);
@@ -25,6 +26,7 @@ DNSName::DNSName(const char* p)
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
+  d_empty=false;
   d_recurse = 0;
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
 }
@@ -71,19 +73,23 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
 
 }
 
-std::string DNSName::toString() const
+std::string DNSName::toString(const std::string& separator, const bool trailing) const
 {
-  if(d_storage.empty())  // I keep wondering if there is some deeper meaning to the need to do this
-    return ".";
+  if (d_empty)
+    return "";
+  if(d_storage.empty() && trailing)  // I keep wondering if there is some deeper meaning to the need to do this
+    return separator;
   std::string ret;
   for(const auto& s : getRawLabels()) {
-    ret+= escapeLabel(s) + ".";
+    ret+= escapeLabel(s) + separator;
   }
-  return ret;
+  return ret.substr(0, ret.size()-!trailing);
 }
 
 std::string DNSName::toDNSString() const
 {
+  if (d_empty)
+    return "";
   string ret(d_storage.c_str(), d_storage.length());
   ret.append(1,(char)0);
   return ret;
@@ -96,6 +102,8 @@ size_t DNSName::length() const {
 // are WE part of parent
 bool DNSName::isPartOf(const DNSName& parent) const
 {
+  if(parent.d_empty || d_empty)
+    return false;
   if(parent.d_storage.empty())
     return true;
   if(parent.d_storage.size() > d_storage.size())
@@ -115,6 +123,29 @@ bool DNSName::isPartOf(const DNSName& parent) const
   return false;
 }
 
+DNSName DNSName::makeRelative(const DNSName& zone) const
+{
+  DNSName ret(*this);
+  if (ret.isPartOf(zone)) {
+    ret.d_storage.erase(ret.d_storage.size()-zone.d_storage.size());
+  } else
+    ret.clear();
+  return ret;
+}
+
+DNSName DNSName::labelReverse() const
+{
+  DNSName ret;
+  if (!d_empty) {
+    vector<string> l=getRawLabels();
+    while(!l.empty()) {
+      ret.appendRawLabel(l.back());
+      l.pop_back();
+    }
+  }
+  return ret;
+}
+
 void DNSName::appendRawLabel(const std::string& label)
 {
   if(label.empty())
@@ -124,6 +155,7 @@ void DNSName::appendRawLabel(const std::string& label)
   if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
     throw std::range_error("name too long to append");
 
+  d_empty=false;
   d_storage.append(1, (char)label.size());
   d_storage.append(label.c_str(), label.length());
 }
@@ -137,6 +169,7 @@ void DNSName::prependRawLabel(const std::string& label)
   if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
     throw std::range_error("name too long to prepend");
 
+  d_empty=false;
   string_t prep(1, (char)label.size());
   prep.append(label.c_str(), label.size());
   d_storage = prep+d_storage;
@@ -191,7 +224,7 @@ void DNSName::trimToLabels(unsigned int to)
 
 bool DNSName::operator==(const DNSName& rhs) const
 {
-  if(rhs.d_storage.size() != d_storage.size())
+  if(rhs.d_empty != d_empty || rhs.d_storage.size() != d_storage.size())
     return false;
 
   auto us = d_storage.crbegin();

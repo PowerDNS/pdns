@@ -52,6 +52,7 @@
 #include <boost/algorithm/string.hpp>
 #include "iputils.hh"
 
+
 bool g_singleThreaded;
 
 int writen2(int fd, const void *buf, size_t count)
@@ -220,12 +221,6 @@ bool endsOn(const string &domain, const string &suffix)
       return false;
 
   return true;
-}
-
-// REMOVE ME
-bool dottedEndsOn(const DNSName &domain, const DNSName &suffix)
-{
-  return domain.isPartOf(suffix);
 }
 
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
