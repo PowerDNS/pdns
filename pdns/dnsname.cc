@@ -93,6 +93,10 @@ const char* DNSName::toCString() const {
   return this->toString().c_str();
 }
 
+size_t DNSName::length() const {
+  return this->toString().length();
+}
+
 // are WE part of parent
 bool DNSName::isPartOf(const DNSName& parent) const
 {

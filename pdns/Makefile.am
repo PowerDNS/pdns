@@ -1108,7 +1108,9 @@ pdns_control_SOURCES = \
 	misc.cc \
 	qtype.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	dnsname.cc \
+	dnslabeltext.cc
 
 
 if UNIT_TESTS
