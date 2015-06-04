@@ -37,6 +37,7 @@ public:
 
   std::string toString() const;              //!< Our human-friendly, escaped, representation
   std::string toDNSString() const;           //!< Our representation in DNS native format
+  const char* toCString() const;             //!< Easy access to toString().c_str();
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels

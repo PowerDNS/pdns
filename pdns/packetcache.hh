@@ -98,7 +98,7 @@ private:
                 ordered_unique<
                       composite_key< 
                         CacheEntry,
-                        member<CacheEntry,string,&CacheEntry::qname>,
+                        member<CacheEntry,DNSName,&CacheEntry::qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
                         member<CacheEntry,uint16_t, &CacheEntry::ctype>,
                         member<CacheEntry,int, &CacheEntry::zoneID>,
@@ -107,7 +107,7 @@ private:
                         member<CacheEntry,bool, &CacheEntry::dnssecOk>,
                         member<CacheEntry,bool, &CacheEntry::hasEDNS>
                         >,
-                        composite_key_compare<std::less<string>, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+                        composite_key_compare<std::less<DNSName>, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
                             >,
                            sequenced<>
@@ -122,9 +122,9 @@ private:
   };
 
   vector<MapCombo> d_maps;
-  MapCombo& getMap(const std::string& qname) 
+  MapCombo& getMap(const DNSName& qname) 
   {
-    return d_maps[burtle((const unsigned char*)qname.c_str(), qname.length(), 0) % d_maps.size()];
+    return d_maps[burtle((const unsigned char*)qname.toCString(), qname.toString().length(), 0) % d_maps.size()];
   }
 
 

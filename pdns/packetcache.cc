@@ -229,7 +229,7 @@ int PacketCache::purge(const string &match)
       cmap_t::const_iterator start=iter;
 
       for(; iter != mc.d_map.end(); ++iter) {
-	if(iter->qname.compare(0, zone.size(), zone) != 0) {
+	if(iter->qname.toString().compare(0, zone.size(), zone) != 0) { //TODO: check if there is a nicer method for this
 	  break;
 	}
 	delcount++;
