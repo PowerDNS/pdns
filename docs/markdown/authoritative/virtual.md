@@ -21,4 +21,13 @@ When you launch a virtual instance of PowerDNS, the pid-file is saved inside
 **Warning**: Be aware however that the init.d `force-stop` will kill all
 PowerDNS instances!
 
-**Warning**: For systems running systemd, virtual hosting is not yet supported.
+## Systemd
+With systemd it is as simple as calling the correct service. Assuming your
+instance is called `myinstance` and `pdns-myinstance.conf` exists, the
+following command will start the service:
+
+systemctl start pdns@myinstance
+
+Similar you can enable it at boot:
+
+systemctl enable pdns@myinstance
