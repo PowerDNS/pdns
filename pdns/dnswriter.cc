@@ -200,10 +200,10 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
 {
   // string label = d_lowerCase ? toLower(Label) : Label;
   // FIXME: we ignore d_lowerCase for now
-  //cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
+  cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
   std::vector<std::string> parts = name.getRawLabels();
   // labelparts_t parts;
-  //cerr<<"labelcount: "<<parts.size()<<endl;
+  cerr<<"labelcount: "<<parts.size()<<endl;
 
   if(d_canonic)
     compress=false;
@@ -223,7 +223,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
   unsigned int startPos;
 
   for(auto &label: parts) {
-    //cerr<<"xfrName labelpart ["<<label<<"]"<<endl;
+    cerr<<"xfrName labelpart ["<<label<<"]"<<endl;
     // if(deDot)
     //   chopped.assign(label.c_str() + i->first, labellen - i->first -1);
     // else
@@ -267,7 +267,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
     // }
     // else {
       char labelsize=label.size();
-      //cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
+      cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
       d_record.push_back(labelsize);
       unsigned int len=d_record.size();
       d_record.resize(len + labelsize);

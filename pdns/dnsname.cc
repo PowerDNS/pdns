@@ -122,11 +122,11 @@ bool DNSName::isPartOf(const DNSName& parent) const
 void DNSName::appendRawLabel(const std::string& label)
 {
   if(label.empty())
-    throw std::range_error("no such thing as an empty label");
+    throw std::range_error("no such thing as an empty label to append");
   if(label.size() > 63)
-    throw std::range_error("label too long");
+    throw std::range_error("label too long to append");
   if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
-    throw std::range_error("name too long");
+    throw std::range_error("name too long to append");
 
   d_storage.append(1, (char)label.size());
   d_storage.append(label.c_str(), label.length());
@@ -135,11 +135,11 @@ void DNSName::appendRawLabel(const std::string& label)
 void DNSName::prependRawLabel(const std::string& label)
 {
   if(label.empty())
-    throw std::range_error("no such thing as an empty label");
+    throw std::range_error("no such thing as an empty label to prepend");
   if(label.size() > 63)
-    throw std::range_error("label too long");
+    throw std::range_error("label too long to prepend");
   if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
-    throw std::range_error("name too long");
+    throw std::range_error("name too long to prepend");
 
   string_t prep(1, (char)label.size());
   prep.append(label.c_str(), label.size());
