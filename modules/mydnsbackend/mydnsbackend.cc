@@ -101,18 +101,19 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     string basicQuery = "SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?) AND type = ?";
     string anyQuery = "(SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?)";
  
-   if (!rrwhere.empty()) {
-     listQuery += " AND "+rrwhere;
-     basicQuery += " AND " + rrwhere;
-     anyQuery += " AND " + rrwhere;
+    if (!rrwhere.empty()) {
+      listQuery += " AND "+rrwhere;
+      basicQuery += " AND " + rrwhere;
+      anyQuery += " AND " + rrwhere;
     }
 
     d_listQuery_stmt = d_db->prepare(listQuery, 1);
   
     anyQuery += ") UNION (SELECT 'SOA' AS type, origin AS data, '0' AS aux, ttl, id AS zone FROM `"+soatable+"` WHERE id = ? AND origin = ?";
 
-    if (!soawhere.empty())
+    if (!soawhere.empty()) {
       anyQuery += " AND "+soawhere;
+    }
   
     basicQuery += " ORDER BY type,aux,data";
     anyQuery += ") ORDER BY type,aux,data";
@@ -191,11 +192,9 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
   if (name.empty())
     return false;
 
-  string dotname = name.toString()+".";
-
   try {
     d_soaQuery_stmt->
-      bind("origin", dotname)->
+      bind("origin", name.toString())->
       execute()->
       getResult(d_result)->
       reset();
@@ -204,7 +203,9 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
     throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toString()+": "+e.txtReason());
   }
 
-  if (d_result.empty()) return false;
+  if (d_result.empty()) {
+    return false;
+  }
 
   rrow = d_result[0];
 
@@ -231,35 +232,27 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
 }
 
 void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int zoneId) {
-  string query;
-  string sname;
-  string zoneIdStr = itoa(zoneId);
   SSqlStatement::row_t rrow;
   bool found = false;
 
+  DNSName sdom(qname);
   d_origin = "";
 
-  if (qname.empty())
+  if (qname.empty()) {
     return;
+  }
 
   DLOG(L<<Logger::Debug<<"MyDNSBackend::lookup(" << qtype.getName() << "," << qname << ",p," << zoneId << ")" << endl);
-
-  sname = qname.toString();
-  sname += ".";
 
   if (zoneId < 0) {
     // First off we need to work out what zone we're working with
     // MyDNS records aren't always fully qualified, so we need to work out the zone ID.
 
-    size_t pos;
-    string sdom;
-
-    pos = 0;
-    sdom = sname;
-    while (!sdom.empty() && pos != string::npos) {
+    
+    do {
       try {
         d_domainNoIdQuery_stmt->
-          bind("domain", sdom)->
+          bind("domain", sdom.toString())->
           execute()->
           getResult(d_result)->
           reset();
@@ -271,17 +264,13 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
       if (d_result.empty() == false) {
         rrow = d_result[0];
         zoneId = boost::lexical_cast<int>(rrow[0]);
-        d_origin = rrow[1];
-        if (d_origin[d_origin.length()-1] == '.')
-          d_origin.erase(d_origin.length()-1);
+        d_origin = stripDot(rrow[1]);
         d_minimum = atol(rrow[2].c_str());
         found = true;
         break;
       }
 
-      pos = sname.find_first_of(".",pos+1);
-      sdom = sname.substr(pos+1);
-    }
+    } while(sdom.chopOff());
 
   } else {
     try {
@@ -296,15 +285,13 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     }
 
     if(d_result.empty()) {
-      throw PDNSException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
+      throw PDNSException("lookup() passed zoneId = "+itoa(zoneId)+" but no such zone!");
     }
 
     rrow = d_result[0];
 
     found = true;
-    d_origin = rrow[0];
-    if (d_origin[d_origin.length()-1] == '.')
-      d_origin.erase(d_origin.length()-1);
+    d_origin = stripDot(rrow[0]);
     d_minimum = atol(rrow[1].c_str());
   }
 
@@ -326,22 +313,22 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     try {
 
       if (qtype.getCode()==QType::ANY) {
-        string dotqname = qname.toString()+".";
+        DLOG(L<<Logger::Debug<<"Running d_anyQuery_stmt with " << zoneId << ", " << host << ", " << sdom  << ", " << zoneId <<" , "<< qname << ", " << qtype.getName() << endl);
         d_query_stmt = d_anyQuery_stmt;
         d_query_stmt->
           bind("domain_id", zoneId)->
           bind("host", host)->
-          bind("qname", sname)->
+          bind("qname", qname.toString())->
           bind("domain_id", zoneId)-> // this is because positional arguments
-          bind("qname2", dotqname)->
+          bind("qname2", sdom.toString())->
           execute();
       } else {
-        DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << sname << ", " << qtype.getName() << endl);
+        DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << qname << ", " << qtype.getName() << endl);
         d_query_stmt = d_basicQuery_stmt;
         d_query_stmt->
           bind("domain_id", zoneId)->
           bind("host", host)->
-          bind("qname", sname)->
+          bind("qname", qname.toString())->
           bind("qtype", qtype.getName())->
           execute();
       }

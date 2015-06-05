@@ -303,7 +303,7 @@ void DNSPacket::wrapup()
     try {
       uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
-        cerr<<"during wrapup, content=["<<pos->content<<"]"<<endl;
+//        cerr<<"during wrapup, content=["<<pos->content<<"]"<<endl;
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
         if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
