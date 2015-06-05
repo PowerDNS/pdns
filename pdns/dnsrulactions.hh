@@ -110,6 +110,25 @@ private:
   QPSLimiter d_qps;
 };
 
+class DelayAction : public DNSAction
+{
+public:
+  DelayAction(int msec) : d_msec(msec)
+  {}
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
+  {
+    *ruleresult=std::to_string(d_msec);
+    return Action::Delay;
+  }
+  string toString() const override
+  {
+    return "delay by "+std::to_string(d_msec)+ " msec";
+  }
+private:
+  int d_msec;
+};
+
+
 class PoolAction : public DNSAction
 {
 public:
