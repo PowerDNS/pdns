@@ -105,7 +105,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
     }
 
     uint16_t maxReplyLen = p->d_tcp ? 0xffff : p->getMaxReplyLen();
-    haveSomething=getEntryLocked(p->qdomain.toString() /*FIXME*/, p->qtype, PacketCache::PACKETCACHE, value, -1, recursive, maxReplyLen, p->d_dnssecOk, p->hasEDNS(), &age);
+    haveSomething=getEntryLocked(p->qdomain, p->qtype, PacketCache::PACKETCACHE, value, -1, recursive, maxReplyLen, p->d_dnssecOk, p->hasEDNS(), &age);
   }
   if(haveSomething) {
     (*d_statnumhit)++;
@@ -155,7 +155,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned in
     if(minttl<ourttl)
       ourttl=minttl;
   }
-  insert(q->qdomain.toString() /*FIXME*/, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, recursive,
+  insert(q->qdomain, q->qtype, PacketCache::PACKETCACHE, r->getString(), ourttl, -1, recursive,
     maxReplyLen, q->d_dnssecOk, q->hasEDNS());
 }
 
@@ -229,10 +229,10 @@ int PacketCache::purge(const string &match)
       cmap_t::const_iterator start=iter;
 
       for(; iter != mc.d_map.end(); ++iter) {
-        if(iter->qname.toString().compare(0, zone.size(), zone) != 0) { //TODO: check if there is a nicer method for this
-          break;
-        }
-        delcount++;
+	if(iter->qname.compare(0, zone.size(), zone) != 0) {
+	  break;
+	}
+	delcount++;
       }
       mc.d_map.erase(start, iter);
     }
@@ -291,19 +291,10 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
 }
 
 
-string PacketCache::pcReverse(const DNSName &DNcontent)
+string PacketCache::pcReverse(DNSName content)
 {
-  typedef vector<pair<unsigned int, unsigned int> > parts_t;
-  parts_t parts;
-  string content = DNcontent.toString();
-  vstringtok(parts,toLower(content), ".");
-  string ret;
-  ret.reserve(content.size()+1);
-  for(parts_t::reverse_iterator i=parts.rbegin(); i!=parts.rend(); ++i) {
-    ret.append(1, (char)(i->second - i->first));
-    ret.append(content.c_str() + i->first, i->second - i->first);
-  }
-  return ret;
+  string ret=content.labelReverse().toDNSString();
+  return ret.substr(0, ret.size()-1);
 }
 
 map<char,int> PacketCache::getCounts()
