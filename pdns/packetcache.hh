@@ -124,7 +124,7 @@ private:
   vector<MapCombo> d_maps;
   MapCombo& getMap(const DNSName& qname) 
   {
-    return d_maps[burtle((const unsigned char*)qname.toCString(), qname.toString().length(), 0) % d_maps.size()];
+    return d_maps[burtle((const unsigned char*)qname.toString().c_str(), qname.toString().length(), 0) % d_maps.size()];
   }
 
 

@@ -89,10 +89,6 @@ std::string DNSName::toDNSString() const
   return ret;
 }
 
-const char* DNSName::toCString() const {
-  return this->toString().c_str();
-}
-
 size_t DNSName::length() const {
   return this->toString().length();
 }
