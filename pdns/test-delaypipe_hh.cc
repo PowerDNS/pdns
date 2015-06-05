@@ -26,8 +26,7 @@ BOOST_AUTO_TEST_CASE(test_object_pipe) {
 };
 
 int done=0;
-BOOST_AUTO_TEST_CASE(test_delay_pipe) {
-  
+BOOST_AUTO_TEST_CASE(test_delay_pipe_small) {  
   struct Work
   {
     int i;
@@ -53,6 +52,27 @@ BOOST_AUTO_TEST_CASE(test_delay_pipe) {
   sleep(1);
   BOOST_CHECK_EQUAL(done, n);
 
+};
+
+BOOST_AUTO_TEST_CASE(test_delay_pipe_big) {  
+  done=0;
+  struct Work
+  {
+    int i;
+    void operator()()
+    {
+      ++done;
+    }
+  };
+  DelayPipe<Work> dp;
+  int n;
+  for(n=0; n < 1000000; ++n) {
+    Work w{n};
+    dp.submit(w, 100);
+  }
+
+  sleep(1);
+  BOOST_CHECK_EQUAL(done, n);
 };
 
 

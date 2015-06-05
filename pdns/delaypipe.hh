@@ -23,7 +23,7 @@ public:
   ~ObjectPipe();
   void write(T& t);
   bool read(T* t); // returns false on EOF
-  int readTimeout(T* t, double msec); // -1 is timeout, 0 is no data, 1 is data
+  int readTimeout(T* t, double msec); //!< -1 is timeout, 0 is no data, 1 is data. msec<0 waits infinitely wrong. msec==0 = undefined
   void close(); 
 private:
   int d_fds[2];
@@ -35,7 +35,7 @@ class DelayPipe
 public:
   DelayPipe();
   ~DelayPipe();
-  void submit(T& t, int msec);
+  void submit(T& t, int msec); //!< don't try for more than 4294 msec
 
 private:
   std::thread d_thread;
