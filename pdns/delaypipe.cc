@@ -53,15 +53,14 @@ template<class T>
 int ObjectPipe<T>::readTimeout(T* t, double msec)
 {
   T* ptr;
-  if(msec != 0) {
-    int ret = waitForData(d_fds[0], 0, 1000*msec);
-    if(ret < 0)
-      unixDie("waiting for data in object pipe");
-    if(ret == 0) 
-      return -1;
-  }
 
-  int ret = ::read(d_fds[0], &ptr, sizeof(ptr));
+  int ret = waitForData(d_fds[0], 0, 1000*msec);
+  if(ret < 0)
+    unixDie("waiting for data in object pipe");
+  if(ret == 0) 
+    return -1;
+
+  ret = ::read(d_fds[0], &ptr, sizeof(ptr)); // this is BLOCKING!
 
   if(ret < 0)
     unixDie("read");
@@ -84,7 +83,7 @@ void DelayPipe<T>::submit(T& t, int msec)
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
   now.tv_nsec += msec*1e6;
-  if(now.tv_nsec > 1e9) {
+  while(now.tv_nsec > 1e9) {
     now.tv_sec++;
     now.tv_nsec-=1e9;
   }
@@ -106,13 +105,24 @@ void DelayPipe<T>::worker()
 {
   Combo c;
   for(;;) {
+    /* this code is slightly too subtle, but I don't see how it could be any simpler.
+       So we have a set of work to do, and we need to wait until the time arrives to do it.
+       Simultaneously new work might come in. So we try to combine both of these things by
+       setting a timeout on listening to the pipe over which new work comes in. This timeout
+       is equal to the wait until the first thing that needs to be done.
+
+       Two additional cases exist: we have no work to wait for, so we can wait infinitely long.
+       The other special case is that the first we have to do.. is in the past, so we need to do it
+       immediately. */
+
+       
     double delay=-1;  // infinite
     struct timespec now;
     if(!d_work.empty()) {
       clock_gettime(CLOCK_MONOTONIC, &now);
       delay=1000*tsdelta(d_work.begin()->first, now);
       if(delay < 0) {
-	delay=0;   // don't wait
+	delay=0;   // don't wait - we have work that is late already!
       }
     }
     if(delay != 0 ) {
