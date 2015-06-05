@@ -414,16 +414,37 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
 
-  sd.db->list(zone, sd.domain_id, true);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
+
+  // Check for delegation in parent zone
+  string parent(zone);
+  while(chopOff(parent)) {
+    SOAData sd_p;
+    if(B.getSOA(parent, sd_p)) {
+      bool ns=false;
+      DNSResourceRecord rr;
+      B.lookup(QType(QType::ANY), zone, NULL, sd_p.domain_id);
+      while(B.get(rr))
+        ns |= (rr.qtype == QType::NS);
+      if (!ns) {
+        cerr<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;
+        numerrors++;
+      }
+      break;
+    }
+  }
+
+
   bool hasNsAtApex = false;
-  set<string> records, cnames, noncnames;
+  set<string> records, cnames, noncnames, glue, checkglue;
   map<string, unsigned int> ttl;
 
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
+
+  sd.db->list(zone, sd.domain_id, true);
 
   while(sd.db->get(rr)) {
     if(!rr.qtype.getCode())
@@ -523,6 +544,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       } else if (rr.qtype.getCode() == QType::DNSKEY) {
         cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
+      } else if (rr.qtype.getCode() == QType::NS && endsOn(rr.content, rr.qname)) {
+        checkglue.insert(toLower(rr.content));
+      } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
+        glue.insert(toLower(rr.qname));
       }
     }
 
@@ -603,6 +628,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   if(!hasNsAtApex) {
     cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
     numerrors++;
+  }
+
+  BOOST_FOREACH(const string& qname, checkglue) {
+    if (!glue.count(qname)) {
+      cerr<<"[Warning] Missing glue for '"<<qname<<"' in zone '"<<zone<<"'"<<endl;
+      numwarnings++;
+    }
   }
 
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
