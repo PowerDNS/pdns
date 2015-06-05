@@ -9,7 +9,7 @@ ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc \
   ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
   ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc \
   ../sodcrypto.hh ../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc \
-  ../dnsdist-carbon.cc .
+  ../dnsdist-carbon.cc ../delaypipe.cc ../delaypipe.hh .
 
 mkdir -p m4
 ln -fs ../../../m4/pdns_check_libsodium.m4 m4/
