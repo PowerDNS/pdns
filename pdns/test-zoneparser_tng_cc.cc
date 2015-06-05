@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
     std::getline(ifs, type, ' ');
     std::getline(ifs, data, '\n');
     // see if these agree
-    BOOST_CHECK_EQUAL(rr.qname, host);
+    BOOST_CHECK_EQUAL(rr.qname.toString(), host);
     BOOST_CHECK_EQUAL(rr.ttl, ttl);
     BOOST_CHECK_EQUAL(rr.qtype.getName(), type);
     if (*(rr.content.rbegin()) != '.' && *(data.rbegin()) == '.') 

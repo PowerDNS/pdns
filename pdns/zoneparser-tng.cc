@@ -298,17 +298,18 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     goto retry;
   }
 
-  if(isspace(d_line[0])) 
+  string qname = makeString(d_line, parts[0]); // Don't use DNSName here!
+  if(isspace(d_line[0]))
     rr.qname=d_prevqname;
   else {
-    rr.qname=makeString(d_line, parts[0]); 
+    rr.qname=qname;
     parts.pop_front();
     if(!rr.qname.countLabels() || rr.qname.toString()[0]==';')
       goto retry;
   }
-  if(rr.qname=="@")
+  if(qname=="@")
     rr.qname=d_zonename;
-  else
+  else if(!isCanonical(qname))
     rr.qname += d_zonename;
   d_prevqname=rr.qname;
 
