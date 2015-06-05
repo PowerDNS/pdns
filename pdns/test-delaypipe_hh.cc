@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_delay_pipe) {
 
   for(; n < 10; ++n) {
     Work w{n};
-    dp.submit(w, 1000);
+    dp.submit(w, 1200);
   }
   sleep(1);
   BOOST_CHECK_EQUAL(done, 5);

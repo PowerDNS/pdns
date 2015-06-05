@@ -23,7 +23,7 @@ public:
   ~ObjectPipe();
   void write(T& t);
   bool read(T* t); // returns false on EOF
-  int readTimeout(T* t, int msec); // -1 is timeout, 0 is no data, 1 is data
+  int readTimeout(T* t, double msec); // -1 is timeout, 0 is no data, 1 is data
   void close(); 
 private:
   int d_fds[2];
@@ -45,6 +45,11 @@ private:
     T what;
     struct timespec when;
   };
+
+  double tsdelta(const struct timespec& a, const struct timespec& b) // read as a-b
+  {
+    return 1.0*(a.tv_sec-b.tv_sec)+1.0*(a.tv_nsec-b.tv_nsec)/1000000000.0;
+  }
 
   ObjectPipe<Combo> d_pipe;
   struct tscomp {
