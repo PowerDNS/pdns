@@ -45,7 +45,7 @@ public:
   bool isWildcard() const;
   unsigned int countLabels() const;
   bool empty() const { return countLabels()==0; } // FIXME remove me?
-  size_t length() const;
+  size_t length() const; // FIXME remove me?
   void clear() { trimToLabels(0); } // FIXME remove me?
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
