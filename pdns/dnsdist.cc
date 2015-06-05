@@ -888,7 +888,7 @@ char* my_generator(const char* text, int state)
   vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
       "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
       "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
-      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool("};
+      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "addDelay("};
   static int s_counter=0;
   int counter=0;
   if(!state)
@@ -1142,8 +1142,10 @@ try
 catch(std::exception &e)
 {
   errlog("Fatal error: %s", e.what());
+  _exit(EXIT_FAILURE);
 }
 catch(PDNSException &ae)
 {
   errlog("Fatal pdns error: %s", ae.reason);
+  _exit(EXIT_FAILURE);
 }
