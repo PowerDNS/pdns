@@ -223,7 +223,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
   unsigned int startPos;
 
   for(auto &label: parts) {
-    cerr<<"xfrName labelpart ["<<label<<"]"<<endl;
+    //cerr<<"xfrName labelpart ["<<label<<"]"<<endl;
     // if(deDot)
     //   chopped.assign(label.c_str() + i->first, labellen - i->first -1);
     // else
@@ -267,7 +267,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
     // }
     // else {
       char labelsize=label.size();
-      cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
+      //cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
       d_record.push_back(labelsize);
       unsigned int len=d_record.size();
       d_record.resize(len + labelsize);
