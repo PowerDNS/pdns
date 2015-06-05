@@ -487,32 +487,20 @@ inline size_t pdns_ci_find(const string& haystack, const string& needle)
 
 pair<string, string> splitField(const string& inp, char sepa);
 
-inline bool isCanonical(const string& dom)
+inline bool isCanonical(const string& qname)
 {
-  if(dom.empty())
+  if(qname.empty())
     return false;
-  return dom[dom.size()-1]=='.';
+  return qname[qname.size()-1]=='.';
 }
 
-// get rid of this?
-inline string toCanonic(const DNSName& zone, const string& domain)
+inline DNSName toCanonic(const DNSName& zone, const string& qname)
 {
-  return toCanonic(zone.toString(), domain);
-}
-
-// and this?
-inline string toCanonic(const string& zone, const string& domain)
-{
-  if(domain.length()==1 && domain[0]=='@')
-    return zone;
-
-  if(isCanonical(domain))
-    return domain;
-  string ret=domain;
-  ret.append(1,'.');
-  if(!zone.empty() && zone[0]!='.')
-    ret.append(zone);
-  return ret;
+  if(qname.size()==1 && qname[0]=='@')
+    return zone.toString();
+  if(isCanonical(qname))
+    return DNSName(qname).toString();
+  return DNSName(qname) += zone;
 }
 
 string stripDot(const string& dom);
