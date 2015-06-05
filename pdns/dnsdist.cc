@@ -123,9 +123,13 @@ struct DelayedPacket
   int fd;
   string packet;
   ComboAddress destination;
+  ComboAddress origDest;
   void operator()()
   {
-    sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
+    if(origDest.sin4.sin_family == 0)
+      sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
+    else
+      sendfromto(fd, packet.c_str(), packet.size(), 0, origDest, destination);
   }
 };
 
@@ -160,7 +164,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     g_stats.responses++;
 
     if(ids->delayMsec) {
-      DelayedPacket dp{ids->origFD, string(packet,len), ids->origRemote};
+      DelayedPacket dp{ids->origFD, string(packet,len), ids->origRemote, ids->origDest};
       g_delay.submit(dp, ids->delayMsec);
     }
     else {
