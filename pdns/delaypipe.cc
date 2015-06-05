@@ -50,16 +50,18 @@ bool ObjectPipe<T>::read(T* t)
 }
 
 template<class T>
-int ObjectPipe<T>::readTimeout(T* t, int msec)
+int ObjectPipe<T>::readTimeout(T* t, double msec)
 {
   T* ptr;
-  int ret = waitForData(d_fds[0], 0, 1000*msec);
-  if(ret <0)
-    unixDie("waiting for data in object pipe");
-  if(ret == 0) 
-    return -1;
+  if(msec != 0) {
+    int ret = waitForData(d_fds[0], 0, 1000*msec);
+    if(ret < 0)
+      unixDie("waiting for data in object pipe");
+    if(ret == 0) 
+      return -1;
+  }
 
-  ret = ::read(d_fds[0], &ptr, sizeof(ptr));
+  int ret = ::read(d_fds[0], &ptr, sizeof(ptr));
 
   if(ret < 0)
     unixDie("read");
@@ -97,31 +99,46 @@ DelayPipe<T>::~DelayPipe()
   d_thread.join();
 }
 
+
+
 template<class T>
 void DelayPipe<T>::worker()
 {
   Combo c;
   for(;;) {
-    int ret = d_pipe.readTimeout(&c, 10); // XXXX NEEDS TO BE DYNAMIC
-    if(ret > 0) {  // we got an object
-      d_work.insert(make_pair(c.when, c.what));
-    }
-    else if(ret==0) { // timeout
-
-      break;
-    }
-    else {
-      //      cout<<"Got a timeout"<<endl;
-    }
+    double delay=-1;  // infinite
     struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    if(!d_work.empty()) {
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      delay=1000*tsdelta(d_work.begin()->first, now);
+      if(delay < 0) {
+	delay=0;   // don't wait
+      }
+    }
+    if(delay != 0 ) {
+      int ret = d_pipe.readTimeout(&c, delay); 
+      if(ret > 0) {  // we got an object
+	d_work.insert(make_pair(c.when, c.what));
+      }
+      else if(ret==0) { // EOF
+	break;
+      }
+      else {
+	;
+      }
+      clock_gettime(CLOCK_MONOTONIC, &now);
+    }
+
     tscomp cmp;
+
     for(auto iter = d_work.begin() ; iter != d_work.end(); ) { // do the needful
       if(cmp(iter->first, now)) {
 	iter->second();
 	d_work.erase(iter++);
       }
-      else break;
+      else {
+	break;
+      }
     }
   }
 }
