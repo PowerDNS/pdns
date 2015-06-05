@@ -167,13 +167,13 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
 {
   // this removes duplicates from the packet in case we are not compressing
   // for AXFR, no such checking is performed!
-  cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
+  //cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
           return;
       }
-  cerr<<"added to d_rrs"<<endl;
+  //cerr<<"added to d_rrs"<<endl;
   d_rrs.push_back(rr);
 }
 
