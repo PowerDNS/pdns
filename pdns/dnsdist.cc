@@ -729,7 +729,8 @@ void doClient(ComboAddress server, const std::string& command)
     string response;
     string msg=sodEncryptSym(command, g_key, ours);
     putMsgLen(fd, msg.length());
-    writen2(fd, msg);
+    if(!msg.empty())
+      writen2(fd, msg);
     uint16_t len;
     getMsgLen(fd, &len);
     char resp[len];
@@ -773,8 +774,10 @@ void doClient(ComboAddress server, const std::string& command)
     writen2(fd, msg);
     uint16_t len;
     getMsgLen(fd, &len);
+
     char resp[len];
-    readn2(fd, resp, len);
+    if(len)
+      readn2(fd, resp, len);
     msg.assign(resp, len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
