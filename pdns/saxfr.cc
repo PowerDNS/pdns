@@ -317,7 +317,7 @@ try
     DNSName label /* FIXME rename */=record.first;
     if (isNSEC3 && unhash)
     {
-      auto i = hashes.find(makeRelative(label.toString(), argv[3]));
+      auto i = hashes.find(label.makeRelative(argv[3]).toStringNoDot());
       if (i != hashes.end())
         label=i->second;
     }
