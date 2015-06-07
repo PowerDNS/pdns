@@ -100,10 +100,11 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_beforeOrderQuery = getArg("get-order-before-query");
   d_afterOrderQuery = getArg("get-order-after-query");
   d_lastOrderQuery = getArg("get-order-last-query");
-  d_setOrderAuthQuery = getArg("set-order-and-auth-query");
+
+  d_updateOrderNameAndAuthQuery = getArg("update-ordername-and-auth-query");
+  d_updateOrderNameAndAuthTypeQuery = getArg("update-ordername-and-auth-type-query");
   d_nullifyOrderNameAndUpdateAuthQuery = getArg("nullify-ordername-and-update-auth-query");
-  d_nullifyOrderNameAndAuthQuery = getArg("nullify-ordername-and-auth-query");
-  d_setAuthOnDsRecordQuery = getArg("set-auth-on-ds-record-query");
+  d_nullifyOrderNameAndUpdateAuthTypeQuery = getArg("nullify-ordername-and-update-auth-type-query");
 
   d_AddDomainKeyQuery = getArg("add-domain-key-query");
   d_ListDomainKeysQuery = getArg("list-domain-keys-query");
@@ -157,11 +158,10 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_beforeOrderQuery_stmt = NULL;
   d_afterOrderQuery_stmt = NULL;
   d_lastOrderQuery_stmt = NULL;
-  d_setOrderAuthQuery_stmt = NULL;
+  d_updateOrderNameAndAuthQuery_stmt = NULL;
+  d_updateOrderNameAndAuthTypeQuery_stmt = NULL;
   d_nullifyOrderNameAndUpdateAuthQuery_stmt = NULL;
-  d_nullifyOrderNameAndAuthQuery_stmt = NULL;
-  d_nullifyOrderNameAndAuthENTQuery_stmt = NULL;
-  d_setAuthOnDsRecordQuery_stmt = NULL;
+  d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = NULL;
   d_removeEmptyNonTerminalsFromZoneQuery_stmt = NULL;
   d_insertEmptyNonTerminalQuery_stmt = NULL;
   d_deleteEmptyNonTerminalQuery_stmt = NULL;
@@ -413,86 +413,67 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   }
 }
 
-bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth)
-{
-  if(!d_dnssecQueries)
-    return false;
-  string ins=toLower(labelReverse(makeRelative(qname.toString(), zonename.toString()))); //FIXME makeRelative to dnsname?
-  return this->updateDNSSECOrderAndAuthAbsolute(domain_id, qname, ins, auth);
-}
-
-bool GSQLBackend::updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSName& qname, const std::string& ordername, bool auth)
+bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
   if(!d_dnssecQueries)
     return false;
 
-  try {
-    d_setOrderAuthQuery_stmt->
-      bind("ordername", ordername)->
-      bind("auth", auth)->
-      bind("qname", qname)->
-      bind("domain_id", domain_id)->
-      execute()->
-      reset();
-  }
-  catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to update ordername/auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
-  }
-  return true;
-}
-
-bool GSQLBackend::nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const DNSName& qname, bool auth)
-{
-  if(!d_dnssecQueries)
-    return false;
-
-  try {
-    d_nullifyOrderNameAndUpdateAuthQuery_stmt->
-      bind("auth", auth)->
-      bind("domain_id", domain_id)->
-      bind("qname", qname)->
-      execute()->
-      reset();
-  }
-  catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to nullify ordername and update auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
-  }
-  return true;
-}
-
-bool GSQLBackend::nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const std::string& type)
-{
-  if(!d_dnssecQueries)
-    return false;
-  
-  try {
-    d_nullifyOrderNameAndAuthQuery_stmt->
-      bind("qname", qname)->
-      bind("qtype", type)->
-      bind("domain_id", domain_id)->
-      execute()->
-      reset();
-  }
-  catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to nullify ordername/auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
-  }
-  return true;
-}
-
-bool GSQLBackend::setDNSSECAuthOnDsRecord(uint32_t domain_id, const DNSName& qname)
-{
-  if(!d_dnssecQueries)
-    return false;
-
-  try {
-    d_setAuthOnDsRecordQuery_stmt->
-      bind("domain_id", domain_id)->
-      bind("qname", qname)->
-      execute()->
-      reset();
-  }
-  catch(SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set auth on DS record "+qname.toString()+" for domain_id "+itoa(domain_id)+": "+e.txtReason());
+  if (!ordername.empty()) {
+    if (qtype == QType::ANY) {
+      try {
+        d_updateOrderNameAndAuthQuery_stmt->
+          bind("ordername", ordername.makeRelative(zonename).labelReverse().toString(" ", false))->
+          bind("auth", auth)->
+          bind("domain_id", domain_id)->
+          bind("qname", qname)->
+          execute()->
+          reset();
+      }
+      catch(SSqlException &e) {
+        throw PDNSException("GSQLBackend unable to update ordername and auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
+      }
+    } else {
+      try {
+        d_updateOrderNameAndAuthTypeQuery_stmt->
+          bind("ordername", ordername.makeRelative(zonename).labelReverse().toString(" ", false))->
+          bind("auth", auth)->
+          bind("domain_id", domain_id)->
+          bind("qname", qname)->
+          bind("qtype", QType(qtype).getName())->
+          execute()->
+          reset();
+      }
+      catch(SSqlException &e) {
+        throw PDNSException("GSQLBackend unable to update ordername and auth per type for domain_id "+itoa(domain_id)+": "+e.txtReason());
+      }
+    }
+  } else {
+    if (qtype == QType::ANY) {
+      try {
+        d_nullifyOrderNameAndUpdateAuthQuery_stmt->
+          bind("auth", auth)->
+          bind("domain_id", domain_id)->
+          bind("qname", qname)->
+          execute()->
+          reset();
+      }
+      catch(SSqlException &e) {
+        throw PDNSException("GSQLBackend unable to nullify ordername and update auth for domain_id "+itoa(domain_id)+": "+e.txtReason());
+      }
+    } else {
+      try {
+        d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt->
+          bind("auth", auth)->
+          bind("domain_id", domain_id)->
+          bind("qname", qname)->
+          bind("qtype", QType(qtype).getName())->
+          execute()->
+          reset();
+      }
+      catch(SSqlException &e) {
+        throw PDNSException("GSQLBackend unable to nullify ordername and update auth per type for domain_id "+itoa(domain_id)+": "+e.txtReason());
+      }
+    }
   }
   return true;
 }
@@ -971,7 +952,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
     throw PDNSException("GSQLBackend list query: "+e.txtReason());
   }
 
-  d_qname="";
+  d_qname.clear();
   return true;
 }
 
@@ -990,7 +971,7 @@ bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend listSubZone query: "+e.txtReason());
   }
-  d_qname="";
+  d_qname.clear();
   return true;
 }
 

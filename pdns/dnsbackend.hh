@@ -193,32 +193,12 @@ public:
 
   virtual bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
 
-  virtual bool updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth)
-  {
-    return false;
-  }
-
-  virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSName& qname, const std::string& ordername, bool auth)
+  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
   {
     return false;
   }
 
   virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
-  {
-    return false;
-  }
-
-  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const DNSName& qname, bool auth)
-  {
-    return false;
-  }
-
-  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const std::string& type)
-  {
-    return false;
-  }
-
-  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const DNSName& qname)
   {
     return false;
   }

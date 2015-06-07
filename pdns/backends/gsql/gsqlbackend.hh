@@ -63,11 +63,10 @@ public:
       d_beforeOrderQuery_stmt = d_db->prepare(d_beforeOrderQuery, 2);
       d_afterOrderQuery_stmt = d_db->prepare(d_afterOrderQuery, 2);
       d_lastOrderQuery_stmt = d_db->prepare(d_lastOrderQuery, 1);
-      d_setOrderAuthQuery_stmt = d_db->prepare(d_setOrderAuthQuery, 4);
+      d_updateOrderNameAndAuthQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthQuery, 4);
+      d_updateOrderNameAndAuthTypeQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthTypeQuery, 5);
       d_nullifyOrderNameAndUpdateAuthQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthQuery, 3);
-      d_nullifyOrderNameAndAuthQuery_stmt = d_db->prepare(d_nullifyOrderNameAndAuthQuery, 3);
-      d_nullifyOrderNameAndAuthENTQuery_stmt = d_db->prepare(d_nullifyOrderNameAndAuthENTQuery, 0);
-      d_setAuthOnDsRecordQuery_stmt = d_db->prepare(d_setAuthOnDsRecordQuery, 2);
+      d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthTypeQuery, 4);
       d_removeEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_removeEmptyNonTerminalsFromZoneQuery, 1);
       d_insertEmptyNonTerminalQuery_stmt = d_db->prepare(d_insertEmptyNonTerminalQuery, 2);
       d_deleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_deleteEmptyNonTerminalQuery, 2);
@@ -132,11 +131,10 @@ public:
     release(&d_beforeOrderQuery_stmt);
     release(&d_afterOrderQuery_stmt);
     release(&d_lastOrderQuery_stmt);
-    release(&d_setOrderAuthQuery_stmt);
+    release(&d_updateOrderNameAndAuthQuery_stmt);
+    release(&d_updateOrderNameAndAuthTypeQuery_stmt);
     release(&d_nullifyOrderNameAndUpdateAuthQuery_stmt);
-    release(&d_nullifyOrderNameAndAuthQuery_stmt);
-    release(&d_nullifyOrderNameAndAuthENTQuery_stmt);
-    release(&d_setAuthOnDsRecordQuery_stmt);
+    release(&d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt);
     release(&d_removeEmptyNonTerminalsFromZoneQuery_stmt);
     release(&d_insertEmptyNonTerminalQuery_stmt);
     release(&d_deleteEmptyNonTerminalQuery_stmt);
@@ -188,11 +186,8 @@ public:
   bool setAccount(const DNSName &domain, const string &account);
 
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, std::string& before, std::string& after);
-  bool updateDNSSECOrderAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, bool auth);
-  virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const DNSName& qname, const std::string& ordername, bool auth);
-  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const DNSName& qname, bool auth);
-  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const std::string& type);
-  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const DNSName& qname);
+  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY);
+
   virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert ,set<DNSName>& erase, bool remove);
   virtual bool doesDNSSEC();
 
@@ -264,11 +259,12 @@ private:
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
   string d_lastOrderQuery;
-  string d_setOrderAuthQuery;
+
+  string d_updateOrderNameAndAuthQuery;
+  string d_updateOrderNameAndAuthTypeQuery;
   string d_nullifyOrderNameAndUpdateAuthQuery;
-  string d_nullifyOrderNameAndAuthQuery;
-  string d_nullifyOrderNameAndAuthENTQuery;
-  string d_setAuthOnDsRecordQuery;
+  string d_nullifyOrderNameAndUpdateAuthTypeQuery;
+
   string d_removeEmptyNonTerminalsFromZoneQuery;
   string d_insertEmptyNonTerminalQuery;
   string d_deleteEmptyNonTerminalQuery;
@@ -332,11 +328,10 @@ private:
   SSqlStatement* d_beforeOrderQuery_stmt;
   SSqlStatement* d_afterOrderQuery_stmt;
   SSqlStatement* d_lastOrderQuery_stmt;
-  SSqlStatement* d_setOrderAuthQuery_stmt;
+  SSqlStatement* d_updateOrderNameAndAuthQuery_stmt;
+  SSqlStatement* d_updateOrderNameAndAuthTypeQuery_stmt;
   SSqlStatement* d_nullifyOrderNameAndUpdateAuthQuery_stmt;
-  SSqlStatement* d_nullifyOrderNameAndAuthQuery_stmt;
-  SSqlStatement* d_nullifyOrderNameAndAuthENTQuery_stmt;
-  SSqlStatement* d_setAuthOnDsRecordQuery_stmt;
+  SSqlStatement* d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt;
   SSqlStatement* d_removeEmptyNonTerminalsFromZoneQuery_stmt;
   SSqlStatement* d_insertEmptyNonTerminalQuery_stmt;
   SSqlStatement* d_deleteEmptyNonTerminalQuery_stmt;
