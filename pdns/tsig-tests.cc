@@ -49,7 +49,7 @@ try
   string keyname("pdns-b-aa");
 
   TSIGRecordContent trc;
-  trc.d_algoName="hmac-md5.sig-alg.reg.int.";
+  trc.d_algoName="hmac-md5.sig-alg.reg.int";
   trc.d_time=time(0);
   trc.d_fudge=300;
   trc.d_origID=ntohs(pw.getHeader()->id);

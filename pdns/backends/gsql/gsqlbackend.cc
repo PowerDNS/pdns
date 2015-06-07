@@ -702,7 +702,7 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     content->clear();
     while(d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
-      if(row.size() >= 2 && (!algorithm->countLabels() || *algorithm==row[0])) {
+      if(row.size() >= 2 && (algorithm->empty() || *algorithm==row[0])) {
         *algorithm = row[0];
         *content = row[1];
       }

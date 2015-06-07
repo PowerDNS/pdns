@@ -130,7 +130,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     // cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
     TSIGRecordContent trc;
     if (tsigalgorithm == "hmac-md5")
-      trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+      trc.d_algoName = tsigalgorithm + "sig-alg.reg.int";
     else
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(0);
@@ -393,7 +393,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   
     if(!tsigkeyname.empty()) {
       if (tsigalgorithm == "hmac-md5")
-        d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+        d_trc.d_algoName = tsigalgorithm + "sig-alg.reg.int";
       else
         d_trc.d_algoName = tsigalgorithm;
       d_trc.d_time = time(0);
