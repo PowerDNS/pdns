@@ -203,7 +203,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     if (rr.qtype.getCode())
     {
       qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && rr.qname!=zone)
+      if(rr.qtype.getCode() == QType::NS && rr.qname != zone)
         nsset.insert(rr.qname);
       if(rr.qtype.getCode() == QType::DS)
         dsnames.insert(rr.qname);
@@ -236,15 +236,14 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     sd.db->startTransaction("", -1);
 
   bool realrr=true;
-  string hashed;
-
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   dononterm:;
-  BOOST_FOREACH(const DNSName& qname, qnames)
+  for (const auto& qname: qnames)
   {
     bool auth=true;
-    DNSName shorter(qname);
+    DNSName ordername;
+    auto shorter(qname);
 
     if(realrr) {
       do {
@@ -255,36 +254,30 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
       } while(shorter.chopOff());
     }
 
-    if(haveNSEC3)
+    if(haveNSEC3) // NSEC3
     {
-      if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second)) {
-        hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname));
-        if(g_verbose)
-          cerr<<"'"<<qname.toString()<<"' -> '"<< hashed <<"'"<<endl;
-        sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, qname, hashed, auth);
-      }
-      else {
-        if(!realrr)
-          auth=false;
-        sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, qname, auth);
-      }
+      if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second))
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname))) + zone;
+      else if(!realrr)
+        auth=false;
     }
-    else // NSEC
-    {
-      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, qname, auth);
-      if (!realrr)
-        sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, qname, auth);
-    }
+    else if (realrr) // NSEC
+      ordername=qname;
+
+    if(g_verbose)
+      cerr<<"'"<<qname.toString()<<"' -> '"<< ordername.toString() <<"'"<<endl;
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, auth);
 
     if(realrr)
     {
       if (dsnames.count(qname))
-        sd.db->setDNSSECAuthOnDsRecord(sd.domain_id, qname);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, true, QType::DS);
       if (!auth || nsset.count(qname)) {
+        ordername.clear();
         if(isOptOut)
-          sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "NS");
-        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "A");
-        sd.db->nullifyDNSSECOrderNameAndAuth(sd.domain_id, qname, "AAAA");
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::NS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::A);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, qname, ordername, false, QType::AAAA);
       }
 
       if(doent)
@@ -713,20 +706,15 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     bool narrow;
     bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   
-    if(haveNSEC3)
-    {
-      if(!narrow) {
-        string hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rrs[0].qname));
-        if(g_verbose)
-          cerr<<"'"<<rrs[0].qname.toString()<<"' -> '"<< hashed <<"'"<<endl;
-        sd.db->updateDNSSECOrderAndAuthAbsolute(sd.domain_id, rrs[0].qname, hashed, 1);
-      }
-      else {
-        sd.db->nullifyDNSSECOrderNameAndUpdateAuth(sd.domain_id, rrs[0].qname, 1);
-      }
-    } else {
-      sd.db->updateDNSSECOrderAndAuth(sd.domain_id, zone, rrs[0].qname, 1);
-    }
+    DNSName ordername;
+    if(haveNSEC3) {
+      if(!narrow)
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, zone))) + zone;
+    } else
+      ordername=zone;
+    if(g_verbose)
+      cerr<<"'"<<rrs[0].qname.toString()<<"' -> '"<< ordername.toString() <<"'"<<endl;
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, zone, rrs[0].qname, ordername, true);
   }
 
   sd.db->commitTransaction();
