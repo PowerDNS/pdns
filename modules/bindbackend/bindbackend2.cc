@@ -886,11 +886,6 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
 bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, string& before, string& after)
 {
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
-
-//  BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
-//    cerr<<"Hash: "<<bdr.qname.toString()<<"\t"<< (qname < bdr.qname) <<"\t"<<qname.toString()<<endl;
-//  }
-
   recordstorage_t::const_iterator iter = records->upper_bound(qname);
 
   if (before.empty()){
@@ -928,7 +923,7 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
     after = (iter)->qname.labelReverse().toString(" ",false);
   }
 
-  cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
+  // cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
   return true;
 }
 

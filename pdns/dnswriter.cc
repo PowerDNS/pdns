@@ -199,13 +199,13 @@ DNSPacketWriter::nmap_t::iterator find(DNSPacketWriter::nmap_t& nmap, const DNSN
 // this is the absolute hottest function in the pdns recursor
 void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
 {
-  cerr<<"xfrName: name=["<<name.toString()<<"] compress="<<compress<<endl;
+  //cerr<<"xfrName: name=["<<name.toString()<<"] compress="<<compress<<endl;
   // string label = d_lowerCase ? toLower(Label) : Label;
   // FIXME: we ignore d_lowerCase for now
-  cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
+  // cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
   std::vector<std::string> parts = name.getRawLabels();
   // labelparts_t parts;
-  cerr<<"labelcount: "<<parts.size()<<endl;
+  // cerr<<"labelcount: "<<parts.size()<<endl;
 
   if(d_canonic)
     compress=false;
@@ -226,14 +226,14 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
   /* FIXME400: if we are not compressing, there is no reason to work per-label */
   for(auto &label: parts) {
     if(d_lowerCase) label=toLower(label);
-    cerr<<"xfrName labelpart ["<<label<<"], left to write ["<<towrite.toString()<<"]"<<endl;
+    //cerr<<"xfrName labelpart ["<<label<<"], left to write ["<<towrite.toString()<<"]"<<endl;
 
     auto li=d_namemap.end();
     // see if we've written out this domain before
-    cerr<<"compress="<<compress<<", searching? for compression pointer to '"<<towrite.toString()<<"', "<<d_namemap.size()<<" cmp-records"<<endl;
+    //cerr<<"compress="<<compress<<", searching? for compression pointer to '"<<towrite.toString()<<"', "<<d_namemap.size()<<" cmp-records"<<endl;
     if(compress && (li=find(d_namemap, towrite))!=d_namemap.end()) {
-      cerr<<"doing compression, my label=["<<label<<"] found match ["<<li->first.toString()<<"]"<<endl;
-      cerr<<"\tFound a compression pointer to '"<<towrite.toString()<<"': "<<li->second<<endl;
+      //cerr<<"doing compression, my label=["<<label<<"] found match ["<<li->first.toString()<<"]"<<endl;
+      //cerr<<"\tFound a compression pointer to '"<<towrite.toString()<<"': "<<li->second<<endl;
       if (d_record.size() - startRecordSize + label.size() > 253) // chopped does not include a length octet for the first label and the root label
         throw MOADNSException("DNSPacketWriter::xfrName() found overly large (compressed) name");
       uint16_t offset=li->second;
@@ -246,13 +246,13 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
     if(li==d_namemap.end() && pos< 16384) {
       //      cerr<<"\tStoring a compression pointer to '"<<chopped<<"': "<<pos<<endl;
       d_namemap.push_back(make_pair(towrite, pos));                       //  if untrue, we need to count - also, don't store offsets > 16384, won't work
-      cerr<<"stored ["<<towrite.toString()<<"] at pos "<<pos<<endl;
+      //cerr<<"stored ["<<towrite.toString()<<"] at pos "<<pos<<endl;
     }
 
     startPos=pos;
 
     char labelsize=label.size();
-    cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
+    //cerr<<"labelsize = "<<int(labelsize)<<" for label ["<<label<<"]"<<endl;
     d_record.push_back(labelsize);
     unsigned int len=d_record.size();
     d_record.resize(len + labelsize);
