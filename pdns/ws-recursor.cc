@@ -143,7 +143,7 @@ static void fillZone(const string& zonename, HttpResponse* resp)
   const SyncRes::AuthDomain& zone = iter->second;
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-  string zoneId = apiZoneNameToId(iter->first);
+  string zoneId = apiZoneNameToId(iter->first.toString());
   Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("id", jzoneid, doc.GetAllocator());
   string url = "/servers/localhost/zones/" + zoneId;

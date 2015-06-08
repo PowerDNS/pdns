@@ -445,7 +445,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
           if(searchSuffix.empty() || parts[n].find('.') != string::npos)
               makeNameToIPZone(newMap, parts[n], parts[0]);
           else {
-              string canonic=toCanonic(searchSuffix, parts[n]);
+              DNSName canonic=toCanonic(DNSName(searchSuffix), parts[n]);
               if(canonic != parts[n]) {
               makeNameToIPZone(newMap, canonic, parts[0]);
             }

@@ -449,7 +449,7 @@ private:
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, set<DNSName>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(set<DNSName> &nameservers, const string &prefix);
-  bool moreSpecificThan(const string& a, const string &b);
+  bool moreSpecificThan(const DNSName& a, const DNSName &b);
   vector<ComboAddress> getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere);
 private:
   ostringstream d_trace;
