@@ -187,6 +187,7 @@ pdns_server_SOURCES = \
 	slavecommunicator.cc \
 	statbag.cc statbag.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
 	unix_utility.cc \
