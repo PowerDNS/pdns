@@ -470,6 +470,8 @@ void PacketReader::getLabelFromContent(const vector<uint8_t>& content, uint16_t&
       }
       ret.append(1,'.');
     }
+    if (ret.length() > 1024)
+      throw MOADNSException("Total name too long");
   }
 }
 
