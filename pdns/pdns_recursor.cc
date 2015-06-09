@@ -1129,7 +1129,7 @@ void makeTCPServerSockets()
 #ifdef TCP_DEFER_ACCEPT
     if(setsockopt(fd, SOL_TCP,TCP_DEFER_ACCEPT,(char*)&tmp,sizeof tmp) >= 0) {
       if(i==locals.begin())
-        L<<Logger::Error<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
+        L<<Logger::Info<<"Enabled TCP data-ready filter for (slight) DoS protection"<<endl;
     }
 #endif
 
@@ -1149,9 +1149,9 @@ void makeTCPServerSockets()
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
     if(sin.sin4.sin_family == AF_INET) 
-      L<<Logger::Error<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      L<<Logger::Info<<"Listening for TCP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
-      L<<Logger::Error<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
+      L<<Logger::Info<<"Listening for TCP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
 }
 
@@ -1213,7 +1213,7 @@ void makeUDPServerSockets()
     deferredAdd.push_back(make_pair(fd, handleNewUDPQuestion));
     g_listenSocketsAddresses[fd]=sin;  // this is written to only from the startup thread, not from the workers
     if(sin.sin4.sin_family == AF_INET) 
-      L<<Logger::Error<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
+      L<<Logger::Info<<"Listening for UDP queries on "<< sin.toString() <<":"<<st.port<<endl;
     else
       L<<Logger::Error<<"Listening for UDP queries on ["<< sin.toString() <<"]:"<<st.port<<endl;
   }
@@ -2155,7 +2155,7 @@ try
         exit(99);
       }
     }
-    L<<Logger::Error<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
+    L<<Logger::Info<<"Enabled '"<< t_fdm->getName() << "' multiplexer"<<endl;
   }
 
   t_fdm->addReadFD(g_pipes[t_id].readToThread, handlePipeRequest);
