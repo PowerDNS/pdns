@@ -1,16 +1,19 @@
-@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015050102 10800 3600 604800 10800
+@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015060901 10800 3600 604800 10800
 @       3600    IN  NS  powerdnssec1.ds9a.nl.
 @       3600    IN  NS  powerdnssec2.ds9a.nl.
 auth-3.3.2.security-status              60 IN TXT "1 OK"
+auth-3.3.3.security-status              60 IN TXT "1 OK"
 auth-3.4.0.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.1.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.2.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.3.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.4.security-status              60 IN TXT "1 OK"
+auth-3.4.5.security-status              60 IN TXT "1 OK"
 recursor-3.6.0.security-status              60 IN TXT "3 Upgrade now, see http://doc.powerdns.com/html/powerdns-advisory-2014-01.html and https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.1.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.2.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.3.security-status              60 IN TXT "1 OK"
+recursor-3.6.4.security-status              60 IN TXT "1 OK"
 recursor-3.6.2-1.fc22.fedora.security-status    60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-1.fc21.fedora.security-status    60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-1.fc20.fedora.security-status    60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
@@ -29,6 +32,7 @@ recursor-3.7.0-rc2.security-status          60 IN TXT "3 Upgrade now, see https:
 recursor-3.7.0.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.7.1.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.7.2.security-status          60 IN TXT "1 OK"
+recursor-3.7.3.security-status          60 IN TXT "1 OK"
 recursor-3.7.2-1.Debian.security-status 60 IN TXT "1 OK"
 auth-3.4.1-1.fc22.fedora.security-status        60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.1-1.fc21.fedora.security-status        60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
