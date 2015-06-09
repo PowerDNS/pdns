@@ -44,4 +44,6 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     static DNSCryptoKeyEngine* maker(unsigned int algorithm);
 };
 
+bool PKCS11ModuleSlotLogin(const std::string& module, int slot, const std::string& pin);
+
 #endif /* PDNS_PKCS11SIGNERS_HH */

@@ -113,9 +113,10 @@ AC_CHECK_HEADERS(
 )
 
 
-AX_LIB_READLINE
+PDNS_CHECK_READLINE
 PDNS_CHECK_RAGEL
 PDNS_CHECK_LIBSODIUM
+PDNS_CHECK_CLOCK_GETTIME
 
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
@@ -131,7 +132,9 @@ PDNS_CHECK_MKDOCS
 PDNS_CHECK_LINKCHECKER
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r recvmmsg])
+
+AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
 AS_IF([test "x$lt_cv_dlopen" = "xno"],
   [AC_MSG_ERROR([Your system does not support dlopen])]
@@ -143,7 +146,7 @@ THREADFLAGS=""
 
 case "$host_os" in
 solaris2.10)
-  LIBS="-lposix4 -lpthread -lrt $LIBS"
+  LIBS="-lposix4 -lpthread $LIBS"
   CXXFLAGS="-D_REENTRANT $CXXFLAGS"
   have_solaris="yes"
   ;;
@@ -184,6 +187,7 @@ PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
 PDNS_ENABLE_ED25519
+PDNS_ENABLE_GSS_TSIG
 
 AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
@@ -330,8 +334,8 @@ AC_SUBST([AM_CPPFLAGS],
   ["AS_ESCAPE([-I$(top_builddir) -I$(top_srcdir)]) $THREADFLAGS $BOOST_CPPFLAGS"]
 )
 
-AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
-AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
+AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
+AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/ext/yahttp/yahttp -lyahttp'])
 
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
 
@@ -349,13 +353,13 @@ AC_CONFIG_FILES([
   codedocs/Makefile
   docs/Makefile
   pdns/pdns.init
-  pdns/ext/Makefile
-  pdns/ext/ed25519/Makefile
-  pdns/ext/yahttp/Makefile
-  pdns/ext/yahttp/yahttp/Makefile
-  pdns/ext/polarssl/Makefile
-  pdns/ext/polarssl/library/Makefile
-  pdns/ext/rapidjson/Makefile
+  ext/Makefile
+  ext/ed25519/Makefile
+  ext/yahttp/Makefile
+  ext/yahttp/yahttp/Makefile
+  ext/polarssl/Makefile
+  ext/polarssl/library/Makefile
+  ext/rapidjson/Makefile
   modules/bindbackend/Makefile
   modules/geobackend/Makefile
   modules/geoipbackend/Makefile
@@ -404,5 +408,9 @@ AS_IF([test "x$needsqlite3" != "x"],
 AS_IF([test "x$LUAPC" != "x"],
   [AC_MSG_NOTICE([Lua support: $LUAPC])],
   [AC_MSG_NOTICE([Lua support: no])]
+)
+AS_IF(test "x$enable_experimental_gss_tsig" != "xno"],
+  [AC_MSG_NOTICE([GSS-TSIG support: yes])],
+  [AC_MSG_NOTICE([GSS-TSIG support: no])]
 )
 AC_MSG_NOTICE([])

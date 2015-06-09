@@ -97,7 +97,10 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	{ "over-capacity-drops", 0 },
 	{ "too-old-drops", 0 },
 	{ "uptime", uptimeOfProcess()},
-	{ "qa-latency", (int)g_stats.latency},
+	{ "qa-latency", (int)g_stats.latencyAvg1000},
+	{ "qa-latency1000", (int)g_stats.latencyAvg1000},
+	{ "qa-latency10000", (int)g_stats.latencyAvg10000},
+	{ "qa-latency1000000", (int)g_stats.latencyAvg1000000},
 	{ "something", Json::array { 1, 2, 3 } },
       };
 

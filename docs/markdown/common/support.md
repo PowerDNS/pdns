@@ -4,7 +4,7 @@ community or from its authors. You may also help others (please do).
 
 The PowerDNS company provides free support on the public mailing lists, and can
 help or support you in private as well. For first class and rapid support,
-please contact [powerdns-support@netherlabs.nl](mailto:powerdns-support@netherlabs.nl)
+please contact <a href="mailto:powerdns.support@powerdns.com">powerdns.support@powerdns.com</a>
 , or see [www.powerdns.com](http://www.powerdns.com).
 
 More information about the PowerDNS community, and its mailing lists, can be
@@ -40,4 +40,4 @@ Before posting, read all FAQs.
 
 ## My information is confidential, must I send it to the mailing list?
 If you desire privacy, please consider entering a support relationship with us,
-in which case we invite you to contact `<powerdns.support.sales@netherlabs.eu>`.
+in which case we invite you to contact <a href="mailto:powerdns.support.sales@netherlabs.eu">powerdns.support.sales@netherlabs.eu</a>.

@@ -6,10 +6,11 @@
 #include "dnsname.hh"
 #include <atomic>
 #include <boost/circular_buffer.hpp>
+#include <boost/variant.hpp>
 #include <mutex>
 #include <thread>
 #include "sholder.hh"
-
+void* carbonDumpThread();
 struct DNSDistStats
 {
   using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
@@ -24,9 +25,26 @@ struct DNSDistStats
   stat_t downstreamTimeouts{0};
   stat_t downstreamSendErrors{0};
   stat_t truncFail{0};
-  double latency{0};
+  stat_t noPolicy{0};
+  stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
   
+  double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
+  typedef boost::variant<stat_t*, double*> entry_t;
+  std::vector<std::pair<std::string, entry_t>> entries{
+    {"responses", &responses}, {"servfail-responses", &servfailResponses},
+    {"queries", &queries}, {"acl-drops", &aclDrops},
+    {"block-filter", &blockFilter}, {"rule-drop", &ruleDrop},
+    {"rule-nxdomain", &ruleNXDomain}, {"self-answered", &selfAnswered},
+    {"downstream-timeouts", &downstreamTimeouts}, {"downstream-send-errors", &downstreamSendErrors}, 
+    {"trunc-failures", &truncFail}, {"no-policy", &noPolicy},
+    {"latency0-1", &latency0_1}, {"latency1-10", &latency1_10},
+    {"latency10-50", &latency10_50}, {"latency50-100", &latency50_100}, 
+    {"latency100-1000", &latency100_1000}, {"latency-slow", &latencySlow},
+    {"latency-avg100", &latencyAvg100}, {"latency-avg1000", &latencyAvg1000}, 
+    {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000}
+  };
 };
+
 
 extern struct DNSDistStats g_stats;
 
@@ -280,6 +298,14 @@ struct ServerPolicy
   policy_t policy;
 };
 
+struct CarbonConfig
+{
+  ComboAddress server{"0.0.0.0", 0};
+  std::string ourname;
+  unsigned int interval{30};
+};
+
+extern GlobalStateHolder<CarbonConfig> g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;

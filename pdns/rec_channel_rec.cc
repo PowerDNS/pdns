@@ -556,6 +556,13 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("chain-resends", &g_stats.chainResends);
   addGetStat("tcp-clients", boost::bind(TCPConnection::getCurrentConnections));
 
+#ifdef __linux__
+  addGetStat("udp-recvbuf-errors", boost::bind(udpErrorStats, "udp-recvbuf-errors"));
+  addGetStat("udp-sndbuf-errors", boost::bind(udpErrorStats, "udp-sndbuf-errors"));
+  addGetStat("udp-noport-errors", boost::bind(udpErrorStats, "udp-noport-errors"));
+  addGetStat("udp-in-errors", boost::bind(udpErrorStats, "udp-in-errors"));
+#endif
+
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
 

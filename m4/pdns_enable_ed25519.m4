@@ -11,7 +11,7 @@ AC_DEFUN([PDNS_ENABLE_ED25519], [
   AM_CONDITIONAL([ED25519], [test "x$enable_ed25519" != "xno"])
   AM_COND_IF([ED25519], [
     ED25519_SUBDIR=ed25519
-    ED25519_LIBS="-L\$(top_builddir)/pdns/ext/$ED25519_SUBDIR/ -led25519"
+    ED25519_LIBS="-L\$(top_builddir)/ext/$ED25519_SUBDIR/ -led25519"
   ],[
     ED25519_SUBDIR=
     ED25519_LIBS=

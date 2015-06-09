@@ -119,7 +119,7 @@ public:
   }
 
 
-  void xfrLabel(string &label, bool compress=false)
+  void xfrName(string &label, bool compress=false)
   {
     label=getLabel();
   }

@@ -443,6 +443,10 @@ try
     {
       s_wednserrors++;
     }
+    catch(std::exception& e) 
+    {
+      s_wednserrors++;
+    }
   }
 }
 catch(std::exception& e)
@@ -610,7 +614,7 @@ bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote)
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;
   }
-  catch(std::out_of_range &e)
+  catch(std::exception &e)
   {
     s_idmanager.releaseID(qd.d_assignedID);  // not added to qids for cleanup
     s_origdnserrors++;    

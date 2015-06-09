@@ -7,16 +7,17 @@ AC_PROG_CC
 AC_PROG_CXX
 PDNS_CHECK_LIBSODIUM
 AC_PROG_LIBTOOL
-AX_LIB_READLINE
+PDNS_CHECK_READLINE([mandatory])
+PDNS_CHECK_CLOCK_GETTIME
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
-AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/pdns/ext/yahttp'])
-AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/pdns/ext/yahttp/yahttp -lyahttp'])
-PDNS_WITH_LUA
+AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
+AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/ext/yahttp/yahttp -lyahttp'])
+DNSDIST_LUA
 AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
 
 AC_CONFIG_FILES([Makefile
-	pdns/ext/yahttp/Makefile
-	pdns/ext/yahttp/yahttp/Makefile])
+	ext/yahttp/Makefile
+	ext/yahttp/yahttp/Makefile])
 	
 AC_OUTPUT

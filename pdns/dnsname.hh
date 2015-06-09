@@ -60,6 +60,7 @@ private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
   string_t d_storage;
+  int d_recurse;
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0);
   static std::string escapeLabel(const std::string& orig);

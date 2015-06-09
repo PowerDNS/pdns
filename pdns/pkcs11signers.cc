@@ -231,7 +231,7 @@ class Pkcs11Slot {
       }
       // check if we need to login
       if ((d_err = d_functions->C_GetTokenInfo(d_slot, &tokenInfo)) == 0) {
-        d_logged_in = ((tokenInfo.flags && CKF_LOGIN_REQUIRED) == CKF_LOGIN_REQUIRED);
+        d_logged_in = !((tokenInfo.flags & CKF_LOGIN_REQUIRED) == CKF_LOGIN_REQUIRED);
       } else {
         logError("C_GetTokenInfo");
         throw PDNSException("Cannot get token info for slot " + boost::lexical_cast<std::string>(slot));
@@ -262,6 +262,8 @@ class Pkcs11Slot {
     CK_FUNCTION_LIST* f() { return d_functions; }
 
     pthread_mutex_t *m() { return &d_m; }
+
+    static std::shared_ptr<Pkcs11Slot> GetSlot(const std::string& module, const CK_SLOT_ID& slotId);
 };
 
 class Pkcs11Token {
@@ -279,7 +281,7 @@ class Pkcs11Token {
     std::string d_ecdsa_params;
 
     std::string d_label;
-
+    bool d_loaded;
     CK_RV d_err;
 
     void logError(const std::string& operation) const {
@@ -294,9 +296,7 @@ class Pkcs11Token {
     ~Pkcs11Token();
 
     bool Login(const std::string& pin) {
-      if (pin.empty()) return CKR_PIN_INVALID; // no empty pin.
-      Lock l(d_slot->m());
-
+      if (pin.empty()) return false; // no empty pin.
       if (d_slot->Login(pin) == true) {
         LoadAttributes();
       }
@@ -304,9 +304,15 @@ class Pkcs11Token {
       return LoggedIn();
     }
 
-    bool LoggedIn() const { return d_slot->LoggedIn(); }
+    bool LoggedIn() {
+      if (d_loaded == false && d_slot->LoggedIn() == true) {
+        LoadAttributes();
+      }
+      return d_slot->LoggedIn();
+    }
 
     void LoadAttributes() {
+      Lock l(d_slot->m());
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
       attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
@@ -354,8 +360,10 @@ class Pkcs11Token {
           if (!GetAttributeValue2(d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
             if (d_ecdsa_params == "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07") d_bits = 256;
-            if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
-            d_ec_point = attr[1].str();
+            else if (d_ecdsa_params == "\x06\x05\x2b\x81\x04\x00\x22") d_bits = 384;
+            else throw PDNSException("Unsupported EC key");
+            if (attr[1].str().length() != (d_bits*2/8 + 3)) throw PDNSException("EC Point data invalid");
+            d_ec_point = attr[1].str().substr(3);
           } else {
             throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
           }
@@ -365,9 +373,12 @@ class Pkcs11Token {
       } else {
         throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_label);
       }
+
+      d_loaded = true;
     }
 
     int GenerateKeyPair(CK_MECHANISM_PTR mechanism, std::vector<P11KitAttribute>& pubAttributes, std::vector<P11KitAttribute>& privAttributes, CK_OBJECT_HANDLE_PTR pubKey, CK_OBJECT_HANDLE_PTR privKey) {
+      {
       Lock l(d_slot->m());
 
       size_t k;
@@ -391,6 +402,7 @@ class Pkcs11Token {
       logError("C_GenerateKeyPair");
       delete [] pubAttr;
       delete [] privAttr;
+      }
 
       if (d_err == 0) LoadAttributes();
 
@@ -613,25 +625,18 @@ class Pkcs11Token {
 static std::map<std::string, std::shared_ptr<Pkcs11Slot> > pkcs11_slots;
 static std::map<std::string, std::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 
-std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label) {
+std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const CK_SLOT_ID& slotId) {
   // see if we can find module
-  std::string tidx = module;
-  tidx.append("|");
-  tidx.append(boost::lexical_cast<std::string>(slotId));
-  std::string sidx = tidx;
-  tidx.append("|");
-  tidx.append(label);
-  std::map<std::string, std::shared_ptr<Pkcs11Token> >::iterator tokenIter;
+  std::string sidx = module;
+  sidx.append("|");
+  sidx.append(boost::lexical_cast<std::string>(slotId));
   std::map<std::string, std::shared_ptr<Pkcs11Slot> >::iterator slotIter;
   CK_RV err;
   CK_FUNCTION_LIST* functions;
 
-  if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
-
   // see if we have slot
   if ((slotIter = pkcs11_slots.find(sidx)) != pkcs11_slots.end()) {
-    pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slotIter->second, label);
-    return pkcs11_tokens[tidx];
+    return slotIter->second;
   }
 
 #ifdef HAVE_P11KIT1_V2
@@ -658,9 +663,21 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   // store slot
   pkcs11_slots[sidx] = std::make_shared<Pkcs11Slot>(functions, slotId);
 
-  // looks ok to me.
-  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(pkcs11_slots[sidx], label);
+  return pkcs11_slots[sidx];
+}
 
+std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label) {
+  // see if we can find module
+  std::string tidx = module;
+  tidx.append("|");
+  tidx.append(boost::lexical_cast<std::string>(slotId));
+  tidx.append("|");
+  tidx.append(label);
+  std::map<std::string, std::shared_ptr<Pkcs11Token> >::iterator tokenIter;
+  if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
+
+  std::shared_ptr<Pkcs11Slot> slot = Pkcs11Slot::GetSlot(module, slotId);
+  pkcs11_tokens[tidx] = std::make_shared<Pkcs11Token>(slot, label);
   return pkcs11_tokens[tidx];
 }
 
@@ -670,11 +687,20 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::str
   this->d_slot = slot;
   this->d_label = label;
   this->d_err = 0;
+  this->d_loaded = false;
   Lock l(d_slot->m());
   if (this->d_slot->LoggedIn()) LoadAttributes();
 }
 
 Pkcs11Token::~Pkcs11Token() {
+}
+
+bool PKCS11ModuleSlotLogin(const std::string& module, int slotId, const std::string& pin)
+{
+  std::shared_ptr<Pkcs11Slot> slot;
+  slot = Pkcs11Slot::GetSlot(module, slotId);
+  if (slot->LoggedIn()) return true; // no point failing
+  return slot->Login(pin);
 }
 
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
@@ -760,6 +786,7 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
       throw PDNSException("Not logged in to token");
 
   if (d_slot->Digest(msg, result, &mech)) {
+    L<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {

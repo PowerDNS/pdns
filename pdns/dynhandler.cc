@@ -324,32 +324,6 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
-uint64_t udpErrorStats(const std::string& str)
-{
-  ifstream ifs("/proc/net/snmp");
-  if(!ifs)
-    return 0;
-  string line;
-  vector<string> parts;
-  while(getline(ifs,line)) {
-    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
-      stringtok(parts, line, " \n\t\r");
-      if(parts.size() < 7)
-	break;
-      if(str=="udp-rcvbuf-errors")
-	return boost::lexical_cast<uint64_t>(parts[5]);
-      else if(str=="udp-sndbuf-errors")
-	return boost::lexical_cast<uint64_t>(parts[6]);
-      else if(str=="udp-noport-errors")
-	return boost::lexical_cast<uint64_t>(parts[2]);
-      else if(str=="udp-in-errors")
-	return boost::lexical_cast<uint64_t>(parts[3]);
-      else
-	return 0;
-    }
-  }
-  return 0;
-}
 
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 {
@@ -392,4 +366,25 @@ string DLPolicy(const vector<string>&parts, Utility::pid_t ppid)
   else {
     return "no policy script loaded";
   }
+}
+
+#ifdef HAVE_P11KIT1
+extern bool PKCS11ModuleSlotLogin(const std::string& module, int slot, const std::string& pin);
+#endif
+
+string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
+{
+#ifndef HAVE_P11KIT1
+  return "PKCS#11 support not compiled in";
+#else
+  if (parts.size() != 4) {
+    return "invalid number of parameters, needs 4, got " + boost::lexical_cast<string>(parts.size());
+  }
+
+  if (PKCS11ModuleSlotLogin(parts[1], boost::lexical_cast<int>(parts[2]), parts[3])) {
+    return "logged in";
+  } else {
+    return "could not log in, check logs";
+  }
+#endif
 }

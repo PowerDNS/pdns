@@ -20,3 +20,6 @@ DEPENDENCIES
   sqlite3
   webrick
   zeromqrb
+
+BUNDLED WITH
+   1.10.2

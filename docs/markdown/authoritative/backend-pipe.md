@@ -15,7 +15,19 @@
 
 The PipeBackend allows for easy dynamic resolution based on a 'Coprocess' which can be written in any programming language that can read a question on standard input and answer on standard output.
 
-The PipeBackend is primarily meant for allowing rapid development of new backends without tight integration with PowerDNS. It allows end-users to write PDNS backends in any language. A perl sample is provided. The PipeBackend is also very well suited for dynamic resolution of queries. Example applications include DNS based load balancing, geo-direction, DNS based failover with low TTLs.
+The PipeBackend is primarily meant for allowing rapid development of new
+backends without tight integration with PowerDNS.  It allows end-users to
+write PDNS backends in any language.  A perl sample is provided.  The
+PipeBackend is also very well suited for dynamic resolution of queries. 
+Example applications include DNS based load balancing, geo-direction, DNS
+based failover with low TTLs.
+
+**Note**: The [Remote Backend](backend-remote.md) offers a superset of the functionality of the PipeBackend.
+
+**Note**: Please do read the [Backend Writer' guide](../appendix/backend-writers-guide.md) carefully. The PipeBackend, like all other backends,
+must not do any DNS thinking, but answer all questions (INCLUDING THE ANY QUESTION) faithfully. Specifically, the queries that the PipeBackend receives
+will not correspond to the queries that arrived over DNS. So, a query for an AAAA record may turn into a backend query for an ANY record. There is nothing that 
+can or should be done about this.
 
 ## Configuration Parameters
 ### `pipe-command`

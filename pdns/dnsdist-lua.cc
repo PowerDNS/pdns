@@ -461,6 +461,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("add",(void (SuffixMatchNode::*)(const DNSName&)) &SuffixMatchNode::add);
   g_lua.registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
+  g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
+					 boost::optional<int> interval) {
+			auto ours = g_carbon.getCopy();
+			ours.server=ComboAddress(address, 2003);
+			if(ourName)
+			  ours.ourname=*ourName;
+			if(interval)
+			  ours.interval=*interval;
+			if(!ours.interval)
+			  ours.interval=1;
+			g_carbon.setState(ours);
+		      });
+
   g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password) {
       if(client)
 	return;

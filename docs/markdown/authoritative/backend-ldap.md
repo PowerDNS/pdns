@@ -1,5 +1,5 @@
 # LDAP backend
-**Warning**: As of PowerDNS Authoritative Server 3.0, the LDAP backend is unmaintained. While care will be taken that this backend still compiles, this backend is known to have problems in version 3.0 and beyond! Please contact powerdns.support@netherlabs.nl or visit www.powerdns.com to rectify this situation.
+**Warning**: As of PowerDNS Authoritative Server 3.0, the LDAP backend is unmaintained. While care will be taken that this backend still compiles, this backend is known to have problems in version 3.0 and beyond! Please contact <a href="mailto:powerdns.support@powerdns.com">powerdns.support@powerdns.com</a> or visit [www.powerdns.com](http://www.powerdns.com) to rectify this situation.
 
 **Warning**: Grégory Oestreicher has forked the LDAP backend shortly before our 3.2 release. Please visit his [repository](http://repo.or.cz/w/pdns-ldap-backend.git) for the latest code.
 

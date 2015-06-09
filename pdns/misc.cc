@@ -33,6 +33,7 @@
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fstream>
 #include "misc.hh"
 #include <vector>
 #include <sstream>
@@ -913,13 +914,13 @@ uint32_t burtle(const unsigned char* k, uint32_t length, uint32_t initval)
   return c;
 }
 
-void setSocketTimestamps(int fd)
+bool setSocketTimestamps(int fd)
 {
 #ifdef SO_TIMESTAMP
   int on=1;
-  if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) < 0 )
-    ; // L<<Logger::Error<<"Unable to enable timestamp reporting for socket"<<endl;
+  return setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) == 0;
 #endif
+  return true; // we pretend this happened.
 }
 
 uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
@@ -971,3 +972,69 @@ bool setCloseOnExec(int sock)
   return true;
 }
 
+uint64_t udpErrorStats(const std::string& str)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/net/snmp");
+  if(!ifs)
+    return 0;
+  string line;
+  vector<string> parts;
+  while(getline(ifs,line)) {
+    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
+      stringtok(parts, line, " \n\t\r");
+      if(parts.size() < 7)
+	break;
+      if(str=="udp-rcvbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[5]);
+      else if(str=="udp-sndbuf-errors")
+	return boost::lexical_cast<uint64_t>(parts[6]);
+      else if(str=="udp-noport-errors")
+	return boost::lexical_cast<uint64_t>(parts[2]);
+      else if(str=="udp-in-errors")
+	return boost::lexical_cast<uint64_t>(parts[3]);
+      else
+	return 0;
+    }
+  }
+#endif
+  return 0;
+}
+
+bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
+{
+  string normalizedName = toLowerCanonic(algoName);
+
+  if (normalizedName == "hmac-md5.sig-alg.reg.int" || normalizedName == "hmac-md5")
+    algoEnum = TSIG_MD5;
+  else if (normalizedName == "hmac-sha1")
+    algoEnum = TSIG_SHA1;
+  else if (normalizedName == "hmac-sha224")
+    algoEnum = TSIG_SHA224;
+  else if (normalizedName == "hmac-sha256")
+    algoEnum = TSIG_SHA256;
+  else if (normalizedName == "hmac-sha384")
+    algoEnum = TSIG_SHA384;
+  else if (normalizedName == "hmac-sha512")
+    algoEnum = TSIG_SHA512;
+  else if (normalizedName == "gss-tsig")
+    algoEnum = TSIG_GSS;
+  else {
+     return false;
+  }
+  return true;
+}
+
+string getTSIGAlgoName(TSIGHashEnum& algoEnum)
+{
+  switch(algoEnum) {
+  case TSIG_MD5: return "hmac-md5.sig-alg.reg.int";
+  case TSIG_SHA1: return "hmac-sha1";
+  case TSIG_SHA224: return "hmac-sha224";
+  case TSIG_SHA256: return "hmac-sha256";
+  case TSIG_SHA384: return "hmac-sha384";
+  case TSIG_SHA512: return "hmac-sha512";
+  case TSIG_GSS: return "gss-tsig";
+  }
+  throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
+}

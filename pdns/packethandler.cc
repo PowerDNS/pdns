@@ -1058,6 +1058,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       else
         r->setRcode(RCode::NotAuth);
       return r;
+    } else {
+      getTSIGHashEnum(trc.d_algoName, p->d_tsig_algo);
+      if (p->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname);
+        if (!gssctx.getPeerPrincipal(p->d_peer_principal)) {
+          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
     }
     p->setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
@@ -1415,64 +1423,4 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   }
   return r; 
 
-}
-
-void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
-  TKEYRecordContent tkey_in;
-  std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
-  string label, lcLabel;
-
-  if (!p->getTKEYRecord(&tkey_in, &label)) {
-    L<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
-    r->setRcode(RCode::FormErr);
-    return;
-  }
-
-  // retain original label for response
-  lcLabel = toLowerCanonic(label);
-
-  tkey_out->d_error = 0;
-  tkey_out->d_mode = tkey_in.d_mode;
-  tkey_out->d_algo = tkey_in.d_algo;
-  tkey_out->d_inception = time((time_t*)NULL);
-  tkey_out->d_expiration = tkey_out->d_inception+15;
-
-  if (tkey_in.d_mode == 3) {
-    tkey_out->d_error = 19; // BADMODE
-  } else if (tkey_in.d_mode == 5) {
-    if (p->d_havetsig == false) { // unauthenticated
-      if (p->d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused);
-      else
-        r->setRcode(RCode::NotAuth);
-      return;
-    }
-    tkey_out->d_error = 20; // BADNAME (because we have no support for anything here)
-  } else {
-    if (p->d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
-      if (p->d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused);
-      else
-        r->setRcode(RCode::NotAuth);
-      return;
-    }
-    tkey_out->d_error = 19; // BADMODE
-  }
-
-  tkey_out->d_keysize = tkey_out->d_key.size();
-  tkey_out->d_othersize = tkey_out->d_other.size();
-
-  DNSRecord rec;
-  rec.d_label = label;
-  rec.d_ttl = 0;
-  rec.d_type = QType::TKEY;
-  rec.d_class = QClass::ANY;
-  rec.d_content = tkey_out;
-
-  DNSResourceRecord rr(rec);
-  rr.qclass = QClass::ANY;
-  rr.qtype = QType::TKEY;
-  rr.d_place = DNSResourceRecord::ANSWER;
-  r->addRecord(rr);
-  r->commitD();
 }

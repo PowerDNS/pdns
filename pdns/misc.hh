@@ -21,6 +21,7 @@
 */
 #ifndef MISC_HH
 #define MISC_HH
+#include <errno.h>
 #include <inttypes.h>
 #include <cstring>
 #include <cstdio>
@@ -47,6 +48,8 @@ using namespace ::boost::multi_index;
 #include <vector>
 
 #include "namespaces.hh"
+typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
+
 bool chopOff(string &domain);
 bool chopOffDotted(string &domain);
 
@@ -67,6 +70,8 @@ uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
 uint32_t pdns_strtoui(const char *nptr, char **endptr, int base);
+bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum);
+string getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
 
@@ -543,7 +548,7 @@ unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
-void setSocketTimestamps(int fd);
+bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.
 bool setBlocking( int sock );
@@ -552,4 +557,5 @@ bool setBlocking( int sock );
 bool setNonBlocking( int sock );
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
+uint64_t udpErrorStats(const std::string& str);
 #endif

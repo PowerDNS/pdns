@@ -30,6 +30,7 @@
 #include "packetcache.hh"
 #include "dnsseckeeper.hh"
 #include "lua-auth.hh"
+#include "gss_context.hh"
 
 #include "namespaces.hh"
 
@@ -97,7 +98,7 @@ private:
   bool addDSforNS(DNSPacket* p, DNSPacket* r, SOAData& sd, const string& dsname);
   void completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, const string &target);
 
-  void tkeyHandler(DNSPacket *p, DNSPacket *r);
+  void tkeyHandler(DNSPacket *p, DNSPacket *r); //<! process TKEY record, and adds TKEY record to (r)eply, or error code.
 
   static AtomicCounter s_count;
   static pthread_mutex_t s_rfc2136lock;
