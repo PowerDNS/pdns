@@ -23,7 +23,7 @@ void doSecPoll(time_t* last_secpoll)
   struct timeval now;
   gettimeofday(&now, 0);
   SyncRes sr(now);
-  
+  sr.d_doDNSSEC=true;
   vector<DNSResourceRecord> ret;
 
   string version = "recursor-" +string(PACKAGEVERSION);
