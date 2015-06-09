@@ -2,6 +2,12 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.X.X to 3.3.2
+
+Please run "pdnssec rectify-all-zones" and trigger an AXFR for all DNSSEC
+zones to make sure you benefit from all the compliance improvements present in
+this version.
+
 # 3.4.X to HEAD
 
 ## API

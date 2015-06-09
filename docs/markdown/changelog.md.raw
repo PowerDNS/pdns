@@ -1,5 +1,62 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 3.3.2
+
+Released 1st of May, 2015
+
+Among other bug fixes and improvements (as listed below), this release
+incorporates a fix for CVE-2015-1868, as detailed in [PowerDNS Security
+Advisory 2015-01](security/powerdns-advisory-2015-01.md)
+
+If you are running DNSSEC with version 3.3.1, and you cannot currently upgrade
+to 3.4.4, please consider upgrading to 3.3.2; it has a lot of improvements and
+bug fixes and tremendously increases compliance.
+
+We want to explicitly thank Kees Monshouwer for digging up all the DNSSEC
+improvements and porting them back to this release.
+
+When upgrading, please run "pdnssec rectify-all-zones" and trigger an AXFR for
+all DNSSEC zones to make sure you benefit from all the compliance improvements
+present in this version.
+
+
+Security fixes:
+
+- [commit 9df4944](https://github.com/PowerDNS/pdns/commit/9df4944): import CVE-2015-1868 patch (Peter van Dijk)
+- [commit dbedfc5](https://github.com/PowerDNS/pdns/commit/dbedfc5): kill some further mallocs and add note to remind us not to add them back (bert hubert)
+
+Improvements:
+
+- [commit d0af589](https://github.com/PowerDNS/pdns/commit/d0af589)
+, [commit c45b6db](https://github.com/PowerDNS/pdns/commit/c45b6db)
+, [commit 88c1f21](https://github.com/PowerDNS/pdns/commit/88c1f21)
+, [commit 2a4c620](https://github.com/PowerDNS/pdns/commit/2a4c620)
+, [commit 4a4597e](https://github.com/PowerDNS/pdns/commit/4a4597e)
+, [commit 9fa7373](https://github.com/PowerDNS/pdns/commit/9fa7373)
+, [commit 8115a83](https://github.com/PowerDNS/pdns/commit/8115a83):
+implement security polling for auth
+- [commit 5bbd868](https://github.com/PowerDNS/pdns/commit/5bbd868): import suck() from master (Kees Monshouwer)
+- [commit 194f4d2](https://github.com/PowerDNS/pdns/commit/194f4d2): respond REFUSED instead of NOERROR for "unknown zone" situations (Peter van Dijk)
+- [commit 55b0653](https://github.com/PowerDNS/pdns/commit/55b0653): set AA on CNAME into referral, fixes [ticket #589](https://github.com/PowerDNS/pdns/issues/589) (Peter van Dijk)
+- [commit 71232aa](https://github.com/PowerDNS/pdns/commit/71232aa): update l.root ip (Kees Monshouwer)
+
+Bug fixes:
+
+- [commit 88c52fe](https://github.com/PowerDNS/pdns/commit/88c52fe): make makeRelative() case insensitive (Kees Monshouwer)
+
+DNSSEC improvements:
+
+- [commit b3dec9c](https://github.com/PowerDNS/pdns/commit/b3dec9c): change default for add-superfluous-nsec3-for-old-bind config option (Kees Monshouwer)
+- [commit 017a78b](https://github.com/PowerDNS/pdns/commit/017a78b): limit the number of NSEC3 iterations RFC5155 10.3 (Kees Monshouwer)
+- [commit d768d7f](https://github.com/PowerDNS/pdns/commit/d768d7f): NSEC3 and related RRSIGS are not part of the dnstree (Kees Monshouwer)
+- [commit 3a36a1c](https://github.com/PowerDNS/pdns/commit/3a36a1c): import bindbackend rectify code from master (Kees Monshouwer)
+- [commit 1ee7e22](https://github.com/PowerDNS/pdns/commit/1ee7e22): limit mode 0 closest provable encloser to optout (Kees Monshouwer)
+- [commit bbc0bc5](https://github.com/PowerDNS/pdns/commit/bbc0bc5): fix for errata 3441 of RFC5155 (Kees Monshouwer)
+- [commit e8bfa7b](https://github.com/PowerDNS/pdns/commit/e8bfa7b): allow covering NSEC3 record in NODATA response (Kees Monshouwer)
+- [commit f0b3b24](https://github.com/PowerDNS/pdns/commit/f0b3b24): return NOTIMP for direct RRSIG request (Kees Monshouwer)
+- [commit c79addc](https://github.com/PowerDNS/pdns/commit/c79addc): import pdnssec checkZone() from master (Kees Monshouwer)
+- [commit 2f1fec7](https://github.com/PowerDNS/pdns/commit/2f1fec7): import pdnssec rectifyZone() from master (Kees Monshouwer)
+
 # PowerDNS Recursor 3.7.2
 
 Released 23rd of April, 2015
