@@ -68,14 +68,6 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     throw PDNSException(backendName+"Unable to launch connection: "+e.txtReason());
   }
 
-  string rrtable=getArg("rr-table");
-  string soatable=getArg("soa-table");
-  string rrwhere=(mustDo("rr-active")?"(active = '1' or active = 'Y') and ":"")+getArg("rr-where");
-  string soawhere=(mustDo("soa-active")?"(active = '1' or active = 'Y') and ":"")+getArg("soa-where");
-
-  if (soatable.empty()) { throw PDNSException("SOA Table must not be empty"); }
-  if (rrtable.empty()) { throw PDNSException("Records table must not be empty"); }
-
   d_useminimalttl=mustDo("use-minimal-ttl");
   d_minimum=0;
 
@@ -83,42 +75,20 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
 
   try {
 
-    string domainIdQuery = "SELECT origin, minimum FROM `"+soatable+"` WHERE id = ?";
-    string domainNoIdQuery = "SELECT id, origin, minimum FROM `"+soatable+"` WHERE origin = ?";
-    string soaQuery = "SELECT id, mbox, serial, ns, refresh, retry, expire, minimum, ttl FROM `"+soatable+"` WHERE origin = ?";
-
-    if (!soawhere.empty()) {
-      domainIdQuery += " AND " + soawhere;  
-      domainNoIdQuery += " AND " + soawhere;
-      soaQuery += " AND "+soawhere;
-    }
+    string domainIdQuery = getArg("domain-id-query");
+    string domainNoIdQuery = getArg("domain-no-id-query");
+    string soaQuery = getArg("soa-query");
+    string listQuery = getArg("list-query");
+    string basicQuery = getArg("basic-query");
+    string anyQuery = getArg("any-query");
 
     d_domainIdQuery_stmt = d_db->prepare(domainIdQuery, 1);
     d_domainNoIdQuery_stmt = d_db->prepare(domainNoIdQuery, 1);
     d_soaQuery_stmt = d_db->prepare(soaQuery, 1);
-  
-    string listQuery = "SELECT type, data, aux, ttl, zone, name FROM `"+rrtable+"` WHERE zone = ?";
-    string basicQuery = "SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?) AND type = ?";
-    string anyQuery = "(SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?)";
- 
-   if (!rrwhere.empty()) {
-     listQuery += " AND "+rrwhere;
-     basicQuery += " AND " + rrwhere;
-     anyQuery += " AND " + rrwhere;
-    }
-
     d_listQuery_stmt = d_db->prepare(listQuery, 1);
-  
-    anyQuery += ") UNION (SELECT 'SOA' AS type, origin AS data, '0' AS aux, ttl, id AS zone FROM `"+soatable+"` WHERE id = ? AND origin = ?";
-
-    if (!soawhere.empty())
-      anyQuery += " AND "+soawhere;
-  
-    basicQuery += " ORDER BY type,aux,data";
-    anyQuery += ") ORDER BY type,aux,data";
-  
     d_basicQuery_stmt = d_db->prepare(basicQuery, 4);
     d_anyQuery_stmt = d_db->prepare(anyQuery, 5);
+
   } catch (SSqlException &e) {
     L<<Logger::Error<<"Cannot prepare statements: " << e.txtReason() <<endl;
     throw PDNSException("Cannot prepare statements: " + e.txtReason());
@@ -442,12 +412,12 @@ public:
     declare(suffix,"port","Pdns backend host to connect to","");
     declare(suffix,"password","Pdns backend password to connect with","");
     declare(suffix,"socket","Pdns backend socket to connect to","");
-    declare(suffix,"rr-table","Name of RR table to use","rr");
-    declare(suffix,"soa-table","Name of SOA table to use","soa");
-    declare(suffix,"soa-where","Additional WHERE clause for SOA","1 = 1");
-    declare(suffix,"rr-where","Additional WHERE clause for RR","1 = 1");
-    declare(suffix,"soa-active","Use the active column in the SOA table","yes");
-    declare(suffix,"rr-active","Use the active column in the RR table","yes");
+    declare(suffix,"domain-id-query","Domain id query","SELECT `origin`, `minimum` FROM `soa` WHERE `id` = ? AND (`active` = '1' OR `active` = 'Y')");
+    declare(suffix,"domain-no-id-query","Domain no id query","SELECT `id`, `origin`, `minimum` FROM `soa` WHERE `origin` = ? AND (`active` = '1' OR `active` = 'Y')");
+    declare(suffix,"soa-query","SOA query","SELECT `id`, `mbox`, `serial`, `ns`, `refresh`, `retry`, `expire`, `minimum`, `ttl` FROM `soa` WHERE `origin` = ? AND (`active` = '1' OR `active` = 'Y')");
+    declare(suffix,"basic-query","Basic query","SELECT `type`, `data`, `aux`, `ttl`, `zone` FROM `rr` WHERE `zone` = ? AND (`name` = ? OR `name` = ?) AND `type` = ? AND (`active` = '1' OR `active` = 'Y') ORDER BY `type`, `aux`, `data`");
+    declare(suffix,"any-query","ANY query","(SELECT `type`, `data`, `aux`, `ttl`, `zone`, `active` FROM `rr` WHERE `zone` = ? AND (`name` = ? OR `name` = ?) AND (`active` = '1' OR `active` = 'Y')) UNION (SELECT 'SOA' AS `type`, `origin` AS `data`, '0' AS `aux`, `ttl`, `id` AS `zone`, `active` FROM `soa` WHERE `id` = ? AND `origin` = ? AND (`active` = '1' OR `active` = 'Y')) ORDER BY `type`, `aux`, `data`");
+    declare(suffix,"list-query","List query","SELECT `type`, `data`, `aux`, `ttl`, `zone`, `name` FROM `rr` WHERE `zone` = ? AND (`active` = '1' OR `active` = 'Y')");
     declare(suffix,"use-minimal-ttl","Setting this to 'yes' will make the backend behave like MyDNS on the TTL values. Setting it to 'no' will make it ignore the minimal-ttl of the zone.","yes");
   }
 
