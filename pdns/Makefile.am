@@ -995,6 +995,7 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
+	test-delaypipe_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
@@ -1023,6 +1024,7 @@ testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
+	$(RT_LIBS) \
 	$(LIBDL)
 
 if PKCS11

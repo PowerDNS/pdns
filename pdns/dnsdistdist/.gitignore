@@ -18,6 +18,8 @@
 /config.sub
 /configure
 /depcomp
+/delaypipe.cc
+/delaypipe.hh
 /dns.hh
 /dnsdist-lua.cc
 /dnsdist-tcp.cc
