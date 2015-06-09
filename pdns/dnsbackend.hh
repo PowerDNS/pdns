@@ -381,6 +381,7 @@ public:
     return false;
   }
 
+  const string& getPrefix() { return d_prefix; };
 protected:
   bool mustDo(const string &key);
   const string &getArg(const string &key);
