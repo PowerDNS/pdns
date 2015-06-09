@@ -406,10 +406,17 @@ string PacketReader::getLabel()
   vector<uint8_t> content(d_content);
   content.insert(content.begin(), sizeof(dnsheader), 0);
 
-  string ret = DNSName((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed).toString();
+  try {
+    string ret = DNSName((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed).toString();
+    
+    d_pos+=consumed;
+    return ret;
+  }
+  catch(...)
+    {
+      throw std::out_of_range("dnsname issue");
+    }
 
-  d_pos+=consumed;
-  return ret;
 }
 
 static string txtEscape(const string &name)
