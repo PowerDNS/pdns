@@ -481,6 +481,8 @@ void reportBasicTypes()
   DNSRecordContent::regist(QClass::CHAOS, QType::TXT, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
   DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
+  DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
+  DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");
 }
 
 void reportOtherTypes()
