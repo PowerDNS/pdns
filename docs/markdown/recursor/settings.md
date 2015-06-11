@@ -328,6 +328,7 @@ Local port to bind to.
 ## `non-local-bind`
 * Boolean
 * Default: no
+* Available since: 4.0.0
 
 Bind to addresses even if one or more of the [`local-address`'s](#local-address)
 do not exist on this server. Setting this option will enable the needed socket
