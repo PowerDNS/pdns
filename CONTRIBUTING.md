@@ -58,6 +58,11 @@ And must:
 * Be filed against the master branch before any release branch
 * Pass all tests in Travis
 
+Information on the tests can be found in the repository at
+[/regression-tests/README.md](https://github.com/PowerDNS/pdns/blob/master/regression-tests/README.md)
+and
+[/regression-tests.recursor/README.md](https://github.com/PowerDNS/pdns/blob/master/regression-tests.recursor/README.md).
+
 ## Commit Guidelines
 * Tell why the change does what it does, not how it does it.
 * The first line should be short (preferebly less than 50 characters)
