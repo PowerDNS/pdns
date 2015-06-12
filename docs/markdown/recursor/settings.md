@@ -74,7 +74,8 @@ are doing. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphi
 * Available since: 3.5.3
 
 If set to an IP or IPv6 address, will send all available metrics to this server
-via the carbon protocol, which is used by graphite and metronome. See
+via the carbon protocol, which is used by graphite and metronome.  You may specify 
+an alternate port by appending :port, ex: 127.0.0.1:2004. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-interval`
