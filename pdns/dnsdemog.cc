@@ -14,13 +14,12 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 StatBag S;
 
 struct Entry
 {
-  uint32_t ip;
+  ComboAddress ip;
   uint16_t port;
   uint16_t id;
 
@@ -52,7 +51,7 @@ try
 
           MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
 
-          memcpy(&entry.ip, &pr.d_ip->ip_src, 4);
+          entry.ip = pr.getSource();
           entry.port = pr.d_udp->uh_sport;
           entry.id=dh->id;
 
@@ -64,7 +63,7 @@ try
               break;
           }
           if(pos ==mdp.d_qname.size()) {
-            cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << U32ToIP(ntohl(entry.ip)) <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
+            cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << entry.ip.toString() <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
             cout <<", '"<<mdp.d_qname<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
             cout <<", "<< ntohs(dh->arcount) <<");\n";
           }

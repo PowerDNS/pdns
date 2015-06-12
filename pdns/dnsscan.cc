@@ -70,7 +70,7 @@ try
         
       }
       catch(MOADNSException &e) {
-        cout<<"Error from remote "<<U32ToIP(ntohl(*((uint32_t*)&pr.d_ip->ip_src)))<<": "<<e.what()<<"\n";
+        cout<<"Error from remote "<<pr.getSource().toString()<<": "<<e.what()<<"\n";
         //        sock.sendTo(string(pr.d_payload, pr.d_payload + pr.d_len), remote);
       }
     }
