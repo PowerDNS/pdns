@@ -14,6 +14,7 @@ EXTRA_DIST = \
 	contrib/powerdns.solaris.init.d \
 	contrib/systemd-pdns-recursor.service \
 	contrib/systemd-pdns.service \
+	contrib/systemd-pdns@.service \
 	debian \
 	pdns.spec \
 	pdns/named.conf.parsertest \
