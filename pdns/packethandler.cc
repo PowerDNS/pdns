@@ -765,13 +765,13 @@ How MySQLBackend would implement this:
    
 */     
 
-int PacketHandler::trySuperMaster(DNSPacket *p)
+int PacketHandler::trySuperMaster(DNSPacket *p, const string& tsigkeyname)
 {
   if(p->d_tcp)
   {
     // do it right now if the client is TCP
     // rarely happens
-    return trySuperMasterSynchronous(p);
+    return trySuperMasterSynchronous(p, tsigkeyname);
   }
   else
   {
@@ -781,7 +781,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p)
   }
 }
 
-int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
+int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const string& tsigkeyname)
 {
   Resolver::res_t nsset;
   try {
@@ -819,6 +819,11 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   }
   try {
     db->createSlaveDomain(p->getRemote(), p->qdomain, nameserver, account);
+    if (tsigkeyname.empty() == false) {
+      vector<string> meta;
+      meta.push_back(tsigkeyname);
+      db->setDomainMetadata(p->qdomain, "AXFR-MASTER-TSIG", meta);
+    }
   }
   catch(PDNSException& ae) {
     L<<Logger::Error<<"Database error trying to create "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<": "<<ae.reason<<endl;
@@ -838,7 +843,6 @@ int PacketHandler::processNotify(DNSPacket *p)
      if master is higher -> do stuff
   */
   vector<string> meta;
-  string tsigkeyname;
 
   if(!::arg().mustDo("slave")) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
@@ -846,17 +850,8 @@ int PacketHandler::processNotify(DNSPacket *p)
   }
 
   if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote ) || p->d_havetsig) {
-    if (p->d_havetsig) {
-      TSIGRecordContent trc;
-      UeberBackend B;
-      string tsigsecret;
-
-      if (!checkForCorrectTSIG(p, &B, &tsigkeyname, &tsigsecret, &trc)) {
-        L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but TSIG key '"<<tsigkeyname<<"' signature is invalid"<<endl;
-        return RCode::Refused;
-      } else {
-        L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<tsigkeyname<<"'"<<endl;
-      }
+    if (p->d_havetsig && p->getTSIGKeyname().empty() == false) {
+        L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
     } else {
       L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
       return RCode::Refused;
@@ -868,14 +863,13 @@ int PacketHandler::processNotify(DNSPacket *p)
   di.serial = 0;
   if(!B.getDomainInfo(p->qdomain, di) || !(db=di.backend)) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
-    return trySuperMaster(p);
+    return trySuperMaster(p, p->getTSIGKeyname());
   }
-
 
   meta.clear();
   if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
-    if (!p->d_havetsig || meta[0] != tsigkeyname) {
-      L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<tsigkeyname<<"'"<<endl;
+    if (!p->d_havetsig || meta[0] != p->getTSIGKeyname()) {
+      L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
       return RCode::Refused;
     }
   }
