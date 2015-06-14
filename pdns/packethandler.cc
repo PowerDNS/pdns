@@ -832,18 +832,35 @@ int PacketHandler::processNotify(DNSPacket *p)
 {
   /* now what? 
      was this notification from an approved address?
+     was this notification approved by TSIG?
      We determine our internal SOA id (via UeberBackend)
      We determine the SOA at our (known) master
      if master is higher -> do stuff
   */
+  vector<string> meta;
+  string tsigkeyname;
+
   if(!::arg().mustDo("slave")) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but slave support is disabled in the configuration"<<endl;
     return RCode::NotImp;
   }
 
-  if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote )) {
-    L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not in allow-notify-from"<<endl;
-    return RCode::Refused;
+  if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote ) || p->d_havetsig) {
+    if (p->d_havetsig) {
+      TSIGRecordContent trc;
+      UeberBackend B;
+      string tsigsecret;
+
+      if (!checkForCorrectTSIG(p, &B, &tsigkeyname, &tsigsecret, &trc)) {
+        L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but TSIG key '"<<tsigkeyname<<"' signature is invalid"<<endl;
+        return RCode::Refused;
+      } else {
+        L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<tsigkeyname<<"'"<<endl;
+      }
+    } else {
+      L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
+      return RCode::Refused;
+    }
   }
 
   DNSBackend *db=0;
@@ -853,7 +870,16 @@ int PacketHandler::processNotify(DNSPacket *p)
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" for which we are not authoritative"<<endl;
     return trySuperMaster(p);
   }
-    
+
+
+  meta.clear();
+  if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
+    if (!p->d_havetsig || meta[0] != tsigkeyname) {
+      L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<tsigkeyname<<"'"<<endl;
+      return RCode::Refused;
+    }
+  }
+
   if(::arg().contains("trusted-notification-proxy", p->getRemote())) {
     L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from trusted-notification-proxy "<< p->getRemote()<<endl;
     if(di.masters.empty()) {
