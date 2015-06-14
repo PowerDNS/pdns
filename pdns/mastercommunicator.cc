@@ -38,7 +38,7 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
-
+#include "base64.hh"
 #include "namespaces.hh"
 
 
@@ -218,10 +218,36 @@ time_t CommunicatorClass::doNotifications()
 
 void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id)
 {
+  UeberBackend B;
+  vector<string> meta;
+  string tsigkeyname;
+  string tsigalgorithm;
+  string tsigsecret64;
+  string tsigsecret;
+
+  if (B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+    tsigkeyname = meta[0];
+  }
+
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = id;
   pw.getHeader()->aa = true; 
+
+  if (tsigkeyname.empty() == false) {
+    B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
+    TSIGRecordContent trc;
+    if (tsigalgorithm == "hmac-md5")
+      trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    else
+      trc.d_algoName = tsigalgorithm;
+    trc.d_time = time(0);
+    trc.d_fudge = 300;
+    trc.d_origID=ntohs(id);
+    trc.d_eRcode=0;
+    B64Decode(tsigsecret64, tsigsecret);
+    addTSIG(pw, &trc, tsigkeyname, tsigsecret, "", false);
+  }
 
   if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
     throw ResolverException("Unable to send notify to "+remote.toStringWithPort()+": "+stringerror());
