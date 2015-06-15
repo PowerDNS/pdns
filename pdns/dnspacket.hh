@@ -144,6 +144,10 @@ public:
   DNSName qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
   DNSName qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
   string d_peer_principal;
+  const DNSName& getTSIGKeyname() const;
+
+  ComboAddress d_remote;
+  uint16_t qclass;  //!< class of the question - should always be INternet 2
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
 
   uint16_t qclass;  //!< class of the question - should always be INternet 2
