@@ -695,7 +695,7 @@ Creates new domain. This method is called when NOTIFY is received and you are su
 
 Mandatory: No
 Parameters: ip, domain
-Optional parameters: account
+Optional parameters: nameserver, account
 Reply: true for success, false for failure
 
 #### Example JSON/RPC
