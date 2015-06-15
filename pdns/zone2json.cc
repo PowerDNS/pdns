@@ -200,7 +200,7 @@ try
           ++i)
         {
           if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toStringNoDot()<<"'"<<endl;
             continue;
           }
           lines.clear(); 
@@ -208,8 +208,8 @@ try
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
             while(zpt.get(rr)) 
-              lines.push_back(emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
-            cout << "{\"name\":\"" << i->name << "\",\"records\": ";
+              lines.push_back(emitRecord(i->name.toStringNoDot(), rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
+            cout << "{\"name\":\"" << i->name.toStringNoDot() << "\",\"records\": ";
             emitJson(lines);
             cout << "},";
             num_domainsdone++;
@@ -238,7 +238,7 @@ try
       string zname; 
       cout << "{\"name\":\"" << ::arg()["zone-name"] << "\",\"records\":";
       while(zpt.get(rr)) 
-        lines.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
+        lines.push_back(emitRecord(::arg()["zone-name"], rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
       emitJson(lines);
       cout << "}\n";
       num_domainsdone=1;

@@ -389,13 +389,13 @@ try
           ++i)
         {
           if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toStringNoDot()<<"'"<<endl;
             continue;
           }
           try {
             startNewTransaction();
             
-            emitDomain(i->name, &(i->masters));
+            emitDomain(i->name.toStringNoDot(), &(i->masters));
             
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
@@ -407,7 +407,7 @@ try
               if(rr.qtype.getCode() == QType::SOA)
                 seenSOA=true;
 
-              emitRecord(i->name, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+              emitRecord(i->name.toStringNoDot(), rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl, comment);
             }
             num_domainsdone++;
           }
