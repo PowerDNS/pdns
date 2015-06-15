@@ -49,7 +49,8 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist \
-	dnsdistdist/html
+	dnsdistdist/html \
+	delaypipe.hh delaypipe.cc
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
