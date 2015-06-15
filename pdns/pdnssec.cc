@@ -1293,6 +1293,7 @@ try
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
+    cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
     cerr<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
@@ -2263,6 +2264,101 @@ try
     cerr<<"PKCS#11 support not enabled"<<endl;
     return 1; 
 #endif
+  } else if (cmds[0] == "b2b-migrate") {
+    if (cmds.size() < 3) {
+      cerr<<"Usage: b2b-migrate old new"<<endl;
+      return 1;
+    }
+
+    DNSBackend *src,*tgt;
+    src = tgt = NULL;
+
+    for(DNSBackend *b : BackendMakers().all()) {
+      if (b->getPrefix() == cmds[1]) src = b;
+      if (b->getPrefix() == cmds[2]) tgt = b;
+    }
+    if (!src) {
+      cerr<<"Unknown source backend '"<<cmds[1]<<"'"<<endl;
+      return 1;
+    }
+    if (!tgt) {
+      cerr<<"Unknown target backend '"<<cmds[2]<<"'"<<endl;
+      return 1;
+    }
+
+    cout<<"Moving zone(s) from "<<src->getPrefix()<<" to "<<tgt->getPrefix()<<endl;
+
+    vector<DomainInfo> domains;
+
+    tgt->getAllDomains(&domains, true);
+    if (domains.size()>0)
+      throw PDNSException("Target backend has domain(s), please clean it first");
+
+    src->getAllDomains(&domains, true);
+    // iterate zones
+    for(const DomainInfo& di: domains) {
+      size_t nr,nc,nm,nk;
+      DNSResourceRecord rr;
+      cout<<"Processing '"<<di.zone<<"'"<<endl;
+      // create zone
+      if (!tgt->createDomain(di.zone)) throw PDNSException("Failed to create zone");
+      tgt->setKind(di.zone, di.kind);
+      tgt->setAccount(di.zone,di.account);
+      for(const string& master: di.masters) {
+        tgt->setMaster(di.zone, master);
+      }
+      // move records
+      if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
+      nr=0;
+      while(src->get(rr)) {
+        if (!tgt->feedRecord(rr)) throw PDNSException("Failed to feed record");
+        nr++;
+      }
+      // move comments
+      nc=0;
+      if (src->listComments(di.id)) {
+        Comment c;
+        while(src->getComment(c)) {
+          tgt->feedComment(c);
+          nc++;
+        }
+      }
+      // move metadata
+      nm=0;
+      std::map<std::string, std::vector<std::string> > meta;
+      if (src->getAllDomainMetadata(di.zone, meta)) {
+        std::map<std::string, std::vector<std::string> >::iterator i;
+        for(i=meta.begin(); i != meta.end(); i++) {
+          if (!tgt->setDomainMetadata(di.zone, i->first, i->second)) throw PDNSException("Failed to feed domain metadata");
+          nm++;
+        }
+      }
+      // move keys
+      nk=0;
+      std::vector<DNSBackend::KeyData> keys;
+      if (src->getDomainKeys(di.zone, 0, keys)) {
+        for(const DNSBackend::KeyData& k: keys) {
+          tgt->addDomainKey(di.zone, k);
+          nk++;
+        }
+      }
+      cout<<"Moved "<<nr<<" record(s), "<<nc<<" comment(s), "<<nm<<" metadata(s) and "<<nk<<" cryptokey(s)"<<endl;
+    }
+
+    int ntk=0;
+    // move tsig keys
+    std::vector<struct TSIGKey> tkeys;
+    if (src->getTSIGKeys(tkeys)) {
+      for(const struct TSIGKey& tk: tkeys) {
+        if (!tgt->setTSIGKey(tk.name, tk.algorithm, tk.key)) throw PDNSException("Failed to feed TSIG key");
+        ntk++;
+      }
+    }
+    cout<<"Moved "<<ntk<<" TSIG key(s)"<<endl;
+
+    cout<<"Remember to drop the old backend and run rectify-all-zones"<<endl;
+
+    return 0;
   } else {
     cerr<<"Unknown command '"<<cmds[0] <<"'"<< endl;
     return 1;
