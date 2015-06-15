@@ -149,7 +149,7 @@ static void fillZone(const string& zonename, HttpResponse* resp)
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
-  doc.AddMember("name", iter->first.c_str(), doc.GetAllocator());
+  doc.AddMember("name", iter->first.toString().c_str(), doc.GetAllocator());
   doc.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
   Value servers;
   servers.SetArray();
@@ -166,7 +166,7 @@ static void fillZone(const string& zonename, HttpResponse* resp)
   BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
     Value object;
     object.SetObject();
-    Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+    Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
     object.AddMember("name", jname, doc.GetAllocator());
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
@@ -311,13 +311,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     Value jdi;
     jdi.SetObject();
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-    string zoneId = apiZoneNameToId(val.first);
+    string zoneId = apiZoneNameToId(val.first.toString());
     Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("id", jzoneid, doc.GetAllocator());
     string url = "/servers/localhost/zones/" + zoneId;
     Value jurl(url.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("url", jurl, doc.GetAllocator());
-    jdi.AddMember("name", val.first.c_str(), doc.GetAllocator());
+    jdi.AddMember("name", val.first.toString().c_str(), doc.GetAllocator());
     jdi.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
     Value servers;
     servers.SetArray();
@@ -379,14 +379,14 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   doc.SetArray();
 
   BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
-    string zoneId = apiZoneNameToId(val.first);
-    if (pdns_ci_find(val.first, q) != string::npos) {
+    string zoneId = apiZoneNameToId(val.first.toString());
+    if (pdns_ci_find(val.first.toString(), q) != string::npos) {
       Value object;
       object.SetObject();
       object.AddMember("type", "zone", doc.GetAllocator());
       Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
       object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(val.first.c_str(), doc.GetAllocator()); // copy
+      Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jzoneName, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
@@ -399,7 +399,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     const SyncRes::AuthDomain& zone = val.second;
 
     BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
-      if (pdns_ci_find(rr.qname, q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
+      if (pdns_ci_find(rr.qname.toString(), q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
         continue;
 
       Value object;
@@ -407,9 +407,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       object.AddMember("type", "record", doc.GetAllocator());
       Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
       object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(val.first.c_str(), doc.GetAllocator()); // copy
+      Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("zone_name", jzoneName, doc.GetAllocator());
-      Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+      Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
       Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
       object.AddMember("content", jcontent, doc.GetAllocator());
@@ -424,7 +424,7 @@ static void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
-  string canon = toCanonic("", req->getvars["domain"]);
+  DNSName canon = req->getvars["domain"];
   int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
   map<string, string> object;
@@ -465,31 +465,31 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     req->getvars.erase("command");
   }
 
-  map<string, string> stats; 
+  map<string, string> stats;
   if(command == "get-query-ring") {
-    typedef pair<string,uint16_t> query_t;
+    typedef pair<DNSName,uint16_t> query_t;
     vector<query_t> queries;
     bool filter=!req->getvars["public-filtered"].empty();
-      
+
     if(req->getvars["name"]=="servfail-queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetServfailQueryRing);
     else if(req->getvars["name"]=="queries")
       queries=broadcastAccFunction<vector<query_t> >(pleaseGetQueryRing);
-    
+
     typedef map<query_t,unsigned int> counts_t;
     counts_t counts;
     unsigned int total=0;
     BOOST_FOREACH(const query_t& q, queries) {
       total++;
       if(filter)
-	counts[make_pair(getRegisteredName(toLower(q.first)), q.second)]++;
-      else 
-	counts[make_pair(toLower(q.first), q.second)]++;
+	counts[make_pair(getRegisteredName(q.first), q.second)]++;
+      else
+	counts[make_pair(q.first, q.second)]++;
     }
-    
+
     typedef std::multimap<int, query_t> rcounts_t;
     rcounts_t rcounts;
-  
+
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
       rcounts.insert(make_pair(-i->second, i->first));
 
@@ -500,11 +500,11 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     unsigned int tot=0, totIncluded=0;
     BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
       Value arr;
-      
+
       arr.SetArray();
       totIncluded-=q.first;
       arr.PushBack(-q.first, doc.GetAllocator());
-      arr.PushBack(q.second.first.c_str(), doc.GetAllocator());
+      arr.PushBack(q.second.first.toString().c_str(), doc.GetAllocator());
       arr.PushBack(DNSRecordContent::NumberToType(q.second.second).c_str(), doc.GetAllocator());
       entries.PushBack(arr, doc.GetAllocator());
       if(tot++>=100)
@@ -518,7 +518,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       arr.PushBack("", doc.GetAllocator());
       entries.PushBack(arr, doc.GetAllocator());
     }
-    doc.AddMember("entries", entries, doc.GetAllocator());  
+    doc.AddMember("entries", entries, doc.GetAllocator());
     resp->setBody(doc);
     return;
   }
@@ -530,7 +530,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetServfailRemotes);
     else if(req->getvars["name"]=="large-answer-remotes")
       queries=broadcastAccFunction<vector<ComboAddress> >(pleaseGetLargeAnswerRemotes);
-    
+
     typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;
     unsigned int total=0;
@@ -538,14 +538,14 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       total++;
       counts[q]++;
     }
-    
+
     typedef std::multimap<int, ComboAddress> rcounts_t;
     rcounts_t rcounts;
-  
+
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
       rcounts.insert(make_pair(-i->second, i->first));
 
-    
+
     Document doc;
     doc.SetObject();
     Value entries;
@@ -554,10 +554,10 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
       totIncluded-=q.first;
       Value arr;
-      
+
       arr.SetArray();
       arr.PushBack(-q.first, doc.GetAllocator());
-      Value jname(q.second.toString().c_str(), doc.GetAllocator()); // copy 
+      Value jname(q.second.toString().c_str(), doc.GetAllocator()); // copy
       arr.PushBack(jname, doc.GetAllocator());
       entries.PushBack(arr, doc.GetAllocator());
       if(tot++>=100)
@@ -571,7 +571,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
       entries.PushBack(arr, doc.GetAllocator());
     }
 
-    doc.AddMember("entries", entries, doc.GetAllocator());  
+    doc.AddMember("entries", entries, doc.GetAllocator());
     resp->setBody(doc);
     return;
   } else {
@@ -611,7 +611,7 @@ void AsyncWebServer::serveConnection(Socket *client)
   YaHTTP::AsyncRequestLoader yarl;
   yarl.initialize(&req);
   client->setNonBlocking();
- 
+
   string data;
   try {
     while(!req.complete) {
