@@ -16,6 +16,7 @@
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 #include "yahttp/yahttp.hpp"
+#include <sstream>
 
 #ifdef REMOTEBACKEND_ZEROMQ
 #include <zmq.h>
@@ -28,6 +29,7 @@
 #endif
 #define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
 #define JSON_ADD_MEMBER(obj, name, val, alloc) { rapidjson::Value __xval; __xval = val; obj.AddMember(name, __xval, alloc); }
+#define JSON_ADD_MEMBER_DNSNAME(obj, name, val, alloc) { rapidjson::Value __xval(val.toStringNoDot().c_str(), alloc); obj.AddMember(name, __xval, alloc); }
 
 class Connector {
    public:
@@ -131,36 +133,36 @@ class RemoteBackend : public DNSBackend
   RemoteBackend(const std::string &suffix="");
   ~RemoteBackend();
 
-  void lookup(const QType &qtype, const std::string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
+  void lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
   bool get(DNSResourceRecord &rr);
-  bool list(const std::string &target, int domain_id, bool include_disabled=false);
+  bool list(const DNSName& target, int domain_id, bool include_disabled=false);
 
-  virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  virtual bool getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
   virtual bool getTSIGKey(const std::string& name, std::string* algorithm, std::string* content);
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-  virtual bool setDomainMetadata(const string& name, const string& kind, const std::vector<std::basic_string<char> >& meta);
-  virtual bool removeDomainKey(const string& name, unsigned int id);
-  virtual int addDomainKey(const string& name, const KeyData& key);
-  virtual bool activateDomainKey(const string& name, unsigned int id);
-  virtual bool deactivateDomainKey(const string& name, unsigned int id);
-  virtual bool getDomainInfo(const string&, DomainInfo&);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
+  virtual bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char> >& meta);
+  virtual bool removeDomainKey(const DNSName& name, unsigned int id);
+  virtual int addDomainKey(const DNSName& name, const KeyData& key);
+  virtual bool activateDomainKey(const DNSName& name, unsigned int id);
+  virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
+  virtual bool getDomainInfo(const DNSName& domain, DomainInfo& di);
   virtual void setNotified(uint32_t id, uint32_t serial);
   virtual bool doesDNSSEC();
-  virtual bool isMaster(const string &name, const string &ip);
-  virtual bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb);
-  virtual bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
-  virtual bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
+  virtual bool isMaster(const DNSName& name, const string &ip);
+  virtual bool superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb);
+  virtual bool createSlaveDomain(const string &ip, const DNSName& domain, const string& nameserver, const string &account);
+  virtual bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
   virtual bool feedRecord(const DNSResourceRecord &r, string *ordername);
-  virtual bool feedEnts(int domain_id, map<string,bool>& nonterm);
-  virtual bool feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow);
-  virtual bool startTransaction(const string &domain, int domain_id);
+  virtual bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
+  virtual bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, unsigned int times, const string &salt, bool narrow);
+  virtual bool startTransaction(const DNSName& domain, int domain_id);
   virtual bool commitTransaction();
   virtual bool abortTransaction();
-  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
-  virtual bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  virtual bool deleteTSIGKey(const string& name);
+  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
+  virtual bool setTSIGKey(const std::string& name, const string& algorithm, const string& content);
+  virtual bool deleteTSIGKey(const std::string& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
   static DNSBackend *maker();
