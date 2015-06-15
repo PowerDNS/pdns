@@ -539,7 +539,11 @@ public:
   {
     return regexec(&d_preg,line.c_str(),0,0,0)==0;
   }
-  
+  bool match(const DNSName& name)
+  {
+    return match(name.toStringNoDot());
+  }
+
 private:
   regex_t d_preg;
 };
