@@ -27,13 +27,13 @@ protected: // FIXME?
   bool getFromTable(const std::string& key, std::string& value);
   bool getFromTable(const std::string& key, uint32_t& value);
   bool d_failed;
-  bool d_variable;  
+  bool d_variable;
   ComboAddress d_local;
 };
 // enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
 namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records);
-void popResourceRecordsTable(lua_State *lua, const string &query, vector<DNSResourceRecord>& ret);
+void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSResourceRecord>& ret);
 void pushSyslogSecurityLevelTable(lua_State *lua);
 int getLuaTableLength(lua_State* lua, int depth);
 void luaStackDump (lua_State *L);
