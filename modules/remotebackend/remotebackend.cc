@@ -716,9 +716,12 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    *ddb = this;
    
    // we allow simple true as well...
-   if (answer["result"].IsObject() && answer["result"].HasMember("account")) 
-     *account = getString(answer["result"]["account"]);
-
+   if (answer["result"].IsObject()) {
+     if (answer["result"].HasMember("account")) 
+       *account = getString(answer["result"]["account"]);
+     if (answer["result"].HasMember("nameserver"))
+       *nameserver = getString(answer["result"]["nameserver"]);
+   }
    return true;
 }
 

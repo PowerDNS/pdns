@@ -646,7 +646,7 @@ Creates new domain with given record(s) as master servers. IP address is the add
 
 * Mandatory: No
 * Parameters: ip,domain,nsset,account
-* Reply: true for success, false for failure. can also return account=&gt;name of account
+* Reply: true for success, false for failure. can also return account=&gt;name of account&lt; and nameserver.
 
 #### Example JSON/RPC
 Query:
@@ -661,7 +661,7 @@ Response:
 
 Alternative response:
 ```
-{"result":{"account":"my account"}}
+{"result":{"account":"my account","nameserver":"ns2.example.com"}}
 ```
 
 #### Example HTTP/RPC
