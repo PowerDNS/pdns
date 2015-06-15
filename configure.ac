@@ -1,9 +1,6 @@
 AC_PREREQ([2.61])
 
-dnl The following lines may be patched by set-version-auth.
-AC_INIT([pdns], [git])
-dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
-dnl End patch area.
+AC_INIT([pdns], m4_esyscmd_s(build-aux/gen-version))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
@@ -29,7 +26,6 @@ PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-
 
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
@@ -78,8 +74,6 @@ LT_INIT([disable-static dlopen])
 
 MC_TM_GMTOFF
 
-AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
-
 # Define full_libdir to be the fully expanded (${exec_prefix}, etc.)
 # "system" library path.
 # We use this to search for other libraries.
@@ -124,6 +118,7 @@ BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
 
 PDNS_ENABLE_UNIT_TESTS
+PDNS_ENABLE_REPRODUCIBLE
 
 PDNS_WITH_SQLITE3
 
