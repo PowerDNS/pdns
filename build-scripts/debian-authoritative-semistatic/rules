@@ -16,7 +16,7 @@ build-static stamp-build-static:
 		--infodir='$${datadir}/info' \
 		--mandir='$${datadir}/man' \
 		--with-pgsql-lib=/opt/postgresql/lib --with-pgsql-includes=/opt/postgresql/include \
-		--with-modules="bind gmysql gpgsql pipe gsqlite3 lua geo geoip tinydns mydns opendbx remote random" \
+		--with-modules="bind gmysql gpgsql pipe gsqlite3 lua geoip tinydns mydns opendbx remote random" \
 		--with-dynmodules="" \
 		--enable-botan1.10 \
 		--enable-static-binaries \
