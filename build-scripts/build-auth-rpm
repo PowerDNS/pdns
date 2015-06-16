@@ -294,7 +294,7 @@ BuildRequires: boost-devel
 BuildRequires: lua-devel
 BuildRequires: cryptopp-devel
 BuildRequires: bison
-BuildRequires: polarssl-devel
+BuildRequires: mbedtls-devel
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
 
@@ -354,6 +354,7 @@ Summary: Geo backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
 BuildRequires: yaml-cpp-devel
+BuildRequires: geoip-devel
 %global backends %{backends} geoip
 
 %description backend-geoip
