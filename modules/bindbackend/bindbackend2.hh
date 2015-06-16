@@ -52,7 +52,7 @@ using namespace ::boost::multi_index;
 */
 struct Bind2DNSRecord
 {
-  string qname;
+  DNSName qname;
   string content;
   string nsec3hash;
   uint32_t ttl;
@@ -62,7 +62,7 @@ struct Bind2DNSRecord
   {
     if(qname < rhs.qname)
       return true;
-    if(qname > rhs.qname)
+    if(rhs.qname < qname)
       return false;
     if(qtype==QType::SOA && rhs.qtype!=QType::SOA)
       return true;
@@ -74,15 +74,13 @@ struct Bind2DNSCompare : std::less<Bind2DNSRecord>
 { 
     using std::less<Bind2DNSRecord>::operator(); 
     // use operator< 
-    bool operator() (const std::string& a, const Bind2DNSRecord& b) const 
-    {return a < b.qname;} 
-    bool operator() (const Bind2DNSRecord& a, const std::string& b) const 
-    {return a.qname < b;} 
+    bool operator() (const DNSName& a, const Bind2DNSRecord& b) const
+    {return a < b.qname;}
+    bool operator() (const Bind2DNSRecord& a, const DNSName& b) const
+    {return a.qname < b;}
     bool operator() (const Bind2DNSRecord& a, const Bind2DNSRecord& b) const
-    {
-      return a < b;
-    }
-}; 
+    {return a.qname < b.qname;}
+};
 
 struct HashedTag{};
 
@@ -157,7 +155,7 @@ public:
   string d_status; //!< message describing status of a domain, for human consumption
   mutable bool d_checknow; //!< if this domain has been flagged for a check
   time_t d_ctime;  //!< last known ctime of the file on disk
-  string d_name;   //!< actual name of the domain
+  DNSName d_name;   //!< actual name of the domain
   string d_filename; //!< full absolute filename of the zone on disk
   unsigned int d_id;  //!< internal id of the domain
   time_t d_lastcheck; //!< last time domain was checked for freshness
@@ -188,7 +186,7 @@ public:
   bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   time_t getCtime(const string &fname);
    // DNSSEC
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
   bool list(const DNSName &target, int id, bool include_disabled=false);
   bool get(DNSResourceRecord &);
@@ -214,7 +212,7 @@ public:
   virtual int addDomainKey(const DNSName& name, const KeyData& key);
   virtual bool activateDomainKey(const DNSName& name, unsigned int id);
   virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
-  virtual bool getTSIGKey(const DNSName& name, string* algorithm, string* content);
+  virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
   virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
   virtual bool deleteTSIGKey(const DNSName& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
@@ -223,13 +221,13 @@ public:
 
   typedef multi_index_container < BB2DomainInfo , 
 				  indexed_by < ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id> >,
-					       ordered_unique<tag<NameTag>, member<BB2DomainInfo, std::string, &BB2DomainInfo::d_name>, CIStringCompare >
+					       ordered_unique<tag<NameTag>, member<BB2DomainInfo, DNSName, &BB2DomainInfo::d_name> >
 					       > > state_t;
   static state_t s_state;
   static pthread_rwlock_t s_state_lock;
 
   void parseZoneFile(BB2DomainInfo *bbd);
-  void insertRecord(BB2DomainInfo& bbd, const string &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
+  void insertRecord(BB2DomainInfo& bbd, const DNSName& qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
   bool isMaster(const DNSName &name, const string &ip);
@@ -246,12 +244,12 @@ private:
   void release(SSqlStatement**);
   static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
   static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
-  static bool safeGetBBDomainInfo(const std::string& name, BB2DomainInfo* bbd);
-  static bool safeRemoveBBDomainInfo(const std::string& name);
+  static bool safeGetBBDomainInfo(const DNSName& name, BB2DomainInfo* bbd);
+  static bool safeRemoveBBDomainInfo(const DNSName& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool d_hybrid;
-  bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);
+  bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
   public:
@@ -268,8 +266,8 @@ private:
     bool d_list;
     int id;
 
-    string qname;
-    string domain;
+    DNSName qname;
+    DNSName domain;
     QType qtype;
     bool mustlog;
 
@@ -289,7 +287,7 @@ private:
 
   set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
 
-  BB2DomainInfo createDomainEntry(const string &domain, const string &filename); //!< does not insert in s_state
+  BB2DomainInfo createDomainEntry(const DNSName& domain, const string &filename); //!< does not insert in s_state
 
   int d_transaction_id;
   string d_transaction_tmpname;
@@ -298,7 +296,7 @@ private:
   handle d_handle;
 
   void queueReloadAndStore(unsigned int id);
-  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
+  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, string& before, string& after);
   void reload();
   static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
   static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
