@@ -169,7 +169,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
 
 
-bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
+bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p )
 {
         const char* tmp;
 
@@ -179,7 +179,7 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
         	DLOG( L.log( m_myname + " getSOA()", Logger::Debug ) );
 
         	string stmt = getArg( "sql-lookupsoa" );
-        	string& stmtref = strbind( ":name", escape( toLower( domain ), READ ), stmt );
+        	string& stmtref = strbind( ":name", escape( domain.toStringNoDot(), READ ), stmt );
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) ) { return false; }
         	if( !getRecord( READ ) ) { return false; }
@@ -198,7 +198,7 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
         		{
         			sd.ttl = strtoul( tmp, NULL, 10 );
-        		} 
+        		}
 
         		if( sd.serial == 0 && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
@@ -235,7 +235,7 @@ bool OdbxBackend::getSOA( const string& domain, SOAData& sd, DNSPacket* p )
 
 
 
-bool OdbxBackend::list( const string& target, int zoneid, bool include_disabled )
+bool OdbxBackend::list( const DNSName& target, int zoneid, bool include_disabled )
 {
         try
         {
@@ -274,7 +274,7 @@ bool OdbxBackend::list( const string& target, int zoneid, bool include_disabled 
 
 
 
-void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dnspkt, int zoneid )
+void OdbxBackend::lookup( const QType& qtype, const DNSName& qname, DNSPacket* dnspkt, int zoneid )
 {
         try
         {
@@ -323,7 +323,7 @@ void OdbxBackend::lookup( const QType& qtype, const string& qname, DNSPacket* dn
         		stmtref = strbind( ":id", string( m_buffer, len ), stmtref );
         	}
 
-        	string tmp = qname;
+        	string tmp = qname.toStringNoDot();
         	stmtref = strbind( ":name", escape( toLowerByRef( tmp ), READ ), stmtref );
 
         	if( !execStmt( stmtref.c_str(), stmtref.size(), READ ) )
@@ -664,7 +664,7 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
         		return false;
         	}
 
-        	string tmp = rr.qname;
+        	string tmp = rr.qname.toStringNoDot();
 
         	int priority=0;
         	string content(rr.content);
