@@ -78,6 +78,9 @@ public:
     ar & d_storage;
     ar & d_empty;
   }
+
+  bool canonCompare(const DNSName& rhs) const;
+  
 private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
@@ -98,6 +101,14 @@ struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
   }
 };
 size_t hash_value(DNSName const& d);
+
+struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
+{
+  bool operator()(const DNSName&a, const DNSName& b) const
+  {
+    return a.canonCompare(b);
+  }
+};
 
 inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
 {

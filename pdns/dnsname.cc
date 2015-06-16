@@ -188,7 +188,6 @@ vector<string> DNSName::getRawLabels() const
   return ret;
 }
 
-
 bool DNSName::canonCompare(const DNSName& rhs) const
 {
   auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
