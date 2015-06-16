@@ -1,6 +1,7 @@
 #include "dnsname.hh"
 #include <boost/format.hpp>
 #include <string>
+
 #include "dnswriter.hh"
 
 /* raw storage
@@ -141,6 +142,13 @@ vector<string> DNSName::getRawLabels() const
   for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1)
     ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
   return ret;
+}
+
+
+bool DNSName::canonCompare(const DNSName& rhs) const
+{
+  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
+  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
 }
 
 bool DNSName::chopOff() 
