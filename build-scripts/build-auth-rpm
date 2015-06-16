@@ -114,17 +114,6 @@ BuildRequires: libcurl-devel
 %description backend-remote
 This package contains the remote backend for %{name}
 
-%package backend-geo
-Summary: Geo backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-%global backends %{backends} geo
-
-%description backend-geo
-This package contains the geo backend for %{name}
-It allows different answers to DNS queries coming from different
-IP address ranges or based on the geographic location
-
 %package backend-ldap
 Summary: LDAP backend for %{name}
 Group: System Environment/Daemons
@@ -267,10 +256,6 @@ fi
 %files backend-remote
 %{_libdir}/%{name}/libremotebackend.so
 
-%files backend-geo
-%doc modules/geobackend/README
-%{_libdir}/%{name}/libgeobackend.so
-
 %files backend-ldap
 %{_libdir}/%{name}/libldapbackend.so
 
@@ -375,17 +360,6 @@ BuildRequires: yaml-cpp-devel
 This package contains the geoip backend for %{name}
 It allows different answers to DNS queries coming from different
 IP address ranges or based on the geoipgraphic location
-
-%package backend-geo
-Summary: Geo backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-%global backends %{backends} geo
-
-%description backend-geo
-This package contains the geo backend for %{name}
-It allows different answers to DNS queries coming from different
-IP address ranges or based on the geographic location
 
 %package backend-ldap
 Summary: LDAP backend for %{name}
@@ -536,10 +510,6 @@ exit 0
 
 %files backend-geoip
 %{_libdir}/%{name}/libgeoipbackend.so
-
-%files backend-geo
-%doc modules/geobackend/README
-%{_libdir}/%{name}/libgeobackend.so
 
 %files backend-ldap
 %{_libdir}/%{name}/libldapbackend.so
