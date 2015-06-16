@@ -40,29 +40,36 @@ public:
   {
     setArgPrefix("random"+suffix);
     d_ourname=getArg("hostname");
+    d_ourdomain=splitField(d_ourname, '.').second;
   }
 
   bool list(const string &target, int id, bool include_disabled) {
     return false; // we don't support AXFR
   }
-    
+
   void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
   {
-    if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || !pdns_iequals(qdomain, d_ourname))  // we only know about random.example.com A by default
+    if(type.getCode() == QType::SOA && pdns_iequals(qdomain, d_ourdomain)){
+      d_answer="ns1." + d_ourdomain + " hostmaster." + d_ourdomain + " 1234567890 86400 7200 604800 300";
+    } else if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || !pdns_iequals(qdomain, d_ourname))  {
       d_answer="";                                                  // no answer
-    else {
+    } else {
       ostringstream os;
       os<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256;
       d_answer=os.str();                                           // our random ip address
     }
-
   }
 
   bool get(DNSResourceRecord &rr)
   {
     if(!d_answer.empty()) {
-      rr.qname=d_ourname;                                           // fill in details
-      rr.qtype=QType::A;                                            // A record
+      if(d_answer.find("ns1.") == 0){
+        rr.qname=d_ourdomain;
+        rr.qtype=QType::SOA;
+      } else {
+        rr.qname=d_ourname;                                           // fill in details
+        rr.qtype=QType::A;                                            // A record
+      }
       rr.ttl=5;                                                 // 5 seconds
       rr.auth = 1;  // it may be random.. but it is auth!
       rr.content=d_answer;
@@ -77,6 +84,7 @@ public:
 private:
   string d_answer;
   string d_ourname;
+  string d_ourdomain;
 };
 
 /* SECOND PART */
