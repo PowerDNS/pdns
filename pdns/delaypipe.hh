@@ -59,6 +59,7 @@ private:
     }
   };
   std::multimap<struct timespec, T, tscomp> d_work;
+  void gettime(struct timespec* ts);
 };
 
 #include "delaypipe.cc"

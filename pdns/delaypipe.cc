@@ -78,10 +78,24 @@ DelayPipe<T>::DelayPipe() : d_thread(&DelayPipe<T>::worker, this)
 }
 
 template<class T>
+void DelayPipe<T>::gettime(struct timespec* ts)
+{
+#ifdef __MACH__  // this is a 'limp home' solution since it doesn't do monotonic time. see http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  ts->tv_sec = tv.tv_sec;
+  ts->tv_nsec = tv.tv_usec * 1000;
+#else
+  clock_gettime(CLOCK_MONOTONIC, ts);
+#endif
+}
+
+
+template<class T>
 void DelayPipe<T>::submit(T& t, int msec)
 {
   struct timespec now;
-  clock_gettime(CLOCK_MONOTONIC, &now);
+  gettime(&now);
   now.tv_nsec += msec*1e6;
   while(now.tv_nsec > 1e9) {
     now.tv_sec++;
@@ -119,7 +133,7 @@ void DelayPipe<T>::worker()
     double delay=-1;  // infinite
     struct timespec now;
     if(!d_work.empty()) {
-      clock_gettime(CLOCK_MONOTONIC, &now);
+      gettime(&now);
       delay=1000*tsdelta(d_work.begin()->first, now);
       if(delay < 0) {
 	delay=0;   // don't wait - we have work that is late already!
@@ -136,7 +150,7 @@ void DelayPipe<T>::worker()
       else {
 	;
       }
-      clock_gettime(CLOCK_MONOTONIC, &now);
+      gettime(&now);
     }
 
     tscomp cmp;
