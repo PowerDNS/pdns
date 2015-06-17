@@ -716,9 +716,12 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    *ddb = this;
    
    // we allow simple true as well...
-   if (answer["result"].IsObject() && answer["result"].HasMember("account")) 
-     *account = getString(answer["result"]["account"]);
-
+   if (answer["result"].IsObject()) {
+     if (answer["result"].HasMember("account")) 
+       *account = getString(answer["result"]["account"]);
+     if (answer["result"].HasMember("nameserver"))
+       *nameserver = getString(answer["result"]["nameserver"]);
+   }
    return true;
 }
 
@@ -730,6 +733,7 @@ bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, co
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "nameserver", nameserver.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "account", account.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -1068,7 +1072,11 @@ public:
 
 RemoteLoader::RemoteLoader() {
     BackendMakers().report(new RemoteBackendFactory);
-    L << Logger::Info << kBackendId << " This is the remote backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << kBackendId << " This is the remote backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
 }
 
 static RemoteLoader remoteloader;

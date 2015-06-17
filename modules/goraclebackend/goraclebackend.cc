@@ -159,7 +159,11 @@ public:
   //! This reports us to the main UeberBackend class
   gOracleLoader() {
     BackendMakers().report(new gOracleFactory("goracle"));
-    L << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 

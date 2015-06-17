@@ -417,16 +417,37 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
 
-  sd.db->list(zone, sd.domain_id, true);
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
+
+  // Check for delegation in parent zone
+  string parent(zone);
+  while(chopOff(parent)) {
+    SOAData sd_p;
+    if(B.getSOAUncached(parent, sd_p)) {
+      bool ns=false;
+      DNSResourceRecord rr;
+      B.lookup(QType(QType::ANY), zone, NULL, sd_p.domain_id);
+      while(B.get(rr))
+        ns |= (rr.qtype == QType::NS);
+      if (!ns) {
+        cerr<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;
+        numerrors++;
+      }
+      break;
+    }
+  }
+
+
   bool hasNsAtApex = false;
-  set<string> records, cnames, noncnames;
+  set<string> records, cnames, noncnames, glue, checkglue;
   map<string, unsigned int> ttl;
 
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
+
+  sd.db->list(zone, sd.domain_id, true);
 
   while(sd.db->get(rr)) {
     if(!rr.qtype.getCode())
@@ -523,6 +544,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
       } else if (rr.qtype.getCode() == QType::DNSKEY) {
         cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
+      } else if (rr.qtype.getCode() == QType::NS && endsOn(rr.content, rr.qname)) {
+        checkglue.insert(toLower(rr.content));
+      } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
+        glue.insert(toLower(rr.qname));
       }
     }
 
@@ -597,6 +622,13 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
   if(!hasNsAtApex) {
     cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
     numerrors++;
+  }
+
+  for(const auto &qname : checkglue) {
+    if (!glue.count(qname)) {
+      cerr<<"[Warning] Missing glue for '"<<qname<<"' in zone '"<<zone<<"'"<<endl;
+      numwarnings++;
+    }
   }
 
   cout<<"Checked "<<numrecords<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
@@ -1261,6 +1293,7 @@ try
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
+    cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
     cerr<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
@@ -2231,6 +2264,101 @@ try
     cerr<<"PKCS#11 support not enabled"<<endl;
     return 1; 
 #endif
+  } else if (cmds[0] == "b2b-migrate") {
+    if (cmds.size() < 3) {
+      cerr<<"Usage: b2b-migrate old new"<<endl;
+      return 1;
+    }
+
+    DNSBackend *src,*tgt;
+    src = tgt = NULL;
+
+    for(DNSBackend *b : BackendMakers().all()) {
+      if (b->getPrefix() == cmds[1]) src = b;
+      if (b->getPrefix() == cmds[2]) tgt = b;
+    }
+    if (!src) {
+      cerr<<"Unknown source backend '"<<cmds[1]<<"'"<<endl;
+      return 1;
+    }
+    if (!tgt) {
+      cerr<<"Unknown target backend '"<<cmds[2]<<"'"<<endl;
+      return 1;
+    }
+
+    cout<<"Moving zone(s) from "<<src->getPrefix()<<" to "<<tgt->getPrefix()<<endl;
+
+    vector<DomainInfo> domains;
+
+    tgt->getAllDomains(&domains, true);
+    if (domains.size()>0)
+      throw PDNSException("Target backend has domain(s), please clean it first");
+
+    src->getAllDomains(&domains, true);
+    // iterate zones
+    for(const DomainInfo& di: domains) {
+      size_t nr,nc,nm,nk;
+      DNSResourceRecord rr;
+      cout<<"Processing '"<<di.zone<<"'"<<endl;
+      // create zone
+      if (!tgt->createDomain(di.zone)) throw PDNSException("Failed to create zone");
+      tgt->setKind(di.zone, di.kind);
+      tgt->setAccount(di.zone,di.account);
+      for(const string& master: di.masters) {
+        tgt->setMaster(di.zone, master);
+      }
+      // move records
+      if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");
+      nr=0;
+      while(src->get(rr)) {
+        if (!tgt->feedRecord(rr)) throw PDNSException("Failed to feed record");
+        nr++;
+      }
+      // move comments
+      nc=0;
+      if (src->listComments(di.id)) {
+        Comment c;
+        while(src->getComment(c)) {
+          tgt->feedComment(c);
+          nc++;
+        }
+      }
+      // move metadata
+      nm=0;
+      std::map<std::string, std::vector<std::string> > meta;
+      if (src->getAllDomainMetadata(di.zone, meta)) {
+        std::map<std::string, std::vector<std::string> >::iterator i;
+        for(i=meta.begin(); i != meta.end(); i++) {
+          if (!tgt->setDomainMetadata(di.zone, i->first, i->second)) throw PDNSException("Failed to feed domain metadata");
+          nm++;
+        }
+      }
+      // move keys
+      nk=0;
+      std::vector<DNSBackend::KeyData> keys;
+      if (src->getDomainKeys(di.zone, 0, keys)) {
+        for(const DNSBackend::KeyData& k: keys) {
+          tgt->addDomainKey(di.zone, k);
+          nk++;
+        }
+      }
+      cout<<"Moved "<<nr<<" record(s), "<<nc<<" comment(s), "<<nm<<" metadata(s) and "<<nk<<" cryptokey(s)"<<endl;
+    }
+
+    int ntk=0;
+    // move tsig keys
+    std::vector<struct TSIGKey> tkeys;
+    if (src->getTSIGKeys(tkeys)) {
+      for(const struct TSIGKey& tk: tkeys) {
+        if (!tgt->setTSIGKey(tk.name, tk.algorithm, tk.key)) throw PDNSException("Failed to feed TSIG key");
+        ntk++;
+      }
+    }
+    cout<<"Moved "<<ntk<<" TSIG key(s)"<<endl;
+
+    cout<<"Remember to drop the old backend and run rectify-all-zones"<<endl;
+
+    return 0;
   } else {
     cerr<<"Unknown command '"<<cmds[0] <<"'"<< endl;
     return 1;

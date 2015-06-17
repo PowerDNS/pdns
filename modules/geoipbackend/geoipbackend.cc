@@ -638,7 +638,11 @@ class GeoIPLoader {
 public:
   GeoIPLoader() {
     BackendMakers().report(new GeoIPFactory);
-    L << Logger::Info << "[geobackend] This is the geo backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[geobackend] This is the geo backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 

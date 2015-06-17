@@ -87,7 +87,7 @@ reload-acls
 :    Reloads ACLs.
 
 reload-lua-script *FILENAME*
-:    (Re)loads Lua script *FILENAME*.
+:    (Re)loads Lua script *FILENAME*. This replaces the script currently loaded.
 
 reload-zones
 :    Reload authoritative and forward zones. Retains current configuration

@@ -36,7 +36,6 @@ pages:
   - [manpages/pdns_server.1.md, 'Authoritative', 'Manpage: pdns_server.1']
   - [authoritative/backend-bind.md, 'Authoritative Backends', 'BIND']
   - [authoritative/backend-generic-mypgsql.md, 'Authoritative Backends', 'Generic MySQL and PostgreSQL']
-  - [authoritative/backend-geo.md, 'Authoritative Backends', 'Geo(graphic loadbalancing)']
   - [authoritative/backend-geoip.md, 'Authoritative Backends', 'GeoIP']
   - [authoritative/backend-gsqlite.md, 'Authoritative Backends', 'Generic SQLite']
   - [authoritative/backend-mydns.md, 'Authoritative Backends', 'MyDNS']

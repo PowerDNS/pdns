@@ -52,7 +52,8 @@ Request a nice shutdown of the recursor.
 Reload access control lists.
 
 ### `reload-lua-script [filename]`
-(Re-)Load Lua script.
+(Re-)Load Lua script. Note that loading a script fully replaces the one currently
+loaded.
 
 ### `reload-zones`
 Reload data about all authoritative and forward zones. The configuration file is also scanned to see if the **auth-domain**, **forward-domain** and **export-etc-hosts** statements have changed, and if so, these changes are incorporated.

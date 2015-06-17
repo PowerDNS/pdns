@@ -81,7 +81,7 @@ before_script:
 script:
  - ./bootstrap
  - ./configure
-     --with-dynmodules='bind geo gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
+     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
      --with-modules=''
      --with-sqlite3
      --enable-botan1.10
@@ -106,8 +106,9 @@ script:
  - cd pdns
  - make -k -j 4 pdns_recursor
  - rm -f pdns_recursor
- - ./dist-recursor
- - cd pdns-recursor-*/
+ - cd ..
+ - ./build-scripts/dist-recursor
+ - cd pdns/pdns-recursor-*/
  - ./configure
  - make -k -j 4
  - cd ..
@@ -186,7 +187,7 @@ script:
  - test ! -s ./failed_tests
  - cd ..
  - git status
- - git status | grep -q clean
+# - git status | grep -q clean
 notifications:
   irc:
     channels:

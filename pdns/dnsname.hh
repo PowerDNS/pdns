@@ -47,15 +47,17 @@ public:
     return *this;
   }
 
-  bool operator<(const DNSName& rhs)  const
+  bool operator<(const DNSName& rhs)  const // this delivers _some_ kind of ordering, but not one useful in a DNS context. Really fast though.
   {
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(), 
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
 				 [](const char& a, const char& b) {
 					  return tolower(a) < tolower(b); 
-				 });
+					}); // note that this is case insensitive, including on the label lengths
   }
 
+  bool canonCompare(const DNSName& rhs) const;
+  
 private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
@@ -65,6 +67,14 @@ private:
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0);
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
+};
+
+struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
+{
+  bool operator()(const DNSName&a, const DNSName& b) const
+  {
+    return a.canonCompare(b);
+  }
 };
 
 inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)

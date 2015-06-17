@@ -267,8 +267,42 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   smn.add(DNSName()); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
+}
 
 
+BOOST_AUTO_TEST_CASE(test_concat) {
+  DNSName first("www."), second("powerdns.com.");
+  BOOST_CHECK_EQUAL((first+second).toString(), "www.powerdns.com.");
+}
+
+BOOST_AUTO_TEST_CASE(test_compare_naive) {
+  BOOST_CHECK(DNSName("abc.com.") < DNSName("zdf.com."));
+  BOOST_CHECK(DNSName("Abc.com.") < DNSName("zdf.com."));
+  BOOST_CHECK(DNSName("Abc.com.") < DNSName("Zdf.com."));
+  BOOST_CHECK(DNSName("abc.com.") < DNSName("Zdf.com."));
+}
+
+BOOST_AUTO_TEST_CASE(test_compare_canonical) {
+  DNSName lower("bert.com."), higher("alpha.nl.");
+  BOOST_CHECK(lower.canonCompare(higher));
+
+
+  vector<DNSName> vec({"bert.com.", "alpha.nl.", "articles.xxx.",
+	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
+	"test.powerdns.com."});
+  sort(vec.begin(), vec.end(), CanonDNSNameCompare());
+  //  for(const auto& v : vec)
+  //  cerr<<'"'<<v.toString()<<'"'<<endl;
+
+  vector<DNSName> right({"bert.com.",  "Aleph1.powerdns.com.",
+	"test.powerdns.com.",
+	"ZOMG.powerdns.com.",
+	"alpha.nl.",
+	"aaa.XXX.",
+	"articles.xxx.",
+	"yyy.XXX."});
+
+  BOOST_CHECK(vec==right);
 }
 
 
@@ -365,6 +399,7 @@ BOOST_AUTO_TEST_CASE(test_name_length_too_long) { // 256 char name
     BOOST_CHECK_THROW(dn += DNSName(label + "."), std::range_error);
   }
 }
+
 
 BOOST_AUTO_TEST_CASE(test_invalid_label_length) { // Invalid label length in qname
 

@@ -51,8 +51,11 @@ void doSecPoll(time_t* last_secpoll)
   }
   else {
     string pkgv(PACKAGEVERSION);
-    if(pkgv.find("git"))
+    if(pkgv.find("0.0."))
       L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    else
+      L<<Logger::Warning<<"Not validating response for security status update, this a non-release version."<<endl;
+
     if(g_security_status == 1) // it was ok, not it is unknown
       g_security_status = 0;
     if(res == RCode::NXDomain) // if we had servfail, keep on trying more more frequently

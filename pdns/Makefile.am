@@ -49,15 +49,14 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist \
-	dnsdistdist/html
+	dnsdistdist/html \
+	delaypipe.hh delaypipe.cc
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	version_generated.h \
 	bindparser.h htmlfiles.h 
 
 CLEANFILES = \
-	version_generated.h \
 	*.gcda \
 	*.gcno \
 	*.gcov \
@@ -995,6 +994,7 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
+	test-delaypipe_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
@@ -1023,6 +1023,7 @@ testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
+	$(RT_LIBS) \
 	$(LIBDL)
 
 if PKCS11
@@ -1132,42 +1133,5 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 .hh.h:
 	cp $< $@
 
-build_date := $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host := $(shell id -u -n)@$(shell hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)
-git_version := $(shell git describe --always --dirty=+ 2>/dev/null)
-# Do the test in shell, so we don't confuse automake with ifeq/ifneq.
-pdns_version := $(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git_version)")
-
-version.o: version_generated.h
-
 pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	./mkpubsuffixcc
-
-.PHONY: version_generated.h
-version_generated.h:
-	@echo "$$create_version_generated_h" > $@
-
-if RELEASE_BUILD
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#define PDNS_VERSION "$(PACKAGE_VERSION)"
-#define DIST_HOST "$(DIST_HOST)"
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-
-else
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#define PDNS_VERSION "$(pdns_version)"
-#define DIST_HOST "$(build_host)"
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-endif
-
-export create_version_generated_h
