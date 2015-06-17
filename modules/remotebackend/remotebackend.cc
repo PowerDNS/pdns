@@ -501,7 +501,7 @@ bool RemoteBackend::doesDNSSEC() {
    return d_dnssec;
 }
 
-bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, std::string* content) {
+bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -510,7 +510,7 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getTSIGKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    if (this->send(query) == false || this->recv(answer) == false)
@@ -521,13 +521,13 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
        !answer["result"].HasMember("content")) 
      throw PDNSException("Invalid response to getTSIGKey, missing field(s)");
 
-   algorithm->assign(getString(answer["result"]["algorithm"]));
+   (*algorithm) = getString(answer["result"]["algorithm"]);
    content->assign(getString(answer["result"]["content"]));
    
    return true;
 }
 
-bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algorithm, const std::string& content) {
+bool RemoteBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const std::string& content) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -536,8 +536,8 @@ bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algor
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "setTSIGKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "algorithm", algorithm.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "algorithm", algorithm, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "content", content.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
    if (connector->send(query) == false || connector->recv(answer) == false)
@@ -546,7 +546,7 @@ bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algor
    return true;
 }
 
-bool RemoteBackend::deleteTSIGKey(const std::string& name) {
+bool RemoteBackend::deleteTSIGKey(const DNSName& name) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -555,7 +555,7 @@ bool RemoteBackend::deleteTSIGKey(const std::string& name) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "deleteTSIGKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;

@@ -140,7 +140,7 @@ class RemoteBackend : public DNSBackend
   virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
   virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
-  virtual bool getTSIGKey(const std::string& name, std::string* algorithm, std::string* content);
+  virtual bool getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content);
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, string& before, string& after);
   virtual bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char> >& meta);
   virtual bool removeDomainKey(const DNSName& name, unsigned int id);
@@ -161,8 +161,8 @@ class RemoteBackend : public DNSBackend
   virtual bool commitTransaction();
   virtual bool abortTransaction();
   virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
-  virtual bool setTSIGKey(const std::string& name, const string& algorithm, const string& content);
-  virtual bool deleteTSIGKey(const std::string& name);
+  virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  virtual bool deleteTSIGKey(const DNSName& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
   static DNSBackend *maker();
