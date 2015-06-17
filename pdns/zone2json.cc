@@ -45,33 +45,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <boost/foreach.hpp>
+#include "json11.hpp"
 
+using namespace json11;
 
 StatBag S;
 static int g_numRecords;
 
-static void quoteValue(string &value) 
-{
-  string tmp;
-  size_t opos,pos;
-
-  // no point doing it if there isn't anything to do
-  if (value.find_first_of("\\\\\"") == string::npos) return;
-
-  pos = opos = 0;
-  while((pos = value.find_first_of("\\\\\"", opos)) != string::npos) 
-  {
-     tmp += value.substr(opos, pos - opos);
-     tmp += "\\";
-     tmp += value[pos];
-     opos = pos+1;
-  }
-
-  value = tmp;
-}
-
-
-static string emitRecord(const string& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
+static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
 {
   int prio=0;
   string retval;
@@ -86,35 +67,15 @@ static string emitRecord(const string& zoneName, const DNSName &DNSqname, const 
     trim_left(content);
   }
 
-  quoteValue(content);
+  Json::object dict;
  
-  retval = "{";
-  retval += "\"name\":\"";
-  retval += DNSqname.toString();
-  retval += "\",";
-  retval += "\"type\":\"";
-  retval += qtype;
-  retval += "\",";
-  retval += "\"ttl\":";
-  retval += lexical_cast<string>(ttl);
-  retval += ",";
-  retval += "\"prio\":";
-  retval += lexical_cast<string>(prio);
-  retval += ",";
-  retval += "\"content\":\"";
-  retval += content;
-  retval += "\"}";
- 
-  return retval;
-}
+  dict["name"] = DNSqname.toStringNoDot();
+  dict["type"] = qtype;
+  dict["ttl"] = ttl;
+  dict["prio"] = prio;
+  dict["content"] = content;
 
-static void emitJson(vector<string> &data)
-{
-   size_t l = data.size();
-   cout << "[";
-   for(size_t i=0;i<l-1;i++) 
-      cout << data[i] << ",";
-   cout << data[l-1] << "]";
+  return dict;
 }
 
 /* 2 modes of operation, either --named or --zone (the latter needs $ORIGIN) 
@@ -193,8 +154,8 @@ try
 
       int numdomains=domains.size();
       int tick=numdomains/100;
-      cout <<"[";
-   
+      cout << "[";
+
       for(vector<BindDomainInfo>::const_iterator i=domains.begin();
           i!=domains.end();
           ++i)
@@ -205,15 +166,20 @@ try
           }
           lines.clear(); 
           try {
+            Json::object obj;
+            Json::array recs;
             ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
             DNSResourceRecord rr;
+            obj["name"] = i->name.toStringNoDot();
+
             while(zpt.get(rr)) 
-              lines.push_back(emitRecord(i->name.toStringNoDot(), rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
-            cout << "{\"name\":\"" << i->name.toStringNoDot() << "\",\"records\": ";
-            emitJson(lines);
-            cout << "},";
+              recs.push_back(emitRecord(i->name.toStringNoDot(), rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
+            obj["records"] = recs;
+            Json tmp = obj;
+            cout<<tmp.dump();
+            if(i+1 < domains.end()) cout<<",";
             num_domainsdone++;
-          } 
+          }
           catch(std::exception &ae) {
             if(!::arg().mustDo("on-error-resume-next"))
               throw;
@@ -229,18 +195,26 @@ try
           if(!tick || !((count++)%tick))
             cerr<<"\r"<<count*100/numdomains<<"% done ("<<i->filename<<")\033\133\113";
         }
-      cout << "]\n";
+      cout << "]" << endl;
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
       ZoneParserTNG zpt(zonefile, ::arg()["zone-name"]);
       DNSResourceRecord rr;
-      string zname; 
-      cout << "{\"name\":\"" << ::arg()["zone-name"] << "\",\"records\":";
+      string zname;
+      Json::object obj;
+      Json::array records;
+
+      obj["name"] = ::arg()["zone-name"];
+
       while(zpt.get(rr)) 
-        lines.push_back(emitRecord(::arg()["zone-name"], rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
-      emitJson(lines);
-      cout << "}\n";
+        records.push_back(emitRecord(::arg()["zone-name"], rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
+      obj["records"] = records;
+
+      Json tmp = obj;
+
+      cout<<tmp.dump()<<endl;
+
       num_domainsdone=1;
     }
     cerr<<num_domainsdone<<" domains were fully parsed, containing "<<g_numRecords<<" records\n";

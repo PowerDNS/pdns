@@ -1,4 +1,5 @@
 AM_CPPFLAGS += \
+	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS)
@@ -401,7 +402,7 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDADD = $(POLARSSL_LIBS)
+zone2json_LDADD = $(POLARSSL_LIBS) -L$(top_srcdir)/ext/json11 -ljson11
 
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc
