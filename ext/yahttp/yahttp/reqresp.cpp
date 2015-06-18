@@ -188,6 +188,7 @@ namespace YaHTTP {
 
     bool cookieSent = false;
     bool sendChunked = false;
+    bool hasBody = true;
 
     if (this->version > 10) { // 1.1 or better
       if (headers.find("content-length") == headers.end()) {
@@ -198,16 +199,16 @@ namespace YaHTTP {
         }
         if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
           sendChunked = true;
-          // write the header now
-          os << "Transfer-Encoding: chunked" << "\r\n";
+          os << "Transfer-Encoding: chunked\r\n";
         }
       } else {
+        hasBody = (headers.find("content-length")->second != "0");
         if ((headers.find("transfer-encoding") == headers.end() && kind == YAHTTP_TYPE_RESPONSE)) {
-          sendChunked = true;
-          // write the header now
-          os << "Transfer-Encoding: chunked" << "\r\n";
+          sendChunked = hasBody;
+          if (sendChunked)
+            os << "Transfer-Encoding: chunked\r\n";
         } else if (headers.find("transfer-encoding") != headers.end() && headers.find("transfer-encoding")->second == "chunked") {
-          sendChunked = true;
+          sendChunked = hasBody;
         }
       }
     }
@@ -216,6 +217,7 @@ namespace YaHTTP {
     strstr_map_t::const_iterator iter = headers.begin();
     while(iter != headers.end()) {
       if (iter->first == "host" && kind != YAHTTP_TYPE_REQUEST) { iter++; continue; }
+      if (iter->first == "transfer-encoding" && sendChunked) { iter++; continue; }
       std::string header = Utility::camelizeHeader(iter->first);
       if (header == "Cookie" || header == "Set-Cookie") cookieSent = true;
       os << Utility::camelizeHeader(iter->first) << ": " << iter->second << "\r\n";
