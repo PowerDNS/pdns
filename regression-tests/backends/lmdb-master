@@ -23,7 +23,7 @@ case $context in
 
 			for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 			do
-				../pdns/saxfr 127.0.0.1 $port $zone showdetails showflags > zones/$zone.signed
+				$SAXFR 127.0.0.1 $port $zone showdetails showflags > zones/$zone.signed
 
 				echo "" >> named-lmdb.conf
 				echo "zone \"${zone}\" {" >> named-lmdb.conf
@@ -63,21 +63,21 @@ case $context in
 			context=${orgcontext%-zone}
 		fi
 
-		${MAKE} -C ../pdns zone2lmdb > /dev/null
+		${MAKE} -C $BUILDDIR/pdns zone2lmdb > /dev/null
 		rm -f data.mdb lock.mdb
 
 		if [ $context = lmdb-nodnssec ]
 		then
-			../pdns/zone2lmdb --named-conf=./named.conf
+			$ZONE2LMDB --named-conf=./named.conf
 		else
-			../pdns/zone2lmdb --named-conf=./named-lmdb.conf
+			$ZONE2LMDB --named-conf=./named-lmdb.conf
 		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-name=lmdb --socket-dir=./  \
 			--no-shuffle --launch=lmdb \
 			--send-root-referral \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--lmdb-datapath=./ --lmdb-experimental-dnssec --module-dir=./modules &
+			--lmdb-datapath=./ --lmdb-experimental-dnssec --module-dir=./tmpmodules &
 
 		skipreasons="noent nodyndns nometa lmdb"
 

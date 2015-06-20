@@ -2,6 +2,7 @@
 set -e
 set -x
 
+. ./test.vars
 . ./vars
 
 if [ -z "$PREFIX" ] 

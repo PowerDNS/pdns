@@ -18,12 +18,12 @@ case $context in
 		[ -z "$GORACLEUSER" ] && GORACLEUSER=pdns
 		[ -z "$GORACLEPASSWD" ] && GORACLEPASSWD=pdns
 
-		echo "START ../modules/goraclebackend/drop-schema.goracle.sql;" | $SQLPLUS -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
-		echo "START ../modules/goraclebackend/schema.goracle.sql;" | $SQLPLUS -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
+		echo "START $BUILDDIR/modules/goraclebackend/drop-schema.goracle.sql;" | $SQLPLUS -S $GORACLEUSER/$GORACLEPASSWD@xe > goracle.log
+		echo "START $BUILDDIR/modules/goraclebackend/schema.goracle.sql;" | $SQLPLUS -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
 		tosql goracle | $SQLPLUS -S $GORACLEUSER/$GORACLEPASSWD@xe >> goracle.log
 
 		cat > pdns-goracle.conf << __EOF__
-module-dir=./modules
+module-dir=./tmpmodules
 launch=goracle
 goracle-home=$ORACLE_HOME
 goracle-sid=$ORACLE_SID

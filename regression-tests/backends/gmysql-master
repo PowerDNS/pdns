@@ -11,13 +11,13 @@ case $context in
 			|| echo ignoring mysqladmin drop failure
 		mysqladmin --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" create "$GMYSQLDB"
 		mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-			"$GMYSQLDB" < ../modules/gmysqlbackend/schema.mysql.sql
+			"$GMYSQLDB" < $BUILDDIR/modules/gmysqlbackend/schema.mysql.sql
 
 		tosql gmysql | mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
 			"$GMYSQLDB"
 
 		cat > pdns-gmysql.conf << __EOF__
-module-dir=./modules
+module-dir=./tmpmodules
 launch=gmysql
 gmysql-dbname=$GMYSQLDB
 gmysql-user=$GMYSQLUSER

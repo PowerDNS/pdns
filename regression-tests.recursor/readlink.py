@@ -1,0 +1,1 @@
+../regression-tests/readlink.py

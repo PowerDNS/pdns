@@ -5,11 +5,11 @@ fi
 	[ -z "$GORACLE2USER" ] && GORACLE2USER=pdns2
 	[ -z "$GORACLE2PASSWD" ] && GORACLE2PASSWD=pdns
 
-	echo "START ../modules/goraclebackend/drop-schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe > goracle2.log
-	echo "START ../modules/goraclebackend/schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
+	echo "START $BUILDDIR/modules/goraclebackend/drop-schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe > goracle2.log
+	echo "START $BUILDDIR/modules/goraclebackend/schema.goracle.sql;" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 
 	cat > pdns-goracle2.conf << __EOF__
-module-dir=./modules
+module-dir=./tmpmodules
 launch=goracle
 goracle-home=$ORACLE_HOME
 goracle-sid=$ORACLE_SID
@@ -30,11 +30,11 @@ __EOF__
 		echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 	done
 
-	../pdns/pdnssec --config-dir=. --config-name=goracle2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=goracle2 activate-tsig-key tsig.com test slave
+	$PDNSSEC --config-dir=. --config-name=goracle2 import-tsig-key test $ALGORITHM $KEY
+	$PDNSSEC --config-dir=. --config-name=goracle2 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
-		../pdns/pdnssec --config-dir=. --config-name=goracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSSEC --config-dir=. --config-name=goracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 
 	port=$((port+100))

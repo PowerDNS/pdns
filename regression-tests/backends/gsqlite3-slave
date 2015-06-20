@@ -1,9 +1,9 @@
 	context=${context}-presigned-gsqlite3
 	rm -f pdns.sqlite32
-	sqlite3 pdns.sqlite32 < ../modules/gsqlite3backend/schema.sqlite3.sql
+	sqlite3 pdns.sqlite32 < $BUILDDIR/modules/gsqlite3backend/schema.sqlite3.sql
 
 	cat > pdns-gsqlite32.conf << __EOF__
-module-dir=./modules
+module-dir=./tmpmodules
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite32
 gsqlite3-pragma-synchronous=0
@@ -19,11 +19,11 @@ __EOF__
 		sqlite3 pdns.sqlite32 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 	done
 
-	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test slave
+	$PDNSSEC --config-dir=. --config-name=gsqlite32 import-tsig-key test $ALGORITHM $KEY
+	$PDNSSEC --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
-		../pdns/pdnssec --config-dir=. --config-name=gsqlite32 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSSEC --config-dir=. --config-name=gsqlite32 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 
 	port=$((port+100))

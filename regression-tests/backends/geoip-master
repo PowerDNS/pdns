@@ -15,7 +15,7 @@ case $context in
 			exit 1
 		fi
 		set -e
-                testsdir=../modules/geoipbackend/regression-tests/
+                testsdir=$BUILDDIR/modules/geoipbackend/regression-tests/
 		if test "$context" = "geoipbackend-nsec3-narrow"; then
                   narrow="narrow"
                   extracontexts="dnssec nsec3 narrow"
@@ -53,7 +53,7 @@ EOF
 
 		# generate pdns.conf for pdnssec
 		cat > pdns-geoip.conf <<EOF
-module-dir=./modules
+module-dir=./tmpmodules
 launch=geoip
 geoip-zones-file=$testsdir/geo.yaml
 EOF
@@ -61,7 +61,7 @@ EOF
 		if [ "$geoipdosec" = "yes" ]
 		then
 			echo "$geoipkeydir" >> pdns-geoip.conf
-			../pdns/pdnssec --config-dir=. --config-name=geoip secure-zone geo.example.com
+			$PDNSSEC --config-dir=. --config-name=geoip secure-zone geo.example.com
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
 
@@ -69,7 +69,7 @@ EOF
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral --distributor-threads=1 \
-                        --geoip-zones-file=$testsdir/geo.yaml --module-dir=./modules \
+                        --geoip-zones-file=$testsdir/geo.yaml --module-dir=./tmpmodules \
 			$geoipkeydir &
 		;;
 

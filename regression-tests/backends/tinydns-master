@@ -5,7 +5,7 @@ case $context in
 		 --cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--send-root-referral \
 			--experimental-dnsupdate=yes \
-			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb --module-dir=./modules &
+			--tinydns-dbfile=$BUILDDIR/modules/tinydnsbackend/data.cdb --module-dir=./tmpmodules &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;
 

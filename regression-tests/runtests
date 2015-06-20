@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
+. ./test.vars
 
 spectest=$1
 [ -z $spectest ] && spectest=""
 
-${MAKE} -C ../pdns sdig nsec3dig saxfr || exit 1
+${MAKE} -C ${BUILDDIR}/pdns sdig nsec3dig saxfr || exit 1
 
 rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out ${testsdir}/*/start ${testsdir}/*/step.*
 

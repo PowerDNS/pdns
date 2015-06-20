@@ -7,12 +7,12 @@ case $context in
 
 		dropdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
 		createdb --user="$GPGSQLUSER" "$GPGSQLDB"	|| echo ignoring mysqladmin drop failure
-		psql --user="$GPGSQLUSER" "$GPGSQLDB" < ../modules/gpgsqlbackend/schema.pgsql.sql
+		psql --user="$GPGSQLUSER" "$GPGSQLDB" < $BUILDDIR/modules/gpgsqlbackend/schema.pgsql.sql
 		tosql gpgsql | psql --user="$GPGSQLUSER" "$GPGSQLDB" 2>&1 | uniq -c
                 psql --user="$GPGSQLUSER" "$GPGSQLDB" -c "ANALYZE"
 
 		cat > pdns-gpgsql.conf << __EOF__
-module-dir=./modules
+module-dir=./tmpmodules
 launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
