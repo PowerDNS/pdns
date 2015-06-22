@@ -489,7 +489,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const std::string& zone)
     }
     catch(std::exception& e)
     {
-      cout<<"[Error] Following record had a problem: "<<rr.qname<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"[Error] Following record had a problem: '"<<rr.qname<<"' of type " <<rr.qtype.getName()<< " '" << rr.content<<"'"<<endl;
       cout<<"[Error] Error was: "<<e.what()<<endl;
       numerrors++;
       continue;
