@@ -9,6 +9,9 @@
 using namespace boost;
 using std::string;
 
+DNSName::DNSName(const char* s): DNSName(std::string(s)) {
+}
+
 BOOST_AUTO_TEST_SUITE(dnsname_cc)
 
 BOOST_AUTO_TEST_CASE(test_basic) {
@@ -400,6 +403,10 @@ BOOST_AUTO_TEST_CASE(test_name_length_too_long) { // 256 char name
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_embedded_nulls) {
+  char const s[] = "www.google.com.\x00mydomain.com";
+  BOOST_CHECK_THROW (DNSName (std::string(s, sizeof(s) - 1)), std::runtime_error);
+}
 
 BOOST_AUTO_TEST_CASE(test_invalid_label_length) { // Invalid label length in qname
 
