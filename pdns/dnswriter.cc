@@ -225,6 +225,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
   DNSName towrite = name;
   /* FIXME400: if we are not compressing, there is no reason to work per-label */
   for(auto &label: parts) {
+    if(d_lowerCase) label=toLower(label);
     cerr<<"xfrName labelpart ["<<label<<"], left to write ["<<towrite.toString()<<"]"<<endl;
 
     auto li=d_namemap.end();

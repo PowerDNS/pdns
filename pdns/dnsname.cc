@@ -94,6 +94,7 @@ std::string DNSName::toDNSString() const
     return "";
   string ret(d_storage.c_str(), d_storage.length());
   ret.append(1,(char)0);
+  // return toLower(ret);
   return ret;
 }
 

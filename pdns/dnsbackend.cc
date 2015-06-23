@@ -99,7 +99,7 @@ void BackendMakerClass::report(BackendFactory *bf)
 }
 
 
-vector<string> BackendMakerClass::getModules() 
+vector<string> BackendMakerClass::getModules()
 {
   load_all();
   vector<string> ret;
@@ -119,7 +119,7 @@ void BackendMakerClass::load_all()
   }
   struct dirent *entry;
   while((entry=readdir(dir))) {
-    if(!strncmp(entry->d_name,"lib",3) && 
+    if(!strncmp(entry->d_name,"lib",3) &&
        strlen(entry->d_name)>13 &&
        !strcmp(entry->d_name+strlen(entry->d_name)-10,"backend.so"))
       load(entry->d_name);
@@ -137,7 +137,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(module);
   else
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
-  
+
   if(res==false) {
     L<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
     exit(1);
@@ -148,20 +148,20 @@ void BackendMakerClass::launch(const string &instr)
 {
   //    if(instr.empty())
   // throw ArgException("Not launching any backends - nameserver won't function");
-  
+
   vector<string> parts;
   stringtok(parts,instr,", ");
-  
+
   for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i) {
     const string &part=*i;
-    
+
     string module, name;
     vector<string>pparts;
     stringtok(pparts,part,": ");
     module=pparts[0];
     if(pparts.size()>1)
       name="-"+pparts[1];
-      
+
     if(d_repository.find(module)==d_repository.end()) {
       // this is *so* userfriendly
       load(module);
@@ -189,7 +189,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
       DNSBackend *made;
       if(metadataOnly)
         made = d_repository[i->first]->makeMetadataOnly(i->second);
-      else 
+      else
         made = d_repository[i->first]->make(i->second);
       if(!made)
         throw PDNSException("Unable to launch backend '"+i->first+"'");
@@ -210,14 +210,14 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
       delete *i;
     throw;
   }
-  
+
   return ret;
 }
 
 /** getSOA() is a function that is called to get the SOA of a domain. Callers should ONLY
     use getSOA() and not perform a lookup() themselves as backends may decide to special case
     the SOA record.
-    
+
     Returns false if there is definitely no SOA for the domain. May throw a DBException
     to indicate that the backend is currently unable to supply an answer.
 
@@ -231,14 +231,14 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
 bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 {
   this->lookup(QType(QType::SOA),domain,p);
-  
+
   DNSResourceRecord rr;
-  rr.auth = true; 
+  rr.auth = true;
 
   int hits=0;
 
   while(this->get(rr)) {
-    if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA"); 
+    if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
     hits++;
     fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;
@@ -251,7 +251,7 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
   sd.qname = domain;
   if(!sd.nameserver.countLabels())
     sd.nameserver=arg()["default-soa-name"];
-  
+
   if(!sd.hostmaster.countLabels()) {
     if (!arg().isEmpty("default-soa-mail")) {
       sd.hostmaster=arg()["default-soa-mail"];
@@ -283,7 +283,7 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   // string lcqname=toLower(qname); FIXME tolower?
   // string lczonename=toLower(zonename); FIXME tolower?
   // lcqname=makeRelative(lcqname, lczonename);
-  
+  DNSName lczonename = DNSName(toLower(zonename.toString()));
   // lcqname=labelReverse(lcqname);
   DNSName dnc;
   string relqname, sbefore, safter;
@@ -291,9 +291,9 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, co
   //sbefore = before.toString();
   //safter = after.toString();
   bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
-  before = DNSName(labelReverse(sbefore)) + zonename;
-  after = DNSName(labelReverse(safter)) + zonename;
-  
+  before = DNSName(labelReverse(sbefore)) + lczonename;
+  after = DNSName(labelReverse(safter)) + lczonename;
+
   // before=dotConcat(labelReverse(before), lczonename); FIXME
   // after=dotConcat(labelReverse(after), lczonename); FIXME
   return ret;
@@ -321,7 +321,7 @@ bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, ti
       DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain.toString()<<"'"<<endl);
       return false;
     }
-  
+
     while(this->get(i)) {
       if(i.last_modified>newest)
         newest=i.last_modified;
