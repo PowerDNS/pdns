@@ -400,10 +400,6 @@ BOOST_AUTO_TEST_CASE(test_name_length_too_long) { // 256 char name
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_embedded_nulls) {
-  BOOST_CHECK (!(DNSName ("www.google.com.\x00sub.mydomain.com.") == DNSName("www.google.com.")));
-}
-
 
 BOOST_AUTO_TEST_CASE(test_invalid_label_length) { // Invalid label length in qname
 
