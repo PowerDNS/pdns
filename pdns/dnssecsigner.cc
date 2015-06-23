@@ -222,8 +222,8 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
         addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
     }
     signedRecords.push_back(*pos);
-    signQName= pos->qname;
-    wildcardQName = pos->wildcardname;
+    signQName= DNSName(toLower(pos->qname.toString()));
+    wildcardQName = DNSName(toLower(pos->wildcardname.toString()));
     signQType = pos ->qtype.getCode();
     if(pos->signttl)
       signTTL = pos->signttl;
