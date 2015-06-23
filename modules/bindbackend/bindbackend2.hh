@@ -60,9 +60,9 @@ struct Bind2DNSRecord
   mutable bool auth;
   bool operator<(const Bind2DNSRecord& rhs) const
   {
-    if(qname < rhs.qname)
+    if(qname.canonCompare(rhs.qname))
       return true;
-    if(rhs.qname < qname)
+    if(rhs.qname.canonCompare(qname))
       return false;
     if(qtype==QType::SOA && rhs.qtype!=QType::SOA)
       return true;
@@ -75,11 +75,11 @@ struct Bind2DNSCompare : std::less<Bind2DNSRecord>
     using std::less<Bind2DNSRecord>::operator(); 
     // use operator< 
     bool operator() (const DNSName& a, const Bind2DNSRecord& b) const
-    {return a < b.qname;}
+    {return a.canonCompare(b.qname);}
     bool operator() (const Bind2DNSRecord& a, const DNSName& b) const
-    {return a.qname < b;}
+    {return a.qname.canonCompare(b);}
     bool operator() (const Bind2DNSRecord& a, const Bind2DNSRecord& b) const
-    {return a.qname < b.qname;}
+    {return a.qname.canonCompare(b.qname);}
 };
 
 struct HashedTag{};

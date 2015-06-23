@@ -68,10 +68,10 @@ bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
 bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
 { return false; }
 
-bool Bind2Backend::setTSIGKey(const DNSName& name, const string& algorithm, const string& content)
+bool Bind2Backend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 { return false; }
 
-bool Bind2Backend::deleteTSIGKey(const string& name)
+bool Bind2Backend::deleteTSIGKey(const DNSName& name)
 { return false; }
 
 bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)

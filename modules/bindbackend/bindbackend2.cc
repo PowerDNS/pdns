@@ -493,7 +493,7 @@ void Bind2Backend::insertRecord(BB2DomainInfo& bb2, const DNSName &qname, const 
   if(!records->empty() && bdr.qname==boost::prior(records->end())->qname)
     bdr.qname=boost::prior(records->end())->qname;
 
-  bdr.qname=bdr.qname.labelReverse();
+  bdr.qname=bdr.qname;
   bdr.qtype=qtype.getCode();
   bdr.content=content; 
   bdr.nsec3hash = hashed;
@@ -666,7 +666,7 @@ void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
     if(bdr.qtype == QType::DS) // as are delegation signer records
       continue;
 
-    sqname = bdr.qname.labelReverse();
+    sqname = bdr.qname;
     
     do {
       if(sqname.empty() || sqname.isRoot()) // this is auth of course!
@@ -690,10 +690,10 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   uint32_t maxent = ::arg().asNum("max-ent-entries");
 
   for(const auto& bdr : *records)
-    qnames.insert(bdr.qname.labelReverse());
+    qnames.insert(bdr.qname);
 
   for(const auto& bdr : *records) {
-    shorter=bdr.qname.labelReverse();
+    shorter=bdr.qname;
 
     if (!bdr.auth && bdr.qtype == QType::NS)
       auth=(!nsec3zone || !ns3pr.d_flags);
@@ -886,19 +886,24 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
 bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName& qname, DNSName& unhashed, string& before, string& after)
 {
   shared_ptr<const recordstorage_t> records = bbd.d_records.get();
+
+//  BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
+//    cerr<<"Hash: "<<bdr.qname.toString()<<"\t"<< (qname < bdr.qname) <<"\t"<<qname.toString()<<endl;
+//  }
+
   recordstorage_t::const_iterator iter = records->upper_bound(qname);
 
   if (before.empty()){
     //cout<<"starting before for: '"<<domain<<"'"<<endl;
     iter = records->upper_bound(qname);
 
-    while(iter == records->end() || (qname < iter->qname) || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
+    while(iter == records->end() || (qname.canonCompare(iter->qname)) || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
       iter--;
 
-    before=iter->qname.toString(" ",false);
+    before=iter->qname.labelReverse().toString(" ",false);
   }
   else {
-    before=qname.toString(" ",false);
+    before=qname.labelReverse().toString(" ",false);
   }
 
   //cerr<<"Now after"<<endl;
@@ -920,7 +925,7 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
         break;
       }
     }
-    after = (iter)->qname.toString(" ",false);
+    after = (iter)->qname.labelReverse().toString(" ",false);
   }
 
   cerr<<"Before: '"<<before<<"', after: '"<<after<<"'\n";
@@ -943,7 +948,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     nsec3zone=getNSEC3PARAM(auth, &ns3pr);
 
   if(!nsec3zone) {
-    DNSName dqname(qname);
+    DNSName dqname = DNSName(labelReverse(qname));
     //cerr<<"in bind2backend::getBeforeAndAfterAbsolute: no nsec3 for "<<auth<<endl;
     return findBeforeAndAfterUnhashed(bbd, dqname, unhashed, before, after);
   }
@@ -991,7 +996,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       }
 
       before = iter->nsec3hash;
-      unhashed = iter->qname.labelReverse() + auth;
+      unhashed = iter->qname + auth;
       // cerr<<"before: "<<(iter->nsec3hash)<<"/"<<(iter->qname)<<endl;
     }
     else {
@@ -1086,7 +1091,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
   pair<recordstorage_t::const_iterator, recordstorage_t::const_iterator> range;
 
-  range = d_handle.d_records->equal_range(d_handle.qname.labelReverse());
+  range = d_handle.d_records->equal_range(d_handle.qname);
   //cout<<"End equal range"<<endl;
   d_handle.mustlog = mustlog;
   
@@ -1203,7 +1208,7 @@ bool Bind2Backend::list(const DNSName& target, int id, bool include_disabled)
 bool Bind2Backend::handle::get_list(DNSResourceRecord &r)
 {
   if(d_qname_iter!=d_qname_end) {
-    r.qname=d_qname_iter->qname.empty() ? domain : (d_qname_iter->qname.labelReverse()+domain);
+    r.qname=d_qname_iter->qname.empty() ? domain : (d_qname_iter->qname+domain);
     r.domain_id=id;
     r.content=(d_qname_iter)->content;
     r.qtype=(d_qname_iter)->qtype;
