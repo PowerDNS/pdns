@@ -166,7 +166,7 @@ script:
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
+# - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
  - ./timestamp ./start-test-stop 5300 mydns
  - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
