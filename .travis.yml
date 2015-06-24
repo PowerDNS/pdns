@@ -133,9 +133,9 @@ script:
  - ./stop.sh
  - sleep 3
  - ./clean.sh
- - cd ../regression-tests.api
- - ./runtests authoritative
- - ./runtests recursor
+# - cd ../regression-tests.api
+# - ./runtests authoritative
+# - ./runtests recursor
  - cd ../regression-tests
  - touch tests/verify-dnssec-zone/allow-missing
  - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
