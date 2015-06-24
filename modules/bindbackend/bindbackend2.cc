@@ -252,36 +252,30 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
-bool Bind2Backend::feedRecord(const DNSResourceRecord &r, string *ordername)
+bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
 {
-  DNSName qname=r.qname;
-
   BB2DomainInfo bbd;
   safeGetBBDomainInfo(d_transaction_id, &bbd);
 
-  DNSName domain = bbd.d_name;
+  string name=bbd.d_name.toStringNoDot();
+  string qname=rr.qname.toStringNoDot();
 
-  qname = qname.makeRelative(domain);
-  if(qname.empty())
-    throw DBException("out-of-zone data '"+r.qname.toStringNoDot()+"' during AXFR of zone '"+domain.toStringNoDot()+"'");
+  if(!stripDomainSuffix(&qname, name))
+    throw DBException("out-of-zone data '"+qname+".' during AXFR of zone '"+name+".'");
 
-  string content=r.content;
+  string content=rr.content;
 
   // SOA needs stripping too! XXX FIXME - also, this should not be here I think
-  switch(r.qtype.getCode()) {
+  switch(rr.qtype.getCode()) {
   case QType::MX:
   case QType::SRV:
   case QType::CNAME:
-  case QType::NS: {
-      DNSName content2 = DNSName(content).makeRelative(domain);
-      if (content2.empty())
-        content2=content;
-      *d_of<<qname.toString()<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<content2.toString()<<endl;
-      break;
-    }
+  case QType::NS:
+    if(!stripDomainSuffix(&content, name))
+      content=stripDot(content)+".";
+    // falltrough
   default:
-    *d_of<<qname.toString()<<"\t"<<r.ttl<<"\t"<<r.qtype.getName()<<"\t"<<r.content<<endl;
-    break;
+    *d_of<<qname<<"\t"<<rr.ttl<<"\t"<<rr.qtype.getName()<<"\t"<<content<<endl;
   }
   return true;
 }

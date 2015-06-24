@@ -198,7 +198,7 @@ public:
   void setFresh(uint32_t domain_id);
   void setNotified(uint32_t id, uint32_t serial);
   bool startTransaction(const DNSName &qname, int id);
-  bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
+  bool feedRecord(const DNSResourceRecord &rr, string *ordername=0);
   bool commitTransaction();
   bool abortTransaction();
   void alsoNotifies(const DNSName &domain, set<string> *ips);
