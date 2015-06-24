@@ -241,7 +241,7 @@ bool OdbxBackend::list( const DNSName& target, int zoneid, bool include_disabled
         {
         	DLOG( L.log( m_myname + " list()", Logger::Debug ) );
 
-        	m_qname = "";
+        	m_qname.empty();
         	m_result = NULL;
 
         	int len = snprintf( m_buffer, sizeof( m_buffer ) - 1, "%d", zoneid );
