@@ -103,6 +103,7 @@ script:
  - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
 # - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
  - cd pdns
+ - make -k -j 4 dnsbulktest
  - make -k -j 4 pdns_recursor
  - rm -f pdns_recursor
  - cd ..
