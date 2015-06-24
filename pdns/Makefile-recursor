@@ -27,7 +27,7 @@ version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yah
 rec-carbon.o secpoll-recursor.o lua-iputils.o iputils.o dnsname.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
-	unix_utility.o logger.o qtype.o
+	unix_utility.o logger.o qtype.o dnslabeltext.o dnsname.o
 
 # what we need 
 all: message build
