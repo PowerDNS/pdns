@@ -228,8 +228,8 @@ Answer:
 
 Check if delegate is deleted and glue auth=1
 --- Start: diff start step.2 ---
-> c.host.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> ns1.c.host.test.dyndns	A	0	192.168.0.1	3600	''	1
+> c.host.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> ns1.c.host.test.dyndns	A	0	192.168.0.1	3600	NULL	1
 --- End: diff start step.2 ---
 
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
