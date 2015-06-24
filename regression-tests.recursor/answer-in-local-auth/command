@@ -1,0 +1,1 @@
+cleandig service.box.answer-cname-in-local.example.net. A | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
