@@ -268,6 +268,12 @@ doubles query load. **Do not combine with DNSSEC!**
 
 Enable/Disable DNS update (RFC2136) support.
 
+## `experimental-json-interface`
+* Boolean
+* Default: no
+
+Enable/disable the [JSON API](../httpapi/README.md).
+
 ## `forward-dnsupdates`
 * Boolean
 * Default: no
