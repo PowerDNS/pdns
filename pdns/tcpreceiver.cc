@@ -275,7 +275,7 @@ void *TCPNameserver::doConnection(void *data)
       ComboAddress remote;
       socklen_t remotelen=sizeof(remote);
       if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
-        L<<Logger::Error<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
+        L<<Logger::Warning<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
         break;
       }
 
@@ -293,7 +293,7 @@ void *TCPNameserver::doConnection(void *data)
       // do not remove this check as it will catch if someone
       // decreases the mesg buffer size for some reason. 
       if(pktlen > mesgsize) {
-        L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
+        L<<Logger::Warning<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
         break;
       }
       
