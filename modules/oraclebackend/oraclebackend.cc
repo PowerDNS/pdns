@@ -273,6 +273,16 @@ string_to_cbuf (char *buf, const string& s, size_t bufsize)
   strncpy(buf, s.c_str(), bufsize);
 }
 
+static void
+DNSName_to_cbuf (char *buf, const DNSName& n, size_t bufsize)
+{
+  string s = toLower(n.toStringNoDot());
+  if (s.size() >= bufsize) {
+    throw std::overflow_error("OracleBackend: DNSName does not fit into char buffer");
+  }
+  strncpy(buf, s.c_str(), bufsize);
+}
+
 OracleBackend::OracleBackend (const string &suffix, OCIEnv *envh,
                               char *poolname)
 {
@@ -441,7 +451,7 @@ OracleBackend::lookup (const QType &qtype, const DNSName& qname,
     }
   }
 
-  string_to_cbuf(mQueryName, qname.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, qname, sizeof(mQueryName));
   string_to_cbuf(mQueryType, qtype.getName(), sizeof(mQueryType));
   mQueryZoneId = zoneId;
 
@@ -476,7 +486,7 @@ OracleBackend::getBeforeAndAfterNames (
   bind_str_ind(stmt, ":prev", mResultPrevName, sizeof(mResultPrevName), &mResultPrevNameInd);
   bind_str_ind(stmt, ":next", mResultNextName, sizeof(mResultNextName), &mResultNextNameInd);
   bind_uint32(stmt, ":zoneid", &zoneId);
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
   mResultPrevNameInd = -1;
   mResultNextNameInd = -1;
 
@@ -596,7 +606,7 @@ OracleBackend::isMaster (const DNSName& domain, const string &master)
 
   stmt = prepare_query(masterSvcCtx, isZoneMasterQuerySQL, isZoneMasterQueryKey);
 
-  string_to_cbuf(mQueryZone, domain.toStringNoDot(), sizeof(mQueryZone));
+  DNSName_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
   string_to_cbuf(mQueryName, master, sizeof(mQueryName));
 
   char res_master[512];
@@ -649,7 +659,7 @@ OracleBackend::getDomainInfo (const DNSName& domain, DomainInfo &di)
   define_output_uint32(stmt, 5, &serial_ind, &serial);
   define_output_uint32(stmt, 6, &notified_serial_ind, &notified_serial);
 
-  string_to_cbuf(mQueryZone, domain.toStringNoDot(), sizeof(mQueryZone));
+  DNSName_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
   bind_str(stmt, ":name", mQueryZone, sizeof(mQueryZone));
 
   rc = OCIStmtExecute(masterSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
@@ -710,7 +720,7 @@ void OracleBackend::alsoNotifies(const DNSName& domain, set<string> *addrs)
   bind_str_failokay(stmt, ":nsname", myServerName, sizeof(myServerName));
   bind_str(stmt, ":name", mQueryZone, sizeof(mQueryZone));
 
-  string_to_cbuf(mQueryZone, domain.toStringNoDot(), sizeof(mQueryZone));
+  DNSName_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
 
   define_output_str(stmt, 1, &hostaddr_ind, hostaddr, sizeof(hostaddr));
 
@@ -1075,7 +1085,7 @@ OracleBackend::feedRecord (const DNSResourceRecord &rr, string *ordername)
   bind_str(stmt, ":content", mQueryContent, sizeof(mQueryContent));
 
   mQueryZoneId = rr.domain_id;
-  string_to_cbuf(mQueryName, rr.qname.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, rr.qname, sizeof(mQueryName));
   ttl = rr.ttl;
   string_to_cbuf(mQueryType, rr.qtype.getName(), sizeof(mQueryType));
   string_to_cbuf(mQueryContent, rr.content, sizeof(mQueryContent));
@@ -1189,7 +1199,7 @@ OracleBackend::createSlaveDomain(const string &ip, const DNSName& domain,
   OCIStmt *insertSlaveQueryHandle;
   OCIStmt *insertMasterQueryHandle;
 
-  string_to_cbuf(mQueryZone, domain.toStringNoDot(), sizeof(mQueryZone));
+  DNSName_to_cbuf(mQueryZone, domain, sizeof(mQueryZone));
 
   openMasterConnection();
 
@@ -1253,7 +1263,7 @@ OracleBackend::getAllDomainMetadata (const DNSName& name, std::map<string, vecto
   define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
   define_output_str(stmt, 2, &mResultContentInd, mResultContent, sizeof(mResultContent));
 
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
 
   rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
 
@@ -1294,7 +1304,7 @@ OracleBackend::getDomainMetadata (const DNSName& name, const string& kind,
   bind_str(stmt, ":kind", mQueryType, sizeof(mQueryType));
   define_output_str(stmt, 1, &mResultContentInd, mResultContent, sizeof(mResultContent));
 
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryType, kind, sizeof(mQueryType));
 
   rc = OCIStmtExecute(pooledSvcCtx, stmt, oraerr, 1, 0, NULL, NULL, OCI_DEFAULT);
@@ -1336,7 +1346,7 @@ OracleBackend::setDomainMetadata(const DNSName& name, const string& kind,
     throw OracleException("Oracle setDomainMetadata BEGIN", oraerr);
   }
 
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryType, kind, sizeof(mQueryType));
 
   stmt = prepare_query(masterSvcCtx, delZoneMetadataQuerySQL, delZoneMetadataQueryKey);
@@ -1387,7 +1397,7 @@ OracleBackend::getTSIGKey (const DNSName& name, DNSName* algorithm, string* cont
   OCIStmt *stmt;
 
   stmt = prepare_query(pooledSvcCtx, getTSIGKeyQuerySQL, getTSIGKeyQueryKey);
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
 
   define_output_str(stmt, 1, &mResultTypeInd, mResultType, sizeof(mResultType));
@@ -1427,7 +1437,7 @@ OracleBackend::delTSIGKey(const DNSName& name)
   rc = OCITransStart(masterSvcCtx, oraerr, 60, OCI_TRANS_NEW);
 
   stmt = prepare_query(masterSvcCtx, delTSIGKeyQuerySQL, delTSIGKeyQueryKey);
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
 
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
 
@@ -1461,7 +1471,7 @@ OracleBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const s
   }
 
   stmt = prepare_query(masterSvcCtx, delTSIGKeyQuerySQL, delTSIGKeyQueryKey);
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
 
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
 
@@ -1474,8 +1484,8 @@ OracleBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const s
   release_query(stmt, delTSIGKeyQueryKey);
 
   stmt = prepare_query(masterSvcCtx, setTSIGKeyQuerySQL, setTSIGKeyQueryKey);
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
-  string_to_cbuf(mQueryType, algorithm.toStringNoDot(), sizeof(mQueryType));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryType, algorithm, sizeof(mQueryType));
   string_to_cbuf(mQueryContent, content, sizeof(mQueryContent));
 
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
@@ -1549,7 +1559,7 @@ OracleBackend::getDomainKeys (const DNSName& name, unsigned int kind, vector<Key
   stmt = prepare_query(pooledSvcCtx, getZoneKeysQuerySQL, getZoneKeysQueryKey);
   bind_str(stmt, ":name", mQueryName, sizeof(mQueryName));
 
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
 
   sb2 key_id_ind = 0;
   unsigned int key_id = 0;
@@ -1651,7 +1661,7 @@ OracleBackend::addDomainKey (const DNSName& name, const KeyData& key)
     throw OracleException("Oracle addDomainKey BEGIN", oraerr);
   }
 
-  string_to_cbuf(mQueryName, name.toStringNoDot(), sizeof(mQueryName));
+  DNSName_to_cbuf(mQueryName, name, sizeof(mQueryName));
   string_to_cbuf(mQueryContent, key.content, sizeof(mQueryContent));
 
   stmt = prepare_query(masterSvcCtx, addZoneKeyQuerySQL, addZoneKeyQueryKey);
