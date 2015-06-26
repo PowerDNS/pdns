@@ -161,7 +161,7 @@ try
           ++i)
         {
           if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toStringNoDot()<<"'"<<endl;
+            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toString()<<"'"<<endl;
             continue;
           }
           lines.clear(); 
