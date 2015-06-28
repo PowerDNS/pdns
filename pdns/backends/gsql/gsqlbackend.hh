@@ -215,6 +215,8 @@ public:
   bool getComment(Comment& comment);
   void feedComment(const Comment& comment);
   bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments);
+  bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
+  string directBackendCmd(const string &query);
 
 private:
   DNSName d_qname;

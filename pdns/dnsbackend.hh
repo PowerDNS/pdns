@@ -365,6 +365,11 @@ public:
     return false;
   }
 
+  virtual string directBackendCmd(const string &query)
+  {
+    return "directBackendCmd not supported for this backend\n";
+  }
+
   const string& getPrefix() { return d_prefix; };
 protected:
   bool mustDo(const string &key);
