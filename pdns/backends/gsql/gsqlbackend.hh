@@ -220,6 +220,7 @@ public:
   bool getComment(Comment& comment);
   void feedComment(const Comment& comment);
   bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
+  string directBackendCmd(const string &query);
 
 private:
   string d_qname;
