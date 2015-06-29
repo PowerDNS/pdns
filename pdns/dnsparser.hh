@@ -150,6 +150,7 @@ public:
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
+  uint16_t not_used; // Alighns the whole class on 8-byte boundries
   const vector<uint8_t>& d_content;
 };
 
@@ -263,12 +264,12 @@ protected:
 struct DNSRecord
 {
   std::string d_label;
+  std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-  enum {Answer=1, Nameserver, Additional} d_place;
-  std::shared_ptr<DNSRecordContent> d_content;
+  enum : uint8_t {Answer=1, Nameserver, Additional} d_place;
 
   bool operator<(const DNSRecord& rhs) const
   {
@@ -319,10 +320,10 @@ public:
     init(packet, len);
   }
 
-  dnsheader d_header;
   string d_qname;
   uint16_t d_qclass, d_qtype;
   //uint8_t d_rcode;
+  dnsheader d_header;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
   

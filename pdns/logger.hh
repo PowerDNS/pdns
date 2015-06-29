@@ -39,7 +39,7 @@ public:
   Logger(const string &, int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
-  enum Urgency {All=99999,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
+  enum Urgency : int16_t {All=32767,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
         	Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
   /** Log a message.
@@ -92,12 +92,13 @@ private:
   static void perThreadDestructor(void *);
   PerThread* getPerThread();
   void open();
+
   string name;
   int flags;
   int d_facility;
-  bool opened;
   Urgency d_loglevel;
   Urgency consoleUrgency;
+  bool opened;
   static pthread_once_t s_once;
   static pthread_key_t s_loggerKey;
 };

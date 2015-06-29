@@ -108,10 +108,10 @@ public:
   includeboilerplate(IPSECKEY)
 
 private:
-  uint8_t d_preference, d_gatewaytype, d_algorithm;
-  string d_gateway, d_publickey;
   uint32_t d_ip4;
+  string d_gateway, d_publickey;
   string d_ip6;
+  uint8_t d_preference, d_gatewaytype, d_algorithm;
 };
 
 class DHCIDRecordContent : public DNSRecordContent
@@ -131,8 +131,9 @@ public:
 
   includeboilerplate(SRV)
 
-  uint16_t d_preference, d_weight, d_port;
+  uint16_t d_weight, d_port;
   string d_target;
+  uint16_t d_preference;
 };
 
 class TSIGRecordContent : public DNSRecordContent
@@ -141,15 +142,16 @@ public:
   includeboilerplate(TSIG)
   TSIGRecordContent() : DNSRecordContent(QType::TSIG) {}
 
-  string d_algoName;
-  uint64_t d_time; // 48 bits
-  uint16_t d_fudge;
-  //  uint16_t d_macSize;
-  string d_mac;
   uint16_t d_origID;
+  uint16_t d_fudge;
+
+  string d_algoName;
+  string d_mac;
+  string d_otherData;
+  uint64_t d_time;
+  //  uint16_t d_macSize;
   uint16_t d_eRcode;
   // uint16_t d_otherLen
-  string d_otherData;
 };
 
 
@@ -342,8 +344,8 @@ public:
 
 private:
   uint16_t d_type, d_tag;
-  uint8_t d_algorithm;
   string d_certificate;
+  uint8_t d_algorithm;
 };
 
 class TLSARecordContent : public DNSRecordContent
@@ -364,13 +366,11 @@ public:
   includeboilerplate(RRSIG)
 
   uint16_t d_type;
-  uint8_t d_algorithm, d_labels;
-  uint32_t d_originalttl, d_sigexpire, d_siginception;
   uint16_t d_tag;
   string d_signer, d_signature;
+  uint32_t d_originalttl, d_sigexpire, d_siginception;
+  uint8_t d_algorithm, d_labels;
 };
-
-
 
 //namespace {
   struct soatimes 
@@ -399,9 +399,9 @@ public:
   includeboilerplate(SOA)
   SOARecordContent(const string& mname, const string& rname, const struct soatimes& st);
 
+  struct soatimes d_st;
   string d_mname;
   string d_rname;
-  struct soatimes d_st;
 };
 
 class NSECRecordContent : public DNSRecordContent
@@ -436,11 +436,11 @@ public:
 
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;
-  uint8_t d_saltlength;
   string d_salt;
-  uint8_t d_nexthashlength;
   string d_nexthash;
   std::set<uint16_t> d_set;
+  uint8_t d_saltlength;
+  uint8_t d_nexthashlength;
 
 private:
 };
@@ -462,8 +462,8 @@ public:
 
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;
-  uint8_t d_saltlength;
   string d_salt;
+  uint8_t d_saltlength;
 };
 
 
@@ -540,15 +540,17 @@ public:
   includeboilerplate(TKEY)
 
   // storage for the bytes
-  string d_algo;
+  uint16_t d_othersize;
+  uint16_t d_mode;
   uint32_t d_inception;
   uint32_t d_expiration;
-  uint16_t d_mode;
+
+  string d_algo;
+  string d_key;
+  string d_other;
+
   uint16_t d_error;
   uint16_t d_keysize;
-  string d_key;
-  uint16_t d_othersize;
-  string d_other;
 private:
 };
 
@@ -616,11 +618,11 @@ void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
 
 struct EDNSOpts
 {
-  uint16_t d_packetsize;
-  uint8_t d_extRCode, d_version;
-  uint16_t d_Z;
-  vector<pair<uint16_t, string> > d_options;
   enum zFlags { DNSSECOK=32768 };
+  vector<pair<uint16_t, string> > d_options;
+  uint16_t d_packetsize;
+  uint16_t d_Z;
+  uint8_t d_extRCode, d_version;
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any
 

@@ -133,8 +133,8 @@ public:
 private:
   string d_query;
   sqlite3_stmt* d_stmt;
-  int d_rc;
   SSQLite3* d_db;
+  int d_rc;
   bool d_dolog;
 };
 

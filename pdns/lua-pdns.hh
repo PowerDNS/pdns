@@ -26,9 +26,9 @@ protected: // FIXME?
   bool passthrough(const string& func, const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable);
   bool getFromTable(const std::string& key, std::string& value);
   bool getFromTable(const std::string& key, uint32_t& value);
+  ComboAddress d_local;
   bool d_failed;
   bool d_variable;  
-  ComboAddress d_local;
 };
 // enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
 namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
