@@ -1,0 +1,33 @@
+source ./backends/gsql-common
+ISQL="isql $GODBC_MSSQL_DSN $GODBC_MSSQL_USERNAME $GODBC_MSSQL_PASSWORD"
+BSQLODBC="bsqlodbc -S $GODBC_MSSQL_DSN -U $GODBC_MSSQL_USERNAME -P $GODBC_MSSQL_PASSWORD"
+case $context in
+	godbc_mssql-nodnssec | godbc_mssql | godbc_mssql-nsec3 | godbc_mssql-nsec3-optout | godbc_mssql-nsec3-narrow)
+		# Drop _ALL_ the tables!
+		for table in `echo "SELECT name FROM sysobjects WHERE OBJECTPROPERTY(id, N'IsUserTable') = 1" | $ISQL -b -d.`; do
+			echo "drop table $table" | $ISQL -b
+		done
+		cat ../modules/godbcbackend/schema.mssql.sql | tr '\n' ' ' | $ISQL -b
+
+		# Some context, the inserts are extremely slow for some reason
+		# This code removes the transactions from the sql because example.com is
+		# too large (and hangs/crashes).
+		# The 'sed' then adds 'go' after every 1000th line to batch-insert
+		# Then we send that to bsqlodbc with a final 'go' and an EOF so bdsqlodbc
+		# actually terminates
+		tosql gsqlite | grep -v -E '(COMMIT|TRANSACTION)' | awk '1;!(NR%98){print "go"}' | cat - <(echo go) /dev/null | $BSQLODBC
+		cat > pdns-godbc_mssql.conf << __EOF__
+module-dir=./modules
+launch=godbc
+godbc-datasource=$GODBC_MSSQL_DSN
+godbc-username=$GODBC_MSSQL_USERNAME
+godbc-password=$GODBC_MSSQL_PASSWORD
+godbc-dnssec=yes
+__EOF__
+
+		gsql_master godbc_mssql nodyndns
+		;;
+
+	*)
+		nocontext=yes
+esac

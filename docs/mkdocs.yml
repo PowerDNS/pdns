@@ -40,6 +40,7 @@ pages:
   - Authoritative Backends:
     - BIND: authoritative/backend-bind.md
     - Generic MySQL and PostgreSQL: authoritative/backend-generic-mypgsql.md
+    - Generic ODBC: authoritative/backend-godbc.md
     - GeoIP: authoritative/backend-geoip.md
     - Generic SQLite: authoritative/backend-gsqlite.md
     - MyDNS: authoritative/backend-mydns.md

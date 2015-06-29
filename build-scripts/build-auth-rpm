@@ -337,6 +337,16 @@ BuildRequires: postgresql-devel
 %description backend-postgresql
 This package contains the gpgsql backend for %{name}
 
+%package backend-odbc
+Summary: UnixODBC backend for %{name}
+Group: System Environment/Daemons
+Requires: %{name}%{?_isa} = %{version}-%{release}
+BuildRequires: unixodbc-devel
+%global backends %{backends} godbc
+
+%description backend-odbc
+This package contains the godbc backend for %{name}
+
 %package backend-pipe
 Summary: Pipe backend for %{name}
 Group: System Environment/Daemons
@@ -521,6 +531,10 @@ exit 0
 %doc modules/gpgsqlbackend/dnssec-3.x_to_3.4.0_schema.pgsql.sql
 %doc modules/gpgsqlbackend/nodnssec-3.x_to_3.4.0_schema.pgsql.sql
 %{_libdir}/%{name}/libgpgsqlbackend.so
+
+%files backend-odbc
+%doc modules/godbcbackend/schema.mssql.sql
+%{_libdir}/%{name}/libgodbcbackend.so
 
 %files backend-pipe
 %{_libdir}/%{name}/libpipebackend.so
