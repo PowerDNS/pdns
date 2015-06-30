@@ -4,7 +4,9 @@
 #include <set>
 #include <deque>
 #include <strings.h>
-#include "misc.hh"
+#include <stdexcept>
+// #include "dns.hh"
+// #include "logger.hh"
 
 // #include <ext/vstring.h>
 
@@ -20,23 +22,34 @@
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
 
+
 class DNSName
 {
 public:
-  DNSName() {}                 //!< Constructs the root name
+  DNSName() : d_empty(true) {}                 //!< Don't constructs the root name
   DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
   bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive)
-  std::string toString() const;              //!< Our human-friendly, escaped, representation
+  bool operator!=(const DNSName& other) const { return !(*this == other); }
+
+  std::string toString(const std::string& separator=".", const bool trailing=true) const;              //!< Our human-friendly, escaped, representation
+  std::string toStringNoDot() const { return toString(".", false); }
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
+  DNSName makeRelative(const DNSName& zone) const;
+  DNSName labelReverse() const;
+  bool isWildcard() const;
   unsigned int countLabels() const;
+  size_t length() const; // FIXME remove me?
+  bool empty() const { return d_empty; }
+  bool isRoot() const { return !d_empty && d_storage.empty(); }
+  void clear() { d_storage.clear(); d_empty=true; }
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
@@ -44,6 +57,7 @@ public:
       throw std::range_error("name too long");
 
     d_storage+=rhs.d_storage;
+    d_empty&=rhs.d_empty;
     return *this;
   }
 
@@ -56,18 +70,28 @@ public:
 					}); // note that this is case insensitive, including on the label lengths
   }
 
+  template<class Archive>
+  void serialize(Archive &ar, const unsigned int version)
+  {
+    ar & d_storage;
+    ar & d_empty;
+  }
+
   bool canonCompare(const DNSName& rhs) const;
   
 private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
   string_t d_storage;
+  bool d_empty;
   int d_recurse;
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0);
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };
+
+size_t hash_value(DNSName const& d);
 
 struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
 {

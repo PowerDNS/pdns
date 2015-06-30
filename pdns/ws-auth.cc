@@ -290,13 +290,13 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   DNSSECKeeper dk;
   jdi.SetObject();
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-  string zoneId = apiZoneNameToId(di.zone);
+  string zoneId = apiZoneNameToId(di.zone.toString());
   Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("id", jzoneId, doc.GetAllocator());
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
-  jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
+  jdi.AddMember("name", di.zone.toString().c_str(), doc.GetAllocator());
   jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
   jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
   jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());
@@ -339,7 +339,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
 
     Value object;
     object.SetObject();
-    Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+    Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
     object.AddMember("name", jname, doc.GetAllocator());
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
@@ -401,7 +401,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       rr.disabled = boolFromJson(record, "disabled");
 
       if (rr.qtype.getCode() == 0) {
-        throw ApiException("Record "+rr.qname+"/"+stringFromJson(record, "type")+" is of unknown type");
+        throw ApiException("Record "+rr.qname.toString()+"/"+stringFromJson(record, "type")+" is of unknown type");
       }
 
       try {
@@ -421,7 +421,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       }
       catch(std::exception& e)
       {
-        throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" '"+rr.content+"': "+e.what());
+        throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+rr.content+"': "+e.what());
       }
 
       if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
@@ -434,7 +434,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
         SOAData sd;
         fakePacket.qtype = QType::PTR;
         if (!B.getAuth(&fakePacket, &sd, ptr.qname))
-          throw ApiException("Could not find domain for PTR '"+ptr.qname+"' requested for '"+ptr.content+"'");
+          throw ApiException("Could not find domain for PTR '"+ptr.qname.toString()+"' requested for '"+ptr.content+"'");
 
         ptr.domain_id = sd.domain_id;
         new_ptrs.push_back(ptr);
@@ -584,7 +584,7 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
       if(rr.qtype.getCode() == QType::SOA)
         seenSOA=true;
 
-      rr.qname = stripDot(rr.qname);
+      // rr.qname = stripDot(rr.qname);
       new_records.push_back(rr);
     }
   }
@@ -653,8 +653,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     DNSResourceRecord rr;
 
     BOOST_FOREACH(rr, new_records) {
-      if (!iends_with(rr.qname, dotsuffix) && !pdns_iequals(rr.qname, zonename))
-        throw ApiException("RRset "+rr.qname+" IN "+rr.qtype.getName()+": Name is out of zone");
+      if (!rr.qname.isPartOf(dotsuffix) && !pdns_iequals(rr.qname, zonename))
+        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
 
       if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
         have_soa = true;
@@ -674,7 +674,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       sd.nameserver = arg()["default-soa-name"];
       if (!arg().isEmpty("default-soa-mail")) {
         sd.hostmaster = arg()["default-soa-mail"];
-        attodot(sd.hostmaster);
+        // attodot(sd.hostmaster); FIXME
       } else {
         sd.hostmaster = "hostmaster." + zonename;
       }
@@ -789,15 +789,15 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   throw HttpMethodNotAllowedException();
 }
 
-static string makeDotted(string in) {
-  if (in.empty()) {
-    return ".";
-  }
-  if (in[in.size()-1] != '.') {
-    return in + ".";
-  }
-  return in;
-}
+// static string makeDotted(string in) {
+//   if (in.empty()) {
+//     return ".";
+//   }
+//   if (in[in.size()-1] != '.') {
+//     return in + ".";
+//   }
+//   return in;
+// }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   string zonename = apiZoneIdToName(req->parameters["id"]);
@@ -824,8 +824,8 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     switch(rr.qtype.getCode()) {
     case QType::SOA:
       fillSOAData(rr.content, sd);
-      sd.nameserver = makeDotted(sd.nameserver);
-      sd.hostmaster = makeDotted(sd.hostmaster);
+      sd.nameserver = sd.nameserver.toString();
+      sd.hostmaster = sd.hostmaster.toString();
       content = serializeSOAData(sd);
       break;
     case QType::MX:
@@ -833,14 +833,14 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     case QType::CNAME:
     case QType::NS:
     case QType::AFSDB:
-      content = makeDotted(rr.content);
+      content = rr.content;
       break;
     default:
       break;
     }
 
     ss <<
-      makeDotted(rr.qname) << "\t" <<
+      rr.qname.toString() << "\t" <<
       rr.ttl << "\t" <<
       rr.qtype.getName() << "\t" <<
       content <<
@@ -923,13 +923,13 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
     // reverse and append arpa domain
     ptr->qname = string(tmp.rbegin(), tmp.rend()) + ".ip6.arpa";
   } else {
-    throw ApiException("Unsupported PTR source '" + rr.qname + "' type '" + rr.qtype.getName() + "'");
+    throw ApiException("Unsupported PTR source '" + rr.qname.toString() + "' type '" + rr.qtype.getName() + "'");
   }
 
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->content = rr.qname;
+  ptr->content = rr.qname.toString();
 }
 
 static void patchZone(HttpRequest* req, HttpResponse* resp) {
@@ -989,7 +989,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           rr.domain_id = di.id;
 
           if (rr.qname != qname || rr.qtype != qtype)
-            throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
+            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
             soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
@@ -1059,15 +1059,15 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     fakePacket.qtype = QType::PTR;
 
     if (!B.getAuth(&fakePacket, &sd, rr.qname))
-      throw ApiException("Could not find domain for PTR '"+rr.qname+"' requested for '"+rr.content+"' (while saving)");
+      throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
 
     sd.db->startTransaction(rr.qname);
     if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
       sd.db->abortTransaction();
-      throw ApiException("PTR-Hosting backend for "+rr.qname+"/"+rr.qtype.getName()+" does not support editing records.");
+      throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
     }
     sd.db->commitTransaction();
-    PC.purge(rr.qname);
+    PC.purge(rr.qname.toString());
   }
 
   // success
@@ -1094,15 +1094,15 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   Comment comment;
 
   BOOST_FOREACH(const DomainInfo& di, domains) {
-    string zoneId = apiZoneNameToId(di.zone);
+    string zoneId = apiZoneNameToId(di.zone.toString());
 
-    if (pdns_ci_find(di.zone, q) != string::npos) {
+    if (pdns_ci_find(di.zone.toString(), q) != string::npos) {
       Value object;
       object.SetObject();
       object.AddMember("type", "zone", doc.GetAllocator());
       Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
       object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      Value jzoneName(di.zone.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jzoneName, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }

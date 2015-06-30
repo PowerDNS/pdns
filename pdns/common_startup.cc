@@ -369,7 +369,7 @@ void *qthread(void *number)
      if(P->d.qr)
        continue;
 
-    S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
+    S.ringAccount("queries", P->qdomain.toString()+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;
@@ -377,7 +377,7 @@ void *qthread(void *number)
         remote = P->getRemote() + "<-" + P->getRealRemote().toString();
       else
         remote = P->getRemote();
-      L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain<<"|"<<P->qtype.getName() << 
+      L << Logger::Notice<<"Remote "<< remote <<" wants '" << P->qdomain.toString()<<"|"<<P->qtype.getName() << 
             "', do = " <<P->d_dnssecOk <<", bufsize = "<< P->getMaxReplyLen()<<": ";
     }
 

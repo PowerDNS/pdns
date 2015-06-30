@@ -42,11 +42,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01",false))
 // local nameserver
-     (CASE_L(QType::NS, "ns.rec.test", "ns.rec.test.", "\x02ns\xc0\x11",false))
+     (CASE_L(QType::NS, "ns.rec.test", "ns.rec.test.", "\x02ns\xc0\x11",false)) //FIXME
 // non-local nameserver
      (CASE_S(QType::NS, "ns.example.com.", "\x02ns\x07""example\x03""com\x00",false))
 // local alias
-     (CASE_L(QType::CNAME, "name.rec.test", "name.rec.test.", "\x04name\xc0\x11",false))
+     (CASE_L(QType::CNAME, "name.rec.test", "name.rec.test.", "\x04name\xc0\x11",false)) //FIXME
 // non-local alias
      (CASE_S(QType::CNAME, "name.example.com.", "\x04name\x07""example\x03""com\x00",false))
 // max label length (63)
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 // local names
      (CASE_S(QType::SOA, "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
 // local name without dots
-     (CASE_L(QType::SOA, "ns.rec.test hostmaster.test.rec 2013051201 3600 3600 604800 120", "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
+     (CASE_L(QType::SOA, "ns.rec.test hostmaster.test.rec 2013051201 3600 3600 604800 120", "ns.rec.test. hostmaster.test.rec. 2013051201 3600 3600 604800 120", "\x02ns\xc0\x11\x0ahostmaster\x04test\x03rec\x00\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false)) //FIXME
 // non-local names
      (CASE_S(QType::SOA, "ns.example.com. hostmaster.example.com. 2013051201 3600 3600 604800 120", "\x02ns\x07""example\x03""com\x00\x0ahostmaster\xc0\x28\x77\xfc\xb9\x41\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x09\x3a\x80\x00\x00\x00\x78",false))
 
@@ -69,9 +69,9 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::MR, "newmailbox.example.com.", "\x0anewmailbox\x07""example\x03""com\x00",false))
 
 // local name
-     (CASE_L(QType::PTR, "ptr.rec.test", "ptr.rec.test.", "\x03ptr\xc0\x11",false))
+     (CASE_L(QType::PTR, "ptr.rec.test", "ptr.rec.test.", "\x03ptr\xc0\x11",false)) //FIXME
 // non-local name
-     (CASE_L(QType::PTR, "ptr.example.com", "ptr.example.com.", "\x03ptr\x07""example\x03""com\x00",false))
+     (CASE_L(QType::PTR, "ptr.example.com", "ptr.example.com.", "\x03ptr\x07""example\x03""com\x00",false)) // FIXME
      (CASE_S(QType::HINFO, "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))
      (CASE_L(QType::HINFO, "i686 \"Linux\"", "\"i686\" \"Linux\"", "\x04i686\x05Linux",true))
      (CASE_L(QType::HINFO, "\"i686\" Linux", "\"i686\" \"Linux\"", "\x04i686\x05Linux",false))

@@ -123,12 +123,12 @@ try
     sock.recvFrom(reply, dest);
   }
   MOADNSParser mdp(reply);
-  cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+  cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
   cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+    cout<<i->first.d_place-1<<"\t"<<i->first.d_label.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
     if(i->first.d_type == QType::RRSIG) 
     {
       string zoneRep = i->first.d_content->getZoneRepresentation();

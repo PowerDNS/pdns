@@ -167,12 +167,13 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
 {
   // this removes duplicates from the packet in case we are not compressing
   // for AXFR, no such checking is performed!
+  // cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
   if(d_compress)
     for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) 
       if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
           return;
       }
-
+  // cerr<<"added to d_rrs"<<endl;
   d_rrs.push_back(rr);
 }
 
@@ -302,6 +303,7 @@ void DNSPacket::wrapup()
     try {
       uint8_t maxScopeMask=0;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
+        // cerr<<"during wrapup, content=["<<pos->content<<"]"<<endl;
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
         if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {
@@ -349,7 +351,7 @@ void DNSPacket::wrapup()
     }
   }
   
-  if(!d_trc.d_algoName.empty())
+  if(d_trc.d_algoName.countLabels())
     addTSIG(pw, &d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   
   d_rawpacket.assign((char*)&packet[0], packet.size());
@@ -361,7 +363,7 @@ void DNSPacket::wrapup()
   d.arcount = pw.getHeader()->arcount;
 }
 
-void DNSPacket::setQuestion(int op, const string &qd, int newqtype)
+void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 {
   memset(&d,0,sizeof(d));
   d.id=Utility::random();
@@ -402,7 +404,7 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
  
-  if(!d_tsigkeyname.empty()) {
+  if(d_tsigkeyname.countLabels()) {
     r->d_tsigkeyname = d_tsigkeyname;
     r->d_tsigprevious = d_tsigprevious;
     r->d_trc = d_trc;
@@ -444,7 +446,7 @@ int DNSPacket::noparse(const char *mesg, int length)
   return 0;
 }
 
-void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly)
+void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly)
 {
   d_trc=tr;
   d_tsigkeyname = keyname;
@@ -453,7 +455,7 @@ void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const string& keynam
   d_tsigtimersonly=timersonly;
 }
 
-bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* message) const
+bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string* message) const
 {
   MOADNSParser mdp(d_rawpacket);
 
@@ -467,8 +469,6 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
       
       gotit=true;
       *keyname = i->first.d_label;
-      if(!keyname->empty())
-        keyname->resize(keyname->size()-1); // drop the trailing dot
     }
   }
   if(!gotit)
@@ -479,7 +479,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, string* keyname, string* 
   return true;
 }
 
-bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, string *keyname) const
+bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 {
   MOADNSParser mdp(d_rawpacket);
   bool gotit=false;
@@ -561,8 +561,8 @@ try
 
   memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   qdomain=mdp.d_qname;
-  if(!qdomain.empty()) // strip dot
-    boost::erase_tail(qdomain, 1);
+  // if(!qdomain.empty()) // strip dot
+  //   boost::erase_tail(qdomain, 1);
 
   if(!ntohs(d.qdcount)) {
     if(!d_tcp) {
@@ -622,18 +622,18 @@ void DNSPacket::commitD()
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
 }
 
-bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc)
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc)
 {
   string message;
 
   q->getTSIGDetails(trc, keyname, &message);
   int64_t now = time(0);
   if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
+    L<<Logger::Error<<"Packet for '"<<q->qdomain.toString()<<"' denied: TSIG (key '"<<keyname->toString()<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
 
-  string algoName = toLowerCanonic(trc->d_algoName);
+  DNSName algoName = trc->d_algoName; // FIXME
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 
@@ -647,22 +647,22 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, s
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: can't find TSIG key with name '"<<keyname->toString()<<"' and algorithm '"<<algoName.toString()<<"'"<<endl;
     return false;
   }
   if (trc->d_algoName == "hmac-md5")
-    trc->d_algoName += ".sig-alg.reg.int.";
+    trc->d_algoName += "sig-alg.reg.int";
 
   TSIGHashEnum algo;
   if(!getTSIGHashEnum(trc->d_algoName, algo)) {
-     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName << endl;
+     L<<Logger::Error<<"Unsupported TSIG HMAC algorithm " << trc->d_algoName.toString() << endl;
      return false;
   }
 
   B64Decode(secret64, *secret);
   bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
   if(!result) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: TSIG signature mismatch using '"<<keyname->toString()<<"' and algorithm '"<<trc->d_algoName.toString()<<"'"<<endl;
   }
 
   return result;

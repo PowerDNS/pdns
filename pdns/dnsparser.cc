@@ -47,7 +47,7 @@ public:
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
-      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.c_str() % relevant.size() % (2*total)).str());
+      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.toString() % relevant.size() % (2*total)).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
@@ -80,37 +80,26 @@ private:
   vector<uint8_t> d_record;
 };
 
-static const string EncodeDNSLabel(const string& input)
+//FIXME lots of overlap with DNSPacketWriter::xfrName
+static const string EncodeDNSLabel(const DNSName& input)
 {  
-  if(input.length() == 1 && input[0]=='.') // otherwise we encode .. (long story)
+  if(!input.countLabels()) // otherwise we encode .. (long story)
     return string (1, 0);
     
-  labelparts_t parts;
-  bool unescapedSomething = labeltokUnescape(parts, input);
+  auto parts = input.getRawLabels();
   string ret;
 
-  if(!unescapedSomething) {
-    for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-      ret.append(1, i->second - i->first);
-      ret.append(input.c_str() + i->first, i->second - i->first);
-    }
+  for(auto &label: parts) {
+    ret.append(1, label.size());
+    ret.append(label);
+  }
 
-  } else {
-    for(labelparts_t::const_iterator i=parts.begin(); i!=parts.end(); ++i) {
-      string part(input.c_str() + i->first, i->second - i->first);
-      boost::replace_all(part, "\\\\", "\\");
-      boost::replace_all(part, "\\.", ".");
-    
-      ret.append(1, part.length());
-      ret.append(part);
-    }  
-  }    
   ret.append(1, 0);
   return ret;
 }
 
 
-shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const string& qname, uint16_t qtype, const string& serialized)
+shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname, uint16_t qtype, const string& serialized)
 {
   dnsheader dnsheader;
   memset(&dnsheader, 0, sizeof(dnsheader));
@@ -246,7 +235,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     d_qtype = d_qclass = 0; // sometimes replies come in with no question, don't present garbage then
 
     for(n=0;n < d_header.qdcount; ++n) {
-      d_qname=pr.getLabel();
+      d_qname=pr.getName();
       d_qtype=pr.get16BitInt();
       d_qclass=pr.get16BitInt();
     }
@@ -266,7 +255,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       unsigned int recordStartPos=pr.d_pos;
 
-      string label=pr.getLabel();
+      string label=pr.getName();
       
       pr.getDnsrecordheader(ah);
       dr.d_ttl=ah.d_ttl;
@@ -400,7 +389,7 @@ uint8_t PacketReader::get8BitInt()
   return d_content.at(d_pos++);
 }
 
-string PacketReader::getLabel()
+string PacketReader::getName()
 {
   unsigned int consumed;
   vector<uint8_t> content(d_content);
@@ -494,10 +483,11 @@ void PacketReader::xfrHexBlob(string& blob, bool keepReading)
   xfrBlob(blob);
 }
 
+//FIXME remove this method completely
 string simpleCompress(const string& elabel, const string& root)
 {
   string label=elabel;
-  // FIXME: this relies on the semi-canonical escaped output from getLabel
+  // FIXME: this relies on the semi-canonical escaped output from getName
   if(strchr(label.c_str(), '\\')) {
     boost::replace_all(label, "\\.", ".");
     boost::replace_all(label, "\\032", " ");
@@ -522,6 +512,7 @@ string simpleCompress(const string& elabel, const string& root)
 }
 
 
+// FIXME this function needs to go
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
 {
   unsigned int labellen=0;

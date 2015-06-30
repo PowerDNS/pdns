@@ -126,7 +126,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 }
 
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
-bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std::string& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
   uint16_t id;
   {
@@ -139,7 +139,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std:
     ce.outsock  = r->getSocket();
     ce.created  = time( NULL );
     ce.qtype = r->qtype.getCode();
-    ce.qname = stripDot(target);
+    ce.qname = target;
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;
@@ -234,7 +234,7 @@ void DNSProxy::mainloop(void)
 
         if(p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
           L<<Logger::Error<<"Discarding packet from recursor backend with id "<<(d.id^d_xor)<<
-            ", qname or qtype mismatch ("<<p.qtype.getCode()<<" v " <<i->second.qtype<<", "<<p.qdomain<<" v "<<i->second.qname<<")"<<endl;
+            ", qname or qtype mismatch ("<<p.qtype.getCode()<<" v " <<i->second.qtype<<", "<<p.qdomain.toString()<<" v "<<i->second.qname.toString()<<")"<<endl;
           continue;
         }
 

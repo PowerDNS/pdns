@@ -54,7 +54,7 @@ class OdbxBackend : public DNSBackend
         enum QueryType { READ, WRITE };
 
         string m_myname;
-        string m_qname;
+        DNSName m_qname;
         int m_default_ttl;
         bool m_qlog;
         odbx_t* m_handle[2];
@@ -75,9 +75,9 @@ public:
         OdbxBackend( const string& suffix="" );
         ~OdbxBackend();
 
-        void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
-        bool getSOA( const string& domain, SOAData& sd, DNSPacket* p );
-        bool list( const string& target, int domain_id, bool include_disabled=false );
+        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+        bool getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p );
+        bool list( const DNSName& target, int domain_id, bool include_disabled=false );
         bool get( DNSResourceRecord& rr );
 
         bool startTransaction( const string& domain, int domain_id );

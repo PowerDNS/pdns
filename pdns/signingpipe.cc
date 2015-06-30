@@ -70,7 +70,7 @@ catch(...) {
   return 0;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(const string& signerName, bool mustSign, const string& servers, unsigned int workers)
+ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, const string& servers, unsigned int workers)
   : d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
     d_maxchunkrecords(100), d_tids(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
@@ -133,7 +133,7 @@ bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 {
   ++d_submitted;
   // check if we have a full RRSET to sign
-  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  !pdns_iequals(d_rrsetToSign->begin()->qname, rr.qname))) 
+  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  d_rrsetToSign->begin()->qname != rr.qname)) 
   {
     dedupRRSet();
     sendRRSetToWorker();
@@ -287,7 +287,7 @@ try
       break;
     if(res < 0)
       unixDie("reading object pointer to sign from pdns");
-    set<string, CIStringCompare> authSet;
+    set<DNSName> authSet;
     authSet.insert(d_signer);
     addRRSigs(dk, db, authSet, *chunk);
     ++d_signed;

@@ -160,7 +160,7 @@ int RemoteBackend::build() {
  * The functions here are just remote json stubs that send and receive the method call
  * data is mainly left alone, some defaults are assumed. 
  */
-void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPacket *pkt_p, int zoneId) {
+void RemoteBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket *pkt_p, int zoneId) {
    rapidjson::Document query;
    rapidjson::Value parameters;
 
@@ -171,7 +171,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    JSON_ADD_MEMBER(query, "method", "lookup", query.GetAllocator())
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "qtype", qtype.getName().c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "qname", qdomain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "qname", qdomain, query.GetAllocator());
 
    string localIP="0.0.0.0";
    string remoteIP="0.0.0.0";
@@ -204,7 +204,7 @@ void RemoteBackend::lookup(const QType &qtype, const std::string &qdomain, DNSPa
    d_index = 0;
 }
 
-bool RemoteBackend::list(const std::string &target, int domain_id, bool include_disabled) {
+bool RemoteBackend::list(const DNSName& target, int domain_id, bool include_disabled) {
    rapidjson::Document query;
    rapidjson::Value parameters;
 
@@ -215,7 +215,7 @@ bool RemoteBackend::list(const std::string &target, int domain_id, bool include_
    JSON_ADD_MEMBER(query, "method", "list", query.GetAllocator());
    query["method"] = "list";
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "zonename", target.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "zonename", target, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "domain-id", domain_id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -266,7 +266,7 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
    return true;
 }
 
-bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after) {
+bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, DNSName& unhashed, std::string& before, std::string& after) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
@@ -290,14 +290,14 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    return true;
 }
 
-bool RemoteBackend::getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta) {
+bool RemoteBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getAllDomainMetadata", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    if (this->send(query) == false)
@@ -323,14 +323,14 @@ bool RemoteBackend::getAllDomainMetadata(const string& name, std::map<std::strin
    return true;
 }
 
-bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta) {
+bool RemoteBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getDomainMetadata", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "kind", kind.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -354,13 +354,13 @@ bool RemoteBackend::getDomainMetadata(const std::string& name, const std::string
    return true;
 }
 
-bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta) {
+bool RemoteBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters,val;
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "setDomainMetadata", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "kind", kind.c_str(), query.GetAllocator());
    val.SetArray();
    BOOST_FOREACH(std::string value, meta) {
@@ -376,7 +376,7 @@ bool RemoteBackend::setDomainMetadata(const string& name, const std::string& kin
 }
 
 
-bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
+bool RemoteBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
@@ -385,7 +385,7 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getDomainKeys", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "kind", kind, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -415,7 +415,7 @@ bool RemoteBackend::getDomainKeys(const std::string& name, unsigned int kind, st
    return true;
 }
 
-bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) { 
+bool RemoteBackend::removeDomainKey(const DNSName& name, unsigned int id) { 
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    // no point doing dnssec if it's not supported
@@ -424,7 +424,7 @@ bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "removeDomainKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -434,7 +434,7 @@ bool RemoteBackend::removeDomainKey(const string& name, unsigned int id) {
    return true;
 }
 
-int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
+int RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters,jkey;
 
@@ -443,7 +443,7 @@ int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "addDomainKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    jkey.SetObject();
    JSON_ADD_MEMBER(jkey, "flags", key.flags, query.GetAllocator());
    JSON_ADD_MEMBER(jkey, "active", key.active, query.GetAllocator());
@@ -457,7 +457,7 @@ int RemoteBackend::addDomainKey(const string& name, const KeyData& key) {
    return getInt(answer["result"]);
 }
 
-bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
+bool RemoteBackend::activateDomainKey(const DNSName& name, unsigned int id) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -467,7 +467,7 @@ bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "activateDomainKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -477,7 +477,7 @@ bool RemoteBackend::activateDomainKey(const string& name, unsigned int id) {
    return true;
 }
 
-bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
+bool RemoteBackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -487,7 +487,7 @@ bool RemoteBackend::deactivateDomainKey(const string& name, unsigned int id) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "deactivateDomainKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "id", id, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
@@ -501,7 +501,7 @@ bool RemoteBackend::doesDNSSEC() {
    return d_dnssec;
 }
 
-bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, std::string* content) {
+bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::string* content) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -510,7 +510,7 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getTSIGKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    if (this->send(query) == false || this->recv(answer) == false)
@@ -521,13 +521,13 @@ bool RemoteBackend::getTSIGKey(const std::string& name, std::string* algorithm, 
        !answer["result"].HasMember("content")) 
      throw PDNSException("Invalid response to getTSIGKey, missing field(s)");
 
-   algorithm->assign(getString(answer["result"]["algorithm"]));
+   (*algorithm) = getString(answer["result"]["algorithm"]);
    content->assign(getString(answer["result"]["content"]));
    
    return true;
 }
 
-bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algorithm, const std::string& content) {
+bool RemoteBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const std::string& content) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -536,8 +536,8 @@ bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algor
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "setTSIGKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "algorithm", algorithm.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "algorithm", algorithm, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "content", content.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
    if (connector->send(query) == false || connector->recv(answer) == false)
@@ -546,7 +546,7 @@ bool RemoteBackend::setTSIGKey(const std::string& name, const std::string& algor
    return true;
 }
 
-bool RemoteBackend::deleteTSIGKey(const std::string& name) {
+bool RemoteBackend::deleteTSIGKey(const DNSName& name) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
 
@@ -555,7 +555,7 @@ bool RemoteBackend::deleteTSIGKey(const std::string& name) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "deleteTSIGKey", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
    if (connector->send(query) == false || connector->recv(answer) == false)
      return false;
@@ -599,7 +599,7 @@ bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys) {
    return true;
 }
 
-bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
+bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value value;
@@ -608,7 +608,7 @@ bool RemoteBackend::getDomainInfo(const string &domain, DomainInfo &di) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "getDomainInfo", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", domain, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
 
    if (this->send(query) == false || this->recv(answer) == false)
@@ -663,7 +663,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial) {
    }
 }
 
-bool RemoteBackend::isMaster(const string &name, const string &ip)
+bool RemoteBackend::isMaster(const DNSName& name, const string &ip)
 {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
@@ -671,7 +671,7 @@ bool RemoteBackend::isMaster(const string &name, const string &ip)
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "isMaster", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "name", name.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
    if (this->send(query) == false || this->recv(answer) == false)
@@ -680,7 +680,7 @@ bool RemoteBackend::isMaster(const string &name, const string &ip)
    return true;
 }
 
-bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb) 
+bool RemoteBackend::superMasterBackend(const string &ip, const DNSName& domain, const vector<DNSResourceRecord>&nsset, string* nameserver, string *account, DNSBackend **ddb)
 {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
@@ -690,14 +690,14 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    JSON_ADD_MEMBER(query, "method", "superMasterBackend", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
    rrset.SetArray();
    rrset.Reserve(nsset.size(), query.GetAllocator());
    for(rapidjson::SizeType i = 0; i < nsset.size(); i++) {
       rapidjson::Value rr;
       rr.SetObject();
       JSON_ADD_MEMBER(rr, "qtype", nsset[i].qtype.getName().c_str(), query.GetAllocator());
-      JSON_ADD_MEMBER(rr, "qname", nsset[i].qname.c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER_DNSNAME(rr, "qname", nsset[i].qname, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "qclass", QClass::IN, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "content", nsset[i].content.c_str(), query.GetAllocator());
       JSON_ADD_MEMBER(rr, "ttl", nsset[i].ttl, query.GetAllocator());
@@ -714,7 +714,7 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
 
    // we are the backend
    *ddb = this;
-   
+
    // we allow simple true as well...
    if (answer["result"].IsObject()) {
      if (answer["result"].HasMember("account")) 
@@ -725,14 +725,14 @@ bool RemoteBackend::superMasterBackend(const string &ip, const string &domain, c
    return true;
 }
 
-bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account) {
-   rapidjson::Document query,answer;
+bool RemoteBackend::createSlaveDomain(const string &ip, const DNSName& domain, const string& nameserver, const string &account) {
+   rapidjson::Document query,answer; 
    rapidjson::Value parameters;
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "createSlaveDomain", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "nameserver", nameserver.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "account", account.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
@@ -742,7 +742,7 @@ bool RemoteBackend::createSlaveDomain(const string &ip, const string &domain, co
    return true;
 }
 
-bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset) {
+bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value rj_rrset;
@@ -750,7 +750,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
    JSON_ADD_MEMBER(query, "method", "replaceRRSet", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "qname", qname.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "qname", qname, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "qtype", qtype.getName().c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 
@@ -761,7 +761,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const string& qname, const 
       rapidjson::Value rr;
       rr.SetObject();
       JSON_ADD_MEMBER(rr, "qtype", rrset[i].qtype.getName().c_str(), query.GetAllocator());
-      JSON_ADD_MEMBER(rr, "qname", rrset[i].qname.c_str(), query.GetAllocator());
+      JSON_ADD_MEMBER_DNSNAME(rr, "qname", rrset[i].qname, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "qclass", QClass::IN, query.GetAllocator());
       JSON_ADD_MEMBER(rr, "content", rrset[i].content.c_str(), query.GetAllocator());
       JSON_ADD_MEMBER(rr, "ttl", rrset[i].ttl, query.GetAllocator());
@@ -785,7 +785,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
    parameters.SetObject();
    rj_rr.SetObject();
    JSON_ADD_MEMBER(rj_rr, "qtype", rr.qtype.getName().c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(rj_rr, "qname", rr.qname.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(rj_rr, "qname", rr.qname, query.GetAllocator());
    JSON_ADD_MEMBER(rj_rr, "qclass", QClass::IN, query.GetAllocator());
    JSON_ADD_MEMBER(rj_rr, "content", rr.content.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(rj_rr, "ttl", rr.ttl, query.GetAllocator());
@@ -805,7 +805,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord &rr, string *ordername) {
    return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
-bool RemoteBackend::feedEnts(int domain_id, map<string,bool>& nonterm) {
+bool RemoteBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value nts;
@@ -815,9 +815,9 @@ bool RemoteBackend::feedEnts(int domain_id, map<string,bool>& nonterm) {
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    nts.SetArray();
-   pair<string,bool> t;
-   BOOST_FOREACH(t, nonterm) {
-      nts.PushBack(t.first.c_str(), query.GetAllocator());
+   for(auto t: nonterm) {
+      rapidjson::Value value(t.first.toStringNoDot().c_str(), query.GetAllocator());
+      nts.PushBack(value, query.GetAllocator());
    }
    parameters.AddMember("nonterm", nts, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
@@ -827,7 +827,7 @@ bool RemoteBackend::feedEnts(int domain_id, map<string,bool>& nonterm) {
    return true; 
 }
 
-bool RemoteBackend::feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow) {
+bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, unsigned int times, const string &salt, bool narrow) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value nts;
@@ -835,16 +835,16 @@ bool RemoteBackend::feedEnts3(int domain_id, const string &domain, map<string,bo
    JSON_ADD_MEMBER(query, "method", "feedEnts3", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "times", times, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "salt", salt.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "narrow", narrow, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 
    nts.SetArray();
-   pair<string,bool> t;
-   BOOST_FOREACH(t, nonterm) {
-      nts.PushBack(t.first.c_str(), query.GetAllocator());
+   for(auto t: nonterm) {
+      rapidjson::Value value(t.first.toStringNoDot().c_str(), query.GetAllocator());
+      nts.PushBack(value, query.GetAllocator());
    }
    parameters.AddMember("nonterm", nts, query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());
@@ -854,7 +854,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const string &domain, map<string,bo
    return true;
 }
 
-bool RemoteBackend::startTransaction(const string &domain, int domain_id) {
+bool RemoteBackend::startTransaction(const DNSName& domain, int domain_id) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    this->d_trxid = time((time_t*)NULL);
@@ -862,7 +862,7 @@ bool RemoteBackend::startTransaction(const string &domain, int domain_id) {
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "startTransaction", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 
@@ -907,7 +907,7 @@ bool RemoteBackend::abortTransaction() {
    return true;
 }
 
-bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial) {
+bool RemoteBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value soadata;
@@ -915,11 +915,11 @@ bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, 
    query.SetObject();
    JSON_ADD_MEMBER(query, "method", "calculateSOASerial", query.GetAllocator());
    parameters.SetObject();
-   JSON_ADD_MEMBER(parameters, "domain", domain.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
    soadata.SetObject();
-   JSON_ADD_MEMBER(soadata, "qname", sd.qname.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(soadata, "nameserver", sd.nameserver.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER(soadata, "hostmaster", sd.hostmaster.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(soadata, "qname", sd.qname, query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(soadata, "nameserver", sd.nameserver, query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(soadata, "hostmaster", sd.hostmaster, query.GetAllocator());
    JSON_ADD_MEMBER(soadata, "ttl", sd.ttl, query.GetAllocator());
    JSON_ADD_MEMBER(soadata, "serial", sd.serial, query.GetAllocator());
    JSON_ADD_MEMBER(soadata, "refresh", sd.refresh, query.GetAllocator());
