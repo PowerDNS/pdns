@@ -1061,9 +1061,9 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     } else {
       getTSIGHashEnum(trc.d_algoName, p->d_tsig_algo);
       if (p->d_tsig_algo == TSIG_GSS) {
-        GssContext gssctx(keyname);
+        GssContext gssctx(keyname.toStringNoDot());
         if (!gssctx.getPeerPrincipal(p->d_peer_principal)) {
-          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname.toString()<<"'"<<endl;
         }
       }
     }

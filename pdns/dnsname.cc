@@ -194,7 +194,7 @@ bool DNSName::canonCompare(const DNSName& rhs) const
   return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
 }
 
-bool DNSName::chopOff() 
+bool DNSName::chopOff()
 {
   if(d_storage.empty())
     return false;

@@ -70,8 +70,6 @@ public:
 					}); // note that this is case insensitive, including on the label lengths
   }
 
-  bool canonCompare(const DNSName& rhs) const;
-  
   template<class Archive>
   void serialize(Archive &ar, const unsigned int version)
   {
@@ -93,13 +91,6 @@ private:
   static std::string unescapeLabel(const std::string& orig);
 };
 
-struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
-{
-  bool operator()(const DNSName&a, const DNSName& b) const
-  {
-    return a.canonCompare(b);
-  }
-};
 size_t hash_value(DNSName const& d);
 
 struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>

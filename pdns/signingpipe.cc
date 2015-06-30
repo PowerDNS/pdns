@@ -70,7 +70,7 @@ catch(...) {
   return 0;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, const pdns::string& servers, unsigned int workers) 
+ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, const string& servers, unsigned int workers) 
   : d_queued(0), d_outstanding(0), d_signer(signerName), d_maxchunkrecords(100), d_numworkers(workers), d_tids(d_numworkers),
     d_mustSign(mustSign), d_final(false), d_submitted(0)
 {

@@ -6,7 +6,7 @@
 void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   TKEYRecordContent tkey_in;
   std::shared_ptr<TKEYRecordContent> tkey_out(new TKEYRecordContent());
-  string label;
+  DNSName label;
   bool sign = false;
 
   if (!p->getTKEYRecord(&tkey_in, &label)) {
@@ -22,19 +22,17 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   tkey_out->d_inception = time((time_t*)NULL);
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
-  GssContext ctx(label);
+  GssContext ctx(label.toStringNoDot());
 
   if (tkey_in.d_mode == 3) { // establish context
     if (tkey_in.d_algo == "gss-tsig.") {
       std::vector<std::string> meta;
-      string tmpLabel = toLowerCanonic(label);
-      bool ok = true;
-      while(ok) {
+      DNSName tmpLabel(label);
+      do {
         if (B.getDomainMetadata(tmpLabel, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
           break;
         }
-        ok = chopOff(tmpLabel);
-      }
+      } while(tmpLabel.chopOff());
 
       if (meta.size()>0) {
         ctx.setLocalPrincipal(meta[0]);
@@ -97,7 +95,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
     trc.d_eRcode = 0;
     trc.d_otherData = "";
     // this should cause it to lookup label context
-    r->setTSIGDetails(trc, label, label, "", false);
+    r->setTSIGDetails(trc, label, label.toStringNoDot(), "", false);
   }
 
   r->commitD();

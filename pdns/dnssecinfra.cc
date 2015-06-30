@@ -591,7 +591,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
 {
   TSIGHashEnum algo;
   if (!getTSIGHashEnum(trc->d_algoName, algo)) {
-    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName);
+    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName.toString());
   }
 
   string toSign;
@@ -627,7 +627,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {
-      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname+string("'"));
+      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toString()+string("'"));
     }
   } else {
     trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);

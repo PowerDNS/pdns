@@ -424,7 +424,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     } else {
       getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
       if (q->d_tsig_algo == TSIG_GSS) {
-        GssContext gssctx(keyname);
+        GssContext gssctx(keyname.toStringNoDot());
         if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
           L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
         }

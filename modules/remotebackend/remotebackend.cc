@@ -732,7 +732,7 @@ bool RemoteBackend::createSlaveDomain(const string &ip, const DNSName& domain, c
    JSON_ADD_MEMBER(query, "method", "createSlaveDomain", query.GetAllocator());
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "ip", ip.c_str(), query.GetAllocator());
-   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain. query.GetAllocator());
+   JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "nameserver", nameserver.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "account", account.c_str(), query.GetAllocator());
    query.AddMember("parameters", parameters, query.GetAllocator());

@@ -1009,23 +1009,21 @@ uint64_t udpErrorStats(const std::string& str)
   return 0;
 }
 
-bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
+bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 {
-  string normalizedName = toLowerCanonic(algoName);
-
-  if (normalizedName == "hmac-md5.sig-alg.reg.int" || normalizedName == "hmac-md5")
+  if (algoName == "hmac-md5.sig-alg.reg.int." || algoName == "hmac-md5.") // FIXME
     algoEnum = TSIG_MD5;
-  else if (normalizedName == "hmac-sha1")
+  else if (algoName == "hmac-sha1.")
     algoEnum = TSIG_SHA1;
-  else if (normalizedName == "hmac-sha224")
+  else if (algoName == "hmac-sha224.")
     algoEnum = TSIG_SHA224;
-  else if (normalizedName == "hmac-sha256")
+  else if (algoName == "hmac-sha256.")
     algoEnum = TSIG_SHA256;
-  else if (normalizedName == "hmac-sha384")
+  else if (algoName == "hmac-sha384.")
     algoEnum = TSIG_SHA384;
-  else if (normalizedName == "hmac-sha512")
+  else if (algoName == "hmac-sha512.")
     algoEnum = TSIG_SHA512;
-  else if (normalizedName == "gss-tsig")
+  else if (algoName == "gss-tsig.")
     algoEnum = TSIG_GSS;
   else {
      return false;
@@ -1033,16 +1031,16 @@ bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum)
   return true;
 }
 
-string getTSIGAlgoName(TSIGHashEnum& algoEnum)
+DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 {
   switch(algoEnum) {
-  case TSIG_MD5: return "hmac-md5.sig-alg.reg.int";
-  case TSIG_SHA1: return "hmac-sha1";
-  case TSIG_SHA224: return "hmac-sha224";
-  case TSIG_SHA256: return "hmac-sha256";
-  case TSIG_SHA384: return "hmac-sha384";
-  case TSIG_SHA512: return "hmac-sha512";
-  case TSIG_GSS: return "gss-tsig";
+  case TSIG_MD5: return "hmac-md5.sig-alg.reg.int.";
+  case TSIG_SHA1: return "hmac-sha1.";
+  case TSIG_SHA224: return "hmac-sha224.";
+  case TSIG_SHA256: return "hmac-sha256.";
+  case TSIG_SHA384: return "hmac-sha384.";
+  case TSIG_SHA512: return "hmac-sha512.";
+  case TSIG_GSS: return "gss-tsig.";
   }
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
 }

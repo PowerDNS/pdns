@@ -415,8 +415,8 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
 
   // Check for delegation in parent zone
-  string parent(zone);
-  while(chopOff(parent)) {
+  DNSName parent(zone);
+  while(parent.chopOff()) {
     SOAData sd_p;
     if(B.getSOAUncached(parent, sd_p)) {
       bool ns=false;
@@ -425,7 +425,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
       while(B.get(rr))
         ns |= (rr.qtype == QType::NS);
       if (!ns) {
-        cerr<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;
+        cerr<<"[Error] No delegation for zone '"<<zone.toString()<<"' in parent '"<<parent.toString()<<"'"<<endl;
         numerrors++;
       }
       break;
@@ -538,10 +538,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
       } else if (rr.qtype.getCode() == QType::DNSKEY) {
         cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname.toString()<<" IN "<<rr.qtype.getName()<<" "<<rr.content<<"' in zone '"<<zone.toString()<<"', should not be here."<<endl;
         numwarnings++;
-      } else if (rr.qtype.getCode() == QType::NS && endsOn(rr.content, rr.qname)) {
+      } else if (rr.qtype.getCode() == QType::NS && DNSName(rr.content).isPartOf(rr.qname)) {
         checkglue.insert(toLower(rr.content));
       } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
-        glue.insert(toLower(rr.qname));
+        glue.insert(toLower(rr.qname.toString()));
       }
     }
 
@@ -2287,7 +2287,7 @@ try
     for(const DomainInfo& di: domains) {
       size_t nr,nc,nm,nk;
       DNSResourceRecord rr;
-      cout<<"Processing '"<<di.zone<<"'"<<endl;
+      cout<<"Processing '"<<di.zone.toString()<<"'"<<endl;
       // create zone
       if (!tgt->createDomain(di.zone)) throw PDNSException("Failed to create zone");
       tgt->setKind(di.zone, di.kind);
