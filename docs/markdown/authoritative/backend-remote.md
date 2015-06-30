@@ -1009,6 +1009,42 @@ Content-Type: text/javascript; charset=utf-8
 {"result":2013060501}
 ```
 
+### `directBackendCmd`
+Can be used to send arbitrary commands to your backend using (backend-cmd)(dnssec.md#pdnssec).
+
+* Mandatory: no
+* Parameters: query
+* Reply: anything but boolean false for success, false for failure
+
+#### Example JSON/RPC
+Query:
+```
+{"method":"directBackendCmd","parameters":{"query":"PING"}}
+```
+
+Response:
+```
+{"result":"PONG"}
+```
+
+#### Example HTTP/RPC
+Query:
+```
+POST /dnsapi/directBackendCmd
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+
+query=PING
+```
+
+Response:
+```
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":"PONG"}
+```
+
 # Examples
 ## Scenario: SOA lookup via pipe or unix connector
 Query:

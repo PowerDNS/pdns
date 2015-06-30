@@ -938,6 +938,22 @@ bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, 
    return true;
 }
 
+string RemoteBackend::directBackendCmd(const string& querystr) {
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "directBackendCmd", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "query", querystr.c_str(), query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (this->send(query) == false || this->recv(answer) == false)
+     return "backend command failed";
+
+   return getString(answer["result"]);
+}
+
 // some rapidjson helpers 
 bool RemoteBackend::getBool(rapidjson::Value &value) {
    if (value.IsNull()) return false;

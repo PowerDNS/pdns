@@ -240,6 +240,11 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         req.POST()["serial"] = sparam;
         req.preparePost();
         verb = "PATCH";
+    } else if (method == "directBackendCmd") {
+        json2string(parameters["query"],sparam);
+        req.POST()["query"] = sparam;
+        req.preparePost();
+        verb = "POST";
     } else {
         // perform normal get
         verb = "GET";
