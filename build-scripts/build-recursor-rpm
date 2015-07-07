@@ -231,7 +231,8 @@ chmod 0755 %{buildroot}/%{_sbindir}/pdns_recursor
 # install systemd unit file
 %{__install} -D -p -m 644 contrib/systemd-pdns-recursor.service %{buildroot}%{_unitdir}/%{name}.service
 
-%{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
+%{buildroot}/%{_sbindir}/pdns_recursor --config > %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
+%{__rm} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf-dist
 
 # add pdns user and group to top of configfile
 sed -i '1i\\setuid=pdns-recursor' %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
