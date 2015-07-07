@@ -520,6 +520,7 @@ been "yes" since 2005.
 ## `pipebackend-abi-version`
 * Integer
 * Default: 1
+* Removed in: 4.0.0 (is now specific to the backend)
 
 ABI version to use for the pipe backend. See
 ["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).

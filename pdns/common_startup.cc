@@ -92,7 +92,6 @@ void declareArguments()
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
-  ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   

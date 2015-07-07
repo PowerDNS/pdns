@@ -98,7 +98,7 @@ PipeBackend::PipeBackend(const string &suffix)
      d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout")));
      d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
      d_regexstr=getArg("regex");
-     d_abiVersion = ::arg().asNum("pipebackend-abi-version");
+     d_abiVersion = getArgAsNum("abi-version");
    }
    catch(const ArgException &A) {
       L<<Logger::Error<<kBackendId<<" Fatal argument error: "<<A.reason<<endl;
@@ -304,7 +304,8 @@ class PipeFactory : public BackendFactory
       {
          declare(suffix,"command","Command to execute for piping questions to","");
          declare(suffix,"timeout","Number of milliseconds to wait for an answer","2000");
-         declare(suffix,"regex","Regular exception of queries to pass to coprocess","");
+         declare(suffix,"regex","Regular expression of queries to pass to coprocess","");
+         declare(suffix,"abi-version","Version of the pipe backend ABI","1");
       }
 
       DNSBackend *make(const string &suffix="")
