@@ -65,7 +65,7 @@ Available since 3.6, this setting artificially raises all TTLs to be at least th
 Set a Carbon server for telemetry purposes. The parameter `server` corresponds to the configuration setting **carbon-server**, and `ourname` corresponds to **carbon-ourname**.
 
 ### `top-remotes`
-Shows the top-20 most active remote hosts. Statistics are over the last **remotes-ringbuffer-entries** queries, which defaults to 0.
+Shows the top-20 most active remote hosts. Statistics are over the last **stats-ringbuffer-entries** queries.
 
 ### `trace-regex regex`
 Available since 3.5.
