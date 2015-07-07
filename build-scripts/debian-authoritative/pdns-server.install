@@ -3,7 +3,6 @@ usr/bin/zone2sql
 usr/bin/pdnssec
 usr/lib/*/pdns/libbindbackend.so*
 usr/sbin/pdns_server
-debian/config/pdns.conf usr/share/pdns-server/
 debian/config/pdns.local.conf usr/share/pdns-server/
 debian/config/pdns usr/share/pdns-server/
 debian/config/pdns.simplebind.conf usr/share/pdns-server/
