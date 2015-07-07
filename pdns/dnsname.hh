@@ -24,8 +24,8 @@ class DNSName
 {
 public:
   DNSName() {}                 //!< Constructs the root name
-  DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
-  DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
+  DNSName(const char* p);      //!< Constructs from C strings of unknown length and string literals. *** ONLY DEFINED IN test-dnsname_cc.cc, see test_embedded_nulls ***
+  DNSName(const std::string& str);   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?

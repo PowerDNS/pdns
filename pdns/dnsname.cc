@@ -12,7 +12,7 @@
    a primitive is nextLabel()
 */
 
-DNSName::DNSName(const char* p)
+DNSName::DNSName(const std::string& p)
 {
   auto labels = segmentDNSName(p);
   for(const auto& e : labels)
