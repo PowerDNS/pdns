@@ -57,13 +57,13 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
     vector<string> nsips=fns.lookup(*j, B);
     if(nsips.empty())
-      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain.toString()<<"': nameservers do not resolve!"<<endl;
+      L<<Logger::Warning<<"Unable to queue notification of domain '"<<domain<<"': nameservers do not resolve!"<<endl;
     else
       for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
         const ComboAddress caIp(*k, 53);
         if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
           if(!d_onlyNotify.match(&caIp))
-            L<<Logger::Info<<"Skipped notification of domain '"<<domain.toString()<<"' to "<<*j<<" because it does not match only-notify."<<endl;
+            L<<Logger::Info<<"Skipped notification of domain '"<<domain<<"' to "<<*j<<" because it does not match only-notify."<<endl;
           else
             ips.insert(caIp.toStringWithPort());
         }
@@ -71,7 +71,7 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   }
 
   for(set<string>::const_iterator j=ips.begin();j!=ips.end();++j) {
-    L<<Logger::Warning<<"Queued notification of domain '"<<domain.toString()<<"' to "<<*j<<endl;
+    L<<Logger::Warning<<"Queued notification of domain '"<<domain<<"' to "<<*j<<endl;
     d_nq.add(domain,*j);
     hasQueuedItem=true;
   }
@@ -82,7 +82,7 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
   for(set<string>::const_iterator j=alsoNotify.begin();j!=alsoNotify.end();++j) {
     try {
       const ComboAddress caIp(*j, 53);
-      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain.toString()<<"' to "<<caIp.toStringWithPort()<<endl;
+      L<<Logger::Warning<<"Queued also-notification of domain '"<<domain<<"' to "<<caIp.toStringWithPort()<<endl;
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
         d_nq.add(domain, caIp.toStringWithPort());
@@ -90,12 +90,12 @@ void CommunicatorClass::queueNotifyDomain(const DNSName &domain, UeberBackend *B
       hasQueuedItem=true;
     }
     catch(PDNSException &e) {
-      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain.toString()<<"'. Warning: "<<e.reason<<endl;
+      L<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<domain<<"'. Warning: "<<e.reason<<endl;
     }
   }
 
   if (!hasQueuedItem)
-    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain.toString()<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+    L<<Logger::Warning<<"Request to queue notification for domain '"<<domain<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
 }
 
 
@@ -104,7 +104,7 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain)
   DomainInfo di;
   UeberBackend B;
   if(!B.getDomainInfo(domain, di)) {
-    L<<Logger::Error<<"No such domain '"<<domain.toString()<<"' in our database"<<endl;
+    L<<Logger::Error<<"No such domain '"<<domain<<"' in our database"<<endl;
     return false;
   }
   queueNotifyDomain(domain, &B);
@@ -177,12 +177,12 @@ time_t CommunicatorClass::doNotifications()
     }
 
     if(p.d.rcode)
-      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain.toString()<<"' from "<<from.toStringWithPort()<<", error: "<<RCode::to_s(p.d.rcode)<<endl;      
+      L<<Logger::Warning<<"Received unsuccessful notification report for '"<<p.qdomain<<"' from "<<from.toStringWithPort()<<", error: "<<RCode::to_s(p.d.rcode)<<endl;      
 
     if(d_nq.removeIf(from.toStringWithPort(), p.d.id, p.qdomain))
-      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain.toString()<<"' to "<<from.toStringWithPort()<<" "<< (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)")<<endl;      
+      L<<Logger::Warning<<"Removed from notification list: '"<<p.qdomain<<"' to "<<from.toStringWithPort()<<" "<< (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)")<<endl;      
     else {
-      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain.toString()<<"' from "<< from.toStringWithPort()<<endl;
+      L<<Logger::Warning<<"Received spurious notify answer for '"<<p.qdomain<<"' from "<< from.toStringWithPort()<<endl;
       //d_nq.dump();
     }
   }
@@ -211,7 +211,7 @@ time_t CommunicatorClass::doNotifications()
       }
     }
     else
-      L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain.toString()<<" to "<<ip<<" failed after retries"<<endl;
+      L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
   }
 
   return d_nq.earliest();

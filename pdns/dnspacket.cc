@@ -629,7 +629,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
   q->getTSIGDetails(trc, keyname, &message);
   int64_t now = time(0);
   if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain.toString()<<"' denied: TSIG (key '"<<keyname->toString()<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
+    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
 
@@ -647,7 +647,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
 
   string secret64;
   if(!B->getTSIGKey(*keyname, &algoName, &secret64)) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: can't find TSIG key with name '"<<keyname->toString()<<"' and algorithm '"<<algoName.toString()<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
     return false;
   }
   if (trc->d_algoName == "hmac-md5")
@@ -662,7 +662,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
   B64Decode(secret64, *secret);
   bool result=calculateHMAC(*secret, message, algo) == trc->d_mac;
   if(!result) {
-    L<<Logger::Error<<"Packet for domain '"<<q->qdomain.toString()<<"' denied: TSIG signature mismatch using '"<<keyname->toString()<<"' and algorithm '"<<trc->d_algoName.toString()<<"'"<<endl;
+    L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
   }
 
   return result;

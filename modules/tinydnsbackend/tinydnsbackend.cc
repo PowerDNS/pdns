@@ -168,7 +168,7 @@ void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacke
 
 	string key=simpleCompress(queryDomain);
 
-	DLOG(L<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain.toString()<<"]"<<endl);
+	DLOG(L<<Logger::Debug<<backendname<<"[lookup] query for qtype ["<<qtype.getName()<<"] qdomain ["<<qdomain<<"]"<<endl);
 	DLOG(L<<Logger::Debug<<"[lookup] key ["<<makeHexDump(key)<<"]"<<endl);
 
 	d_isWildcardQuery = false;

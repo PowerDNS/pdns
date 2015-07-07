@@ -322,12 +322,12 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   try {
     SOAData sd;
     if(!getSOA(domain, sd))
-      L<<Logger::Notice<<"No serial for '"<<domain.toString()<<"' found - zone is missing?"<<endl;
+      L<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
     else
       di.serial = sd.serial;
   }
   catch(PDNSException &ae){
-    L<<Logger::Error<<"Error retrieving serial for '"<<domain.toString()<<"': "<<ae.reason<<endl;
+    L<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
   }
 
   di.kind = DomainInfo::stringToKind(type);
