@@ -1,10 +1,10 @@
 ## PowerDNS Security Advisory 2015-01: Label decompression bug can cause crashes or CPU spikes
 
 * CVE: CVE-2015-1868
-* Date: 23rd of April 2015
+* Date: 23rd of April 2015, updated 7th of July 2015
 * Credit: Aki Tuomi, Toshifumi Sakaguchi
 * Affects: PowerDNS Recursor versions 3.5 and up; Authoritative Server 3.2 and up
-* Not affected: Recursor 3.6.3; Recursor 3.7.2; Auth 3.3.2; Auth 3.4.4
+* Not affected: Recursor 3.6.4; Recursor 3.7.3; Auth 3.3.3; Auth 3.4.5
 * Severity: High
 * Impact: Degraded service
 * Exploit: This problem can be triggered by sending queries for specifically configured domains, or by sending specially crafted query packets
@@ -38,3 +38,8 @@ random and spurious failure.
 We want to thank Toshifumi Sakaguchi for further investigation into the issue
 after the initial announcement, and for demonstrating to us quite clearly the
 CPU spike issues.
+
+Update 7th of July 2015: Toshifumi Sakaguchi discovered that the original fix
+was insufficient in some cases. Updated versions of the Authoritative Server and
+Recursor [were released](../changelog.md#powerdns-recursor-364) on the 9th of June.
+Minimal patches are [available](http://downloads.powerdns.com/patches/2015-01/).
