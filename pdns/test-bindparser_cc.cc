@@ -5,13 +5,14 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include "bindparserclasses.hh"
 #include "misc.hh"
 #include "pdnsexception.hh"
 #include <utility>
 #include <boost/foreach.hpp>
 #include <sstream>
 #include <cstdlib>
+#include "dnsname.hh"
+#include "bindparserclasses.hh"
 
 using std::string;
 
