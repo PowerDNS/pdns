@@ -627,7 +627,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   if(!tsigkeyname.empty()) {
     string tsig64;
-    DNSName algorithm=trc.d_algoName; // FIXME: check
+    DNSName algorithm=trc.d_algoName; // FIXME400: check
     if (algorithm == "hmac-md5.sig-alg.reg.int")
       algorithm = "hmac-md5";
     if (algorithm != "gss-tsig") {
@@ -1057,7 +1057,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
     if(!tsigkeyname.empty()) {
       string tsig64;
-      DNSName algorithm=trc.d_algoName; // FIXME: was toLowerCanonic, compare output
+      DNSName algorithm=trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
       if (algorithm == "hmac-md5.sig-alg.reg.int")
         algorithm = "hmac-md5";
       Lock l(&s_plock);

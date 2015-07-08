@@ -119,7 +119,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (rrType == QType::NSEC3PARAM) {
       L<<Logger::Notice<<msgPrefix<<"Adding/updating NSEC3PARAM for zone, resetting ordernames."<<endl;
 
-      NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME huh */);
+      NSEC3PARAMRecordContent nsec3param(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
       *narrow = false; // adding a NSEC3 will cause narrow mode to be dropped, as you cannot specify that in a NSEC3PARAM record
       d_dk.setNSEC3PARAM(di->zone, nsec3param, (*narrow));
 
@@ -160,7 +160,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         } else {
           di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, qname, DNSName(), (ddepth == 0));
         }
-        if (ddepth == 1 || dssets.count(qname)) // FIXME && ?
+        if (ddepth == 1 || dssets.count(qname)) // FIXME400 && ?
           di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, qname, ordername, false, QType::DS);
       }
       return 1;
@@ -357,7 +357,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
               ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)))+di->zone;
 
             if (*narrow)
-              di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, rr->d_label, DNSName(), auth); // FIXME no *qname here?
+              di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, rr->d_label, DNSName(), auth); // FIXME400 no *qname here?
             else
               di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, *qname, ordername, auth);
 
@@ -385,7 +385,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       if (rr->d_class == QClass::ANY)
         d_dk.unsetNSEC3PARAM(rr->d_label);
       else if (rr->d_class == QClass::NONE) {
-        NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME huh */);
+        NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone.toString() /* FIXME400 huh */);
         if (ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
           d_dk.unsetNSEC3PARAM(rr->d_label);
         else

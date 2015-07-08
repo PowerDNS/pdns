@@ -413,7 +413,7 @@ public:
   static void report(void);
   NSECRecordContent() : DNSRecordContent(47)
   {}
-  NSECRecordContent(const string& content, const string& zone=""); //DNSNameFIXME: DNSName& zone?
+  NSECRecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
@@ -430,7 +430,7 @@ public:
   static void report(void);
   NSEC3RecordContent() : DNSRecordContent(50)
   {}
-  NSEC3RecordContent(const string& content, const string& zone=""); //DNSNameFIXME: DNSName& zone?
+  NSEC3RecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
@@ -455,7 +455,7 @@ public:
   static void report(void);
   NSEC3PARAMRecordContent() : DNSRecordContent(51)
   {}
-  NSEC3PARAMRecordContent(const string& content, const string& zone=""); // DNSNameFIXME: DNSName& zone?
+  NSEC3PARAMRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
@@ -496,7 +496,7 @@ public:
   static void report(void);
   WKSRecordContent() : DNSRecordContent(QType::WKS)
   {}
-  WKSRecordContent(const string& content, const string& zone=""); // FIXMEDNSName: DNSName& zone?
+  WKSRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
@@ -514,7 +514,7 @@ public:
   EUI48RecordContent() : DNSRecordContent(QType::EUI48) {};
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& zone); // FIXMEDNSName: DNSName& zone?
+  static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
   void toPacket(DNSPacketWriter& pw);
   string getZoneRepresentation() const;
 private:
@@ -528,7 +528,7 @@ public:
   EUI64RecordContent() : DNSRecordContent(QType::EUI64) {};
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
-  static DNSRecordContent* make(const string& zone); // FIXMEDNSName: DNSName& zone?
+  static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
   void toPacket(DNSPacketWriter& pw);
   string getZoneRepresentation() const;
 private:

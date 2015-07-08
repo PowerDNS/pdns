@@ -80,7 +80,7 @@ private:
   vector<uint8_t> d_record;
 };
 
-//FIXME lots of overlap with DNSPacketWriter::xfrName
+//FIXME400 lots of overlap with DNSPacketWriter::xfrName
 static const string EncodeDNSLabel(const DNSName& input)
 {  
   if(!input.countLabels()) // otherwise we encode .. (long story)
@@ -483,11 +483,11 @@ void PacketReader::xfrHexBlob(string& blob, bool keepReading)
   xfrBlob(blob);
 }
 
-//FIXME remove this method completely
+//FIXME400 remove this method completely
 string simpleCompress(const string& elabel, const string& root)
 {
   string label=elabel;
-  // FIXME: this relies on the semi-canonical escaped output from getName
+  // FIXME400: this relies on the semi-canonical escaped output from getName
   if(strchr(label.c_str(), '\\')) {
     boost::replace_all(label, "\\.", ".");
     boost::replace_all(label, "\\032", " ");
@@ -512,7 +512,7 @@ string simpleCompress(const string& elabel, const string& root)
 }
 
 
-// FIXME this function needs to go
+// FIXME400 this function needs to go
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret)
 {
   unsigned int labellen=0;

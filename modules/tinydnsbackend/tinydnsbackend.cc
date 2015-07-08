@@ -157,7 +157,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
 
 bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_disabled) {
 	d_isAxfr=true;
-	string key = target.toDNSString(); // FIXME bug: no lowercase here? or promise that from core?
+	string key = target.toDNSString(); // FIXME400 bug: no lowercase here? or promise that from core?
 	d_cdbReader=new CDB(getArg("dbfile"));
 	return d_cdbReader->searchSuffix(key);
 }

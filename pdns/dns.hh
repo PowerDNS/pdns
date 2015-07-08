@@ -34,7 +34,7 @@
 #include <time.h>
 #include <sys/types.h>
 class DNSBackend;
-class DNSName; // FIXME
+class DNSName; // FIXME400
 
 struct SOAData
 {

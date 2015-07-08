@@ -135,7 +135,7 @@ try
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
       vector<string> parts;
       string sname=i->first.d_label.toString();
-      boost::split(parts, sname /* FIXME */, boost::is_any_of("."));
+      boost::split(parts, sname /* FIXME400 */, boost::is_any_of("."));
       nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r.d_nexthash)));
       nsec3salt = r.d_salt;
       nsec3iters = r.d_iterations;

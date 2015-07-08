@@ -674,7 +674,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       sd.nameserver = arg()["default-soa-name"];
       if (!arg().isEmpty("default-soa-mail")) {
         sd.hostmaster = arg()["default-soa-mail"];
-        // attodot(sd.hostmaster); FIXME
+        // attodot(sd.hostmaster); FIXME400
       } else {
         sd.hostmaster = "hostmaster." + zonename;
       }

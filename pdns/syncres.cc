@@ -787,7 +787,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   return false;
 }
 
-// FIXME use DNSName.isPartOf
+// FIXME400 use DNSName.isPartOf
 bool SyncRes::moreSpecificThan(const DNSName& a, const DNSName &b)
 {
   return a.countLabels() > b.countLabels();

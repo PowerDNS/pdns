@@ -1243,7 +1243,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
         bind("qtype",r.qtype.getName())->
         bind("domain_id",r.domain_id)->
         bind("disabled",r.disabled)->
-        bind("qname",stripDot(r.qname.toString())); // FIXME lowercase?
+        bind("qname",stripDot(r.qname.toString())); // FIXME400 lowercase?
         if (ordername == NULL)
           d_InsertRecordOrderQuery_stmt->bindNull("ordername");
         else 

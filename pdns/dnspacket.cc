@@ -633,7 +633,7 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
     return false;
   }
 
-  DNSName algoName = trc->d_algoName; // FIXME
+  DNSName algoName = trc->d_algoName; // FIXME400
   if (algoName == "hmac-md5.sig-alg.reg.int")
     algoName = "hmac-md5";
 

@@ -294,7 +294,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    toHash.append(qname.toDNSString()); // FIXME tolower?
+    toHash.append(qname.toDNSString()); // FIXME400 tolower?
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
@@ -313,7 +313,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
 DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest)
 {
   string toHash;
-  toHash.assign(qname.toDNSString()); // FIXME tolower?
+  toHash.assign(qname.toDNSString()); // FIXME400 tolower?
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
   
   DSRecordContent dsrc;
@@ -570,7 +570,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME 
+    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME400 
     dw.xfrName(trc.d_algoName, false);
   }
   

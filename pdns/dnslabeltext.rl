@@ -97,7 +97,7 @@ deque<string> segmentDNSName(const string& input )
         string realinput;
         if(input.empty() || input == ".") return ret;
 
-        if(input[input.size()-1]!='.') realinput=input+".";  // FIXME YOLO
+        if(input[input.size()-1]!='.') realinput=input+".";  // FIXME400 YOLO
         else realinput=input;
 
         const char *p = realinput.c_str(), *pe = realinput.c_str() + realinput.length();
