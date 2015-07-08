@@ -26,6 +26,7 @@ auth-3.4.4-2_bpo7_1.debian.security-status              60 IN TXT "3 Upgrade now
 auth-3.4.5-1_bpo7_1.debian.security-status              60 IN TXT "1 OK"
 
 auth-3.4.1-4_deb8u1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
+auth-3.4.1-4_deb8u2.debian.security-status              60 IN TXT "1 OK"
 
 auth-3.4.4-2_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.5-1_bpo8_1.debian.security-status              60 IN TXT "1 OK"
@@ -63,6 +64,7 @@ recursor-3.7.3.security-status                          60 IN TXT "1 OK"
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.6.2-2_deb8u1.debian.security-status          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
+recursor-3.6.2-2_deb8u2.debian.security-status          60 IN TXT "1 OK"
 recursor-3.6.2-2_bpo70_2.debian.security-status         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 
 recursor-3.7.2-1.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
