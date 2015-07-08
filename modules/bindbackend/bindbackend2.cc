@@ -579,7 +579,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>&parts, Utility::pid
 
   safePutBBDomainInfo(bbd);
 
-  L<<Logger::Warning<<"Zone "<<domainname.toString()<< " loaded"<<endl;
+  L<<Logger::Warning<<"Zone "<<domainname<< " loaded"<<endl;
   return "Loaded zone " + domainname.toStringNoDot() + " from " + filename;
 }
 
@@ -700,7 +700,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
       {
         if(!(maxent))
         {
-          L<<Logger::Error<<"Zone '"<<bbd.d_name.toString()<<"' has too many empty non terminals."<<endl;
+          L<<Logger::Error<<"Zone '"<<bbd.d_name<<"' has too many empty non terminals."<<endl;
           doent=false;
           break;
         }
@@ -777,7 +777,7 @@ void Bind2Backend::loadConfig(string* status)
         ++i) 
       {
         if(i->type!="master" && i->type!="slave") {
-          L<<Logger::Warning<<d_logprefix<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toString()<<"'"<<endl;
+          L<<Logger::Warning<<d_logprefix<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
           continue;
         }
 
@@ -799,7 +799,7 @@ void Bind2Backend::loadConfig(string* status)
 
         newnames.insert(bbd.d_name);
         if(filenameChanged || !bbd.d_loaded || !bbd.current()) {
-          L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name.toString()<<"' from file '"<<i->filename<<"'"<<endl;
+          L<<Logger::Info<<d_logprefix<<" parsing '"<<i->name<<"' from file '"<<i->filename<<"'"<<endl;
 
           try {
             parseZoneFile(&bbd);
@@ -861,7 +861,7 @@ void Bind2Backend::queueReloadAndStore(unsigned int id)
     parseZoneFile(&bbold);
     bbold.d_checknow=false;
     safePutBBDomainInfo(bbold);
-    L<<Logger::Warning<<"Zone '"<<bbold.d_name.toString()<<"' ("<<bbold.d_filename<<") reloaded"<<endl;
+    L<<Logger::Warning<<"Zone '"<<bbold.d_name<<"' ("<<bbold.d_filename<<") reloaded"<<endl;
   }
   catch(PDNSException &ae) {
     ostringstream msg;
@@ -1030,7 +1030,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
   static bool mustlog=::arg().mustDo("query-logging");
   if(mustlog) 
-    L<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain.toString()<<"'"<<endl;
+    L<<Logger::Warning<<"Lookup for '"<<qtype.getName()<<"' of '"<<domain<<"'"<<endl;
   bool found=false;
   BB2DomainInfo bbd;
 
@@ -1046,12 +1046,12 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
   }
 
   if(mustlog)
-    L<<Logger::Warning<<"Found a zone '"<<domain.toString()<<"' (with id " << bbd.d_id<<") that might contain data "<<endl;
+    L<<Logger::Warning<<"Found a zone '"<<domain<<"' (with id " << bbd.d_id<<") that might contain data "<<endl;
     
   d_handle.id=bbd.d_id;
   
   DLOG(L<<"Bind2Backend constructing handle for search for "<<qtype.getName()<<" for "<<
-       qname.toString()<<endl);
+       qname<<endl);
   
   if(domain.empty())
     d_handle.qname=qname;
@@ -1067,7 +1067,7 @@ void Bind2Backend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
   }
     
   if(!bbd.current()) {
-    L<<Logger::Warning<<"Zone '"<<bbd.d_name.toString()<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
+    L<<Logger::Warning<<"Zone '"<<bbd.d_name<<"' ("<<bbd.d_filename<<") needs reloading"<<endl;
     queueReloadAndStore(bbd.d_id);
     if (!safeGetBBDomainInfo(domain, &bbd))
       throw DBException("Zone '"+bbd.d_name.toString()+"' ("+bbd.d_filename+") gone after reload"); // if we don't throw here, we crash for some reason
@@ -1121,7 +1121,7 @@ bool Bind2Backend::get(DNSResourceRecord &r)
     return false;
   }
   if(d_handle.mustlog)
-    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname.toString()<<"', content: '"<<r.content<<"'"<<endl;
+    L<<Logger::Warning<<"Returning: '"<<r.qtype.getName()<<"' of '"<<r.qname<<"', content: '"<<r.content<<"'"<<endl;
   return true;
 }
 
@@ -1144,14 +1144,14 @@ void Bind2Backend::handle::reset()
 bool Bind2Backend::handle::get_normal(DNSResourceRecord &r)
 {
   DLOG(L << "Bind2Backend get() was called for "<<qtype.getName() << " record for '"<<
-       qname.toString()<<"' - "<<d_records->size()<<" available in total!"<<endl);
+       qname<<"' - "<<d_records->size()<<" available in total!"<<endl);
   
   if(d_iter==d_end_iter) {
     return false;
   }
 
   while(d_iter!=d_end_iter && !(qtype.getCode()==QType::ANY || (d_iter)->qtype==qtype.getCode())) {
-    DLOG(L<<Logger::Warning<<"Skipped "<<qname.toString()<<"/"<<QType(d_iter->qtype).getName()<<": '"<<d_iter->content<<"'"<<endl);
+    DLOG(L<<Logger::Warning<<"Skipped "<<qname<<"/"<<QType(d_iter->qtype).getName()<<": '"<<d_iter->content<<"'"<<endl);
     d_iter++;
   }
   if(d_iter==d_end_iter) {

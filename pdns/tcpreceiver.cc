@@ -558,7 +558,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
-  L<<Logger::Error<<"AXFR of domain '"<<target.toString()<<"' initiated by "<<q->getRemote()<<endl;
+  L<<Logger::Error<<"AXFR of domain '"<<target<<"' initiated by "<<q->getRemote()<<endl;
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
@@ -571,7 +571,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     }
 
     if (!canDoAXFR(q)) {
-      L<<Logger::Error<<"AXFR of domain '"<<target.toString()<<"' failed: "<<q->getRemote()<<" cannot request AXFR"<<endl;
+      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: "<<q->getRemote()<<" cannot request AXFR"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
       return 0;
@@ -579,7 +579,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
     if(!s_P->getBackend()->getSOAUncached(target, sd)) {
-      L<<Logger::Error<<"AXFR of domain '"<<target.toString()<<"' failed: not authoritative"<<endl;
+      L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative"<<endl;
       outpacket->setRcode(9); // 'NOTAUTH'
       sendPacket(outpacket,outsock);
       return 0;
@@ -588,7 +588,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   UeberBackend db;
   if(!db.getSOAUncached(target, sd)) {
-    L<<Logger::Error<<"AXFR of domain '"<<target.toString()<<"' failed: not authoritative in second instance"<<endl;
+    L<<Logger::Error<<"AXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
@@ -606,13 +606,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(dk.getNSEC3PARAM(target, &ns3pr, &narrow)) {
     NSEC3Zone=true;
     if(narrow) {
-      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target.toString()<<"' for "<<q->getRemote()<<endl;
+      L<<Logger::Error<<"Not doing AXFR of an NSEC3 narrow zone '"<<target<<"' for "<<q->getRemote()<<endl;
       noAXFRBecauseOfNSEC3Narrow=true;
     }
   }
 
   if(noAXFRBecauseOfNSEC3Narrow) {
-    L<<Logger::Error<<"AXFR of domain '"<<target.toString()<<"' denied to "<<q->getRemote()<<endl;
+    L<<Logger::Error<<"AXFR of domain '"<<target<<"' denied to "<<q->getRemote()<<endl;
     outpacket->setRcode(RCode::Refused);
     // FIXME: should actually figure out if we are auth over a zone, and send out 9 if we aren't
     sendPacket(outpacket,outsock);
@@ -735,7 +735,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       }
       rrs.push_back(rr);
     } else {
-      L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname.toString()<<"'|"<<rr.qtype.getName()<<"', ignoring"<<endl;
+      L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.getName()<<"', ignoring"<<endl;
       continue;
     }
   }
@@ -1040,7 +1040,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
   UeberBackend db;
   if(!db.getSOAUncached(target, sd)) {
-    L<<Logger::Error<<"IXFR of domain '"<<target.toString()<<"' failed: not authoritative in second instance"<<endl;
+    L<<Logger::Error<<"IXFR of domain '"<<target<<"' failed: not authoritative in second instance"<<endl;
     outpacket->setRcode(RCode::NotAuth);
     sendPacket(outpacket,outsock);
     return 0;
@@ -1083,12 +1083,12 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
 
     sendPacket(outpacket, outsock);
 
-    L<<Logger::Error<<"IXFR of domain '"<<target.toString()<<"' to "<<q->getRemote()<<" finished"<<endl;
+    L<<Logger::Error<<"IXFR of domain '"<<target<<"' to "<<q->getRemote()<<" finished"<<endl;
 
     return 1;
   }
 
-  L<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<target.toString()<<"' our serial "<<sd.serial<<endl;
+  L<<Logger::Error<<"IXFR fallback to AXFR for domain '"<<target<<"' our serial "<<sd.serial<<endl;
   return doAXFR(q->qdomain, q, outsock);
 }
 

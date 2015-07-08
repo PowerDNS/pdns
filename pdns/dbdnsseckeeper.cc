@@ -243,7 +243,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* 
     delete tmp;
     if (ns3p->d_iterations > maxNSEC3Iterations) {
       ns3p->d_iterations = maxNSEC3Iterations;
-      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname.toString()<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
+      L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
     }
   }
   if(narrow) {

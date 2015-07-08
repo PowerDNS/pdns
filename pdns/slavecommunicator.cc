@@ -67,7 +67,7 @@ void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &mast
 
 void CommunicatorClass::suck(const DNSName &domain,const string &remote)
 {
-  L<<Logger::Error<<"Initiating transfer of '"<<domain.toString()<<"' from remote '"<<remote<<"'"<<endl;
+  L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   UeberBackend B; // fresh UeberBackend
 
   DomainInfo di;
@@ -77,7 +77,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     DNSSECKeeper dk (&B); // reuse our UeberBackend copy for DNSSECKeeper
 
     if(!B.getDomainInfo(domain, di) || !di.backend) { // di.backend and B are mostly identical
-      L<<Logger::Error<<"Can't determine backend for domain '"<<domain.toString()<<"'"<<endl;
+      L<<Logger::Error<<"Can't determine backend for domain '"<<domain<<"'"<<endl;
       return;
     }
     uint32_t domain_id=di.id;
@@ -90,7 +90,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
       if(B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
         B64Decode(tsigsecret64, tsigsecret);
       } else {
-        L<<Logger::Error<<"TSIG key '"<<tsigkeyname.toString()<<"' for domain '"<<domain.toString()<<"' not found"<<endl;
+        L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"' not found"<<endl;
         return;
       }
     }
@@ -101,10 +101,10 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     if(B.getDomainMetadata(domain, "LUA-AXFR-SCRIPT", scripts) && !scripts.empty()) {
       try {
         pdl.reset(new AuthLua(scripts[0]));
-        L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain.toString()<<"'"<<endl;
+        L<<Logger::Info<<"Loaded Lua script '"<<scripts[0]<<"' to edit the incoming AXFR of '"<<domain<<"'"<<endl;
       }
       catch(std::exception& e) {
-        L<<Logger::Error<<"Failed to load Lua editing script '"<<scripts[0]<<"' for incoming AXFR of '"<<domain.toString()<<"': "<<e.what()<<endl;
+        L<<Logger::Error<<"Failed to load Lua editing script '"<<scripts[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
     }
@@ -114,10 +114,10 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     if(B.getDomainMetadata(domain, "AXFR-SOURCE", localaddr) && !localaddr.empty()) {
       try {
         laddr = ComboAddress(localaddr[0]);
-        L<<Logger::Info<<"AXFR source for domain '"<<domain.toString()<<"' set to "<<localaddr[0]<<endl;
+        L<<Logger::Info<<"AXFR source for domain '"<<domain<<"' set to "<<localaddr[0]<<endl;
       }
       catch(std::exception& e) {
-        L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain.toString()<<"': "<<e.what()<<endl;
+        L<<Logger::Error<<"Failed to load AXFR source '"<<localaddr[0]<<"' for incoming AXFR of '"<<domain<<"': "<<e.what()<<endl;
         return;
       }
     } else {
@@ -156,7 +156,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     Resolver::res_t recs;
     while(retriever.getChunk(recs)) {
       if(first) {
-        L<<Logger::Error<<"AXFR started for '"<<domain.toString()<<"'"<<endl;
+        L<<Logger::Error<<"AXFR started for '"<<domain<<"'"<<endl;
         first=false;
       }
 
@@ -165,7 +165,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
           continue;
 
         if(!i->qname.isPartOf(domain)) {
-          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname.toString()<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain.toString()<<"', ignoring"<<endl;
+          L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
 
@@ -244,14 +244,14 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
       if(!isNSEC3)
         L<<Logger::Info<<"Adding NSEC ordering information"<<endl;
       else if(!isNarrow)
-        L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain.toString()<<"'"<<endl;
+        L<<Logger::Info<<"Adding NSEC3 hashed ordering information for '"<<domain<<"'"<<endl;
       else
         L<<Logger::Info<<"Erasing NSEC3 ordering since we are narrow, only setting 'auth' fields"<<endl;
     }
 
 
     transaction=di.backend->startTransaction(domain, domain_id);
-    L<<Logger::Error<<"Transaction started for '"<<domain.toString()<<"'"<<endl;
+    L<<Logger::Error<<"Transaction started for '"<<domain<<"'"<<endl;
 
     // update the presigned flag and NSEC3PARAM
     if (isDnssecZone) {
@@ -340,7 +340,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         }
 
         if(nonterm.size() > maxent) {
-          L<<Logger::Error<<"AXFR zone "<<domain.toString()<<" has too many empty non terminals."<<endl;
+          L<<Logger::Error<<"AXFR zone "<<domain<<" has too many empty non terminals."<<endl;
           nonterm.clear();
           doent=false;
         }
@@ -638,7 +638,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     DomainInfo& di(val.di);
     // might've come from the packethandler
     if(!di.backend && !B->getDomainInfo(di.zone, di)) {
-        L<<Logger::Warning<<"Ignore domain "<< di.zone.toString()<<" since it has been removed from our backend"<<endl;
+        L<<Logger::Warning<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
         continue;
     }
 
@@ -667,7 +667,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
           }
         }
         if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-          L<<Logger::Info<<"Domain '"<< di.zone.toString()<<"' is fresh and apex RRSIGs match"<<endl;
+          L<<Logger::Info<<"Domain '"<< di.zone<<"' is fresh and apex RRSIGs match"<<endl;
           di.backend->setFresh(di.id);
         }
         else {

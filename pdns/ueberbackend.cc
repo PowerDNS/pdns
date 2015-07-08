@@ -518,7 +518,7 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
     throw PDNSException("We are stale, please recycle");
   }
 
-  DLOG(L<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname.toString()<<endl);
+  DLOG(L<<"UeberBackend received question for "<<qtype.getName()<<" of "<<qname<<endl);
   if(!d_go) {
     pthread_mutex_lock(&d_mut);
     while (d_go==false) {

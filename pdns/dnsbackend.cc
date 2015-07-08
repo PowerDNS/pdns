@@ -262,14 +262,14 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
   }
 
   if(!sd.serial) { // magic time!
-    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname.toString()<<endl);
+    DLOG(L<<Logger::Warning<<"Doing SOA serial number autocalculation for "<<rr.qname<<endl);
 
     time_t serial;
     if (calculateSOASerial(domain, sd, serial)) {
       sd.serial = serial;
       //DLOG(L<<"autocalculated soa serialnumber for "<<rr.qname<<" is "<<newest<<endl);
     } else {
-      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname.toString()<<endl);
+      DLOG(L<<"soa serialnumber calculation failed for "<<rr.qname<<endl);
     }
 
   }
@@ -318,7 +318,7 @@ bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, ti
     time_t newest=0;
 
     if(!(this->list(domain, sd.domain_id))) {
-      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain.toString()<<"'"<<endl);
+      DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
       return false;
     }
 
@@ -420,7 +420,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
          * presumably quicker to just substring the zone down to size */
         soa->qname = inZone.substr( inZone.length() - foundkey.length(), string::npos );
 
-        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname.toString()<<endl);
+        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
 
         return GET_AUTH_SUCCESS;
     }
