@@ -13,6 +13,8 @@
 #include "pdns/namespaces.hh"
 #include "pdns/md5.hh"
 
+static AtomicCounter s_txid;
+
 bool SOracle::s_dolog;
 
 class SOracleStatement: public SSqlStatement {
@@ -462,6 +464,19 @@ SOracle::~SOracle()
     OCIHandleFree(d_errorHandle, OCI_HTYPE_ERROR);
     d_errorHandle = NULL;
   }
+}
+
+void SOracle::startTransaction() {
+  std::string cmd = "SET TRANSACTION NAME '" + boost::lexical_cast<std::string>(s_txid++) + "'";
+  execute(cmd);
+}
+
+void SOracle::commit() {
+  execute("COMMIT");
+}
+
+void SOracle::rollback() {
+  execute("ROLLBACK");
 }
 
 SSqlException SOracle::sPerrorException(const string &reason)
