@@ -170,14 +170,14 @@ script:
 #DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
  - ./timestamp ./start-test-stop 5300 mydns
  - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe # Workaround for remotebackend failures on travis-ci
-#DNSName - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
-#DNSName - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
-#DNSName - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
-#DNSName - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
+ - ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
  - rm -f tests/verify-dnssec-zone/allow-missing
  - rm -f tests/verify-dnssec-zone/skip.nsec3
