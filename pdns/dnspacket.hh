@@ -133,52 +133,54 @@ public:
   bool hasEDNS();
   //////// DATA !
 
-  ComboAddress d_remote;
-  uint16_t qclass;  //!< class of the question - should always be INternet 2
-  struct dnsheader d; //!< dnsheader at the start of the databuffer 12
-
-  QType qtype;  //!< type of the question 8
-
   string qdomain;  //!< qname of the question 4 - unsure how this is used
   string qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
   string qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
+  string d_peer_principal;
+  struct dnsheader d; //!< dnsheader at the start of the databuffer 12
+
+  uint16_t qclass;  //!< class of the question - should always be INternet 2
+  QType qtype;  //!< type of the question 2
+
+  TSIGRecordContent d_trc; //72
+
+  ComboAddress d_remote; //28
+  TSIGHashEnum d_tsig_algo; //4
+
   bool d_tcp;
   bool d_dnssecOk;
   bool d_havetsig;
-
-  string d_peer_principal;
-  TSIGHashEnum d_tsig_algo;
 
   bool getTSIGDetails(TSIGRecordContent* tr, string* keyname, string* message) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly=false);
   bool getTKEYRecord(TKEYRecordContent* tr, string* keyname) const;
 
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
-  TSIGRecordContent d_trc;
   static bool s_doEDNSSubnetProcessing;
-  static uint16_t s_udpTruncationThreshold;
+  static uint16_t s_udpTruncationThreshold; //2
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
   bool d_wrapped; // 1
-  bool d_compress; // 1
-  uint16_t d_qlen; // length of the question (including class & type) in this packet 2
-  
   int d_socket; // 4
 
-  string d_rawpacket; // this is where everything lives 4
-  int d_maxreplylen;
-  string d_ednsping;
-  bool d_wantsnsid;
-  bool d_haveednssubnet;
-  bool d_haveednssection;
-  EDNSSubnetOpts d_eso;
   string d_tsigsecret;
   string d_tsigkeyname;
   string d_tsigprevious;
-  bool d_tsigtimersonly;
 
-  vector<DNSResourceRecord> d_rrs; // 4
+  vector<DNSResourceRecord> d_rrs; // 8
+  string d_rawpacket; // this is where everything lives 8
+  string d_ednsping;
+  EDNSSubnetOpts d_eso;
+
+  int d_maxreplylen;
+  uint16_t d_qlen; // length of the question (including class & type) in this packet 2
+
+  bool d_compress; // 1
+  bool d_tsigtimersonly;
+  bool d_wantsnsid;
+  bool d_haveednssubnet;
+  bool d_haveednssection;
 };
 
 

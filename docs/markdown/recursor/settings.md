@@ -13,6 +13,7 @@ So, as an example:
 ## `aaaa-additional-processing`
 * Boolean
 * Default: No
+* Available until: 3.6.0
 
 If turned on, the recursor will attempt to add AAAA IPv6 records to questions
 for MX records and NS records. Can be quite slow as absence of these records in
@@ -46,6 +47,7 @@ remote server to TCP. Useful for mitigating ANY reflection attacks.
 ## `auth-can-lower-ttl`
 * Boolean
 * Default: no
+* Available until: 3.5
 
 Authoritative zones can transmit a TTL value that is lower than that specified
 in the parent zone. This is called a 'delegation inconsistency'. To follow

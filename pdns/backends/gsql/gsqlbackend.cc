@@ -1502,6 +1502,32 @@ bool GSQLBackend::replaceComments(const uint32_t domain_id, const string& qname,
   return true;
 }
 
+string GSQLBackend::directBackendCmd(const string &query)
+{
+ try {
+   ostringstream out;
+
+   unique_ptr<SSqlStatement> stmt(d_db->prepare(query,0));
+
+   stmt->execute();
+
+   SSqlStatement::row_t row;
+
+   while(stmt->hasNextRow()) {
+     stmt->nextRow(row);
+     for(const auto &col: row)
+       out<<"\'"<<col<<"\'\t";
+     out<<endl;
+   }
+
+   return out.str();
+ }
+ catch (SSqlException &e) {
+   throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
+ }
+}
+
+
 SSqlStatement::~SSqlStatement() { 
 // make sure vtable won't break 
 }

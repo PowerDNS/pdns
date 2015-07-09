@@ -173,6 +173,33 @@ bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled
    return true;
 }
 
+string PipeBackend::directBackendCmd(const string &query) {
+  if (d_abiVersion < 5)
+    return "not supported on ABI version " + boost::lexical_cast<string>(d_abiVersion) + "(use ABI version 5 or later)\n";
+
+  ostringstream oss;
+
+  try {
+      ostringstream oss;
+      oss<<"CMD\t"<<query;
+      d_coproc->send(oss.str());
+   }
+   catch(PDNSException &ae) {
+      L<<Logger::Error<<kBackendId<<" Error from coprocess: "<<ae.reason<<endl;
+      throw;
+   }
+   oss.str("");
+
+   while(true) {
+     string line;
+     d_coproc->receive(line);
+     if (line == "END") break;
+     oss << line << std::endl;
+   };
+
+   return oss.str();
+}
+
 //! For the dynamic loader
 DNSBackend *PipeBackend::maker()
 {

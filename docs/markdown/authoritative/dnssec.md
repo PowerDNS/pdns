@@ -208,6 +208,7 @@ The following pdnssec commands are available:
 
 * `activate-zone-key ZONE KEY-ID`: Activate a key with id KEY-ID within a zone called ZONE.
 * `add-zone-key ZONE [ksk|zsk] [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]`: Create a new key for zone ZONE, and make it a KSK or a ZSK, with the specified algorithm.
+* `backend-cmd BACKEND CMD [CMD..]`: Send a text command to a backend for execution. GSQL backends will take SQL commands, other backends may take different things. Be careful!
 * `check-zone ZONE`: Check a zone for DNSSEC correctness. Main goals is to check if the auth flag is set correctly.
 * `check-all-zones`: Check all zones for DNSSEC correctness. Added in 3.1.
 * `deactivate-zone-key ZONE KEY-ID`: Deactivate a key with id KEY-ID within a zone called ZONE.

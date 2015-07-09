@@ -38,7 +38,7 @@ class DNSPacketWriter : public boost::noncopyable
 
 public:
   typedef vector<pair<string, uint16_t> > lmap_t;
-  enum Place {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
+  enum Place : uint8_t {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
   DNSPacketWriter(vector<uint8_t>& content, const string& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
@@ -114,16 +114,20 @@ public:
   bool eof() { return true; } // we don't know how long the record should be
 
 private:
+  // We declare 1 uint_16 in the public section, these 3 align on a 8-byte boundry
+  uint16_t d_stuff;
+  uint16_t d_sor;
+  uint16_t d_rollbackmarker; // start of last complete packet, for rollback
+
   vector <uint8_t>& d_content;
   vector <uint8_t> d_record;
   string d_qname;
   string d_recordqname;
-  uint16_t d_recordqtype, d_recordqclass;
-  uint32_t d_recordttl;
   lmap_t d_labelmap;
-  uint16_t d_stuff;
-  uint16_t d_sor;
-  uint16_t d_rollbackmarker; // start of last complete packet, for rollback
+
+  uint32_t d_recordttl;
+  uint16_t d_recordqtype, d_recordqclass;
+
   uint16_t d_truncatemarker; // end of header, for truncate
   Place d_recordplace;
   bool d_canonic, d_lowerCase;

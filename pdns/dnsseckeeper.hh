@@ -42,10 +42,10 @@ class DNSSECKeeper : public boost::noncopyable
 public:
   struct KeyMetaData
   {
+    string fname;
     unsigned int id;
     bool active;
     bool keyOrZone;
-    string fname;
   };
   typedef std::pair<DNSSECPrivateKey, KeyMetaData> keymeta_t; 
   typedef std::vector<keymeta_t > keyset_t;
@@ -118,8 +118,8 @@ private:
     }
   
     string d_domain;
-    unsigned int d_ttd;
     mutable keys_t d_keys;
+    unsigned int d_ttd;
   };
   
   struct METACacheEntry
@@ -130,9 +130,9 @@ private:
     }
   
     string d_domain;
+    mutable std::string d_key, d_value;
     unsigned int d_ttd;
   
-    mutable std::string d_key, d_value;
   };
   
   

@@ -130,9 +130,9 @@ private:
   {
     string domain;
     string ip;
+    time_t next;
     int attempts;
     uint16_t id;
-    time_t next;
   };
 
   typedef std::list<NotificationRequest> d_nqueue_t;
@@ -193,17 +193,17 @@ private:
   
   UniQueue d_suckdomains;
   
-  bool d_havepriosuckrequest;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
   time_t d_tickinterval;
-  NotificationQueue d_nq;
-  bool d_masterschanged, d_slaveschanged;
   set<DomainInfo> d_tocheck;
   vector<DNSPacket> d_potentialsupermasters;
-  bool d_preventSelfNotification;
-  NetmaskGroup d_onlyNotify;
   set<string> d_alsoNotify;
+  NotificationQueue d_nq;
+  NetmaskGroup d_onlyNotify;
+  bool d_havepriosuckrequest;
+  bool d_masterschanged, d_slaveschanged;
+  bool d_preventSelfNotification;
 };
 
 #endif

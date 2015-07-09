@@ -178,6 +178,16 @@ DATA    scopebits   auth    qname       qclass  qtype   ttl id  content
 
 For abi-versions 1 and 2, the two new fields fall back to default values. The default value for scopebits is 0. The default for auth is 1 (meaning authoritative).
 
+## Direct backend commands
+With abi-version 5 you can use [backend-cmd](dnssec.md#pdnssec) for executing commands on your backend. PowerDNS will use the following query/answer format
+```
+CMD	Whatever you wrote
+Answer goes here
+And can be multiple lines
+until we see
+END
+```
+
 ## Sample perl backend
 ```
 !!include=../modules/pipebackend/backend.pl

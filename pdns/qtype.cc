@@ -28,6 +28,8 @@
 #include "qtype.hh"
 #include "misc.hh"
 
+static_assert(sizeof(QType) == 2, "QType is not 2 bytes in size, something is wrong!");
+
 vector<QType::namenum> QType::names;
 // XXX FIXME we need to do something with initializer order here!
 QType::init QType::initializer; 

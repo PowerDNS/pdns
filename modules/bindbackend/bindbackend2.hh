@@ -153,20 +153,19 @@ public:
   //! configure how often this domain should be checked for changes (on disk)
   void setCheckInterval(time_t seconds);
 
-  bool d_loaded;  //!< if a domain is loaded
-  string d_status; //!< message describing status of a domain, for human consumption
-  mutable bool d_checknow; //!< if this domain has been flagged for a check
-  time_t d_ctime;  //!< last known ctime of the file on disk
   string d_name;   //!< actual name of the domain
   string d_filename; //!< full absolute filename of the zone on disk
-  unsigned int d_id;  //!< internal id of the domain
-  time_t d_lastcheck; //!< last time domain was checked for freshness
+  string d_status; //!< message describing status of a domain, for human consumption
   vector<string> d_masters;     //!< IP address of the master of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
-
-  uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
-
   LookButDontTouch<recordstorage_t> d_records;  //!< the actual records belonging to this domain
+  time_t d_ctime;  //!< last known ctime of the file on disk
+  time_t d_lastcheck; //!< last time domain was checked for freshness
+  uint32_t d_lastnotified; //!< Last serial number we notified our slaves of
+  unsigned int d_id;  //!< internal id of the domain
+  mutable bool d_checknow; //!< if this domain has been flagged for a check
+  bool d_loaded;  //!< if a domain is loaded
+
 private:
   time_t getCtime();
   time_t d_checkinterval;
@@ -250,7 +249,6 @@ private:
   static bool safeRemoveBBDomainInfo(const std::string& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
-  bool d_hybrid;
   bool getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
@@ -264,13 +262,12 @@ private:
     recordstorage_t::const_iterator d_iter, d_end_iter;
     recordstorage_t::const_iterator d_qname_iter;
     recordstorage_t::const_iterator d_qname_end;
-
-    bool d_list;
-    int id;
-
     string qname;
     string domain;
+
+    int id;
     QType qtype;
+    bool d_list;
     bool mustlog;
 
   private:
@@ -280,34 +277,6 @@ private:
     void operator=(const handle& ); // don't go copying this
     handle(const handle &);
   };
-
-  static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
-  static bool s_ignore_broken_records;
-
-  static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
-  string d_logprefix;
-
-  set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
-
-  BB2DomainInfo createDomainEntry(const string &domain, const string &filename); //!< does not insert in s_state
-
-  int d_transaction_id;
-  string d_transaction_tmpname;
-
-  ofstream *d_of;
-  handle d_handle;
-
-  void queueReloadAndStore(unsigned int id);
-  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-  void reload();
-  static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
-  static void fixupAuth(shared_ptr<recordstorage_t> records);
-  void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
-  void loadConfig(string *status=0);
-  static void nukeZoneRecords(BB2DomainInfo *bbd);
 
   SSqlStatement* d_getAllDomainMetadataQuery_stmt;
   SSqlStatement* d_getDomainMetadataQuery_stmt;
@@ -322,6 +291,32 @@ private:
   SSqlStatement* d_setTSIGKeyQuery_stmt;
   SSqlStatement* d_deleteTSIGKeyQuery_stmt;
   SSqlStatement* d_getTSIGKeysQuery_stmt;
+
+  string d_transaction_tmpname;
+  string d_logprefix;
+  set<string> alsoNotify; //!< this is used to store the also-notify list of interested peers.
+  ofstream *d_of;
+  handle d_handle;
+  static string s_binddirectory;                              //!< this is used to store the 'directory' setting of the bind configuration
+  static int s_first;                                  //!< this is raised on construction to prevent multiple instances of us being generated
+  int d_transaction_id;
+  static bool s_ignore_broken_records;
+  bool d_hybrid;
+
+  BB2DomainInfo createDomainEntry(const string &domain, const string &filename); //!< does not insert in s_state
+
+  void queueReloadAndStore(unsigned int id);
+  bool findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
+  void reload();
+  static string DLDomStatusHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLListRejectsHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLReloadNowHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static string DLAddDomainHandler(const vector<string>&parts, Utility::pid_t ppid);
+  static void fixupAuth(shared_ptr<recordstorage_t> records);
+  void doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3PARAMRecordContent ns3pr);
+  void loadConfig(string *status=0);
+  static void nukeZoneRecords(BB2DomainInfo *bbd);
+
 };
 
 #endif /* PDNS_BINDBACKEND_HH */

@@ -88,13 +88,14 @@ public:
     //! The current real backend, which is answering questions
     DNSBackend *d_hinterBackend;
 
-    //! Index of the current backend within the backends vector
-    unsigned int i;
-
     //! DNSPacket who asked this question
     DNSPacket *pkt_p;
     string qname;
+
+    //! Index of the current backend within the backends vector
+    unsigned int i;
     QType qtype;
+
   private:
 
     static AtomicCounter instances;
@@ -137,33 +138,35 @@ public:
   void rediscover(string* status=0);
   void reload();
 private:
-  unsigned int d_cache_ttl, d_negcache_ttl;
-
   pthread_t tid;
   handle d_handle;
-  bool d_negcached;
-  bool d_cached;
-  struct Question
-  {
-    QType qtype;
-    string qname;
-    int zoneId;
-  }d_question;
   vector<DNSResourceRecord> d_answers;
   vector<DNSResourceRecord>::const_iterator d_cachehandleiter;
+
+  static pthread_mutex_t d_mut;
+  static pthread_cond_t d_cond;
+  static sem_t d_dynserialize;
+
+  struct Question
+  {
+    string qname;
+    int zoneId;
+    QType qtype;
+  }d_question;
+
+  unsigned int d_cache_ttl, d_negcache_ttl;
+  int domain_id;
+  int d_ancount;
+
+  bool d_negcached;
+  bool d_cached;
+  static bool d_go;
+  bool stale;
 
   int cacheHas(const Question &q, vector<DNSResourceRecord> &rrs);
   void addNegCache(const Question &q);
   void addCache(const Question &q, const vector<DNSResourceRecord> &rrs);
   
-  static pthread_mutex_t d_mut;
-  static pthread_cond_t d_cond;
-  static sem_t d_dynserialize;
-  static bool d_go;
-  int d_ancount;
-  
-  bool stale;
-  int domain_id;
 };
 
 #endif

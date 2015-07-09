@@ -296,4 +296,9 @@ BOOST_AUTO_TEST_CASE(test_method_calculateSOASerial) {
    BOOST_CHECK_EQUAL(serial, 2013060300);
 }
 
+BOOST_AUTO_TEST_CASE(test_method_directBackendCmd) {
+   BOOST_TEST_MESSAGE("Testing directBackendCmd method");
+   BOOST_CHECK_EQUAL(be->directBackendCmd("PING 1234"), "PING 1234");
+}
+
 BOOST_AUTO_TEST_SUITE_END();
