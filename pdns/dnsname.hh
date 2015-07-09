@@ -46,7 +46,7 @@ public:
   DNSName labelReverse() const;
   bool isWildcard() const;
   unsigned int countLabels() const;
-  size_t length() const; // FIXME remove me?
+  size_t length() const; // FIXME400 remove me?
   bool empty() const { return d_empty; }
   bool isRoot() const { return !d_empty && d_storage.empty(); }
   void clear() { d_storage.clear(); d_empty=true; }

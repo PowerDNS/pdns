@@ -201,7 +201,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
 {
   //cerr<<"xfrName: name=["<<name.toString()<<"] compress="<<compress<<endl;
   // string label = d_lowerCase ? toLower(Label) : Label;
-  // FIXME: we ignore d_lowerCase for now
+  // FIXME400: we ignore d_lowerCase for now
   // cerr<<"xfrName writing ["<<name.toString()<<"]"<<endl;
   std::vector<std::string> parts = name.getRawLabels();
   // labelparts_t parts;
@@ -256,7 +256,7 @@ void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
     d_record.push_back(labelsize);
     unsigned int len=d_record.size();
     d_record.resize(len + labelsize);
-    memcpy(((&*d_record.begin()) + len), label.c_str(), labelsize); // FIXME do not want memcpy
+    memcpy(((&*d_record.begin()) + len), label.c_str(), labelsize); // FIXME400 do not want memcpy
     pos+=labelsize+1;
 
     if(pos - startPos == 1)

@@ -192,5 +192,11 @@ test-schema *ZONE*
 unset-presigned *ZONE*
 :    Disables presigned operation for *ZONE*.
 
+## DEBUGGING TOOLS
+
+backend-cmd *BACKEND* *CMD* [*CMD..*]
+:    Send a text command to a backend for execution. GSQL backends will take SQL
+     commands, other backends may take different things. Be careful!
+
 # SEE ALSO
 pdns_server (1), pdns_control (1)

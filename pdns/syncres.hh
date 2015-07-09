@@ -464,7 +464,7 @@ private:
   struct GetBestNSAnswer
   {
     DNSName qname;
-    set<pair<DNSName,string> > bestns; // FIXME right side really should be DNSName too
+    set<pair<DNSName,string> > bestns; // FIXME400 right side really should be DNSName too
     uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
@@ -531,7 +531,7 @@ struct PacketIDBirthdayCompare: public std::binary_function<PacketID, PacketID, 
     if( tie(a.remote, ourSock, a.type) > tie(b.remote, bSock, b.type))
       return false;
 
-    return pdns_ilexicographical_compare(a.domain.toString(), b.domain.toString()); // FIXME
+    return pdns_ilexicographical_compare(a.domain.toString(), b.domain.toString()); // FIXME400
   }
 };
 extern __thread MemRecursorCache* t_RC;

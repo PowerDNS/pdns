@@ -67,7 +67,7 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const 
   }
   
   lua_pushstring(d_lua,  remote.toString().c_str() );
-  lua_pushstring(d_lua,  zone.toString().c_str() ); // FIXME expose DNSName to Lua?
+  lua_pushstring(d_lua,  zone.toString().c_str() ); // FIXME400 expose DNSName to Lua?
   lua_pushstring(d_lua,  in.qname.toString().c_str() );
   lua_pushnumber(d_lua,  in.qtype.getCode() );
   lua_pushnumber(d_lua,  in.ttl );

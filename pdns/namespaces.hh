@@ -40,6 +40,7 @@ using std::string;
 using boost::lexical_cast;
 using boost::tie;
 using std::shared_ptr;
+using std::unique_ptr;
 using boost::shared_array;
 using boost::scoped_array;
 using boost::tuple;

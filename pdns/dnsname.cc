@@ -241,7 +241,7 @@ bool DNSName::operator==(const DNSName& rhs) const
 size_t hash_value(DNSName const& d)
 {
   boost::hash<string> hasher;
-  return hasher(toLower(d.toString())); // FIXME HACK
+  return hasher(toLower(d.toString())); // FIXME400 HACK
 }
 
 string DNSName::escapeLabel(const std::string& label)

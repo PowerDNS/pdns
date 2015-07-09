@@ -1281,6 +1281,7 @@ try
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
+    cerr<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
     cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
     cerr<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
@@ -2345,6 +2346,30 @@ try
     cout<<"Moved "<<ntk<<" TSIG key(s)"<<endl;
 
     cout<<"Remember to drop the old backend and run rectify-all-zones"<<endl;
+
+    return 0;
+  } else if (cmds[0] == "backend-cmd") {
+    if (cmds.size() < 3) {
+      cerr<<"Usage: backend-cmd BACKEND CMD [CMD..]"<<endl;
+      return 1;
+    }
+
+    DNSBackend *db;
+    db = NULL;
+
+    for(DNSBackend *b : BackendMakers().all()) {
+      if (b->getPrefix() == cmds[1]) db = b;
+    }
+
+    if (!db) {
+      cerr<<"Unknown backend '"<<cmds[1]<<"'"<<endl;
+      return 1;
+    }
+
+    for(auto i=next(begin(cmds),2); i != end(cmds); ++i) {
+      cerr<<"== "<<*i<<endl;
+      cout<<db->directBackendCmd(*i);
+    }
 
     return 0;
   } else {

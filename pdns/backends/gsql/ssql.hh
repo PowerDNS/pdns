@@ -47,7 +47,7 @@ public:
   virtual SSqlStatement* bind(const string& name, unsigned long long value)=0;
   virtual SSqlStatement* bind(const string& name, const std::string& value)=0;
   SSqlStatement* bind(const string& name, const DNSName& value) {
-    return bind(name, toLower(value.toStringNoDot())); // FIXME toLower()?
+    return bind(name, toLower(value.toStringNoDot())); // FIXME400 toLower()?
   }
   virtual SSqlStatement* bindNull(const string& name)=0;
   virtual SSqlStatement* execute()=0;;

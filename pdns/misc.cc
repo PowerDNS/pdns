@@ -1011,7 +1011,7 @@ uint64_t udpErrorStats(const std::string& str)
 
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 {
-  if (algoName == "hmac-md5.sig-alg.reg.int." || algoName == "hmac-md5.") // FIXME
+  if (algoName == "hmac-md5.sig-alg.reg.int." || algoName == "hmac-md5.") // FIXME400
     algoEnum = TSIG_MD5;
   else if (algoName == "hmac-sha1.")
     algoEnum = TSIG_SHA1;

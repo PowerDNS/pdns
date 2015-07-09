@@ -452,7 +452,7 @@ void emitNSEC3(UeberBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOA
   r->addRecord(rr);
 }
 
-void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const DNSName& unhashed, const string& begin, const string& end, /* FIXME unused */ const DNSName& toNSEC3, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const DNSName& unhashed, const string& begin, const string& end, /* FIXME400 unused */ const DNSName& toNSEC3, DNSPacket *r, int mode)
 {
   ::emitNSEC3(B, ns3prc, sd, unhashed, begin, end, toNSEC3, r, mode);
   

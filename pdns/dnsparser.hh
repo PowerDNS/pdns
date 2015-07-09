@@ -190,7 +190,7 @@ public:
 
   void doRecordCheck(const struct DNSRecord&){}
 
-  DNSName label; // FIXME rename
+  DNSName label; // FIXME400 rename
   struct dnsrecordheader header;
 
   typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
@@ -263,7 +263,7 @@ protected:
 
 struct DNSRecord
 {
-  DNSName d_label; //FIXME rename
+  DNSName d_label; //FIXME400 rename
   std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
   uint16_t d_class;
@@ -279,8 +279,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label.toString()); //FIXME
-    string rlabel=toLower(rhs.d_label.toString()); //FIXME
+    string llabel=toLower(d_label.toString()); //FIXME400
+    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
 
     return 
       tie(llabel,     d_type,     d_class, lzrp) <
@@ -295,8 +295,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label.toString()); //FIXME
-    string rlabel=toLower(rhs.d_label.toString()); //FIXME
+    string llabel=toLower(d_label.toString()); //FIXME400
+    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
     
     return 
       tie(llabel,     d_type,     d_class, lzrp) ==

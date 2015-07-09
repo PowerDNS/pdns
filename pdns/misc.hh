@@ -349,7 +349,7 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   return true;
 }
 
-// FIXME remove this, it's just here to move faster while we DNSName the things
+// FIXME400 remove this, it's just here to move faster while we DNSName the things
 inline bool pdns_iequals(const DNSName& a, const DNSName& b) __attribute__((pure));
 inline bool pdns_iequals(const DNSName& a, const DNSName& b)
 {
@@ -438,7 +438,7 @@ private:
     #endif
 };
 
-// FIXME this should probably go?
+// FIXME400 this should probably go?
 struct CIStringCompare: public std::binary_function<string, string, bool>
 {
   bool operator()(const string& a, const string& b) const

@@ -314,7 +314,7 @@ try
   }
 
   for(auto &record: records) {
-    DNSName label /* FIXME rename */=record.first;
+    DNSName label /* FIXME400 rename */=record.first;
     if (isNSEC3 && unhash)
     {
       auto i = hashes.find(label.makeRelative(argv[3]).toStringNoDot());
