@@ -33,7 +33,7 @@ content of the issue, be as detailed as possible. Supply at least the following
 information:
 
 * PowerDNS version
-* Where you got the software from (e.g. distribution, compiled youself)
+* Where you got the software from (e.g. distribution, compiled yourself)
 * Operating System and version
 * Steps to reproduce: How can we reproduce the issue
 * Expected behavior: what did you expect what would happen?
@@ -45,11 +45,12 @@ well.
 
 # Filing a Pull Request
 Code contributions are sent as a pull request on [GitHub](https://github.com/PowerDNS/pdns/pulls).
+By submitting a Pull Request you agree to your code become GPLv2 licensed.
 
 ## Pull Request Guidelines
 A pull request, at the least, should have:
 
-* A clear and consise title (not e.g. 'Issue #1234')
+* A clear and concise title (not e.g. 'Issue #1234')
 * A description of the patch (what issue does it solve or what feature does it add)
 * Documentation for the feature or when current behaviour changes
 * Regression and/or unit tests
@@ -72,9 +73,9 @@ and
 
 # Coding Guidelines
 At the moment there is no established coding guideline, but here are some
-general guidleines:
+general guidelines:
 
 * Don't have end-of-line whitespace
 * Use spaces instead of tabs
 * Stick to the style of the file you're editing
-
+* Functions and classes must have a [docblock](http://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
