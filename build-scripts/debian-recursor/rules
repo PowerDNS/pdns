@@ -21,11 +21,15 @@ CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
 	dh $@ --with systemd --parallel
 
 override_dh_auto_install:
+	./pdns_recursor --config | sed \
+	  -e 's!# setgid=.*!setgid=pdns!' \
+	  -e 's!# setuid=.*!setuid=pdns!' \
+	  > debian/pdns-recursor/etc/powerdns/recursor.conf
 	dh_auto_install -- STRIP_BINARIES=0
+	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
 
 override_dh_strip:
 	dh_strip --dbg-package=pdns-recursor-dbg
 
 override_dh_installinit:
 	dh_installinit --error-handler=initscript_error -- defaults 19 85
-

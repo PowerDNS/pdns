@@ -42,6 +42,19 @@ override_dh_fixperms:
 	dh_fixperms
 	chmod 755 debian/pdns-server/etc/resolvconf/update.d/pdns
 
+override_dh_auto_install:
+	./pdns/pdns_server --no-config --config | sed \
+	  -e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
+	  -e 's!# daemon=.*!daemon=yes!' \
+	  -e 's!# guardian=.*!guardian=yes!' \
+	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
+	  -e 's!# launch=.*!&\nlaunch=!' \
+	  -e 's!# setgid=.*!setgid=pdns!' \
+	  -e 's!# setuid=.*!setuid=pdns!' \
+	  > debian/pdns-server/etc/powerdns/pdns.conf
+	dh_auto_install
+	rm -f debian/pdns-server/etc/powerdns/pdns.conf-dist
+
 # init script needs to be named pdns, not pdns-server
 override_dh_installinit:
 	dh_systemd_enable --name=pdns

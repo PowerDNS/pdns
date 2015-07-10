@@ -84,7 +84,7 @@ case "\$1" in
   start)
 	start
 	;;
-  stop) 
+  stop)
 	stop
 	;;
   restart|force-reload|reload)
@@ -143,8 +143,8 @@ make install DESTDIR=%{buildroot} CONFIGDIR="%{_sysconfdir}/%{name}"
 chmod 0755 %{buildroot}/%{_bindir}/rec_control
 chmod 0755 %{buildroot}/%{_sbindir}/pdns_recursor
 %{__install} -D -p %{SOURCE1} %{buildroot}%{_initrddir}/pdns-recursor
-
-%{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
+%{buildroot}/%{_sbindir}/pdns_recursor --config > %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
+%{__rm} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf-dist
 
 # add pdns user and group to top of configfile
 sed -i '1i\\setuid=pdns-recursor' %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
@@ -231,7 +231,8 @@ chmod 0755 %{buildroot}/%{_sbindir}/pdns_recursor
 # install systemd unit file
 %{__install} -D -p -m 644 contrib/systemd-pdns-recursor.service %{buildroot}%{_unitdir}/%{name}.service
 
-%{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
+%{buildroot}/%{_sbindir}/pdns_recursor --config > %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
+%{__rm} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf-dist
 
 # add pdns user and group to top of configfile
 sed -i '1i\\setuid=pdns-recursor' %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
