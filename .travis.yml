@@ -90,6 +90,7 @@ script:
      --enable-remotebackend-zeromq
      --enable-experimental-ed25519
      --enable-experimental-pkcs11
+     --enable-tools
      --disable-silent-rules
      --disable-dependency-tracking
  - make -k dist
@@ -102,9 +103,9 @@ script:
 #DNSName - make -j 4 check
  - test -f pdns/test-suite.log && cat pdns/test-suite.log || true
  - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
-#DNSName - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
+# DNSName: - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
+ - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|zone2lmdb|speedtest')
  - cd pdns
- - make -k -j 4 dnsbulktest #DNSName
  - make -k -j 4 pdns_recursor
  - rm -f pdns_recursor
  - cd ..
