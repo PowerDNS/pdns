@@ -733,9 +733,12 @@ speedtest_LDADD = $(POLARSSL_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.hh dnsname.cc \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnswasher.cc \
+	dnswriter.hh \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
