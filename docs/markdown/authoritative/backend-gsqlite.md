@@ -38,7 +38,7 @@ This schema contains all elements needed for master, slave and superslave operat
 
 After you have created the database you probably want to fill it with data. If
 you have a BIND zone file it's as easy as:
-`zone2sql --zone=myzonefile --gsqlite | sqlite3 powerdns.sqlite3`, but you can
+`zone2sql --named-conf=/path/to/named.conf --gsqlite | sqlite3 powerdns.sqlite3`, but you can
 also use AXFR (or insert data manually).
 
 To communicate with a SQLite database, use the `sqlite3` program, and feed it SQL.
