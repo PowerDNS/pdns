@@ -30,6 +30,17 @@ will not correspond to the queries that arrived over DNS. So, a query for an AAA
 can or should be done about this.
 
 ## Configuration Parameters
+### `pipe-abi-version`
+|&nbsp;|&nbsp;|
+|:-|:-|
+|Type|Integer|
+|Default|1|
+|Mandatory|No|
+
+This is the version of the question format that is sent to the co-process ([`pipe-command`](#pipe-command)) for the pipe backend.
+
+If not set the default `pipe-abi-version` is 1. When set to 2, the local-ip-address field is added after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on). When set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling 'edns-subnet-processing'). When set to 4 it sends zone name in AXFR request.
+
 ### `pipe-command`
 |&nbsp;|&nbsp;|
 |:-|:-|
@@ -51,28 +62,7 @@ Number of milliseconds to wait for an answer from the backend. If this time is e
 |:-|:-|
 |Type|String (a regex)|
 
-If set, only questions matching this regular expression are even sent to the backend. This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend. A query for the A record of 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com;A'. A matching regex would be '^www.powerdns.com;.*$'.
-
-To match only ANY and A queries for www.powerdns.com, use `^www.powerdns.com;(A|ANY)$`.
-
-### `pipebackend-abi-version`
-This is the version of the question format that is sent to the co-process ([`pipe-command`](#pipe-command)) for the pipe backend.
-
-If not set the default pipebackend-abi-version is 1. When set to 2, the local-ip-address field is added after the remote-ip-address. (the local-ip-address refers to the IP address the question was received on). When set to 3, the real remote IP/subnet is added based on edns-subnet support (this also requires enabling 'edns-subnet-processing'). When set to 4 it sends zone name in AXFR request.
-
-## Deploying the PipeBackend with the BindBackend
-Included with the PDNS distribution is the example.pl backend which has knowledge of the example.com zone, just like the BindBackend. To install both, add the following to your `pdns.conf`:
-
-```
-launch=pipe,bind
-bind-example-zones
-pipe-command=location/of/backend.pl
-```
-
-Please adjust the [`pipe-command`](#pipe-command) statement to the location of the unpacked PDNS distribution. If your backend is slow, raise [`pipe-timeout`](#pipe-timeout) from its default of 2000ms. Now launch PDNS in monitor mode, and perform some queries. Note the difference with the earlier experiment where only the BindBackend was loaded. The PipeBackend is launched first and thus gets queried first. The sample backend.pl script knows about:
-
--   webserver.example.com A records pointing to 192.0.2.4, 192.0.2.5, 192.0.2.6
--   www.example.com CNAME pointing to webserver.example.com
+If set, only questions matching this regular expression are even sent to the backend. This makes sure that most of PowerDNS does not slow down if you you deploy a slow backend. A query for 'www.powerdns.com' would be presented to the regex as 'www.powerdns.com'. A matching regex would be '^www.powerdns.com$'.
 
 ## PipeBackend protocol
 
@@ -85,17 +75,17 @@ PowerDNS sends out `HELO\t1`, indicating that it wants to speak the protocol as 
 
 The question format, for type Q questions:
 
-#### pipebackend-abi-version = 1 [default]
+#### pipe-abi-version = 1 [default]
 ```
 Q   qname       qclass  qtype   id  remote-ip-address
 ```
 
-#### pipebackend-abi-version = 2
+#### pipe-abi-version = 2
 ```
 Q   qname       qclass  qtype   id  remote-ip-address   local-ip-address
 ```
 
-#### pipebackend-abi-version = 3
+#### pipe-abi-version = 3
 ```
 Q   qname       qclass  qtype   id  remote-ip-address   local-ip-address    edns-subnet-address
 ```
