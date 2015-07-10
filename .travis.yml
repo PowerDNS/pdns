@@ -81,11 +81,11 @@ before_script:
 script:
  - ./bootstrap
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
+#Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
  - ./configure
      --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lua'
      --with-modules=''
      --with-sqlite3
-     --enable-botan1.10
      --enable-unit-tests
      --enable-remotebackend-zeromq
      --enable-experimental-ed25519
