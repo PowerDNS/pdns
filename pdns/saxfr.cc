@@ -205,9 +205,9 @@ try
 
   bool isNSEC3 = false;
   int soacount=0;
-  vector<pair<string,string> > records;
-  set<string> labels;
-  map<string,string> hashes;
+  vector<pair<DNSName,string> > records;
+  set<DNSName> labels;
+  map<string,DNSName> hashes;
   NSEC3PARAMRecordContent ns3pr;
 
   while(soacount<2) {
@@ -290,14 +290,14 @@ try
         o<<"\t"<<i->first.d_content->getZoneRepresentation();
       }
 
-      records.push_back(make_pair(stripDot(i->first.d_label),o.str()));
+      records.push_back(make_pair(i->first.d_label,o.str()));
 
-      string shorter(stripDot(i->first.d_label));
+      DNSName shorter(i->first.d_label);
       do {
         labels.insert(shorter);
         if (pdns_iequals(shorter, argv[3]))
           break;
-      }while(chopOff(shorter));
+      }while(shorter.chopOff());
 
     }
 
@@ -307,22 +307,21 @@ try
   if (isNSEC3 && unhash)
   {
     string hashed;
-    BOOST_FOREACH(const string &label, labels) {
+    for(const auto &label: labels) {
       hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, label));
-      hashes.insert(pair<string,string>(hashed, label));
+      hashes.insert(pair<string,DNSName>(hashed, label));
     }
   }
 
-  pair<string,string> record;
-  BOOST_FOREACH(record, records) {
-    string label=record.first;
+  for(auto &record: records) {
+    DNSName label /* FIXME400 rename */=record.first;
     if (isNSEC3 && unhash)
     {
-      map<string,string>::iterator i = hashes.find(makeRelative(label, argv[3]));
+      auto i = hashes.find(label.makeRelative(argv[3]).toStringNoDot());
       if (i != hashes.end())
         label=i->second;
     }
-    cout<<label<<"."<<record.second<<endl;
+    cout<<label.toString()<<record.second<<endl;
   }
 
 }

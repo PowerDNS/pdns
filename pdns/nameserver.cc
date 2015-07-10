@@ -294,9 +294,9 @@ void UDPNameserver::send(DNSPacket *p)
   /* Query statistics */
   if(p->d.aa) {
     if (p->d.rcode==RCode::NXDomain)
-      S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
+      S.ringAccount("nxdomain-queries",p->qdomain.toString()+"/"+p->qtype.getName());
   } else if (p->isEmpty()) {
-    S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
+    S.ringAccount("unauth-queries",p->qdomain.toString()+"/"+p->qtype.getName());
     S.ringAccount("remotes-unauth",p->d_remote);
   }
 

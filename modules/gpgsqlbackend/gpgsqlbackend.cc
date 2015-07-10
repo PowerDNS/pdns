@@ -82,11 +82,11 @@ public:
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=false and ordername ~<=~ $1 and domain_id=$2 and ordername is not null order by 1 using ~>~ limit 1");
     declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select ordername from records where disabled=false and ordername ~>~ $1 and domain_id=$2 and ordername is not null order by 1 using ~<~ limit 1");
     declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select ordername, name from records where disabled=false and ordername != '' and domain_id=$1 and ordername is not null order by 1 using ~>~ limit 1");
-    declare(suffix, "set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=$1,auth=$2 where name=$3 and domain_id=$4 and disabled=false");
-    declare(suffix, "set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=true where domain_id=$1 and name=$2 and type='DS' and disabled=false");
 
-    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and disabled=false");
-    declare(suffix, "nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=false where name=$1 and type=$2 and domain_id=$3 and disabled=false");
+    declare(suffix, "update-ordername-and-auth-query", "DNSSEC update ordername and auth for a qname query", "update records set ordername=$1,auth=$2 where domain_id=$3 and name=$4 and disabled=false");
+    declare(suffix, "update-ordername-and-auth-type-query", "DNSSEC update ordername and auth for a rrset query", "update records set ordername=$1,auth=$2 where domain_id=$3 and name=$4 and type=$5 and disabled=false");
+    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and disabled=false");
+    declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and type=$4 and disabled=false");
 
     declare(suffix,"update-master-query","", "update domains set master=$1 where name=$2");
     declare(suffix,"update-kind-query","", "update domains set type=$1 where name=$2");

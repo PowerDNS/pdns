@@ -32,8 +32,8 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, const string& zname="", const string& reldir="");
-  ZoneParserTNG(const vector<string> zonedata, const string& zname);
+  ZoneParserTNG(const string& fname, const DNSName& zname="", const string& reldir="");
+  ZoneParserTNG(const vector<string> zonedata, const DNSName& zname);
 
   ~ZoneParserTNG();
   bool get(DNSResourceRecord& rr, std::string* comment=0);
@@ -54,8 +54,8 @@ private:
 
   string d_reldir;
   string d_line;
-  string d_prevqname;
-  string d_zonename;
+  DNSName d_prevqname;
+  DNSName d_zonename;
   string d_templateline;
   vector<string> d_zonedata;
   vector<string>::iterator d_zonedataline;

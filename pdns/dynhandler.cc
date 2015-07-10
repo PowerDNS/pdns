@@ -346,7 +346,7 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 
   for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
     if (di->kind == kindFilter || kindFilter == -1) {
-      ret<<di->zone<<endl;
+      ret<<di->zone.toString()<<endl;
       count++;
     }
   }

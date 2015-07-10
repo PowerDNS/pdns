@@ -285,7 +285,7 @@ bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr
   return a->serialize("", true, true) < b->serialize("", true, true);
 }
 
-string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
 {
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
@@ -294,7 +294,7 @@ string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rr
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    toHash.append(toLower(simpleCompress(qname, "")));
+    toHash.append(qname.toDNSString()); // FIXME400 tolower?
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
@@ -310,10 +310,10 @@ string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rr
   return toHash;
 }
 
-DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest)
+DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest)
 {
   string toHash;
-  toHash.assign(toLower(simpleCompress(qname)));
+  toHash.assign(qname.toDNSString()); // FIXME400 tolower?
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
   
   DSRecordContent dsrc;
@@ -379,10 +379,10 @@ uint32_t getStartOfWeek()
   return now;
 }
 
-std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname)
+std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const DNSName& qname)
 {
   string toHash;
-  toHash.assign(simpleCompress(toLower(qname)));
+  toHash.assign(qname.toDNSString());
   toHash.append(salt);
 
 //  cerr<<makeHexDump(toHash)<<endl;
@@ -540,7 +540,7 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
   return calculateSHAHMAC(key, text, hash);
 }
 
-string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
+string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
 {
   string message;
   string packet(opacket);
@@ -570,7 +570,8 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    dw.xfrName(toLower(trc.d_algoName), false);
+    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME400 
+    dw.xfrName(trc.d_algoName, false);
   }
   
   uint32_t now = trc.d_time; 
@@ -586,11 +587,11 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   return message;
 }
 
-void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
+void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
   TSIGHashEnum algo;
   if (!getTSIGHashEnum(trc->d_algoName, algo)) {
-    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName);
+    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName.toString());
   }
 
   string toSign;
@@ -626,7 +627,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {
-      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname+string("'"));
+      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toString()+string("'"));
     }
   } else {
     trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);

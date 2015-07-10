@@ -93,7 +93,7 @@ void BindParser::commit(BindDomainInfo DI)
     DI.filename=d_dir+"/"+DI.filename;
 
   if(d_verbose)
-    cerr<<"Domain "<<DI.name<<" lives in file '"<<DI.filename<<"'"<<endl;
+    cerr<<"Domain "<<DI.name.toStringNoDot()<<" lives in file '"<<DI.filename<<"'"<<endl;
 
   d_zonedomains.push_back(DI);
 }

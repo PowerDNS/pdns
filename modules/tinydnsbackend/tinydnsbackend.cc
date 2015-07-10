@@ -155,16 +155,16 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo> *domains, bool include_dis
 	}
 }
 
-bool TinyDNSBackend::list(const string &target, int domain_id, bool include_disabled) {
+bool TinyDNSBackend::list(const DNSName &target, int domain_id, bool include_disabled) {
 	d_isAxfr=true;
-	string key = simpleCompress(target);
+	string key = target.toDNSString(); // FIXME400 bug: no lowercase here? or promise that from core?
 	d_cdbReader=new CDB(getArg("dbfile"));
 	return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p, int zoneId) {
+void TinyDNSBackend::lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p, int zoneId) {
 	d_isAxfr = false;
-	string queryDomain = toLowerCanonic(qdomain);
+	string queryDomain = toLowerCanonic(qdomain.toString());
 
 	string key=simpleCompress(queryDomain);
 
@@ -252,9 +252,8 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 				key.insert(0, 1, '\052');
 				key.insert(0, 1, '\001');
 			}
-			rr.qname.clear(); 
-			simpleExpandTo(key, 0, rr.qname);
-			rr.qname = stripDot(rr.qname); // strip the last dot, packethandler needs this.
+			// rr.qname.clear(); 
+			rr.qname=DNSName(key.c_str(), key.size(), 0, false);
 			rr.domain_id=-1;
 			// 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
 			// We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something ehre. 
@@ -283,7 +282,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 
 				DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
 				rr.content = drc->getZoneRepresentation();
-				// cerr<<"CONTENT: "<<rr.content<<endl;
+				cerr<<"CONTENT: "<<rr.content<<endl;
 				delete drc;
 			}
 			catch (...) {

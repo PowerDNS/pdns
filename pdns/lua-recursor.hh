@@ -9,14 +9,14 @@ class RecursorLua : public PowerDNSLua
 public:
   explicit RecursorLua(const std::string& fname);
   // ~RecursorLua();
-  bool preresolve(const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
-  bool nxdomain(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
-  bool nodata(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
-  bool postresolve(const ComboAddress& remote, const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
-  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const string& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret);
+  bool preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
+  bool nxdomain(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
+  bool nodata(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
+  bool postresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret, bool* variable);
+  bool preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& res, int& ret);
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local);
 private:
-  bool passthrough(const string& func, const ComboAddress& remote,const ComboAddress& local, const string& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable);
+  bool passthrough(const string& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable);
 
   struct NoFuncs
   {

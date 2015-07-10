@@ -50,7 +50,7 @@
 using boost::scoped_ptr;
 
 
-void CommunicatorClass::addSuckRequest(const string &domain, const string &master)
+void CommunicatorClass::addSuckRequest(const DNSName &domain, const string &master)
 {
   Lock l(&d_lock);
   SuckRequest sr;
@@ -65,7 +65,7 @@ void CommunicatorClass::addSuckRequest(const string &domain, const string &maste
   }
 }
 
-void CommunicatorClass::suck(const string &domain,const string &remote)
+void CommunicatorClass::suck(const DNSName &domain,const string &remote)
 {
   L<<Logger::Error<<"Initiating transfer of '"<<domain<<"' from remote '"<<remote<<"'"<<endl;
   UeberBackend B; // fresh UeberBackend
@@ -83,7 +83,8 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     uint32_t domain_id=di.id;
 
 
-    string tsigkeyname, tsigalgorithm, tsigsecret;
+    DNSName tsigkeyname, tsigalgorithm;
+    string tsigsecret;
     if(dk.getTSIGForAccess(domain, remote, &tsigkeyname)) {
       string tsigsecret64;
       if(B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
@@ -147,11 +148,11 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     bool first=true;
     bool firstNSEC3=true;
     unsigned int soa_serial = 0;
-    set<string> nsset, qnames, secured;
+    set<DNSName> nsset, qnames, secured;
     vector<DNSResourceRecord> rrs;
 
     ComboAddress raddr(remote, 53);
-    AXFRRetriever retriever(raddr, domain.c_str(), tsigkeyname, tsigalgorithm, tsigsecret, (laddr.sin4.sin_family == 0) ? NULL : &laddr);
+    AXFRRetriever retriever(raddr, domain, tsigkeyname, tsigalgorithm, tsigsecret, (laddr.sin4.sin_family == 0) ? NULL : &laddr);
     Resolver::res_t recs;
     while(retriever.getChunk(recs)) {
       if(first) {
@@ -163,7 +164,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         if(i->qtype.getCode() == QType::OPT || i->qtype.getCode() == QType::TSIG) // ignore EDNS0 & TSIG
           continue;
 
-        if(!endsOn(i->qname, domain)) {
+        if(!i->qname.isPartOf(domain)) {
           L<<Logger::Error<<"Remote "<<remote<<" tried to sneak in out-of-zone data '"<<i->qname<<"'|"<<i->qtype.getName()<<" during AXFR of zone '"<<domain<<"', ignoring"<<endl;
           continue;
         }
@@ -190,7 +191,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
                 throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
               optOutFlag = ns3rc.d_flags & 1;
               if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(rr.qname, domain))
-                secured.insert(toLower(makeRelative(rr.qname, domain)));
+                secured.insert(toLower(makeRelative(rr.qname.toString(), domain.toString())));
               continue;
             }
             case QType::NSEC: {
@@ -290,9 +291,10 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
     bool doent=true;
     uint32_t maxent = ::arg().asNum("max-ent-entries");
-    string ordername, shorter;
-    set<string> rrterm;
-    map<string,bool> nonterm;
+    string ordername;
+    DNSName shorter;
+    set<DNSName> rrterm;
+    map<DNSName,bool> nonterm;
 
 
     BOOST_FOREACH(DNSResourceRecord& rr, rrs) {
@@ -318,7 +320,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
 
         if (pdns_iequals(shorter, domain)) // stop at apex
           break;
-      }while(chopOff(shorter));
+      }while(shorter.chopOff());
 
       // Insert ents
       if(doent && !rrterm.empty()) {
@@ -330,9 +332,9 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         } else
           auth=rr.auth;
 
-        BOOST_FOREACH(const string nt, rrterm){
+        for(const auto &nt: rrterm){
           if (!nonterm.count(nt))
-              nonterm.insert(pair<string, bool>(nt, auth));
+              nonterm.insert(pair<DNSName, bool>(nt, auth));
             else if (auth)
               nonterm[nt]=true;
         }
@@ -360,7 +362,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
         } else {
           // NSEC
           if (rr.auth || rr.qtype.getCode() == QType::NS) {
-            ordername=toLower(labelReverse(makeRelative(rr.qname, domain)));
+            ordername=toLower(labelReverse(makeRelative(rr.qname.toString(), domain.toString())));
             di.backend->feedRecord(rr, &ordername);
           } else
             di.backend->feedRecord(rr);
@@ -380,7 +382,7 @@ void CommunicatorClass::suck(const string &domain,const string &remote)
     di.backend->commitTransaction();
     transaction = false;
     di.backend->setFresh(domain_id);
-    PC.purge(domain+"$");
+    PC.purge(domain.toString()+"$");
 
 
     L<<Logger::Error<<"AXFR done for '"<<domain<<"', zone committed with serial number "<<soa_serial<<endl;
@@ -435,14 +437,15 @@ struct DomainNotificationInfo
   DomainInfo di;
   bool dnssecOk;
   ComboAddress localaddr;
-  string tsigkeyname, tsigalgname, tsigsecret;
+  DNSName tsigkeyname, tsigalgname;
+  string tsigsecret;
 };
 }
 
 
 struct SlaveSenderReceiver
 {
-  typedef pair<string, uint16_t> Identifier;
+  typedef pair<DNSName, uint16_t> Identifier;
 
   struct Answer {
     uint32_t theirSerial;
@@ -468,21 +471,21 @@ struct SlaveSenderReceiver
       if (dni.localaddr.sin4.sin_family == 0) {
         return make_pair(dni.di.zone,
           d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53),
-            dni.di.zone.c_str(),
+            dni.di.zone,
             QType::SOA,
             dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
         );
       } else {
         return make_pair(dni.di.zone,
           d_resolver.sendResolve(ComboAddress(*dni.di.masters.begin(), 53), dni.localaddr,
-            dni.di.zone.c_str(),
+            dni.di.zone,
             QType::SOA,
             dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
         );
       }
     }
     catch(PDNSException& e) {
-      throw runtime_error("While attempting to query freshness of '"+dni.di.zone+"': "+e.reason);
+      throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toString()+"': "+e.reason);
     }
   }
 

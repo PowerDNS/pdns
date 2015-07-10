@@ -38,12 +38,12 @@ Answer:
 
 check delegate delete
 --- Start: diff start step.3 ---
-> delegate1.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> delegate2.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600	''	1
-> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600	''	1
-> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600	''	1
-> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600	''	1
+> delegate1.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> delegate2.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600	NULL	1
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600	NULL	1
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600	NULL	1
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600	NULL	1
 --- End: diff start step.3 ---
 
 Answer:

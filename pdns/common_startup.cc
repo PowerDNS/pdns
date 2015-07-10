@@ -369,7 +369,7 @@ void *qthread(void *number)
      if(P->d.qr)
        continue;
 
-    S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
+    S.ringAccount("queries", P->qdomain.toString()+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;

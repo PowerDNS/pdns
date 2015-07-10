@@ -21,8 +21,7 @@
 */
 // $Id$ 
 /* (C) 2002 POWERDNS.COM BV */
-#ifndef DNS_HH
-#define DNS_HH
+#pragma once
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -31,17 +30,19 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
 #include "qtype.hh"
+#include "dnsname.hh"
 #include <time.h>
 #include <sys/types.h>
 class DNSBackend;
+class DNSName; // FIXME400
 
 struct SOAData
 {
   SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0),  db(0), domain_id(-1), scopeMask(0) {};
 
-  string qname;
-  string nameserver;
-  string hostmaster;
+  DNSName qname;
+  DNSName nameserver;
+  DNSName hostmaster;
   uint32_t ttl;
   uint32_t serial;
   uint32_t refresh;
@@ -81,8 +82,8 @@ public:
   string getZoneRepresentation() const;
 
   // data
-  string qname; //!< the name of this record, for example: www.powerdns.com
-  string wildcardname;
+  DNSName qname; //!< the name of this record, for example: www.powerdns.com
+  DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
 
   // Aligned on 8-byte boundries on systems where time_t is 8 bytes and int
@@ -229,4 +230,3 @@ void fillSOAData(const string &content, SOAData &data);
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);
 string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
-#endif

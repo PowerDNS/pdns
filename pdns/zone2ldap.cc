@@ -43,41 +43,37 @@ StatBag S;
 ArgvMap args;
 bool g_dnsttl;
 string g_basedn;
-string g_zonename;
-map<string,bool> g_objects;
+DNSName g_zonename;
+map<DNSName,bool> g_objects;
 
-static void callback_simple( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl )
+static void callback_simple( unsigned int domain_id, const DNSName &domain, const string &qtype, const string &content, int ttl )
 {
-        string host;
-        string::size_type pos;
-        vector<string> parts;
-        string domain2 = stripDot( domain );
+        DNSName host;
 
-
-        if( ( pos = domain2.rfind( g_zonename ) ) == string::npos )
+        if( ! domain.isPartOf(g_zonename) )
         {
-                cerr << "Domain " << domain2 << " not part of " << g_zonename << endl;
+                cerr << "Domain '" << domain.toString() << "'' not part of '" << g_zonename.toString() << "'"<< endl;
                 return;
         }
 
-        host = stripDot( domain2.substr( 0, pos ) );
+        host = domain.makeRelative(g_zonename);
 
         cout << "dn: dc=";
-        if( !host.empty() ) { cout << host << ",dc="; }
-        cout << g_zonename << "," << g_basedn << endl;
+        if( host.countLabels() ) { cout << host.toStringNoDot() << ",dc="; }
+        cout << g_zonename.toStringNoDot() << "," << g_basedn << endl;
 
-        if( host.empty() ) { host = g_zonename; }
+        if( host.countLabels() == 0 ) { host = g_zonename; }
 
-        if( !g_objects[domain2] )
+        if( !g_objects[domain] )
         {
-                g_objects[domain2] = true;
+                g_objects[domain] = true;
 
                 cout << "changetype: add" << endl;
                 cout << "objectclass: dnsdomain2" << endl;
                 cout << "objectclass: domainrelatedobject" << endl;
-                cout << "dc: " << host << endl;
+                cout << "dc: " << host.toStringNoDot() << endl;
                 if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
-                cout << "associateddomain: " << domain2 << endl;
+                cout << "associateddomain: " << domain.toStringNoDot() << endl;
         }
         else
         {
@@ -90,19 +86,19 @@ static void callback_simple( unsigned int domain_id, const string &domain, const
 
 
 
-static void callback_tree( unsigned int domain_id, const string &domain, const string &qtype, const string &content, int ttl )
+static void callback_tree( unsigned int domain_id, const DNSName &domain, const string &qtype, const string &content, int ttl )
 {
         unsigned int i;
-        string dn, net;
+        string dn;
+        DNSName net;
         vector<string> parts;
-        string domain2 = stripDot( domain );
 
-        stringtok( parts, domain2, "." );
+        stringtok( parts, domain.toStringNoDot(), "." );
         if( parts.empty() ) { return; }
 
         for( i = parts.size() - 1; i > 0; i-- )
         {
-                net = parts[i] + net;
+                net.prependRawLabel(parts[i]);
                 dn = "dc=" + parts[i] + "," + dn;
 
                 if( !g_objects[net] )
@@ -114,24 +110,23 @@ static void callback_tree( unsigned int domain_id, const string &domain, const s
                         cout << "objectclass: dnsdomain2" << endl;
                         cout << "objectclass: domainrelatedobject" << endl;
                         cout << "dc: " << parts[i] << endl;
-                        cout << "associateddomain: " << net << endl << endl;
+                        cout << "associateddomain: " << net.toStringNoDot() << endl << endl;
                 }
 
-                net = "." + net;
         }
 
         cout << "dn: " << "dc=" << parts[0] << "," << dn << g_basedn << endl;
 
-        if( !g_objects[domain2] )
+        if( !g_objects[domain] )
         {
-                g_objects[domain2] = true;
+                g_objects[domain] = true;
 
                 cout << "changetype: add" << endl;
                 cout << "objectclass: dnsdomain2" << endl;
                 cout << "objectclass: domainrelatedobject" << endl;
                 cout << "dc: " << parts[0] << endl;
                 if( g_dnsttl ) { cout << "dnsttl: " << ttl << endl; }
-                cout << "associateddomain: " << domain2 << endl;
+                cout << "associateddomain: " << domain.toStringNoDot() << endl;
         }
         else
         {
@@ -184,7 +179,7 @@ int main( int argc, char* argv[] )
 
                 g_basedn = args["basedn"];
                 g_dnsttl = args.mustDo( "dnsttl" );
-                typedef boost::function<void(unsigned int, const string &, const string &, const string &, int)> callback_t;
+                typedef boost::function<void(unsigned int, const DNSName &, const string &, const string &, int)> callback_t;
                 callback_t callback = callback_simple;
                 if( args["layout"] == "tree" )
                 {
@@ -201,14 +196,14 @@ int main( int argc, char* argv[] )
                         for( vector<BindDomainInfo>::const_iterator i = domains.begin(); i != domains.end(); i++ )
                         {
                                         if(i->type!="master" && i->type!="slave") {
-                                                cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
+                                                cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name.toString()<<"'"<<endl;
                                                 continue;
                                         }
                                 try
                                 {
                                         if( i->name != "." && i->name != "localhost" && i->name != "0.0.127.in-addr.arpa" )
                                         {
-                                                cerr << "Parsing file: " << i->filename << ", domain: " << i->name << endl;
+                                                cerr << "Parsing file: " << i->filename << ", domain: " << i->name.toString() << endl;
                                                 g_zonename = i->name;
                                                 ZoneParserTNG zpt(i->filename, i->name, BP.getDirectory());
                                                 DNSResourceRecord rr;

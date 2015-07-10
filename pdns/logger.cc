@@ -142,6 +142,12 @@ Logger& Logger::operator<<(const string &s)
   return *this;
 }
 
+Logger& Logger::operator<<(const char *s)
+{
+  *this<<string(s);
+  return *this;
+}
+
 Logger& Logger::operator<<(int i)
 {
   ostringstream tmp;
@@ -189,7 +195,6 @@ Logger& Logger::operator<<(unsigned long long i)
 
   return *this;
 }
-
 
 Logger& Logger::operator<<(long i)
 {
