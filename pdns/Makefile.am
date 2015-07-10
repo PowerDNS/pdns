@@ -518,6 +518,8 @@ calidns_LDADD = $(POLARSSL_LIBS)
 calidns_LDFLAGS=$(THREADFLAGS) 
 
 dumresp_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dumresp.cc \
 	logger.cc \
 	misc.cc misc.hh \
