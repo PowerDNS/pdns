@@ -3,7 +3,6 @@
 #include <string>
 
 #include "dnswriter.hh"
-#include "logger.hh"
 #include "misc.hh"
 
 #include <boost/functional/hash.hpp>
@@ -259,12 +258,4 @@ string DNSName::escapeLabel(const std::string& label)
     }
   }
   return ret;
-}
-
-
-Logger& Logger::operator<<(const DNSName &d)
-{
-  *this<<d.toString();
-
-  return *this;
 }

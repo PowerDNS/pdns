@@ -215,3 +215,10 @@ Logger& Logger::operator<<(ostream & (&)(ostream &))
   pt->d_urgency=Info;
   return *this;
 }
+
+Logger& Logger::operator<<(const DNSName &d)
+{
+  *this<<d.toString();
+
+  return *this;
+}
