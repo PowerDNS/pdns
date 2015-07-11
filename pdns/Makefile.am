@@ -957,6 +957,8 @@ dnsdemog_LDADD = $(POLARSSL_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	dnsname.hh dnsname.cc \
+	dnslabeltext.cc \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
