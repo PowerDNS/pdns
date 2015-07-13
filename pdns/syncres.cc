@@ -394,7 +394,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSResou
   }
 
   int res=0;
-  if(!(d_nocache && qtype.getCode()==QType::NS && qname==".")) {
+  if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
       LOG(prefix<<qname.toString()<<": Recursion not requested for '"<<qname.toString()<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
@@ -597,7 +597,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, set<D
       }
     }
     LOG(prefix<<qname.toString()<<": no valid/useful NS in cache for '"<<subdomain.toString()<<"'"<<endl);
-    if(subdomain=="." && !brokeloop) {
+    if(subdomain.isRoot() && !brokeloop) {
       primeHints();
       LOG(prefix<<qname.toString()<<": reprimed the root"<<endl);
     }
@@ -709,7 +709,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
   if(s_rootNXTrust &&
      (range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull))) != t_sstorage->negcache.end() &&
-      range.first->d_qname=="." && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
+      range.first->d_qname.isRoot() && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
     sttl=range.first->d_ttd - d_now.tv_sec;
 
     LOG(prefix<<qname.toString()<<": Entire name '"<<qname.toString()<<"', is negatively cached via '"<<range.first->d_name.toString()<<"' & '"<<range.first->d_qname.toString()<<"' for another "<<sttl<<" seconds"<<endl);
@@ -1151,7 +1151,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           ne.d_qtype=QType(0); // this encodes 'whole record'
 
           replacing_insert(t_sstorage->negcache, ne);
-	  if(s_rootNXTrust && auth==".") {
+	  if(s_rootNXTrust && auth.isRoot()) {
 	    ne.d_name = getLastLabel(ne.d_name);
 	    replacing_insert(t_sstorage->negcache, ne);
 	  }
