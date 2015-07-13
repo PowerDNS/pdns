@@ -1072,6 +1072,22 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           continue;
         }
 
+        // Check if we are authoritative for a zone in this answer
+        if (!t_sstorage->domainmap->empty()) {
+          DNSName tmp_qname(i->qname);
+          auto auth_domain_iter=getBestAuthZone(&tmp_qname);
+          if(auth_domain_iter!=t_sstorage->domainmap->end()) {
+            if (auth_domain_iter->first != auth) {
+              LOG("NO! - we are authoritative for the zone "<<auth_domain_iter->first.toString()<<endl);
+              continue;
+            } else {
+              // ugly...
+              LOG("YES! - This answer was retrieved from the local auth store"<<endl);
+            }
+          }
+        }
+
+
         if(i->qname.isPartOf(auth)) {
           if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth.toString() /* ugh */)) {
             LOG("NO! Is from delegation-only zone"<<endl);
