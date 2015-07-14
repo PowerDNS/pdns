@@ -116,15 +116,15 @@ script:
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
  - cd ..
-#DNSName - ./build-scripts/dist-dnsdist
-#DNSName - cd pdns/dnsdistdist
-#DNSName - tar xf dnsdist*.tar.bz2
-#DNSName - cd dnsdist-*
-#DNSName - ./configure
-#DNSName - make -k -j 4
-#DNSName - cd ..
-#DNSName - rm -rf dnsdist-*/
-#DNSName - cd ../../
+ - ./build-scripts/dist-dnsdist
+ - cd pdns/dnsdistdist
+ - tar xf dnsdist*.tar.bz2
+ - cd dnsdist-*
+ - ./configure
+ - make -k -j 4
+ - cd ..
+ - rm -rf dnsdist-*/
+ - cd ../../
  - cd regression-tests.recursor
  - cp vars.sample vars
  - ./config.sh
