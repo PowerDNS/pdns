@@ -113,7 +113,7 @@ void PipeBackend::lookup(const QType& qtype,const DNSName& qname, DNSPacket *pkt
 {
    try {
       d_disavow=false;
-      if(d_regex && !d_regex->match(qname.toStingNoDot())) {
+      if(d_regex && !d_regex->match(qname.toStringNoDot())) {
          if(::arg().mustDo("query-logging"))
             L<<Logger::Error<<"Query for '"<<qname<<"' failed regex '"<<d_regexstr<<"'"<<endl;
          d_disavow=true; // don't pass to backend
