@@ -520,8 +520,6 @@ void updateResponseStats(int res, const ComboAddress& remote, unsigned int packe
   }
 }
 
-ResponseStats g_rs;
-
 static string makeLoginfo(DNSComboWriter* dc)
 try
 {

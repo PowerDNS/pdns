@@ -73,11 +73,16 @@ daemon.
 * `signatures`: Number of DNSSEC signatures created
 * `sys-msec`: Number of CPU miliseconds sent in system time
 * `tcp-answers`: Number of answers sent out over TCP
-* `tcp-questions`: Number of questions received over TCP
+* `tcp-answers-bytes`: Total number of answer bytes sent over TCP (since 4.0.0)
+* `tcp-queries`: Number of questions received over TCP
+* `tcp4-answers`: Number of answers sent out over TCPv4
+* `tcp4-queries`: Number of questions received over TCPv4
+* `tcp6-answers`: Number of answers sent out over TCPv6
+* `tcp6-queries`: Number of questions received over TCPv6
 * `timedout-questions`: Amount of packets that were dropped because they had to wait too long internally
 * `udp-answers`: Number of answers sent out over UDP
-* `udp-queries`: Number of questions received over UDP
 * `udp-answers-bytes`: Total number of answer bytes sent over UDP
+* `udp-queries`: Number of questions received over UDP
 * `udp-do-queries`: Number of queries received with the DO (DNSSEC OK) bit set
 * `udp-in-errors`: Number of packets, received faster than the OS could process them
 * `udp-noport-errors`: Number of UDP packets where an ICMP response was received that the remote port was not listening

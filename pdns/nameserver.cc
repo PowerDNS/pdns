@@ -275,38 +275,14 @@ UDPNameserver::UDPNameserver( bool additional_socket )
     L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
 }
 
-ResponseStats g_rs;
-
 void UDPNameserver::send(DNSPacket *p)
 {
-  const string& buffer=p->getString();
-  static AtomicCounter &numanswered=*S.getPointer("udp-answers");
-  static AtomicCounter &numanswered4=*S.getPointer("udp4-answers");
-  static AtomicCounter &numanswered6=*S.getPointer("udp6-answers");
-  static AtomicCounter &bytesanswered=*S.getPointer("udp-answers-bytes");
-
-  g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
+  string buffer=p->getString();
+  g_rs.submitResponse(*p, true);
 
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
-
-  /* Query statistics */
-  if(p->d.aa) {
-    if (p->d.rcode==RCode::NXDomain)
-      S.ringAccount("nxdomain-queries",p->qdomain.toString()+"/"+p->qtype.getName());
-  } else if (p->isEmpty()) {
-    S.ringAccount("unauth-queries",p->qdomain.toString()+"/"+p->qtype.getName());
-    S.ringAccount("remotes-unauth",p->d_remote);
-  }
-
-  /* Count responses (total/v4/v6) and byte counts */
-  numanswered++;
-  bytesanswered+=buffer.length();
-  if(p->d_remote.sin4.sin_family==AF_INET)
-    numanswered4++;
-  else
-    numanswered6++;
 
   fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
 

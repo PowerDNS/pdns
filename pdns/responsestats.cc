@@ -22,6 +22,8 @@ ResponseStats::ResponseStats()
   d_sizecounters.push_back(make_pair(std::numeric_limits<uint16_t>::max(),0));
 }
 
+ResponseStats g_rs = ResponseStats();
+
 static bool pcomp(const pair<uint16_t, uint64_t>&a , const pair<uint16_t, uint64_t>&b)
 {
   return a.first < b.first;
