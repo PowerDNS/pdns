@@ -787,10 +787,9 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   return false;
 }
 
-// FIXME400 use DNSName.isPartOf
 bool SyncRes::moreSpecificThan(const DNSName& a, const DNSName &b)
 {
-  return a.countLabels() > b.countLabels();
+  return (a.isPartOf(b) && a.countLabels() > b.countLabels());
 }
 
 struct speedOrder
@@ -1176,7 +1175,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           done=true;
           ret.push_back(*i);
         }
-        else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::NS) {
+        else if(i->d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(i->qname) && i->qtype.getCode()==QType::NS) {
           if(moreSpecificThan(i->qname,auth)) {
             newauth=i->qname;
             LOG(prefix<<qname.toString()<<": got NS record '"<<i->qname.toString()<<"' -> '"<<i->content<<"'"<<endl);
