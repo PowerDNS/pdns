@@ -175,10 +175,10 @@ void declareArguments()
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 }
 
+static time_t s_start=time(0);
 static uint64_t uptimeOfProcess(const std::string& str)
 {
-  static time_t start=time(0);
-  return time(0) - start;
+  return time(0) - s_start;
 }
 
 static uint64_t getSysUserTimeMsec(const std::string& str)
