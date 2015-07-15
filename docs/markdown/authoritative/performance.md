@@ -72,28 +72,32 @@ daemon.
 * `signature-cache-size`: Number of entries in the signature cache
 * `signatures`: Number of DNSSEC signatures created
 * `sys-msec`: Number of CPU miliseconds sent in system time
-* `tcp-answers`: Number of answers sent out over TCP
 * `tcp-answers-bytes`: Total number of answer bytes sent over TCP (since 4.0.0)
+* `tcp-answers`: Number of answers sent out over TCP
 * `tcp-queries`: Number of questions received over TCP
+* `tcp4-answers-bytes`: Total number of answer bytes sent over TCPv4 (since 4.0.0)
 * `tcp4-answers`: Number of answers sent out over TCPv4
 * `tcp4-queries`: Number of questions received over TCPv4
+* `tcp6-answers-bytes`: Total number of answer bytes sent over TCPv6 (since 4.0.0)
 * `tcp6-answers`: Number of answers sent out over TCPv6
 * `tcp6-queries`: Number of questions received over TCPv6
 * `timedout-questions`: Amount of packets that were dropped because they had to wait too long internally
-* `udp-answers`: Number of answers sent out over UDP
 * `udp-answers-bytes`: Total number of answer bytes sent over UDP
-* `udp-queries`: Number of questions received over UDP
+* `udp-answers`: Number of answers sent out over UDP
 * `udp-do-queries`: Number of queries received with the DO (DNSSEC OK) bit set
 * `udp-in-errors`: Number of packets, received faster than the OS could process them
 * `udp-noport-errors`: Number of UDP packets where an ICMP response was received that the remote port was not listening
+* `udp-queries`: Number of questions received over UDP
 * `udp-recvbuf-errors`: Number of errors caused in the UDP receive buffer
 * `udp-sndbuf-errors`: Number of errors caused in the UDP send buffer
-* `uptime`: Uptime in seconds of the daemon
-* `user-msec`: Number of milliseconds spend in CPU 'user' time
+* `udp4-answers-bytes`: Total number of answer bytes sent over UDPv4 (Since 4.0.0)
 * `udp4-answers`: Number of answers sent out over UDPv4
 * `udp4-queries`: Number of questions received over UDPv4
+* `udp6-answers-bytes`: Total number of answer bytes sent over UDPv6 (Since 4.0.0)
 * `udp6-answers`: Number of answers sent out over UDPv6
 * `udp6-queries`: Number of questions received over UDPv6
+* `uptime`: Uptime in seconds of the daemon
+* `user-msec`: Number of milliseconds spend in CPU 'user' time
 
 ### Ring buffers
 Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.
