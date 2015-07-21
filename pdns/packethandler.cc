@@ -184,6 +184,60 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd, boo
   return haveOne;
 }
 
+/**
+ * This adds CDS records to the answer packet r.
+ *
+ * @param p   Pointer to the DNSPacket containing the original question.
+ * @param r   Pointer to the DNSPacket where the records should be inserted into.
+ * @param sd  SOAData of the zone for which CDS records sets should be added,
+ *            used to determine record TTL.
+ * @return    bool that shows if any records were added.
+**/
+bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
+{
+  string publishCDS;
+  d_dk.getFromMeta(p->qdomain, "PUBLISH_CDS", publishCDS);
+  if (publishCDS.empty())
+    return false;
+
+  vector<string> digestAlgos;
+  stringtok(digestAlgos, publishCDS, ", ");
+
+  DNSResourceRecord rr;
+  rr.qtype=QType::CDS;
+  rr.ttl=sd.default_ttl;
+  rr.qname=p->qdomain;
+  rr.auth=true;
+
+  bool haveOne=false;
+  DNSSECPrivateKey dpk;
+
+  DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
+
+  for(auto value : keyset) {
+    if (!value.second.keyOrZone) {
+      // Don't send out CDS records for ZSKs
+      continue;
+    }
+    for(auto digestAlgo : digestAlgos){
+      rr.content=makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), lexical_cast<int>(digestAlgo)).getZoneRepresentation();
+      r->addRecord(rr);
+      haveOne=true;
+    }
+  }
+
+  if(::arg().mustDo("direct-dnskey")) {
+    B.lookup(QType(QType::CDS), p->qdomain, p, sd.domain_id);
+
+    while(B.get(rr)) {
+      rr.ttl=sd.default_ttl;
+      r->addRecord(rr);
+      haveOne=true;
+    }
+  }
+
+  return haveOne;
+}
 
 /** This adds NSEC3PARAM records. Returns true if one was added */
 bool PacketHandler::addNSEC3PARAM(DNSPacket *p, DNSPacket *r, const SOAData& sd)
@@ -419,6 +473,10 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
     d_dk.getFromMeta(name, "PUBLISH_CDNSKEY", publishCDNSKEY);
     if (publishCDNSKEY == "1")
       nrc.d_set.insert(QType::CDNSKEY);
+    string publishCDS;
+    d_dk.getFromMeta(name, "PUBLISH_CDS", publishCDS);
+    if (! publishCDS.empty())
+      nrc.d_set.insert(QType::CDS);
   }
 
   DNSResourceRecord rr;
@@ -459,6 +517,10 @@ void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMR
       d_dk.getFromMeta(name, "PUBLISH_CDNSKEY", publishCDNSKEY);
       if (publishCDNSKEY == "1")
         n3rc.d_set.insert(QType::CDNSKEY);
+      string publishCDS;
+      d_dk.getFromMeta(name, "PUBLISH_CDS", publishCDS);
+      if (! publishCDS.empty())
+        n3rc.d_set.insert(QType::CDS);
     }
 
     B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
@@ -985,6 +1047,7 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
   if(pdns_iequals(sd.qname, p->qdomain)) {
     addDNSKEY(p, r, sd);
     addDNSKEY(p, r, sd, true);
+    addCDS(p, r, sd);
     addNSEC3PARAM(p, r, sd);
   }
 }
@@ -1232,6 +1295,11 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       else if(p->qtype.getCode() == QType::CDNSKEY)
       {
         if(addDNSKEY(p,r, sd, true))
+          goto sendit;
+      }
+      else if(p->qtype.getCode() == QType::CDS)
+      {
+        if(addCDS(p,r, sd))
           goto sendit;
       }
       else if(p->qtype.getCode() == QType::NSEC3PARAM)

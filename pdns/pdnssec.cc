@@ -1364,12 +1364,15 @@ try
     cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cerr<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
+    cerr<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algirithms"<<endl;
+    cerr<<"                                   DIGESTALGORITHMS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
     cerr<<"set-meta ZONE KIND [value value ..]"<<endl;
     cerr<<"                                   Set zone metadata, optionally providing a value. Empty clears meta."<<endl;
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs"<<endl;
     cerr<<"unset-publish-cdnskey ZONE         Disable sending CDNSKEY responses for ZONE"<<endl;
+    cerr<<"unset-publish-cds ZONE             Disable sending CDS responses for ZONE"<<endl;
     cerr<<"test-schema ZONE                   Test DB schema - will create ZONE"<<endl;
     cerr<<desc<<endl;
     return 0;
@@ -1765,6 +1768,22 @@ try
     }
     return 0;
   }
+  else if(cmds[0]=="set-publish-cds") {
+    if(cmds.size() < 2) {
+      cerr<<"Syntax: pdnssec set-publish-cds ZONE [DIGESTALGOS]"<<endl;
+      return 0;
+    }
+
+    // If DIGESTALGOS is unset
+    if(cmds.size() == 2)
+      cmds.push_back("1,2");
+
+    if (! dk.setPublishCDS(cmds[1], cmds[2])) {
+      cerr << "Could not set publishing for CDS records for "<< cmds[1]<<endl;
+      return 1;
+    }
+    return 0;
+  }
   else if(cmds[0]=="unset-presigned") {
     if(cmds.size() < 2) {
       cerr<<"Syntax: pdnssec unset-presigned ZONE"<<endl;
@@ -1783,6 +1802,17 @@ try
     }
     if (! dk.unsetPublishCDNSKEY(cmds[1])) {
       cerr << "Could not unset publishing for CDNSKEY records for "<< cmds[1]<<endl;
+      return 1;
+    }
+    return 0;
+  }
+  else if(cmds[0]=="unset-publish-cds") {
+    if(cmds.size() < 2) {
+      cerr<<"Syntax: pdnssec unset-publish-cds ZONE"<<endl;
+      return 0;
+    }
+    if (! dk.unsetPublishCDS(cmds[1])) {
+      cerr << "Could not unset publishing for CDS records for "<< cmds[1]<<endl;
       return 1;
     }
     return 0;

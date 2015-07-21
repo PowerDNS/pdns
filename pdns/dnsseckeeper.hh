@@ -92,6 +92,8 @@ public:
   bool unsetPresigned(const DNSName& zname);
   bool setPublishCDNSKEY(const DNSName& zname);
   bool unsetPublishCDNSKEY(const DNSName& zname);
+  bool setPublishCDS(const DNSName& zname, const string& digestAlgos);
+  bool unsetPublishCDS(const DNSName& zname);
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
   bool getTSIGForAccess(const DNSName& zone, const string& master, DNSName* keyname);
