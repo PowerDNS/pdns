@@ -284,11 +284,35 @@ public:
   string d_key;
 };
 
+class CDNSKEYRecordContent : public DNSRecordContent
+{
+public:
+  CDNSKEYRecordContent();
+  includeboilerplate(CDNSKEY)
+  uint16_t getTag();
+
+  uint16_t d_flags;
+  uint8_t d_protocol;
+  uint8_t d_algorithm;
+  string d_key;
+};
+
 class DSRecordContent : public DNSRecordContent
 {
 public:
   DSRecordContent();
   includeboilerplate(DS)
+
+  uint16_t d_tag;
+  uint8_t d_algorithm, d_digesttype;
+  string d_digest;
+};
+
+class CDSRecordContent : public DNSRecordContent
+{
+public:
+  CDSRecordContent();
+  includeboilerplate(CDS)
 
   uint16_t d_tag;
   uint8_t d_algorithm, d_digesttype;

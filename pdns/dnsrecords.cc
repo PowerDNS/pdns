@@ -279,6 +279,14 @@ boilerplate_conv(DS, 43,
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
+CDSRecordContent::CDSRecordContent() : DNSRecordContent(59) {}
+boilerplate_conv(CDS, 59, 
+                 conv.xfr16BitInt(d_tag); 
+                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfr8BitInt(d_digesttype); 
+                 conv.xfrHexBlob(d_digest, true); // keep reading across spaces
+                 )
+
 DLVRecordContent::DLVRecordContent() : DNSRecordContent(32769) {}
 boilerplate_conv(DLV,32769 , 
                  conv.xfr16BitInt(d_tag); 
@@ -315,6 +323,14 @@ boilerplate_conv(DNSKEY, 48,
                  conv.xfrBlob(d_key);
                  )
 DNSKEYRecordContent::DNSKEYRecordContent() : DNSRecordContent(48) {}
+
+boilerplate_conv(CDNSKEY, 60, 
+                 conv.xfr16BitInt(d_flags); 
+                 conv.xfr8BitInt(d_protocol); 
+                 conv.xfr8BitInt(d_algorithm); 
+                 conv.xfrBlob(d_key);
+                 )
+CDNSKEYRecordContent::CDNSKEYRecordContent() : DNSRecordContent(60) {}
 
 boilerplate_conv(RKEY, 57, 
                  conv.xfr16BitInt(d_flags); 
@@ -494,9 +510,11 @@ void reportOtherTypes()
    RPRecordContent::report();
    KEYRecordContent::report();
    DNSKEYRecordContent::report();
+   CDNSKEYRecordContent::report();
    RKEYRecordContent::report();
    RRSIGRecordContent::report();
    DSRecordContent::report();
+   CDSRecordContent::report();
    SSHFPRecordContent::report();
    CERTRecordContent::report();
    NSECRecordContent::report();
