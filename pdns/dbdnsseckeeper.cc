@@ -295,6 +295,31 @@ bool DNSSECKeeper::unsetPresigned(const DNSName& zname)
   return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", vector<string>());
 }
 
+/**
+ * Add domainmetadata to allow publishing CDNSKEY records.for zone zname
+ *
+ * @param zname        DNSName of the zone
+ * @return             true if the data was inserted, false otherwise
+ */
+bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname)
+{
+  clearCaches(zname);
+  vector<string> meta;
+  meta.push_back("1");
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDNSKEY", meta);
+}
+
+/**
+ * Remove domainmetadata to stop publishing CDNSKEY records for zone zname
+ *
+ * @param zname        DNSName of the zone
+ * @return             true if the operation was successful, false otherwise
+ */
+bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
+{
+  clearCaches(zname);
+  return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDNSKEY", vector<string>());
+}
 
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool allOrKeyOrZone, bool useCache)
 {

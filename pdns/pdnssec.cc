@@ -1363,11 +1363,13 @@ try
     cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs"<<endl;
     cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
+    cerr<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cerr<<"set-meta ZONE KIND [value value ..]"<<endl;
     cerr<<"                                   Set zone metadata, optionally providing a value. Empty clears meta."<<endl;
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
     cerr<<"unset-presigned ZONE               No longer use presigned RRSIGs"<<endl;
+    cerr<<"unset-publish-cdnskey ZONE         Disable sending CDNSKEY responses for ZONE"<<endl;
     cerr<<"test-schema ZONE                   Test DB schema - will create ZONE"<<endl;
     cerr<<desc<<endl;
     return 0;
@@ -1752,6 +1754,17 @@ try
     }
     return 0;
   }
+  else if(cmds[0]=="set-publish-cdnskey") {
+    if(cmds.size() < 2) {
+      cerr<<"Syntax: pdnssec set-publish-cdnskey ZONE"<<endl;
+      return 0;
+    }
+    if (! dk.setPublishCDNSKEY(cmds[1])) {
+      cerr << "Could not set publishing for CDNSKEY records for "<< cmds[1]<<endl;
+      return 1;
+    }
+    return 0;
+  }
   else if(cmds[0]=="unset-presigned") {
     if(cmds.size() < 2) {
       cerr<<"Syntax: pdnssec unset-presigned ZONE"<<endl;
@@ -1759,6 +1772,17 @@ try
     }
     if (! dk.unsetPresigned(cmds[1])) {
       cerr << "Could not unset presigned on for " << cmds[1] << endl;
+      return 1;
+    }
+    return 0;
+  }
+  else if(cmds[0]=="unset-publish-cdnskey") {
+    if(cmds.size() < 2) {
+      cerr<<"Syntax: pdnssec unset-publish-cdnskey ZONE"<<endl;
+      return 0;
+    }
+    if (! dk.unsetPublishCDNSKEY(cmds[1])) {
+      cerr << "Could not unset publishing for CDNSKEY records for "<< cmds[1]<<endl;
       return 1;
     }
     return 0;
