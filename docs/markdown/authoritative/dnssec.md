@@ -204,40 +204,7 @@ Precisely speaking, the time period used is always from the start of the previou
 # `pdnssec`
 `pdnssec` is a powerful command that is the operator-friendly gateway into PowerDNSSEC configuration. Behind the scenes, `pdnssec` manipulates a PowerDNS backend database, which also means that for many databases, `pdnssec` can be run remotely, and can configure key material on different servers.
 
-The following pdnssec commands are available:
-
-* `activate-zone-key ZONE KEY-ID`: Activate a key with id KEY-ID within a zone called ZONE.
-* `add-zone-key ZONE [ksk|zsk] [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]`: Create a new key for zone ZONE, and make it a KSK or a ZSK, with the specified algorithm.
-* `backend-cmd BACKEND CMD [CMD..]`: Send a text command to a backend for execution. GSQL backends will take SQL commands, other backends may take different things. Be careful!
-* `check-zone ZONE`: Check a zone for DNSSEC correctness. Main goals is to check if the auth flag is set correctly.
-* `check-all-zones`: Check all zones for DNSSEC correctness. Added in 3.1.
-* `deactivate-zone-key ZONE KEY-ID`: Deactivate a key with id KEY-ID within a zone called ZONE.
-* `disable-dnssec ZONE`: Deactivate all keys and unset PRESIGNED in ZONE.
-* `export-zone-dnskey ZONE KEY-ID`: Export to standard output DNSKEY and DS of key with key id KEY-ID within zone called ZONE.
-* `export-zone-key ZONE KEY-ID`: Export to standard output full (private) key with key id KEY-ID within zone called ZONE. The format used is compatible with BIND and NSD/LDNS.
-* `hash-zone-record ZONE RECORDNAME`:
-This convenience command hashes the name 'recordname' according to the NSEC3 settings of ZONE. Refuses to hash for zones with no NSEC3 settings.
-* `import-zone-key ZONE filename [ksk|zsk]`: Import from 'filename' a full (private) key for zone called ZONE. The format used is compatible with BIND and NSD/LDNS. KSK or ZSK specifies the flags this key should have on import.
-* `import-zone-key-pem ZONE filename algorithm [ksk|zsk]`: Import from 'filename' a full (private) key in PEM format for zone called ZONE, and assign it an algorithm number. KSK or ZSK specifies the flags this key should have on import. The format used is compatible with 'openssl genrsa', which is also called PEM.
-* `generate-zone-key [ksk|zsk] [algorithm] [bits]`: Generate and display a zone key. Can be used when you need to generate a key for some script backend. Does not store the key.
-* `rectify-zone ZONE [ZONE ..]`: Calculates the 'ordername' and 'auth' fields for a zone called ZONE so they comply with DNSSEC settings. Can be used to fix up migrated data. Can always safely be run, it does no harm. Multiple zones can be supplied.
-* `rectify-all-zones`: Do a rectify-zone for all the zones. Be careful when running this. Only bind and gmysql backends are supported. Added in 3.1.
-* `remove-zone-key ZONE KEY-ID`: Remove a key with id KEY-ID from a zone called ZONE.
-* `secure-zone ZONE`: Configures a zone called ZONE with reasonable DNSSEC settings. You should manually run `rectify-zone` afterwards.
-* `secure-all-zones`: Add keymaterial to all zones. You should manually run `rectify-all-zones` afterwards. The `increase-serial` option increases the SOA serial for new secured zones.
-* `set-nsec3 ZONE 'parameters' [narrow]`: Sets NSEC3 parameters for this zone. A sample command line is: `pdnssec set-nsec3 powerdnssec.org '1 0 1 ab' narrow`. The NSEC3 parameters must be quoted on the command line. **Warning**: If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone! The NSEC3 fields are: 'algorithm flags iterations salt'. For 'algorithm', currently '1' is the only supported value. Setting 'flags' to 1 enables opt-out operation. Only do this if you know you need it. The salt is hexadecimal.
-* `set-presigned ZONE`: Switches zone to presigned operation, utilizing in-zone RRSIGs.
-* `show-zone ZONE`: Shows all DNSSEC related settings of a zone called ZONE.
-* `unset-nsec3 ZONE`: Converts a zone to NSEC operations. **Warning**: If running in RSASHA1 mode (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update at the parent zone!
-* `unset-presigned ZONE`: Disables presigned operation for ZONE.
-* `import-tsig-key name algorithm key`: Imports a named TSIG key. Use enable/disable-tsig-key to map it to a zone.
-* `generate-tsig-key name algorithm`: Creates and stores a named tsig key.
-* `delete-tsig-key name`: Deletes a named TSIG key. **Warning**: Does not unmap it from zones.
-* `list-tsig-keys`: Shows all TSIG keys from all backends.
-* `activate-tsig-key zone name [master|slave]`: activate TSIG key for a zone. Use master on master server, slave on slave server.
-* `deactivate-tsig-key zone name [master|slave]`: Deactivate TSIG key for a zone. Use master on master server, slave on slave server.
-* `get-meta ZONE [kind kind..]`: Gets one or more meta items for domain ZONE. If no meta keys defined, it retrieves well known meta keys.
-* `set-meta ZONE kind [value value ..]`: Clears or sets meta for domain ZONE. You can provide one or more value(s).
+For a list of available commands, see the [manpage](../manpages/pdnssec.1.md).
 
 # DNSSEC advice & precautions
 DNSSEC is a major change in the way DNS works. Furthermore, there is a bewildering array of settings that can be configured.

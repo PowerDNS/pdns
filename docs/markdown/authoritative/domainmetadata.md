@@ -63,6 +63,18 @@ records in the zone. However, if you import a presigned zone using `zone2sql` or
 PowerDNS will not be able to correctly serve the zone if the imported data is
 bogus or incomplete. Also see `set-presigned` in [`pdnssec`](dnssec.md#pdnssec).
 
+## PUBLISH_CDNSKEY, PUBLISH_CDS
+Whether to publish CDNSKEY and/or CDS recording defined in [RFC 7344](https://tools.ietf.org/html/rfc7344).
+
+To publish CDNSKEY records of the KSKs for the zone, set `PUBLISH_CDNSKEY` to `1`.
+
+To publish CDS records for the KSKs in the zone, set `PUBLISH_CDS` to a comma-
+separated list of [signature algorithm numbers](http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1).
+
+This metadata can also be set using the [`pdnssec`](dnssec.md#pdnssec) options
+`set-publish-cdnskey` and `set-publish-cds`. For an example for an RFC 7344
+key rollover, see the [CDS and CDNSKEY howto](howtos.md#cds-dnskey-key-rollover).
+
 ## SOA-EDIT
 When serving this zone, modify the SOA serial number in one of several ways.
 Mostly useful to get slaves to re-transfer a zone regularly to get fresh RRSIGs.
