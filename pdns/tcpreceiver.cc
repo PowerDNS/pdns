@@ -661,6 +661,11 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   rr.ttl = sd.default_ttl;
   rr.auth = 1; // please sign!
 
+  string publishCDNSKEY, publishCDS;
+  dk.getFromMeta(q->qdomain, "PUBLISH_CDNSKEY", publishCDNSKEY);
+  dk.getFromMeta(q->qdomain, "PUBLISH_CDS", publishCDS);
+  vector<DNSResourceRecord> cds, cdnskey;
+
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qtype = QType(QType::DNSKEY);
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
@@ -670,6 +675,25 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     ne.d_set.insert(rr.qtype.getCode());
     ne.d_ttl = sd.default_ttl;
     csp.submit(rr);
+
+    // generate CDS and CDNSKEY records
+    if(value.second.keyOrZone){
+      if(publishCDNSKEY == "1") {
+        rr.qtype=QType(QType::CDNSKEY);
+        rr.content = value.first.getDNSKEY().getZoneRepresentation();
+        cdnskey.push_back(rr);
+      }
+
+      if(!publishCDS.empty()){
+        rr.qtype=QType(QType::CDS);
+        vector<string> digestAlgos;
+        stringtok(digestAlgos, publishCDS, ", ");
+        for(auto digestAlgo : digestAlgos) {
+          rr.content=makeDSFromDNSKey(target, value.first.getDNSKEY(), lexical_cast<int>(digestAlgo)).getZoneRepresentation();
+          cds.push_back(rr);
+        }
+      }
+    }
   }
   
   if(::arg().mustDo("direct-dnskey")) {
@@ -707,6 +731,13 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
   set<DNSName> qnames, nsset, terms;
   vector<DNSResourceRecord> rrs;
+
+  // Add the CDNSKEY and CDS records we created earlier
+  for (auto const rr : cds)
+    rrs.push_back(rr);
+
+  for (auto const rr : cdnskey)
+    rrs.push_back(rr);
 
   while(sd.db->get(rr)) {
     if(rr.qname.isPartOf(target)) {
@@ -792,9 +823,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       continue;
     }
 
-    // only skip the DNSKEY if direct-dnskey is enabled, to avoid changing behaviour
+    // only skip the DNSKEY, CDNSKEY and CDS if direct-dnskey is enabled, to avoid changing behaviour
     // when it is not enabled.
-    if(::arg().mustDo("direct-dnskey") && rr.qtype.getCode() == QType::DNSKEY)
+    if(::arg().mustDo("direct-dnskey") && (rr.qtype.getCode() == QType::DNSKEY || rr.qtype.getCode() == QType::CDNSKEY || rr.qtype.getCode() == QType::CDS))
       continue;
 
     records++;
