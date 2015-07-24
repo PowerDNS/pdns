@@ -47,9 +47,12 @@
 
 using namespace ::boost::multi_index;
 
-/** This struct is used within the Bind2Backend to store DNS information. 
-    It is almost identical to a DNSResourceRecord, but then a bit smaller and with different sorting rules, which make sure that the SOA record comes up front.
+/**
+  This struct is used within the Bind2Backend to store DNS information. It is
+  almost identical to a DNSResourceRecord, but then a bit smaller and with
+  different sorting rules, which make sure that the SOA record comes up front.
 */
+
 struct Bind2DNSRecord
 {
   DNSName qname;
@@ -87,8 +90,8 @@ struct HashedTag{};
 typedef multi_index_container<
   Bind2DNSRecord,
   indexed_by  <
-                 ordered_non_unique<identity<Bind2DNSRecord>, Bind2DNSCompare >,
-                 ordered_non_unique<tag<HashedTag>, member<Bind2DNSRecord,std::string,&Bind2DNSRecord::nsec3hash> >
+                ordered_non_unique<identity<Bind2DNSRecord>, Bind2DNSCompare >,
+                ordered_non_unique<tag<HashedTag>, member<Bind2DNSRecord, std::string, &Bind2DNSRecord::nsec3hash> >
               >
 > recordstorage_t;
 
@@ -226,7 +229,7 @@ public:
   static pthread_rwlock_t s_state_lock;
 
   void parseZoneFile(BB2DomainInfo *bbd);
-  void insertRecord(BB2DomainInfo& bbd, const DNSName& qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
+  void insertRecord(BB2DomainInfo& bbd, const DNSName &qname, const QType &qtype, const string &content, int ttl, const std::string& hashed=string(), bool *auth=0);
   void rediscover(string *status=0);
 
   bool isMaster(const DNSName &name, const string &ip);
@@ -247,7 +250,7 @@ private:
   static bool safeRemoveBBDomainInfo(const DNSName& name);
   bool GetBBDomainInfo(int id, BB2DomainInfo** bbd);
   shared_ptr<SSQLite3> d_dnssecdb;
-  bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* ns3p);
+  bool getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
   public:
