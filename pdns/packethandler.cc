@@ -28,7 +28,6 @@
 #include <string>
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "dns.hh"
@@ -140,7 +139,7 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   DNSSECPrivateKey dpk;
 
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
-  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+  for(const auto& value: keyset) {
     rr.qtype=QType::DNSKEY;
     rr.ttl=sd.default_ttl;
     rr.qname=p->qdomain;
@@ -723,7 +722,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
 
   // check if the returned records are NS records
   bool haveNS=false;
-  BOOST_FOREACH(const DNSResourceRecord& ns, nsset) {
+  for(const auto& ns: nsset) {
     if(ns.qtype.getCode()==QType::NS)
       haveNS=true;
   }
@@ -737,7 +736,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p)
   DNSBackend *db;
   if(!B.superMasterBackend(p->getRemote(), p->qdomain, nsset, &nameserver, &account, &db)) {
     L<<Logger::Error<<"Unable to find backend willing to host "<<p->qdomain<<" for potential supermaster "<<p->getRemote()<<". Remote nameservers: "<<endl;
-    BOOST_FOREACH(class DNSResourceRecord& rr, nsset) {
+    for(const auto& rr: nsset) {
       if(rr.qtype.getCode()==QType::NS)
         L<<Logger::Error<<rr.content<<endl;
     }
@@ -929,7 +928,7 @@ bool PacketHandler::tryReferral(DNSPacket *p, DNSPacket*r, SOAData& sd, const DN
     return false;
   
   DLOG(L<<"The best NS is: "<<rrset.begin()->qname<<endl);
-  BOOST_FOREACH(DNSResourceRecord rr, rrset) {
+  for(auto& rr: rrset) {
     DLOG(L<<"\tadding '"<<rr.content<<"'"<<endl);
     rr.d_place=DNSResourceRecord::AUTHORITY;
     r->addRecord(rr);
@@ -965,7 +964,7 @@ bool PacketHandler::tryDNAME(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName &ta
   DLOG(L<<Logger::Warning<<"Let's try DNAME.."<<endl);
   vector<DNSResourceRecord> rrset = getBestDNAMESynth(p, sd, target);
   if(!rrset.empty()) {
-    BOOST_FOREACH(DNSResourceRecord& rr, rrset) {
+    for(auto& rr: rrset) {
       rr.d_place = DNSResourceRecord::ANSWER;
       r->addRecord(rr);
     }
@@ -988,7 +987,7 @@ bool PacketHandler::tryWildcard(DNSPacket *p, DNSPacket*r, SOAData& sd, DNSName 
   }
   else {
     DLOG(L<<"The best wildcard match: "<<rrset.begin()->qname<<endl);
-    BOOST_FOREACH(DNSResourceRecord rr, rrset) {
+    for(auto& rr: rrset) {
       rr.wildcardname = rr.qname;
       rr.qname=bestmatch=target;
 
@@ -1328,7 +1327,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
                                        
     if(weRedirected) {
-      BOOST_FOREACH(rr, rrset) {
+      for(auto& rr: rrset) {
         if(rr.qtype.getCode() == QType::CNAME) {
           r->addRecord(rr);
           target = rr.content;
@@ -1339,7 +1338,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
     else if(weDone) {
       bool haveRecords = false;
-      BOOST_FOREACH(rr, rrset) {
+      for(const auto& rr: rrset) {
         if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.qtype.getCode() && rr.auth) {
           r->addRecord(rr);
           haveRecords = true;
@@ -1379,7 +1378,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     editSOA(d_dk, sd.qname, r);
     
-    BOOST_FOREACH(const DNSResourceRecord& rr, r->getRRS()) {
+    for(const auto& rr: r->getRRS()) {
       if(rr.scopeMask) {
         noCache=1;
         break;
