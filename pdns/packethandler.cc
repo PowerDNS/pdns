@@ -383,35 +383,33 @@ int PacketHandler::doAdditionalProcessingAndDropAA(DNSPacket *p, DNSPacket *r, c
 }
 
 
-void PacketHandler::emitNSEC(const DNSName& begin, const DNSName& end, const DNSName& toNSEC, const SOAData& sd, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& name, const DNSName& next, int mode)
 {
-  // cerr<<"We should emit '"<<begin<<"' - ('"<<toNSEC<<"') - '"<<end<<"'"<<endl;
   NSECRecordContent nrc;
-  nrc.d_set.insert(QType::RRSIG);
+  nrc.d_next = next;
+
   nrc.d_set.insert(QType::NSEC);
-  if(pdns_iequals(sd.qname, begin)) {
-    nrc.d_set.insert(QType::SOA);
+  nrc.d_set.insert(QType::RRSIG);
+  if(sd.qname == name)
     nrc.d_set.insert(QType::DNSKEY);
-  }
 
   DNSResourceRecord rr;
-  B.lookup(QType(QType::ANY), begin, NULL, sd.domain_id);
+  B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
   while(B.get(rr)) {
     if(rr.qtype.getCode() == QType::NS || rr.auth)
       nrc.d_set.insert(rr.qtype.getCode());
   }
 
-  nrc.d_next=end;
-
-  rr.qname=begin;
+  rr.qname = name;
   rr.ttl = sd.default_ttl;
-  rr.qtype=QType::NSEC;
-  rr.content=nrc.getZoneRepresentation();
+  rr.qtype = QType::NSEC;
+  rr.content = nrc.getZoneRepresentation();
   rr.d_place = (mode == 5 ) ? DNSResourceRecord::ANSWER: DNSResourceRecord::AUTHORITY;
   rr.auth = true;
 
   r->addRecord(rr);
 }
+
 
 void emitNSEC3(UeberBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const DNSName& unhashed, const string& begin, const string& end, const DNSName& toNSEC3, DNSPacket *r, int mode)
 {
@@ -651,7 +649,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const DNSName& target, c
   rr.auth=false;
   // if(!B.getDirectNSECx(sd.domain_id, toLower(labelReverse(makeRelative(target.toString(), auth.toString()))) /* FIXME DNSName should do this */, QType(QType::NSEC), before, rr)) {
     sd.db->getBeforeAndAfterNames(sd.domain_id, auth, target, before, after);
-    emitNSEC(before, after, target, sd, r, mode);
+    emitNSEC(r, sd, before, after, mode);
   // } else if(rr.auth) {
   //   if (mode == 5)
   //     rr.d_place=DNSResourceRecord::ANSWER;
@@ -669,7 +667,7 @@ void PacketHandler::addNSEC(DNSPacket *p, DNSPacket *r, const DNSName& target, c
     rr.auth=false;
     if(!B.getDirectNSECx(sd.domain_id, toLower(labelReverse(makeRelative(closest.toString(), auth.toString()))), QType(QType::NSEC), before, rr)) {
       sd.db->getBeforeAndAfterNames(sd.domain_id, auth, closest, before, after);
-      emitNSEC(before, after, target, sd, r, mode);
+      emitNSEC(r, sd, before, after, mode);
     } else if(rr.auth)
       r->addRecord(rr);
   }

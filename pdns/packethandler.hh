@@ -77,7 +77,7 @@ private:
   void addNSECX(DNSPacket *p, DNSPacket* r, const DNSName &target, const DNSName &wildcard, const DNSName &auth, int mode);
   void addNSEC(DNSPacket *p, DNSPacket* r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, int mode);
   void addNSEC3(DNSPacket *p, DNSPacket* r, const DNSName &target, const DNSName &wildcard, const DNSName& auth, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
-  void emitNSEC(const DNSName& before, const DNSName& after, const DNSName& toNSEC, const SOAData& sd, DNSPacket *r, int mode);
+  void emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& name, const DNSName& next, int mode);
   void emitNSEC3(const NSEC3PARAMRecordContent &ns3rc, const SOAData& sd, const DNSName& unhashed, /* FIXME400 should this be DNSName? */ const string& begin, const string& end, const DNSName& toNSEC3, DNSPacket *r, int mode);
   int processUpdate(DNSPacket *p);
   int forwardPacket(const string &msgPrefix, DNSPacket *p, DomainInfo *di);
