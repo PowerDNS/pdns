@@ -18,7 +18,10 @@ typedef set<nsec3> nsec3set;
 
 string nsec3Hash(const DNSName &qname, const string &salt, unsigned int iters)
 {
-  return toBase32Hex(hashQNameWithSalt(iters, salt, qname));
+  NSEC3PARAMRecordContent ns3prc;
+  ns3prc.d_iterations = iters;
+  ns3prc.d_salt = salt;
+  return toBase32Hex(hashQNameWithSalt(ns3prc, qname));
 }
 
 void proveOrDeny(const nsec3set &nsec3s, const DNSName &qname, const string &salt, unsigned int iters, set<DNSName> &proven, set<DNSName> &denied)

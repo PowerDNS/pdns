@@ -1295,7 +1295,7 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
+bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;
@@ -1313,11 +1313,11 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
           execute()->
           reset();
       } else {
-        ordername=toBase32Hex(hashQNameWithSalt(times, salt, nt.first));
+        ordername=toBase32Hex(hashQNameWithSalt(ns3prc, nt.first));
         d_InsertEntOrderQuery_stmt->
           bind("domain_id",domain_id)->
           bind("qname", nt.first)->
-          bind("ordername",toLower(ordername))->
+          bind("ordername",ordername)->
           bind("auth",nt.second)->
           execute()->
           reset();

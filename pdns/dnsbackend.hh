@@ -41,6 +41,7 @@ class DNSPacket;
 #include "namespaces.hh"
 #include "comment.hh"
 #include "dnsname.hh"
+#include "dnsrecords.hh"
 
 class DNSBackend;  
 struct DomainInfo
@@ -274,7 +275,7 @@ public:
   {
     return false;
   }
-  virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
+  virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
   {
     return false;
   }

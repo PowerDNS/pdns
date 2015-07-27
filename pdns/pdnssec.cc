@@ -257,7 +257,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     if(haveNSEC3) // NSEC3
     {
       if(!narrow && (realrr || !isOptOut || nonterm.find(qname)->second))
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, qname))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, qname))) + zone;
       else if(!realrr)
         auth=false;
     }
@@ -709,7 +709,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     DNSName ordername;
     if(haveNSEC3) {
       if(!narrow)
-        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, zone))) + zone;
+        ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zone))) + zone;
     } else
       ordername=zone;
     if(g_verbose)
@@ -1731,7 +1731,7 @@ try
       cerr<<"The '"<<zone.toString()<<"' zone uses narrow NSEC3, but calculating hash anyhow"<<endl;
     }
       
-    cout<<toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, record))<<endl;
+    cout<<toBase32Hex(hashQNameWithSalt(ns3pr, record))<<endl;
   }
   else if(cmds[0]=="unset-nsec3") {
     if(cmds.size() < 2) {

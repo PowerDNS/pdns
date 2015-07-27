@@ -147,7 +147,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             ++ddepth;
         } while(shorter.chopOff());
 
-        DNSName ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, qname))) + di->zone;
+        DNSName ordername = DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, qname))) + di->zone;
         if (! *narrow && (ddepth == 0 || (ddepth == 1 && nssets.count(qname)))) {
           di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, qname, ordername, (ddepth == 0 ));
 
@@ -241,7 +241,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         if(*haveNSEC3) {
           DNSName ordername;
           if(! *narrow)
-            ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rr->d_label)))+di->zone;
+            ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, rr->d_label)))+di->zone;
 
           if (*narrow)
             di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, rr->d_label, DNSName(), auth);
@@ -308,7 +308,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       {
         DNSName ordername;
         if(! *narrow)
-          ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, rr->d_label)))+di->zone;
+          ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, rr->d_label)))+di->zone;
 
         if (*narrow)
           di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, rr->d_label, DNSName(), auth);
@@ -354,7 +354,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           if(*haveNSEC3)  {
             DNSName ordername;
             if(! *narrow)
-              ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, *qname)))+di->zone;
+              ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, *qname)))+di->zone;
 
             if (*narrow)
               di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, rr->d_label, DNSName(), auth); // FIXME400 no *qname here?
@@ -488,7 +488,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           if(*haveNSEC3)  {
             DNSName ordername;
             if(! *narrow)
-              ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, changeRec)))+di->zone;
+              ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, changeRec)))+di->zone;
 
             di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, changeRec, ordername, true);
           }
@@ -559,7 +559,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       {
         DNSName ordername;
         if(! *narrow)
-          ordername=DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, i)))+di->zone;
+          ordername=DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, i)))+di->zone;
         di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, i, ordername, true);
       }
     }
@@ -995,7 +995,7 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   else if (haveNSEC3) {
     DNSName ordername;
     if (!narrow)
-      ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr->d_iterations, ns3pr->d_salt, newRec.qname)))+di->zone;
+      ordername = DNSName(toBase32Hex(hashQNameWithSalt(*ns3pr, newRec.qname)))+di->zone;
 
     di->backend->updateDNSSECOrderNameAndAuth(di->id, di->zone, newRec.qname, ordername, true);
   }

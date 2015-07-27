@@ -556,7 +556,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
   // add matching NSEC3 RR
   if (mode != 3) {
     unhashed=(mode == 0 || mode == 1 || mode == 5) ? target : closest;
-    hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
+    hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
     // if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr))
@@ -577,7 +577,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
       }
       doNextcloser = true;
       unhashed=closest;
-      hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
+      hashed=hashQNameWithSalt(ns3rc, unhashed);
       DLOG(L<<"1 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
       // if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr))
@@ -599,7 +599,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     }
     while( next.chopOff() && !pdns_iequals(next, closest));
 
-    hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
+    hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(L<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
     // if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr)) {
       getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after);
@@ -613,7 +613,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
   if (mode == 2 || mode == 4) {
     unhashed=DNSName("*")+closest;
 
-    hashed=hashQNameWithSalt(ns3rc.d_iterations, ns3rc.d_salt, unhashed);
+    hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(L<<"3 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
 
     // if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr)) {
