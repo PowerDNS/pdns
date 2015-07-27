@@ -465,15 +465,12 @@ void PacketHandler::addNSECX(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     return;
 
   NSEC3PARAMRecordContent ns3rc;
-  // cerr<<"Doing NSEC3PARAM lookup for '"<<auth<<"', "<<p->qdomain.toString()<<"|"<<p->qtype.getName()<<": ";
   bool narrow;
   if(d_dk.getNSEC3PARAM(auth, &ns3rc, &narrow))  {
-    // cerr<<"Present, narrow="<<narrow<<endl;
-    if (mode != 5) // no direct NSEC3 please
+    if (mode != 5) // no direct NSEC3 queries, rfc5155 7.2.8
       addNSEC3(p, r, target, wildcard, auth, ns3rc, narrow, mode);
   }
   else {
-    // cerr<<"Not present"<<endl;
     addNSEC(p, r, target, wildcard, auth, mode);
   }
 }
