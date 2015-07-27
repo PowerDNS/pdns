@@ -390,10 +390,13 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
 
   nrc.d_set.insert(QType::NSEC);
   nrc.d_set.insert(QType::RRSIG);
-  if(sd.qname == name)
+  if(sd.qname == name) {
+    nrc.d_set.insert(QType::SOA); // 1dfd8ad SOA can live outside the records table
     nrc.d_set.insert(QType::DNSKEY);
+  }
 
   DNSResourceRecord rr;
+
   B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
   while(B.get(rr)) {
     if(rr.qtype.getCode() == QType::NS || rr.auth)
@@ -410,37 +413,35 @@ void PacketHandler::emitNSEC(DNSPacket *r, const SOAData& sd, const DNSName& nam
   r->addRecord(rr);
 }
 
-
-void emitNSEC3(UeberBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const DNSName& unhashed, const string& begin, const string& end, const DNSName& toNSEC3, DNSPacket *r, int mode)
+void PacketHandler::emitNSEC3(DNSPacket *r, const SOAData& sd, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode)
 {
-  // cerr<<"We should emit NSEC3 '"<<toBase32Hex(begin)<<"' - ('"<<toNSEC3<<"') - '"<<toBase32Hex(end)<<"' (unhashed: '"<<unhashed<<"')"<<endl;
   NSEC3RecordContent n3rc;
-  n3rc.d_salt=ns3prc.d_salt;
+  n3rc.d_algorithm = ns3prc.d_algorithm;
   n3rc.d_flags = ns3prc.d_flags;
   n3rc.d_iterations = ns3prc.d_iterations;
-  n3rc.d_algorithm = 1; // SHA1, fixed in PowerDNS for now
+  n3rc.d_salt = ns3prc.d_salt;
+  n3rc.d_nexthash = nexthash;
 
   DNSResourceRecord rr;
-  if(unhashed.countLabels()) {
-    B.lookup(QType(QType::ANY), unhashed, NULL, sd.domain_id);
+
+  if(!name.empty()) {
+    if (sd.qname == name) {
+      n3rc.d_set.insert(QType::SOA); // 1dfd8ad SOA can live outside the records table
+      n3rc.d_set.insert(QType::NSEC3PARAM);
+      n3rc.d_set.insert(QType::DNSKEY);
+    }
+
+    B.lookup(QType(QType::ANY), name, NULL, sd.domain_id);
     while(B.get(rr)) {
       if(rr.qtype.getCode() && (rr.qtype.getCode() == QType::NS || rr.auth)) // skip empty non-terminals
         n3rc.d_set.insert(rr.qtype.getCode());
-    }
-
-    if (pdns_iequals(sd.qname, unhashed)) {
-      n3rc.d_set.insert(QType::SOA);
-      n3rc.d_set.insert(QType::NSEC3PARAM);
-      n3rc.d_set.insert(QType::DNSKEY);
     }
   }
 
   if (n3rc.d_set.size() && !(n3rc.d_set.size() == 1 && n3rc.d_set.count(QType::NS)))
     n3rc.d_set.insert(QType::RRSIG);
 
-  n3rc.d_nexthash=end;
-
-  rr.qname=DNSName(toBase32Hex(begin))+sd.qname;
+  rr.qname = DNSName(toBase32Hex(namehash))+sd.qname;
   rr.ttl = sd.default_ttl;
   rr.qtype=QType::NSEC3;
   rr.content=n3rc.getZoneRepresentation();
@@ -448,12 +449,6 @@ void emitNSEC3(UeberBackend& B, const NSEC3PARAMRecordContent& ns3prc, const SOA
   rr.auth = true;
 
   r->addRecord(rr);
-}
-
-void PacketHandler::emitNSEC3(const NSEC3PARAMRecordContent& ns3prc, const SOAData& sd, const DNSName& unhashed, const string& begin, const string& end, /* FIXME400 unused */ const DNSName& toNSEC3, DNSPacket *r, int mode)
-{
-  ::emitNSEC3(B, ns3prc, sd, unhashed, begin, end, toNSEC3, r, mode);
-  
 }
 
 /*
@@ -594,7 +589,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
 
     if (!after.empty()) {
       DLOG(L<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-      emitNSEC3(ns3rc, sd, unhashed, before, after, target, r, mode);
+      emitNSEC3(r, sd, ns3rc, unhashed, before, after, mode);
     } else if(!before.empty())
       r->addRecord(rr);
   }
@@ -612,7 +607,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     // if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr)) {
       getNSEC3Hashes(narrow, sd.db,sd.domain_id,  hashed, true, unhashed, before, after);
       DLOG(L<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-      emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
+      emitNSEC3( r, sd, ns3rc, unhashed, before, after, mode);
     // } else if(!before.empty())
     //   r->addRecord(rr);
   }
@@ -627,7 +622,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     // if(!B.getDirectNSECx(sd.domain_id, hashed, QType(QType::NSEC3), before, rr)) {
       getNSEC3Hashes(narrow, sd.db, sd.domain_id,  hashed, (mode != 2), unhashed, before, after);
       DLOG(L<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-      emitNSEC3( ns3rc, sd, unhashed, before, after, target, r, mode);
+      emitNSEC3( r, sd, ns3rc, unhashed, before, after, mode);
     // } else if(!before.empty())
     //   r->addRecord(rr);
   }
