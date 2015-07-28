@@ -35,7 +35,6 @@
 #include "pdns/dnssecinfra.hh"
 #include <boost/algorithm/string.hpp>
 #include <sstream>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/scoped_ptr.hpp>
 
@@ -234,7 +233,7 @@ bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
     vector<string> masters;
     stringtok(masters, d_result[0][0], " ,\t");
 
-    BOOST_FOREACH(const string master, masters) {
+    for(const auto& master: masters) {
       const ComboAddress caMaster(master);
       if(ip == caMaster.toString())
         return true;
@@ -494,7 +493,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zon
   }
   else
   {
-    for(auto &qname: erase) {
+    for(const auto& qname: erase) {
       try {
         d_deleteEmptyNonTerminalQuery_stmt->
           bind("domain_id", domain_id)->
@@ -509,7 +508,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zon
     }
   }
 
-  for(auto &qname: insert) {
+  for(const auto& qname: insert) {
     try {
       d_insertEmptyNonTerminalQuery_stmt->
         bind("domain_id", domain_id)->
@@ -788,7 +787,7 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vec
     KeyData kd;
     while(d_ListDomainKeysQuery_stmt->hasNextRow()) {
       d_ListDomainKeysQuery_stmt->nextRow(row);
-      //~ BOOST_FOREACH(const std::string& val, row) {
+      //~ for(const auto& val: row) {
         //~ cerr<<"'"<<val<<"'"<<endl;
       //~ }
       kd.id = atoi(row[0].c_str());
@@ -811,7 +810,7 @@ void GSQLBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 {
   vector<string> meta;
   getDomainMetadata(domain, "ALSO-NOTIFY", meta);
-  BOOST_FOREACH(string& str, meta) {
+  for(const auto& str: meta) {
     ips->insert(str);
   }
 }
@@ -880,7 +879,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
       execute()->
       reset();
     if(!meta.empty()) {
-      BOOST_FOREACH(const std::string & value, meta) {
+      for(const auto& value: meta) {
          d_SetDomainMetadataQuery_stmt->
            bind("kind", kind)->
            bind("content", value)->
@@ -1078,7 +1077,7 @@ bool GSQLBackend::createSlaveDomain(const string &ip, const DNSName &domain, con
       if (!d_result.empty()) {
         // collect all IP addresses
         vector<string> tmp;
-        BOOST_FOREACH(SSqlStatement::row_t& row, d_result) {
+        for(const auto& row: d_result) {
           if (account == row[1])
             tmp.push_back(row[0]);
         }
@@ -1214,7 +1213,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
       throw PDNSException("GSQLBackend unable to delete comment: "+e.txtReason());
     }
   }
-  BOOST_FOREACH(const DNSResourceRecord& rr, rrset) {
+  for(const auto& rr: rrset) {
     feedRecord(rr);
   }
   
@@ -1276,17 +1275,14 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 
 bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
 {
-  string query;
-  pair<DNSName,bool> nt;
-
-  BOOST_FOREACH(nt, nonterm) {
+  for(const auto& nt: nonterm) {
     try {
       d_InsertEntQuery_stmt->
         bind("domain_id",domain_id)->
         bind("qname", nt.first)->
         bind("auth",(nt.second || !d_dnssecQueries))->
         execute()->
-        reset();       
+        reset();
     }
     catch (SSqlException &e) {
       throw PDNSException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());
@@ -1295,15 +1291,14 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, unsigned int times, const string &salt, bool narrow)
+bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;
 
   string ordername;
-  pair<DNSName,bool> nt;
 
-  BOOST_FOREACH(nt, nonterm) {
+  for(const auto& nt: nonterm) {
     try {
       if(narrow || !nt.second) {
         d_InsertEntQuery_stmt->
@@ -1313,11 +1308,11 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
           execute()->
           reset();
       } else {
-        ordername=toBase32Hex(hashQNameWithSalt(times, salt, nt.first));
+        ordername=toBase32Hex(hashQNameWithSalt(ns3prc, nt.first));
         d_InsertEntOrderQuery_stmt->
           bind("domain_id",domain_id)->
           bind("qname", nt.first)->
-          bind("ordername",toLower(ordername))->
+          bind("ordername",ordername)->
           bind("auth",nt.second)->
           execute()->
           reset();
@@ -1474,7 +1469,7 @@ bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname
     throw PDNSException("GSQLBackend unable to delete comment: "+e.txtReason());
   }
 
-  BOOST_FOREACH(const Comment& comment, comments) {
+  for(const auto& comment: comments) {
     feedComment(comment);
   }
 
@@ -1494,7 +1489,7 @@ string GSQLBackend::directBackendCmd(const string &query)
 
    while(stmt->hasNextRow()) {
      stmt->nextRow(row);
-     for(const auto &col: row)
+     for(const auto& col: row)
        out<<"\'"<<col<<"\'\t";
      out<<endl;
    }

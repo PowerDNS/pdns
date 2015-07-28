@@ -827,7 +827,7 @@ bool RemoteBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm) {
    return true; 
 }
 
-bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, unsigned int times, const string &salt, bool narrow) {
+bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) {
    rapidjson::Document query,answer;
    rapidjson::Value parameters;
    rapidjson::Value nts;
@@ -836,8 +836,8 @@ bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,
    parameters.SetObject();
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
    JSON_ADD_MEMBER_DNSNAME(parameters, "domain", domain, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "times", times, query.GetAllocator());
-   JSON_ADD_MEMBER(parameters, "salt", salt.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "times", ns3prc.d_iterations, query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "salt", ns3prc.d_salt.c_str(), query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "narrow", narrow, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 

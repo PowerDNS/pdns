@@ -171,7 +171,7 @@ public:
   bool abortTransaction();
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
-  bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, unsigned int times, const string &salt, bool narrow);
+  bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
   bool createDomain(const DNSName &domain);
   bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account);
   bool deleteDomain(const DNSName &domain);

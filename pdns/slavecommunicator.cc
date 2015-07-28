@@ -327,7 +327,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         bool auth;
         if (!rr.auth && rr.qtype.getCode() == QType::NS) {
           if (isNSEC3)
-            ordername=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+            ordername=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
           auth=(!isNSEC3 || !optOutFlag || secured.count(ordername));
         } else
           auth=rr.auth;
@@ -354,7 +354,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
       if (isDnssecZone && rr.qtype.getCode() != QType::RRSIG) {
         if (isNSEC3) {
           // NSEC3
-          ordername=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname));
+          ordername=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
           if(!isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!optOutFlag || secured.count(ordername))))) {
             di.backend->feedRecord(rr, &ordername);
           } else
@@ -374,7 +374,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     // Insert empty non-terminals
     if(doent && !nonterm.empty()) {
       if (isNSEC3) {
-        di.backend->feedEnts3(domain_id, domain, nonterm, ns3pr.d_iterations, ns3pr.d_salt, isNarrow);
+        di.backend->feedEnts3(domain_id, domain, nonterm, ns3pr, isNarrow);
       } else
         di.backend->feedEnts(domain_id, nonterm);
     }

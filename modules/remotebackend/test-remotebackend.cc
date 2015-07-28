@@ -277,8 +277,11 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts) {
 BOOST_AUTO_TEST_CASE(test_method_feedEnts3) {
    BOOST_TEST_MESSAGE("Testing feedEnts3 method");
    be->startTransaction(DNSName("example.com"),2);
+   NSEC3PARAMRecordContent ns3prc;
+   ns3prc.d_iterations=1;
+   ns3prc.d_salt="\u00aa\u00bb\u00cc\u00dd";
    map<DNSName, bool> nonterm = boost::assign::map_list_of(DNSName("_udp"), true)(DNSName("_sip._udp"), true);
-   BOOST_CHECK(be->feedEnts3(2, DNSName("example.com"), nonterm, 1, "\u00aa\u00bb\u00cc\u00dd", 0));
+   BOOST_CHECK(be->feedEnts3(2, DNSName("example.com"), nonterm, ns3prc, 0));
    be->commitTransaction();
 }
 

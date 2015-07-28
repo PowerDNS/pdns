@@ -308,7 +308,7 @@ try
   {
     string hashed;
     for(const auto &label: labels) {
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, label));
+      hashed=toBase32Hex(hashQNameWithSalt(ns3pr, label));
       hashes.insert(pair<string,DNSName>(hashed, label));
     }
   }

@@ -379,23 +379,22 @@ uint32_t getStartOfWeek()
   return now;
 }
 
-std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const DNSName& qname)
+string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname)
 {
-  string toHash;
-  toHash.assign(qname.toDNSString());
-  toHash.append(salt);
-
-//  cerr<<makeHexDump(toHash)<<endl;
+  unsigned int times = ns3prc.d_iterations;
   unsigned char hash[20];
+  string toHash(qname.toDNSString());
+
   for(;;) {
+    toHash.append(ns3prc.d_salt);
     sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-    if(!times--) 
-      break;
     toHash.assign((char*)hash, sizeof(hash));
-    toHash.append(salt);
+    if(!times--)
+      break;
   }
-  return string((char*)hash, sizeof(hash));
+  return toHash;
 }
+
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
   return makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);
