@@ -184,8 +184,8 @@ script:
  - rm -f tests/verify-dnssec-zone/skip.optout
 #DNSName - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
  - cd ../regression-tests.nobackend/
-#DNSName - ./runtests
-#DNSName - test ! -s ./failed_tests
+ - ./runtests
+ - test ! -s ./failed_tests
  - cd ..
  - git status
 # - git status | grep -q clean
