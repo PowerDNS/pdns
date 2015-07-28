@@ -188,7 +188,7 @@ script:
  - test ! -s ./failed_tests
  - cd ..
  - git status
-# - git status | grep -q clean
+ - git status | grep -q clean
 notifications:
   irc:
     channels:
