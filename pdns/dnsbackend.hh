@@ -371,6 +371,18 @@ public:
     return "directBackendCmd not supported for this backend\n";
   }
 
+  //! Search for records, returns true if search was done successfully.
+  virtual bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
+  {
+    return false;
+  }
+
+  //! Search for comments, returns true if search was done successfully.
+  virtual bool searchComments(const string &pattern, int maxResults, vector<Comment>& result)
+  {
+    return false;
+  }
+
   const string& getPrefix() { return d_prefix; };
 protected:
   bool mustDo(const string &key);

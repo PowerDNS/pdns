@@ -607,6 +607,21 @@ bool UeberBackend::list(const DNSName &target, int domain_id, bool include_disab
   return false;
 }
 
+bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
+{
+  bool rc = false;
+  for ( vector< DNSBackend * >::iterator i = backends.begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && i != backends.end(); ++i )
+    if ((*i)->searchRecords(pattern, maxResults - result.size(), result)) rc = true;
+  return rc;
+}
+
+bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<Comment>& result)
+{
+  bool rc = false;
+  for ( vector< DNSBackend * >::iterator i = backends.begin(); result.size() < static_cast<vector<Comment>::size_type>(maxResults) && i != backends.end(); ++i )
+    if ((*i)->searchComments(pattern, maxResults - result.size(), result)) rc = true;
+  return rc;
+}
 
 AtomicCounter UeberBackend::handle::instances(0);
 
