@@ -127,6 +127,8 @@ public:
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (?, ?, ?, ?, ?, ?)");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=? AND name=? AND type=?");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=?");
+    declare(suffix, "search-records-query", "", record_query+" name LIKE ? OR content LIKE ? LIMIT ?");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE ? OR comment LIKE ? LIMIT ?");
   }
 
   DNSBackend *make(const string &suffix="")
