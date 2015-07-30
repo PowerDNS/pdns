@@ -140,6 +140,8 @@ public:
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (id, domain_id, name, type, modified_at, account, \"comment\") VALUES (comments_id_sequence.nextval, :domain_id, :qname, :qtype, :modified_at, :account, :content)");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=:domain_id AND name=:qname AND type=:qtype");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=:domain_id");
+    declare(suffix, "search-records-query", "", record_query+" name LIKE :value OR content LIKE :value2 LIMIT :limit");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE :value OR comment LIKE :value2 LIMIT :limit");
 
   }
 
