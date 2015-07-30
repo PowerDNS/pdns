@@ -90,6 +90,8 @@ public:
       d_InsertCommentQuery_stmt = d_db->prepare(d_InsertCommentQuery, 6);
       d_DeleteCommentRRsetQuery_stmt = d_db->prepare(d_DeleteCommentRRsetQuery, 3);
       d_DeleteCommentsQuery_stmt = d_db->prepare(d_DeleteCommentsQuery, 1);
+      d_SearchRecordsQuery_stmt = d_db->prepare(d_SearchRecordsQuery, 3);
+      d_SearchCommentsQuery_stmt = d_db->prepare(d_SearchCommentsQuery, 3);
     }
   }
 
@@ -158,6 +160,8 @@ public:
     release(&d_InsertCommentQuery_stmt);
     release(&d_DeleteCommentRRsetQuery_stmt);
     release(&d_DeleteCommentsQuery_stmt);
+    release(&d_SearchRecordsQuery_stmt);
+    release(&d_SearchCommentsQuery_stmt);
   }
 
   void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
@@ -217,6 +221,12 @@ public:
   bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments);
   bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
   string directBackendCmd(const string &query);
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
+
+protected:
+  string pattern2SQLPattern(const string& pattern);
+  void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
 
 private:
   DNSName d_qname;
@@ -296,6 +306,9 @@ private:
   string d_DeleteCommentRRsetQuery;
   string d_DeleteCommentsQuery;
 
+  string d_SearchRecordsQuery;
+  string d_SearchCommentsQuery;
+
   SSqlStatement* d_query_stmt;
 
   SSqlStatement* d_NoIdQuery_stmt;
@@ -357,6 +370,9 @@ private:
   SSqlStatement* d_InsertCommentQuery_stmt;
   SSqlStatement* d_DeleteCommentRRsetQuery_stmt;
   SSqlStatement* d_DeleteCommentsQuery_stmt;
+  SSqlStatement* d_SearchRecordsQuery_stmt;
+  SSqlStatement* d_SearchCommentsQuery_stmt;
+
 protected:
   bool d_dnssecQueries;
 };
