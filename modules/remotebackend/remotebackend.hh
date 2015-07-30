@@ -165,6 +165,8 @@ class RemoteBackend : public DNSBackend
   virtual bool deleteTSIGKey(const DNSName& name);
   virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
   virtual string directBackendCmd(const string& querystr);
+  virtual bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
+  virtual bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 
   static DNSBackend *maker();
 
