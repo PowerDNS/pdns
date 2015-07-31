@@ -477,7 +477,6 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
 }
 
 string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
-  std::string res;
   unsigned char hash[64];
   const md_info_t *md_info;
   md_context_t md_ctx;
@@ -521,9 +520,8 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
   md_init_ctx(&md_ctx, md_info);
   size_t size = md_get_size(md_info);
   md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-  res.assign(reinterpret_cast<const char*>(hash), size);
   md_free(&md_ctx);
-  return res;
+  return std::string(reinterpret_cast<const char*>(hash), size);
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
