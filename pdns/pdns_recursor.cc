@@ -1075,6 +1075,11 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(g_logCommonErrors)
         L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<mde.what()<<endl;
     }
+    catch(std::runtime_error& e) {
+      g_stats.clientParseError++;
+      if(g_logCommonErrors)
+        L<<Logger::Error<<"Unable to parse packet from remote UDP client "<<fromaddr.toString() <<": "<<e.what()<<endl;
+    }
   }
   else {
     // cerr<<t_id<<" had error: "<<stringerror()<<endl;

@@ -182,7 +182,7 @@ script:
  - rm -f tests/verify-dnssec-zone/allow-missing
  - rm -f tests/verify-dnssec-zone/skip.nsec3
  - rm -f tests/verify-dnssec-zone/skip.optout
-#DNSName - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
+ - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests
