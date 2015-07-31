@@ -12,8 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
-#include <polarssl/md5.h>
-#include <polarssl/sha1.h>
+#include <polarssl/md.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
@@ -481,10 +480,16 @@ string calculateMD5HMAC(const std::string& key, const std::string& text)
 {
   std::string res;
   unsigned char hash[16];
+  const md_info_t *md_info;
+  md_context_t md_ctx;
 
-  md5_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
+  md_init(&md_ctx);
+  md_info = md_info_from_type(POLARSSL_MD_MD5);
+  md_init_ctx(&md_ctx, md_info);
+  md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
   res.assign(reinterpret_cast<const char*>(hash), 16);
 
+  md_free(&md_ctx);
   return res;
 }
 
@@ -492,35 +497,49 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
 {
   std::string res;
   unsigned char hash[64];
+  const md_info_t *md_info;
+  md_context_t md_ctx;
+
+  md_init(&md_ctx);
 
   switch(hasher) {
   case TSIG_SHA1:
   {
-      sha1_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
+      md_info = md_info_from_type(POLARSSL_MD_SHA1);
+      md_init_ctx(&md_ctx, md_info);
+      md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
       res.assign(reinterpret_cast<const char*>(hash), 20);
       break;
   };
   case TSIG_SHA224:
   {
-      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
+      md_info = md_info_from_type(POLARSSL_MD_SHA224);
+      md_init_ctx(&md_ctx, md_info);
+      md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
       res.assign(reinterpret_cast<const char*>(hash), 28);
       break;
   };
   case TSIG_SHA256:
   {
-      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
+      md_info = md_info_from_type(POLARSSL_MD_SHA256);
+      md_init_ctx(&md_ctx, md_info);
+      md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
       res.assign(reinterpret_cast<const char*>(hash), 32);
       break;
   };
   case TSIG_SHA384:
   {
-      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
+      md_info = md_info_from_type(POLARSSL_MD_SHA384);
+      md_init_ctx(&md_ctx, md_info);
+      md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
       res.assign(reinterpret_cast<const char*>(hash), 48);
       break;
   };
   case TSIG_SHA512:
   {
-      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
+      md_info = md_info_from_type(POLARSSL_MD_SHA512);
+      md_init_ctx(&md_ctx, md_info);
+      md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
       res.assign(reinterpret_cast<const char*>(hash), 64);
       break;
   };
@@ -528,6 +547,7 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
     throw new PDNSException("Unknown hash algorithm requested for SHA");
   };
 
+  md_free(&md_ctx);
   return res;
 }
 
