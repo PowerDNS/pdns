@@ -201,6 +201,7 @@ public:
   bool commitTransaction();
   bool abortTransaction();
   void alsoNotifies(const string &domain, set<string> *ips);
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
 
 // the DNSSEC related (getDomainMetadata has broader uses too)
   virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
