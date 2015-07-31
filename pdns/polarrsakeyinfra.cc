@@ -126,13 +126,20 @@ std::string RSADNSCryptoKeyEngine::getPubKeyHash() const
   mpi_write_binary(&d_context.N, N, sizeof(N));
   unsigned char E[mpi_size(&d_context.E)];
   mpi_write_binary(&d_context.E, E, sizeof(E));
+
+  const md_info_t *md_info;
+  md_context_t md_ctx;
   
-  sha1_context ctx;
-  sha1_starts(&ctx);
-  sha1_update(&ctx, N, sizeof(N));
-  sha1_update(&ctx, E, sizeof(E));
-  sha1_finish(&ctx, hash);
-  return string((char*)hash, sizeof(hash));
+  md_init(&md_ctx);
+  md_info = md_info_from_type(POLARSSL_MD_SHA1);
+  md_init_ctx(&md_ctx, md_info);
+  md_starts(&md_ctx);
+  md_update(&md_ctx, N, sizeof(N));
+  md_update(&md_ctx, E, sizeof(E));
+  md_finish(&md_ctx, hash);
+  md_free(&md_ctx);
+
+  return string(reinterpret_cast<const char*>(hash), sizeof(hash));
 }
 
 std::string RSADNSCryptoKeyEngine::sign(const std::string& msg) const
