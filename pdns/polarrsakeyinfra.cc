@@ -1,6 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <polarssl/md.h>
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
 #include <sha.hh>
@@ -182,22 +183,29 @@ bool RSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& si
 
 std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
 {
+  unsigned char hash[64];
+  const md_info_t *md_info;
+  md_context_t md_ctx;
+
+  md_init(&md_ctx);
+
   if(d_algorithm <= 7 ) {  // RSASHA1
-    unsigned char hash[20];
-    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-    return string((char*)hash, sizeof(hash));
+    md_info = md_info_from_type(POLARSSL_MD_SHA1);
   } 
   else if(d_algorithm == 8) { // RSASHA256
-    unsigned char hash[32];
-    sha256((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-    return string((char*)hash, sizeof(hash));
+    md_info = md_info_from_type(POLARSSL_MD_SHA256);
   } 
   else if(d_algorithm == 10) { // RSASHA512
-    unsigned char hash[64];
-    sha512((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-    return string((char*)hash, sizeof(hash));
+    md_info = md_info_from_type(POLARSSL_MD_SHA512);
   }
-  throw runtime_error("PolarSSL hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
+  else {
+    throw runtime_error("PolarSSL hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
+  }
+  md(md_info, reinterpret_cast<const unsigned char*>(toHash.c_str()), toHash.length(), hash);
+  size_t size = md_get_size(md_info);
+  md_free(&md_ctx);
+
+  return string(reinterpret_cast<const char*>(hash), size);
 }
 
 
