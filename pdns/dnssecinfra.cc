@@ -481,6 +481,7 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
   unsigned char hash[64];
   const md_info_t *md_info;
   md_context_t md_ctx;
+  size_t size;
 
   md_init(&md_ctx);
 
@@ -489,48 +490,54 @@ string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEn
   {
       md_info = md_info_from_type(POLARSSL_MD_MD5);
       md_init_ctx(&md_ctx, md_info);
+      size = md_get_size(md_info);
       md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 16);
+      res.assign(reinterpret_cast<const char*>(hash), size);
       break;
   };
   case TSIG_SHA1:
   {
       md_info = md_info_from_type(POLARSSL_MD_SHA1);
       md_init_ctx(&md_ctx, md_info);
+      size = md_get_size(md_info);
       md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 20);
+      res.assign(reinterpret_cast<const char*>(hash), size);
       break;
   };
   case TSIG_SHA224:
   {
       md_info = md_info_from_type(POLARSSL_MD_SHA224);
       md_init_ctx(&md_ctx, md_info);
+      size = md_get_size(md_info);
       md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 28);
+      res.assign(reinterpret_cast<const char*>(hash), size);
       break;
   };
   case TSIG_SHA256:
   {
       md_info = md_info_from_type(POLARSSL_MD_SHA256);
       md_init_ctx(&md_ctx, md_info);
+      size = md_get_size(md_info);
       md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 32);
+      res.assign(reinterpret_cast<const char*>(hash), size);
       break;
   };
   case TSIG_SHA384:
   {
       md_info = md_info_from_type(POLARSSL_MD_SHA384);
       md_init_ctx(&md_ctx, md_info);
+      size = md_get_size(md_info);
       md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 48);
+      res.assign(reinterpret_cast<const char*>(hash), size);
       break;
   };
   case TSIG_SHA512:
   {
       md_info = md_info_from_type(POLARSSL_MD_SHA512);
       md_init_ctx(&md_ctx, md_info);
+      size = md_get_size(md_info);
       md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 64);
+      res.assign(reinterpret_cast<const char*>(hash), size);
       break;
   };
   default:
