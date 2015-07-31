@@ -502,25 +502,25 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
   };
   case TSIG_SHA224:
   {
-      sha2_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
+      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
       res.assign(reinterpret_cast<const char*>(hash), 28);
       break;
   };
   case TSIG_SHA256:
   {
-      sha2_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
+      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
       res.assign(reinterpret_cast<const char*>(hash), 32);
       break;
   };
   case TSIG_SHA384:
   {
-      sha4_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
+      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
       res.assign(reinterpret_cast<const char*>(hash), 48);
       break;
   };
   case TSIG_SHA512:
   {
-      sha4_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
+      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
       res.assign(reinterpret_cast<const char*>(hash), 64);
       break;
   };

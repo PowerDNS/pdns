@@ -141,11 +141,11 @@ std::string RSADNSCryptoKeyEngine::sign(const std::string& msg) const
   md_type_t hashKind;
 
   if(hash.size()==20)
-    hashKind= SIG_RSA_SHA1;
+    hashKind= POLARSSL_MD_SHA1;
   else if(hash.size()==32) 
-    hashKind= SIG_RSA_SHA256;
+    hashKind= POLARSSL_MD_SHA256;
   else
-    hashKind = SIG_RSA_SHA512;
+    hashKind = POLARSSL_MD_SHA512;
   
   int ret=rsa_pkcs1_sign(const_cast<rsa_context*>(&d_context), NULL, NULL, RSA_PRIVATE, 
     hashKind,
@@ -164,16 +164,14 @@ bool RSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& si
   md_type_t hashKind;
   string hash=this->hash(msg);
   if(hash.size()==20)
-    hashKind= SIG_RSA_SHA1;
+    hashKind= POLARSSL_MD_SHA1;
   else if(hash.size()==32) 
-    hashKind= SIG_RSA_SHA256;
+    hashKind= POLARSSL_MD_SHA256;
   else
-    hashKind = SIG_RSA_SHA512;
+    hashKind = POLARSSL_MD_SHA512;
   
   int ret=rsa_pkcs1_verify(const_cast<rsa_context*>(&d_context),
-#if POLARSSL_VERSION_NUMBER >= 0x01020900
     NULL, NULL,
-#endif
     RSA_PUBLIC,
     hashKind,
     hash.size(),
@@ -191,20 +189,12 @@ std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
   } 
   else if(d_algorithm == 8) { // RSASHA256
     unsigned char hash[32];
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
     sha256((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-#else
-    sha2((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-#endif
     return string((char*)hash, sizeof(hash));
   } 
   else if(d_algorithm == 10) { // RSASHA512
     unsigned char hash[64];
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
     sha512((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-#else
-    sha4((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
-#endif
     return string((char*)hash, sizeof(hash));
   }
   throw runtime_error("PolarSSL hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
