@@ -187,11 +187,13 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 250) // GOST or nistp256 or ED25519
+  else if(algo == 12 || algo == 13 || algo == 250) // ECC-GOST or ECDSAP256SHA256 or ED25519SHA512
     bits=256;
-  else 
-    bits=384;
-    
+  else if(algo == 14) // ECDSAP384SHA384
+    bits = 384;
+  else
+    throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algo));
+
   dckeCreate->create(bits);
 
   { // FIXME: this block copy/pasted from makeFromISCString

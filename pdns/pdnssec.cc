@@ -82,6 +82,8 @@ static void algorithm2name(uint8_t algo, string &name) {
            name = "ECDSAP256SHA256"; return;
         case 14:
            name = "ECDSAP384SHA384"; return;
+        case 250:
+           name = "ED25519SHA512"; return;
         case 252:
            name = "INDIRECT"; return;
         case 253:
@@ -1279,7 +1281,7 @@ try
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
-    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384|ed25519]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cerr<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
     cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
