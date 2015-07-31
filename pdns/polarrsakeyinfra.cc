@@ -4,7 +4,6 @@
 #include <polarssl/md.h>
 #include <polarssl/rsa.h>
 #include <polarssl/base64.h>
-#include <sha.hh>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'

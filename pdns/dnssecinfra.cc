@@ -13,10 +13,10 @@
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
 #include <polarssl/md.h>
+#include <polarssl/sha1.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
-#include "sha.hh"
 #include "namespaces.hh"
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"

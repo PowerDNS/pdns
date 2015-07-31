@@ -181,7 +181,6 @@ pdns_server_SOURCES = \
 	rfc2136handler.cc \
 	secpoll-auth.cc secpoll-auth.hh \
 	serialtweaker.cc \
-	sha.hh \
 	signingpipe.cc signingpipe.hh \
 	sillyrecords.cc \
 	slavecommunicator.cc \
@@ -1006,7 +1005,6 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
-	test-sha_hh.cc \
 	test-sholder_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
