@@ -26,25 +26,6 @@ private:
    sha1_context d_context;
 };
 
-class SHA224Summer
-{
-public:
-   SHA224Summer() { sha256_starts(&d_context, 1); };
-   void feed(const std::string &str) { feed(str.c_str(), str.length()); };
-   void feed(const char *ptr, size_t len) { sha256_update(&d_context, reinterpret_cast<const unsigned char*>(ptr), len); };
-   const std::string get() const { 
-     sha256_context ctx2;
-     unsigned char result[32] = {0};
-     ctx2=d_context;
-     sha256_finish(&ctx2, result);
-     return std::string(result, result + 28);
-   };
-private:
-   SHA224Summer(const SHA1Summer&);
-   SHA224Summer& operator=(const SHA1Summer&);
-   sha256_context d_context;
-};
-
 class SHA256Summer
 {
 public:
