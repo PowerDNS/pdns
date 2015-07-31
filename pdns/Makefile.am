@@ -177,7 +177,7 @@ pdns_server_SOURCES = \
 	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
-	responsestats.cc responsestats.hh \
+	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
 	secpoll-auth.cc secpoll-auth.hh \
 	serialtweaker.cc \

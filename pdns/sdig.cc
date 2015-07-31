@@ -85,10 +85,10 @@ try
   // pw.commit();
   
   string reply;
+  ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
 
   if(tcp) {
-    Socket sock(AF_INET, SOCK_STREAM);
-    ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+    Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.connect(dest);
     uint16_t len;
     len = htons(packet.size());
@@ -116,8 +116,7 @@ try
   }
   else //udp
   {
-    Socket sock(AF_INET, SOCK_DGRAM);
-    ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
+    Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
     
     sock.recvFrom(reply, dest);

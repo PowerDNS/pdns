@@ -179,17 +179,7 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
-
-  /* Query statistics */
-  if(p->qtype.getCode()!=QType::AXFR && p->qtype.getCode()!=QType::IXFR) {
-    if(p->d.aa) {
-      if(p->d.rcode==RCode::NXDomain)
-        S.ringAccount("nxdomain-queries",p->qdomain.toString()+"/"+p->qtype.getName());
-    } else if(p->isEmpty()) {
-      S.ringAccount("unauth-queries",p->qdomain.toString()+"/"+p->qtype.getName());
-      S.ringAccount("remotes-unauth",p->d_remote);
-    }
-  }
+  g_rs.submitResponse(*p, false);
 
   uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
@@ -347,8 +337,6 @@ void *TCPNameserver::doConnection(void *data)
         if(LPE) LPE->police(&(*packet), &(*cached), true);
 
         sendPacket(cached, fd); // presigned, don't do it again
-        incTCPAnswerCount(remote);
-
         continue;
       }
       if(logDNSQueries)
@@ -373,8 +361,7 @@ void *TCPNameserver::doConnection(void *data)
 
       if(!reply)  // unable to write an answer?
         break;
-        
-      incTCPAnswerCount(remote);
+
       sendPacket(reply, fd);
     }
   }

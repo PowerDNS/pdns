@@ -1,12 +1,13 @@
-#ifndef PDNS_RESPONSESTATS_HH
-#define PDNS_RESPONSESTATS_HH
+#pragma once
 #include "misc.hh"
+#include "dnspacket.hh"
 
 class ResponseStats
 {
 public:
   ResponseStats();
 
+  void submitResponse(DNSPacket &p, bool udpOrTCP);
   void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP);
   map<uint16_t, uint64_t> getQTypeResponseCounts();
   map<uint16_t, uint64_t> getSizeResponseCounts();
@@ -18,4 +19,4 @@ private:
   sizecounters_t d_sizecounters;
 };
 
-#endif
+extern ResponseStats g_rs;

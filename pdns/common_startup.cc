@@ -175,10 +175,10 @@ void declareArguments()
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 }
 
+static time_t s_start=time(0);
 static uint64_t uptimeOfProcess(const std::string& str)
 {
-  static time_t start=time(0);
-  return time(0) - start;
+  return time(0) - s_start;
 }
 
 static uint64_t getSysUserTimeMsec(const std::string& str)
@@ -227,6 +227,8 @@ void declareStats(void)
   S.declare("udp-do-queries","Number of UDP queries received with DO bit");
   S.declare("udp-answers","Number of answers sent out over UDP");
   S.declare("udp-answers-bytes","Total size of answers sent out over UDP");
+  S.declare("udp4-answers-bytes","Total size of answers sent out over UDPv4");
+  S.declare("udp6-answers-bytes","Total size of answers sent out over UDPv6");
 
   S.declare("udp4-answers","Number of IPv4 answers sent out over UDP");
   S.declare("udp4-queries","Number of IPv4 UDP queries received");
@@ -241,6 +243,10 @@ void declareStats(void)
   S.declare("signatures", "Number of DNSSEC signatures made");
   S.declare("tcp-queries","Number of TCP queries received");
   S.declare("tcp-answers","Number of answers sent out over TCP");
+  S.declare("tcp-answers-bytes","Total size of answers sent out over TCP");
+  S.declare("tcp4-answers-bytes","Total size of answers sent out over TCPv4");
+  S.declare("tcp6-answers-bytes","Total size of answers sent out over TCPv6");
+
   S.declare("tcp4-queries","Number of IPv4 TCP queries received");
   S.declare("tcp4-answers","Number of IPv4 answers sent out over TCP");
   
