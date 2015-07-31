@@ -476,25 +476,7 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   }  
 }
 
-string calculateMD5HMAC(const std::string& key, const std::string& text)
-{
-  std::string res;
-  unsigned char hash[16];
-  const md_info_t *md_info;
-  md_context_t md_ctx;
-
-  md_init(&md_ctx);
-  md_info = md_info_from_type(POLARSSL_MD_MD5);
-  md_init_ctx(&md_ctx, md_info);
-  md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-  res.assign(reinterpret_cast<const char*>(hash), 16);
-
-  md_free(&md_ctx);
-  return res;
-}
-
-string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
-{
+string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
   std::string res;
   unsigned char hash[64];
   const md_info_t *md_info;
@@ -503,6 +485,14 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
   md_init(&md_ctx);
 
   switch(hasher) {
+  case TSIG_MD5:
+  {
+      md_info = md_info_from_type(POLARSSL_MD_MD5);
+      md_init_ctx(&md_ctx, md_info);
+      md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
+      res.assign(reinterpret_cast<const char*>(hash), 16);
+      break;
+  };
   case TSIG_SHA1:
   {
       md_info = md_info_from_type(POLARSSL_MD_SHA1);
@@ -544,19 +534,11 @@ string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHas
       break;
   };
   default:
-    throw new PDNSException("Unknown hash algorithm requested for SHA");
+    throw new PDNSException("Unknown hash algorithm requested for HMAC");
   };
 
   md_free(&md_ctx);
   return res;
-}
-
-string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash) {
-  if (hash == TSIG_MD5) return calculateMD5HMAC(key, text);
-
-  // add other algorithms here
-
-  return calculateSHAHMAC(key, text, hash);
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
