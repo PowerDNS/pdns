@@ -805,6 +805,8 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
     case 14:
       md_info = md_info_from_type(POLARSSL_MD_SHA384);
       break;
+    default:
+      throw PDNSException("Unsupported algorithm "+d_algorithm);
     }
 
     unsigned char hash[64];
