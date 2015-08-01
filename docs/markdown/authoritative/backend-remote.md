@@ -1045,6 +1045,38 @@ Content-Type: text/javascript; charset=utf-8
 {"result":"PONG"}
 ```
 
+### `searchRecords`
+Can be used to search records from the backend. This is used by web api.
+
+* Mandatory: no
+* Parameters: pattern, maxResults
+* Reply: same as [lookup](#lookup) or false to indicate failed search
+
+#### Example JSON/RPC
+Query:
+```
+{"method":"searchRecords","parameters":{"pattern":"www.example*","maxResults":100}}
+```
+
+Response:
+```
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
+```
+
+#### Example HTTP/RPC
+Query:
+```
+GET /dnsapi/searchRecords?q=www.example*&maxResults=100
+```
+
+Response:
+```
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
+```
+
 # Examples
 ## Scenario: SOA lookup via pipe or unix connector
 Query:
