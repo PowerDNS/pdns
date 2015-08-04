@@ -146,11 +146,9 @@ public:
   string d_peer_principal;
   const DNSName& getTSIGKeyname() const;
 
-  ComboAddress d_remote;
   uint16_t qclass;  //!< class of the question - should always be INternet 2
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
 
-  uint16_t qclass;  //!< class of the question - should always be INternet 2
   QType qtype;  //!< type of the question 2
 
   TSIGRecordContent d_trc; //72

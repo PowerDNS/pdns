@@ -220,13 +220,13 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
 {
   UeberBackend B;
   vector<string> meta;
-  string tsigkeyname;
-  string tsigalgorithm;
+  DNSName tsigkeyname;
+  DNSName tsigalgorithm;
   string tsigsecret64;
   string tsigsecret;
 
   if (B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
-    tsigkeyname = meta[0];
+    tsigkeyname.toStringNoDot() = meta[0];
   }
 
   vector<uint8_t> packet;

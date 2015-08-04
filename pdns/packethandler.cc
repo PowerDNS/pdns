@@ -765,7 +765,7 @@ How MySQLBackend would implement this:
    
 */     
 
-int PacketHandler::trySuperMaster(DNSPacket *p, const string& tsigkeyname)
+int PacketHandler::trySuperMaster(DNSPacket *p, const DNSName& tsigkeyname)
 {
   if(p->d_tcp)
   {
@@ -781,7 +781,7 @@ int PacketHandler::trySuperMaster(DNSPacket *p, const string& tsigkeyname)
   }
 }
 
-int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const string& tsigkeyname)
+int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const DNSName& tsigkeyname)
 {
   Resolver::res_t nsset;
   try {
@@ -821,7 +821,7 @@ int PacketHandler::trySuperMasterSynchronous(DNSPacket *p, const string& tsigkey
     db->createSlaveDomain(p->getRemote(), p->qdomain, nameserver, account);
     if (tsigkeyname.empty() == false) {
       vector<string> meta;
-      meta.push_back(tsigkeyname);
+      meta.push_back(tsigkeyname.toStringNoDot());
       db->setDomainMetadata(p->qdomain, "AXFR-MASTER-TSIG", meta);
     }
   }
@@ -868,7 +868,7 @@ int PacketHandler::processNotify(DNSPacket *p)
 
   meta.clear();
   if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
-    if (!p->d_havetsig || meta[0] != p->getTSIGKeyname()) {
+    if (!p->d_havetsig || meta[0] != p->getTSIGKeyname().toStringNoDot()) {
       L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
       return RCode::Refused;
     }

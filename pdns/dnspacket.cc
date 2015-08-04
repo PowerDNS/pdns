@@ -697,6 +697,6 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
   return result;
 }
 
-const string& DNSPacket::getTSIGKeyname() const {
+const DNSName& DNSPacket::getTSIGKeyname() const {
   return d_tsigkeyname;
 }
