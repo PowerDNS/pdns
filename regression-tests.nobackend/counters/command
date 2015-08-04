@@ -25,7 +25,7 @@ sleep 5
 ../pdns/sdig ::1 $port example.com SOA tcp >&2
 
 ../pdns/pdns_control --config-name= --no-config --socket-dir=./ 'show *' | \
-  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|uptime|udp-noport-errors|udp-in-errors|udp-recvbuf-errors|udp-sndbuf-errors)' | LC_ALL=C sort
+  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|uptime|udp-noport-errors|udp-in-errors|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss)' | LC_ALL=C sort
 
 kill $(cat pdns*.pid)
 rm pdns*.pid
