@@ -124,6 +124,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
   d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
 
+  d_SearchRecordsQuery = getArg("search-records-query");
+  d_SearchCommentsQuery = getArg("search-comments-query");
+
   d_query_stmt = NULL;
   d_NoIdQuery_stmt = NULL;
   d_IdQuery_stmt = NULL;
@@ -184,6 +187,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertCommentQuery_stmt = NULL;
   d_DeleteCommentRRsetQuery_stmt = NULL;
   d_DeleteCommentsQuery_stmt = NULL;
+  d_SearchRecordsQuery_stmt = NULL;
+  d_SearchCommentsQuery_stmt = NULL;
 }
 
 void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -984,31 +989,7 @@ bool GSQLBackend::get(DNSResourceRecord &r)
     } catch (SSqlException &e) {
       throw PDNSException("GSQLBackend get: "+e.txtReason());
     }
-    if (row[1].empty())
-        r.ttl = ::arg().asNum( "default-ttl" );
-    else
-        r.ttl=atol(row[1].c_str());
-    if(!d_qname.empty())
-      r.qname=d_qname;
-    else
-      r.qname=row[6];
-    r.qtype=row[3];
-
-    if (r.qtype==QType::MX || r.qtype==QType::SRV)
-      r.content=row[2]+" "+row[0];
-    else
-      r.content=row[0];
-
-    r.last_modified=0;
-
-    if(d_dnssecQueries)
-      r.auth = !row[7].empty() && row[7][0]=='1';
-    else
-      r.auth = 1;
-
-    r.disabled = !row[5].empty() && row[5][0]=='1';
-
-    r.domain_id=atoi(row[4].c_str());
+    extractRecord(row, r);
     return true;
   }
 
@@ -1501,6 +1482,111 @@ string GSQLBackend::directBackendCmd(const string &query)
  }
 }
 
+string GSQLBackend::pattern2SQLPattern(const string &pattern)
+{
+  string escaped_pattern = boost::replace_all_copy(pattern,"\\","\\\\");
+  boost::replace_all(escaped_pattern,"_","\\_");
+  boost::replace_all(escaped_pattern,"%","\\%");
+  boost::replace_all(escaped_pattern,"*","%");
+  boost::replace_all(escaped_pattern,"?","_");
+  return escaped_pattern;
+}
+
+bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
+{
+  try {
+    string escaped_pattern = pattern2SQLPattern(pattern);
+
+    d_SearchRecordsQuery_stmt->
+      bind("value", escaped_pattern)->
+      bind("value2", escaped_pattern)->
+      bind("limit", maxResults)->
+      execute();
+
+    while(d_SearchRecordsQuery_stmt->hasNextRow())
+    {
+      SSqlStatement::row_t row;
+      DNSResourceRecord r;
+      d_SearchRecordsQuery_stmt->nextRow(row);
+      extractRecord(row, r);
+      result.push_back(r);
+    }
+
+    d_SearchRecordsQuery_stmt->reset();
+
+    return true;
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
+  }
+
+  return false;
+}
+
+bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<Comment>& result)
+{
+  Comment c;
+  try {
+    string escaped_pattern = pattern2SQLPattern(pattern);
+
+    d_SearchCommentsQuery_stmt->
+      bind("value", pattern)->
+      bind("value2", pattern)->
+      bind("limit", maxResults)->
+      execute();
+
+    while(d_SearchCommentsQuery_stmt->hasNextRow()) {
+      SSqlStatement::row_t row;
+      d_SearchCommentsQuery_stmt->nextRow(row);
+      Comment comment;
+      comment.domain_id = atol(row[0].c_str());
+      comment.qname = row[1];
+      comment.qtype = row[2];
+      comment.modified_at = atol(row[3].c_str());
+      comment.account = row[4];
+      comment.content = row[5];
+      result.push_back(comment);
+    }
+
+    d_SearchRecordsQuery_stmt->reset();
+
+    return true;
+  }
+  catch (SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
+  }
+
+  return false;
+}
+
+void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& r)
+{
+  if (row[1].empty())
+      r.ttl = ::arg().asNum( "default-ttl" );
+  else
+      r.ttl=atol(row[1].c_str());
+  if(!d_qname.empty())
+    r.qname=d_qname;
+  else
+    r.qname=row[6];
+  r.qtype=row[3];
+
+  if (r.qtype==QType::MX || r.qtype==QType::SRV)
+    r.content=row[2]+" "+row[0];
+  else
+    r.content=row[0];
+
+  r.last_modified=0;
+
+  if(d_dnssecQueries)
+    r.auth = !row[7].empty() && row[7][0]=='1';
+  else
+    r.auth = 1;
+
+  r.disabled = !row[5].empty() && row[5][0]=='1';
+
+  r.domain_id=atoi(row[4].c_str());
+}
 
 SSqlStatement::~SSqlStatement() { 
 // make sure vtable won't break 

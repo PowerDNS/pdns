@@ -558,6 +558,57 @@ private:
   regex_t d_preg;
 };
 
+class SimpleMatch
+{
+public:
+  SimpleMatch(const string &mask, bool caseFold = false)
+  {
+    this->d_mask = mask;
+    this->d_fold = caseFold;
+  }
+ 
+  bool match(string::const_iterator mi, string::const_iterator mend, string::const_iterator vi, string::const_iterator vend)
+  {
+    for(;;mi++) {
+      if (mi == mend) {
+        return vi == vend;
+      } else if (*mi == '?') {
+        if (vi == vend) return false;
+        vi++;
+      } else if (*mi == '*') {
+        while(*mi == '*') mi++;
+        if (mi == d_mask.end()) return true;
+        while(vi != vend) {
+          if (match(mi,mend,vi,vend)) return true;
+          vi++;
+        }
+        return false;
+      } else {
+        if ((mi == mend && vi != vend)||
+            (mi != mend && vi == vend)) return false;
+        if (d_fold) {
+          if (dns_tolower(*mi) != dns_tolower(*vi)) return false;
+        } else {
+          if (*mi != *vi) return false;
+        }
+        vi++;
+      }
+    }
+  }
+
+  bool match(const string& value) {
+    return match(d_mask.begin(), d_mask.end(), value.begin(), value.end());
+  }
+
+  bool match(const DNSName& name) {
+    return match(name.toStringNoDot());
+  }
+
+private:
+  string d_mask;
+  bool d_fold;
+};
+
 union ComboAddress;
 void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source);
 

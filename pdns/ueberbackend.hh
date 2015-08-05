@@ -137,6 +137,8 @@ public:
   void alsoNotifies(const DNSName &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
   pthread_t tid;
   handle d_handle;

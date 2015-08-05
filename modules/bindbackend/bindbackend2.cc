@@ -1310,6 +1310,40 @@ bool Bind2Backend::createSlaveDomain(const string &ip, const DNSName& domain, co
   return true;
 }
 
+bool Bind2Backend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
+{
+  SimpleMatch sm(pattern,true);
+  static bool mustlog=::arg().mustDo("query-logging");
+  if(mustlog)
+    L<<Logger::Warning<<"Search for pattern '"<<pattern<<"'"<<endl;
+
+  {
+    ReadLock rl(&s_state_lock);
+
+    for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
+      BB2DomainInfo h;
+      safeGetBBDomainInfo(i->d_id, &h);
+      shared_ptr<const recordstorage_t> handle = h.d_records.get();
+
+      for(recordstorage_t::const_iterator ri = handle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != handle->end(); ri++) {
+        DNSName name = ri->qname.empty() ? i->d_name : (ri->qname+i->d_name);
+        if (sm.match(name) || sm.match(ri->content)) {
+          DNSResourceRecord r;
+          r.qname=name;
+          r.domain_id=i->d_id;
+          r.content=ri->content;
+          r.qtype=ri->qtype;
+          r.ttl=ri->ttl;
+          r.auth = ri->auth;
+          result.push_back(r);
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 class Bind2Factory : public BackendFactory
 {
    public:
