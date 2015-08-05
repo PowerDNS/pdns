@@ -1524,8 +1524,8 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
     string escaped_pattern = pattern2SQLPattern(pattern);
 
     d_SearchCommentsQuery_stmt->
-      bind("value", pattern)->
-      bind("value2", pattern)->
+      bind("value", escaped_pattern)->
+      bind("value2", escaped_pattern)->
       bind("limit", maxResults)->
       execute();
 
