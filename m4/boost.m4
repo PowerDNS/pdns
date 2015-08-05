@@ -90,7 +90,6 @@ dnl So get rid of the # lines, and glue the remaining ones together.
 (eval "$ac_cpp conftest.$ac_ext") 2>&AS_MESSAGE_LOG_FD |
   grep -v '#' |
   tr -d '\r' |
-  tr -s '\n' ' ' |
   $SED -n -e "$1" >conftest.i 2>&1],
   [$3],
   [$4])
