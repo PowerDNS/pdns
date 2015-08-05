@@ -394,7 +394,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSResou
   }
 
   int res=0;
-  if(!(d_nocache && qtype.getCode()==QType::NS && qname==".")) {
+  if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
     if(d_cacheonly) { // very limited OOB support
       LWResult lwr;
       LOG(prefix<<qname.toString()<<": Recursion not requested for '"<<qname.toString()<<"|"<<qtype.getName()<<"', peeking at auth/forward zones"<<endl);
@@ -597,7 +597,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, set<D
       }
     }
     LOG(prefix<<qname.toString()<<": no valid/useful NS in cache for '"<<subdomain.toString()<<"'"<<endl);
-    if(subdomain=="." && !brokeloop) {
+    if(subdomain.isRoot() && !brokeloop) {
       primeHints();
       LOG(prefix<<qname.toString()<<": reprimed the root"<<endl);
     }
@@ -624,7 +624,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   domainmap_t::const_iterator iter=getBestAuthZone(&authdomain);
   if(iter!=t_sstorage->domainmap->end()) {
     if( iter->second.d_servers.empty() )
-      nsset.insert(string()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
+      nsset.insert(DNSName()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
     else {
       for(vector<ComboAddress>::const_iterator server=iter->second.d_servers.begin(); server != iter->second.d_servers.end(); ++server)
         nsset.insert((iter->second.d_rdForward ? "+" : "-") + server->toStringWithPort()); // add a '+' if the rd bit should be set
@@ -709,7 +709,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 
   if(s_rootNXTrust &&
      (range.first=t_sstorage->negcache.find(tie(getLastLabel(qname), qtnull))) != t_sstorage->negcache.end() &&
-      range.first->d_qname=="." && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
+      range.first->d_qname.isRoot() && (uint32_t)d_now.tv_sec < range.first->d_ttd ) {
     sttl=range.first->d_ttd - d_now.tv_sec;
 
     LOG(prefix<<qname.toString()<<": Entire name '"<<qname.toString()<<"', is negatively cached via '"<<range.first->d_name.toString()<<"' & '"<<range.first->d_qname.toString()<<"' for another "<<sttl<<" seconds"<<endl);
@@ -787,10 +787,9 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   return false;
 }
 
-// FIXME400 use DNSName.isPartOf
 bool SyncRes::moreSpecificThan(const DNSName& a, const DNSName &b)
 {
-  return a.countLabels() > b.countLabels();
+  return (a.isPartOf(b) && a.countLabels() > b.countLabels());
 }
 
 struct speedOrder
@@ -1072,6 +1071,22 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           continue;
         }
 
+        // Check if we are authoritative for a zone in this answer
+        if (!t_sstorage->domainmap->empty()) {
+          DNSName tmp_qname(i->qname);
+          auto auth_domain_iter=getBestAuthZone(&tmp_qname);
+          if(auth_domain_iter!=t_sstorage->domainmap->end()) {
+            if (auth_domain_iter->first != auth) {
+              LOG("NO! - we are authoritative for the zone "<<auth_domain_iter->first.toString()<<endl);
+              continue;
+            } else {
+              // ugly...
+              LOG("YES! - This answer was retrieved from the local auth store"<<endl);
+            }
+          }
+        }
+
+
         if(i->qname.isPartOf(auth)) {
           if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && i->d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth.toString() /* ugh */)) {
             LOG("NO! Is from delegation-only zone"<<endl);
@@ -1136,7 +1151,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           ne.d_qtype=QType(0); // this encodes 'whole record'
 
           replacing_insert(t_sstorage->negcache, ne);
-	  if(s_rootNXTrust && auth==".") {
+	  if(s_rootNXTrust && auth.isRoot()) {
 	    ne.d_name = getLastLabel(ne.d_name);
 	    replacing_insert(t_sstorage->negcache, ne);
 	  }
@@ -1160,7 +1175,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           done=true;
           ret.push_back(*i);
         }
-        else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::NS) {
+        else if(i->d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(i->qname) && i->qtype.getCode()==QType::NS) {
           if(moreSpecificThan(i->qname,auth)) {
             newauth=i->qname;
             LOG(prefix<<qname.toString()<<": got NS record '"<<i->qname.toString()<<"' -> '"<<i->content<<"'"<<endl);

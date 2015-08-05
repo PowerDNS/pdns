@@ -71,7 +71,7 @@ try
   MOADNSParser mdp(packet);
 
   cerr<<"Received notification response with error: "<<RCode::to_s(mdp.d_header.rcode)<<endl;
-  cerr<<"For: '"<<mdp.d_qname<<"'"<<endl;
+  cerr<<"For: '"<<mdp.d_qname.toString()<<"'"<<endl;
 }
 catch(std::exception& e)
 {

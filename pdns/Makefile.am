@@ -518,6 +518,8 @@ calidns_LDADD = $(POLARSSL_LIBS)
 calidns_LDFLAGS=$(THREADFLAGS) 
 
 dumresp_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dumresp.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -731,9 +733,12 @@ speedtest_LDADD = $(POLARSSL_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.hh dnsname.cc \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnswasher.cc \
+	dnswriter.hh \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
@@ -952,6 +957,8 @@ dnsdemog_LDADD = $(POLARSSL_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	dnsname.hh dnsname.cc \
+	dnslabeltext.cc \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
