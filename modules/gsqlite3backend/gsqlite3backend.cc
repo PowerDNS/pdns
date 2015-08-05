@@ -134,6 +134,9 @@ public:
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (%d, '%s', '%s', %d, '%s', '%s')");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=%d AND name='%s' AND type='%s'");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=%d");
+
+    declare(suffix, "search-records-query", "", record_query+" name LIKE '%s' OR content LIKE '%s' LIMIT %d");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE '%s' OR comment LIKE '%s' LIMIT %d");
   }
 
   //! Constructs a new gSQLite3Backend object.
