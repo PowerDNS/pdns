@@ -1408,13 +1408,7 @@ bool GSQLBackend::getComment(Comment& comment)
     throw PDNSException("GSQLBackend comment get: "+e.txtReason());
   }
   // domain_id,name,type,modified_at,account,comment
-  comment.domain_id = atol(row[0].c_str());
-  comment.qname = row[1];
-  comment.qtype = row[2];
-  comment.modified_at = atol(row[3].c_str());
-  comment.account = row[4];
-  comment.content = row[5];
-
+  extractComment(row, comment);
   return true;
 }
 
@@ -1530,8 +1524,8 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
     string escaped_pattern = pattern2SQLPattern(pattern);
 
     d_SearchCommentsQuery_stmt->
-      bind("value", pattern)->
-      bind("value2", pattern)->
+      bind("value", escaped_pattern)->
+      bind("value2", escaped_pattern)->
       bind("limit", maxResults)->
       execute();
 
@@ -1539,12 +1533,7 @@ bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<C
       SSqlStatement::row_t row;
       d_SearchCommentsQuery_stmt->nextRow(row);
       Comment comment;
-      comment.domain_id = atol(row[0].c_str());
-      comment.qname = row[1];
-      comment.qtype = row[2];
-      comment.modified_at = atol(row[3].c_str());
-      comment.account = row[4];
-      comment.content = row[5];
+      extractComment(row, comment);
       result.push_back(comment);
     }
 
@@ -1586,6 +1575,16 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
   r.disabled = !row[5].empty() && row[5][0]=='1';
 
   r.domain_id=atoi(row[4].c_str());
+}
+
+void GSQLBackend::extractComment(const SSqlStatement::row_t& row, Comment& comment)
+{
+ comment.domain_id = atol(row[0].c_str());
+ comment.qname = row[1];
+ comment.qtype = row[2];
+ comment.modified_at = atol(row[3].c_str());
+ comment.account = row[4];
+ comment.content = row[5];
 }
 
 SSqlStatement::~SSqlStatement() { 

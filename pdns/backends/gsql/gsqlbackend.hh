@@ -227,6 +227,7 @@ public:
 protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
+  void extractComment(const SSqlStatement::row_t& row, Comment& c);
 
 private:
   DNSName d_qname;
