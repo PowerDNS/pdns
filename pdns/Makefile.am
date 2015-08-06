@@ -996,6 +996,7 @@ testrunner_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
+	responsestats-auth.cc \
 	sillyrecords.cc \
 	statbag.cc \
 	test-arguments_cc.cc \
