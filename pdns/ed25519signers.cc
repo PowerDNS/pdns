@@ -7,8 +7,6 @@ extern "C" {
 #include "ext/ed25519/crypto_hash_sha512.h"
 }
 #include "dnssecinfra.hh"
-#include <boost/scoped_ptr.hpp>
-using boost::scoped_ptr;
 
 #define SECRETBYTES SECRETKEYBYTES-PUBLICKEYBYTES
 
@@ -109,8 +107,8 @@ std::string ED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   string hash=this->hash(msg);
   unsigned long long smlen = hash.length() + SIGNATUREBYTES;
+  std::unique_ptr<unsigned char[]> sm(new unsigned char[smlen]);
 
-  scoped_ptr<unsigned char> sm(new unsigned char[smlen]);
   crypto_sign(sm.get(), &smlen, (const unsigned char*)hash.c_str(), hash.length(), d_seckey);
 
   return string((const char*)sm.get(), SIGNATUREBYTES);
@@ -118,22 +116,23 @@ std::string ED25519DNSCryptoKeyEngine::sign(const std::string& msg) const
 
 std::string ED25519DNSCryptoKeyEngine::hash(const std::string& orig) const
 {
-  unsigned char out[crypto_hash_sha512_BYTES];
-  crypto_hash_sha512(out, (const unsigned char*)orig.c_str(), orig.length());
+  std::unique_ptr<unsigned char[]> out(new unsigned char[crypto_hash_sha512_BYTES]);
 
-  return string((char*)out, crypto_hash_sha512_BYTES);
+  crypto_hash_sha512(out.get(), (const unsigned char*)orig.c_str(), orig.length());
+
+  return string((const char*)out.get(), crypto_hash_sha512_BYTES);
 }
 
 bool ED25519DNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
   string hash=this->hash(msg);
   unsigned long long smlen = hash.length() + SIGNATUREBYTES;
+  std::unique_ptr<unsigned char[]> sm(new unsigned char[smlen]);
 
-  scoped_ptr<unsigned char> sm(new unsigned char[smlen]);
   memcpy(sm.get(), signature.c_str(), SIGNATUREBYTES);
   memcpy(sm.get() + SIGNATUREBYTES, hash.c_str(), hash.length());
 
-  scoped_ptr<unsigned char> m(new unsigned char[smlen]);
+  std::unique_ptr<unsigned char[]> m(new unsigned char[smlen]);
 
   return crypto_sign_open(m.get(), &smlen, sm.get(), smlen, d_pubkey) == 0;
 }
