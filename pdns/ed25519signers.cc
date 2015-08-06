@@ -1,4 +1,3 @@
-// utf-8 UTF-8 utf8 UTF8
 extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -19,8 +18,8 @@ public:
   void create(unsigned int bits);
   storvector_t convertToISCVector() const;
   std::string getPubKeyHash() const;
-  std::string sign(const std::string& hash) const; 
-  std::string hash(const std::string& hash) const; 
+  std::string sign(const std::string& hash) const;
+  std::string hash(const std::string& hash) const;
   bool verify(const std::string& msg, const std::string& signature) const;
   std::string getPublicKeyString() const;
   int getBits() const;
@@ -37,7 +36,6 @@ public:
 private:
   unsigned char d_pubkey[PUBLICKEYBYTES];
   unsigned char d_seckey[SECRETKEYBYTES];
-            
 };
 
 void ED25519DNSCryptoKeyEngine::create(unsigned int bits)
@@ -98,7 +96,7 @@ std::string ED25519DNSCryptoKeyEngine::getPublicKeyString() const
   return string((char*)d_pubkey, PUBLICKEYBYTES);
 }
 
-void ED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string&input) 
+void ED25519DNSCryptoKeyEngine::fromPublicKeyString(const std::string&input)
 {
   memcpy(d_pubkey, input.c_str(), PUBLICKEYBYTES);
 }
