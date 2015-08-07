@@ -935,6 +935,55 @@ bool RemoteBackend::calculateSOASerial(const string& domain, const SOAData& sd, 
    return true;
 }
 
+bool RemoteBackend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
+{
+   rapidjson::Document query,answer;
+   rapidjson::Value parameters;
+
+   query.SetObject();
+   JSON_ADD_MEMBER(query, "method", "searchRecords", query.GetAllocator());
+   parameters.SetObject();
+   JSON_ADD_MEMBER(parameters, "pattern", pattern.c_str(), query.GetAllocator());
+   JSON_ADD_MEMBER(parameters, "maxResults", maxResults, query.GetAllocator());
+   query.AddMember("parameters", parameters, query.GetAllocator());
+
+   if (this->send(query) == false || this->recv(answer) == false)
+     return false;
+
+   if (answer["result"].IsArray() == false)
+     return false;
+
+   for(rapidjson::SizeType i = 0; i < answer["result"].Size(); i++) {
+     DNSResourceRecord rr;
+     rapidjson::Value value;
+     value = "";
+     rr.qtype = getString(JSON_GET((*d_result)["result"][d_index], "qtype", value));
+     rr.qname = getString(JSON_GET((*d_result)["result"][d_index], "qname", value));
+     rr.qclass = QClass::IN;
+     rr.content = getString(JSON_GET((*d_result)["result"][d_index], "content",value));
+     value = -1;
+     rr.ttl = getInt(JSON_GET((*d_result)["result"][d_index], "ttl",value));
+     rr.domain_id = getInt(JSON_GET((*d_result)["result"][d_index],"domain_id",value));
+     value = 1;
+     if (d_dnssec)
+       rr.auth = getInt(JSON_GET((*d_result)["result"][d_index],"auth", value));
+     else
+       rr.auth = 1;
+     value = 0;
+     rr.scopeMask = getInt(JSON_GET((*d_result)["result"][d_index],"scopeMask", value));
+     result.push_back(rr);
+  }
+
+  return true;
+}
+
+bool RemoteBackend::searchComments(const string &pattern, int maxResults, vector<Comment>& result)
+{
+  // FIXME: Implement Comment API
+  return false;
+}
+
+
 // some rapidjson helpers 
 bool RemoteBackend::getBool(rapidjson::Value &value) {
    if (value.IsNull()) return false;

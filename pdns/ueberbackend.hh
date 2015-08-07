@@ -153,6 +153,9 @@ public:
   void alsoNotifies(const string &domain, set<string> *ips); 
   void rediscover(string* status=0);
   void reload();
+
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
 private:
   unsigned int d_cache_ttl, d_negcache_ttl;
 
