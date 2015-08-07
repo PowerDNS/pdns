@@ -626,22 +626,29 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
   }
 
   cout<<"Checked "<<numrecords<<" records of '"<<zone.toString()<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
-  return numerrors;
+  if(!numerrors)
+    return 0;
+  return 1;
 }
 
-int checkAllZones(DNSSECKeeper &dk) 
+int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
   UeberBackend B("default");
   vector<DomainInfo> domainInfo;
 
   B.getAllDomains(&domainInfo, true);
   int errors=0;
-  BOOST_FOREACH(DomainInfo di, domainInfo) {
-    if (checkZone(dk, B, di.zone) > 0) 
-       errors++;
+  for(auto di : domainInfo) {
+    if (checkZone(dk, B, di.zone) > 0) {
+      errors++;
+      if(exitOnError)
+        return 1;
+    }
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
-  return 0;
+  if(!errors)
+    return 0;
+  return 1;
 }
 
 int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
@@ -1285,7 +1292,8 @@ try
     cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
     cerr<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
-    cerr<<"check-all-zones                    Check all zones for correctness"<<endl;
+    cerr<<"check-all-zones [exit-on-error]    Check all zones for correctness. Set exit-on-error to exit immediately"<<endl;
+    cerr<<"                                   after finding an error in a zone."<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
     cerr<<"create-zone ZONE                   Create empty zone ZONE"<<endl;
     cerr<<"deactivate-tsig-key ZONE NAME [master|slave]"<<endl;
@@ -1410,7 +1418,8 @@ try
     dbBench(cmds.size() > 1 ? cmds[1] : "");
   }
   else if (cmds[0] == "check-all-zones") {
-    exit(checkAllZones(dk));
+    bool exitOnError = (cmds[1] == "exit-on-error");
+    exit(checkAllZones(dk, exitOnError));
   }
   else if (cmds[0] == "list-all-zones") {
     if (cmds.size() > 2) {
