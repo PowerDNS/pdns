@@ -181,7 +181,6 @@ PDNS_WITH_SYSTEM_POLARSSL
 PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
-PDNS_ENABLE_ED25519
 PDNS_ENABLE_GSS_TSIG
 
 AS_IF([test "x$static" != "xno"], [
@@ -349,7 +348,6 @@ AC_CONFIG_FILES([
   docs/Makefile
   pdns/pdns.init
   ext/Makefile
-  ext/ed25519/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile
   ext/polarssl/Makefile

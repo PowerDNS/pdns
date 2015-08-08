@@ -94,8 +94,8 @@ void showBuildConfiguration()
 #ifdef HAVE_CRYPTOPP
     "cryptopp " <<
 #endif
-#ifdef HAVE_ED25519
-    "ed25519 " <<
+#ifdef HAVE_LIBSODIUM
+    "sodium " <<
 #endif
 #ifdef HAVE_LIBDL
     "libdl " <<
