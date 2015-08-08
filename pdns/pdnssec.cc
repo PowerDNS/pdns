@@ -18,6 +18,9 @@
 #include "signingpipe.hh"
 #include "dns_random.hh"
 #include <fstream>
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
@@ -1335,6 +1338,13 @@ try
     cerr<<desc<<endl;
     return 0;
   }
+
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    cerr<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
 
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {

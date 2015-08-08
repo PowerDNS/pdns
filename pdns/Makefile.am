@@ -231,6 +231,11 @@ pdns_server_SOURCES += ed25519signers.cc
 pdns_server_LDADD += $(ED25519_LIBS)
 endif
 
+if LIBSODIUM
+pdns_server_SOURCES += sodiumsigners.cc
+pdns_server_LDADD += $(LIBSODIUM_LIBS)
+endif
+
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
@@ -329,6 +334,11 @@ endif
 if ED25519
 pdnssec_SOURCES += ed25519signers.cc
 pdnssec_LDADD += $(ED25519_LIBS)
+endif
+
+if LIBSODIUM
+pdnssec_SOURCES += sodiumsigners.cc
+pdnssec_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if SQLITE3
