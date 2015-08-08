@@ -17,4 +17,5 @@ DIST_SUBDIRS = \
 	pipebackend \
 	randombackend \
 	remotebackend \
+	cassandrabackend \
 	tinydnsbackend
