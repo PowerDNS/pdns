@@ -179,11 +179,11 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 					  cass_value_get_string(cass_iterator_get_map_key(field_value_record), &dns_record, &key_length);
 					  cass_int32_t ttl;
 					  cass_value_get_int32(cass_iterator_get_map_value(field_value_record), &ttl);
-					  record_obj_map.insert(std::pair<std::string, std::string>(dns_record, ttl));
+					  record_obj_map.insert(std::pair<std::string, cass_int32_t>(dns_record, ttl));
 				  }
-				  record_obj->recordMap = record_obj_map;
+				  record_obj->recordMap.insert(record_obj_map);
 	    	  }
-	    	  result1->recordTypeResultArrayMap = record_obj;
+	    	  result1->recordTypeResultArrayMap.insert(record_obj);
 	      }
 
 	      cass_iterator_free(fields);
@@ -243,14 +243,12 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 
 int main()
 {
-    cassandradbmanager *sc1,*sc2;
+    cassandradbmanager *sc1;
     sc1 = cassandradbmanager::getInstance();
     domainlookuprecords rec;
     sc1->executeQuery("SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?",&rec,"www.google.");
     return 0;
 }
-
-
 
 #endif
 
