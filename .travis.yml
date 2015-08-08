@@ -109,6 +109,7 @@ script:
  - cd pdns
  - make -k -j 4 pdns_recursor
  - rm -f pdns_recursor
+ - ./pdnssec test-algorithms
  - cd ..
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/

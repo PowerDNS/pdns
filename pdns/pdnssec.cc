@@ -854,14 +854,14 @@ int listAllZones(const string &type="") {
   return 0;
 }
 
-void testAlgorithm(int algo) 
+bool testAlgorithm(int algo)
 {
-  DNSCryptoKeyEngine::testOne(algo);
+  return DNSCryptoKeyEngine::testOne(algo);
 }
 
-void testAlgorithms()
+bool testAlgorithms()
 {
-  DNSCryptoKeyEngine::testAll();
+  return DNSCryptoKeyEngine::testAll();
 }
 
 void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int cores)
@@ -1351,13 +1351,15 @@ try
       cerr << "Syntax: pdnssec test-algorithm algonum"<<endl;
       return 0;
     }
-    testAlgorithm(lexical_cast<int>(cmds[1]));
-    return 0; 
+    if (testAlgorithm(lexical_cast<int>(cmds[1])))
+      return 0;
+    return 1;
   }
 
   if(cmds[0] == "test-algorithms") {
-    testAlgorithms();
-    return 0;
+    if (testAlgorithms())
+      return 0;
+    return 1;
   }
 
   loadMainConfig(g_vm["config-dir"].as<string>());
