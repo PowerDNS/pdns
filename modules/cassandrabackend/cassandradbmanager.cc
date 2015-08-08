@@ -159,34 +159,43 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 
 	      //const CassDataType* udt_records = cass_schema_get_udt(schema, "pdns", "records");
 
-	      CassIterator* fields = cass_iterator_from_user_type(cass_row_get_column_by_name(row, "recordmap"));
-	      while (fields != NULL && cass_iterator_next(fields)) {
-	    	  const char* field_name;
-	    	  size_t field_name_length;
-	    	  const CassValue* field_value = NULL;
-	    	  cass_iterator_get_user_type_field_name(fields, &field_name, &field_name_length);
-	    	  field_value = cass_iterator_get_user_type_field_value(fields);
+	      ////////////////
+	      CassIterator* record_map_iterator = cass_iterator_from_map(cass_row_get_column_by_name(row, "recordmap"));
+	      while (record_map_iterator != NULL && cass_iterator_next(record_map_iterator)) {
+	    	  const char* dns_type;
+	    	  size_t dns_type_length;
+	    	  cass_value_get_string(cass_iterator_get_map_key(record_map_iterator), &dns_type, &dns_type_length);
+			  CassIterator* fields = cass_iterator_from_user_type(cass_iterator_get_map_value(record_map_iterator));
+			  while (fields != NULL && cass_iterator_next(fields)) {
+				  const char* field_name;
+				  size_t field_name_length;
+				  const CassValue* field_value = NULL;
+				  cass_iterator_get_user_type_field_name(fields, &field_name, &field_name_length);
+				  field_value = cass_iterator_get_user_type_field_value(fields);
 
-	    	  printf("%.*s ", (int)field_name_length, field_name);
+				  printf("%.*s ", (int)field_name_length, field_name);
 
-	    	  struct records* record_obj;
-	    	  if (!cass_value_is_null(field_value) && cass_value_type(field_value) == CASS_VALUE_TYPE_MAP) {
-	    		  CassIterator* field_value_record = cass_iterator_from_map(field_value);
-	    		  std::map<std::string, cass_int32_t> record_obj_map;
-				  while (cass_iterator_next(field_value_record)) {
-					  const char* dns_record;
-					  size_t key_length;
-					  cass_value_get_string(cass_iterator_get_map_key(field_value_record), &dns_record, &key_length);
-					  cass_int32_t ttl;
-					  cass_value_get_int32(cass_iterator_get_map_value(field_value_record), &ttl);
-					  record_obj_map.insert(std::pair<std::string, cass_int32_t>(dns_record, ttl));
+				  records record_obj;
+				  if (!cass_value_is_null(field_value) && cass_value_type(field_value) == CASS_VALUE_TYPE_MAP) {
+					  CassIterator* field_value_record = cass_iterator_from_map(field_value);
+					  std::map<std::string, uint32_t> record_obj_map;
+					  while (cass_iterator_next(field_value_record)) {
+						  const char* dns_record;
+						  size_t key_length;
+						  cass_value_get_string(cass_iterator_get_map_key(field_value_record), &dns_record, &key_length);
+						  cass_int32_t ttl;
+						  cass_value_get_int32(cass_iterator_get_map_value(field_value_record), &ttl);
+						  record_obj_map.insert(std::pair<std::string, std::uint32_t>(dns_record, ttl));
+					  }
+					  record_obj.recordMap = record_obj_map;
 				  }
-				  record_obj->recordMap.insert(record_obj_map);
-	    	  }
-	    	  result1->recordTypeResultArrayMap.insert(record_obj);
+				  result1->recordTypeResultArrayMap.insert(std::pair<std::string, records>(dns_type, record_obj));
+				  //result1->recordTypeResultArrayMap[dns_type] = record_obj;
+			  }
+			  cass_iterator_free(fields);
 	      }
-
-	      cass_iterator_free(fields);
+	      cass_iterator_free(record_map_iterator);
+	      /////////////////////
 
 	      cass_bool_t disabled;
 	      cass_value_get_bool(cass_row_get_column_by_name(row, "disabled"),&disabled);
