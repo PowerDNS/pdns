@@ -132,7 +132,7 @@ public:
   bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0) {
 	 domain = name;
 	 L << Logger::Info << "[CassandraBackend] Recieved getSOA " <<domain<< " "<< endl;
-	 if(domain.compare("smg.fake.com") == 0) {
+	 if(domain.compare("pdns.com") == 0) {
 		 soadata.db = this;
 		 soadata.serial = 0;
 		 soadata.refresh = 10;
@@ -141,8 +141,8 @@ public:
 		 soadata.default_ttl = 10;
 		 soadata.domain_id = 10;
 		 soadata.ttl = 10;
-		 soadata.nameserver = "ns1.smg.fake.com";
-		 soadata.hostmaster = "ahu.smg.fake.com";
+		 soadata.nameserver = "ns1.pdns.com";
+		 soadata.hostmaster = "ahu.pdns.com";
 		return true;
 	 } else {
 		return false;
@@ -157,19 +157,17 @@ public:
     totalSize = 0;
     L << Logger::Info << "[CassandraBackend] Recieved query for "<<queryType<< " " <<domain<< " "<< endl;
     L << Logger::Info << "[CassandraBackend] Calling cassandradbmanger" << endl;
-    if((type == QType::A) ||(type == QType::TXT) || (type == QType::ANY)) {
     	cassandradbmanager *sc1 = cassandradbmanager::getInstance();
 
-    	std::string trailingsuffix = ".smg.fake.com";
+    	std::string trailingsuffix = ".pdns.com";
     	std::string::size_type i = domain.find(trailingsuffix);
     	if (i != std::string::npos) {
     		domain.erase(i, trailingsuffix.length());
     	}
     	const char* query = "SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?";
-    	sc1->executeQuery(query,&record,domain.c_str());
+    	sc1->executeQuery(query,&record,domain.c_str(),queryType.c_str());
     	backendRecords = backendutil::parse(&record);
     	this->totalSize = record.size;
-    }
   }
 
   bool get(DNSResourceRecord &rr)

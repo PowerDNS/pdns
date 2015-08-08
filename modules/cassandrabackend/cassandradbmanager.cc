@@ -127,7 +127,7 @@ cassandradbmanager* cassandradbmanager::getInstance()
     }
 }
 
-void cassandradbmanager::executeQuery(const char* query, struct domainlookuprecords* result1, const char* key) {
+void cassandradbmanager::executeQuery(const char* query, struct domainlookuprecords* result1, const char* key, const char* dns_query_type) {
 	printf("====Executing domain query======");
 	//Query : SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?
 	CassError rc = CASS_OK;
@@ -165,6 +165,9 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 	    	  const char* dns_type;
 	    	  size_t dns_type_length;
 	    	  cass_value_get_string(cass_iterator_get_map_key(record_map_iterator), &dns_type, &dns_type_length);
+	    	  if(std::strcmp(dns_type,dns_query_type)!=0 && std::strcmp("ANY",dns_query_type)!=0) {
+	    		  continue;
+	    	  }
 			  CassIterator* fields = cass_iterator_from_user_type(cass_iterator_get_map_value(record_map_iterator));
 			  while (fields != NULL && cass_iterator_next(fields)) {
 				  const char* field_name;
@@ -255,7 +258,7 @@ int main()
     cassandradbmanager *sc1;
     sc1 = cassandradbmanager::getInstance();
     domainlookuprecords rec;
-    sc1->executeQuery("SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?",&rec,"www.google.");
+    sc1->executeQuery("SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?",&rec,"www.google.","ANY");
     return 0;
 }
 

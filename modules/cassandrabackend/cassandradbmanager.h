@@ -19,5 +19,5 @@ public:
 
     static cassandradbmanager* getInstance();
     void method();
-    void executeQuery(const char* query, struct domainlookuprecords* result, const char* key);
+    void executeQuery(const char* query, struct domainlookuprecords* result, const char* key, const char* dns_query_type);
 };
