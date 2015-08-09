@@ -13,7 +13,7 @@ CREATE TYPE records (
   
 );
 
-create table if not exists ultra.DOMAIN_LOOKUP_RECORDS (
+create table if not exists pdns.DOMAIN_LOOKUP_RECORDS (
 domain varchar, -- domain regex that will be looked up
 recordmap map<varchar,frozen<records>>, --Map of Record Type and Value set
 --Key is case insensitive and is maintained in QType enum
@@ -25,5 +25,5 @@ SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='
 
 
 --Example
--- insert into ultra.DOMAIN_LOOKUP_RECORDS (domain,recordmap,disabled,creation_time) values ('cassandra.pdns.com',{ 'A': { record:{'127.0.1.255':123,'127.0.0.1':234} } , 'TXT': { record:{'TXT Record1':345,'TXT Record2':456} } },False,'2015-05-05 15:00:41+0530');
+-- insert into pdns.DOMAIN_LOOKUP_RECORDS (domain,recordmap,disabled,creation_time) values ('cassandra.pdns.com',{ 'A': { record:{'127.0.1.255':123,'127.0.0.1':234} } , 'TXT': { record:{'TXT Record1':345,'TXT Record2':456} } },False,'2015-05-05 15:00:41+0530');
 -- select * from domain_lookup_records;
