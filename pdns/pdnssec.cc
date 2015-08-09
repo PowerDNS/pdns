@@ -110,7 +110,7 @@ static int shorthand2algorithm(const string &algorithm)
   if (!algorithm.compare("gost")) return 12;
   if (!algorithm.compare("ecdsa256")) return 13;
   if (!algorithm.compare("ecdsa384")) return 14;
-  if (!algorithm.compare("ed25519")) return 250;
+  if (!algorithm.compare("experimental-ed25519")) return 250;
   return -1;
 }
 
@@ -1284,7 +1284,11 @@ try
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
-    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384|ed25519]"<<endl;
+    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
+#ifdef HAVE_LIBSODIUM
+    cerr<<"|experimental-ed25519";
+#endif
+    cerr<<"]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cerr<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
     cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
