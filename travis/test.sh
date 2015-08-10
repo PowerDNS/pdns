@@ -64,7 +64,7 @@ regression_tests_recursor() {
 }
 
 regression_tests_nobackend() {
-  cd ../regression-tests.nobackend/
+  cd regression-tests.nobackend/
   ./runtests
   test ! -s ./failed_tests
   cd ..
