@@ -93,7 +93,6 @@ osx(){
   brew install boost
   brew install ragel
   brew install w3m
-  brew install boost
 }
 
 common
