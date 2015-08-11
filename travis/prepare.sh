@@ -98,7 +98,12 @@ osx(){
     moreutils \
     sqlite3 \
     mysql \
-    postgresql
+    postgresql \
+    pandoc \
+    brew-pip
+
+  brew pip pandocfilters
+  brew pip linkchecker
 }
 
 common
