@@ -18,7 +18,7 @@ linux_configure() {
 
 osx_configure(){
   ./configure \
-    --with-dynmodules='bind' \
+    --with-dynmodules='bind gsqlite3' \
     --with-modules='' \
     --enable-unit-tests \
     --enable-tools \

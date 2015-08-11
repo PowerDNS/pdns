@@ -94,6 +94,7 @@ osx(){
   brew install ragel
   brew install w3m
   brew install moreutils
+  brew install sqlite3
 }
 
 common
