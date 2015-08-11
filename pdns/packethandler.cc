@@ -853,7 +853,7 @@ int PacketHandler::processNotify(DNSPacket *p)
     if (p->d_havetsig && p->getTSIGKeyname().empty() == false) {
         L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
     } else {
-      L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
+      L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
       return RCode::Refused;
     }
   }
@@ -869,7 +869,7 @@ int PacketHandler::processNotify(DNSPacket *p)
   meta.clear();
   if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
     if (!p->d_havetsig || meta[0] != p->getTSIGKeyname().toStringNoDot()) {
-      L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
+      L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
       return RCode::Refused;
     }
   }
