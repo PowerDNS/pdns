@@ -3,6 +3,7 @@ os:
   - osx
 language: cpp
 env:
+  - VENV_DIR=/tmp/pdns-venv
   - TEST_SUITE=regression_tests
   - TEST_SUITE=regression_tests_nobackend
   - TEST_SUITE=regression_tests_recursor

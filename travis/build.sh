@@ -58,6 +58,10 @@ dist_make_dnsdist(){
   cd ../..
 }
 
+set -x
+
+source $VENV_DIR/bin/activate
+
 ./bootstrap
 ${TRAVIS_OS_NAME}_configure
 

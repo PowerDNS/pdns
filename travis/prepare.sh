@@ -63,7 +63,6 @@ linux(){
     libyaml-cpp-dev \
     libzmq3-dev \
     pandoc
-  sudo pip install pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1
   sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
   sudo touch /etc/authbind/byport/53
   sudo chmod 755 /etc/authbind/byport/53
@@ -93,18 +92,30 @@ osx(){
   brew unlink boost
   brew unlink postgresql
   brew install boost \
-    ragel \
-    w3m \
+    brew-pip \
+    lua \
     moreutils \
-    sqlite3 \
     mysql \
-    postgresql \
+    ldns \
     pandoc \
-    brew-pip
+    postgresql \
+    ragel \
+    sqlite3 \
+    w3m
 
   brew pip pandocfilters
   brew pip linkchecker
 }
 
+create_venv(){
+  virtualenv $VENV_DIR
+  source $VENV_DIR/bin/activate
+  pip install pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1
+  deactivate
+}
+
+set -x
+
 common
 $TRAVIS_OS_NAME
+create_venv
