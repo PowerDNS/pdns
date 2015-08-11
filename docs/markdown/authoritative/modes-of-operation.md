@@ -8,7 +8,7 @@ MySQL replication has proven to be very robust and well suited, even over transa
 To use native replication, configure your backend storage to do the replication and do not configure PDNS to do so.
 
 # Master operation
-When operating as a master, PDNS sends out notifications of changes to slaves, which react to these notifications by querying PDNS to see if the zone changed, and transferring its contents if it has. Notifications are a way to promptly propagate zone changes to slaves, as described in [RFC 1996](http://tools.ietf.org/html/rfc1996).
+When operating as a master, PDNS sends out notifications of changes to slaves, which react to these notifications by querying PDNS to see if the zone changed, and transferring its contents if it has. Notifications are a way to promptly propagate zone changes to slaves, as described in [RFC 1996](http://tools.ietf.org/html/rfc1996). Since version 4.0, the NOTIFY messages have a TSIG record added (transaction signature) if zone has been configured to use TSIG.
 
 **Warning**: Master support is OFF by default, turn it on by adding [`master`](settings.md#master) to the configuration.
 
@@ -43,6 +43,8 @@ Slave operation can also be programmed using several [`pdns_control`](internals.
 
 Since version 2.9.21, PowerDNS supports multiple masters. For the BIND backend, the native BIND configuration language suffices to specify multiple masters, for SQL based backends, list all master servers separated by commas in the 'master' field of the domains table.
 
+Since version 4.0, PowerDNS requires that slaves sign their notifications. During transition and interoperation with other nameservers, you can use options **allow-unsigned-notify** to permit unsigned notifications. For 4.0 this is turned off by default, but it might be turned on permanently in future releases.
+
 ## Supermaster: automatic provisioning of slaves
 PDNS can recognize so called 'supermasters'. A supermaster is a host which is master for domains and for which we are to be a slave. When a master (re)loads a domain, it sends out a notification to its slaves. Normally, such a notification is only accepted if PDNS already knows that it is a slave for a domain.
 
@@ -52,6 +54,8 @@ Before a supermaster notification succeeds, the following conditions must be met
 -   The supermaster must carry a SOA record for the notified domain
 -   The supermaster IP must be present in the 'supermaster' table
 -   The set of NS records for the domain, as retrieved by the slave from the supermaster, must include the name that goes with the IP address in the supermaster table
+-   If your master sends signed NOTIFY it will mark that TSIG key as the TSIG key used for retrieval as well
+-   If you turn off **allow-unsigned-supermaster*, then your supermaster(s) are required to sign their notifications.
 
 **Warning**: If you use another PowerDNS server as master and have DNSSEC enabled on that server please don't forget to rectify the domains after every change. If you don't do this there is no SOA record available and one requirement will fail.
 
