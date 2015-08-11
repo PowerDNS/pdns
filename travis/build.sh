@@ -20,6 +20,7 @@ osx_configure(){
   ./configure \
     --with-dynmodules='bind gsqlite3 gmysql gpgsql pipe' \
     --with-modules='' \
+    --with-mysql-config="$(brew --prefix mysql)/bin/mysql_config" \
     --enable-unit-tests \
     --enable-tools \
     --disable-silent-rules \
