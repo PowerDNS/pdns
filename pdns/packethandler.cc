@@ -868,7 +868,13 @@ int PacketHandler::processNotify(DNSPacket *p)
 
   meta.clear();
   if (B.getDomainMetadata(p->qdomain,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
-    if (!p->d_havetsig || meta[0] != p->getTSIGKeyname().toStringNoDot()) {
+    if (!p->d_havetsig) {
+     if (::arg().mustDo("allow-insecure-notify")) {
+       L<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": permitting because allow-insecure-notify is turned on."<<endl;
+     } else {
+       L<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": refused because allow-insecure-notify is turned off."<<endl;
+     }
+    } else if (meta[0] != p->getTSIGKeyname().toStringNoDot()) {
       L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
       return RCode::Refused;
     }
