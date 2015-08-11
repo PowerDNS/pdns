@@ -851,7 +851,7 @@ int PacketHandler::processNotify(DNSPacket *p)
 
   if(!s_allowNotifyFrom.match((ComboAddress *) &p->d_remote ) || p->d_havetsig) {
     if (p->d_havetsig && p->getTSIGKeyname().empty() == false) {
-        L<<Logger::Notice<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
+        L<<Logger::Notice<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<", allowed by TSIG key '"<<p->getTSIGKeyname()<<"'"<<endl;
     } else {
       L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<" but remote is not permitted by TSIG or allow-notify-from"<<endl;
       return RCode::Refused;
@@ -875,7 +875,7 @@ int PacketHandler::processNotify(DNSPacket *p)
        L<<Logger::Warning<<"Received unsigned NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": refused because allow-insecure-notify is turned off."<<endl;
      }
     } else if (meta[0] != p->getTSIGKeyname().toStringNoDot()) {
-      L<<Logger::Error<<"Received NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
+      L<<Logger::Error<<"Received secure NOTIFY for "<<p->qdomain<<" from "<<p->getRemote()<<": expected TSIG key '"<<meta[0]<<", got '"<<p->getTSIGKeyname()<<"'"<<endl;
       return RCode::Refused;
     }
   }
