@@ -18,7 +18,7 @@ linux_configure() {
 
 osx_configure(){
   ./configure \
-    --with-dynmodules='bind gsqlite3' \
+    --with-dynmodules='bind gsqlite3 gmysql gpgsql pipe' \
     --with-modules='' \
     --enable-unit-tests \
     --enable-tools \
@@ -26,7 +26,8 @@ osx_configure(){
     --disable-dependency-tracking
 }
 
-make_auth() {
+dist_make_auth() {
+  make -k dist
   make -j4 -k
 }
 
@@ -61,8 +62,7 @@ dist_make_dnsdist(){
 ${TRAVIS_OS_NAME}_configure
 
 # Create auth tarball and build auth
-make -k dist
-make -k -j 4
+dist_make_auth
 
 # Build documentation (needed for the manpages during make install)
 make_docs
@@ -83,3 +83,8 @@ make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dn
 # Test if we can build the recursor from the repo root
 make -C pdns -k -j 4 pdns_recursor
 rm -f pdns/pdns_recursor
+
+dist_make_recursor
+
+dist_make_dnsdist
+
