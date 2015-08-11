@@ -20,6 +20,16 @@
 # allow-recursion=0.0.0.0/0
 
 #################################
+# allow-unsigned-notify	Allow unsigned notifications for TSIG secured domains
+#
+# allow-unsigned-notify=yes
+
+#################################
+# allow-unsigned-supermaster	Allow supermasters to create zones without TSIG signed NOTIFY
+#
+# allow-unsigned-supermaster=yes
+
+#################################
 # also-notify	When notifying a domain, also notify these nameservers
 #
 # also-notify=
