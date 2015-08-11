@@ -90,11 +90,13 @@ linux(){
 
 osx(){
   brew update
-  brew install boost
-  brew install ragel
-  brew install w3m
-  brew install moreutils
-  brew install sqlite3
+  brew install boost \
+    ragel \
+    w3m \
+    moreutils \
+    sqlite3 \
+    mysql \
+    postgresql
 }
 
 common
