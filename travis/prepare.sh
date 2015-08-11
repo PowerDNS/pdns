@@ -90,6 +90,8 @@ linux(){
 
 osx(){
   brew update
+  brew unlink boost
+  brew unlink postgresql
   brew install boost \
     ragel \
     w3m \
