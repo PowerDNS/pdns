@@ -89,7 +89,7 @@ linux(){
 }
 
 osx(){
-  sudo ifconfig lo inet 10.0.3.0/24 add
+  sudo ifconfig lo0 inet 10.0.3.0/24 add
   brew update
   brew unlink boost
   brew unlink postgresql
