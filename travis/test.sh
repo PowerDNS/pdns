@@ -51,13 +51,17 @@ regression_tests() {
 regression_tests_recursor() {
   cd regression-tests.recursor
   cp vars.sample vars
+  if [ "$TRAVIS_OS_NAME" = 'osx' ]; then
+    perl -i -pe 's/exec authbind //' vars
+    $USE_SUDO='sudo'
+  fi
   ./config.sh
-  ./start.sh
+  $USE_SUDO ./start.sh
   sleep 3
   svstat configs/*
   ./runtests
   #DNSName  test ! -s ./failed_tests
-  ./stop.sh
+  $USE_SUDO ./stop.sh
   sleep 3
   ./clean.sh
   cd ..

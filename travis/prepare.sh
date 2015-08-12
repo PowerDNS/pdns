@@ -89,7 +89,10 @@ linux(){
 }
 
 osx(){
-  sudo ifconfig lo0 inet 10.0.3.0/24 add
+  for octet in $(seq 0 255); do
+    sudo ifconfig lo0 inet 10.0.3.${octet}/32 add
+  done
+
   brew update
   brew unlink boost
   brew unlink postgresql
