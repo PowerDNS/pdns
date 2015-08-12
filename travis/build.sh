@@ -90,5 +90,8 @@ rm -f pdns/pdns_recursor
 
 dist_make_recursor
 
-dist_make_dnsdist
+if [ "$TRAVIS_OS_NAME" != 'osx' ]; then
+  # There is no clock_gettime on OSX
+  dist_make_dnsdist
+fi
 
