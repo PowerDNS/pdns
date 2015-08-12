@@ -4,6 +4,10 @@ common(){
   git describe --always --dirty=+
   wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
   unzip top-1m.csv.zip -d ./pdns/regression-tests
+  travis_retry gem install bundler --no-rdoc --no-ri
+  cd modules/remotebackend
+  travis_retry ruby -S bundle install
+  cd ../..
 }
 
 linux(){
@@ -74,10 +78,6 @@ linux(){
   wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
   sudo dpkg -i libsodium_1.0.2-1_amd64.deb
   cd pdns
-  travis_retry gem install bundler --no-rdoc --no-ri
-  cd modules/remotebackend
-  travis_retry ruby -S bundle install
-  cd ../..
   sudo mkdir -p /etc/pkcs11/modules/
   sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm
   sudo cp -f regression-tests/softhsm.conf /etc/softhsm/softhsm.conf
@@ -116,6 +116,7 @@ create_venv(){
 
 set -x
 
+source travis/common
 common
 $TRAVIS_OS_NAME
 create_venv

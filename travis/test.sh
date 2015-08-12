@@ -71,9 +71,10 @@ regression_tests_nobackend() {
 }
 
 regressiont_tests_api() {
-#DNSName cd ../regression-tests.api
+#DNSName cd regression-tests.api
 #DNSName ./runtests authoritative
 #DNSName ./runtests recursor
+#DNSName cd ..
   return 0
 }
 
@@ -85,12 +86,7 @@ clean_git() {
 }
 
 
-if [ "$1" = "ALL" ]; then
-  regression_tests
-  regression_tests_recursor
-  regression_tests_nobackend
-else
-  $1
-fi
-
+regression_tests
+regression_tests_recursor
+regression_tests_nobackend
 clean_git

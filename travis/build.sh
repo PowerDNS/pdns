@@ -59,7 +59,7 @@ dist_make_dnsdist(){
 }
 
 set -x
-
+source travis/common
 source $VENV_DIR/bin/activate
 
 ./bootstrap

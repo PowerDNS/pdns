@@ -2,20 +2,14 @@ os:
   #  - linux
   - osx
 language: cpp
-env:
-  - VENV_DIR=/tmp/pdns-venv
-  - TEST_SUITE=regression_tests
-  - TEST_SUITE=regression_tests_nobackend
-  - TEST_SUITE=regression_tests_recursor
-  - TEST_SUITE=regression_tests_api
-  - TEST_SUITE=ALL
 compiler:
   - gcc
   - clang
-before_script: travis/prepare.sh
+before_script:
+  - travis/prepare.sh
 script:
   - travis/build.sh
-  - "travis/test.sh $TEST_SUITE"
+  - travis/test.sh
 #notifications:
   #  irc:
   #  channels:
