@@ -93,6 +93,7 @@ osx(){
   brew unlink postgresql
   brew install boost \
     brew-pip \
+    daemontools \
     lua \
     moreutils \
     mysql \
