@@ -80,9 +80,9 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool keyOrZone, int algorithm, in
     if(algorithm <= 10)
       bits = keyOrZone ? 2048 : 1024;
     else {
-      if(algorithm == 12 || algorithm == 13 || algorithm == 250) // ECDSA, GOST, ED25519
+      if(algorithm == 12 || algorithm == 13 || algorithm == 250) // GOST, ECDSAP256SHA256, ED25519SHA512
         bits = 256;
-      else if(algorithm == 14)
+      else if(algorithm == 14) // ECDSAP384SHA384
         bits = 384;
       else {
         throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algorithm));

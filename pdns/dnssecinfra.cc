@@ -134,8 +134,10 @@ void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback
   getMakers()[algo]=maker;
 }
 
-void DNSCryptoKeyEngine::testAll()
+bool DNSCryptoKeyEngine::testAll()
 {
+  bool ret=true;
+
   BOOST_FOREACH(const allmakers_t::value_type& value, getAllMakers())
   {
     BOOST_FOREACH(maker_t* creator, value.second) {
@@ -150,15 +152,19 @@ void DNSCryptoKeyEngine::testAll()
           catch(std::exception& e)
           {
             cerr<<e.what()<<endl;
+            ret=false;
           }
         }
       }
     }
   }
+  return ret;
 }
 
-void DNSCryptoKeyEngine::testOne(int algo)
+bool DNSCryptoKeyEngine::testOne(int algo)
 {
+  bool ret=true;
+
   BOOST_FOREACH(maker_t* creator, getAllMakers()[algo]) {
 
     BOOST_FOREACH(maker_t* signer, getAllMakers()[algo]) {
@@ -171,10 +177,12 @@ void DNSCryptoKeyEngine::testOne(int algo)
         catch(std::exception& e)
         {
           cerr<<e.what()<<endl;
+          ret=false;
         }
       }
     }
   }
+  return ret;
 }
 // returns times it took to sign and verify
 pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
@@ -187,11 +195,13 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 250) // GOST or nistp256 or ED25519
+  else if(algo == 12 || algo == 13 || algo == 250) // ECC-GOST or ECDSAP256SHA256 or ED25519SHA512
     bits=256;
-  else 
-    bits=384;
-    
+  else if(algo == 14) // ECDSAP384SHA384
+    bits = 384;
+  else
+    throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algo));
+
   dckeCreate->create(bits);
 
   { // FIXME: this block copy/pasted from makeFromISCString

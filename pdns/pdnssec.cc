@@ -18,6 +18,9 @@
 #include "signingpipe.hh"
 #include "dns_random.hh"
 #include <fstream>
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
@@ -82,6 +85,8 @@ static void algorithm2name(uint8_t algo, string &name) {
            name = "ECDSAP256SHA256"; return;
         case 14:
            name = "ECDSAP384SHA384"; return;
+        case 250:
+           name = "ED25519SHA512"; return;
         case 252:
            name = "INDIRECT"; return;
         case 253:
@@ -105,7 +110,7 @@ static int shorthand2algorithm(const string &algorithm)
   if (!algorithm.compare("gost")) return 12;
   if (!algorithm.compare("ecdsa256")) return 13;
   if (!algorithm.compare("ecdsa384")) return 14;
-  if (!algorithm.compare("ed25519")) return 250;
+  if (!algorithm.compare("experimental-ed25519")) return 250;
   return -1;
 }
 
@@ -856,14 +861,14 @@ int listAllZones(const string &type="") {
   return 0;
 }
 
-void testAlgorithm(int algo) 
+bool testAlgorithm(int algo)
 {
-  DNSCryptoKeyEngine::testOne(algo);
+  return DNSCryptoKeyEngine::testOne(algo);
 }
 
-void testAlgorithms()
+bool testAlgorithms()
 {
-  DNSCryptoKeyEngine::testAll();
+  return DNSCryptoKeyEngine::testAll();
 }
 
 void testSpeed(DNSSECKeeper& dk, const string& zone, const string& remote, int cores)
@@ -1286,7 +1291,11 @@ try
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
-    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+    cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
+#ifdef HAVE_LIBSODIUM
+    cerr<<"|experimental-ed25519";
+#endif
+    cerr<<"]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cerr<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
     cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
@@ -1342,18 +1351,27 @@ try
     return 0;
   }
 
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    cerr<<"Unable to initialize sodium crypto library"<<endl;
+    exit(99);
+  }
+#endif
+
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnssec test-algorithm algonum"<<endl;
       return 0;
     }
-    testAlgorithm(lexical_cast<int>(cmds[1]));
-    return 0; 
+    if (testAlgorithm(lexical_cast<int>(cmds[1])))
+      return 0;
+    return 1;
   }
 
   if(cmds[0] == "test-algorithms") {
-    testAlgorithms();
-    return 0;
+    if (testAlgorithms())
+      return 0;
+    return 1;
   }
 
   loadMainConfig(g_vm["config-dir"].as<string>());
