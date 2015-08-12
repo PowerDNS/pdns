@@ -106,8 +106,7 @@ osx(){
     sqlite3 \
     w3m
 
-  brew pip pandocfilters
-  brew pip linkchecker
+  luarocks install luaposix
 }
 
 create_venv(){
