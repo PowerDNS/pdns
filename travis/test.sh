@@ -53,7 +53,7 @@ regression_tests_recursor() {
   cp vars.sample vars
   if [ "$TRAVIS_OS_NAME" = 'osx' ]; then
     perl -i -pe 's/exec authbind //' vars
-    $USE_SUDO='sudo'
+    USE_SUDO='sudo'
   fi
   ./config.sh
   $USE_SUDO ./start.sh
