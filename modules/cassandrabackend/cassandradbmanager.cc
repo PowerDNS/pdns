@@ -13,6 +13,16 @@
 #include <cassandra.h>
 #include <map>
 #include "cassandradbmanager.h"
+#include "pdns/utility.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include <signal.h>
+#include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/lock.hh"
 
 bool cassandradbmanager::instanceFlag = false;
 cassandradbmanager* cassandradbmanager::single = NULL;
@@ -128,7 +138,7 @@ cassandradbmanager* cassandradbmanager::getInstance()
 }
 
 void cassandradbmanager::executeQuery(const char* query, struct domainlookuprecords* result1, const char* key, const char* dns_query_type) {
-	printf("====Executing domain query======");
+	 L << Logger::Info <<"====Executing domain query======"<< endl;
 	//Query : SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?
 	CassError rc = CASS_OK;
 	  CassStatement* statement = NULL;
@@ -155,7 +165,7 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 	      size_t key_length;const char* key;
 	      cass_value_get_string(cass_row_get_column_by_name(row, "domain"), &key, &key_length);
 	      result1->domain = key;
-	      printf("\n%s\n",result1->domain);
+	      L << Logger::Info <<"Domain "<<result1->domain<< endl;
 
 	      //const CassDataType* udt_records = cass_schema_get_udt(schema, "pdns", "records");
 
@@ -177,7 +187,7 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 				  field_value = cass_iterator_get_user_type_field_value(fields);
 
 				  printf("%.*s ", (int)field_name_length, field_name);
-
+				  L << Logger::Info <<field_name_length<<" "<<field_name<<endl;
 				  records record_obj;
 				  if (!cass_value_is_null(field_value) && cass_value_type(field_value) == CASS_VALUE_TYPE_MAP) {
 					  CassIterator* field_value_record = cass_iterator_from_map(field_value);
@@ -204,7 +214,7 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 	      cass_value_get_bool(cass_row_get_column_by_name(row, "disabled"),&disabled);
 	      result1->disabled = disabled;
 	      printf("disabled %d\n",result1->disabled);
-
+	      L << Logger::Info <<"disabled "<<result1->disabled<<endl;
 	      cass_int64_t ts;
 	      cass_value_get_int64(cass_row_get_column_by_name(row, "creation_time"), &ts);
 	      result1->creation_time = ts;

@@ -162,9 +162,10 @@ public:
     	std::string trailingsuffix = ".pdns.com";
     	std::string::size_type i = domain.find(trailingsuffix);
     	if (i != std::string::npos) {
-    		domain.erase(i, trailingsuffix.length());
+    		//domain.erase(i, trailingsuffix.length());
     	}
     	const char* query = "SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?";
+    	L << Logger::Info << "[CassandraBackend] SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = "<<domain<< endl;
     	sc1->executeQuery(query,&record,domain.c_str(),queryType.c_str());
     	backendRecords = backendutil::parse(&record);
     	this->totalSize = record.size;

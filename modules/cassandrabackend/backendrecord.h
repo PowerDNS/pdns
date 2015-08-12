@@ -1,13 +1,13 @@
 class backendrecord {
 private:
 	std::string record;
-	QType::typeenum type;
+	QType type;
 	uint32_t ttl = 0;
 public:
 	backendrecord() {
 
 	}
-	backendrecord(std::string record,QType::typeenum type,uint32_t ttl) {
+	backendrecord(std::string record,QType type,uint32_t ttl) {
 		this->record = record;
 		this->type = type;
 		this->ttl = ttl;
@@ -21,11 +21,11 @@ public:
 		this->record = record;
 	}
 
-	QType::typeenum getType() const {
+	QType getType() const {
 		return type;
 	}
 
-	void setType(QType::typeenum type) {
+	void setType(QType type) {
 		this->type = type;
 	}
 

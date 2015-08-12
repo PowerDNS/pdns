@@ -6,6 +6,18 @@
 #include "pdns/qtype.hh"
 #include "backendrecord.h"
 #include "cassandratables.h"
+
+#include "pdns/utility.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/logger.hh"
+#include <signal.h>
+#include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/lock.hh"
+
 typedef std::map<std::string, std::string>::iterator it_type_string_string;
 typedef std::map<std::string, records>::iterator it_type_string_record;
 typedef std::map<std::string, std::uint32_t>::iterator it_type_string_uint32_t;
@@ -37,7 +49,8 @@ public:
 					record_data = iterator_value->first;
 					output[i].setRecord(record_data);
 					qtype = type;
-					output[i].setType(qtype.types);
+					//L << Logger::Info << "Type "<<type<<" Qtype "<<qtype.getName()<<" qtype.types "<<qtype.types<<" record_data "<<record_data<<endl;
+					output[i].setType(qtype);
 					output[i].setTtl(detailed_map[record_data]);
 					i++;
 				}
