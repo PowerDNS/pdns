@@ -226,7 +226,7 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   string tsigsecret;
 
   if (B.getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
-    tsigkeyname.toStringNoDot() = meta[0];
+    tsigkeyname = DNSName(meta[0]);
   }
 
   vector<uint8_t> packet;
@@ -237,8 +237,8 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
   if (tsigkeyname.empty() == false) {
     B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64);
     TSIGRecordContent trc;
-    if (tsigalgorithm == "hmac-md5")
-      trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+    if (tsigalgorithm.toStringNoDot() == "hmac-md5")
+      trc.d_algoName = DNSName(tsigalgorithm.toStringNoDot() + ".sig-alg.reg.int.");
     else
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(0);
