@@ -16,15 +16,15 @@
 
 bool cassandradbmanager::instanceFlag = false;
 cassandradbmanager* cassandradbmanager::single = NULL;
-std::string cassandradbmanager::seed_nodes = "dummy_seednodes";
-std::string cassandradbmanager::username = "dummy_username";
-std::string cassandradbmanager::password = "dummy_password";
-std::string cassandradbmanager::keyspace = "dummy_keyspace";
+std::string cassandradbmanager::seed_nodes = "127.0.0.1";
+std::string cassandradbmanager::username = "cassandra";
+std::string cassandradbmanager::password = "cassandra";
+std::string cassandradbmanager::keyspace = "pdns";
 int cassandradbmanager::core_connections = 1;
 int cassandradbmanager::max_connections = 1;
 int cassandradbmanager::max_concurrent_creations = 1;
 int cassandradbmanager::num_io_threads = 1;
-int cassandradbmanager::protocol_version = 2;
+int cassandradbmanager::protocol_version = 3;
 int cassandradbmanager::queue_size_io = 4096;
 int cassandradbmanager::queue_size_event = 4096;
 int cassandradbmanager::reconnect_wait_time = 2000;
@@ -97,7 +97,7 @@ cassandradbmanager::cassandradbmanager()
 	      instanceFlag = false;
 	   } else {
 		   instanceFlag = true;
-		   preparedHashQuery = this->prepare_hashquery(session);
+		   //preparedHashQuery = this->prepare_hashquery(session);
 	   }
 }
 
@@ -258,7 +258,7 @@ int main()
     cassandradbmanager *sc1;
     sc1 = cassandradbmanager::getInstance();
     domainlookuprecords rec;
-    sc1->executeQuery("SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?",&rec,"www.google.","ANY");
+    sc1->executeQuery("SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?",&rec,"cassandra.pdns.com","ANY");
     return 0;
 }
 
