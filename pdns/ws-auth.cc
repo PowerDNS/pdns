@@ -296,7 +296,8 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
-  jdi.AddMember("name", di.zone.toString().c_str(), doc.GetAllocator());
+  Value jname(di.zone.toString().c_str(), doc.GetAllocator()); // copy
+  jdi.AddMember("name", jname, doc.GetAllocator());
   jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
   jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
   jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());

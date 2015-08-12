@@ -149,7 +149,8 @@ static void fillZone(const string& zonename, HttpResponse* resp)
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
-  doc.AddMember("name", iter->first.toString().c_str(), doc.GetAllocator());
+  Value jname(iter->first.toString().c_str(), doc.GetAllocator()); // copy
+  doc.AddMember("name", jname, doc.GetAllocator());
   doc.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
   Value servers;
   servers.SetArray();
