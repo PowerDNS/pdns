@@ -1,1 +1,9 @@
 export VENV_DIR=/tmp/pdns-venv
+
+TRAVIS_RETRY=''
+
+if [ "$TRAVIS_OS_NAME" = 'linux' ]; then
+  TRAVIS_RETRY='travis_retry'
+fi
+
+export $TRAVIS_RETRY

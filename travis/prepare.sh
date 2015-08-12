@@ -1,12 +1,13 @@
 #!/bin/sh
 
+
 common(){
   git describe --always --dirty=+
   wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
   unzip top-1m.csv.zip -d ./pdns/regression-tests
-  travis_retry gem install bundler --no-rdoc --no-ri
+  $TRAVIS_RETRY gem install bundler --no-rdoc --no-ri
   cd modules/remotebackend
-  travis_retry ruby -S bundle install
+  $TRAVIS_RETRY ruby -S bundle install
   cd ../..
 }
 
