@@ -93,6 +93,8 @@ osx(){
     sudo ifconfig lo0 inet 10.0.3.${octet}/32 add
   done
 
+  ifconfig lo0
+
   brew update
   brew unlink boost
   brew unlink postgresql
