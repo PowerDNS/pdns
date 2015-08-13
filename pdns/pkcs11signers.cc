@@ -688,7 +688,6 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::str
   this->d_label = label;
   this->d_err = 0;
   this->d_loaded = false;
-  Lock l(d_slot->m());
   if (this->d_slot->LoggedIn()) LoadAttributes();
 }
 
