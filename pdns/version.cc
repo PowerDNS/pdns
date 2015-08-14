@@ -25,7 +25,7 @@
 #endif
 #include "logger.hh"
 #include "version.hh"
-#include <polarssl/version.h>
+#include <mbedtls/version.h>
 
 static ProductType productType;
 
