@@ -1238,7 +1238,7 @@
  *
  * This modules adds support for the AES-NI instructions on x86-64
  */
-#define POLARSSL_AESNI_C
+//#define POLARSSL_AESNI_C
 
 /**
  * \def POLARSSL_AES_C
@@ -1812,7 +1812,7 @@
  *
  * This modules adds support for the VIA PadLock on x86.
  */
-#define POLARSSL_PADLOCK_C
+//#define POLARSSL_PADLOCK_C
 
 /**
  * \def POLARSSL_PBKDF2_C
