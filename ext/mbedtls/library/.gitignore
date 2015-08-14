@@ -1,0 +1,6 @@
+*.o
+libpolarssl.*
+libmbedtls.*
+*.sln
+*.vcxproj
+Makefile.am

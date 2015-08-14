@@ -5,7 +5,7 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
     [with_system_polarssl=no],
   )
 
-  POLARSSL_SUBDIR=polarssl
+  POLARSSL_SUBDIR=mbedtls
   POLARSSL_CFLAGS=-I\$\(top_srcdir\)/ext/$POLARSSL_SUBDIR/include/
   POLARSSL_LIBS="-L\$(top_builddir)/ext/$POLARSSL_SUBDIR/library/ -lpolarssl"
 

@@ -350,8 +350,8 @@ AC_CONFIG_FILES([
   ext/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile
-  ext/polarssl/Makefile
-  ext/polarssl/library/Makefile
+  ext/mbedtls/Makefile
+  ext/mbedtls/library/Makefile
   ext/rapidjson/Makefile
   ext/json11/Makefile
   modules/bindbackend/Makefile
