@@ -18,7 +18,7 @@ using namespace boost::assign;
 class RSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
-  string getName() const { return "PolarSSL RSA"; }
+  string getName() const { return "mbedTLS RSA"; }
 
   explicit RSADNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm)
   {
@@ -41,7 +41,7 @@ public:
 
   RSADNSCryptoKeyEngine(const RSADNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm)
   {
-    // this part is a little bit scary.. we make a 'deep copy' of an RSA state, and polarssl isn't helping us so we delve into thr struct
+    // this part is a little bit scary.. we make a 'deep copy' of an RSA state, and mbedtls isn't helping us so we delve into thr struct
     d_context.ver = orig.d_context.ver; 
     d_context.len = orig.d_context.len;
 
@@ -197,7 +197,7 @@ std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
     sha512((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
     return string((char*)hash, sizeof(hash));
   }
-  throw runtime_error("PolarSSL hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
+  throw runtime_error("mbed TLS hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
 }
 
 
@@ -362,6 +362,6 @@ struct LoaderStruct
     DNSCryptoKeyEngine::report(8, &RSADNSCryptoKeyEngine::maker, true);
     DNSCryptoKeyEngine::report(10, &RSADNSCryptoKeyEngine::maker, true);
   }
-} loaderPolar;
+} loaderMbed;
 }
 

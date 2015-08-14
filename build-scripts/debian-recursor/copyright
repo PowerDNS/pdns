@@ -37,7 +37,7 @@ Files: pdns/ext/rapidjson/*
 Copyright: 2011 Milo Yip
 License: Expat
 
-Files: pdns/ext/polarssl*
+Files: pdns/ext/mbedtls/*
 Copyright (C) 2006-2014, ARM Limited
 License: GPL-2+
 

@@ -114,8 +114,8 @@ void showBuildConfiguration()
   // Auth only
   theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
 #endif
-#ifndef POLARSSL_SYSTEM
-  theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
+#ifndef MBEDTLS_SYSTEM
+  theL()<<Logger::Warning<<"Built-in mbed TLS: "<<POLARSSL_VERSION_STRING<<endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
