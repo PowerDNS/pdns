@@ -3,7 +3,12 @@
 #endif
 #include "base64.hh"
 #include <boost/scoped_array.hpp>
+#ifdef HAVE_MBEDTLS2
 #include <mbedtls/base64.h>
+#else
+#include <polarssl/base64.h>
+#include "mbedtlscompat.hh"
+#endif
 
 int B64Decode(const std::string& src, std::string& dst)
 {

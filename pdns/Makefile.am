@@ -163,6 +163,7 @@ pdns_server_SOURCES = \
 	lua-auth.cc lua-auth.hh \
 	lua-pdns.cc lua-iputils.cc \
 	mastercommunicator.cc \
+	mbedtlscompat.hh \
 	md5.hh \
 	misc.cc misc.hh \
 	nameserver.cc nameserver.hh \
@@ -279,6 +280,7 @@ pdnssec_SOURCES = \
 	gss_context.cc gss_context.hh \
 	json.cc \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	packetcache.cc \
@@ -482,6 +484,7 @@ sdig_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -505,6 +508,7 @@ calidns_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	iputils.cc \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -540,6 +544,7 @@ saxfr_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -571,6 +576,7 @@ dnstcpbench_SOURCES = \
 	dnstcpbench.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -602,6 +608,7 @@ dnsdist_SOURCES = \
 	dolog.hh \
 	iputils.cc \
 	htmlfiles.h \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	qtype.cc \
 	sholder.hh \
@@ -628,8 +635,9 @@ nsec3dig_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-        gss_context.cc gss_context.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsec3dig.cc \
 	nsecrecords.cc \
@@ -662,6 +670,7 @@ toysdig_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -689,6 +698,7 @@ tsig_tests_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	gss_context.cc gss_context.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -720,6 +730,7 @@ speedtest_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -784,6 +795,7 @@ dnsscan_SOURCES = \
 	dnsscan.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -807,6 +819,7 @@ dnsreplay_SOURCES = \
 	dnsreplay.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -833,6 +846,7 @@ nproxy_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	mplexer.hh \
 	nproxy.cc \
@@ -863,6 +877,7 @@ notify_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	notify.cc \
 	nsecrecords.cc \
@@ -894,6 +909,7 @@ dnsscope_SOURCES = \
 	dnsscope.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -922,6 +938,7 @@ dnsgram_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -944,6 +961,7 @@ dnsdemog_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -1058,6 +1076,7 @@ pdns_recursor_SOURCES = \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	lua-recursor.cc lua-recursor.hh \
 	lwres.cc lwres.hh \
+	mbedtlscompat.hh \
 	misc.cc \
 	mtasker.hh \
 	nsecrecords.cc \

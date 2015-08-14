@@ -25,7 +25,12 @@
 #endif
 #include "logger.hh"
 #include "version.hh"
+#ifdef HAVE_MBEDTLS2
 #include <mbedtls/version.h>
+#else
+#include <polarssl/version.h>
+#include "mbedtlscompat.hh"
+#endif
 
 static ProductType productType;
 
@@ -115,7 +120,7 @@ void showBuildConfiguration()
   theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
 #endif
 #ifndef MBEDTLS_SYSTEM
-  theL()<<Logger::Warning<<"Built-in mbed TLS: "<<POLARSSL_VERSION_STRING<<endl;
+  theL()<<Logger::Warning<<"Built-in mbed TLS: "<<MBEDTLS_VERSION_STRING<<endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s

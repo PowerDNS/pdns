@@ -12,10 +12,15 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
-#include <mbedtls/md5.h>
-#include <mbedtls/sha1.h>
+#ifdef HAVE_MBEDTLS2
 #include <mbedtls/md_internal.h>
 #include <mbedtls/md.h>
+#else
+#include <polarssl/md5.h>
+#include <polarssl/sha1.h>
+#include <polarssl/md.h>
+#include "mbedtlscompat.hh"
+#endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"

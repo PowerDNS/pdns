@@ -31,7 +31,7 @@ INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
-mplexer.hh pubsuffix.hh \
+mplexer.hh pubsuffix.hh mbedtlscompat.hh \
 dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
 ws-recursor.hh ws-api.hh secpoll-recursor.hh \

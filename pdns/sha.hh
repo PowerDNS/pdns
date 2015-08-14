@@ -3,9 +3,16 @@
 
 #include <string>
 #include <stdint.h>
+#ifdef HAVE_MBEDTLS2
 #include <mbedtls/sha1.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
+#else
+#include <polarssl/sha1.h>
+#include <polarssl/sha256.h>
+#include <polarssl/sha512.h>
+#include "mbedtlscompat.hh"
+#endif
 
 class SHA1Summer
 {

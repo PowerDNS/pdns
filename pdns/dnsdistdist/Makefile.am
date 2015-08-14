@@ -39,6 +39,7 @@ dnsdist_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	iputils.cc iputils.hh \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	htmlfiles.h \
 	namespaces.hh \

@@ -1,13 +1,21 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <mbedtls/rsa.h>
-#include <mbedtls/base64.h>
-#include <sha.hh>
+#ifdef HAVE_MBEDTLS2
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
+#include <mbedtls/rsa.h>
+#include <mbedtls/base64.h>
+#else
+#include <polarssl/entropy.h>
+#include <polarssl/ctr_drbg.h>
+#include <polarssl/rsa.h>
+#include <polarssl/base64.h>
+#include "mbedtlscompat.hh"
+#endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/foreach.hpp>
+#include "sha.hh"
 #include "dnssecinfra.hh"
 using namespace boost::assign;
 

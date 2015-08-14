@@ -1,7 +1,12 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#ifdef HAVE_MBEDTLS2
 #include <mbedtls/aes.h>
+#else
+#include <polarssl/aes.h>
+#include "mbedtlscompat.hh"
+#endif
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
