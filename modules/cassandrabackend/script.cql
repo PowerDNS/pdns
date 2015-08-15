@@ -25,5 +25,5 @@ SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='
 
 
 --Example
--- insert into pdns.DOMAIN_LOOKUP_RECORDS (domain,recordmap,disabled,creation_time) values ('cassandra.pdns.com',{ 'A': { record:{'127.0.1.255':123,'127.0.0.1':234} } , 'TXT': { record:{'TXT Record1':345,'TXT Record2':456} } },False,'2015-05-05 15:00:41+0530');
+-- insert into pdns.DOMAIN_LOOKUP_RECORDS (domain,recordmap,disabled,creation_time) values ('cassandra.pdns.com',{ 'A': { record:{'127.0.1.255':123,'127.0.0.1':234} } , 'TXT': { record:{'TXT Record1':345,'TXT Record2':456} } , 'SOA': { record:{'10#ns1.dns.com#hm1.dns.com#0#10#10#10#10':3600} }},False,'2015-05-05 15:00:41+0530');
 -- select * from domain_lookup_records;

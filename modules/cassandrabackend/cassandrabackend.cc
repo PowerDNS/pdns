@@ -1,15 +1,8 @@
 /*
- * CassandraBackend - a high performance LMDB based backend for PowerDNS written by
- * Mark Zealey, 2013
+ * CassandraBackend - a high performance Cassandra based backend for PowerDNS written by
+ * Sumit Kumar, 2015
  *
- * This was originally going to be a backend using BerkeleyDB 5 for high
- * performance DNS over massive (millions of zones) databases. However,
- * BerkeleyDB had a number of issues to do with locking, contention and
- * corruption which made it unsuitable for use. Instead, we use LMDB to perform
- * very fast lookups.
- *
- * See the documentation for more details, and lmdb-example.pl for an example
- * script which generates a simple zone.
+ * The license will be the same as the ones used in powerdns authorative server
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,6 +20,9 @@
 #include "pdns/lock.hh"
 #include <iostream>
 #include "cassandradbmanager.h"
+#include <string.h>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
 
 #if 0
 #define DEBUGLOG(msg) L<<Logger::Error<<msg
@@ -42,7 +38,6 @@ private:
   int recordIndex = 0;
   int totalSize = 0;
   domainlookuprecords record;
-  std::string soarecord = "ahu.fake.com ns1.fake.com 2008080300 1800 3600 604800 3600";
   std::string domain;
   std::string queryType;
 
@@ -132,21 +127,74 @@ public:
   bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0) {
 	 domain = name;
 	 L << Logger::Info << "[CassandraBackend] Recieved getSOA " <<domain<< " "<< endl;
-	 if(domain.compare("pdns.com") == 0) {
-		 soadata.db = this;
-		 soadata.serial = 0;
-		 soadata.refresh = 10;
-		 soadata.retry = 10;
-		 soadata.expire = 10;
-		 soadata.default_ttl = 10;
-		 soadata.domain_id = 10;
-		 soadata.ttl = 10;
-		 soadata.nameserver = "ns1.pdns.com";
-		 soadata.hostmaster = "ahu.pdns.com";
-		return true;
-	 } else {
-		return false;
-	 }
+	 //populatedefaults(soadata);
+	 fetchdata();
+	 for (int index = 0; index < totalSize; ++index) {
+		 backendrecord backendRecord = backendRecords[index];
+		 if(backendRecord.getType() == QType::SOA) {
+			 L << Logger::Info << "[CassandraBackend] SOA record found"<< endl;
+			 soadata.db = this;
+			 //Data format :: domain_id nameserver	hostname    serial refresh retry expiry default_ttl
+			 std::string data = backendRecord.getRecord();
+			 boost::char_separator<char> delimiter("#");
+			 boost::tokenizer<boost::char_separator<char> > tokens(data, delimiter);
+			 int rec_index  = 0;
+			 BOOST_FOREACH(std::string const& token, tokens)
+			 {
+				 switch(rec_index) {
+				 	 case 0:
+				 		 soadata.domain_id = (uint32_t)atoi(token.c_str());
+				 		 break;
+				 	case 1:
+						 soadata.nameserver = token.c_str();
+						 break;
+				 	case 2:
+						 soadata.hostmaster = token.c_str();
+						 break;
+				 	case 3:
+						 soadata.serial = (uint32_t)atoi(token.c_str());
+						 break;
+				 	case 4:
+						 soadata.refresh = (uint32_t)atoi(token.c_str());
+						 break;
+				 	case 5:
+						 soadata.retry = (uint32_t)atoi(token.c_str());
+						 break;
+				 	case 6:
+						 soadata.expire = (uint32_t)atoi(token.c_str());
+						 break;
+				 	case 7:
+						 soadata.default_ttl = (uint32_t)atoi(token.c_str());
+						 break;
+				 	default:
+				 		L << Logger::Info << "[CassandraBackend]Extra params while parsing" << endl;
+				 }
+				 soadata.ttl = backendRecord.getTtl();
+				 rec_index++;
+			 }
+			 L << Logger::Info << "[CassandraBackend] SOA record true"<< endl;
+			 L << Logger::Info << "[CassandraBackend] SOA serial "<<soadata.serial<<" refresh "<<soadata.refresh<<" retry "<<soadata.retry
+					 <<" expire "<<soadata.expire<<" default_ttl "<<soadata.default_ttl<<" domain_id "<<soadata.domain_id<<" ttl "<<soadata.ttl
+					 <<" nameserver "<<soadata.nameserver<<" hostmaster "<<soadata.hostmaster<<endl;
+			 return true;
+		 }
+	}
+	 L << Logger::Info << "[CassandraBackend] SOA record false"<< endl;
+	 return false;
+
+  }
+
+  void populatedefaults(SOAData &soadata) {
+	 soadata.db = this;
+	 soadata.serial = 0;
+	 soadata.refresh = 10;
+	 soadata.retry = 10;
+	 soadata.expire = 10;
+	 soadata.default_ttl = 10;
+	 soadata.domain_id = 10;
+	 soadata.ttl = 10;
+	 soadata.nameserver = "ns1.default.pdns.com";
+	 soadata.hostmaster = "hm1.default.pdns.com";
   }
 
   void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
@@ -156,19 +204,21 @@ public:
     recordIndex = 0;
     totalSize = 0;
     L << Logger::Info << "[CassandraBackend] Recieved query for "<<queryType<< " " <<domain<< " "<< endl;
-    L << Logger::Info << "[CassandraBackend] Calling cassandradbmanger" << endl;
-    	cassandradbmanager *sc1 = cassandradbmanager::getInstance();
 
-    	std::string trailingsuffix = ".pdns.com";
-    	std::string::size_type i = domain.find(trailingsuffix);
-    	if (i != std::string::npos) {
-    		//domain.erase(i, trailingsuffix.length());
-    	}
-    	const char* query = "SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?";
-    	L << Logger::Info << "[CassandraBackend] SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = "<<domain<< endl;
-    	sc1->executeQuery(query,&record,domain.c_str(),queryType.c_str());
-    	backendRecords = backendutil::parse(&record);
-    	this->totalSize = record.size;
+    fetchdata();
+
+  }
+
+  void fetchdata()
+  {
+	  L << Logger::Info << "[CassandraBackend] Calling cassandradbmanger" << endl;
+	  cassandradbmanager *sc1 = cassandradbmanager::getInstance();
+	  const char* query = "SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?";
+	  L << Logger::Info << "[CassandraBackend] SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = "<<domain<< endl;
+	  //sc1->executeQuery(query,&record,domain.c_str(),queryType.c_str());
+	  sc1->executeQuery(query,&record,domain.c_str(),"ANY");
+	  backendRecords = backendutil::parse(&record);
+	  this->totalSize = record.size;
   }
 
   bool get(DNSResourceRecord &rr)
@@ -180,15 +230,19 @@ public:
 		  return false;
 	  }
 	  backendrecord backendRecord = backendRecords[recordIndex];
-	  L << Logger::Info << " Read record Step 2 " << endl;
-      rr.qname=domain;                               // fill in details
-      L << Logger::Info << " Read record Step 3 " << rr.qname << endl;
-      rr.qtype=backendRecord.getType();                                            // A/TXT record
-      L << Logger::Info << " Read record Step 4 " << rr.qtype.getName() << " | "<< endl;
-      rr.ttl=86400;                                                 // 1 day
-      L << Logger::Info << " Read record Step 5 " << rr.ttl << endl;
-      rr.content=backendRecord.getRecord();
-      L << Logger::Info << " Read record Step 6 " << rr.content << endl;
+	  if(backendRecord.getType() != QType::SOA) {
+		  L << Logger::Info << " Read record Step 2 " << endl;
+		  rr.qname=domain;                               // fill in details
+		  L << Logger::Info << " Read record Step 3 " << rr.qname << endl;
+		  rr.qtype=backendRecord.getType();                                            // A/TXT record
+		  L << Logger::Info << " Read record Step 4 " << rr.qtype.getName() << " | "<< endl;
+		  rr.ttl=86400;                                                 // 1 day
+		  L << Logger::Info << " Read record Step 5 " << rr.ttl << endl;
+		  rr.content=backendRecord.getRecord();
+		  L << Logger::Info << " Read record Step 6 " << rr.content << endl;
+	  } else {
+		  L << Logger::Info << " SOA record found. Skipping " << endl;
+	  }
       if(recordIndex < this->totalSize) {
     	  L << Logger::Info << " Read record True " << recordIndex << " "<< totalSize << endl;
     	  L << Logger::Info << "--------------------------------------" << endl;
@@ -204,14 +258,6 @@ public:
   }
 
 };
-
-/*bool hasEnding (std::string const &fullString, std::string const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
-}*/
 
 /* SECOND PART */
 
@@ -230,7 +276,7 @@ public:
 	declare(suffix,"max-connections","max connections","100");
 	declare(suffix,"max-concurrent-creations","max concurrent creations","100");
 	declare(suffix,"num-io-threads","num io threads","1");
-	declare(suffix,"protocol-version","protocol version","2");
+	declare(suffix,"protocol-version","protocol version","3");
 	declare(suffix,"queue-size-io","queue size io","4096");
 	declare(suffix,"queue-size-event","queue size event","4096");
 	declare(suffix,"reconnect-wait-time","reconnect wait time","2000");
