@@ -21,6 +21,7 @@
 /delaypipe.cc
 /delaypipe.hh
 /dns.hh
+/dnsdist
 /dnsdist-lua.cc
 /dnsdist-tcp.cc
 /dnsdist-web.cc
@@ -44,6 +45,7 @@
 /iputils.hh
 /libtool
 /ltmain.sh
+/mbedtlscompat.hh
 /misc.cc
 /misc.hh
 /missing
