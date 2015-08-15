@@ -61,12 +61,13 @@ cat >>$DIRNAME/config.h <<EOF
 #define VERSION "$VERSION"
 #define DIST_HOST "$DIST_HOST"
 #define HAVE_BOOST 1
+#define HAVE_MBEDTLS2 1
 EOF
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ../ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
 cp -a ../ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
-mkdir -p $DIRNAME/ext/mbedtls/include/polarssl
-cp -a ../ext/mbedtls/include/polarssl/config.h ../ext/mbedtls/include/polarssl/check_config.h ../ext/mbedtls/include/polarssl/aes.h ../ext/mbedtls/include/polarssl/base64.h ../ext/mbedtls/include/polarssl/platform.h ../ext/mbedtls/include/polarssl/version.h $DIRNAME/ext/mbedtls/include/polarssl
+mkdir -p $DIRNAME/ext/mbedtls/include/mbedtls
+cp -a ../ext/mbedtls/include/mbedtls/config.h ../ext/mbedtls/include/mbedtls/check_config.h ../ext/mbedtls/include/mbedtls/aes.h ../ext/mbedtls/include/mbedtls/base64.h ../ext/mbedtls/include/mbedtls/platform.h ../ext/mbedtls/include/mbedtls/version.h $DIRNAME/ext/mbedtls/include/mbedtls
 mkdir -p $DIRNAME/ext/mbedtls/library
 cp -a ../ext/mbedtls/library/aes.c ../ext/mbedtls/library/base64.c $DIRNAME/ext/mbedtls/library
 cp -a ../ext/yahttp/ $DIRNAME/ext/yahttp

@@ -7,7 +7,7 @@ AC_DEFUN([PDNS_WITH_SYSTEM_MBEDTLS],[
 
   MBEDTLS_SUBDIR=mbedtls
   MBEDTLS_CFLAGS=-I\$\(top_srcdir\)/ext/$MBEDTLS_SUBDIR/include/
-  MBEDTLS_LIBS="-L\$(top_builddir)/ext/$MBEDTLS_SUBDIR/library/ -lpolarssl"
+  MBEDTLS_LIBS="-L\$(top_builddir)/ext/$MBEDTLS_SUBDIR/library/ -lmbedtls"
 
   AS_IF([test "x$with_system_mbedtls" = "xyes"],[
     OLD_LIBS=$LIBS
@@ -39,8 +39,9 @@ AC_DEFUN([PDNS_WITH_SYSTEM_MBEDTLS],[
   AS_IF([test "x$have_system_mbedtls" = "xyes"],[
     MBEDTLS_CFLAGS=
     MBEDTLS_SUBDIR=
-    AC_DEFINE([POLARSSL_SYSTEM], [1], [Defined if system mbed TLS is used])
-    ],[
+    AC_DEFINE([MBEDTLS_SYSTEM], [1], [Defined if system mbed TLS is used])
+  ],[
+    AC_DEFINE([HAVE_MBEDTLS2], [1], [Defined if mbed TLS version 2.x.x is used])
     AS_IF([test "x$with_system_mbedtls" = "xyes"],[
       AC_MSG_ERROR([use of system mbedtls requested but not found])]
     )]

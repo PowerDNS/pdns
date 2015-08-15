@@ -1,29 +1,189 @@
 mbed TLS ChangeLog (Sorted per branch, date)
 
-= mbed TLS 1.3.12 released 2015-08-11
+= mbed TLS 2.0.0 released 2015-07-13
 
-Security
-   * Increase the minimum size of Diffie-Hellman parameters accepted by the
-     client to 1024 bits, to protect against Logjam attack.
-   * Increase the size of default Diffie-Hellman parameters on the server to
-     2048 bits. This can be changed with ssl_set_dh_params().
+Features
+   * Support for DTLS 1.0 and 1.2 (RFC 6347).
+   * Ability to override core functions from MDx, SHAx, AES and DES modules
+     with custom implementation (eg hardware accelerated), complementing the
+     ability to override the whole module.
+   * New server-side implementation of session tickets that rotate keys to
+     preserve forward secrecy, and allows sharing across multiple contexts.
+   * Added a concept of X.509 cerificate verification profile that controls
+     which algorithms and key sizes (curves for ECDSA) are acceptable.
+   * Expanded configurability of security parameters in the SSL module with
+     mbedtls_ssl_conf_dhm_min_bitlen() and mbedtls_ssl_conf_sig_hashes().
+   * Introduced a concept of presets for SSL security-relevant configuration
+     parameters.
 
-Bugfix
-   * Fix thread-safety issue in SSL debug module (found by Edwin van Vliet).
-   * Some example programs were not built using make, not included in Visual
-     Studio projects (found by Kristian Bendiksen).
-   * Fix build error with CMake and pre-4.5 versions of GCC (found by Hugo
-     Leisink).
-   * Fix missing -static-ligcc when building shared libraries for Windows with
-     make.
-   * Fix compile error with armcc5 --gnu.
+API Changes
+   * The library has been split into libmbedcrypto, libmbedx509, libmbedtls.
+     You now need to link to all of them if you use TLS for example.
+   * All public identifiers moved to the mbedtls_* or MBEDTLS_* namespace.
+     Some names have been further changed to make them more consistent.
+     Migration helpers scripts/rename.pl and include/mbedlts/compat-1.3.h are
+     provided. Full list of renamings in scripts/data_files/rename-1.3-2.0.txt
+   * Renamings of fields inside structures, not covered by the previous list:
+     mbedtls_cipher_info_t.key_length -> key_bitlen
+     mbedtls_cipher_context_t.key_length -> key_bitlen
+     mbedtls_ecp_curve_info.size -> bit_size
+   * Headers are now found in the 'mbedtls' directory (previously 'polarssl').
+   * The following _init() functions that could return errors have
+     been split into an _init() that returns void and another function that
+     should generally be the first function called on this context after init:
+     mbedtls_ssl_init() -> mbedtls_ssl_setup()
+     mbedtls_ccm_init() -> mbedtls_ccm_setkey()
+     mbedtls_gcm_init() -> mbedtls_gcm_setkey()
+     mbedtls_hmac_drbg_init() -> mbedtls_hmac_drbg_seed(_buf)()
+     mbedtls_ctr_drbg_init()  -> mbedtls_ctr_drbg_seed()
+     Note that for mbetls_ssl_setup(), you need to be done setting up the
+     ssl_config structure before calling it.
+   * Most ssl_set_xxx() functions (all except ssl_set_bio(), ssl_set_hostname(),
+     ssl_set_session() and ssl_set_client_transport_id(), plus
+     ssl_legacy_renegotiation()) have been renamed to mbedtls_ssl_conf_xxx()
+     (see rename.pl and compat-1.3.h above) and their first argument's type
+     changed from ssl_context to ssl_config.
+   * ssl_set_bio() changed signature (contexts merged, order switched, one
+     additional callback for read-with-timeout).
+   * The following functions have been introduced and must be used in callback
+     implementations (SNI, PSK) instead of their *conf counterparts:
+     mbedtls_ssl_set_hs_own_cert()
+     mbedtls_ssl_set_hs_ca_chain()
+     mbedtls_ssl_set_hs_psk()
+   * mbedtls_ssl_conf_ca_chain() lost its last argument (peer_cn), now set
+     using mbedtls_ssl_set_hostname().
+   * mbedtls_ssl_conf_session_cache() changed prototype (only one context
+     pointer, parameters reordered).
+   * On server, mbedtls_ssl_conf_session_tickets_cb() must now be used in
+     place of mbedtls_ssl_conf_session_tickets() to enable session tickets.
+   * The SSL debug callback gained two new arguments (file name, line number).
+   * Debug modes were removed.
+   * mbedtls_ssl_conf_truncated_hmac() now returns void.
+   * mbedtls_memory_buffer_alloc_init() now returns void.
+   * X.509 verification flags are now an uint32_t. Affect the signature of:
+     mbedtls_ssl_get_verify_result()
+     mbedtls_x509_ctr_verify_info()
+     mbedtls_x509_crt_verify() (flags, f_vrfy -> needs to be updated)
+     mbedtls_ssl_conf_verify() (f_vrfy -> needs to be updated)
+   * The following functions changed prototype to avoid an in-out length
+     parameter:
+     mbedtls_base64_encode()
+     mbedtls_base64_decode()
+     mbedtls_mpi_write_string()
+     mbedtls_dhm_calc_secret()
+   * In the NET module, all "int" and "int *" arguments for file descriptors
+     changed type to "mbedtls_net_context *".
+   * net_accept() gained new arguments for the size of the client_ip buffer.
+   * In the threading layer, mbedtls_mutex_init() and mbedtls_mutex_free() now
+     return void.
+   * ecdsa_write_signature() gained an addtional md_alg argument and
+     ecdsa_write_signature_det() was deprecated.
+   * pk_sign() no longer accepts md_alg == POLARSSL_MD_NONE with ECDSA.
+   * Last argument of x509_crt_check_key_usage() and
+     mbedtls_x509write_crt_set_key_usage() changed from int to unsigned.
+   * test_ca_list (from certs.h) is renamed to test_cas_pem and is only
+     available if POLARSSL_PEM_PARSE_C is defined (it never worked without).
+   * Test certificates in certs.c are no longer guaranteed to be nul-terminated
+     strings; use the new *_len variables instead of strlen().
+   * Functions mbedtls_x509_xxx_parse(), mbedtls_pk_parse_key(),
+     mbedtls_pk_parse_public_key() and mbedtls_dhm_parse_dhm() now expect the
+     length parameter to include the terminating null byte for PEM input.
+   * Signature of mpi_mul_mpi() changed to make the last argument unsigned
+   * calloc() is now used instead of malloc() everywhere. API of platform
+     layer and the memory_buffer_alloc module changed accordingly.
+     (Thanks to Mansour Moufid for helping with the replacement.)
+   * Change SSL_DISABLE_RENEGOTIATION config.h flag to SSL_RENEGOTIATION
+     (support for renegotiation now needs explicit enabling in config.h).
+   * Split MBEDTLS_HAVE_TIME into MBEDTLS_HAVE_TIME and MBEDTLS_HAVE_TIME_DATE
+     in config.h
+   * net_connect() and net_bind() have a new 'proto' argument to choose
+     between TCP and UDP, using the macros NET_PROTO_TCP or NET_PROTO_UDP.
+     Their 'port' argument type is changed to a string.
+   * Some constness fixes
+
+Removals
+   * Removed mbedtls_ecp_group_read_string(). Only named groups are supported.
+   * Removed mbedtls_ecp_sub() and mbedtls_ecp_add(), use
+     mbedtls_ecp_muladd().
+   * Removed individual mdX_hmac, shaX_hmac, mdX_file and shaX_file functions
+     (use generic functions from md.h)
+   * Removed mbedtls_timing_msleep(). Use mbedtls_net_usleep() or a custom
+     waiting function.
+   * Removed test DHM parameters from the test certs module.
+   * Removed the PBKDF2 module (use PKCS5).
+   * Removed POLARSSL_ERROR_STRERROR_BC (use mbedtls_strerror()).
+   * Removed compat-1.2.h (helper for migrating from 1.2 to 1.3).
+   * Removed openssl.h (very partial OpenSSL compatibility layer).
+   * Configuration options POLARSSL_HAVE_LONGLONG was removed (now always on).
+   * Configuration options POLARSSL_HAVE_INT8 and POLARSSL_HAVE_INT16 have
+     been removed (compiler is required to support 32-bit operations).
+   * Configuration option POLARSSL_HAVE_IPV6 was removed (always enabled).
+   * Removed test program o_p_test, the script compat.sh does more.
+   * Removed test program ssl_test, superseded by ssl-opt.sh.
+   * Removed helper script active-config.pl
+
+New deprecations
+   * md_init_ctx() is deprecated in favour of md_setup(), that adds a third
+     argument (allowing memory savings if HMAC is not used)
+
+Semi-API changes (technically public, morally private)
+   * Renamed a few headers to include _internal in the name. Those headers are
+     not supposed to be included by users.
+   * Changed md_info_t into an opaque structure (use md_get_xxx() accessors).
+   * Changed pk_info_t into an opaque structure.
+   * Changed cipher_base_t into an opaque structure.
+   * Removed sig_oid2 and rename sig_oid1 to sig_oid in x509_crt and x509_crl.
+   * x509_crt.key_usage changed from unsigned char to unsigned int.
+   * Removed r and s from ecdsa_context
+   * Removed mode from des_context and des3_context
+
+Default behavior changes
+   * The default minimum TLS version is now TLS 1.0.
+   * RC4 is now blacklisted by default in the SSL/TLS layer, and excluded from the
+     default ciphersuite list returned by ssl_list_ciphersuites()
+   * Support for receiving SSLv2 ClientHello is now disabled by default at
+     compile time.
+   * The default authmode for SSL/TLS clients is now REQUIRED.
+   * Support for RSA_ALT contexts in the PK layer is now optional. Since is is
+     enabled in the default configuration, this is only noticeable if using a
+     custom config.h
+   * Default DHM parameters server-side upgraded from 1024 to 2048 bits.
+   * A minimum RSA key size of 2048 bits is now enforced during ceritificate
+     chain verification.
+   * Negotiation of truncated HMAC is now disabled by default on server too.
+   * The following functions are now case-sensitive:
+     mbedtls_cipher_info_from_string()
+     mbedtls_ecp_curve_info_from_name()
+     mbedtls_md_info_from_string()
+     mbedtls_ssl_ciphersuite_from_string()
+     mbedtls_version_check_feature()
+
+Requirement changes
+   * The minimum MSVC version required is now 2010 (better C99 support).
+   * The NET layer now unconditionnaly relies on getaddrinfo() and select().
+   * Compiler is required to support C99 types such as long long and uint32_t.
+
+API changes from the 1.4 preview branch
+   * ssl_set_bio_timeout() was removed, split into mbedtls_ssl_set_bio() with
+     new prototype, and mbedtls_ssl_set_read_timeout().
+   * The following functions now return void:
+     mbedtls_ssl_conf_transport()
+     mbedtls_ssl_conf_max_version()
+     mbedtls_ssl_conf_min_version()
+   * DTLS no longer hard-depends on TIMING_C, but uses a callback interface
+     instead, see mbedtls_ssl_set_timer_cb(), with the Timing module providing
+     an example implementation, see mbedtls_timing_delay_context and
+     mbedtls_timing_set/get_delay().
+   * With UDP sockets, it is no longer necessary to call net_bind() again
+     after a successful net_accept().
 
 Changes
-   * Add SSL_MIN_DHM_BYTES configuration parameter in config.h to choose the
-     minimum size of Diffie-Hellman parameters accepted by the client.
-   * The PEM parser now accepts a trailing space at end of lines (#226).
+   * mbedtls_ctr_drbg_random() and mbedtls_hmac_drbg_random() are now
+     thread-safe if MBEDTLS_THREADING_C is enabled.
+   * Reduced ROM fooprint of SHA-256 and added an option to reduce it even
+     more (at the expense of performance) MBEDTLS_SHA256_SMALLER.
 
-= mbed TLS 1.3.11 released 2015-06-04
+= mbed TLS 1.3 branch
 
 Security
    * With authmode set to SSL_VERIFY_OPTIONAL, verification of keyUsage and

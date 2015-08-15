@@ -1,13 +1,13 @@
-noinst_LTLIBRARIES = libpolarssl.la
+noinst_LTLIBRARIES = libmbedtls.la
 
-libpolarssl_la_CPPFLAGS = \
+libmbedtls_la_CPPFLAGS = \
 	-I$(srcdir)/../include \
 	-D_FILE_OFFSET_BITS=64 \
 	-Wall \
 	-W \
 	-Wdeclaration-after-statement
 
-libpolarssl_la_SOURCES = \
+libmbedtls_la_SOURCES = \
 	aes.c \
 	aesni.c \
 	arc4.c \
@@ -44,7 +44,6 @@ libpolarssl_la_SOURCES = \
 	net.c \
 	oid.c \
 	padlock.c \
-	pbkdf2.c \
 	pem.c \
 	pk.c \
 	pkcs11.c \
@@ -62,7 +61,9 @@ libpolarssl_la_SOURCES = \
 	ssl_cache.c \
 	ssl_ciphersuites.c \
 	ssl_cli.c \
+	ssl_cookie.c \
 	ssl_srv.c \
+	ssl_ticket.c \
 	ssl_tls.c \
 	threading.c \
 	timing.c \
@@ -76,4 +77,3 @@ libpolarssl_la_SOURCES = \
 	x509write_crt.c \
 	x509write_csr.c \
 	xtea.c
-

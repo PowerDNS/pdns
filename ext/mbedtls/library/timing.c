@@ -20,22 +20,28 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#if !defined(POLARSSL_CONFIG_FILE)
-#include "polarssl/config.h"
+#if !defined(MBEDTLS_CONFIG_FILE)
+#include "mbedtls/config.h"
 #else
-#include POLARSSL_CONFIG_FILE
+#include MBEDTLS_CONFIG_FILE
 #endif
 
-#if defined(POLARSSL_SELF_TEST) && defined(POLARSSL_PLATFORM_C)
-#include "polarssl/platform.h"
+#if defined(MBEDTLS_SELF_TEST) && defined(MBEDTLS_PLATFORM_C)
+#include "mbedtls/platform.h"
 #else
 #include <stdio.h>
-#define polarssl_printf     printf
+#define mbedtls_printf     printf
 #endif
 
-#if defined(POLARSSL_TIMING_C) && !defined(POLARSSL_TIMING_ALT)
+#if defined(MBEDTLS_TIMING_C)
 
-#include "polarssl/timing.h"
+#include "mbedtls/timing.h"
+
+#if !defined(MBEDTLS_TIMING_ALT)
+
+#ifndef asm
+#define asm __asm
+#endif
 
 #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
 
@@ -62,57 +68,57 @@ struct _hr_time
 
 #endif /* _WIN32 && !EFIX64 && !EFI32 */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&  \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
     ( defined(_MSC_VER) && defined(_M_IX86) ) || defined(__WATCOMC__)
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long tsc;
     __asm   rdtsc
     __asm   mov  [tsc], eax
     return( tsc );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           ( _MSC_VER && _M_IX86 ) || __WATCOMC__ */
 
 /* some versions of mingw-64 have 32-bit longs even on x84_64 */
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&  \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
     defined(__GNUC__) && ( defined(__i386__) || (                       \
     ( defined(__amd64__) || defined( __x86_64__) ) && __SIZEOF_LONG__ == 4 ) )
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long lo, hi;
     asm volatile( "rdtsc" : "=a" (lo), "=d" (hi) );
     return( lo );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && __i386__ */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&  \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
     defined(__GNUC__) && ( defined(__amd64__) || defined(__x86_64__) )
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long lo, hi;
     asm volatile( "rdtsc" : "=a" (lo), "=d" (hi) );
     return( lo | ( hi << 32 ) );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && ( __amd64__ || __x86_64__ ) */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&  \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
     defined(__GNUC__) && ( defined(__powerpc__) || defined(__ppc__) )
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long tbl, tbu0, tbu1;
 
@@ -126,76 +132,76 @@ unsigned long hardclock( void )
 
     return( tbl );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && ( __powerpc__ || __ppc__ ) */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&  \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
     defined(__GNUC__) && defined(__sparc64__)
 
 #if defined(__OpenBSD__)
 #warning OpenBSD does not allow access to tick register using software version instead
 #else
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long tick;
     asm volatile( "rdpr %%tick, %0;" : "=&r" (tick) );
     return( tick );
 }
 #endif /* __OpenBSD__ */
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && __sparc64__ */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&  \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&  \
     defined(__GNUC__) && defined(__sparc__) && !defined(__sparc64__)
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long tick;
     asm volatile( ".byte 0x83, 0x41, 0x00, 0x00" );
     asm volatile( "mov   %%g1, %0" : "=r" (tick) );
     return( tick );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && __sparc__ && !__sparc64__ */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&      \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&      \
     defined(__GNUC__) && defined(__alpha__)
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long cc;
     asm volatile( "rpcc %0" : "=r" (cc) );
     return( cc & 0xFFFFFFFF );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && __alpha__ */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(POLARSSL_HAVE_ASM) &&      \
+#if !defined(HAVE_HARDCLOCK) && defined(MBEDTLS_HAVE_ASM) &&      \
     defined(__GNUC__) && defined(__ia64__)
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     unsigned long itc;
     asm volatile( "mov %0 = ar.itc" : "=r" (itc) );
     return( itc );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && POLARSSL_HAVE_ASM &&
+#endif /* !HAVE_HARDCLOCK && MBEDTLS_HAVE_ASM &&
           __GNUC__ && __ia64__ */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK) && defined(_MSC_VER) && \
+#if !defined(HAVE_HARDCLOCK) && defined(_MSC_VER) && \
     !defined(EFIX64) && !defined(EFI32)
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     LARGE_INTEGER offset;
 
@@ -203,16 +209,16 @@ unsigned long hardclock( void )
 
     return( (unsigned long)( offset.QuadPart ) );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK && _MSC_VER && !EFIX64 && !EFI32 */
+#endif /* !HAVE_HARDCLOCK && _MSC_VER && !EFIX64 && !EFI32 */
 
-#if !defined(POLARSSL_HAVE_HARDCLOCK)
+#if !defined(HAVE_HARDCLOCK)
 
-#define POLARSSL_HAVE_HARDCLOCK
+#define HAVE_HARDCLOCK
 
 static int hardclock_init = 0;
 static struct timeval tv_init;
 
-unsigned long hardclock( void )
+unsigned long mbedtls_timing_hardclock( void )
 {
     struct timeval tv_cur;
 
@@ -226,13 +232,13 @@ unsigned long hardclock( void )
     return( ( tv_cur.tv_sec  - tv_init.tv_sec  ) * 1000000
           + ( tv_cur.tv_usec - tv_init.tv_usec ) );
 }
-#endif /* !POLARSSL_HAVE_HARDCLOCK */
+#endif /* !HAVE_HARDCLOCK */
 
-volatile int alarmed = 0;
+volatile int mbedtls_timing_alarmed = 0;
 
 #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
 
-unsigned long get_timer( struct hr_time *val, int reset )
+unsigned long mbedtls_timing_get_timer( struct mbedtls_timing_hr_time *val, int reset )
 {
     unsigned long delta;
     LARGE_INTEGER offset, hfreq;
@@ -258,27 +264,22 @@ static DWORD WINAPI TimerProc( LPVOID TimerContext )
 {
     ((void) TimerContext);
     Sleep( alarmMs );
-    alarmed = 1;
+    mbedtls_timing_alarmed = 1;
     return( TRUE );
 }
 
-void set_alarm( int seconds )
+void mbedtls_set_alarm( int seconds )
 {
     DWORD ThreadId;
 
-    alarmed = 0;
+    mbedtls_timing_alarmed = 0;
     alarmMs = seconds * 1000;
     CloseHandle( CreateThread( NULL, 0, TimerProc, NULL, 0, &ThreadId ) );
 }
 
-void m_sleep( int milliseconds )
-{
-    Sleep( milliseconds );
-}
-
 #else /* _WIN32 && !EFIX64 && !EFI32 */
 
-unsigned long get_timer( struct hr_time *val, int reset )
+unsigned long mbedtls_timing_get_timer( struct mbedtls_timing_hr_time *val, int reset )
 {
     unsigned long delta;
     struct timeval offset;
@@ -299,65 +300,87 @@ unsigned long get_timer( struct hr_time *val, int reset )
     return( delta );
 }
 
-#if defined(INTEGRITY)
-void m_sleep( int milliseconds )
-{
-    usleep( milliseconds * 1000 );
-}
-
-#else /* INTEGRITY */
-
 static void sighandler( int signum )
 {
-    alarmed = 1;
+    mbedtls_timing_alarmed = 1;
     signal( signum, sighandler );
 }
 
-void set_alarm( int seconds )
+void mbedtls_set_alarm( int seconds )
 {
-    alarmed = 0;
+    mbedtls_timing_alarmed = 0;
     signal( SIGALRM, sighandler );
     alarm( seconds );
 }
 
-void m_sleep( int milliseconds )
-{
-    struct timeval tv;
-
-    tv.tv_sec  = milliseconds / 1000;
-    tv.tv_usec = ( milliseconds % 1000 ) * 1000;
-
-    select( 0, NULL, NULL, NULL, &tv );
-}
-#endif /* INTEGRITY */
-
 #endif /* _WIN32 && !EFIX64 && !EFI32 */
 
-#if defined(POLARSSL_SELF_TEST)
+/*
+ * Set delays to watch
+ */
+void mbedtls_timing_set_delay( void *data, uint32_t int_ms, uint32_t fin_ms )
+{
+    mbedtls_timing_delay_context *ctx = (mbedtls_timing_delay_context *) data;
 
-/* To test net_usleep against our functions */
-#if defined(POLARSSL_NET_C) && defined(POLARSSL_HAVE_TIME)
-#include "polarssl/net.h"
-#endif
+    ctx->int_ms = int_ms;
+    ctx->fin_ms = fin_ms;
+
+    if( fin_ms != 0 )
+        (void) mbedtls_timing_get_timer( &ctx->timer, 1 );
+}
+
+/*
+ * Get number of delays expired
+ */
+int mbedtls_timing_get_delay( void *data )
+{
+    mbedtls_timing_delay_context *ctx = (mbedtls_timing_delay_context *) data;
+    unsigned long elapsed_ms;
+
+    if( ctx->fin_ms == 0 )
+        return( -1 );
+
+    elapsed_ms = mbedtls_timing_get_timer( &ctx->timer, 0 );
+
+    if( elapsed_ms >= ctx->fin_ms )
+        return( 2 );
+
+    if( elapsed_ms >= ctx->int_ms )
+        return( 1 );
+
+    return( 0 );
+}
+
+#endif /* !MBEDTLS_TIMING_ALT */
+
+#if defined(MBEDTLS_SELF_TEST)
 
 /*
  * Busy-waits for the given number of milliseconds.
- * Used for testing hardclock.
+ * Used for testing mbedtls_timing_hardclock.
  */
 static void busy_msleep( unsigned long msec )
 {
-    struct hr_time hires;
+    struct mbedtls_timing_hr_time hires;
     unsigned long i = 0; /* for busy-waiting */
     volatile unsigned long j; /* to prevent optimisation */
 
-    (void) get_timer( &hires, 1 );
+    (void) mbedtls_timing_get_timer( &hires, 1 );
 
-    while( get_timer( &hires, 0 ) < msec )
+    while( mbedtls_timing_get_timer( &hires, 0 ) < msec )
         i++;
 
     j = i;
     (void) j;
 }
+
+#define FAIL    do                      \
+{                                       \
+    if( verbose != 0 )                  \
+        mbedtls_printf( "failed\n" );   \
+                                        \
+    return( 1 );                        \
+} while( 0 )
 
 /*
  * Checkup routine
@@ -365,66 +388,81 @@ static void busy_msleep( unsigned long msec )
  * Warning: this is work in progress, some tests may not be reliable enough
  * yet! False positives may happen.
  */
-int timing_self_test( int verbose )
+int mbedtls_timing_self_test( int verbose )
 {
     unsigned long cycles, ratio;
     unsigned long millisecs, secs;
     int hardfail;
-    struct hr_time hires;
+    struct mbedtls_timing_hr_time hires;
+    uint32_t a, b;
+    mbedtls_timing_delay_context ctx;
 
     if( verbose != 0 )
-        polarssl_printf( "  TIMING tests note: will take some time!\n" );
+        mbedtls_printf( "  TIMING tests note: will take some time!\n" );
+
 
     if( verbose != 0 )
-        polarssl_printf( "  TIMING test #1 (m_sleep   / get_timer): " );
+        mbedtls_printf( "  TIMING test #1 (set_alarm / get_timer): " );
 
     for( secs = 1; secs <= 3; secs++ )
     {
-        (void) get_timer( &hires, 1 );
+        (void) mbedtls_timing_get_timer( &hires, 1 );
 
-        m_sleep( (int)( 500 * secs ) );
-
-        millisecs = get_timer( &hires, 0 );
-
-        if( millisecs < 450 * secs || millisecs > 550 * secs )
-        {
-            if( verbose != 0 )
-                polarssl_printf( "failed\n" );
-
-            return( 1 );
-        }
-    }
-
-    if( verbose != 0 )
-        polarssl_printf( "passed\n" );
-
-    if( verbose != 0 )
-        polarssl_printf( "  TIMING test #2 (set_alarm / get_timer): " );
-
-    for( secs = 1; secs <= 3; secs++ )
-    {
-        (void) get_timer( &hires, 1 );
-
-        set_alarm( (int) secs );
-        while( !alarmed )
+        mbedtls_set_alarm( (int) secs );
+        while( !mbedtls_timing_alarmed )
             ;
 
-        millisecs = get_timer( &hires, 0 );
+        millisecs = mbedtls_timing_get_timer( &hires, 0 );
 
         if( millisecs < 900 * secs || millisecs > 1100 * secs )
         {
             if( verbose != 0 )
-                polarssl_printf( "failed\n" );
+                mbedtls_printf( "failed\n" );
 
             return( 1 );
         }
     }
 
     if( verbose != 0 )
-        polarssl_printf( "passed\n" );
+        mbedtls_printf( "passed\n" );
 
     if( verbose != 0 )
-        polarssl_printf( "  TIMING test #3 (hardclock / get_timer): " );
+        mbedtls_printf( "  TIMING test #2 (set/get_delay        ): " );
+
+    for( a = 100; a <= 200; a += 100 )
+    {
+        for( b = 100; b <= 200; b += 100 )
+        {
+            mbedtls_timing_set_delay( &ctx, a, a + b );
+
+            busy_msleep( a - a / 10 );
+            if( mbedtls_timing_get_delay( &ctx ) != 0 )
+                FAIL;
+
+            busy_msleep( a / 5 );
+            if( mbedtls_timing_get_delay( &ctx ) != 1 )
+                FAIL;
+
+            busy_msleep( b - a / 5 );
+            if( mbedtls_timing_get_delay( &ctx ) != 1 )
+                FAIL;
+
+            busy_msleep( b / 5 );
+            if( mbedtls_timing_get_delay( &ctx ) != 2 )
+                FAIL;
+        }
+    }
+
+    mbedtls_timing_set_delay( &ctx, 0, 0 );
+    busy_msleep( 200 );
+    if( mbedtls_timing_get_delay( &ctx ) != -1 )
+        FAIL;
+
+    if( verbose != 0 )
+        mbedtls_printf( "passed\n" );
+
+    if( verbose != 0 )
+        mbedtls_printf( "  TIMING test #3 (hardclock / get_timer): " );
 
     /*
      * Allow one failure for possible counter wrapping.
@@ -437,24 +475,24 @@ hard_test:
     if( hardfail > 1 )
     {
         if( verbose != 0 )
-            polarssl_printf( "failed (ignored)\n" );
+            mbedtls_printf( "failed (ignored)\n" );
 
         goto hard_test_done;
     }
 
     /* Get a reference ratio cycles/ms */
     millisecs = 1;
-    cycles = hardclock();
+    cycles = mbedtls_timing_hardclock();
     busy_msleep( millisecs );
-    cycles = hardclock() - cycles;
+    cycles = mbedtls_timing_hardclock() - cycles;
     ratio = cycles / millisecs;
 
     /* Check that the ratio is mostly constant */
     for( millisecs = 2; millisecs <= 4; millisecs++ )
     {
-        cycles = hardclock();
+        cycles = mbedtls_timing_hardclock();
         busy_msleep( millisecs );
-        cycles = hardclock() - cycles;
+        cycles = mbedtls_timing_hardclock() - cycles;
 
         /* Allow variation up to 20% */
         if( cycles / millisecs < ratio - ratio / 5 ||
@@ -466,41 +504,16 @@ hard_test:
     }
 
     if( verbose != 0 )
-        polarssl_printf( "passed\n" );
+        mbedtls_printf( "passed\n" );
 
 hard_test_done:
 
-#if defined(POLARSSL_NET_C) && defined(POLARSSL_HAVE_TIME)
     if( verbose != 0 )
-        polarssl_printf( "  TIMING test #4 (net_usleep/ get_timer): " );
-
-    for( secs = 1; secs <= 3; secs++ )
-    {
-        (void) get_timer( &hires, 1 );
-
-        net_usleep( 500000 * secs );
-
-        millisecs = get_timer( &hires, 0 );
-
-        if( millisecs < 450 * secs || millisecs > 550 * secs )
-        {
-            if( verbose != 0 )
-                polarssl_printf( "failed\n" );
-
-            return( 1 );
-        }
-    }
-
-    if( verbose != 0 )
-        polarssl_printf( "passed\n" );
-#endif /* POLARSSL_NET_C */
-
-    if( verbose != 0 )
-        polarssl_printf( "\n" );
+        mbedtls_printf( "\n" );
 
     return( 0 );
 }
 
-#endif /* POLARSSL_SELF_TEST */
+#endif /* MBEDTLS_SELF_TEST */
 
-#endif /* POLARSSL_TIMING_C && !POLARSSL_TIMING_ALT */
+#endif /* MBEDTLS_TIMING_C */
