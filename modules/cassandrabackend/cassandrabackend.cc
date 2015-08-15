@@ -183,10 +183,12 @@ public:
 			 L << Logger::Info << "[CassandraBackend] SOA serial "<<soadata.serial<<" refresh "<<soadata.refresh<<" retry "<<soadata.retry
 					 <<" expire "<<soadata.expire<<" default_ttl "<<soadata.default_ttl<<" domain_id "<<soadata.domain_id<<" ttl "<<soadata.ttl
 					 <<" nameserver "<<soadata.nameserver<<" hostmaster "<<soadata.hostmaster<<endl;
+			 clear();
 			 return true;
 		 }
 	}
 	 L << Logger::Info << "[CassandraBackend] SOA record false"<< endl;
+	 clear();
 	 return false;
 
   }
@@ -233,11 +235,11 @@ public:
 	  L << Logger::Info << " Read record Step 1 " << recordIndex << " " << totalSize << endl;
 	  if(this->totalSize == 0 || recordIndex >= this->totalSize) {
 		  L << Logger::Info << " No record False " << recordIndex << " "<< totalSize << endl;
-		  recordIndex = 0;totalSize = 0;domain.clear();queryType.clear();backendRecords = NULL;//record.url_hash = NULL; record.url_rawdata = NULL;record.a_record.clear(); record.txt_record.clear();
+		  clear();
 		  return false;
 	  }
 	  backendrecord backendRecord = backendRecords[recordIndex];
-	  if(backendRecord.getType() != QType::SOA) {
+	  if((backendRecord.getType() != QType::SOA) && (backendRecord.getType().getName() == queryType || queryType == "ANY")) {
 		  L << Logger::Info << " Read record Step 2 " << endl;
 		  rr.qname=domain;                               // fill in details
 		  L << Logger::Info << " Read record Step 3 " << rr.qname << endl;
@@ -248,7 +250,7 @@ public:
 		  rr.content=backendRecord.getRecord();
 		  L << Logger::Info << " Read record Step 6 " << rr.content << endl;
 	  } else {
-		  L << Logger::Info << " SOA record found. Skipping " << endl;
+		  L << Logger::Info << " Record skipped, Type requested "<< queryType << " Record type "<<backendRecord.getType().getName()<<endl;
 	  }
       if(recordIndex < this->totalSize) {
     	  L << Logger::Info << " Read record True " << recordIndex << " "<< totalSize << endl;
@@ -258,10 +260,13 @@ public:
       } else {
     	  L << Logger::Info << " Read record False " << recordIndex << " "<< totalSize << endl;
     	  L << Logger::Info << "--------------------------------------" << endl;
-    	  //recordIndex = 0;totalSize = 0;domain.clear();queryType.clear();backendRecords = NULL;
     	  recordIndex++;
     	  return false;
       }
+  }
+
+  void clear() {
+	  recordIndex = 0;totalSize = 0;domain.clear();queryType.clear();backendRecords = NULL;record.clear();
   }
 
 };

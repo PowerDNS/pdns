@@ -138,7 +138,8 @@ cassandradbmanager* cassandradbmanager::getInstance()
 }
 
 void cassandradbmanager::executeQuery(const char* query, struct domainlookuprecords* result1, const char* key, const char* dns_query_type) {
-	 L << Logger::Info <<"====Executing domain query======"<< endl;
+	 L << Logger::Info <<"====Executing domain query====== key "<<key<< "dns_query_type" <<dns_query_type<<endl;
+	 L << Logger::Info <<query<<endl;
 	//Query : SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?
 	CassError rc = CASS_OK;
 	  CassStatement* statement = NULL;

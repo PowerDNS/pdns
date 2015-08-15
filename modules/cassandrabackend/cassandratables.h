@@ -17,4 +17,11 @@ public:
     bool disabled;
     time_t creation_time;
     int32_t size;
+    void clear() {
+    	domain = NULL;
+    	recordTypeResultArrayMap.clear();
+    	disabled = false;
+    	creation_time = NULL;
+    	size = 0;
+    }
 };
