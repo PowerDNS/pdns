@@ -40,6 +40,7 @@ private:
   domainlookuprecords record;
   std::string domain;
   std::string queryType;
+  int all_authoritative_server = 0;
 
   bool hasEnding (std::string const &fullString, std::string const &ending) {
       if (fullString.length() >= ending.length()) {
@@ -73,6 +74,7 @@ public:
 		int enable_latency_aware_routing = getArgAsNum("enable-latency-aware-routing");
 		int enable_tcp_nodelay = getArgAsNum("enable-tcp-nodelay");
 		int enable_tcp_keepalive = getArgAsNum("enable-tcp-keepalive");
+		all_authoritative_server = getArgAsNum("all-authoritative-server");
 
 		L << Logger::Info << " cassandra-seed-nodes " << seed_nodes << " cassandra-keyspace " << keyspace << endl;
 		L << Logger::Info << " cassandra-username " << username << " cassandra-password " << password << endl;
@@ -85,6 +87,7 @@ public:
 		L << Logger::Info << "[cassandradbmanager] cassandra-enable-load-balance-round-robin " << enable_load_balance_round_robin << " cassandra-enable-token-aware-routing " << enable_token_aware_routing << endl;
 		L << Logger::Info << "[cassandradbmanager] cassandra-enable-latency-aware-routing " << enable_latency_aware_routing << endl;
 		L << Logger::Info << "[cassandradbmanager] cassandra-enable-tcp-nodelay " << enable_tcp_nodelay << " cassandra-enable-tcp-keepalive " << enable_tcp_keepalive << endl;
+		L << Logger::Info << "[cassandradbmanager] all-authoritative-server " << all_authoritative_server <<endl;
 		cassandradbmanager::seed_nodes = seed_nodes;
 		cassandradbmanager::username = username;
 		cassandradbmanager::password = password;
@@ -127,7 +130,11 @@ public:
   bool getSOA(const string &name, SOAData &soadata, DNSPacket *p=0) {
 	 domain = name;
 	 L << Logger::Info << "[CassandraBackend] Recieved getSOA " <<domain<< " "<< endl;
-	 //populatedefaults(soadata);
+	 if(all_authoritative_server == 1) {
+		 L << Logger::Info << "[CassandraBackend] All authoritative server enabled, sending default SOA"<<endl;
+		 populatedefaults(soadata);
+		 return true;
+	 }
 	 fetchdata();
 	 for (int index = 0; index < totalSize; ++index) {
 		 backendrecord backendRecord = backendRecords[index];
@@ -288,6 +295,7 @@ public:
 	declare(suffix,"enable-latency-aware-routing","enable latency aware routing","0");
 	declare(suffix,"enable-tcp-nodelay","enable tcp nodelay","0");
 	declare(suffix,"enable-tcp-keepalive","enable tcp keepalive","0");
+	declare(suffix,"all-authoritative-server","enable all authoritative server","0");
   }
 
   DNSBackend *make(const string &suffix="")
