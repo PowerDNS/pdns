@@ -1,0 +1,60 @@
+sumit_kumar$ dig ANY cassandra.pdns.com @127.0.0.1
+
+; <<>> DiG 9.8.3-P1 <<>> ANY cassandra.pdns.com @127.0.0.1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 40283
+;; flags: qr aa rd; QUERY: 1, ANSWER: 5, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;cassandra.pdns.com.		IN	ANY
+
+;; ANSWER SECTION:
+cassandra.pdns.com.	3600	IN	SOA	ns1.dns.com. hm1.dns.com. 0 10 10 10 10
+cassandra.pdns.com.	86400	IN	A	127.0.0.1
+cassandra.pdns.com.	86400	IN	TXT	"TXT Record2"
+cassandra.pdns.com.	86400	IN	A	127.0.1.255
+cassandra.pdns.com.	86400	IN	TXT	"TXT Record1"
+
+;; Query time: 7 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Sat Aug 15 19:45:54 2015
+;; MSG SIZE  rcvd: 164
+
+sumit_kumar$ dig SOA cassandra.nxdomain.test.com @127.0.0.1
+
+; <<>> DiG 9.8.3-P1 <<>> SOA cassandra.nxdomain.test.com @127.0.0.1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 7512
+;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;cassandra.nxdomain.test.com.	IN	SOA
+
+;; AUTHORITY SECTION:
+nxdomain.test.com.	10	IN	SOA	ns1.dns.com. hm1.dns.com. 0 10 10 10 10
+
+;; Query time: 7 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Sat Aug 15 19:46:00 2015
+;; MSG SIZE  rcvd: 93
+
+sumit_kumar$ dig SOA unknown.domain.com @127.0.0.1
+
+; <<>> DiG 9.8.3-P1 <<>> SOA unknown.domain.com @127.0.0.1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: REFUSED, id: 60257
+;; flags: qr rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;unknown.domain.com.		IN	SOA
+
+;; Query time: 5 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Sat Aug 15 19:46:17 2015
+;; MSG SIZE  rcvd: 36
