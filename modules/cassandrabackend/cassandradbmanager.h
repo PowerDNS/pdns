@@ -1,3 +1,9 @@
+/*
+ * cassandradbmanager.h
+ *
+ *  Created on: 11-May-2015
+ *      Author: sumit_kumar
+ */
 #include "cassandra.h"
 #include "backendutil.cc"
 class cassandradbmanager

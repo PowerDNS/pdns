@@ -2,7 +2,7 @@
  * cassandradbmanager.cc
  *
  *  Created on: 11-May-2015
- *      Author: sumit_kumar5
+ *      Author: sumit_kumar
  */
 #ifndef MY_SINGLETON
 #define MY_SINGLETON
