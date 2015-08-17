@@ -134,6 +134,13 @@ public:
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet();
   bool hasEDNS();
+  uint8_t getEDNSVersion() const { return d_ednsversion; };
+  void setEDNSRcode(uint16_t extRCode)
+  {
+    // WARNING: this is really 12 bits
+    d_ednsrcode=extRCode;
+  };
+  uint8_t getEDNSRCode() const { return d_ednsrcode; };
   //////// DATA !
 
   ComboAddress d_remote;
@@ -167,6 +174,8 @@ private:
   string d_rawpacket; // this is where everything lives 4
   int d_maxreplylen;
   string d_ednsping;
+  uint8_t d_ednsversion;
+  uint16_t d_ednsrcode; // WARNING: this is really 12 bits
   bool d_wantsnsid;
   bool d_haveednssubnet;
   bool d_haveednssection;

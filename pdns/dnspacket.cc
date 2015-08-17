@@ -56,6 +56,8 @@ DNSPacket::DNSPacket()
   d_wantsnsid=false;
   d_haveednssubnet = false;
   d_dnssecOk=false;
+  d_ednsversion=0;
+  d_ednsrcode=0;
 }
 
 const string& DNSPacket::getString()
@@ -95,6 +97,8 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_eso = orig.d_eso;
   d_haveednssubnet = orig.d_haveednssubnet;
   d_haveednssection = orig.d_haveednssection;
+  d_ednsversion = orig.d_ednsversion;
+  d_ednsrcode = orig.d_ednsrcode;
   d_dnssecOk = orig.d_dnssecOk;
   d_rrs=orig.d_rrs;
   
@@ -340,7 +344,7 @@ void DNSPacket::wrapup()
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
       {
-        pw.addOpt(s_udpTruncationThreshold, 0, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
+        pw.addOpt(s_udpTruncationThreshold, d_ednsrcode, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
         pw.commit();
       }
     }
@@ -396,6 +400,8 @@ DNSPacket *DNSPacket::replyPacket() const
   r->d_eso = d_eso;
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
+  r->d_ednsversion = 0;
+  r->d_ednsrcode = 0;
  
   if(!d_tsigkeyname.empty()) {
     r->d_tsigkeyname = d_tsigkeyname;
@@ -549,6 +555,8 @@ try
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
       }
     }
+    d_ednsversion = edo.d_version;
+    d_ednsrcode = edo.d_extRCode;
   }
   else  {
     d_maxreplylen=512;
