@@ -23,7 +23,7 @@ PRIMARY KEY(domain));
 -- This table will be used for AXFR lookup
 create table if not exists pdns.DOMAIN_ID_DOMAIN_RELATION (
 domain_id int, -- domain id
-domain set<varchar>, -- domain
+domain set<text>, -- domain
 PRIMARY KEY(domain_id));
 
 SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='pdns';
