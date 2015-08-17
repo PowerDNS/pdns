@@ -227,7 +227,6 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 				  cass_iterator_get_user_type_field_name(fields, &field_name, &field_name_length);
 				  field_value = cass_iterator_get_user_type_field_value(fields);
 
-				  L << Logger::Info <<field_name_length<<" "<<field_name<<endl;
 				  records record_obj;
 				  if (!cass_value_is_null(field_value) && cass_value_type(field_value) == CASS_VALUE_TYPE_MAP) {
 					  CassIterator* field_value_record = cass_iterator_from_map(field_value);
@@ -314,7 +313,6 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 				  cass_iterator_get_user_type_field_name(fields, &field_name, &field_name_length);
 				  field_value = cass_iterator_get_user_type_field_value(fields);
 
-				  L << Logger::Info <<field_name_length<<" "<<field_name<<endl;
 				  records record_obj;
 				  if (!cass_value_is_null(field_value) && cass_value_type(field_value) == CASS_VALUE_TYPE_MAP) {
 					  CassIterator* field_value_record = cass_iterator_from_map(field_value);
