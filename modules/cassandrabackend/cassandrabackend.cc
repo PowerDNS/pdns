@@ -108,10 +108,13 @@ public:
 		cassandradbmanager::enable_latency_aware_routing = enable_latency_aware_routing;
 		cassandradbmanager::enable_tcp_nodelay = enable_tcp_nodelay;
 		cassandradbmanager::enable_tcp_keepalive = enable_tcp_keepalive;
-
-		L << Logger::Info << "[CassandraBackend] Connecting to cassandra cluster " << endl;
+		if(::arg().mustDo("query-logging")) {
+			L << Logger::Info << "[CassandraBackend] Connecting to cassandra cluster " << endl;
+		}
 		cassandradbmanager::getInstance();
-		L << Logger::Info << "[CassandraBackend] Connection to cassandra cluster successful " << endl;
+		if(::arg().mustDo("query-logging")) {
+			L << Logger::Info << "[CassandraBackend] Connection to cassandra cluster successful " << endl;
+		}
 
 	 } catch (const ArgException &A) {
 		L << Logger::Error << "[CassandraBackend]" << " Fatal argument error: "<< A.reason << endl;
@@ -129,7 +132,9 @@ public:
 			cassandradbmanager *sc1 = cassandradbmanager::getInstance();
 			const char* query =
 					"SELECT domain FROM pdns.domain_id_domain_relation WHERE domain_id = ?";
-			L << Logger::Info << "[CassandraBackend] SELECT domain FROM pdns.domain_id_domain_relation WHERE domain_id = " << domain_id << endl;
+			if(::arg().mustDo("query-logging")) {
+				L << Logger::Info << "[CassandraBackend] SELECT domain FROM pdns.domain_id_domain_relation WHERE domain_id = " << domain_id << endl;
+			}
 			string param = sc1->executeAxfrQuery(query, domain_id);
 			if (param.size() > 0) {
 				this->queryType = "ANY";
@@ -150,12 +155,13 @@ public:
   bool getSOA(const string &name, SOAData &soadata, DNSPacket *p = 0) {
 		try {
 			domain = name;
-			L << Logger::Info << "[CassandraBackend] Recieved getSOA " << domain
-					<< " " << endl;
+			if(::arg().mustDo("query-logging")) {
+			L << Logger::Info << "[CassandraBackend] Recieved getSOA " << domain << endl;
+			}
 			if (all_authoritative_server == 1) {
-				L << Logger::Info
-						<< "[CassandraBackend] All authoritative server enabled, sending default SOA"
-						<< endl;
+				if(::arg().mustDo("query-logging")) {
+					L << Logger::Info << "[CassandraBackend] All authoritative server enabled, sending default SOA" << endl;
+				}
 				populatedefaults(soadata);
 				return true;
 			}
@@ -163,7 +169,9 @@ public:
 			for (int index = 0; index < totalSize; ++index) {
 				backendrecord backendRecord = backendRecords[index];
 				if (backendRecord.getType() == QType::SOA) {
-					L << Logger::Info << "[CassandraBackend] SOA record found" << endl;
+					if(::arg().mustDo("query-logging")) {
+						L << Logger::Info << "[CassandraBackend] SOA record found" << endl;
+					}
 					soadata.db = this;
 					//Data format :: domain_id nameserver	hostname    serial refresh retry expiry default_ttl
 					std::string data = backendRecord.getRecord();
@@ -204,7 +212,8 @@ public:
 						soadata.qname = this->domain;
 						rec_index++;
 					}
-					L << Logger::Info << "[CassandraBackend] SOA serial "
+					if(::arg().mustDo("query-logging")) {
+						L << Logger::Info << "[CassandraBackend] SOA serial "
 							<< soadata.serial << " refresh " << soadata.refresh
 							<< " retry " << soadata.retry << " expire "
 							<< soadata.expire << " default_ttl "
@@ -212,6 +221,7 @@ public:
 							<< soadata.domain_id << " ttl " << soadata.ttl
 							<< " nameserver " << soadata.nameserver
 							<< " hostmaster " << soadata.hostmaster << endl;
+					}
 					clear(false);
 					return true;
 				}
@@ -246,7 +256,9 @@ public:
 			domain = qdomain;
 			recordIndex = 0;
 			totalSize = 0;
-			L << Logger::Info << "[CassandraBackend] Recieved lookup query for " << queryType << " " << domain << " " << endl;
+			if(::arg().mustDo("query-logging")) {
+				L << Logger::Info << "[CassandraBackend] Recieved lookup query for " << queryType << " " << domain << " " << endl;
+			}
 			fetchdata();
 		} catch (const std::exception &exc) {
 			L << Logger::Critical << "[CassandraBackend] lookup exception " << exc.what() << endl;
@@ -259,7 +271,9 @@ public:
   {
 	  cassandradbmanager *sc1 = cassandradbmanager::getInstance();
 	  const char* query = "SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = ?";
-	  L << Logger::Info << "[CassandraBackend] SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = "<<domain<< endl;
+	  if(::arg().mustDo("query-logging")) {
+		  L << Logger::Info << "[CassandraBackend] SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain = "<<domain<< endl;
+	  }
 	  sc1->executeQuery(query,&record,domain.c_str(),"ANY");
 	  backendRecords = backendutil::parse(&record);
 	  this->totalSize = record.size;
@@ -270,7 +284,9 @@ public:
 	  cassandradbmanager *sc1 = cassandradbmanager::getInstance();
 	  string query = "SELECT domain, recordmap, creation_time FROM pdns.domain_lookup_records WHERE domain in (";
 	  query.append(param);query.append(")");
-	  L << Logger::Info << "[CassandraBackend] "<<query<<endl;
+	  if(::arg().mustDo("query-logging")) {
+		  L << Logger::Info << "[CassandraBackend] "<<query<<endl;
+	  }
 	  sc1->executeQuery(query.c_str(),&record,"ANY");
 	  backendRecords = backendutil::parse(&record);
 	  this->totalSize = record.size;
@@ -290,7 +306,9 @@ public:
 				rr.ttl = backendRecord.getTtl();
 				rr.content = backendRecord.getRecord();
 			} else {
-				L << Logger::Info << "[CassandraBackend] Record skipped, Type requested " << queryType << " Record type " << backendRecord.getType().getName() << endl;
+				if(::arg().mustDo("query-logging")) {
+					L << Logger::Info << "[CassandraBackend] Record skipped, Type requested " << queryType << " Record type " << backendRecord.getType().getName() << endl;
+				}
 			}
 			if (recordIndex < this->totalSize) {
 				recordIndex++;

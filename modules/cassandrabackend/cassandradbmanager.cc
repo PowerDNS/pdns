@@ -53,17 +53,19 @@ cassandradbmanager::cassandradbmanager()
 	  cluster = cass_cluster_new();
 	  session = cass_session_new();
 
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-seed-nodes " << seed_nodes << " cassandra-num-io-threads " << num_io_threads << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-username " << username << " cassandra-password " << password << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-core-connections " << core_connections << " cassandra-max-connections " << max_connections << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-protocol-version " << protocol_version << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-max-concurrent-creations " << max_concurrent_creations << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-queue-size-io " << queue_size_io << " cassandra-queue-size-event " << queue_size_event << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-reconnect-wait-time " << reconnect_wait_time << " cassandra-concurrent-requests-threshold " << concurrent_requests_threshold << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-connect-timeout " << connect_timeout << " cassandra-request-timeout " << request_timeout << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-enable-load-balance-round-robin " << enable_load_balance_round_robin << " cassandra-enable-token-aware-routing " << enable_token_aware_routing << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-enable-latency-aware-routing " << enable_latency_aware_routing << endl;
-	  L << Logger::Debug << "[cassandradbmanager] cassandra-enable-tcp-nodelay " << enable_tcp_nodelay << " cassandra-enable-tcp-keepalive " << enable_tcp_keepalive << endl;
+	  if(::arg().mustDo("query-logging")) {
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-seed-nodes " << seed_nodes << " cassandra-num-io-threads " << num_io_threads << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-username " << username << " cassandra-password " << password << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-core-connections " << core_connections << " cassandra-max-connections " << max_connections << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-protocol-version " << protocol_version << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-max-concurrent-creations " << max_concurrent_creations << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-queue-size-io " << queue_size_io << " cassandra-queue-size-event " << queue_size_event << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-reconnect-wait-time " << reconnect_wait_time << " cassandra-concurrent-requests-threshold " << concurrent_requests_threshold << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-connect-timeout " << connect_timeout << " cassandra-request-timeout " << request_timeout << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-enable-load-balance-round-robin " << enable_load_balance_round_robin << " cassandra-enable-token-aware-routing " << enable_token_aware_routing << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-enable-latency-aware-routing " << enable_latency_aware_routing << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-enable-tcp-nodelay " << enable_tcp_nodelay << " cassandra-enable-tcp-keepalive " << enable_tcp_keepalive << endl;
+	  }
 
 	  cass_cluster_set_contact_points(cluster, seed_nodes.c_str());
 	  cass_cluster_set_credentials(cluster,username.c_str(),password.c_str());
@@ -132,8 +134,10 @@ cassandradbmanager* cassandradbmanager::getInstance()
 }
 
 string cassandradbmanager::executeAxfrQuery(const char* query,const int domain_id) {
-	  L << Logger::Info <<"[cassandradbmanager] Executing axfr query====== domain_id "<<domain_id<<endl;
-	  L << Logger::Info <<query<<endl;
+	  if(::arg().mustDo("query-logging")) {
+		  L << Logger::Info <<"[cassandradbmanager] Executing axfr query====== domain_id "<<domain_id<<endl;
+		  L << Logger::Info <<query<<endl;
+	  }
 	  CassError rc = CASS_OK;
 	  string param = "";
 	  CassStatement* statement = NULL;
@@ -161,10 +165,14 @@ string cassandradbmanager::executeAxfrQuery(const char* query,const int domain_i
 				  size_t domain_length;
 				  while (fields != NULL && cass_iterator_next(fields)) {
 					  cass_value_get_string(cass_iterator_get_value(fields), &domain, &domain_length);
-					  L << Logger::Debug <<"domain "<<domain<<" length "<<domain_length<<" param |"<<param<<"|"<<endl;
+					  if(::arg().mustDo("query-logging")) {
+						  L << Logger::Debug <<"domain "<<domain<<" length "<<domain_length<<" param |"<<param<<"|"<<endl;
+					  }
 					  domainTemp = (char*)domain;
 					  domainTemp[domain_length] = '\0';
-					  L << Logger::Debug <<"trimmed domain "<<domainTemp<<" length "<<domain_length<<" param |"<<param<<"|"<<endl;
+					  if(::arg().mustDo("query-logging")) {
+						  L << Logger::Debug <<"trimmed domain "<<domainTemp<<" length "<<domain_length<<" param |"<<param<<"|"<<endl;
+					  }
 					  if(!first) {
 						  param.append(",");
 					  }
@@ -178,13 +186,14 @@ string cassandradbmanager::executeAxfrQuery(const char* query,const int domain_i
 	  }
 	  cass_future_free(future);
 	  cass_statement_free(statement);
-	  L << Logger::Info <<"[cassandradbmanager] generated param "<<param<<endl;
 	  return param;
 }
 
 void cassandradbmanager::executeQuery(const char* query, struct domainlookuprecords* result1, const char* key, const char* dns_query_type) {
-	  L << Logger::Info <<"[cassandradbmanager] Executing executeQuery====== key "<<key<< "dns_query_type" <<dns_query_type<<endl;
-	  L << Logger::Info <<query<<endl;
+	  if(::arg().mustDo("query-logging")) {
+		  L << Logger::Info <<"[cassandradbmanager] Executing executeQuery====== key "<<key<< "dns_query_type" <<dns_query_type<<endl;
+		  L << Logger::Info <<query<<endl;
+	  }
 	  CassError rc = CASS_OK;
 	  CassStatement* statement = NULL;
 	  CassFuture* future = NULL;
@@ -210,7 +219,9 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 	      size_t key_length;const char* key;
 	      cass_value_get_string(cass_row_get_column_by_name(row, "domain"), &key, &key_length);
 	      result1->domain = key;
-	      L << Logger::Info <<"[cassandradbmanager] Domain "<<result1->domain<< endl;
+	      if(::arg().mustDo("query-logging")) {
+	    	  L << Logger::Info <<"[cassandradbmanager] Domain "<<result1->domain<< endl;
+	      }
 	      CassIterator* record_map_iterator = cass_iterator_from_map(cass_row_get_column_by_name(row, "recordmap"));
 	      while (record_map_iterator != NULL && cass_iterator_next(record_map_iterator)) {
 	    	  const char* dns_type;
@@ -270,9 +281,11 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 }
 
 void cassandradbmanager::executeQuery(const char* query, struct domainlookuprecords* result1, const char* dns_query_type) {
-	 L << Logger::Info <<"[cassandradbmanager] Executing executeQuery====== dns_query_type" <<dns_query_type<<endl;
-	 L << Logger::Info <<query<<endl;
-	CassError rc = CASS_OK;
+	  if(::arg().mustDo("query-logging")) {
+		  L << Logger::Info <<"[cassandradbmanager] Executing executeQuery====== dns_query_type" <<dns_query_type<<endl;
+		  L << Logger::Info <<query<<endl;
+	  }
+	  CassError rc = CASS_OK;
 	  CassStatement* statement = NULL;
 	  CassFuture* future = NULL;
 
@@ -295,8 +308,9 @@ void cassandradbmanager::executeQuery(const char* query, struct domainlookupreco
 	      size_t key_length;const char* key;
 	      cass_value_get_string(cass_row_get_column_by_name(row, "domain"), &key, &key_length);
 	      result1->domain = key;
-	      L << Logger::Info <<"[cassandradbmanager] Domain "<<result1->domain<< endl;
-
+	      if(::arg().mustDo("query-logging")) {
+	    	  L << Logger::Info <<"[cassandradbmanager] Domain "<<result1->domain<< endl;
+	      }
 	      CassIterator* record_map_iterator = cass_iterator_from_map(cass_row_get_column_by_name(row, "recordmap"));
 	      while (record_map_iterator != NULL && cass_iterator_next(record_map_iterator)) {
 	    	  const char* dns_type;

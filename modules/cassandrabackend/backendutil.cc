@@ -49,7 +49,6 @@ public:
 					record_data = iterator_value->first;
 					output[i].setRecord(record_data);
 					qtype = type;
-					//L << Logger::Info << "Type "<<type<<" Qtype "<<qtype.getName()<<" qtype.types "<<qtype.types<<" record_data "<<record_data<<endl;
 					output[i].setType(qtype);
 					output[i].setTtl(detailed_map[record_data]);
 					i++;
