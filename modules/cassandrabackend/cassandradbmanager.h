@@ -20,4 +20,6 @@ public:
     static cassandradbmanager* getInstance();
     void method();
     void executeQuery(const char* query, struct domainlookuprecords* result, const char* key, const char* dns_query_type);
+    void executeQuery(const char* query, struct domainlookuprecords* result, const char* dns_query_type);
+    string executeAxfrQuery(const char* query,const int domain_id);
 };
