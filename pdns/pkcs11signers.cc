@@ -15,7 +15,6 @@
 #include "pdns/dnssecinfra.hh"
 #include "pdns/logger.hh"
 #include "pdns/pdnsexception.hh"
-#include "pdns/sha.hh"
 #include "pdns/lock.hh"
 
 #include "pkcs11signers.hh"
@@ -778,6 +777,8 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
   mech.mechanism = dnssec2hmech[d_algorithm];
   mech.pParameter = NULL;
   mech.ulParameterLen = 0;
+  const md_info_t *md_info;
+  md_context_t md_ctx;
   std::shared_ptr<Pkcs11Token> d_slot;
   d_slot = Pkcs11Token::GetToken(d_module, d_slot_id, d_label);
   if (d_slot->LoggedIn() == false)
@@ -788,33 +789,33 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
     L<<Logger::Error<<"Could not digest using PKCS#11 token - using software workaround"<<endl;
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
-    case 5: {
-      SHA1Summer sha;
-      sha.feed(msg);
-      return sha.get();
+    case 5:
+      md_info = md_info_from_type(POLARSSL_MD_SHA1);
+      break;
+    case 8:
+      md_info = md_info_from_type(POLARSSL_MD_SHA256);
+      break;
+    case 10:
+      md_info = md_info_from_type(POLARSSL_MD_SHA512);
+      break;
+    case 13:
+      md_info = md_info_from_type(POLARSSL_MD_SHA256);
+      break;
+    case 14:
+      md_info = md_info_from_type(POLARSSL_MD_SHA384);
+      break;
+    default:
+      throw PDNSException("Unsupported algorithm "+d_algorithm);
     }
-    case 8: {
-      SHA256Summer sha;
-      sha.feed(msg);
-      return sha.get();
-    }
-    case 10: {
-      SHA512Summer sha;
-      sha.feed(msg);
-      return sha.get();
-    }
-    case 13: {
-      SHA256Summer sha;
-      sha.feed(msg);
-      return sha.get();
-    }
-    case 14: {
-      SHA384Summer sha;
-      sha.feed(msg);
-      return sha.get();
-    }
-    };
-  };
+
+    unsigned char hash[64];
+    md_init(&md_ctx);
+    md_init_ctx(&md_ctx, md_info);
+    md_starts(&md_ctx);
+    md_update(&md_ctx, reinterpret_cast<const unsigned char*>(msg.c_str()), msg.length());
+    md_finish(&md_ctx, hash);
+    return std::string(reinterpret_cast<const char*>(hash), sizeof(hash));
+  }
   return result;
 };
 

@@ -12,7 +12,7 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
   AS_IF([test "x$with_system_polarssl" = "xyes"],[
     OLD_LIBS=$LIBS
     LIBS=""
-    AC_SEARCH_LIBS([sha1_hmac], [mbedtls polarssl],[
+    AC_SEARCH_LIBS([md_hmac], [mbedtls polarssl],[
       POLARSSL_LIBS=$LIBS
       AC_MSG_CHECKING([for PolarSSL version >= 1.3])
       AC_COMPILE_IFELSE([

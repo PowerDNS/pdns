@@ -12,12 +12,11 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
-#include <polarssl/md5.h>
+#include <polarssl/md.h>
 #include <polarssl/sha1.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
-#include "sha.hh"
 #include "namespaces.hh"
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
@@ -487,66 +486,52 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   }  
 }
 
-string calculateMD5HMAC(const std::string& key, const std::string& text)
-{
-  std::string res;
-  unsigned char hash[16];
-
-  md5_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-  res.assign(reinterpret_cast<const char*>(hash), 16);
-
-  return res;
-}
-
-string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
-{
-  std::string res;
+string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
   unsigned char hash[64];
+  const md_info_t *md_info;
+  md_context_t md_ctx;
 
   switch(hasher) {
+  case TSIG_MD5:
+  {
+      md_info = md_info_from_type(POLARSSL_MD_MD5);
+      break;
+  };
   case TSIG_SHA1:
   {
-      sha1_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 20);
+      md_info = md_info_from_type(POLARSSL_MD_SHA1);
       break;
   };
   case TSIG_SHA224:
   {
-      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
-      res.assign(reinterpret_cast<const char*>(hash), 28);
+      md_info = md_info_from_type(POLARSSL_MD_SHA224);
       break;
   };
   case TSIG_SHA256:
   {
-      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
-      res.assign(reinterpret_cast<const char*>(hash), 32);
+      md_info = md_info_from_type(POLARSSL_MD_SHA256);
       break;
   };
   case TSIG_SHA384:
   {
-      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
-      res.assign(reinterpret_cast<const char*>(hash), 48);
+      md_info = md_info_from_type(POLARSSL_MD_SHA384);
       break;
   };
   case TSIG_SHA512:
   {
-      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
-      res.assign(reinterpret_cast<const char*>(hash), 64);
+      md_info = md_info_from_type(POLARSSL_MD_SHA512);
       break;
   };
   default:
-    throw new PDNSException("Unknown hash algorithm requested for SHA");
+    throw new PDNSException("Unknown hash algorithm requested for HMAC");
   };
 
-  return res;
-}
-
-string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash) {
-  if (hash == TSIG_MD5) return calculateMD5HMAC(key, text);
-
-  // add other algorithms here
-
-  return calculateSHAHMAC(key, text, hash);
+  md_init(&md_ctx);
+  md_init_ctx(&md_ctx, md_info);
+  size_t size = md_get_size(md_info);
+  md_hmac(md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
+  md_free(&md_ctx);
+  return std::string(reinterpret_cast<const char*>(hash), size);
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
