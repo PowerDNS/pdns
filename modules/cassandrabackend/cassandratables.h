@@ -1,5 +1,5 @@
 /*
- * ultratables.h
+ * cassandratables.h
  *
  *  Created on: 11-May-2015
  *      Author: sumit_kumar
