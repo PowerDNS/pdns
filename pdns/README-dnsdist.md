@@ -32,6 +32,10 @@ scl enable devtoolset-2 bash
 make
 ```
 
+Packaged
+--------
+dnsdist has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
+
 Examples
 --------
 
