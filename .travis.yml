@@ -66,6 +66,8 @@ before_script:
  - sudo apt-get install oracle-java8-installer
  - sudo apt-get install oracle-java8-set-default
  - cd ..
+ - sudo apt-key net-update
+ - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 437D05B5
  - sudo sh -c 'echo "deb ftp://ftp.debian.org/debian/ jessie main" >> /etc/apt/sources.list'
  - sudo sh -c 'echo "deb-src ftp://ftp.debian.org/debian/ jessie main" >> /etc/apt/sources.list'
  - sudo apt-get update
