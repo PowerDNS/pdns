@@ -72,7 +72,7 @@ before_script:
  - sudo dpkg -i libuv-dev_1.4.2-1_amd64.deb
  - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/cassandra-cpp-driver_2.1.0-1_amd64.deb
  - sudo dpkg -i cassandra-cpp-driver_2.1.0-1_amd64.deb
- - sudo find / -name libcassandra.so.2.1.0
+ - sudo ln -s /usr/lib/x86_64-linux-gnu/libcassandra.so.2.1.0 /usr/lib/libcassandra.so
  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
  - sudo apt-get update -qq
