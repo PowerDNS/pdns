@@ -66,6 +66,15 @@ before_script:
  - sudo apt-get install oracle-java8-installer
  - sudo apt-get install oracle-java8-set-default
  - cd ..
+ - sudo sh -c 'echo "deb ftp://ftp.debian.org/debian/ jessie main" >> /etc/apt/sources.list'
+ - sudo sh -c 'echo "deb-src ftp://ftp.debian.org/debian/ jessie main" >> /etc/apt/sources.list'
+ - sudo apt-get update
+ - sudo apt-get install libc6
+ - sudo apt-get -f install
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/14.04/libuv_1.6.1-1_amd64.deb
+ - sudo dpkg -i libuv_1.6.1-1_amd64.deb
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/14.04/libuv-dev_1.6.1-1_amd64.deb
+ - sudo dpkg -i libuv-dev_1.6.1-1_amd64.deb
  - wget http://downloads.datastax.com/cpp-driver/ubuntu/14.04/cassandra-cpp-driver_2.1.0-1_amd64.deb
  - sudo dpkg -i cassandra-cpp-driver_2.1.0-1_amd64.deb
  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
