@@ -8,6 +8,7 @@ before_script:
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+ - sudo apt-add-repository ppa:linuxjedi/ppa
  - sudo apt-get update -qq
  - sudo apt-get -qq install g++-4.8
  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
@@ -16,6 +17,7 @@ before_script:
      authbind
      bc
      bind9utils
+     cmake
      daemontools
      dnsutils
      faketime
@@ -33,9 +35,11 @@ before_script:
      libopendbx1-dev
      libopendbx1-sqlite3
      libp11-kit-dev
+     libssl-dev
      libtolua-dev
      libtool
-     links
+     libuv-dev
+     links  
      moreutils
      p11-kit
      pkg-config
@@ -57,7 +61,17 @@ before_script:
  - sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
  - sudo touch /etc/authbind/byport/53
  - sudo chmod 755 /etc/authbind/byport/53
+ - sudo add-apt-repository ppa:webupd8team/java
+ - sudo apt-get update -qq
+ - sudo apt-get install oracle-java8-installer
+ - sudo apt-get install oracle-java8-set-default
  - cd ..
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/14.04/cassandra-cpp-driver_2.1.0-1_amd64.deb
+ - sudo dpkg -i cassandra-cpp-driver_2.1.0-1_amd64.deb
+ - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+ - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
+ - sudo apt-get update -qq
+ - sudo apt-get install dsc22
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
