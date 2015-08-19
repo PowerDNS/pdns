@@ -75,7 +75,7 @@ before_script:
  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
  - sudo apt-get update -qq
- - sudo apt-get -y install dsc22
+ - N | sudo apt-get -y install dsc22
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
