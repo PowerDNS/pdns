@@ -68,6 +68,7 @@ before_script:
  - cd ..
  - sudo sh -c 'echo "deb ftp://ftp.debian.org/debian/ jessie main" >> /etc/apt/sources.list'
  - sudo sh -c 'echo "deb-src ftp://ftp.debian.org/debian/ jessie main" >> /etc/apt/sources.list'
+ - sudo apt-get clean
  - sudo apt-get update
  - sudo apt-get -y --force-yes install libc6 
  - sudo apt-get -f install
