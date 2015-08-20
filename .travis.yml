@@ -106,11 +106,7 @@ script:
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
  - ./configure
-<<<<<<< HEAD
-     --with-dynmodules='bind geo gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua cassandra'
-=======
-     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
->>>>>>> PowerDNS/master
+     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua cassandra'
      --with-modules=''
      --with-sqlite3
      --enable-unit-tests
