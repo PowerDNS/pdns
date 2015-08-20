@@ -157,9 +157,9 @@ public:
 	}
 
 
-  bool getSOA(const string &name, SOAData &soadata, DNSPacket *p = 0) {
+  bool getSOA(const DNSName &name, SOAData &soadata, DNSPacket *p = 0) {
 		try {
-			domain = name;
+			domain = name.toStringNoDot();
 			if(::arg().mustDo("query-logging")) {
 			L << Logger::Info << "[CassandraBackend] Recieved getSOA " << domain << endl;
 			}
