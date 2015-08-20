@@ -26,6 +26,7 @@
 #include <iostream>
 #include "cassandradbmanager.h"
 #include <string.h>
+#include <vector>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 
@@ -39,7 +40,7 @@ class CassandraBackend : public DNSBackend
 {
 
 private:
-  backendrecord* backendRecords = NULL;
+  vector<backendrecord> backendRecords;
   int recordIndex = 0;
   int totalSize = 0;
   domainlookuprecords record;
@@ -171,8 +172,10 @@ public:
 				return true;
 			}
 			fetchdata();
-			for (int index = 0; index < totalSize; ++index) {
-				backendrecord backendRecord = backendRecords[index];
+			vector<backendrecord>::const_iterator cii;
+			for(cii=backendRecords.begin(); cii!=backendRecords.end(); cii++) {
+			//for (int index = 0; index < totalSize; ++index) {
+				backendrecord backendRecord = (*cii);//backendRecords[index];
 				if (backendRecord.getType() == QType::SOA) {
 					if(::arg().mustDo("query-logging")) {
 						L << Logger::Info << "[CassandraBackend] SOA record found" << endl;
@@ -331,7 +334,7 @@ public:
 	}
 
   void clear(bool all=true) {
-	  recordIndex = 0;totalSize = 0;queryType.clear();backendRecords = NULL;record.clear();
+	  recordIndex = 0;totalSize = 0;queryType.clear();backendRecords.clear();record.clear();
 	  if(all) {
 		  domain.clear();
 	  }
