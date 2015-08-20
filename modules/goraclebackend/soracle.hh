@@ -8,6 +8,7 @@
 #include "pdns/utility.hh"
 #include <oci.h>
 #include <oratypes.h>
+#include "pdns/misc.hh"
 
 #ifndef dsword
 typedef sb4 dsword;
@@ -29,9 +30,9 @@ public:
   SSqlStatement* prepare(const string& query, int nparams);
   void execute(const string& query);
 
-  void startTransaction() {}
-  void commit() {}
-  void rollback() {}
+  void startTransaction();
+  void commit();
+  void rollback();
 private:
   OCIEnv*    d_environmentHandle;
   OCIError*  d_errorHandle;

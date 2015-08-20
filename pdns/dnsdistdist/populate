@@ -9,14 +9,13 @@ ln -fs ../base32.hh ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc \
   ../iputils.cc ../iputils.hh ../misc.cc ../misc.hh ../namespaces.hh \
   ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc \
   ../sodcrypto.hh ../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc \
-  ../dnsdist-carbon.cc .
+  ../dnsdist-carbon.cc ../delaypipe.cc ../delaypipe.hh .
 
 mkdir -p m4
 ln -fs ../../../m4/pdns_check_libsodium.m4 m4/
 ln -fs ../../../m4/pdns_check_readline.m4 m4/
 ln -fs ../../../m4/ax_lib_readline.m4 m4/
 ln -fs ../../../m4/boost.m4 m4/
-ln -fs ../../../m4/pdns_with_lua.m4 m4/
 ln -fs ../../../m4/ax_cxx_compile_stdcxx_11.m4 m4/
 ln -fs ../../../m4/pdns_check_clock_gettime.m4 m4/
 

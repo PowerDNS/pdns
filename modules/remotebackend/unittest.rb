@@ -249,5 +249,9 @@ class Handler
      return [2013060300] if args["sd"]["qname"] == "unit.test"
      [false]
    end
+
+   def do_directbackendcmd(args)
+     [args["query"]]
+   end
 end
 

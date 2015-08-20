@@ -13,6 +13,7 @@ So, as an example:
 ## `aaaa-additional-processing`
 * Boolean
 * Default: No
+* Available until: 3.6.0
 
 If turned on, the recursor will attempt to add AAAA IPv6 records to questions
 for MX records and NS records. Can be quite slow as absence of these records in
@@ -46,6 +47,7 @@ remote server to TCP. Useful for mitigating ANY reflection attacks.
 ## `auth-can-lower-ttl`
 * Boolean
 * Default: no
+* Available until: 3.5
 
 Authoritative zones can transmit a TTL value that is lower than that specified
 in the parent zone. This is called a 'delegation inconsistency'. To follow
@@ -74,7 +76,8 @@ are doing. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphi
 * Available since: 3.5.3
 
 If set to an IP or IPv6 address, will send all available metrics to this server
-via the carbon protocol, which is used by graphite and metronome. See
+via the carbon protocol, which is used by graphite and metronome.  You may specify 
+an alternate port by appending :port, ex: 127.0.0.1:2004. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-interval`
@@ -328,6 +331,7 @@ Local port to bind to.
 ## `non-local-bind`
 * Boolean
 * Default: no
+* Available since: 4.0.0
 
 Bind to addresses even if one or more of the [`local-address`'s](#local-address)
 do not exist on this server. Setting this option will enable the needed socket

@@ -1,0 +1,4 @@
+0	unknown.service.geo.example.com.	IN	A	30	127.0.0.1
+0	www.geo.example.com.	IN	CNAME	30	unknown.service.geo.example.com.
+Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='www.geo.example.com.', qtype=A

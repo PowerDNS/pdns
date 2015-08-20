@@ -75,7 +75,8 @@ If sending carbon updates, if set, this will override our hostname. Be careful n
 * Available since: 3.3.1
 
 Send all available metrics to this server via the carbon protocol, which is used
-by graphite and metronome. See
+by graphite and metronome. You may specify an alternate port by appending :port, 
+ex: 127.0.0.1:2004. See 
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-interval`
@@ -266,6 +267,12 @@ doubles query load. **Do not combine with DNSSEC!**
 * Default: no
 
 Enable/Disable DNS update (RFC2136) support.
+
+## `experimental-json-interface`
+* Boolean
+* Default: no
+
+Enable/disable the [JSON API](../httpapi/README.md).
 
 ## `forward-dnsupdates`
 * Boolean
@@ -500,16 +507,20 @@ or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
 
 ## `out-of-zone-additional-processing`
 * Boolean
-* Default: no
+* Default: yes
 
 Do out of zone additional processing. This means that if a malicious user adds a
 '.com' zone to your server, it is not used for other domains and will not
 contaminate answers. Do not enable this setting if you run a public DNS service
 with untrusted users.
 
+The docs had previously indicated that the default was "no", but the default has
+been "yes" since 2005.
+
 ## `pipebackend-abi-version`
 * Integer
 * Default: 1
+* Removed in: 4.0.0 (is now specific to the backend)
 
 ABI version to use for the pipe backend. See
 ["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).

@@ -1,18 +1,25 @@
 #include "dnsname.hh"
 #include <boost/format.hpp>
 #include <string>
+
 #include "dnswriter.hh"
+#include "misc.hh"
+
+#include <boost/functional/hash.hpp>
 
 /* raw storage
    in DNS label format, without trailing 0. So the root is of length 0.
 
-   www.powerdns.com = 3www8powerdns3com 
-   
+   www.powerdns.com = 3www8powerdns3com
+
    a primitive is nextLabel()
 */
 
+/* FIXME400: @nlyan suggests that we should only have a string constructor, and make sure
+ * char* does not implicitly map to it, to avoid issues with embedded NULLs */
 DNSName::DNSName(const char* p)
 {
+  d_empty=false;
   auto labels = segmentDNSName(p);
   for(const auto& e : labels)
     appendRawLabel(e);
@@ -20,6 +27,7 @@ DNSName::DNSName(const char* p)
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
+  d_empty=false;
   d_recurse = 0;
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
 }
@@ -57,36 +65,47 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
   }
   if(consumed)
     *consumed = pos - opos - offset;
-  if(qtype && pos + labellen + 2 <= end)  
+  if(qtype && pos + labellen + 2 <= end)
     *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
 
   pos+=2;
-  if(qclass && pos + labellen + 2 <= end)  
+  if(qclass && pos + labellen + 2 <= end)
     *qclass=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
 
 }
 
-std::string DNSName::toString() const
+std::string DNSName::toString(const std::string& separator, const bool trailing) const
 {
-  if(d_storage.empty())  // I keep wondering if there is some deeper meaning to the need to do this
-    return ".";
+  if (d_empty)
+    return "";
+  if(d_storage.empty() && trailing)  // I keep wondering if there is some deeper meaning to the need to do this
+    return separator;
   std::string ret;
   for(const auto& s : getRawLabels()) {
-    ret+= escapeLabel(s) + ".";
+    ret+= escapeLabel(s) + separator;
   }
-  return ret;
+  return ret.substr(0, ret.size()-!trailing);
 }
 
 std::string DNSName::toDNSString() const
 {
+  if (d_empty)
+    return "";
   string ret(d_storage.c_str(), d_storage.length());
   ret.append(1,(char)0);
-  return ret;
+  return toLower(ret); // toLower or not toLower, that is the question
+  // return ret;
+}
+
+size_t DNSName::length() const {
+  return this->toString().length();
 }
 
 // are WE part of parent
 bool DNSName::isPartOf(const DNSName& parent) const
 {
+  if(parent.d_empty || d_empty)
+    return false;
   if(parent.d_storage.empty())
     return true;
   if(parent.d_storage.size() > d_storage.size())
@@ -106,15 +125,39 @@ bool DNSName::isPartOf(const DNSName& parent) const
   return false;
 }
 
+DNSName DNSName::makeRelative(const DNSName& zone) const
+{
+  DNSName ret(*this);
+  if (ret.isPartOf(zone)) {
+    ret.d_storage.erase(ret.d_storage.size()-zone.d_storage.size());
+  } else
+    ret.clear();
+  return ret;
+}
+
+DNSName DNSName::labelReverse() const
+{
+  DNSName ret;
+  if (!d_empty) {
+    vector<string> l=getRawLabels();
+    while(!l.empty()) {
+      ret.appendRawLabel(l.back());
+      l.pop_back();
+    }
+  }
+  return ret;
+}
+
 void DNSName::appendRawLabel(const std::string& label)
 {
   if(label.empty())
-    throw std::range_error("no such thing as an empty label");
+    throw std::range_error("no such thing as an empty label to append");
   if(label.size() > 63)
-    throw std::range_error("label too long");
+    throw std::range_error("label too long to append");
   if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
-    throw std::range_error("name too long");
+    throw std::range_error("name too long to append");
 
+  d_empty=false;
   d_storage.append(1, (char)label.size());
   d_storage.append(label.c_str(), label.length());
 }
@@ -122,12 +165,13 @@ void DNSName::appendRawLabel(const std::string& label)
 void DNSName::prependRawLabel(const std::string& label)
 {
   if(label.empty())
-    throw std::range_error("no such thing as an empty label");
+    throw std::range_error("no such thing as an empty label to prepend");
   if(label.size() > 63)
-    throw std::range_error("label too long");
+    throw std::range_error("label too long to prepend");
   if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
-    throw std::range_error("name too long");
+    throw std::range_error("name too long to prepend");
 
+  d_empty=false;
   string_t prep(1, (char)label.size());
   prep.append(label.c_str(), label.size());
   d_storage = prep+d_storage;
@@ -143,12 +187,26 @@ vector<string> DNSName::getRawLabels() const
   return ret;
 }
 
-bool DNSName::chopOff() 
+bool DNSName::canonCompare(const DNSName& rhs) const
+{
+  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
+  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
+}
+
+bool DNSName::chopOff()
 {
   if(d_storage.empty())
     return false;
   d_storage = d_storage.substr((unsigned int)d_storage[0]+1);
   return true;
+}
+
+bool DNSName::isWildcard() const
+{
+  if(d_storage.empty())
+    return false;
+  auto p = d_storage.begin();
+  return (*p == 0x01 && *++p == '*');
 }
 
 unsigned int DNSName::countLabels() const
@@ -167,7 +225,7 @@ void DNSName::trimToLabels(unsigned int to)
 
 bool DNSName::operator==(const DNSName& rhs) const
 {
-  if(rhs.d_storage.size() != d_storage.size())
+  if(rhs.d_empty != d_empty || rhs.d_storage.size() != d_storage.size())
     return false;
 
   auto us = d_storage.crbegin();
@@ -179,11 +237,17 @@ bool DNSName::operator==(const DNSName& rhs) const
   return true;
 }
 
+size_t hash_value(DNSName const& d)
+{
+  boost::hash<string> hasher;
+  return hasher(toLower(d.toString())); // FIXME400 HACK
+}
+
 string DNSName::escapeLabel(const std::string& label)
 {
   string ret;
   for(uint8_t p : label) {
-    if(p=='.') 
+    if(p=='.')
       ret+="\\.";
     else if(p=='\\')
       ret+="\\\\";
@@ -195,5 +259,3 @@ string DNSName::escapeLabel(const std::string& label)
   }
   return ret;
 }
-
-

@@ -143,6 +143,7 @@ void* tcpClientThread(int pipefd)
 	  break;
 	case DNSAction::Action::Allow:
 	case DNSAction::Action::None:
+	case DNSAction::Action::Delay:
 	  break;
 	}
 	

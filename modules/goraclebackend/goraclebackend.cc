@@ -100,11 +100,11 @@ public:
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select * FROM (select trim(ordername), name from records where disabled=0 and ordername <= :ordername || ' ' and domain_id=:domain_id and ordername is not null order by ordername desc) where rownum=1");
     declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select trim(min(ordername)) from records where disabled=0 and ordername > :ordername || ' ' and domain_id=:domain_id and ordername is not null");
     declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select * from (select trim(ordername), name from records where disabled=0 and ordername != ' ' and domain_id=:domain_id and ordername is not null order by ordername desc) where rownum=1");
-    declare(suffix, "set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=:ordername || ' ',auth=:auth where name=:qname and domain_id=:domain_id and disabled=0");
-    declare(suffix, "set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=1 where domain_id=:domain_id and name=:qname and type='DS' and disabled=0");
 
-    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=:auth where domain_id=:domain_id and name=:qname and disabled=0");
-    declare(suffix, "nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=0 where name=:qname and type=:qtype and domain_id=:domain_id and disabled=0");
+    declare(suffix, "update-ordername-and-auth-query", "DNSSEC update ordername and auth for a qname query", "update records set ordername=:ordername || ' ',auth=:auth where domain_id=:domain_id and name=:qname and disabled=0");
+    declare(suffix, "update-ordername-and-auth-type-query", "DNSSEC update ordername and auth for a rrset query", "update records set ordername=:ordername || ' ',auth=:auth where domain_id=:domain_id and name=:qname and type=:qtype and disabled=0");
+    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=:auth where domain_id=:domain_id and name=:qname and disabled=0");
+    declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=:auth where domain_id=:domain_id and name=:qname and type=:qtype and disabled=0");
 
     declare(suffix, "update-master-query", "", "update domains set master=:master where name=:domain");
     declare(suffix, "update-kind-query", "", "update domains set type=:kind where name=:domain");
@@ -140,6 +140,8 @@ public:
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (id, domain_id, name, type, modified_at, account, \"comment\") VALUES (comments_id_sequence.nextval, :domain_id, :qname, :qtype, :modified_at, :account, :content)");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=:domain_id AND name=:qname AND type=:qtype");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=:domain_id");
+    declare(suffix, "search-records-query", "", record_query+" name LIKE :value OR content LIKE :value2 LIMIT :limit");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE :value OR comment LIKE :value2 LIMIT :limit");
 
   }
 
@@ -159,7 +161,11 @@ public:
   //! This reports us to the main UeberBackend class
   gOracleLoader() {
     BackendMakers().report(new gOracleFactory("goracle"));
-    L << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[goraclebackend] This is the goracle backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 

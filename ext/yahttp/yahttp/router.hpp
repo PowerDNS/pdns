@@ -17,7 +17,7 @@ namespace funcptr = std;
 namespace funcptr = boost;
 #define HAVE_CPP_FUNC_PTR
 #else
-#warn "You need to configure with boost or have C++11 capable compiler for router"
+#warning "You need to configure with boost or have C++11 capable compiler for router"
 #endif
 #endif
 

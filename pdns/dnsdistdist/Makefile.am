@@ -17,6 +17,7 @@ man_MANS=dnsdist.1
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   README.md \
+	   delaypipe.cc delaypipe.hh \
 	   html \
 	   dnsdist.1 \
 	   .version \

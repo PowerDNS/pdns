@@ -240,6 +240,16 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         req.POST()["serial"] = sparam;
         req.preparePost();
         verb = "PATCH";
+    } else if (method == "directBackendCmd") {
+        json2string(parameters["query"],sparam);
+        req.POST()["query"] = sparam;
+        req.preparePost();
+        verb = "POST";
+    } else if (method == "searchRecords" || method == "searchComments") {
+        json2string(parameters["pattern"],sparam);
+        req.GET()["pattern"] = sparam;
+        req.GET()["maxResults"] = boost::lexical_cast<std::string>(parameters["maxResults"].GetInt());
+        verb = "GET";
     } else {
         // perform normal get
         verb = "GET";

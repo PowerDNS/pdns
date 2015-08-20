@@ -27,10 +27,10 @@ version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yah
 rec-carbon.o secpoll-recursor.o lua-iputils.o iputils.o dnsname.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
-	unix_utility.o logger.o qtype.o
+	unix_utility.o logger.o qtype.o dnslabeltext.o dnsname.o
 
 # what we need 
-all: message version_generated.h build
+all: message build
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
@@ -68,26 +68,6 @@ CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 
 dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o $@
-
-# Version
-build_date := $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host := $(shell id -u -n)@$(shell hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)
-
-.PHONY: version_generated.h
-version_generated.h:
-	@echo "$$create_version_generated_h" > $@
-
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#include "config.h"
-#define PDNS_VERSION VERSION
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-
-export create_version_generated_h
 
 message: 
 	@echo
@@ -128,7 +108,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/library/*.o ext/yahttp/yahttp/*.o version_generated.h
+	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/library/*.o ext/yahttp/yahttp/*.o
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@

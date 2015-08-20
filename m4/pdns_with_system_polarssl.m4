@@ -14,12 +14,12 @@ AC_DEFUN([PDNS_WITH_SYSTEM_POLARSSL],[
     LIBS=""
     AC_SEARCH_LIBS([sha1_hmac], [mbedtls polarssl],[
       POLARSSL_LIBS=$LIBS
-      AC_MSG_CHECKING([for PolarSSL version >= 1.1])
+      AC_MSG_CHECKING([for PolarSSL version >= 1.3])
       AC_COMPILE_IFELSE([
         AC_LANG_PROGRAM(
           [[#include <polarssl/version.h>]],
           [[
-            #if POLARSSL_VERSION_NUMBER < 0x01010000
+            #if POLARSSL_VERSION_NUMBER < 0x01030000
             #error invalid version
             #endif
           ]]

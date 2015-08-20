@@ -194,7 +194,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
-        S.ringAccount("servfail-queries",QD->Q->qdomain);
+        S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
 
 	delete QD->Q;
       }
@@ -206,7 +206,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 	
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
-        S.ringAccount("servfail-queries",QD->Q->qdomain);
+        S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
 	delete QD->Q;
       }
 
@@ -238,7 +238,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a=q->replyPacket();
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",q->qdomain);
+    S.ringAccount("servfail-queries",q->qdomain.toString());
   }
   catch(...) {
     L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
@@ -247,7 +247,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a=q->replyPacket();
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries",q->qdomain);
+    S.ringAccount("servfail-queries",q->qdomain.toString());
   }
   callback(a);
   return 0;
@@ -276,7 +276,7 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
     d_overloaded= d_queued > overloadQueueLength;
 
   if(d_queued > maxQueueLength) {
-    L<<Logger::Error<< d_queued <<" questions waiting for database attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
+    L<<Logger::Error<< d_queued <<" questions waiting for database/backend attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
     // this will leak the entire contents of all pipes, nothing will be freed. Respawn when this happens!
     throw DistributorFatal();
   }

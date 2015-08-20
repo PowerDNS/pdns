@@ -2,7 +2,7 @@
 set -ex
 BUILDING_PRODUCT=auth ./build-scripts/jenkins-driver
 ./bootstrap
-CC="ccache gcc" CXX="ccache g++" ./configure --with-modules='geo gmysql gpgsql gsqlite3 ldap lua mydns opendbx pipe remote tinydns random '$([ -d modules/bindbackend ] && echo bind) --enable-remotebackend-http --enable-unit-tests
+CC="ccache gcc" CXX="ccache g++" ./configure --with-modules='gmysql gpgsql gsqlite3 ldap lua mydns opendbx pipe remote tinydns random '$([ -d modules/bindbackend ] && echo bind) --enable-remotebackend-http --enable-unit-tests
 make dist
 #cd pdns; ./dist-recursor; cd ..
 make -j4

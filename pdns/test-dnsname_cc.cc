@@ -40,15 +40,21 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK(DNSName("www.ds9a.nl.").toString() == "www.ds9a.nl.");
 
 
+  { // Check root vs empty
+    DNSName name("."); // root
+    DNSName parent; // empty
+    BOOST_CHECK(name != parent);
+  }
+
   { // Check root part of root
     DNSName name;
     DNSName parent;
-    BOOST_CHECK(name.isPartOf(parent));
+    BOOST_CHECK(!name.isPartOf(parent));
   }
 
   { // Check name part of root
     DNSName name("a.");
-    DNSName parent;
+    DNSName parent(".");
     BOOST_CHECK(name.isPartOf(parent));
   }
 
@@ -82,6 +88,26 @@ BOOST_AUTO_TEST_CASE(test_basic) {
     BOOST_CHECK(!name.isPartOf(parent));
   }
 
+  { // Make relative
+    DNSName name("aaaa.bbb.cc.d.");
+    DNSName parent("cc.d.");
+    BOOST_CHECK( name.makeRelative(parent) == DNSName("aaaa.bbb."));
+  }
+
+  { // Labelreverse
+    DNSName name("aaaa.bbb.cc.d.");
+    BOOST_CHECK( name.labelReverse() == DNSName("d.cc.bbb.aaaa."));
+  }
+
+  { // empty() empty
+    DNSName name;
+    BOOST_CHECK(name.empty());
+  }
+  
+  { // empty() root
+    DNSName name(".");
+    BOOST_CHECK(!name.empty());
+  }
 
   DNSName left("ds9a.nl.");
   left.prependRawLabel("www");
@@ -92,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK( left == DNSName("WwW.Ds9A.Nl.com."));
   
   DNSName root;
-  BOOST_CHECK(root.toString() == ".");
+  BOOST_CHECK(root.toString() != ".");
 
   root.appendRawLabel("www");
   root.appendRawLabel("powerdns.com");
@@ -123,7 +149,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK_EQUAL(n.toString(), "powerdns\\.dnsmaster.powerdns.com.");
 
-  BOOST_CHECK_EQUAL(DNSName().toString(), ".");
+  BOOST_CHECK(DNSName().toString() != ".");
 
   DNSName p;
   string label("power");
@@ -191,7 +217,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   uint16_t qtype, qclass;
   DNSName dn((char*)&packet[0], packet.size(), 12, false, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn.toString(), "www.ds9a.nl.");
-  BOOST_CHECK_EQUAL(qtype, QType::AAAA);
+  BOOST_CHECK(qtype == QType::AAAA);
   BOOST_CHECK_EQUAL(qclass, 1);
 
   dpw.startRecord("ds9a.nl.", DNSRecordContent::TypeToNumber("NS"));
@@ -212,7 +238,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
 
   DNSName dn2((char*)&packet[0], packet.size(), 12+13+4, true, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn2.toString(), "ds9a.nl."); 
-  BOOST_CHECK_EQUAL(qtype, QType::NS);
+  BOOST_CHECK(qtype == QType::NS);
   BOOST_CHECK_EQUAL(qclass, 1);
 
   DNSName dn3((char*)&packet[0], packet.size(), 12+13+4+2 + 4 + 4 + 2, true);
@@ -267,8 +293,42 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   smn.add(DNSName()); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
+}
 
 
+BOOST_AUTO_TEST_CASE(test_concat) {
+  DNSName first("www."), second("powerdns.com.");
+  BOOST_CHECK_EQUAL((first+second).toString(), "www.powerdns.com.");
+}
+
+BOOST_AUTO_TEST_CASE(test_compare_naive) {
+  BOOST_CHECK(DNSName("abc.com.") < DNSName("zdf.com."));
+  BOOST_CHECK(DNSName("Abc.com.") < DNSName("zdf.com."));
+  BOOST_CHECK(DNSName("Abc.com.") < DNSName("Zdf.com."));
+  BOOST_CHECK(DNSName("abc.com.") < DNSName("Zdf.com."));
+}
+
+BOOST_AUTO_TEST_CASE(test_compare_canonical) {
+  DNSName lower("bert.com."), higher("alpha.nl.");
+  BOOST_CHECK(lower.canonCompare(higher));
+
+
+  vector<DNSName> vec({"bert.com.", "alpha.nl.", "articles.xxx.",
+	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
+	"test.powerdns.com."});
+  sort(vec.begin(), vec.end(), CanonDNSNameCompare());
+  //  for(const auto& v : vec)
+  //  cerr<<'"'<<v.toString()<<'"'<<endl;
+
+  vector<DNSName> right({"bert.com.",  "Aleph1.powerdns.com.",
+	"test.powerdns.com.",
+	"ZOMG.powerdns.com.",
+	"alpha.nl.",
+	"aaa.XXX.",
+	"articles.xxx.",
+	"yyy.XXX."});
+
+  BOOST_CHECK(vec==right);
 }
 
 
@@ -365,6 +425,7 @@ BOOST_AUTO_TEST_CASE(test_name_length_too_long) { // 256 char name
     BOOST_CHECK_THROW(dn += DNSName(label + "."), std::range_error);
   }
 }
+
 
 BOOST_AUTO_TEST_CASE(test_invalid_label_length) { // Invalid label length in qname
 

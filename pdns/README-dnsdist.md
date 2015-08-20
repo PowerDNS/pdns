@@ -32,6 +32,10 @@ scl enable devtoolset-2 bash
 make
 ```
 
+Packaged
+--------
+dnsdist has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
+
 Examples
 --------
 
@@ -198,6 +202,7 @@ Current actions are:
  * Return with TC=1 (truncated, ie, instruction to retry with TCP)
  * Force a ServFail, NotImp or Refused answer
  * Send out a crafted response (NXDOMAIN or "real" data)
+ * Delay a response by n milliseconds
 
 More power
 ----------
@@ -319,6 +324,26 @@ To delete a limit (or a rule in general):
 0           0 h4xorbooter.xyz.                                   qps limit to 10
 1           0 nl., be.                                           qps limit to 1
 ```
+
+Delaying answers
+----------------
+Sometimes, runaway scripts will hammer your servers with back-to-back
+queries.  While it is possible to drop such packets, this may paradoxically
+lead to more traffic. 
+
+An attractive middleground is to delay answers to such back-to-back queries,
+causing a slowdown on the side of the source of the traffic.
+
+To do so, use:
+```
+> addDelay("yourdomain.in.ua.", 500)
+> addDelay({"65.55.37.0/24"}, 500)
+```
+This will delay responses for questions to the mentioned domain, or coming
+from the configured subnet, by half a second.
+
+Like the QPSLimits and other rules, the delaying instructions can be
+inspected or edited using showRule(), rmRule(), topRule(), mvRule() etc.
 
 Dynamic load balancing
 ----------------------
@@ -528,6 +553,11 @@ Here are all functions:
    * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
    * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
    * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
+ * Delaying related:
+   * `addDelay(domain, n)`: delay answers within that domain by n milliseconds
+   * `addDelay({domain, domain}, n)`: delay answers within those domains (together) by n milliseconds
+   * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
+   * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds     
  * Answer changing functions:
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
  * Advanced functions for writing your own policies and hooks

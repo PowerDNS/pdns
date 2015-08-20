@@ -374,6 +374,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	});
     });
    
+  g_lua.writeFunction("addDelay", [](boost::variant<string,vector<pair<int, string>> > var, int msec) {
+      auto rule = makeRule(var);
+      g_rulactions.modify([msec,rule](decltype(g_rulactions)::value_type& rulactions) {
+	  rulactions.push_back({rule, 
+		std::make_shared<DelayAction>(msec)});
+	});
+    });
 
 
   g_lua.writeFunction("showRules", []() {

@@ -562,7 +562,11 @@ public:
   LMDBLoader()
   {
     BackendMakers().report(new LMDBFactory);
-    L << Logger::Info << "[lmdbbackend] This is the lmdb backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[lmdbbackend] This is the lmdb backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }
 };
 

@@ -119,9 +119,9 @@ public:
   }
 
 
-  void xfrName(string &label, bool compress=false)
+  void xfrName(DNSName &label, bool compress=false)
   {
-    label=getLabel();
+    label=getName();
   }
 
   void xfrText(string &text, bool multi=false)
@@ -140,7 +140,7 @@ public:
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
 
-  string getLabel();
+  string getName();
   string getText(bool multi);
 
   uint16_t d_pos;
@@ -150,6 +150,7 @@ public:
 private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
+  uint16_t not_used; // Alighns the whole class on 8-byte boundries
   const vector<uint8_t>& d_content;
 };
 
@@ -165,7 +166,7 @@ public:
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
-  virtual string serialize(const string& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
+  virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
     string empty;
@@ -185,11 +186,11 @@ public:
     return record;
   }
 
-  static shared_ptr<DNSRecordContent> unserialize(const string& qname, uint16_t qtype, const string& serialized);
+  static shared_ptr<DNSRecordContent> unserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
 
   void doRecordCheck(const struct DNSRecord&){}
 
-  std::string label;
+  DNSName label; // FIXME400 rename
   struct dnsrecordheader header;
 
   typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
@@ -262,13 +263,13 @@ protected:
 
 struct DNSRecord
 {
-  std::string d_label;
+  DNSName d_label; //FIXME400 rename
+  std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-  enum {Answer=1, Nameserver, Additional} d_place;
-  std::shared_ptr<DNSRecordContent> d_content;
+  enum : uint8_t {Answer=1, Nameserver, Additional} d_place;
 
   bool operator<(const DNSRecord& rhs) const
   {
@@ -278,8 +279,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label);
-    string rlabel=toLower(rhs.d_label);
+    string llabel=toLower(d_label.toString()); //FIXME400
+    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
 
     return 
       tie(llabel,     d_type,     d_class, lzrp) <
@@ -294,8 +295,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label);
-    string rlabel=toLower(rhs.d_label);
+    string llabel=toLower(d_label.toString()); //FIXME400
+    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
     
     return 
       tie(llabel,     d_type,     d_class, lzrp) ==
@@ -319,10 +320,10 @@ public:
     init(packet, len);
   }
 
-  dnsheader d_header;
-  string d_qname;
+  DNSName d_qname;
   uint16_t d_qclass, d_qtype;
   //uint8_t d_rcode;
+  dnsheader d_header;
 
   typedef vector<pair<DNSRecord, uint16_t > > answers_t;
   

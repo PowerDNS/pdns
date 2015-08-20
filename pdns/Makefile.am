@@ -1,4 +1,5 @@
 AM_CPPFLAGS += \
+	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(POLARSSL_CFLAGS)
@@ -49,15 +50,14 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist \
-	dnsdistdist/html
+	dnsdistdist/html \
+	delaypipe.hh delaypipe.cc
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	version_generated.h \
 	bindparser.h htmlfiles.h 
 
 CLEANFILES = \
-	version_generated.h \
 	*.gcda \
 	*.gcno \
 	*.gcov \
@@ -177,7 +177,7 @@ pdns_server_SOURCES = \
 	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
-	responsestats.cc responsestats.hh \
+	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
 	secpoll-auth.cc secpoll-auth.hh \
 	serialtweaker.cc \
@@ -187,6 +187,7 @@ pdns_server_SOURCES = \
 	slavecommunicator.cc \
 	statbag.cc statbag.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
 	unix_utility.cc \
@@ -225,9 +226,9 @@ pdns_server_SOURCES += cryptoppsigners.cc
 pdns_server_LDADD += $(CRYPTOPP_LIBS)
 endif
 
-if ED25519
-pdns_server_SOURCES += ed25519signers.cc
-pdns_server_LDADD += $(ED25519_LIBS)
+if LIBSODIUM
+pdns_server_SOURCES += sodiumsigners.cc
+pdns_server_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if SQLITE3
@@ -325,9 +326,9 @@ pdnssec_SOURCES += cryptoppsigners.cc
 pdnssec_LDADD += $(CRYPTOPP_LIBS)
 endif
 
-if ED25519
-pdnssec_SOURCES += ed25519signers.cc
-pdnssec_LDADD += $(ED25519_LIBS)
+if LIBSODIUM
+pdnssec_SOURCES += sodiumsigners.cc
+pdnssec_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if SQLITE3
@@ -401,7 +402,7 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDADD = $(POLARSSL_LIBS)
+zone2json_LDADD = $(POLARSSL_LIBS) -L$(top_srcdir)/ext/json11 -ljson11
 
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc
@@ -517,6 +518,8 @@ calidns_LDADD = $(POLARSSL_LIBS)
 calidns_LDFLAGS=$(THREADFLAGS) 
 
 dumresp_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dumresp.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -730,9 +733,12 @@ speedtest_LDADD = $(POLARSSL_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.hh dnsname.cc \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnswasher.cc \
+	dnswriter.hh \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
@@ -951,6 +957,8 @@ dnsdemog_LDADD = $(POLARSSL_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	dnsname.hh dnsname.cc \
+	dnslabeltext.cc \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
@@ -988,12 +996,14 @@ testrunner_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
+	responsestats-auth.cc \
 	sillyrecords.cc \
 	statbag.cc \
 	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
+	test-delaypipe_hh.cc \
 	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
@@ -1022,6 +1032,7 @@ testrunner_LDADD = \
 	$(POLARSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
+	$(RT_LIBS) \
 	$(LIBDL)
 
 if PKCS11
@@ -1106,7 +1117,9 @@ pdns_control_SOURCES = \
 	misc.cc \
 	qtype.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	dnsname.cc \
+	dnslabeltext.cc
 
 
 if UNIT_TESTS
@@ -1131,42 +1144,5 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 .hh.h:
 	cp $< $@
 
-build_date := $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host := $(shell id -u -n)@$(shell hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)
-git_version := $(shell git describe --always --dirty=+ 2>/dev/null)
-# Do the test in shell, so we don't confuse automake with ifeq/ifneq.
-pdns_version := $(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git_version)")
-
-version.o: version_generated.h
-
 pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	./mkpubsuffixcc
-
-.PHONY: version_generated.h
-version_generated.h:
-	@echo "$$create_version_generated_h" > $@
-
-if RELEASE_BUILD
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#define PDNS_VERSION "$(PACKAGE_VERSION)"
-#define DIST_HOST "$(DIST_HOST)"
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-
-else
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#define PDNS_VERSION "$(pdns_version)"
-#define DIST_HOST "$(build_host)"
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-endif
-
-export create_version_generated_h
