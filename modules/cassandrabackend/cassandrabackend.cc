@@ -130,7 +130,7 @@ public:
 
   }
 
-  bool list(const string &target, int domain_id, bool include_disabled=false)
+  bool list(const DNSName& target, int domain_id, bool include_disabled=false)
   {
 		try {
 			//Right now there is no disabled field in the domain field
