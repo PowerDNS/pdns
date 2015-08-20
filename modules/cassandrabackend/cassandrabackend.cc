@@ -254,11 +254,11 @@ public:
 	 soadata.hostmaster = "hm1.default.pdns.com";
   }
 
-  void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
+  void lookup(const QType &type, const DNSName &qname, DNSPacket *pkt_p, int zoneId)
   {
 		try {
 			queryType = type.getName();
-			domain = qdomain;
+			domain = qname.toStringNoDot();
 			recordIndex = 0;
 			totalSize = 0;
 			if(::arg().mustDo("query-logging")) {
