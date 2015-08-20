@@ -21,7 +21,7 @@ public:
     	domain = NULL;
     	recordTypeResultArrayMap.clear();
     	disabled = false;
-    	creation_time = NULL;
+    	creation_time = 0;
     	size = 0;
     }
 };
