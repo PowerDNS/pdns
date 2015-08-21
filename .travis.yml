@@ -26,7 +26,6 @@ before_script:
      libboost-all-dev
      libbotan1.10-dev
      libcdb-dev
-     libcdb-dev
      libcurl4-openssl-dev
      libgeoip-dev
      libldap2-dev
@@ -38,7 +37,6 @@ before_script:
      libssl-dev
      libtolua-dev
      libtool
-     libuv-dev
      links  
      moreutils
      p11-kit
