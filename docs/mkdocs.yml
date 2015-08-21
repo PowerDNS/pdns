@@ -48,6 +48,7 @@ pages:
   - [authoritative/backend-random.md, 'Authoritative Backends', 'Random']
   - [authoritative/backend-remote.md, 'Authoritative Backends', 'Remote']
   - [authoritative/backend-tinydns.md, 'Authoritative Backends', 'TinyDNS']
+  - [authoritative/backend-cassandra.md, 'Authoritative Backends', 'Cassandra']
   - [authoritative/backend-deprecated.md, 'Authoritative Backends', 'Deprecated Backends']
   - [recursor/index.md, 'Recursor', 'Introduction']
   - [recursor/security.md, 'Recursor', 'Security of the Recursor']
