@@ -106,7 +106,7 @@ script:
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
  - ./configure
-     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns pipe remote random opendbx ldap lua cassandra'
+     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua cassandra'
      --with-modules=''
      --with-sqlite3
      --enable-unit-tests
@@ -203,7 +203,7 @@ script:
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
- #- ./timestamp ./start-test-stop 5300 tinydns
+ - ./timestamp ./start-test-stop 5300 tinydns
  - rm -f tests/verify-dnssec-zone/allow-missing
  - rm -f tests/verify-dnssec-zone/skip.nsec3
  - rm -f tests/verify-dnssec-zone/skip.optout
