@@ -25,9 +25,6 @@ Cassandra credentials. By default cassandra starts with credentials cassandra/ca
 ### `cassandra-keyspace`
 The keyspace/schema to use for store & access contents.
 
-### `cassandra-all-authoritative-server`
-Set this parameter to 1 if you want to make the dns server all authoritative server. A default SOA is going to be returned. Useful if you want to host a DNSBL system behind powerdns.
-
 ### `cassandra-core-connections`, `cassandra-max-connections`, `cassandra-max-concurrent-creations`
 Parameters for the cassandra connection pool with their defaults.
 cassandra-core-connections=40
