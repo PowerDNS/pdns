@@ -14,7 +14,6 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
-#include <boost/cstdint.hpp>
 
 using namespace ::boost;
 using namespace ::boost::multi_index;
@@ -74,7 +73,7 @@ private:
 	typedef TDI_t::index<tag_domainid>::type TDIById_t;
 
 	//data member variables
-	boost::uint64_t d_taiepoch;
+	::uint64_t d_taiepoch;
 	QType d_qtype;
 	CDB *d_cdbReader;
 	DNSPacket *d_dnspacket; // used for location and edns-client support.
