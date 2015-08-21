@@ -260,7 +260,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 			rr.auth = true;
 
 			rr.ttl = pr.get32BitInt();
-			uint64_t timestamp = pr.get32BitInt();
+			boost::uint64_t timestamp = pr.get32BitInt();
 			timestamp <<= 32;
 			timestamp += pr.get32BitInt();
 			if(timestamp) {
