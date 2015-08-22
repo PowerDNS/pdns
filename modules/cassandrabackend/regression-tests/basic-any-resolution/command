@@ -1,3 +1,2 @@
 #!/bin/sh
 cleandig cassandra.pdns.com ANY
-

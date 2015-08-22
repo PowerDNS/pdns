@@ -1,3 +1,2 @@
 This test tries to resolve a ANY record that is not available in the database.
-But its parent domain has the authority over the queried domain & is present in the database.
 Assumption: scripts.cql already installed to the cassandra database.

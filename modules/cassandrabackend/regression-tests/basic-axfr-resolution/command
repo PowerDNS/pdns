@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig cassandra.pdns.com AXFR

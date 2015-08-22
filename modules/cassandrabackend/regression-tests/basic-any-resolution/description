@@ -1,2 +1,2 @@
 This test tries to resolve a ANY record that is directly available in the database.
-Assumption: scripts.cql already installed to the cassandra database
+Assumption: scripts.cql already installed to the cassandra database.
