@@ -84,13 +84,9 @@ before_script:
  - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
  - cd pdns
  - cd modules/cassandrabackend
- - echo "source 'scripts.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra > scripts_install.log 2>&1
- - INSTALL_STATUS=$?
- - echo "INSTALL_STATUS=$INSTALL_STATUS"
+ - echo `echo "source 'scripts.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra > scripts_install.log 2>&1`
  - cat scripts_install.log
- - echo "source 'test/testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1
- - TESTDATA_INSTALL_STATUS=$?
- - echo "TESTDATA_INSTALL_STATUS=$TESTDATA_INSTALL_STATUS"
+ - echo `"source 'test/testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
  - cat testdata_install.log
  - cd ../../..
  - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
