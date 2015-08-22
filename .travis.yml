@@ -79,7 +79,8 @@ before_script:
  - sudo apt-get update -qq
  - yes N | sudo apt-get -y install dsc22
  - ps -ef | grep cassandra
- - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  /usr/local/cassandra/conf/cassandra.yaml
+ - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
+ - sudo mv cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml
  - cat /usr/local/cassandra/conf/cassandra.yaml
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
