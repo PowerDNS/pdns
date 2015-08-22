@@ -84,8 +84,8 @@ before_script:
  - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
  - cd pdns
  - cd modules/cassandrabackend
- - echo `echo "source 'scripts.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra --cqlversion="3.1.7" > scripts_install.log 2>&1`
- - cat scripts_install.log
+ - echo `echo "source 'script.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra --cqlversion="3.1.7" > script_install.log 2>&1`
+ - cat script_install.log
  - cd test
  - echo `"source 'testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns --cqlversion="3.1.7" > testdata_install.log 2>&1`
  - cat testdata_install.log
