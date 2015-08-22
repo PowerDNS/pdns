@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig unknown.cassandra.pdns.com ANY
