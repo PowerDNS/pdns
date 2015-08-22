@@ -1,3 +1,5 @@
+show version;
+
 CREATE USER pdns WITH PASSWORD 'pdns';
 
 select * from system_auth.users;
