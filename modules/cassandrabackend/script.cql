@@ -2,7 +2,7 @@ CREATE USER pdns WITH PASSWORD 'pdns';
 
 select * from system_auth.users;
 
-CREATE KEYSPACE pdns WITH replication = {'class': 'SimpleStrategy' , 'DC1' : 1};
+CREATE KEYSPACE pdns WITH replication = {'class': 'SimpleStrategy' , 'replication_factor' : 1};
 
 select * from system.schema_keyspaces;
 
