@@ -82,6 +82,7 @@ before_script:
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
  - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
+ - sudo find / -name cqlsh
  - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
  - sudo dpkg -i libsodium_1.0.2-1_amd64.deb
  - sudo mv /usr/local/lib/libsodium.* /usr/lib
