@@ -77,7 +77,7 @@ before_script:
  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
  - sudo apt-get update -qq
- - yes N | sudo apt-get -y install dsc22
+ - yes N | sudo apt-get -y install dsc21 cassandra=2.1.* -V
  - ps -ef | grep cassandra
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - sudo mv cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml
