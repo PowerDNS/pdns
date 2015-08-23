@@ -1,0 +1,63 @@
+case $context in
+	cassandra)
+
+		if [ "${context: -5}" = "-zone" ]
+		then
+			orgcontext=$context
+
+			source ./backends/bind-master
+
+			#rm -f named-lmdb.conf zones/*.signed
+
+			#for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
+			#do
+			#	../pdns/saxfr 127.0.0.1 $port $zone showdetails showflags > zones/$zone.signed
+
+			#	echo "" >> named-lmdb.conf
+			#	echo "zone \"${zone}\" {" >> named-lmdb.conf
+			#	echo "	type master;" >> named-lmdb.conf
+			#	echo "	file \"zones/${zone}.signed\";" >> named-lmdb.conf
+			#	echo "};" >> named-lmdb.conf
+			#done
+
+			pids=$(cat pdns*.pid)
+
+			if [ -n "$pids" ]
+			then
+				kill $pids
+				set +e
+				loopcount=0
+				done=0
+				while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+				do
+					done=1
+					for pid in $pids
+					do
+						kill -0 $pid > /dev/null 2>&1
+						if [ $? -eq 0 ];
+						then
+							done=0
+						fi
+					done
+					let loopcount=loopcount+1
+					sleep 1
+				done
+
+				kill -9 $pids
+				set -e
+			fi
+			rm pdns*.pid
+
+			#context=${orgcontext%-zone}
+		fi
+
+		#${MAKE} -C ../pdns zone2cassandra > /dev/null
+		#rm -f data.mdb lock.mdb
+
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port  --config-dir=../../modules/cassandrabackend/test/ --module-dir=./modules &
+
+		;;
+
+	*)
+		nocontext=yes
+esac
