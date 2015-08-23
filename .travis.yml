@@ -93,7 +93,7 @@ before_script:
  - echo `echo "source 'script.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra  > script_install.log 2>&1`
  - cat script_install.log
  - cd test
- - echo `"source 'testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
+ - echo `echo "source 'testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
  - cat testdata_install.log
  - cd ../../../..
  - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
