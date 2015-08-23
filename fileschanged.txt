@@ -1,4 +1,0 @@
-GitHub/pdns_opensource/configure.ac
-GitHub/pdns_opensource/modules/Makefile.am
-GitHub/pdns_opensource/modules/cassandrabackend
-GitHub/pdns_opensource/m4/pdns_with_cassandra.m4
