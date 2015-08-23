@@ -78,16 +78,12 @@ before_script:
  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
  - sudo apt-get update -qq
  - yes Y | sudo apt-get -y install dsc21=2.1.8-1 cassandra=2.1.8 cassandra-tools=2.1.8
- - ps -ef | grep cassandra
- - sudo find / -name cassandra.yaml
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - sudo mv cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml
  - cat /etc/cassandra/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - sudo mv cassandra.yaml /etc/cassandra/cassandra.yaml
  - sudo service cassandra start
  - sleep 20
- - cat /usr/local/cassandra/conf/cassandra.yaml
- - cat /etc/cassandra/cassandra.yaml
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
@@ -97,7 +93,7 @@ before_script:
  - echo `echo "source 'script.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra  > script_install.log 2>&1`
  - cat script_install.log
  - cd test
- - echo `"source 'testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns --cqlversion="3.1.7" > testdata_install.log 2>&1`
+ - echo `"source 'testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
  - cat testdata_install.log
  - cd ../../../..
  - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
