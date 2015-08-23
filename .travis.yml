@@ -79,12 +79,15 @@ before_script:
  - sudo apt-get update -qq
  - yes Y | sudo apt-get -y install dsc21=2.1.8-1 cassandra=2.1.8 cassandra-tools=2.1.8
  - ps -ef | grep cassandra
- - find / -name cassandra.yaml
+ - sudo find / -name cassandra.yaml
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - sudo mv cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml
+ - cat /etc/cassandra/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
+ - sudo mv cassandra.yaml /etc/cassandra/cassandra.yaml
  - sudo service cassandra start
  - sleep 20
  - cat /usr/local/cassandra/conf/cassandra.yaml
+ - cat /etc/cassandra/cassandra.yaml
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
