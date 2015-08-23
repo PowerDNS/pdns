@@ -80,7 +80,6 @@ before_script:
  - yes Y | sudo apt-get -y install dsc21=2.1.8-1 cassandra=2.1.8
  - yes Y | sudo apt-get install dsc21=2.1.8-1 cassandra=2.1.8 cassandra-tools=2.1.8
  - ps -ef | grep cassandra
- - sudo nodetool status
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - sudo mv cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml
  - sudo service cassandra start
