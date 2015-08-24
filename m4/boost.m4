@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 25
+# serial 24
 ], [#
 ], [])])
 
@@ -90,6 +90,7 @@ dnl So get rid of the # lines, and glue the remaining ones together.
 (eval "$ac_cpp conftest.$ac_ext") 2>&AS_MESSAGE_LOG_FD |
   grep -v '#' |
   tr -d '\r' |
+  tr -s '\n' ' ' |
   $SED -n -e "$1" >conftest.i 2>&1],
   [$3],
   [$4])
@@ -573,7 +574,7 @@ BOOST_FIND_LIB([chrono], [$1],
                 [boost/chrono.hpp],
                 [boost::chrono::thread_clock d;])
 if test $enable_static_boost = yes && test $boost_major_version -ge 135; then
-  BOOST_FILESYSTEM_LIBS="$BOOST_FILESYSTEM_LIBS $BOOST_SYSTEM_LIBS"
+  BOOST_CHRONO_LIBS="$BOOST_CHRONO_LIBS $BOOST_SYSTEM_LIBS"
 fi
 LIBS=$boost_filesystem_save_LIBS
 LDFLAGS=$boost_filesystem_save_LDFLAGS
