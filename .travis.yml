@@ -133,6 +133,7 @@ script:
  - make -k dist
  - make -k -j 4
  - cd docs
+ - sudo pwd
  - make check-links
  - cd ..
  - make -k install DESTDIR=/tmp/pdns-install-dir
