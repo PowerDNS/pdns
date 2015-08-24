@@ -1111,88 +1111,81 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   string q = req->getvars["q"];
-  string sMax = req->getvars["max"];
-  int maxEnts = 100;
-  int ents = 0;
-
   if (q.empty())
     throw ApiException("Query q can't be blank");
-  if (sMax.empty() == false)
-    maxEnts = boost::lexical_cast<int>(sMax);
-  if (maxEnts < 1)
-    throw ApiException("Maximum entries must be larger than 0");
 
-  SimpleMatch sm(q,true);
   UeberBackend B;
-  vector<DomainInfo> domains;
-  vector<DNSResourceRecord> result_rr;
-  vector<Comment> result_c;
-  map<int,string> zoneIdZone;
-  map<int,string>::iterator val;
-  Document doc;
 
+  vector<DomainInfo> domains;
+  B.getAllDomains(&domains, true); // incl. disabled
+
+  Document doc;
   doc.SetArray();
 
-  B.getAllDomains(&domains, true);
+  DNSResourceRecord rr;
+  Comment comment;
 
-  BOOST_FOREACH(const DomainInfo di, domains)
-  {
-    if (ents < maxEnts && sm.match(di.zone)) {
+  BOOST_FOREACH(const DomainInfo& di, domains) {
+    string zoneId = apiZoneNameToId(di.zone);
+
+    if (pdns_ci_find(di.zone, q) != string::npos) {
       Value object;
       object.SetObject();
-      object.AddMember("object_type", "zone", doc.GetAllocator());
-      object.AddMember("zone_id", di.id, doc.GetAllocator());
+      object.AddMember("type", "zone", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
       Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jzoneName, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
-      ents++;
     }
-    zoneIdZone[di.id] = di.zone; // populate cache
-  }
 
-  if (B.searchRecords(q, maxEnts, result_rr))
-  {
-    BOOST_FOREACH(const DNSResourceRecord& rr, result_rr)
-    {
+    // if zone name is an exact match, don't bother with returning all records/comments in it
+    if (di.zone == q) {
+      continue;
+    }
+    // the code below is too slow
+#if 0
+    di.backend->list(di.zone, di.id, true); // incl. disabled
+    while(di.backend->get(rr)) {
+      if (!rr.qtype.getCode())
+        continue; // skip empty non-terminals
+
+      if (pdns_ci_find(rr.qname, q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
+        continue;
+
       Value object;
       object.SetObject();
-      object.AddMember("object_type", "record", doc.GetAllocator());
-      object.AddMember("zone_id", rr.domain_id, doc.GetAllocator());
-      if ((val = zoneIdZone.find(rr.domain_id)) != zoneIdZone.end()) {
-        Value zname(val->second.c_str(), doc.GetAllocator()); // copy
-        object.AddMember("zone", zname, doc.GetAllocator()); // copy
-      }
+      object.AddMember("type", "record", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
       Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
-      Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("type", jtype, doc.GetAllocator());
-      object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-      object.AddMember("disabled", rr.disabled, doc.GetAllocator());
       Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
       object.AddMember("content", jcontent, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
-  }
 
-  if (B.searchComments(q, maxEnts, result_c))
-  {
-    BOOST_FOREACH(const Comment &c, result_c)
-    {
+    di.backend->listComments(di.id);
+    while(di.backend->getComment(comment)) {
+      if (pdns_ci_find(comment.qname, q) == string::npos && pdns_ci_find(comment.content, q) == string::npos)
+        continue;
 
       Value object;
       object.SetObject();
-      object.AddMember("object_type", "comment", doc.GetAllocator());
-      object.AddMember("zone_id", c.domain_id, doc.GetAllocator());
-      if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {
-        Value zname(val->second.c_str(), doc.GetAllocator()); // copy
-        object.AddMember("zone", zname, doc.GetAllocator()); // copy
-      }
-      Value jname(c.qname.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("type", "comment", doc.GetAllocator());
+      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
+      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
+      Value jname(comment.qname.c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
-      Value jcontent(c.content.c_str(), doc.GetAllocator()); // copy
+      Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
       object.AddMember("content", jcontent, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
+#endif
   }
 
   resp->setBody(doc);

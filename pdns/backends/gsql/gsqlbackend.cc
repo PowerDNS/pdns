@@ -356,9 +356,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_setTSIGKeyQuery = getArg("set-tsig-key-query");
   d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
   d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
-
-  d_SearchRecordsQuery = getArg("search-records-query");
-  d_SearchCommentsQuery = getArg("search-comments-query");
 }
 
 bool GSQLBackend::updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth)
@@ -1038,7 +1035,27 @@ bool GSQLBackend::get(DNSResourceRecord &r)
   // L << "GSQLBackend get() was called for "<<qtype.getName() << " record: ";
   SSql::row_t row;
   if(d_db->getRow(row)) {
-    extractRecord(row, r);
+    r.content=row[0];
+    if (row[1].empty())
+        r.ttl = ::arg().asNum( "default-ttl" );
+    else 
+        r.ttl=atol(row[1].c_str());
+    r.priority=atol(row[2].c_str());
+    if(!d_qname.empty())
+      r.qname=d_qname;
+    else
+      r.qname=row[6];
+    r.qtype=row[3];
+    r.last_modified=0;
+    
+    if(d_dnssecQueries)
+      r.auth = !row[7].empty() && row[7][0]=='1';
+    else
+      r.auth = 1; 
+
+    r.disabled = !row[5].empty() && row[5][0]=='1';
+
+    r.domain_id=atoi(row[4].c_str());
     return true;
   }
   
@@ -1277,7 +1294,13 @@ bool GSQLBackend::getComment(Comment& comment)
   }
 
   // domain_id,name,type,modified_at,account,comment
-  extractComment(row, comment);
+  comment.domain_id = atol(row[0].c_str());
+  comment.qname = row[1];
+  comment.qtype = row[2];
+  comment.modified_at = atol(row[3].c_str());
+  comment.account = row[4];
+  comment.content = row[5];
+
   return true;
 }
 
@@ -1321,99 +1344,4 @@ bool GSQLBackend::replaceComments(const uint32_t domain_id, const string& qname,
   }
 
   return true;
-}
-
-string GSQLBackend::pattern2SQLPattern(const string &pattern)
-{
-  string escaped_pattern = boost::replace_all_copy(pattern,"\\","\\\\");
-  boost::replace_all(escaped_pattern,"_","\\_");
-  boost::replace_all(escaped_pattern,"%","\\%");
-  boost::replace_all(escaped_pattern,"*","%");
-  boost::replace_all(escaped_pattern,"?","_");
-  return escaped_pattern;
-}
-
-bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
-{
-  string escaped_pattern = pattern2SQLPattern(pattern);
-  string query = (GSQLformat(d_SearchRecordsQuery)
-                 % escaped_pattern
-                 % escaped_pattern
-                 % maxResults).str();
-
-  try {
-    SSql::row_t row;
-    d_db->doQuery(query);
-    while(d_db->getRow(row)) {
-      DNSResourceRecord r;
-      extractRecord(row, r);
-      result.push_back(r);
-    }
-    return true;
-  }
-  catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
-  }
-
-  return false;
-}
-
-bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<Comment>& result)
-{
-  string escaped_pattern = pattern2SQLPattern(pattern);
-  string query = (GSQLformat(d_SearchCommentsQuery)
-                 % escaped_pattern
-                 % escaped_pattern
-                 % maxResults).str();
-
-  try {
-    SSql::row_t row;
-    d_db->doQuery(query);
-    while(d_db->getRow(row)) {
-      Comment c;
-      extractComment(row, c);
-      result.push_back(c);
-    }
-    return true;
-  }
-  catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to execute query: "+e.txtReason());
-  }
-
-  return false;
-}
-
-void GSQLBackend::extractRecord(const SSql::row_t& row, DNSResourceRecord& r)
-{
-  r.content=row[0];
-  if (row[1].empty())
-    r.ttl = ::arg().asNum( "default-ttl" );
-  else
-    r.ttl=atol(row[1].c_str());
-  r.priority=atol(row[2].c_str());
-  if(!d_qname.empty())
-    r.qname=d_qname;
-  else
-    r.qname=row[6];
-  r.qtype=row[3];
-  r.last_modified=0;
-
-  if(d_dnssecQueries)
-    r.auth = !row[7].empty() && row[7][0]=='1';
-  else
-    r.auth = 1;
-
-  r.disabled = !row[5].empty() && row[5][0]=='1';
-
-  r.domain_id=atoi(row[4].c_str());
-}
-
-void GSQLBackend::extractComment(const SSql::row_t& row, Comment& comment)
-{
-  comment.domain_id = atol(row[0].c_str());
-  comment.qname = row[1];
-  comment.qtype = row[2];
-  comment.modified_at = atol(row[3].c_str());
-  comment.account = row[4];
-  comment.content = row[5];
 }
