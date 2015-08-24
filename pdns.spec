@@ -69,4 +69,3 @@ These are the tools
 "/usr/share/man/man1/dnsscope.1"
 "/usr/share/man/man1/dnswasher.1"
 "/usr/share/man/man1/dnstcpbench.1"
-"/usr/share/man/man1/dnsdist.1"
