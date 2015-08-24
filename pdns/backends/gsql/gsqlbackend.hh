@@ -88,13 +88,6 @@ public:
   void feedComment(const Comment& comment);
   bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
 
-  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
-  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
-
-protected:
-  string pattern2SQLPattern(const string& pattern);
-  void extractRecord(const SSql::row_t& row, DNSResourceRecord& rr);
-  void extractComment(const SSql::row_t& row, Comment& comment);
 private:
   string d_qname;
   SSql *d_db;
@@ -171,9 +164,6 @@ private:
   string d_InsertCommentQuery;
   string d_DeleteCommentRRsetQuery;
   string d_DeleteCommentsQuery;
-
-  string d_SearchRecordsQuery;
-  string d_SearchCommentsQuery;
 
 protected:
   bool d_dnssecQueries;
