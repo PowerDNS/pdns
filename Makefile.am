@@ -14,7 +14,7 @@ man1_MANS=pdns/docs/pdns_control.1 pdns/docs/pdnssec.1 pdns/docs/pdns_server.1 \
 
 if TOOLS
   man1_MANS += pdns/docs/dnsreplay.1 pdns/docs/dnsscope.1 pdns/docs/dnswasher.1
-  man1_MANS += pdns/docs/dnstcpbench.1 pdns/docs/dnsdist.1
+  man1_MANS += pdns/docs/dnstcpbench.1
 endif
 
 pdns/docs/dnstcpbench.1:
