@@ -54,7 +54,7 @@ case $context in
 		#${MAKE} -C ../pdns zone2cassandra > /dev/null
 		#rm -f data.mdb lock.mdb
 
-		$RUNWRAPPER $PDNS --daemon=no --local-port=$port  --config-dir=/home/travis/build/PowerDNS/pdns/modules/cassandrabackend/test/ --module-dir=/tmp/pdns-install-dir/usr/local/lib/pdns/ &
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port  --socket-dir=./ --no-shuffle --config-dir=/home/travis/build/PowerDNS/pdns/modules/cassandrabackend/test/ --module-dir=/tmp/pdns-install-dir/usr/local/lib/pdns/ &
 
 		;;
 
