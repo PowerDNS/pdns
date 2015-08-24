@@ -60,7 +60,6 @@ These are the tools
 "/usr/bin/dnsreplay"
 "/usr/bin/dnsscan"
 "/usr/bin/dnsscope"
-"/usr/bin/dnsdist"
 "/usr/bin/dnstcpbench"
 "/usr/bin/dnswasher"
 "/usr/bin/nproxy"

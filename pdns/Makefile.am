@@ -35,7 +35,7 @@ sbin_PROGRAMS = pdns_server
 bin_PROGRAMS = pdns_control pdnssec zone2sql zone2ldap zone2json
 
 if TOOLS
-  bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy dnsdist nsec3dig saxfr
+  bin_PROGRAMS += dnsbulktest dnsreplay dnsscan dnsscope dnstcpbench dnswasher nproxy nsec3dig saxfr
 endif
 
 EXTRA_PROGRAMS=pdns_recursor sdig saxfr dnstcpbench dnsdist tsig-tests speedtest dnsscope dnsgram rec_control \
