@@ -259,7 +259,16 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
       AnswerData<Answer> AD;
       AD.A=a;
 
-      QD.callback(AD);
+      try {
+        QD.callback(AD);
+      }
+      catch(std::exception& e)
+      {
+        L<<Logger::Error<<"Error in callback (while sending reply): "<<e.what()<<endl;
+      }
+      catch(...) {
+        L<<Logger::Error<<"Unknown callback (sending reply) error"<<endl;
+      }
     }
     
     delete b;
@@ -299,7 +308,16 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
   }
   AnswerData<Answer> AD;
   AD.A=a;
-  callback(AD);
+  try {
+    callback(AD);
+  }
+  catch(std::exception& e)
+  {
+    L<<Logger::Error<<"Error in callback (while sending reply): "<<e.what()<<endl;
+  }
+  catch(...) {
+    L<<Logger::Error<<"Unknown callback (sending reply) error"<<endl;
+  }
   return 0;
 }
 
