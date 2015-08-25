@@ -995,6 +995,13 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     return 0;
   }
 
+  if (p->hasEDNS() && p->getEDNSVersion() > 0) {
+    r = p->replyPacket();
+    r->setRcode(16 & 0xF);
+    r->setEDNSRcode((16 & 0xFFF0)>>4); // set rcode to BADVERS
+    return r;
+  }
+
   if(p->d_havetsig) {
     string keyname, secret;
     TSIGRecordContent trc;
