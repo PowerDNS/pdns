@@ -404,7 +404,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--disable-dependency-tracking \
 	--disable-silent-rules \
 	--with-modules='' \
-	--with-system-polarssl \
+	--with-system-mbedtls \
 	--with-lua \
 	--with-dynmodules='%{backends}' \
 	--enable-cryptopp \

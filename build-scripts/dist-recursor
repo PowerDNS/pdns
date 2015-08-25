@@ -31,7 +31,7 @@ INCLUDES="iputils.hh arguments.hh base64.hh zoneparser-tng.hh \
 rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
-mplexer.hh pubsuffix.hh \
+mplexer.hh pubsuffix.hh mbedtlscompat.hh \
 dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
 ws-recursor.hh ws-api.hh secpoll-recursor.hh \
@@ -61,14 +61,15 @@ cat >>$DIRNAME/config.h <<EOF
 #define VERSION "$VERSION"
 #define DIST_HOST "$DIST_HOST"
 #define HAVE_BOOST 1
+#define HAVE_MBEDTLS2 1
 EOF
 mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ../ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
 cp -a ../ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
-mkdir -p $DIRNAME/ext/polarssl/include/polarssl
-cp -a ../ext/polarssl/include/polarssl/config.h ../ext/polarssl/include/polarssl/check_config.h ../ext/polarssl/include/polarssl/aes.h ../ext/polarssl/include/polarssl/base64.h ../ext/polarssl/include/polarssl/platform.h ../ext/polarssl/include/polarssl/version.h $DIRNAME/ext/polarssl/include/polarssl
-mkdir -p $DIRNAME/ext/polarssl/library
-cp -a ../ext/polarssl/library/aes.c ../ext/polarssl/library/base64.c $DIRNAME/ext/polarssl/library
+mkdir -p $DIRNAME/ext/mbedtls/include/mbedtls
+cp -a ../ext/mbedtls/include/mbedtls/config.h ../ext/mbedtls/include/mbedtls/check_config.h ../ext/mbedtls/include/mbedtls/aes.h ../ext/mbedtls/include/mbedtls/base64.h ../ext/mbedtls/include/mbedtls/platform.h ../ext/mbedtls/include/mbedtls/version.h $DIRNAME/ext/mbedtls/include/mbedtls
+mkdir -p $DIRNAME/ext/mbedtls/library
+cp -a ../ext/mbedtls/library/aes.c ../ext/mbedtls/library/base64.c $DIRNAME/ext/mbedtls/library
 cp -a ../ext/yahttp/ $DIRNAME/ext/yahttp
 echo '#include "../../../config.h"' > $DIRNAME/ext/yahttp/yahttp/yahttp-config.h
 mkdir $DIRNAME/rrd
