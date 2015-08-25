@@ -521,6 +521,9 @@ void CommunicatorClass::addTrySuperMasterRequest(DNSPacket *p)
 
 void CommunicatorClass::slaveRefresh(PacketHandler *P)
 {
+  // not unless we are slave
+  if (!::arg().mustDo("slave")) return;
+
   UeberBackend *B=dynamic_cast<UeberBackend *>(P->getBackend());
   vector<DomainInfo> rdomains;
   vector<DomainNotificationInfo> sdomains; // the bool is for 'presigned'
