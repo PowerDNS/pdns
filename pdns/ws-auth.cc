@@ -296,7 +296,8 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
-  jdi.AddMember("name", di.zone.toString().c_str(), doc.GetAllocator());
+  Value jname(di.zone.toString().c_str(), doc.GetAllocator()); // copy
+  jdi.AddMember("name", jname, doc.GetAllocator());
   jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
   jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
   jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());
@@ -607,7 +608,6 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       zonename.resize(zonename.size()-1);
     }
 
-    string dotsuffix = "." + zonename;
     string zonestring = stringFromJson(document, "zone", "");
 
     bool exists = B.getDomainInfo(zonename, di);
@@ -653,7 +653,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     DNSResourceRecord rr;
 
     BOOST_FOREACH(rr, new_records) {
-      if (!rr.qname.isPartOf(dotsuffix) && !pdns_iequals(rr.qname, zonename))
+      if (!rr.qname.isPartOf(zonename) && !pdns_iequals(rr.qname, zonename))
         throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
 
       if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
@@ -939,7 +939,6 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   if (!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename+"'");
 
-  string dotsuffix = "." + zonename;
   vector<DNSResourceRecord> new_records;
   vector<Comment> new_comments;
   vector<DNSResourceRecord> new_ptrs;
@@ -962,9 +961,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
     for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
       const Value& rrset = rrsets[rrsetIdx];
-      string qname, changetype;
+      string changetype;
       QType qtype;
-      qname = stringFromJson(rrset, "name");
+      DNSName qname = stringFromJson(rrset, "name");
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
 
@@ -976,8 +975,8 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       }
       else if (changetype == "REPLACE") {
 		// we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
-        if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
-          throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
+        if (!qname.isPartOf(zonename) && !pdns_iequals(qname, zonename))
+          throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
 
 		new_records.clear();
         new_comments.clear();
@@ -989,7 +988,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           rr.domain_id = di.id;
 
           if (rr.qname != qname || rr.qtype != qtype)
-            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
+            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname.toString() + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
             soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
@@ -1004,7 +1003,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         bool replace_comments = rrset["comments"].IsArray();
 
         if (!replace_records && !replace_comments) {
-          throw ApiException("No change for RRset " + qname + "/" + qtype.getName());
+          throw ApiException("No change for RRset " + qname.toString() + "/" + qtype.getName());
         }
 
         if (replace_records) {
