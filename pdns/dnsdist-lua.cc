@@ -41,9 +41,9 @@ std::shared_ptr<DNSRule> makeRule(const boost::variant<string,vector<pair<int, s
   
   auto add=[&](string src) {
     try {
-      smn.add(DNSName(src));
+      nmg.addMask(src); // need to try mask first, all masks are domain names!
     } catch(...) {
-      nmg.addMask(src);
+      smn.add(DNSName(src));
     }
   };
   if(auto src = boost::get<string>(&var))
