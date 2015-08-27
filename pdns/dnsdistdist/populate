@@ -3,50 +3,5 @@
 set -e
 set -x
 
-ln -fs ../base64.hh ../dnsdist.cc ../dnsdist.hh ../dnsdist-lua.cc \
-  ../dns.hh ../dnslabeltext.rl ../dnsname.cc ../dnsname.hh ../dnsparser.hh \
-  ../dnsrulactions.hh ../dnswriter.cc ../dnswriter.hh ../dolog.hh \
-  ../iputils.cc ../iputils.hh ../mbedtlscompat.hh ../misc.cc ../misc.hh ../namespaces.hh \
-  ../pdnsexception.hh ../qtype.cc ../qtype.hh ../sholder.hh ../sodcrypto.cc \
-  ../sodcrypto.hh ../dnsdist-web.cc ../sstuff.hh ../dnsdist-tcp.cc \
-  ../dnsdist-carbon.cc ../delaypipe.cc ../delaypipe.hh .
-
-mkdir -p m4
-ln -fs ../../../m4/pdns_check_libsodium.m4 m4/
-ln -fs ../../../m4/pdns_check_readline.m4 m4/
-ln -fs ../../../m4/ax_lib_readline.m4 m4/
-ln -fs ../../../m4/boost.m4 m4/
-ln -fs ../../../m4/ax_cxx_compile_stdcxx_11.m4 m4/
-ln -fs ../../../m4/pdns_check_clock_gettime.m4 m4/
-
-ln -fs ../README-dnsdist.md README.md
-ln -fs ../dnsdistconf.lua .
-
-mkdir -p ext/luawrapper/include
-ln -sf ../../../../../ext/luawrapper/include/LuaContext.hpp ext/luawrapper/include
-
-mkdir -p ext/json11
-ln -sf ../../../../ext/json11/json11.{hpp,cpp} ext/json11
-
-mkdir -p ext/incbin
-ln -sf ../../../../ext/incbin/incbin.h ext/incbin
-
-mkdir -p ext/mbedtls/include/mbedtls
-ln -sf ../../../../../../ext/mbedtls/include/mbedtls/config.h \
-  ../../../../../../ext/mbedtls/include/mbedtls/check_config.h \
-  ../../../../../../ext/mbedtls/include/mbedtls/base64.h \
-  ../../../../../../ext/mbedtls/include/mbedtls/platform.h \
-  ext/mbedtls/include/mbedtls
-mkdir -p ext/mbedtls/library
-ln -sf ../../../../../ext/mbedtls/library/base64.c ext/mbedtls/library
-
 pandoc -s -t man ../../docs/manpages/dnsdist.1.md > dnsdist.1
-
-mkdir -p ext/yahttp/yahttp
-ln -sf ../../../../ext/yahttp/Makefile.am ext/yahttp
-cd ext/yahttp/
-ln -sf ../../../../ext/yahttp/{LICENSE,README.md} .
-cd yahttp
-ln -sf ../../../../../ext/yahttp/yahttp/{Makefile.am,*.cpp,*.hpp,*.h} .
-cd -
 
