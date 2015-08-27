@@ -144,12 +144,14 @@ public:
       throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
 
+    // MySQL documentation says you can call this safely for all queries
+    if ((err = mysql_stmt_store_result(d_stmt))) {
+      string error(mysql_stmt_error(d_stmt));
+      throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
+    }
+
     if ((d_fnum = static_cast<int>(mysql_stmt_field_count(d_stmt)))>0) {
       // prepare for result
-      if ((err = mysql_stmt_store_result(d_stmt))) {
-        string error(mysql_stmt_error(d_stmt));
-        throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
-      }
       d_resnum = mysql_stmt_num_rows(d_stmt);
       
       if (d_resnum>0 && d_res_bind == NULL) {
@@ -229,7 +231,15 @@ public:
 
   SSqlStatement* reset() {
     if (!d_stmt) return this;
-
+    int err;
+    mysql_stmt_free_result(d_stmt);
+    while((err = mysql_stmt_next_result(d_stmt)) == 0) {
+      mysql_stmt_free_result(d_stmt);
+    }
+    if (err>0) {
+      string error(mysql_stmt_error(d_stmt));
+      throw SSqlException("Could not get next result from mysql statement: " + d_query + string(": ") + error);
+    }
     mysql_stmt_reset(d_stmt);
     if (d_req_bind) {
       for(int i=0;i<d_parnum;i++) {
