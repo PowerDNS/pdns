@@ -55,7 +55,7 @@ case $context in
 		#rm -f data.mdb lock.mdb
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port  --socket-dir=./ --no-shuffle --config-dir=/home/travis/build/PowerDNS/pdns/modules/cassandrabackend/test/ --module-dir=/tmp/pdns-install-dir/usr/local/lib/pdns/ &
-
+		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;
 
 	*)
