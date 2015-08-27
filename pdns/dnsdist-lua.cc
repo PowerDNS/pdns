@@ -350,6 +350,17 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		  std::make_shared<PoolAction>(pool)  });
 	  });
     });
+
+  g_lua.writeFunction("addNoRecurseRule", [](boost::variant<string,vector<pair<int, string>> > var) {
+      auto rule=makeRule(var);
+	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+		rule,
+		  std::make_shared<NoRecurseAction>()  });
+	  });
+    });
+
+
   g_lua.writeFunction("addQPSPoolRule", [](boost::variant<string,vector<pair<int, string>> > var, int limit, string pool) {
       auto rule = makeRule(var);
       g_rulactions.modify([rule, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
