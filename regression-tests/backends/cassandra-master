@@ -1,7 +1,7 @@
 case $context in
 	cassandra)
 	
-		testsdir=../modules/cassandra/regression-tests/
+		testsdir=../modules/cassandrabackend/regression-tests/
 
 		if [ "${context: -5}" = "-zone" ]
 		then
