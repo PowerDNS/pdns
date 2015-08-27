@@ -1,4 +1,5 @@
 0	cassandra.pdns.org.	IN	A	123	127.0.1.255
+0	cassandra.pdns.com.	IN	A	234	127.0.0.1
 0	cassandra.pdns.org.	IN	SOA	3600	ns1.dns.com. hm1.dns.com. 1 10 10 10 10
 0	cassandra.pdns.org.	IN	TXT	345	"TXT Record1"
 0	cassandra.pdns.org.	IN	TXT	456	"TXT Record2"
