@@ -1,5 +1,36 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 3.4.6
+Released 28th of August 2015
+
+Bug fixes:
+
+- commits [c849701](https://github.com/PowerDNS/pdns/commit/c849701) and
+[8c91e2c](https://github.com/PowerDNS/pdns/commit/8c91e2c): Avoid
+superfluous backend recycling
+- commits [463fcff](https://github.com/PowerDNS/pdns/commit/463fcff),
+[0fc08e8](https://github.com/PowerDNS/pdns/commit/0fc08e8),
+[0fbe69c](https://github.com/PowerDNS/pdns/commit/0fbe69c),
+[1a6af1c](https://github.com/PowerDNS/pdns/commit/1a6af1c) and
+[07f69d3](https://github.com/PowerDNS/pdns/commit/07f69d3): Removal of
+dnsdist from the authoritative server distribution (Kees Monshouwer among others).
+- commits [5cfea4c](https://github.com/PowerDNS/pdns/commit/5cfea4c) and
+[ef011d9](https://github.com/PowerDNS/pdns/commit/ef011d9): Add EDNS
+unknown version handling and tests EDNS unknown version handling (Aki Tuomi)
+
+Improvements:
+
+- commits [88dd8a7](https://github.com/PowerDNS/pdns/commit/88dd8a7) and
+[dc6c63d](https://github.com/PowerDNS/pdns/commit/dc6c63d): Update
+YaHTTP to v0.1.7 (Aki Tuomi)
+- [commit 0a344bc](https://github.com/PowerDNS/pdns/commit/0a344bc): Make
+trailing/leading spaces stand out in `pdnssec check_zone`
+- commits [2e982ad](https://github.com/PowerDNS/pdns/commit/2e982ad) and
+[09bec1f](https://github.com/PowerDNS/pdns/commit/09bec1f): GCC 5.2 support
+and sync boost.m4 macro with upstream (Kees Monshouwer among others)
+- [commit 1ad4e44](https://github.com/PowerDNS/pdns/commit/1ad4e44): Log
+answer packets only if log-dns-details is enabled (Kees Monshouwer)
+
 # PowerDNS Recursor 3.6.4
 Released 9th of June 2015
 
