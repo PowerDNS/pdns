@@ -234,7 +234,6 @@ script:
  - ./runtests
  - test ! -s ./failed_tests
  - cd ..
- #Clear cassandra files
  - rm -rf modules/cassandrabackend/regression-tests/basic-any-resolution/diff
  - rm -rf modules/cassandrabackend/regression-tests/basic-any-resolution/drill.out
  - rm -rf modules/cassandrabackend/regression-tests/basic-any-resolution/nsec3dig.out
