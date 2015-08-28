@@ -60,6 +60,7 @@ public:
 	  setArgPrefix("cassandra"+suffix);
 	 try {
 		std::string seed_nodes = getArg("seed-nodes");
+		int port = getArgAsNum("port");
 		std::string username = getArg("username");
 		std::string password = getArg("password");
 		std::string keyspace = getArg("keyspace");
@@ -92,6 +93,7 @@ public:
 //		L << Logger::Info << "[cassandradbmanager] cassandra-enable-latency-aware-routing " << enable_latency_aware_routing << endl;
 //		L << Logger::Info << "[cassandradbmanager] cassandra-enable-tcp-nodelay " << enable_tcp_nodelay << " cassandra-enable-tcp-keepalive " << enable_tcp_keepalive << endl;
 		cassandradbmanager::seed_nodes = seed_nodes;
+		cassandradbmanager::port = port;
 		cassandradbmanager::username = username;
 		cassandradbmanager::password = password;
 		cassandradbmanager::keyspace = keyspace;
@@ -329,6 +331,7 @@ public:
   void declareArguments(const string &suffix="")
   {
 	declare(suffix,"seed-nodes","seed nodes","myseeds");
+	declare(suffix,"port","port","9042");
 	declare(suffix,"username","user name","myusername");
 	declare(suffix,"password","password","mypassword");
 	declare(suffix,"keyspace","keyspace","mykeyspace");

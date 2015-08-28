@@ -30,6 +30,7 @@ std::string cassandradbmanager::seed_nodes = "127.0.0.1";
 std::string cassandradbmanager::username = "cassandra";
 std::string cassandradbmanager::password = "cassandra";
 std::string cassandradbmanager::keyspace = "pdns";
+int cassandradbmanager::port = 9042;
 int cassandradbmanager::core_connections = 1;
 int cassandradbmanager::max_connections = 1;
 int cassandradbmanager::max_concurrent_creations = 1;
@@ -54,10 +55,10 @@ cassandradbmanager::cassandradbmanager()
 	  session = cass_session_new();
 
 	  if(::arg().mustDo("query-logging")) {
-		  L << Logger::Debug << "[cassandradbmanager] cassandra-seed-nodes " << seed_nodes << " cassandra-num-io-threads " << num_io_threads << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-seed-nodes " << seed_nodes << " cassandra-port " << port << endl;
 		  L << Logger::Debug << "[cassandradbmanager] cassandra-username " << username << " cassandra-password " << password << endl;
 		  L << Logger::Debug << "[cassandradbmanager] cassandra-core-connections " << core_connections << " cassandra-max-connections " << max_connections << endl;
-		  L << Logger::Debug << "[cassandradbmanager] cassandra-protocol-version " << protocol_version << endl;
+		  L << Logger::Debug << "[cassandradbmanager] cassandra-protocol-version " << protocol_version << " cassandra-num-io-threads " << num_io_threads<< endl;
 		  L << Logger::Debug << "[cassandradbmanager] cassandra-max-concurrent-creations " << max_concurrent_creations << endl;
 		  L << Logger::Debug << "[cassandradbmanager] cassandra-queue-size-io " << queue_size_io << " cassandra-queue-size-event " << queue_size_event << endl;
 		  L << Logger::Debug << "[cassandradbmanager] cassandra-reconnect-wait-time " << reconnect_wait_time << " cassandra-concurrent-requests-threshold " << concurrent_requests_threshold << endl;
@@ -68,6 +69,7 @@ cassandradbmanager::cassandradbmanager()
 	  }
 
 	  cass_cluster_set_contact_points(cluster, seed_nodes.c_str());
+	  cass_cluster_set_port(cluster, port);
 	  cass_cluster_set_credentials(cluster,username.c_str(),password.c_str());
 	  cass_cluster_set_num_threads_io(cluster,num_io_threads);
 	  cass_cluster_set_protocol_version(cluster,protocol_version);
