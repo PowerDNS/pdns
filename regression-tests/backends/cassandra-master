@@ -1,6 +1,9 @@
 case $context in
 	cassandra)
 	
+		echo "Checking cassandra status"
+		service cassandra status
+		echo "Checking cassandra status..Done"
 		testsdir=../modules/cassandrabackend/regression-tests/
 
 		if [ "${context: -5}" = "-zone" ]
