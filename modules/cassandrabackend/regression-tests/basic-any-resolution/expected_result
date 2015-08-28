@@ -1,7 +1,7 @@
-0	cassandra.pdns.org.	IN	A	123	127.0.1.255
+0	cassandra.pdns.com.	IN	A	123	127.0.1.255
 0	cassandra.pdns.com.	IN	A	234	127.0.0.1
-0	cassandra.pdns.org.	IN	SOA	3600	ns1.dns.com. hm1.dns.com. 1 10 10 10 10
-0	cassandra.pdns.org.	IN	TXT	345	"TXT Record1"
-0	cassandra.pdns.org.	IN	TXT	456	"TXT Record2"
+0	cassandra.pdns.com.	IN	SOA	3600	ns1.dns.com. hm1.dns.com. 1 10 10 10 10
+0	cassandra.pdns.com.	IN	TXT	345	"TXT Record1"
+0	cassandra.pdns.com.	IN	TXT	456	"TXT Record2"
 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
-Reply to question for qname='cassandra.pdns.org.', qtype=ANY
+Reply to question for qname='cassandra.pdns.com.', qtype=ANY
