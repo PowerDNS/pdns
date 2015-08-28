@@ -234,6 +234,12 @@ script:
  - ./runtests
  - test ! -s ./failed_tests
  - cd ..
+ #Clear cassandra files
+ - cd modules/cassandrabackend/regression-tests/
+ - rm -rf `find . -name *.out`
+ - rm -rf `find . -name real_result*`
+ - rm -rf `find . -name diff*`
+ - cd ../../..
  - git status
  - git status | grep -q clean
 notifications:
