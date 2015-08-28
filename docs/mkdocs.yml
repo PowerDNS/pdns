@@ -66,6 +66,7 @@ pages:
     - List of Settings: recursor/settings.md
   - Security:
     - Security Policy: security/index.md
+    - Advisory 2015-02: security/powerdns-advisory-2015-02.md
     - Advisory 2015-01: security/powerdns-advisory-2015-01.md
     - Advisory 2014-02: security/powerdns-advisory-2014-02.md
     - Advisory 2014-01: security/powerdns-advisory-2014-01.md
