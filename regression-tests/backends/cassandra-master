@@ -1,9 +1,6 @@
 case $context in
 	cassandra)
-	
-		echo "Checking cassandra status"
-		service cassandra status
-		echo "Checking cassandra status..Done"
+
 		testsdir=../modules/cassandrabackend/regression-tests/
 
 		if [ "${context: -5}" = "-zone" ]
@@ -11,19 +8,6 @@ case $context in
 			orgcontext=$context
 
 			source ./backends/bind-master
-
-			#rm -f named-lmdb.conf zones/*.signed
-
-			#for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
-			#do
-			#	../pdns/saxfr 127.0.0.1 $port $zone showdetails showflags > zones/$zone.signed
-
-			#	echo "" >> named-lmdb.conf
-			#	echo "zone \"${zone}\" {" >> named-lmdb.conf
-			#	echo "	type master;" >> named-lmdb.conf
-			#	echo "	file \"zones/${zone}.signed\";" >> named-lmdb.conf
-			#	echo "};" >> named-lmdb.conf
-			#done
 
 			pids=$(cat pdns*.pid)
 
@@ -51,13 +35,12 @@ case $context in
 				kill -9 $pids
 				set -e
 			fi
-			rm pdns*.pid
+			rm -rf pdns*.pid
 
 			#context=${orgcontext%-zone}
 		fi
 
 		#${MAKE} -C ../pdns zone2cassandra > /dev/null
-		#rm -f data.mdb lock.mdb
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port  --socket-dir=./ --no-shuffle --config-dir=/home/travis/build/PowerDNS/pdns/modules/cassandrabackend/test/ --module-dir=/tmp/pdns-install-dir/usr/local/lib/pdns/ &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
