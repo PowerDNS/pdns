@@ -22,7 +22,7 @@ To resolve this issue, PDNS tries multiple tactics to figure out the IP addresse
 
 Some backends may be able to detect zone changes, others may chose to let the operator indicate which zones have changed and which haven't. Consult the documentation for your backend to see how it processes changes in zones.
 
-To help deal with slaves that may have missed notifications, or have failed to respond to them, several override commands are available via the [`pdns_control`](../appendix/pdns-internals.html#pdnscontrol) tool:
+To help deal with slaves that may have missed notifications, or have failed to respond to them, several override commands are available via the [`pdns_control`](../authoritative/internals.md#pdnscontrol) tool:
 
 * `pdns_control notify <domain>`
 This instructs PDNS to notify all IP addresses it considers to be slaves of this domain.

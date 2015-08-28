@@ -34,6 +34,9 @@ answer packets only if log-dns-details is enabled (Kees Monshouwer)
 # PowerDNS Recursor 3.6.4
 Released 9th of June 2015
 
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
 Bug fixes:
 
 - [commit bccd068](https://github.com/PowerDNS/pdns/commit/bccd068): Limit the
@@ -47,6 +50,9 @@ Bug fixes:
 - [commit 92f7b2b](https://github.com/PowerDNS/pdns/commit/92f7b2b): Limit the
 maximum length of a qname
 
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
 Improvements:
 
 - [commit 46366a5](https://github.com/PowerDNS/pdns/commit/46366a5),
@@ -56,6 +62,9 @@ check for glue and delegations in parent zones (Kees Monshouwer)
 # PowerDNS Authoritative Server 3.3.3
 Released 9th of June 2015
 
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
 Bug fixes:
 
 - [commit a0a1482](https://github.com/PowerDNS/pdns/commit/a0a1482): Limit the
@@ -63,6 +72,9 @@ maximum length of a qname
 
 # PowerDNS Authoritative Server 3.4.5
 Released 9th of June 2015
+
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
 
 Bug fixes:
 
