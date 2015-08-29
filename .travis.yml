@@ -64,16 +64,6 @@ before_script:
  - sudo apt-get install oracle-java8-installer
  - sudo apt-get install oracle-java8-set-default
  - cd ..
- - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv_1.4.2-1_amd64.deb
- - sudo dpkg -i libuv_1.4.2-1_amd64.deb
- - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv-dev_1.4.2-1_amd64.deb
- - sudo dpkg -i libuv-dev_1.4.2-1_amd64.deb
- - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/cassandra-cpp-driver_2.1.0-1_amd64.deb
- - sudo dpkg -i cassandra-cpp-driver_2.1.0-1_amd64.deb
- - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/cassandra-cpp-driver-dev_2.1.0-1_amd64.deb
- - sudo dpkg -i cassandra-cpp-driver-dev_2.1.0-1_amd64.deb
- - sudo ln -s /usr/lib/x86_64-linux-gnu/libcassandra.so.2.1.0 /usr/lib/libcassandra.so
- - sudo ln -s /usr/lib/x86_64-linux-gnu/libcassandra_static.a /usr/lib/libcassandra_static.a
  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
  - sudo apt-get update -qq
@@ -88,6 +78,16 @@ before_script:
  - sudo service cassandra start
  - sleep 20
  - tail -100 /var/log/cassandra/system.log
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv_1.4.2-1_amd64.deb
+ - sudo dpkg -i libuv_1.4.2-1_amd64.deb
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv-dev_1.4.2-1_amd64.deb
+ - sudo dpkg -i libuv-dev_1.4.2-1_amd64.deb
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/cassandra-cpp-driver_2.1.0-1_amd64.deb
+ - sudo dpkg -i cassandra-cpp-driver_2.1.0-1_amd64.deb
+ - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/cassandra-cpp-driver-dev_2.1.0-1_amd64.deb
+ - sudo dpkg -i cassandra-cpp-driver-dev_2.1.0-1_amd64.deb
+ - sudo ln -s /usr/lib/x86_64-linux-gnu/libcassandra.so.2.1.0 /usr/lib/libcassandra.so
+ - sudo ln -s /usr/lib/x86_64-linux-gnu/libcassandra_static.a /usr/lib/libcassandra_static.a
  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
