@@ -234,10 +234,6 @@ script:
  - ./runtests
  - test ! -s ./failed_tests
  - cd ..
- - ls modules/cassandrabackend/regression-tests/basic-any-resolution
- - ls modules/cassandrabackend/regression-tests/basic-axfr-resolution
- - ls modules/cassandrabackend/regression-tests/basic-nxdomain-resolution
- - ls modules/cassandrabackend/regression-tests/basic-refused-resolution
  - git status
  - git status | grep -q clean
 notifications:
