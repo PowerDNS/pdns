@@ -1,4 +1,4 @@
-@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015082901 10800 3600 604800 10800
+@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015082902 10800 3600 604800 10800
 @       3600    IN  NS  powerdnssec1.ds9a.nl.
 @       3600    IN  NS  powerdnssec2.ds9a.nl.
 ; Auth
@@ -20,22 +20,26 @@ auth-3.4.1-4.debian.security-status                     60 IN TXT "3 Upgrade now
 auth-3.4.4-1.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.4-2.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.5-1.debian.security-status                     60 IN TXT "1 OK"
+auth-3.4.6-1.debian.security-status                     60 IN TXT "1 OK"
 
 auth-3.4.1-3_bpo70_1.debian.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.1-4_bpo70_1.debian.security-status             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.4-2_bpo7_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.5-1_bpo7_1.debian.security-status              60 IN TXT "1 OK"
+auth-3.4.6-1_bpo7_1.debian.security-status              60 IN TXT "1 OK"
 
 auth-3.4.1-4_deb8u1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.1-4_deb8u2.debian.security-status              60 IN TXT "1 OK"
 
 auth-3.4.4-2_bpo8_1.debian.security-status              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.5-1_bpo8_1.debian.security-status              60 IN TXT "1 OK"
+auth-3.4.6-1_bpo8_1.debian.security-status              60 IN TXT "1 OK"
 
 ; Auth Ubuntu
 auth-3.4.1-3.ubuntu.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.1-4.ubuntu.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 auth-3.4.5-1.ubuntu.security-status                     60 IN TXT "1 OK"
+auth-3.4.6-1.ubuntu.security-status                     60 IN TXT "1 OK"
 
 ; Auth Raspbian
 auth-3.4.1-3.raspbian.security-status                   60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
