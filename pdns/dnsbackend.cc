@@ -428,19 +428,19 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
     return GET_AUTH_NEG_CACHE;
 }
 
-bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const int best_match_len) {
+bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const DNSName &inZone, const int best_match_len) {
     // Reverse the lowercased query string
-    string zone = toLower(inZone);
+    string zone = toLower(inZone.toStringNoDot());
     string querykey = labelReverse(zone);
 
-    int ret = _getAuth( p, soa, inZone, querykey, best_match_len );
+    int ret = _getAuth( p, soa, inZone.toStringNoDot(), querykey, best_match_len );
 
     /* If this is disabled then we would just cache the tree structure not the
      * leaves which should give the best performance and a nice small negcache
      * size
      */
     if( ret == GET_AUTH_NEG_CACHE )
-        _add_to_negcache( inZone );
+      _add_to_negcache( inZone.toStringNoDot() );
 
     return ret == GET_AUTH_SUCCESS;
 }
@@ -463,10 +463,10 @@ bool DNSReversedBackend::_getSOA(const string &querykey, SOAData &soa, DNSPacket
     return getAuthData( soa, p );
 }
 
-bool DNSReversedBackend::getSOA(const string &inZone, SOAData &soa, DNSPacket *p)
+bool DNSReversedBackend::getSOA(const DNSName &inZone, SOAData &soa, DNSPacket *p)
 {
     // prepare the query string
-    string zone = toLower( inZone );
+    string zone = toLower( inZone.toStringNoDot() );
     string querykey = labelReverse( zone );
 
     if( !_getSOA( querykey, soa, p ) )

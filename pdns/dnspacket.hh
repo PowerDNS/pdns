@@ -131,6 +131,13 @@ public:
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet();
   bool hasEDNS();
+  uint8_t getEDNSVersion() const { return d_ednsversion; };
+  void setEDNSRcode(uint16_t extRCode)
+  {
+    // WARNING: this is really 12 bits
+    d_ednsrcode=extRCode;
+  };
+  uint8_t getEDNSRCode() const { return d_ednsrcode; };
   //////// DATA !
 
   DNSName qdomain;  //!< qname of the question 4 - unsure how this is used
@@ -174,6 +181,9 @@ private:
   EDNSSubnetOpts d_eso;
 
   int d_maxreplylen;
+  uint8_t d_ednsversion;
+  // WARNING! This is really 12 bits
+  uint16_t d_ednsrcode;
   uint16_t d_qlen; // length of the question (including class & type) in this packet 2
 
   bool d_compress; // 1

@@ -1,11 +1,11 @@
 SUBDIRS = \
-	$(POLARSSL_SUBDIR) \
+	$(MBEDTLS_SUBDIR) \
 	yahttp \
 	rapidjson \
         json11
 
 DIST_SUBDIRS = \
-	polarssl \
+	mbedtls \
 	yahttp \
 	rapidjson \
         json11

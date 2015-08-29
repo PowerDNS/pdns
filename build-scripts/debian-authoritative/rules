@@ -26,7 +26,7 @@ override_dh_auto_configure:
 		--libexecdir='$${prefix}/lib' \
 		--with-dynmodules="$(backends)" \
 		--with-modules="" \
-		--with-system-polarssl \
+		--with-system-mbedtls \
 		--with-pgsql-includes=`pg_config --includedir` \
 		--enable-cryptopp \
 		--enable-botan1.10 \

@@ -1027,10 +1027,18 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   bool noCache=false;
   
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
-    L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
+    if(d_logDNSDetails)
+      L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p->d_remote);
     return 0;
+  }
+
+  if (p->hasEDNS() && p->getEDNSVersion() > 0) {
+    r = p->replyPacket();
+    r->setRcode(16 & 0xF);
+    r->setEDNSRcode((16 & 0xFFF0)>>4); // set rcode to BADVERS
+    return r;
   }
 
   if(p->d_havetsig) {

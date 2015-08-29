@@ -416,12 +416,12 @@ class DNSReversedBackend : public DNSBackend {
          * */
         virtual bool getAuthData( SOAData &soa, DNSPacket *p=0) { return false; };  // Must be overridden
 
-        bool getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const int best_match_len);
+        virtual bool getAuth(DNSPacket *p, SOAData *soa, const DNSName &inZone, const int best_match_len) override;
         inline int _getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const string &querykey, const int best_match_len);
 
         /* Only called for stuff like signing or AXFR transfers */
         bool _getSOA(const string &rev_zone, SOAData &soa, DNSPacket *p);
-        virtual bool getSOA(const string &inZone, SOAData &soa, DNSPacket *p);
+        virtual bool getSOA(const DNSName &inZone, SOAData &soa, DNSPacket *p) override;
 };
 
 class BackendFactory

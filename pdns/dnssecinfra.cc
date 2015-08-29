@@ -12,8 +12,15 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
+#ifdef HAVE_MBEDTLS2
+#include <mbedtls/md_internal.h>
+#include <mbedtls/md.h>
+#else
 #include <polarssl/md5.h>
 #include <polarssl/sha1.h>
+#include <polarssl/md.h>
+#include "mbedtlscompat.hh"
+#endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
@@ -397,7 +404,7 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 
   for(;;) {
     toHash.append(ns3prc.d_salt);
-    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
+    mbedtls_sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
     toHash.assign((char*)hash, sizeof(hash));
     if(!times--)
       break;
@@ -487,66 +494,41 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   }  
 }
 
-string calculateMD5HMAC(const std::string& key, const std::string& text)
-{
-  std::string res;
-  unsigned char hash[16];
+string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
 
-  md5_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-  res.assign(reinterpret_cast<const char*>(hash), 16);
+  mbedtls_md_type_t md_type;
+  const mbedtls_md_info_t *md_info;
 
-  return res;
-}
-
-string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
-{
-  std::string res;
-  unsigned char hash[64];
+  unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 
   switch(hasher) {
-  case TSIG_SHA1:
-  {
-      sha1_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 20);
+    case TSIG_MD5:
+      md_type = MBEDTLS_MD_MD5;
       break;
-  };
-  case TSIG_SHA224:
-  {
-      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
-      res.assign(reinterpret_cast<const char*>(hash), 28);
+    case TSIG_SHA1:
+      md_type = MBEDTLS_MD_SHA1;
       break;
-  };
-  case TSIG_SHA256:
-  {
-      sha256_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
-      res.assign(reinterpret_cast<const char*>(hash), 32);
+    case TSIG_SHA224:
+      md_type = MBEDTLS_MD_SHA224;
       break;
-  };
-  case TSIG_SHA384:
-  {
-      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
-      res.assign(reinterpret_cast<const char*>(hash), 48);
+    case TSIG_SHA256:
+      md_type = MBEDTLS_MD_SHA256;
       break;
-  };
-  case TSIG_SHA512:
-  {
-      sha512_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
-      res.assign(reinterpret_cast<const char*>(hash), 64);
+    case TSIG_SHA384:
+      md_type = MBEDTLS_MD_SHA384;
       break;
-  };
-  default:
-    throw new PDNSException("Unknown hash algorithm requested for SHA");
-  };
+    case TSIG_SHA512:
+      md_type = MBEDTLS_MD_SHA512;
+      break;
+    default:
+      throw new PDNSException("Unknown hash algorithm requested from calculateHMAC()");
+  }
 
-  return res;
-}
+  md_info = mbedtls_md_info_from_type( md_type );
+  if( mbedtls_md_hmac( md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash ) == 0 )
+    return string( (char*) hash, mbedtls_md_get_size( md_info ) );
 
-string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash) {
-  if (hash == TSIG_MD5) return calculateMD5HMAC(key, text);
-
-  // add other algorithms here
-
-  return calculateSHAHMAC(key, text, hash);
+  return "";
 }
 
 string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
