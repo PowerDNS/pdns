@@ -1,4 +1,4 @@
-@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015070701 10800 3600 604800 10800
+@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015082901 10800 3600 604800 10800
 @       3600    IN  NS  powerdnssec1.ds9a.nl.
 @       3600    IN  NS  powerdnssec2.ds9a.nl.
 ; Auth
