@@ -101,15 +101,19 @@ cassandradbmanager::cassandradbmanager()
 	  }
 
 	  /* Provide the cluster object as configuration to connect the session */
-	  connect_future = cass_session_connect_keyspace(session, cluster, keyspace.c_str());
-
-	  if ((cass_future_error_code(connect_future)) != CASS_OK) {
-	      cass_cluster_free(cluster);
-	      cass_session_free(session);
-	      instanceFlag = false;
-	   } else {
-		   instanceFlag = true;
-	   }
+	  for (int retry_count = 0; retry_count < 10; ++retry_count) {
+		  L << Logger::Info << "Connection count "<<retry_count<<endl;
+		  connect_future = cass_session_connect_keyspace(session, cluster, keyspace.c_str());
+		  if ((cass_future_error_code(connect_future)) == CASS_OK) {
+			  instanceFlag = true;
+			  break;
+		  }
+		  sleep(10);
+	  }
+	  if(instanceFlag == false) {
+		  cass_cluster_free(cluster);
+		  cass_session_free(session);
+	  }
 }
 
 cassandradbmanager::~cassandradbmanager()
