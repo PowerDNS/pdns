@@ -8,7 +8,6 @@
 #include "dnsparser.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/algorithm/string.hpp>
 #include <map>
 #include <set>
 #include <fstream>
@@ -102,12 +101,12 @@ try
     
     struct pdns_timeval lastreport={0, 0};
     
-    typedef set<pair<string, uint16_t> > queries_t;
+    typedef set<pair<DNSName, uint16_t> > queries_t;
     queries_t questions, answers;
 
     //    unsigned int count = 50000;
     
-    map<pair<string, uint16_t>, int> counts;
+    map<pair<DNSName, uint16_t>, int> counts;
 
     map<double, int> rdqcounts, rdacounts;
 
@@ -191,7 +190,7 @@ try
     ofstream failed("failed");
     failed<<"name\ttype\tnumber\n";
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
-      failed << i->first << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
+      failed << i->first.toString() << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
     }
 
     diff.clear();
@@ -203,7 +202,7 @@ try
     ofstream succeeded("succeeded");
     succeeded<<"name\ttype\tnumber\n";
     for(queries_t::const_iterator i = answers.begin(); i != answers.end() ; ++i) {
-      succeeded << i->first << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
+      succeeded << i->first.toString() << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
     }
   }
 }

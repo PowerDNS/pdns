@@ -37,8 +37,8 @@ Files: pdns/ext/rapidjson/*
 Copyright: 2011 Milo Yip
 License: Expat
 
-Files: pdns/ext/polarssl*
-Copyright: 2006-2010, Brainspark B.V.
+Files: pdns/ext/mbedtls/*
+Copyright (C) 2006-2014, ARM Limited
 License: GPL-2+
 
 Files: pdns/ext/yahttp*

@@ -1,14 +1,14 @@
 SUBDIRS = \
-	$(POLARSSL_SUBDIR) \
-	$(ED25519_SUBDIR) \
+	$(MBEDTLS_SUBDIR) \
 	yahttp \
-	rapidjson
+	rapidjson \
+        json11
 
 DIST_SUBDIRS = \
-	polarssl \
-	ed25519 \
+	mbedtls \
 	yahttp \
-	rapidjson
+	rapidjson \
+        json11
 
 EXTRA_DIST = \
 	luawrapper/include/LuaContext.hpp

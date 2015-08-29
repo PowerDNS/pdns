@@ -330,11 +330,6 @@
 # overload-queue-length=0
 
 #################################
-# pipebackend-abi-version	Version of the pipe backend ABI
-#
-# pipebackend-abi-version=1
-
-#################################
 # prevent-self-notification	Don't send notifications to what we think is ourself
 #
 # prevent-self-notification=yes

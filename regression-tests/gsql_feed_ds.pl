@@ -28,6 +28,8 @@ while(<IN>) {
 
 for my $rec (@$recs) {
   my ($name,$value) = @$rec;
+  # fix name
+  $name=~s/[.]$//;
   my $sql = qq(INSERT INTO records (domain_id, name, type, content, ttl, auth) SELECT id, '$name', 'DS', '$value', 120, 1 FROM domains WHERE name = '$parent');
   # then feed data
   qx($sqlcmd "$sql")

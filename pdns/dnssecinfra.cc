@@ -12,8 +12,15 @@
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
+#ifdef HAVE_MBEDTLS2
+#include <mbedtls/md_internal.h>
+#include <mbedtls/md.h>
+#else
 #include <polarssl/md5.h>
 #include <polarssl/sha1.h>
+#include <polarssl/md.h>
+#include "mbedtlscompat.hh"
+#endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
@@ -134,8 +141,10 @@ void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback
   getMakers()[algo]=maker;
 }
 
-void DNSCryptoKeyEngine::testAll()
+bool DNSCryptoKeyEngine::testAll()
 {
+  bool ret=true;
+
   BOOST_FOREACH(const allmakers_t::value_type& value, getAllMakers())
   {
     BOOST_FOREACH(maker_t* creator, value.second) {
@@ -150,15 +159,19 @@ void DNSCryptoKeyEngine::testAll()
           catch(std::exception& e)
           {
             cerr<<e.what()<<endl;
+            ret=false;
           }
         }
       }
     }
   }
+  return ret;
 }
 
-void DNSCryptoKeyEngine::testOne(int algo)
+bool DNSCryptoKeyEngine::testOne(int algo)
 {
+  bool ret=true;
+
   BOOST_FOREACH(maker_t* creator, getAllMakers()[algo]) {
 
     BOOST_FOREACH(maker_t* signer, getAllMakers()[algo]) {
@@ -171,10 +184,12 @@ void DNSCryptoKeyEngine::testOne(int algo)
         catch(std::exception& e)
         {
           cerr<<e.what()<<endl;
+          ret=false;
         }
       }
     }
   }
+  return ret;
 }
 // returns times it took to sign and verify
 pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
@@ -187,11 +202,13 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   unsigned int bits;
   if(algo <= 10)
     bits=1024;
-  else if(algo == 12 || algo == 13 || algo == 250) // GOST or nistp256 or ED25519
+  else if(algo == 12 || algo == 13 || algo == 250) // ECC-GOST or ECDSAP256SHA256 or ED25519SHA512
     bits=256;
-  else 
-    bits=384;
-    
+  else if(algo == 14) // ECDSAP384SHA384
+    bits = 384;
+  else
+    throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algo));
+
   dckeCreate->create(bits);
 
   { // FIXME: this block copy/pasted from makeFromISCString
@@ -285,7 +302,7 @@ bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr
   return a->serialize("", true, true) < b->serialize("", true, true);
 }
 
-string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
 {
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
@@ -294,7 +311,7 @@ string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rr
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    toHash.append(toLower(simpleCompress(qname, "")));
+    toHash.append(qname.toDNSString()); // FIXME400 tolower?
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
@@ -310,10 +327,10 @@ string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rr
   return toHash;
 }
 
-DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest)
+DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest)
 {
   string toHash;
-  toHash.assign(toLower(simpleCompress(qname)));
+  toHash.assign(qname.toDNSString()); // FIXME400 tolower?
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize("", true, true));
   
   DSRecordContent dsrc;
@@ -379,23 +396,22 @@ uint32_t getStartOfWeek()
   return now;
 }
 
-std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname)
+string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname)
 {
-  string toHash;
-  toHash.assign(simpleCompress(toLower(qname)));
-  toHash.append(salt);
-
-//  cerr<<makeHexDump(toHash)<<endl;
+  unsigned int times = ns3prc.d_iterations;
   unsigned char hash[20];
+  string toHash(qname.toDNSString());
+
   for(;;) {
-    sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
-    if(!times--) 
-      break;
+    toHash.append(ns3prc.d_salt);
+    mbedtls_sha1((unsigned char*)toHash.c_str(), toHash.length(), hash);
     toHash.assign((char*)hash, sizeof(hash));
-    toHash.append(salt);
+    if(!times--)
+      break;
   }
-  return string((char*)hash, sizeof(hash));
+  return toHash;
 }
+
 DNSKEYRecordContent DNSSECPrivateKey::getDNSKEY() const
 {
   return makeDNSKEYFromDNSCryptoKeyEngine(getKey(), d_algorithm, d_flags);
@@ -478,69 +494,44 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
   }  
 }
 
-string calculateMD5HMAC(const std::string& key, const std::string& text)
-{
-  std::string res;
-  unsigned char hash[16];
+string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher) {
 
-  md5_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-  res.assign(reinterpret_cast<const char*>(hash), 16);
+  mbedtls_md_type_t md_type;
+  const mbedtls_md_info_t *md_info;
 
-  return res;
-}
-
-string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hasher)
-{
-  std::string res;
-  unsigned char hash[64];
+  unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 
   switch(hasher) {
-  case TSIG_SHA1:
-  {
-      sha1_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash);
-      res.assign(reinterpret_cast<const char*>(hash), 20);
+    case TSIG_MD5:
+      md_type = MBEDTLS_MD_MD5;
       break;
-  };
-  case TSIG_SHA224:
-  {
-      sha2_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
-      res.assign(reinterpret_cast<const char*>(hash), 28);
+    case TSIG_SHA1:
+      md_type = MBEDTLS_MD_SHA1;
       break;
-  };
-  case TSIG_SHA256:
-  {
-      sha2_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
-      res.assign(reinterpret_cast<const char*>(hash), 32);
+    case TSIG_SHA224:
+      md_type = MBEDTLS_MD_SHA224;
       break;
-  };
-  case TSIG_SHA384:
-  {
-      sha4_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 1);
-      res.assign(reinterpret_cast<const char*>(hash), 48);
+    case TSIG_SHA256:
+      md_type = MBEDTLS_MD_SHA256;
       break;
-  };
-  case TSIG_SHA512:
-  {
-      sha4_hmac(reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash, 0);
-      res.assign(reinterpret_cast<const char*>(hash), 64);
+    case TSIG_SHA384:
+      md_type = MBEDTLS_MD_SHA384;
       break;
-  };
-  default:
-    throw new PDNSException("Unknown hash algorithm requested for SHA");
-  };
+    case TSIG_SHA512:
+      md_type = MBEDTLS_MD_SHA512;
+      break;
+    default:
+      throw new PDNSException("Unknown hash algorithm requested from calculateHMAC()");
+  }
 
-  return res;
+  md_info = mbedtls_md_info_from_type( md_type );
+  if( mbedtls_md_hmac( md_info, reinterpret_cast<const unsigned char*>(key.c_str()), key.size(), reinterpret_cast<const unsigned char*>(text.c_str()), text.size(), hash ) == 0 )
+    return string( (char*) hash, mbedtls_md_get_size( md_info ) );
+
+  return "";
 }
 
-string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash) {
-  if (hash == TSIG_MD5) return calculateMD5HMAC(key, text);
-
-  // add other algorithms here
-
-  return calculateSHAHMAC(key, text, hash);
-}
-
-string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
+string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset)
 {
   string message;
   string packet(opacket);
@@ -570,7 +561,8 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     dw.xfrName(keyname, false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
-    dw.xfrName(toLower(trc.d_algoName), false);
+    // dw.xfrName(toLower(trc.d_algoName), false); //FIXME400 
+    dw.xfrName(trc.d_algoName, false);
   }
   
   uint32_t now = trc.d_time; 
@@ -586,11 +578,11 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
   return message;
 }
 
-void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
+void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly)
 {
   TSIGHashEnum algo;
   if (!getTSIGHashEnum(trc->d_algoName, algo)) {
-    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName);
+    throw PDNSException(string("Unsupported TSIG HMAC algorithm ") + trc->d_algoName.toString());
   }
 
   string toSign;
@@ -626,7 +618,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyn
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {
-      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname+string("'"));
+      throw PDNSException(string("Could not add TSIG signature with algorithm 'gss-tsig' and key name '")+tsigkeyname.toString()+string("'"));
     }
   } else {
     trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);

@@ -985,25 +985,25 @@ fred   IN  A      192.168.0.4
         r = self.session.get(self.url("/servers/localhost/search-data?q=" + name))
         self.assert_success_json(r)
         print r.json()
-        self.assertEquals(r.json(), [{u'type': u'zone', u'name': name, u'zone_id': name+'.'}])
+        self.assertEquals(r.json(), [{u'object_type': u'zone', u'name': name, u'zone_id': name+'.'}])
 
     def test_search_rr_substring(self):
         name = 'search-rr-zone.name'
         self.create_zone(name=name)
-        r = self.session.get(self.url("/servers/localhost/search-data?q=rr-zone"))
+        r = self.session.get(self.url("/servers/localhost/search-data?q=*rr-zone*"))
         self.assert_success_json(r)
         print r.json()
         # should return zone, SOA, ns1, ns2
-        self.assertEquals(len(r.json()), 1)  # FIXME test disarmed for now (should be 4)
+        self.assertEquals(len(r.json()), 4)
 
     def test_search_rr_case_insensitive(self):
         name = 'search-rr-insenszone.name'
         self.create_zone(name=name)
-        r = self.session.get(self.url("/servers/localhost/search-data?q=rr-insensZONE"))
+        r = self.session.get(self.url("/servers/localhost/search-data?q=*rr-insensZONE*"))
         self.assert_success_json(r)
         print r.json()
         # should return zone, SOA, ns1, ns2
-        self.assertEquals(len(r.json()), 1)  # FIXME test disarmed for now (should be 4)
+        self.assertEquals(len(r.json()), 4)
 
 
 @unittest.skipIf(not is_auth(), "Not applicable")

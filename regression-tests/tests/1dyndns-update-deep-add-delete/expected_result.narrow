@@ -8,12 +8,12 @@ Check if records are added
 --- Start: diff start step.1 ---
 > a.b.c.d.e.f.test.dyndns	A	0	127.0.0.1	3600	NULL	1
 > a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600	NULL	1
-> b.c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> f.test.dyndns	NULL	NULL	NULL	NULL	''	1
+> b.c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> c.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
 --- End: diff start step.1 ---
 
 Answer:
@@ -25,10 +25,10 @@ Answer:
 Check if a.b.c.d.e.f is removed correctly
 --- Start: diff start step.2 ---
 > a.b.d.e.f.test.dyndns	A	0	127.0.0.1	3600	NULL	1
-> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> e.f.test.dyndns	NULL	NULL	NULL	NULL	''	1
-> f.test.dyndns	NULL	NULL	NULL	NULL	''	1
+> b.d.e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> d.e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> e.f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
+> f.test.dyndns	NULL	NULL	NULL	NULL	NULL	1
 --- End: diff start step.2 ---
 
 Answer:

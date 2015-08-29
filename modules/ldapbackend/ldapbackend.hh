@@ -100,23 +100,24 @@ class LdapBackend : public DNSBackend
         unsigned int m_axfrqlen;
         time_t m_last_modified;
         string m_myname;
-        string m_qname;
+        DNSName m_qname;
         PowerLDAP* m_pldap;
         PowerLDAP::sentry_t m_result;
         PowerLDAP::sentry_t::iterator m_attribute;
-        vector<string>::iterator m_value, m_adomain;
-        vector<string> m_adomains;
+        vector<string>::iterator m_value;
+        vector<DNSName>::iterator m_adomain;
+        vector<DNSName> m_adomains;
 
-        bool (LdapBackend::*m_list_fcnt)( const string&, int );
-        void (LdapBackend::*m_lookup_fcnt)( const QType&, const string&, DNSPacket*, int );
+        bool (LdapBackend::*m_list_fcnt)( const DNSName&, int );
+        void (LdapBackend::*m_lookup_fcnt)( const QType&, const DNSName&, DNSPacket*, int );
         bool (LdapBackend::*m_prepare_fcnt)();
 
-        bool list_simple( const string& target, int domain_id );
-        bool list_strict( const string& target, int domain_id );
+        bool list_simple( const DNSName& target, int domain_id );
+        bool list_strict( const DNSName& target, int domain_id );
 
-        void lookup_simple( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
-        void lookup_strict( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
-        void lookup_tree( const QType& qtype, const string& qdomain, DNSPacket* p, int zoneid );
+        void lookup_simple( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+        void lookup_strict( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
+        void lookup_tree( const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid );
 
         bool prepare();
         bool prepare_simple();
@@ -129,8 +130,8 @@ public:
         LdapBackend( const string &suffix="" );
         ~LdapBackend();
 
-        bool list( const string& target, int domain_id, bool include_disabled=false );
-        void lookup( const QType& qtype, const string& qdomain, DNSPacket* p = 0, int zoneid = -1 );
+        bool list( const DNSName& target, int domain_id, bool include_disabled=false );
+        void lookup( const QType& qtype, const DNSName& qdomain, DNSPacket* p = 0, int zoneid = -1 );
         bool get( DNSResourceRecord& rr );
 };
 

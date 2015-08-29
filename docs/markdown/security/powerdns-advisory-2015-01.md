@@ -1,6 +1,6 @@
 ## PowerDNS Security Advisory 2015-01: Label decompression bug can cause crashes or CPU spikes
 
-* CVE: CVE-2015-1868
+* CVE: CVE-2015-1868 (original), CVE-2015-5470 (update)
 * Date: 23rd of April 2015, updated 7th of July 2015
 * Credit: Aki Tuomi, Toshifumi Sakaguchi
 * Affects: PowerDNS Recursor versions 3.5 and up; Authoritative Server 3.2 and up
@@ -43,3 +43,4 @@ Update 7th of July 2015: Toshifumi Sakaguchi discovered that the original fix
 was insufficient in some cases. Updated versions of the Authoritative Server and
 Recursor [were released](../changelog.md#powerdns-recursor-364) on the 9th of June.
 Minimal patches are [available](http://downloads.powerdns.com/patches/2015-01/).
+The insufficient fix was assigned CVE-2015-5470.

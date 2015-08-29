@@ -204,3 +204,17 @@ public:
     return "tc=1 answer";
   }
 };
+
+class NoRecurseAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
+  {
+    dh->rd = false;
+    return Action::HeaderModify;
+  }
+  string toString() const override
+  {
+    return "rd=0 query";
+  }
+};

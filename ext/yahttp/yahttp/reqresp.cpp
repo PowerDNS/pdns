@@ -172,8 +172,10 @@ namespace YaHTTP {
       for(strstr_map_t::const_iterator i = getvars.begin(); i != getvars.end(); i++) {
         getparmbuf << Utility::encodeURL(i->first, false) << "=" << Utility::encodeURL(i->second, false) << "&";
       }
-      if (getparmbuf.str().length() > 0)
-        getparms = "?" + std::string(getparmbuf.str().begin(), getparmbuf.str().end() - 1);
+      if (getparmbuf.str().length() > 0) {
+        std::string buf = getparmbuf.str();
+        getparms = "?" + std::string(buf.begin(), buf.end() - 1);
+      }
       else
         getparms = "";
       os << method << " " << url.path << getparms << " HTTP/" << versionStr(this->version);

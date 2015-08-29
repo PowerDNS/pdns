@@ -145,5 +145,31 @@ BOOST_AUTO_TEST_CASE(test_parseService) {
     BOOST_CHECK_EQUAL(tp.port, 25);
 }
 
+BOOST_AUTO_TEST_CASE(test_SimpleMatch) {
+  BOOST_CHECK_EQUAL(SimpleMatch("").match(std::string("")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("?").match(std::string("")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("*").match(std::string("")), true);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("abc").match(std::string("abc")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc").match(std::string("ab")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc").match(std::string("bc")), false);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("?").match(std::string("a")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a?c").match(std::string("abc")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a?c").match(std::string("ab")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("a?c").match(std::string("bc")), false);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("*").match(std::string("*")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a*c").match(std::string("abc")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a*c").match(std::string("ab")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("a*c").match(std::string("bc")), false);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("*").match(std::string("abcdefghj")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("*a").match(std::string("abca")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("*a").match(std::string("abcb")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abcabcabcabacabac")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abc")), true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

@@ -101,18 +101,19 @@ MyDNSBackend::MyDNSBackend(const string &suffix) {
     string basicQuery = "SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?) AND type = ?";
     string anyQuery = "(SELECT type, data, aux, ttl, zone FROM `"+rrtable+"` WHERE zone = ? AND (name = ? OR name = ?)";
  
-   if (!rrwhere.empty()) {
-     listQuery += " AND "+rrwhere;
-     basicQuery += " AND " + rrwhere;
-     anyQuery += " AND " + rrwhere;
+    if (!rrwhere.empty()) {
+      listQuery += " AND "+rrwhere;
+      basicQuery += " AND " + rrwhere;
+      anyQuery += " AND " + rrwhere;
     }
 
     d_listQuery_stmt = d_db->prepare(listQuery, 1);
   
     anyQuery += ") UNION (SELECT 'SOA' AS type, origin AS data, '0' AS aux, ttl, id AS zone FROM `"+soatable+"` WHERE id = ? AND origin = ?";
 
-    if (!soawhere.empty())
+    if (!soawhere.empty()) {
       anyQuery += " AND "+soawhere;
+    }
   
     basicQuery += " ORDER BY type,aux,data";
     anyQuery += ") ORDER BY type,aux,data";
@@ -142,7 +143,7 @@ MyDNSBackend::~MyDNSBackend() {
 }
 
 
-bool MyDNSBackend::list(const string &target, int zoneId, bool include_disabled) {
+bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled) {
   string query;
   string sname;
   SSqlStatement::row_t rrow;
@@ -184,27 +185,27 @@ bool MyDNSBackend::list(const string &target, int zoneId, bool include_disabled)
   return true;
 }
 
-bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
+bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
   string query;
   SSqlStatement::row_t rrow;
 
   if (name.empty())
     return false;
 
-  string dotname = name+".";
-
   try {
     d_soaQuery_stmt->
-      bind("origin", dotname)->
+      bind("origin", name.toString())->
       execute()->
       getResult(d_result)->
       reset();
   }
   catch (SSqlException &e) {
-    throw PDNSException("MyDNSBackend unable to get soa for domain "+name+": "+e.txtReason());
+    throw PDNSException("MyDNSBackend unable to get soa for domain "+name.toString()+": "+e.txtReason());
   }
 
-  if (d_result.empty()) return false;
+  if (d_result.empty()) {
+    return false;
+  }
 
   rrow = d_result[0];
 
@@ -230,58 +231,46 @@ bool MyDNSBackend::getSOA(const string& name, SOAData& soadata, DNSPacket*) {
   return true;
 }
 
-void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p, int zoneId) {
-  string query;
-  string sname;
-  string zoneIdStr = itoa(zoneId);
+void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p, int zoneId) {
   SSqlStatement::row_t rrow;
   bool found = false;
 
+  DNSName sdom(qname);
   d_origin = "";
 
-  if (qname.empty())
+  if (qname.empty()) {
     return;
+  }
 
   DLOG(L<<Logger::Debug<<"MyDNSBackend::lookup(" << qtype.getName() << "," << qname << ",p," << zoneId << ")" << endl);
-
-  sname = qname;
-  sname += ".";
 
   if (zoneId < 0) {
     // First off we need to work out what zone we're working with
     // MyDNS records aren't always fully qualified, so we need to work out the zone ID.
 
-    size_t pos;
-    string sdom;
-
-    pos = 0;
-    sdom = sname;
-    while (!sdom.empty() && pos != string::npos) {
+    
+    do {
       try {
         d_domainNoIdQuery_stmt->
-          bind("domain", sdom)->
+          bind("domain", sdom.toString())->
           execute()->
           getResult(d_result)->
           reset();
       }
       catch (SSqlException &e) {
-        throw PDNSException("MyDNSBackend unable to lookup "+qname+": "+e.txtReason());
+        throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
       }
 
       if (d_result.empty() == false) {
         rrow = d_result[0];
         zoneId = boost::lexical_cast<int>(rrow[0]);
-        d_origin = rrow[1];
-        if (d_origin[d_origin.length()-1] == '.')
-          d_origin.erase(d_origin.length()-1);
+        d_origin = stripDot(rrow[1]);
         d_minimum = atol(rrow[2].c_str());
         found = true;
         break;
       }
 
-      pos = sname.find_first_of(".",pos+1);
-      sdom = sname.substr(pos+1);
-    }
+    } while(sdom.chopOff());
 
   } else {
     try {
@@ -292,19 +281,17 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
         reset();
     }
     catch (SSqlException &e) {
-      throw PDNSException("MyDNSBackend unable to lookup "+qname+": "+e.txtReason());
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
     }
 
     if(d_result.empty()) {
-      throw PDNSException("lookup() passed zoneId = "+zoneIdStr+" but no such zone!");
+      throw PDNSException("lookup() passed zoneId = "+itoa(zoneId)+" but no such zone!");
     }
 
     rrow = d_result[0];
 
     found = true;
-    d_origin = rrow[0];
-    if (d_origin[d_origin.length()-1] == '.')
-      d_origin.erase(d_origin.length()-1);
+    d_origin = stripDot(rrow[0]);
     d_minimum = atol(rrow[1].c_str());
   }
 
@@ -321,36 +308,36 @@ void MyDNSBackend::lookup(const QType &qtype, const string &qname, DNSPacket *p,
     if (qname.length() == d_origin.length())
       host = "";
     else
-      host = qname.substr(0, (qname.length() - d_origin.length())-1);
+      host = qname.toString().substr(0, (qname.length() - d_origin.length())-1);
 
     try {
 
       if (qtype.getCode()==QType::ANY) {
-        string dotqname = qname+".";
+        DLOG(L<<Logger::Debug<<"Running d_anyQuery_stmt with " << zoneId << ", " << host << ", " << sdom  << ", " << zoneId <<" , "<< qname << ", " << qtype.getName() << endl);
         d_query_stmt = d_anyQuery_stmt;
         d_query_stmt->
           bind("domain_id", zoneId)->
           bind("host", host)->
-          bind("qname", sname)->
+          bind("qname", qname.toString())->
           bind("domain_id", zoneId)-> // this is because positional arguments
-          bind("qname2", dotqname)->
+          bind("qname2", sdom.toString())->
           execute();
       } else {
-        DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << sname << ", " << qtype.getName() << endl);
+        DLOG(L<<Logger::Debug<<"Running d_basicQuery_stmt with " << zoneId << ", " << host << ", " << qname << ", " << qtype.getName() << endl);
         d_query_stmt = d_basicQuery_stmt;
         d_query_stmt->
           bind("domain_id", zoneId)->
           bind("host", host)->
-          bind("qname", sname)->
+          bind("qname", qname.toString())->
           bind("qtype", qtype.getName())->
           execute();
       }
     }
     catch (SSqlException &e) {
-      throw PDNSException("MyDNSBackend unable to lookup "+qname+": "+e.txtReason());
+      throw PDNSException("MyDNSBackend unable to lookup "+qname.toString()+": "+e.txtReason());
     }
 
-    d_qname = qname;
+    d_qname = qname.toString();
   }
 
 }
@@ -384,14 +371,18 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
       // use this to distinguish between select with 'name' field (list()) and one without
       rr.qname=d_qname;
     } else {
-      rr.qname=rrow[5];
-      if (!rr.qname.empty() && rr.qname[rr.qname.length()-1] == '.') {
-        rr.qname.erase(rr.qname.length()-1); // Fully qualified, nuke the last .
+      string tmpQname = rrow[5];
+
+      //TODO: Refactor
+      if (!tmpQname.empty() && tmpQname[tmpQname.length()-1] == '.') {
+        tmpQname.erase(tmpQname.length()-1); // Fully qualified, nuke the last .
       } else {
-        if (!rr.qname.empty())
-          rr.qname += ".";
-        rr.qname += d_origin; // Not fully qualified
+        if (!tmpQname.empty()) {
+          tmpQname += ".";
+        }
+        tmpQname += d_origin; // Not fully qualified
       }
+      rr.qname = DNSName(tmpQname);
     }
   
     if (rr.qtype.getCode() == QType::NS || rr.qtype.getCode()==QType::MX || 
@@ -451,7 +442,7 @@ public:
     declare(suffix,"use-minimal-ttl","Setting this to 'yes' will make the backend behave like MyDNS on the TTL values. Setting it to 'no' will make it ignore the minimal-ttl of the zone.","yes");
   }
 
-  MyDNSBackend *make(const string &suffix = "") {
+  DNSBackend *make(const string &suffix="") {
     return new MyDNSBackend(suffix);
   }
 

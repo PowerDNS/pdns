@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2008  PowerDNS.COM BV
+    Copyright (C) 2002 - 2015  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -36,47 +36,63 @@
 class RandomBackend : public DNSBackend
 {
 public:
-  RandomBackend(const string &suffix="") 
+  RandomBackend(const string &suffix="")
   {
     setArgPrefix("random"+suffix);
-    d_ourname=getArg("hostname");
+    d_ourname=DNSName(getArg("hostname"));
+    d_ourdomain = d_ourname;
+    d_ourdomain.chopOff();
   }
 
-  bool list(const string &target, int id, bool include_disabled) {
+  bool list(const DNSName &target, int id, bool include_disabled) {
     return false; // we don't support AXFR
   }
-    
-  void lookup(const QType &type, const string &qdomain, DNSPacket *p, int zoneId)
-  {
-    if((type.getCode()!=QType::ANY && type.getCode()!=QType::A) || !pdns_iequals(qdomain, d_ourname))  // we only know about random.example.com A by default
-      d_answer="";                                                  // no answer
-    else {
-      ostringstream os;
-      os<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256;
-      d_answer=os.str();                                           // our random ip address
-    }
 
+  void lookup(const QType &type, const DNSName &qdomain, DNSPacket *p, int zoneId)
+  {
+    if(qdomain == d_ourdomain){
+      if(type.getCode() == QType::SOA || type.getCode() == QType::ANY) {
+        d_answer="ns1." + d_ourdomain.toString() + " hostmaster." + d_ourdomain.toString() + " 1234567890 86400 7200 604800 300";
+      } else {
+        d_answer="";
+      }
+    } else if (qdomain == d_ourname) {
+      if(type.getCode() == QType::A || type.getCode() == QType::ANY) {
+        ostringstream os;
+        os<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256<<"."<<Utility::random()%256;
+        d_answer=os.str(); // our random ip address
+      } else {
+        d_answer="";
+      }
+    } else {
+      d_answer="";
+    }
   }
 
   bool get(DNSResourceRecord &rr)
   {
     if(!d_answer.empty()) {
-      rr.qname=d_ourname;                                           // fill in details
-      rr.qtype=QType::A;                                            // A record
-      rr.ttl=5;                                                 // 5 seconds
-      rr.auth = 1;  // it may be random.. but it is auth!
+      if(d_answer.find("ns1.") == 0){
+        rr.qname=d_ourdomain;
+        rr.qtype=QType::SOA;
+      } else {
+        rr.qname=d_ourname;
+        rr.qtype=QType::A;
+      }
+      rr.ttl=5;             // 5 seconds
+      rr.auth = 1;          // it may be random.. but it is auth!
       rr.content=d_answer;
 
-      d_answer="";                                                  // this was the last answer
-      
+      d_answer="";          // this was the last answer
       return true;
     }
-    return false;                                                   // no more data
+    return false;
   }
-  
+
 private:
   string d_answer;
-  string d_ourname;
+  DNSName d_ourname;
+  DNSName d_ourdomain;
 };
 
 /* SECOND PART */
@@ -112,4 +128,3 @@ public:
 };
 
 static RandomLoader randomLoader;
-

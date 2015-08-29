@@ -112,8 +112,8 @@ Resolver::~Resolver()
 }
 
 uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& local,
-                               const char *domain, int type, bool dnssecOK,
-                               const string& tsigkeyname, const string& tsigalgorithm,
+                               const DNSName &domain, int type, bool dnssecOK,
+                               const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
                                const string& tsigsecret)
 {
   uint16_t randomid;
@@ -130,7 +130,7 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     // cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
     TSIGRecordContent trc;
     if (tsigalgorithm == "hmac-md5")
-      trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+      trc.d_algoName = tsigalgorithm + "sig-alg.reg.int";
     else
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(0);
@@ -167,9 +167,9 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   return randomid;
 }
 
-uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain,
+uint16_t Resolver::sendResolve(const ComboAddress& remote, const DNSName &domain,
                                int type, bool dnssecOK,
-                               const string& tsigkeyname, const string& tsigalgorithm,
+                               const DNSName& tsigkeyname, const DNSName& tsigalgorithm,
                                const string& tsigsecret)
 {
   ComboAddress local;
@@ -177,28 +177,26 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const char *domain,
   return this->sendResolve(remote, local, domain, type, dnssecOK, tsigkeyname, tsigalgorithm, tsigsecret);
 }
 
-static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
+static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
 {
   result->clear();
   
   if(mdp.d_header.rcode) 
     return mdp.d_header.rcode;
       
-  if(!origQname.empty()) {  // not AXFR
+  if(origQname.countLabels()) {  // not AXFR
     if(mdp.d_header.id != id) 
       throw ResolverException("Remote nameserver replied with wrong id");
     if(mdp.d_header.qdcount != 1)
       throw ResolverException("resolver: received answer with wrong number of questions ("+itoa(mdp.d_header.qdcount)+")");
-    if(mdp.d_qname != origQname+".")
-      throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname+"!="+ origQname+".)");
+    if(mdp.d_qname != origQname)
+      throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname.toString()+"!="+ origQname.toString()+".)");
   }
     
   vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     rr.qname = i->first.d_label;
-    if(!rr.qname.empty())
-      boost::erase_tail(rr.qname, 1); // strip .
     rr.qtype = i->first.d_type;
     rr.ttl = i->first.d_ttl;
     rr.content = i->first.d_content->getZoneRepresentation();
@@ -218,7 +216,7 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
   return 0;
 }
 
-bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
+bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t *theirInception, uint32_t *theirExpire, uint16_t* id)
 {
   struct pollfd *fds = new struct pollfd[locals.size()];
   size_t i = 0, k;
@@ -262,13 +260,13 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
 
   MOADNSParser mdp((char*)buf, err);
   *id=mdp.d_header.id;
-  *domain = stripDot(mdp.d_qname);
+  *domain = mdp.d_qname;
   
   if(mdp.d_answers.empty())
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
+    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' produced no results (RCode: " + RCode::to_s(mdp.d_header.rcode) + ")");
   
   if(mdp.d_qtype != QType::SOA)
-    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + *domain + "' returned wrong record type");
+    throw ResolverException("Query to '" + fromaddr.toStringWithPort() + "' for SOA of '" + domain->toString() + "' returned wrong record type");
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
@@ -287,11 +285,11 @@ bool Resolver::tryGetSOASerial(string* domain, uint32_t *theirSerial, uint32_t *
     }
   }
   if(!gotSOA)
-    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + *domain + "' did not return a SOA");
+    throw ResolverException("Query to '" + fromaddr.toString() + "' for SOA of '" + domain->toString() + "' did not return a SOA");
   return true;
 }
 
-int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res, const ComboAddress &local)
+int Resolver::resolve(const string &ipport, const DNSName &domain, int type, Resolver::res_t* res, const ComboAddress &local)
 {
   try {
     ComboAddress to(ipport, 53);
@@ -337,35 +335,35 @@ int Resolver::resolve(const string &ipport, const char *domain, int type, Resolv
   return -1;
 }
 
-int Resolver::resolve(const string &ipport, const char *domain, int type, Resolver::res_t* res) {
+int Resolver::resolve(const string &ipport, const DNSName &domain, int type, Resolver::res_t* res) {
   ComboAddress local;
   local.sin4.sin_family = 0;
   return resolve(ipport, domain, type, res, local);
 }
 
-void Resolver::getSoaSerial(const string &ipport, const string &domain, uint32_t *serial)
+void Resolver::getSoaSerial(const string &ipport, const DNSName &domain, uint32_t *serial)
 {
   vector<DNSResourceRecord> res;
-  int ret = resolve(ipport, domain.c_str(), QType::SOA, &res);
+  int ret = resolve(ipport, domain, QType::SOA, &res);
   
   if(ret || res.empty())
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain + "' produced no answers");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced no answers");
 
   if(res[0].qtype.getCode() != QType::SOA) 
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain + "' produced a "+res[0].qtype.getName()+" record");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced a "+res[0].qtype.getName()+" record");
 
   vector<string>parts;
   stringtok(parts, res[0].content);
   if(parts.size()<3)
-    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain + "' produced an unparseable response");
+    throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced an unparseable response");
   
   *serial=(uint32_t)atol(parts[2].c_str());
 }
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
-        const string& domain,
-        const string& tsigkeyname,
-        const string& tsigalgorithm, 
+        const DNSName& domain,
+        const DNSName& tsigkeyname,
+        const DNSName& tsigalgorithm, 
         const string& tsigsecret,
         const ComboAddress* laddr)
 : d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_tsigPos(0), d_nonSignedMessages(0)
@@ -395,7 +393,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   
     if(!tsigkeyname.empty()) {
       if (tsigalgorithm == "hmac-md5")
-        d_trc.d_algoName = tsigalgorithm + ".sig-alg.reg.int.";
+        d_trc.d_algoName = tsigalgorithm + "sig-alg.reg.int";
       else
         d_trc.d_algoName = tsigalgorithm;
       d_trc.d_time = time(0);
@@ -491,7 +489,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
 
     if (checkTSIG) {
       if (theirMac.empty())
-        throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname+"'");
+        throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname.toString()+"'");
 
       string message;
       if (!d_prevMac.empty()) {
@@ -502,20 +500,20 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
 
       TSIGHashEnum algo;
       if (!getTSIGHashEnum(d_trc.d_algoName, algo)) {
-        throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName);
+        throw ResolverException("Unsupported TSIG HMAC algorithm " + d_trc.d_algoName.toString());
       }
 
       if (algo == TSIG_GSS) {
-        GssContext gssctx(d_tsigkeyname);
+        GssContext gssctx(d_tsigkeyname.toStringNoDot());
         if (!gss_verify_signature(d_tsigkeyname, message, theirMac)) {
-          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname.toString()+"'");
         }
       } else {
         string ourMac=calculateHMAC(d_tsigsecret, message, algo);
 
         // ourMac[0]++; // sabotage == for testing :-)
         if(ourMac != theirMac) {
-          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname+"'");
+          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname.toString()+"'");
         }
       }
 

@@ -5,6 +5,7 @@
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
+#include "dnsname.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <map>
@@ -42,7 +43,7 @@ struct comboCompare
 class StatNode
 {
 public:
-  void submit(const std::string& domain, int rcode, const ComboAddress& remote);
+  void submit(const DNSName& domain, int rcode, const ComboAddress& remote);
   void submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote);
 
   string name;
@@ -131,13 +132,17 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
 }
 
 
-void StatNode::submit(const std::string& domain, int rcode, const ComboAddress& remote)
+void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
-  deque<string> parts;
-  stringtok(parts, domain, ".");
-  if(parts.empty())
+  vector<string> tmp = domain.getRawLabels();
+  if(tmp.empty())
     return;
+
+  deque<string> parts;
+  for(auto const i : tmp) {
+    parts.push_back(i);
+  }
   children[parts.back()].submit(parts, "", rcode, remote);
 }
 
@@ -376,7 +381,7 @@ try
 	  lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
 	  highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
-	  string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
+	  string name=mdp.d_qname.toString()+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
         
 	  QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 

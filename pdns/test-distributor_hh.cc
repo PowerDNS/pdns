@@ -16,7 +16,7 @@ struct Question
 {
   int q;
   DTime d_dt;
-  string qdomain;
+  DNSName qdomain;
   DNSPacket* replyPacket()
   {
     return new DNSPacket();

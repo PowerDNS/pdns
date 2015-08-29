@@ -507,16 +507,20 @@ or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
 
 ## `out-of-zone-additional-processing`
 * Boolean
-* Default: no
+* Default: yes
 
 Do out of zone additional processing. This means that if a malicious user adds a
 '.com' zone to your server, it is not used for other domains and will not
 contaminate answers. Do not enable this setting if you run a public DNS service
 with untrusted users.
 
+The docs had previously indicated that the default was "no", but the default has
+been "yes" since 2005.
+
 ## `pipebackend-abi-version`
 * Integer
 * Default: 1
+* Removed in: 4.0.0 (is now specific to the backend)
 
 ABI version to use for the pipe backend. See
 ["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).

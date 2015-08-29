@@ -110,7 +110,7 @@ public:
       DNSResourceRecord d_place field */
   void addRecord(const DNSResourceRecord &);  // adds to 'rrs'
 
-  void setQuestion(int op, const string &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (label, type, class etc)
+  void setQuestion(int op, const DNSName &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (domain, type, class etc)
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
   void wrapup();  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer
@@ -131,11 +131,18 @@ public:
   bool couldBeCached(); //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet();
   bool hasEDNS();
+  uint8_t getEDNSVersion() const { return d_ednsversion; };
+  void setEDNSRcode(uint16_t extRCode)
+  {
+    // WARNING: this is really 12 bits
+    d_ednsrcode=extRCode;
+  };
+  uint8_t getEDNSRCode() const { return d_ednsrcode; };
   //////// DATA !
 
-  string qdomain;  //!< qname of the question 4 - unsure how this is used
-  string qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
-  string qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
+  DNSName qdomain;  //!< qname of the question 4 - unsure how this is used
+  DNSName qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
+  DNSName qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
   string d_peer_principal;
   struct dnsheader d; //!< dnsheader at the start of the databuffer 12
 
@@ -151,9 +158,9 @@ public:
   bool d_dnssecOk;
   bool d_havetsig;
 
-  bool getTSIGDetails(TSIGRecordContent* tr, string* keyname, string* message) const;
-  void setTSIGDetails(const TSIGRecordContent& tr, const string& keyname, const string& secret, const string& previous, bool timersonly=false);
-  bool getTKEYRecord(TKEYRecordContent* tr, string* keyname) const;
+  bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, string* message) const;
+  void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);
+  bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
   vector<DNSResourceRecord>& getRRS() { return d_rrs; }
   static bool s_doEDNSSubnetProcessing;
@@ -165,7 +172,7 @@ private:
   int d_socket; // 4
 
   string d_tsigsecret;
-  string d_tsigkeyname;
+  DNSName d_tsigkeyname;
   string d_tsigprevious;
 
   vector<DNSResourceRecord> d_rrs; // 8
@@ -174,6 +181,9 @@ private:
   EDNSSubnetOpts d_eso;
 
   int d_maxreplylen;
+  uint8_t d_ednsversion;
+  // WARNING! This is really 12 bits
+  uint16_t d_ednsrcode;
   uint16_t d_qlen; // length of the question (including class & type) in this packet 2
 
   bool d_compress; // 1
@@ -184,6 +194,6 @@ private:
 };
 
 
-bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, string* keyname, string* secret, TSIGRecordContent* trc);
+bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc);
 
 #endif

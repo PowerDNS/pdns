@@ -432,9 +432,9 @@ void GssContext::processError(const std::string& method, OM_uint32 maj, OM_uint3
 
 #endif
 
-bool gss_add_signature(const std::string& context, const std::string& message, std::string& mac) {
+bool gss_add_signature(const DNSName& context, const std::string& message, std::string& mac) {
   string tmp_mac;
-  GssContext gssctx(context);
+  GssContext gssctx(context.toStringNoDot());
   if (!gssctx.valid()) {
     L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
     BOOST_FOREACH(const string& error, gssctx.getErrorStrings()) {
@@ -454,8 +454,8 @@ bool gss_add_signature(const std::string& context, const std::string& message, s
   return true;
 }
 
-bool gss_verify_signature(const std::string& context, const std::string& message, const std::string& mac) {
-  GssContext gssctx(context);
+bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac) {
+  GssContext gssctx(context.toStringNoDot());
   if (!gssctx.valid()) {
     L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
     BOOST_FOREACH(const string& error, gssctx.getErrorStrings()) {

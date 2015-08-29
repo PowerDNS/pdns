@@ -5,13 +5,14 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
-#include "bindparserclasses.hh"
 #include "misc.hh"
 #include "pdnsexception.hh"
 #include <utility>
 #include <boost/foreach.hpp>
 #include <sstream>
 #include <cstdlib>
+#include "dnsname.hh"
+#include "bindparserclasses.hh"
 
 using std::string;
 
@@ -34,7 +35,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         BOOST_CHECK_EQUAL(domains.size(), 11);
 
 #define checkzone(i, dname, fname, ztype, nmasters) { \
-                BOOST_CHECK_EQUAL(domains[i].name, #dname); \
+                BOOST_CHECK(domains[i].name == #dname); \
                 BOOST_CHECK_EQUAL(domains[i].filename, fname); \
                 BOOST_CHECK_EQUAL(domains[i].type, #ztype); \
                 BOOST_CHECK_EQUAL(domains[i].masters.size(), nmasters); \

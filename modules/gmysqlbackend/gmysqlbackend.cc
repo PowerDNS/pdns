@@ -87,11 +87,11 @@ public:
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where ordername <= ? and domain_id=? and disabled=0 and ordername is not null order by 1 desc limit 1");
     declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select min(ordername) from records where ordername > ? and domain_id=? and disabled=0 and ordername is not null");
     declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select ordername, name from records where ordername != '' and domain_id=? and disabled=0 and ordername is not null order by 1 desc limit 1");
-    declare(suffix, "set-order-and-auth-query", "DNSSEC set ordering query", "update records set ordername=?,auth=? where name=? and domain_id=? and disabled=0");
-    declare(suffix, "set-auth-on-ds-record-query", "DNSSEC set auth on a DS record", "update records set auth=1 where domain_id=? and name=? and type='DS' and disabled=0");
 
-    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0");
-    declare(suffix, "nullify-ordername-and-auth-query", "DNSSEC nullify ordername and auth query", "update records set ordername=NULL,auth=0 where name=? and type=? and domain_id=? and disabled=0");
+    declare(suffix, "update-ordername-and-auth-query", "DNSSEC update ordername and auth for a qname query", "update records set ordername=?,auth=? where domain_id=? and name=? and disabled=0");
+    declare(suffix, "update-ordername-and-auth-type-query", "DNSSEC update ordername and auth for a rrset query", "update records set ordername=?,auth=? where domain_id=? and name=? and type=? and disabled=0");
+    declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0");
+    declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0");
 
     declare(suffix,"update-master-query","", "update domains set master=? where name=?");
     declare(suffix,"update-kind-query","", "update domains set type=? where name=?");
@@ -127,6 +127,8 @@ public:
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (?, ?, ?, ?, ?, ?)");
     declare(suffix, "delete-comment-rrset-query", "", "DELETE FROM comments WHERE domain_id=? AND name=? AND type=?");
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=?");
+    declare(suffix, "search-records-query", "", record_query+" name LIKE ? OR content LIKE ? LIMIT ?");
+    declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name LIKE ? OR comment LIKE ? LIMIT ?");
   }
 
   DNSBackend *make(const string &suffix="")

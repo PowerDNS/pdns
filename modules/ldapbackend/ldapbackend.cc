@@ -89,7 +89,7 @@ LdapBackend::~LdapBackend()
 
 
 
-bool LdapBackend::list( const string& target, int domain_id, bool include_disabled )
+bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disabled )
 {
         try
         {
@@ -120,7 +120,7 @@ bool LdapBackend::list( const string& target, int domain_id, bool include_disabl
 
 
 
-inline bool LdapBackend::list_simple( const string& target, int domain_id )
+inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 {
         string dn;
         string filter;
@@ -128,7 +128,7 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 
 
         dn = getArg( "basedn" );
-        qesc = toLower( m_pldap->escape( target ) );
+        qesc = toLower( m_pldap->escape( target.toString() ) );
 
         // search for SOARecord of target
         filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
@@ -154,10 +154,9 @@ inline bool LdapBackend::list_simple( const string& target, int domain_id )
 
 
 
-inline bool LdapBackend::list_strict( const string& target, int domain_id )
+inline bool LdapBackend::list_strict( const DNSName& target, int domain_id )
 {
-        if( (target.size() > 13 && target.substr( target.size() - 13, 13 ) == ".in-addr.arpa") ||
-        	(target.size() > 9 && target.substr( target.size() - 9, 9 ) == ".ip6.arpa") )
+        if( target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName(".ip6.arpa")) )
         {
         	L << Logger::Warning << m_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
         	return false;   // AXFR isn't supported in strict mode. Use simple mode and additional PTR records
@@ -168,7 +167,7 @@ inline bool LdapBackend::list_strict( const string& target, int domain_id )
 
 
 
-void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         try
         {
@@ -176,7 +175,7 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
         	m_qname = qname;
         	m_adomain = m_adomains.end();   // skip loops in get() first time
 
-        	if( m_qlog ) { L.log( "Query: '" + qname + "|" + qtype.getName() + "'", Logger::Error ); }
+        	if( m_qlog ) { L.log( "Query: '" + qname.toString() + "|" + qtype.getName() + "'", Logger::Error ); }
         	(this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
         }
         catch( LDAPTimeout &lt )
@@ -198,14 +197,14 @@ void LdapBackend::lookup( const QType &qtype, const string &qname, DNSPacket *dn
 
 
 
-void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         string filter, attr, qesc;
         const char** attributes = ldap_attrany + 1;   // skip associatedDomain
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-        qesc = toLower( m_pldap->escape( qname ) );
+        qesc = toLower( m_pldap->escape( qname.toString() ) );
         filter = "associatedDomain=" + qesc;
 
         if( qtype.getCode() != QType::ANY )
@@ -224,7 +223,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const string &qname, DNSPac
 
 
 
-void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         int len;
         vector<string> parts;
@@ -233,7 +232,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-        qesc = toLower( m_pldap->escape( qname ) );
+        qesc = toLower( m_pldap->escape( qname.toString() ) );
         stringtok( parts, qesc, "." );
         len = qesc.length();
 
@@ -269,7 +268,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const string &qname, DNSPac
 
 
 
-void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacket *dnspkt, int zoneid )
+void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPacket *dnspkt, int zoneid )
 {
         string filter, attr, qesc, dn;
         const char** attributes = ldap_attrany + 1;   // skip associatedDomain
@@ -278,7 +277,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
         vector<string> parts;
 
 
-        qesc = toLower( m_pldap->escape( qname ) );
+        qesc = toLower( m_pldap->escape( qname.toString() ) );
         filter = "associatedDomain=" + qesc;
 
         if( qtype.getCode() != QType::ANY )
@@ -291,7 +290,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const string &qname, DNSPacke
 
         filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
-        stringtok( parts, toLower( qname ), "." );
+        stringtok( parts, toLower( qname.toString() ), "." );
         for( i = parts.rbegin(); i != parts.rend(); i++ )
         {
         	dn = "dc=" + *i + "," + dn;
@@ -356,7 +355,7 @@ inline bool LdapBackend::prepare_simple()
         	{
         		vector<string>::iterator i;
         		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
+        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
         				m_adomains.push_back( *i );
         			}
         		}
@@ -386,7 +385,7 @@ inline bool LdapBackend::prepare_strict()
         	{
         		vector<string>::iterator i;
         		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname ) {
+        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
         				m_adomains.push_back( *i );
         			}
         		}

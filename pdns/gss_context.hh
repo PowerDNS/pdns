@@ -157,7 +157,7 @@ public:
   boost::shared_ptr<GssSecContext> d_ctx; //<! Attached security context
 };
 
-bool gss_add_signature(const std::string& context, const std::string& message, std::string& mac); //<! Create signature
-bool gss_verify_signature(const std::string& context, const std::string& message, const std::string& mac); //<! Validate signature
+bool gss_add_signature(const DNSName& context, const std::string& message, std::string& mac); //<! Create signature
+bool gss_verify_signature(const DNSName& context, const std::string& message, const std::string& mac); //<! Validate signature
 
 #endif

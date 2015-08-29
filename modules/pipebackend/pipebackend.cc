@@ -98,7 +98,7 @@ PipeBackend::PipeBackend(const string &suffix)
      d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout")));
      d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
      d_regexstr=getArg("regex");
-     d_abiVersion = ::arg().asNum("pipebackend-abi-version");
+     d_abiVersion = getArgAsNum("abi-version");
    }
    catch(const ArgException &A) {
       L<<Logger::Error<<kBackendId<<" Fatal argument error: "<<A.reason<<endl;
@@ -109,13 +109,13 @@ PipeBackend::PipeBackend(const string &suffix)
    }
 }
 
-void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_p,  int zoneId)
+void PipeBackend::lookup(const QType& qtype,const DNSName& qname, DNSPacket *pkt_p,  int zoneId)
 {
    try {
       d_disavow=false;
-      if(d_regex && !d_regex->match(qname+";"+qtype.getName())) { 
+      if(d_regex && !d_regex->match(qname.toStringNoDot())) {
          if(::arg().mustDo("query-logging"))
-            L<<Logger::Error<<"Query for '"<<qname<<"' type '"<<qtype.getName()<<"' failed regex '"<<d_regexstr<<"'"<<endl;
+            L<<Logger::Error<<"Query for '"<<qname<<"' failed regex '"<<d_regexstr<<"'"<<endl;
          d_disavow=true; // don't pass to backend
       } else {
          ostringstream query;
@@ -129,7 +129,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
          }
          // pipebackend-abi-version = 1
          // type    qname           qclass  qtype   id      remote-ip-address
-         query<<"Q\t"<<qname<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
+         query<<"Q\t"<<qname.toStringNoDot()<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
 
          // add the local-ip-address if pipebackend-abi-version is set to 2
          if (d_abiVersion >= 2)
@@ -150,7 +150,7 @@ void PipeBackend::lookup(const QType &qtype,const string &qname, DNSPacket *pkt_
    d_qname=qname;
 }
 
-bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled)
+bool PipeBackend::list(const DNSName& target, int inZoneId, bool include_disabled)
 {
    try {
       d_disavow=false;
@@ -159,7 +159,7 @@ bool PipeBackend::list(const string &target, int inZoneId, bool include_disabled
 
 // type    qname           qclass  qtype   id      ip-address
       if (d_abiVersion >= 4)
-        query<<"AXFR\t"<<inZoneId<<"\t"<<target;
+        query<<"AXFR\t"<<inZoneId<<"\t"<<target.toStringNoDot();
       else
         query<<"AXFR\t"<<inZoneId;
 
@@ -304,7 +304,8 @@ class PipeFactory : public BackendFactory
       {
          declare(suffix,"command","Command to execute for piping questions to","");
          declare(suffix,"timeout","Number of milliseconds to wait for an answer","2000");
-         declare(suffix,"regex","Regular exception of queries to pass to coprocess","");
+         declare(suffix,"regex","Regular expression of queries to pass to coprocess","");
+         declare(suffix,"abi-version","Version of the pipe backend ABI","1");
       }
 
       DNSBackend *make(const string &suffix="")
