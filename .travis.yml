@@ -24,7 +24,7 @@ before_script:
      faketime
      geoip-database
      ldnsutils
-     boost1.55
+     libboost1.55-all-dev
      libbotan1.10-dev
      libcdb-dev
      libcurl4-openssl-dev
