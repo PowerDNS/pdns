@@ -78,6 +78,7 @@ linux(){
   sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
   wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
   sudo dpkg -i libsodium_1.0.2-1_amd64.deb
+  sudo mv /usr/local/lib/libsodium.* /usr/lib
   cd pdns
   sudo mkdir -p /etc/pkcs11/modules/
   sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm

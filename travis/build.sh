@@ -9,7 +9,7 @@ linux_configure() {
     --with-sqlite3 \
     --enable-unit-tests \
     --enable-remotebackend-zeromq \
-    --enable-experimental-ed25519 \
+    --enable-libsodium \
     --enable-experimental-pkcs11 \
     --enable-tools \
     --disable-silent-rules \

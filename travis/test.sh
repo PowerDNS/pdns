@@ -82,6 +82,12 @@ regressiont_tests_api() {
   return 0
 }
 
+test_algos() {
+  cd pdns
+  ./pdnssec test-algorithms
+  cd ..
+}
+
 clean_git() {
   if ! $(git status | grep -q clean); then
     git status
@@ -91,6 +97,7 @@ clean_git() {
 
 
 regression_tests
+test_algos
 regression_tests_recursor
 regression_tests_nobackend
 clean_git
