@@ -9,7 +9,7 @@
 |Module name|cassandra|
 |Launch name|cassandra|
 
-This is a backend powered by a columnar NoSql database [Apache Cassandra](http://cassandra.apache.org/), ritten for the 3.4 release & above, with easily configurable cassandra cluster parameters.
+This is a backend powered by a columnar NoSql database [Apache Cassandra](http://cassandra.apache.org/), written for the 3.4 release & above, with easily configurable cassandra cluster parameters.
 
 Steps of creating a cluster is given [here](http://wiki.apache.org/cassandra/GettingStarted).
 For the cassandra's client driver binary packages are [available](http://downloads.datastax.com/cpp-driver/) (CentOS, Ubuntu, and Windows) or the driver can be built from [source](http://datastax.github.io/cpp-driver/topics/building/).
