@@ -4,85 +4,91 @@ docs_dir: doc-build
 site_dir: html
 theme_dir: markdown/theme
 pages:
-  - [index.md, 'PowerDNS Server', 'Introduction']
-  - [changelog.md, 'PowerDNS Server', 'Changelogs']
-  - [types.md, 'PowerDNS Server', 'Supported DNS Record Types']
-  - [common/logging.md, 'PowerDNS Server', 'Logging and Performance Monitoring']
-  - [common/security.md, 'PowerDNS Server', 'Security settings & considerations']
-  - [common/support.md, 'PowerDNS Server', 'Getting support']
-  - [httpapi/README.md, 'PowerDNS Server', 'HTTP API - Introduction']
-#  - [httpapi/intro.md, 'PowerDNS Server', 'HTTP API - Discussion']
-  - [httpapi/api_spec.md, 'PowerDNS Server', 'HTTP API - API Specification']
-#  - [httpapi/features.md, 'PowerDNS Server', 'HTTP API - Design and Features']
-  - [end-of-life.md, 'PowerDNS Server', 'End of life statements']
-  - [authoritative/index.md, 'Authoritative', 'Introduction']
-  - [authoritative/installation.md, 'Authoritative', 'Installing and Running']
-  - [authoritative/upgrading.md, 'Authoritative', 'Upgrade Notes']
-  - [authoritative/modes-of-operation.md, 'Authoritative', 'Modes of Operation']
-  - [authoritative/domainmetadata.md, 'Authoritative', 'Domain metadata']
-  - [authoritative/dnsupdate.md, 'Authoritative', 'Dynamic DNS Update']
-  - [authoritative/gss-tsig.md, 'Authoritative', 'GSS-TSIG']
-  - [authoritative/internals.md, 'Authoritative', 'Internals']
-  - [authoritative/virtual.md, 'Authoritative', 'Virtual Hosting']
-  - [authoritative/performance.md, 'Authoritative', 'Performance Tuning and Monitoring']
-  - [authoritative/migration.md, 'Authoritative', 'Migrating to PowerDNS']
-  - [authoritative/recursion.md, 'Authoritative', 'Recursion with the Authoritative Server']
-  - [authoritative/dnssec.md, 'Authoritative', 'Serve DNSSEC Signed Data']
-  - [authoritative/settings.md, 'Authoritative', 'List of Settings']
-  - [manpages/zone2ldap.1.md, 'Authoritative', 'Manpage: zone2ldap.1']
-  - [manpages/zone2sql.1.md, 'Authoritative', 'Manpage: zone2sql.1']
-  - [manpages/pdns_control.1.md, 'Authoritative', 'Manpage: pdns_control.1']
-  - [manpages/pdnssec.1.md, 'Authoritative', 'Manpage: pdnssec.1']
-  - [manpages/pdns_server.1.md, 'Authoritative', 'Manpage: pdns_server.1']
-  - [authoritative/backend-bind.md, 'Authoritative Backends', 'BIND']
-  - [authoritative/backend-generic-mypgsql.md, 'Authoritative Backends', 'Generic MySQL and PostgreSQL']
-  - [authoritative/backend-geoip.md, 'Authoritative Backends', 'GeoIP']
-  - [authoritative/backend-gsqlite.md, 'Authoritative Backends', 'Generic SQLite']
-  - [authoritative/backend-mydns.md, 'Authoritative Backends', 'MyDNS']
-  - [authoritative/backend-ldap.md, 'Authoritative Backends', 'LDAP']
-  - [authoritative/backend-lua.md, 'Authoritative Backends', 'Lua']
-  - [authoritative/backend-lmdb.md, 'Authoritative Backends', 'LMDB']
-  - [authoritative/backend-opendbx.md, 'Authoritative Backends', 'OpenDBX']
-  - [authoritative/backend-oracle.md, 'Authoritative Backends', 'Oracle']
-  - [authoritative/backend-pipe.md, 'Authoritative Backends', 'Pipe']
-  - [authoritative/backend-random.md, 'Authoritative Backends', 'Random']
-  - [authoritative/backend-remote.md, 'Authoritative Backends', 'Remote']
-  - [authoritative/backend-tinydns.md, 'Authoritative Backends', 'TinyDNS']
-  - [authoritative/backend-deprecated.md, 'Authoritative Backends', 'Deprecated Backends']
-  - [recursor/index.md, 'Recursor', 'Introduction']
-  - [recursor/security.md, 'Recursor', 'Security of the Recursor']
-  - [recursor/stats.md, 'Recursor', 'Recursor Statistics']
-  - [recursor/running.md, 'Recursor', 'Controlling & Querying']
-  - [manpages/pdns_recursor.1.md, 'Recursor', 'Manpage: pdns_recursor.1']
-  - [manpages/rec_control.1.md, 'Recursor', 'Manpage: rec_control.1']
-  - [recursor/performance.md, 'Recursor', 'Performance Tuning']
-  - [recursor/scripting.md, 'Recursor', 'Scripting']
-  - [recursor/dns64.md, 'Recursor', 'DNS64 support']
-  - [recursor/internals.md, 'Recursor', 'Internals']
-  - [recursor/settings.md, 'Recursor', 'List of Settings']
-  - [security/index.md, 'Security', 'Security Policy']
-  - [security/powerdns-advisory-2015-01.md, 'Security', 'Advisory 2015-01']
-  - [security/powerdns-advisory-2014-02.md, 'Security', 'Advisory 2014-02']
-  - [security/powerdns-advisory-2014-01.md, 'Security', 'Advisory 2014-01']
-  - [security/powerdns-advisory-2012-01.md, 'Security', 'Advisory 2012-01']
-  - [security/powerdns-advisory-2010-02.md, 'Security', 'Advisory 2010-02']
-  - [security/powerdns-advisory-2010-01.md, 'Security', 'Advisory 2010-01']
-  - [security/powerdns-advisory-2008-03.md, 'Security', 'Advisory 2008-03']
-  - [security/powerdns-advisory-2008-02.md, 'Security', 'Advisory 2008-02']
-  - [security/powerdns-advisory-2008-01.md, 'Security', 'Advisory 2008-01']
-  - [security/powerdns-advisory-2006-02.md, 'Security', 'Advisory 2006-02']
-  - [security/powerdns-advisory-2006-01.md, 'Security', 'Advisory 2006-01']
-  - [appendix/backend-writers-guide.md, 'Tools and Appendices', "Backend Writer's Guide"]
-  - [appendix/crypto-notes-export.md, 'Tools and Appendices', "Cryptographic software and export control"]
-  - [appendix/documentation.md, 'Tools and Appendices', "Documentation details"]
-  - [appendix/compiling-powerdns.md, 'Tools and Appendices', 'Compiling PowerDNS']
-  - [tools/analysis.md, 'Tools and Appendices', 'DNS Analysis Tools']
-  - [manpages/dnsbulktest.1.md, 'Tools and Appendices', 'Manpage: dnsbulktest.1']
-  - [manpages/dnsgram.1.md, 'Tools and Appendices', 'Manpage: dnsgram.1']
-  - [manpages/dnsreplay.1.md, 'Tools and Appendices', 'Manpage: dnsreplay.1']
-  - [manpages/dnsscan.1.md, 'Tools and Appendices', 'Manpage: dnsscan.1']
-  - [manpages/dnsscope.1.md, 'Tools and Appendices', 'Manpage: dnsscope.1']
-  - [manpages/dnstcpbench.1.md, 'Tools and Appendices', 'Manpage: dnstcpbench.1']
-  - [manpages/dnswasher.1.md, 'Tools and Appendices', 'Manpage: dnswasher.1']
-  - [manpages/nsec3dig.1.md, 'Tools and Appendices', 'Manpage: nsec3dig.1']
-  - [manpages/saxfr.1.md, 'Tools and Appendices', 'Manpage: saxfr.1']
+  - PowerDNS Server:
+    - Introduction: index.md
+    - Changelogs: changelog.md
+    - Supported DNS Record Types: types.md
+    - Logging and Performance Monitoring: common/logging.md
+    - Security settings & considerations: common/security.md
+    - Getting support: common/support.md
+    - HTTP API - Introduction: httpapi/README.md
+#    - HTTP API - Discussion: httpapi/intro.md
+    - HTTP API - API Specification: httpapi/api_spec.md
+#    - HTTP API - Design and Features: httpapi/features.md
+    - End of life statements: end-of-life.md
+  - Authoritative:
+    - Introduction: authoritative/index.md
+    - Installing and Running: authoritative/installation.md
+    - Upgrade Notes: authoritative/upgrading.md
+    - Modes of Operation: authoritative/modes-of-operation.md
+    - Domain metadata: authoritative/domainmetadata.md
+    - Dynamic DNS Update: authoritative/dnsupdate.md
+    - GSS-TSIG: authoritative/gss-tsig.md
+    - Internals: authoritative/internals.md
+    - Virtual Hosting: authoritative/virtual.md
+    - Performance Tuning and Monitoring: authoritative/performance.md
+    - Migrating to PowerDNS: authoritative/migration.md
+    - Recursion with the Authoritative Server: authoritative/recursion.md
+    - Serve DNSSEC Signed Data: authoritative/dnssec.md
+    - List of Settings: authoritative/settings.md
+    - 'Manpage: zone2ldap.1': manpages/zone2ldap.1.md
+    - 'Manpage: zone2sql.1': manpages/zone2sql.1.md
+    - 'Manpage: pdns_control.1': manpages/pdns_control.1.md
+    - 'Manpage: pdnssec.1': manpages/pdnssec.1.md
+    - 'Manpage: pdns_server.1': manpages/pdns_server.1.md
+  - Authoritative Backends:
+    - BIND: authoritative/backend-bind.md
+    - Generic MySQL and PostgreSQL: authoritative/backend-generic-mypgsql.md
+    - GeoIP: authoritative/backend-geoip.md
+    - Generic SQLite: authoritative/backend-gsqlite.md
+    - MyDNS: authoritative/backend-mydns.md
+    - LDAP: authoritative/backend-ldap.md
+    - Lua: authoritative/backend-lua.md
+    - LMDB: authoritative/backend-lmdb.md
+    - OpenDBX: authoritative/backend-opendbx.md
+    - Oracle: authoritative/backend-oracle.md
+    - Pipe: authoritative/backend-pipe.md
+    - Random: authoritative/backend-random.md
+    - Remote: authoritative/backend-remote.md
+    - TinyDNS: authoritative/backend-tinydns.md
+    - Deprecated Backends: authoritative/backend-deprecated.md
+  - Recursor:
+    - Introduction: recursor/index.md
+    - Security of the Recursor: recursor/security.md
+    - Recursor Statistics: recursor/stats.md
+    - Controlling & Querying: recursor/running.md
+    - 'Manpage: pdns_recursor.1': manpages/pdns_recursor.1.md
+    - 'Manpage: rec_control.1': manpages/rec_control.1.md
+    - Performance Tuning: recursor/performance.md
+    - Scripting: recursor/scripting.md
+    - DNS64 support: recursor/dns64.md
+    - Internals: recursor/internals.md
+    - List of Settings: recursor/settings.md
+  - Security:
+    - Security Policy: security/index.md
+    - Advisory 2015-01: security/powerdns-advisory-2015-01.md
+    - Advisory 2014-02: security/powerdns-advisory-2014-02.md
+    - Advisory 2014-01: security/powerdns-advisory-2014-01.md
+    - Advisory 2012-01: security/powerdns-advisory-2012-01.md
+    - Advisory 2010-02: security/powerdns-advisory-2010-02.md
+    - Advisory 2010-01: security/powerdns-advisory-2010-01.md
+    - Advisory 2008-03: security/powerdns-advisory-2008-03.md
+    - Advisory 2008-02: security/powerdns-advisory-2008-02.md
+    - Advisory 2008-01: security/powerdns-advisory-2008-01.md
+    - Advisory 2006-02: security/powerdns-advisory-2006-02.md
+    - Advisory 2006-01: security/powerdns-advisory-2006-01.md
+  - Tools and Appendices:
+    - Backend Writer's Guide: appendix/backend-writers-guide.md
+    - Cryptographic software and export control: appendix/crypto-notes-export.md
+    - Documentation details: appendix/documentation.md
+    - Compiling PowerDNS: appendix/compiling-powerdns.md
+    - DNS Analysis Tools: tools/analysis.md
+    - 'Manpage: dnsbulktest.1': manpages/dnsbulktest.1.md
+    - 'Manpage: dnsgram.1': manpages/dnsgram.1.md
+    - 'Manpage: dnsreplay.1': manpages/dnsreplay.1.md
+    - 'Manpage: dnsscan.1': manpages/dnsscan.1.md
+    - 'Manpage: dnsscope.1': manpages/dnsscope.1.md
+    - 'Manpage: dnstcpbench.1': manpages/dnstcpbench.1.md
+    - 'Manpage: dnswasher.1': manpages/dnswasher.1.md
+    - 'Manpage: nsec3dig.1': manpages/nsec3dig.1.md
+    - 'Manpage: saxfr.1': manpages/saxfr.1.md
