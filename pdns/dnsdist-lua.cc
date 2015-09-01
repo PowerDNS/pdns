@@ -34,11 +34,15 @@ private:
   func_t d_func;
 };
 
-std::shared_ptr<DNSRule> makeRule(const boost::variant<string,vector<pair<int, string>> >& var)
+typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
+std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
+  if(auto src = boost::get<std::shared_ptr<DNSRule>>(&var))
+    return *src;
+  
   SuffixMatchNode smn;
   NetmaskGroup nmg;
-  
+
   auto add=[&](string src) {
     try {
       nmg.addMask(src); // need to try mask first, all masks are domain names!
@@ -332,7 +336,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
     });
 
-  g_lua.writeFunction("addLuaAction", [](boost::variant<string,vector<pair<int, string>> > var, LuaAction::func_t func) 
+  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func) 
 		      {
 			auto rule=makeRule(var);
 			g_rulactions.modify([rule,func](decltype(g_rulactions)::value_type& rulactions){
@@ -342,7 +346,25 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		      });
 
 
-  g_lua.writeFunction("addPoolRule", [](boost::variant<string,vector<pair<int, string>> > var, string pool) {
+  g_lua.writeFunction("NoRecurseAction", []() {
+      return std::shared_ptr<DNSAction>(new NoRecurseAction);
+    });
+
+  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps) {
+      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps));
+    });
+
+
+  g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
+		      {
+			auto rule=makeRule(var);
+			g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){
+			    rulactions.push_back({rule, ea});
+			  });
+		      });
+
+
+  g_lua.writeFunction("addPoolRule", [](luadnsrule_t var, string pool) {
       auto rule=makeRule(var);
 	g_rulactions.modify([rule, pool](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -351,7 +373,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	  });
     });
 
-  g_lua.writeFunction("addNoRecurseRule", [](boost::variant<string,vector<pair<int, string>> > var) {
+  g_lua.writeFunction("addNoRecurseRule", [](luadnsrule_t var) {
       auto rule=makeRule(var);
 	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -361,7 +383,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
 
-  g_lua.writeFunction("addQPSPoolRule", [](boost::variant<string,vector<pair<int, string>> > var, int limit, string pool) {
+  g_lua.writeFunction("addQPSPoolRule", [](luadnsrule_t var, int limit, string pool) {
       auto rule = makeRule(var);
       g_rulactions.modify([rule, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({
@@ -377,7 +399,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	});
     });
 
-  g_lua.writeFunction("addQPSLimit", [](boost::variant<string,vector<pair<int, string>> > var, int lim) {
+  g_lua.writeFunction("addQPSLimit", [](luadnsrule_t var, int lim) {
       auto rule = makeRule(var);
       g_rulactions.modify([lim,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
@@ -385,7 +407,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	});
     });
    
-  g_lua.writeFunction("addDelay", [](boost::variant<string,vector<pair<int, string>> > var, int msec) {
+  g_lua.writeFunction("addDelay", [](luadnsrule_t var, int msec) {
       auto rule = makeRule(var);
       g_rulactions.modify([msec,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
