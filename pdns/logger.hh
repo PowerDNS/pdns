@@ -39,7 +39,7 @@ public:
   Logger(const string &, int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
-  enum Urgency : int16_t {All=32767,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
+  enum Urgency {All=32767,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
         	Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
   /** Log a message.
