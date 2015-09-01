@@ -63,7 +63,7 @@ bool g_console;
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
-vector<ComboAddress> g_locals;
+vector<std::pair<ComboAddress, bool>> g_locals;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -1031,29 +1031,29 @@ try
   if(g_cmdLine.locals.size()) {
     g_locals.clear();
     for(auto loc : g_cmdLine.locals)
-      g_locals.push_back(ComboAddress(loc, 53));
+      g_locals.push_back({ComboAddress(loc, 53), true});
   }
   
   if(g_locals.empty())
-    g_locals.push_back(ComboAddress("0.0.0.0", 53));
+    g_locals.push_back({ComboAddress("0.0.0.0", 53), true});
   
 
   vector<ClientState*> toLaunch;
   for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= local;
+    cs->local= local.first;
     cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
     //if(g_vm.count("bind-non-local"))
-    bindAny(local.sin4.sin_family, cs->udpFD);
+    bindAny(local.first.sin4.sin_family, cs->udpFD);
 
     //    if (!setSocketTimestamps(cs->udpFD))
     //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 
-    if(IsAnyAddress(local)) {
+    if(IsAnyAddress(local.first)) {
       int one=1;
       setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
@@ -1106,7 +1106,11 @@ try
 
   for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= local;
+    if(!local.second) { // no TCP/IP
+      warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
+      continue;
+    }
+    cs->local= local.first;
 
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
 
