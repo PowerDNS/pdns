@@ -2,7 +2,7 @@
 
 * CVE: CVE-2015-5230
 * Date: 2nd of September 2015
-* Credit: Pyry Hakulinen and Ashish Shakla at Automattic
+* Credit: Pyry Hakulinen and Ashish Shukla at Automattic
 * Affects: PowerDNS Authoritative Server 3.4.0 through 3.4.5
 * Not affected: PowerDNS Authoritative Server 3.4.6
 * Severity: High
@@ -26,5 +26,5 @@ contains a fix to this issue. A minimal patch is [available here](https://downlo
 
 This issue is entirely unrelated to [Security Advisory 2015-01](powerdns-advisory-2015-01.md)/CVE-2015-1868.
 
-We'd like to thank Pyry Hakulinen and Ashish Shakla at Automattic for finding and
+We'd like to thank Pyry Hakulinen and Ashish Shukla at Automattic for finding and
 subsequently reporting this bug.
