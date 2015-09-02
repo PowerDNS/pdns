@@ -350,6 +350,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
     });
 
+  g_lua.writeFunction("DropAction", []() {
+      return std::shared_ptr<DNSAction>(new DropAction);
+    });
+
+
   g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps));
     });
