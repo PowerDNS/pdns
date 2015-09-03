@@ -82,6 +82,7 @@ cassandradbmanager::cassandradbmanager()
 	  cass_cluster_set_max_concurrent_requests_threshold(cluster,concurrent_requests_threshold);
 	  cass_cluster_set_connect_timeout(cluster,connect_timeout);
 	  cass_cluster_set_request_timeout(cluster,request_timeout);
+	  cass_log_set_level(CASS_LOG_DEBUG);
 	  CassRetryPolicy* downgrading_policy = cass_retry_policy_downgrading_consistency_new();
 	  cass_cluster_set_retry_policy(cluster, downgrading_policy);
 	  if(enable_load_balance_round_robin == 1) {
