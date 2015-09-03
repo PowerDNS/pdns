@@ -29,8 +29,7 @@ linux(){
     dnsutils \
     faketime \
     geoip-database \
-    ldnsutils \
-    boost1.55 \
+    libboost-all-dev \
     libbotan1.10-dev \
     libcdb-dev \
     libcdb-dev \
@@ -67,7 +66,9 @@ linux(){
     libgeoip-dev \
     libyaml-cpp-dev \
     libzmq3-dev \
+    ldnsutils \
     pandoc
+  sudo apt-get install --quiet --quiet liblmdb0 liblmdb-dev lmdb-utils libyaml-cpp-dev libzmq3-dev pandoc ldnsutils
   sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
   sudo touch /etc/authbind/byport/53
   sudo chmod 755 /etc/authbind/byport/53
