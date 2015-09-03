@@ -1,5 +1,4 @@
-#!/bin/sh
-
+#!/bin/bash
 
 common(){
   git describe --always --dirty=+

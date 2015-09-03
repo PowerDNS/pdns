@@ -1,4 +1,4 @@
-#1/bin/sh
+#1/bin/bash
 
 linux_configure() {
   #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'

@@ -1,4 +1,4 @@
-#1/bin/sh
+#1/bin/bash
 regression_tests() {
   cd regression-tests
   touch tests/verify-dnssec-zone/allow-missing
