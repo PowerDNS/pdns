@@ -70,9 +70,12 @@ before_script:
  - sudo apt-get update -qq
  - yes Y | sudo apt-get -y install dsc21=2.1.8-1 cassandra=2.1.8 cassandra-tools=2.1.8
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
+ - cat cassandra.yaml | sed -e "s/localhost/127.0.0.1/g" >  cassandra.yaml
  - sudo mv cassandra.yaml /usr/local/cassandra/conf/cassandra.yaml
  - cat /etc/cassandra/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
+ - cat cassandra.yaml | sed -e "s/localhost/127.0.0.1/g" >  cassandra.yaml
  - sudo mv cassandra.yaml /etc/cassandra/cassandra.yaml
+ - cat /etc/cassandra/cassandra.yaml
  #The restart script of cassandra is broken. 
  - sudo service cassandra stop
  - sleep 20
