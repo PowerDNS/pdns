@@ -1,6 +1,35 @@
 #include "dnsdist.hh"
 #include "dnsname.hh"
 
+class MaxQPSIPRule : public DNSRule
+{
+public:
+  MaxQPSIPRule(unsigned int qps) : d_qps(qps) {}
+
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  {
+    ComboAddress zeroport(remote);
+    zeroport.sin4.sin_port=0;
+    auto iter = d_limits.find(zeroport);
+    if(iter == d_limits.end()) {
+      iter=d_limits.insert({zeroport,QPSLimiter(d_qps, d_qps)}).first;
+    }
+    return !iter->second.check();
+  }
+
+  string toString() const override
+  {
+    return "per IP match for QPS over " + std::to_string(d_qps);
+  }
+
+
+private:
+  mutable std::map<ComboAddress, QPSLimiter> d_limits;
+  unsigned int d_qps;
+
+};
+
+
 class NetmaskGroupRule : public DNSRule
 {
 public:
@@ -89,6 +118,7 @@ public:
     return "drop";
   }
 };
+
 
 class QPSAction : public DNSAction
 {
@@ -215,6 +245,6 @@ public:
   }
   string toString() const override
   {
-    return "rd=0 query";
+    return "set rd=0";
   }
 };

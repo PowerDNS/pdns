@@ -16,10 +16,10 @@ with the required packages to build the documentation.
 [Virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/) can be
 used to easily create and use a virtualenv.
 
-Once you're in a virtualenv, `pip install mkdocs==0.11.1 pandocfilters==1.2.3`.
+Once you're in a virtualenv, `pip install mkdocs==0.14 pandocfilters==1.2.3 click==5.1 LinkChecker==9.3`.
 
 To test-build the documentation, `make html/index.html` in the docs
 directory will build the documentation into `html/`.
 
-To test your changes live, use `mkdocs serve --dev-addr=0.0.0.0:8000`, and the
-new version of your documentation will appear on port 8000 of your machine.
+To test your changes live, use `cd docs/html && mkdocs serve && python -m SimpleHTTPServer`,
+and the new version of your documentation will appear on port 8000 of your machine.

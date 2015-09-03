@@ -3,6 +3,9 @@
 # PowerDNS Authoritative Server 3.4.6
 Released 28th of August 2015
 
+This is a security release fixing [Security Advisory
+2015-02](security/powerdns-advisory-2015-02.md)
+
 Bug fixes:
 
 - commits [c849701](https://github.com/PowerDNS/pdns/commit/c849701) and

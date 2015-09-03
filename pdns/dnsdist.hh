@@ -315,7 +315,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
 
-extern std::vector<ComboAddress> g_locals; // not changed at runtime
+extern std::vector<std::pair<ComboAddress, bool>> g_locals; // not changed at runtime (we hope XXX)
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
 struct dnsheader;
