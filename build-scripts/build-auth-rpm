@@ -170,7 +170,7 @@ make install DESTDIR=%{buildroot}
 
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__install} -p -D -m 0755 pdns/pdns %{buildroot}%{_initrddir}/pdns
-%{buildroot}/usr/bin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
+%{buildroot}/usr/sbin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
@@ -419,7 +419,7 @@ make install DESTDIR=%{buildroot}
 
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__rm} -rf %{buildroot}%{_docdir}
-%{buildroot}/usr/bin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
+%{buildroot}/usr/sbin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
