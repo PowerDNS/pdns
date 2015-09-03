@@ -419,7 +419,14 @@ make install DESTDIR=%{buildroot}
 
 %{__rm} -f %{buildroot}%{_libdir}/%{name}/*.la
 %{__rm} -rf %{buildroot}%{_docdir}
-%{buildroot}/usr/sbin/pdns_server --no-config --config > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
+%{buildroot}/usr/sbin/pdns_server --no-config --config | sed \
+  -e 's!# config-dir=.*!config-dir=%{_sysconfdir}%{name}!' \
+  -e 's!# daemon=.*!daemon=yes!' \
+  -e 's!# guardian=.*!guardian=yes!' \
+  -e 's!# launch=.*!&\\nlaunch=!' \
+  -e 's!# setgid=.*!setgid=pdns!' \
+  -e 's!# setuid=.*!setuid=pdns!' \
+  > %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
 %{__rm} %{buildroot}%{_sysconfdir}/%{name}/pdns.conf-dist
 
 chmod 600 %{buildroot}%{_sysconfdir}/%{name}/pdns.conf
