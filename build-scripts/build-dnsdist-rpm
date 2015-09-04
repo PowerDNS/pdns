@@ -119,4 +119,4 @@ EOF
 
 ${RPMBUILD_COMMAND}
 
-mv $HOME/rpmbuild/RPMS/x86_64/dnsdist-${VERSION}-${RELEASE}.x86_64.rpm .
+mv $HOME/rpmbuild/RPMS/x86_64/dnsdist*-${VERSION}-${RELEASE}.x86_64.rpm .

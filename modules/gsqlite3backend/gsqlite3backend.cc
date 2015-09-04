@@ -82,7 +82,7 @@ public:
 
     declare(suffix, "info-zone-query", "","select id,name,master,last_check,notified_serial,type,account from domains where name=:domain");
 
-    declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check,type from domains where type='SLAVE'");
+    declare(suffix, "info-all-slaves-query", "","select id,name,master,last_check from domains where type='SLAVE'");
     declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
     declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
 
@@ -94,7 +94,7 @@ public:
     declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,:domain_id,0,:qname,:auth)");
     declare(suffix, "insert-ent-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,:domain_id,0,:qname,:ordername,:auth)");
 
-    declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername, name from records where disabled=0 and domain_id=:domain_id and ordername is not null order by 1 asc limit 1");
+    declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select ordername from records where disabled=0 and domain_id=:domain_id and ordername is not null order by 1 asc limit 1");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select ordername, name from records where disabled=0 and ordername <= :ordername and domain_id=:domain_id and ordername is not null order by 1 desc limit 1");
     declare(suffix, "get-order-after-query", "DNSSEC Ordering Query, after", "select min(ordername) from records where disabled=0 and ordername > :ordername and domain_id=:domain_id and ordername is not null");
     declare(suffix, "get-order-last-query", "DNSSEC Ordering Query, last", "select ordername, name from records where disabled=0 and ordername != '' and domain_id=:domain_id and ordername is not null order by 1 desc limit 1");
