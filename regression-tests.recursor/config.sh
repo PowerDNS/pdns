@@ -85,6 +85,8 @@ answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.example.n
 pfsbox.answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.example.net.
 box.answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.example.net.
 ns.answer-cname-in-local.example.net. 3600 IN A  $PREFIX.22
+not-auth-zone.example.net. 3600 IN NS ns.not-auth-zone.example.net.
+ns.not-auth-zone.example.net. 3600 IN A $PREFIX.23
 EOF
 
 mkdir $PREFIX.11
@@ -360,6 +362,17 @@ vip-reunion.pfsbox.answer-cname-in-local.example.net. 20 IN  A 10.1.1.1
 
 EOF
 
+# Used for the auth-zones test, to test a CNAME inside an auth-zone to a name
+# outside of and auth-zone
+mkdir $PREFIX.23
+cat > $PREFIX.23/not-auth-zone.example.net.zone <<EOF
+not-auth-zone.example.net. 3600 IN SOA $SOA
+not-auth-zone.example.net. 20 IN NS ns.not-auth-zone.example.net.
+
+ns.not-auth-zone.example.net. 20 IN  A $PREFIX.23
+host1.not-auth-zone.example.net. 20 IN  A 127.0.0.57
+EOF
+
 # And for the recursor
 cat > recursor-service/global.box.answer-cname-in-local.example.net.zone <<EOF
 global.box.answer-cname-in-local.example.net. 3600 IN SOA $SOA
@@ -367,6 +380,26 @@ global.box.answer-cname-in-local.example.net. 20 IN NS ns.answer-cname-in-local.
 
 pfs.global.box.answer-cname-in-local.example.net. 20 IN  CNAME vip-reunion.pfsbox.answer-cname-in-local.example.net.
 
+EOF
+
+# For the auth-zones test
+cat > recursor-service/auth-zone.example.net.zone <<EOF
+auth-zone.example.net. 3600 IN SOA $SOA
+auth-zone.example.net. 20 IN NS localhost.example.net.
+
+host1.auth-zone.example.net. 20 IN A 127.0.0.55
+host1.auth-zone.example.net. 20 IN AAAA 2001:DB8::1:45BA
+
+host2.auth-zone.example.net. 20 IN CNAME host1.another-auth-zone.example.net.
+
+host3.auth-zone.example.net. 20 IN CNAME host1.not-auth-zone.example.net.
+EOF
+
+cat > recursor-service/another-auth-zone.example.net.zone <<EOF
+another-auth-zone.example.net. 3600 IN SOA $SOA
+another-auth-zone.example.net. 20 IN NS localhost.example.net.
+
+host1.another-auth-zone.example.net. 20 IN A 127.0.0.56
 EOF
 
 for dir in $PREFIX.*
@@ -415,6 +448,6 @@ done
 
 cat > recursor-service/recursor.conf <<EOF
 socket-dir=$(pwd)/recursor-serviceS
-auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone
+auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
 
 EOF
