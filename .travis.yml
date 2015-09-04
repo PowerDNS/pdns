@@ -65,6 +65,7 @@ before_script:
  - sudo apt-get install oracle-java8-installer
  - sudo apt-get install oracle-java8-set-default
  - cd ..
+ - cat /etc/hosts
  - echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
  - curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
  - sudo apt-get update -qq
