@@ -230,6 +230,7 @@ protected:
   void extractComment(const SSqlStatement::row_t& row, Comment& c);
 
 private:
+  string d_query_name;
   DNSName d_qname;
   SSql *d_db;
   SSqlStatement::result_t d_result;
