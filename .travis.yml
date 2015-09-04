@@ -66,14 +66,13 @@ before_script:
  - cd ..
  - cat /etc/hosts
  - sudo find / -name cassandra.yaml
+ - sudo service cassandra stop
  - wget http://archive.apache.org/dist/cassandra/2.1.9/apache-cassandra-2.1.9-bin.tar.gz
+ - sudo rm -rf /usr/local/cassandra/*
+ - sudo tar -xzf apache-cassandra-2.1.9-bin.tar.gz -C /usr/local/cassandra/ --strip-components=1
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - cat cassandra.yaml | sed -e "s/localhost/127.0.0.1/g" >  cassandra.yaml.new
  - sudo mv cassandra.yaml.new /usr/local/cassandra/conf/cassandra.yaml
- - cat /etc/cassandra/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
- - cat cassandra.yaml | sed -e "s/localhost/127.0.0.1/g" >  cassandra.yaml.new
- - sudo mv cassandra.yaml.new /etc/cassandra/cassandra.yaml
- - cat /etc/cassandra/cassandra.yaml
  #The restart script of cassandra is broken. 
  - sudo service cassandra stop
  - sleep 20
