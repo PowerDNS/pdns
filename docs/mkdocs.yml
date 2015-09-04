@@ -134,6 +134,7 @@ pages:
     - Random: authoritative/backend-random.md
     - Remote: authoritative/backend-remote.md
     - TinyDNS: authoritative/backend-tinydns.md
+    - Cassandra: authoritative/backend-cassandra.md
     - Deprecated Backends: authoritative/backend-deprecated.md
   - Recursor:
     - Introduction: recursor/index.md
