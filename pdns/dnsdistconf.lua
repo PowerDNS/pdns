@@ -36,6 +36,8 @@ function luarule(remote, qname, qtype, dh, len)
 end
 addLuaAction("192.168.1.0/24", luarule)
 
+addAction(MaxQPSIPRule(5, 24, 64), DropAction())
+
 topRule()
 
 addDomainBlock("powerdns.org.")

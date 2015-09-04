@@ -355,8 +355,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
 
-  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps) {
-      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps));
+  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
+      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
     });
 
 
