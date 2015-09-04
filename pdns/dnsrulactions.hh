@@ -32,6 +32,34 @@ private:
 
 };
 
+class MaxQPSRule : public DNSRule
+{
+public:
+  MaxQPSRule(unsigned int qps)
+   : d_qps(qps, qps)
+  {}
+
+  MaxQPSRule(unsigned int qps, unsigned int burst)
+   : d_qps(qps, burst)
+  {}
+
+
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  {
+    return d_qps.check();
+  }
+
+  string toString() const override
+  {
+    return "Max " + std::to_string(d_qps.getRate()) + " qps";
+  }
+
+
+private:
+  mutable QPSLimiter d_qps;
+};
+
+
 
 class NetmaskGroupRule : public DNSRule
 {
