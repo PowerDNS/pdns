@@ -75,6 +75,10 @@ before_script:
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - cat cassandra.yaml | sed -e "s/localhost/127.0.0.1/g" >  cassandra.yaml.new
  - sudo mv cassandra.yaml.new /usr/local/cassandra/conf/cassandra.yaml
+ - cat /etc/init.d/cassandra | sed -e "s/apache-cassandra-2.0.9.jar/apache-cassandra-2.1.9.jar/g" >  cassandra
+ - sudo mv cassandra /etc/init.d/cassandra
+ - sudo chmod 755 /etc/init.d/cassandra
+ - cat /etc/init.d/cassandra
  #The restart script of cassandra is broken. 
  - sudo service cassandra stop
  - sleep 20
