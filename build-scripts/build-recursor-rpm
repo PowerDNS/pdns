@@ -285,5 +285,4 @@ fi
 
 ${RPMBUILD_COMMAND}
 
-mv $HOME/rpmbuild/RPMS/x86_64/pdns-recursor-${VERSION}-${RELEASE}.x86_64.rpm .
-[ -f $HOME/rpmbuild/RPMS/x86_64/pdns-recursor-debuginfo-${VERSION}-${RELEASE}.x86_64.rpm ] && mv $HOME/rpmbuild/RPMS/x86_64/pdns-recursor-debuginfo-${VERSION}-${RELEASE}.x86_64.rpm . || true
+mv $HOME/rpmbuild/RPMS/x86_64/pdns-recursor*-${VERSION}-${RELEASE}.x86_64.rpm .
