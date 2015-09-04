@@ -166,18 +166,17 @@ void ComboAddress::truncate(unsigned int bits)
   uint8_t* start;
   int len=4;
   if(sin4.sin_family==AF_INET) {
-    if(bits > 32)
+    if(bits >= 32)
       return;
     start = (uint8_t*)&sin4.sin_addr.s_addr;
     len=4;
   }
   else {
-    if(bits > 128)
+    if(bits >= 128)
       return;
     start = (uint8_t*)&sin6.sin6_addr.s6_addr;
     len=16;
   }
-
 
   auto tozero= len*8 - bits; // if set to 22, this will clear 1 byte, as it should
 
@@ -188,8 +187,5 @@ void ComboAddress::truncate(unsigned int bits)
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
   uint8_t* place = start + len - 1 - tozero/8; 
-
-
-
   *place &= (~((1<<bitsleft)-1));
 }
