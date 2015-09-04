@@ -66,9 +66,11 @@ before_script:
  - cd ..
  - cat /etc/hosts
  - sudo find / -name cassandra.yaml
+ - cat /etc/init.d/cassandra
  - sudo service cassandra stop
  - wget http://archive.apache.org/dist/cassandra/2.1.9/apache-cassandra-2.1.9-bin.tar.gz
  - sudo rm -rf /usr/local/cassandra/*
+ - sudo rm -rf /var/lib/cassandra/*
  - sudo tar -xzf apache-cassandra-2.1.9-bin.tar.gz -C /usr/local/cassandra/ --strip-components=1
  - cat /usr/local/cassandra/conf/cassandra.yaml | sed -e "s/AllowAllAuthenticator/PasswordAuthenticator/" >  cassandra.yaml
  - cat cassandra.yaml | sed -e "s/localhost/127.0.0.1/g" >  cassandra.yaml.new
@@ -95,11 +97,11 @@ before_script:
  - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
  - cd pdns
  - cd modules/cassandrabackend
- - echo `echo "source 'script.cql';" | /usr/bin/cqlsh -u cassandra -p cassandra  > script_install.log 2>&1`
+ - echo `echo "source 'script.cql';" | /usr/local/cassandra/bin/cqlsh -u cassandra -p cassandra  > script_install.log 2>&1`
  - cat script_install.log
  - sudo rm -rf script_install.log
  - cd test
- - echo `echo "source 'testdata.cql';" | /usr/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
+ - echo `echo "source 'testdata.cql';" | /usr/local/cassandra/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
  - cat testdata_install.log
  - sudo rm -rf testdata_install.log
  - sudo service cassandra status
