@@ -2,6 +2,7 @@ language: cpp
 compiler:
   - gcc
   - clang
+sudo: false
 before_script:
  - git describe --always --dirty=+
  - dpkg -l
@@ -66,7 +67,6 @@ before_script:
  - cd ..
  - cat /etc/hosts
  - sudo find / -name cassandra.yaml
- - cat /etc/init.d/cassandra
  - sudo service cassandra stop
  - wget http://archive.apache.org/dist/cassandra/2.1.9/apache-cassandra-2.1.9-bin.tar.gz
  - sudo rm -rf /usr/local/cassandra/*
@@ -78,12 +78,13 @@ before_script:
  - cat /etc/init.d/cassandra | sed -e "s/apache-cassandra-2.0.9.jar/apache-cassandra-2.1.9.jar/g" >  cassandra
  - sudo mv cassandra /etc/init.d/cassandra
  - sudo chmod 755 /etc/init.d/cassandra
- - cat /etc/init.d/cassandra
  #The restart script of cassandra is broken. 
  - sudo service cassandra stop
  - sleep 20
  - sudo service cassandra start
  - sleep 20
+ - sudo find / -name cassandra-env.sh
+ - sudo find / -name cassandra-limits.conf
  - tail -100 /var/log/cassandra/system.log
  - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv_1.4.2-1_amd64.deb
  - sudo dpkg -i libuv_1.4.2-1_amd64.deb
@@ -238,7 +239,9 @@ script:
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
  - travis_retry ./timestamp timeout 180s ./start-test-stop 5300 cassandra
+ - dmesg | egrep -i 'killed process'
  - tail -100 /var/log/cassandra/system.log
+ - cat /var/log/kern.log
  - sudo lsof -nP -i | grep LISTEN
  - cat /var/log/messages
  - rm -f tests/verify-dnssec-zone/allow-missing
