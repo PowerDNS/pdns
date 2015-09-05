@@ -2,7 +2,6 @@ language: cpp
 compiler:
   - gcc
   - clang
-sudo: false
 before_script:
  - git describe --always --dirty=+
  - dpkg -l
