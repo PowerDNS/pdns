@@ -243,7 +243,6 @@ script:
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
  - ./timestamp ./start-test-stop 5300 cassandra
- - dmesg | egrep -i 'killed process'
  - tail -100 /var/log/cassandra/system.log
  - sudo cat /var/log/kern.log
  - sudo lsof -nP -i | grep LISTEN
