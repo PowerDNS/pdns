@@ -153,7 +153,7 @@ script:
  - cd ..
  - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
- - make -j 4 check
+ - make -j 1 check
  - test -f pdns/test-suite.log && cat pdns/test-suite.log || true
  - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
 # DNSName: - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
@@ -166,7 +166,7 @@ script:
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/
  - ./configure
- - make -k -j 4
+ - make -k -j 1
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
  - cd ..
@@ -175,7 +175,7 @@ script:
  - tar xf dnsdist*.tar.bz2
  - cd dnsdist-*
  - ./configure
- - make -k -j 4
+ - make -k -j 1
  - cd ..
  - rm -rf dnsdist-*/
  - cd ../../
