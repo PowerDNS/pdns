@@ -77,16 +77,16 @@ before_script:
  - cat /etc/init.d/cassandra | sed -e "s/apache-cassandra-2.0.9.jar/apache-cassandra-2.1.9.jar/g" >  cassandra
  - sudo mv cassandra /etc/init.d/cassandra
  - sudo chmod 755 /etc/init.d/cassandra
- #The restart script of cassandra is broken. 
- - sudo service cassandra stop
- - sleep 20
- - sudo service cassandra start
- - sleep 20
  - cat /usr/local/cassandra/conf/cassandra-env.sh | sed "s/\${MAX_HEAP_SIZE}/512M/g" > cassandra-env.sh1
  - cat cassandra-env.sh1 | sed "s/\${HEAP_NEWSIZE}/32M/g" > cassandra-env.sh2
  - sudo mv cassandra-env.sh2 /usr/local/cassandra/conf/cassandra-env.sh
  - cat /usr/local/cassandra/conf/cassandra-env.sh
  - rm -rf cassandra-env.sh1
+  #The restart script of cassandra is broken. 
+ - sudo service cassandra stop
+ - sleep 20
+ - sudo service cassandra start
+ - sleep 20
  #- sudo find / -name cassandra-limits.conf
  #- tail -100 /var/log/cassandra/system.log
  - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv_1.4.2-1_amd64.deb
