@@ -78,13 +78,11 @@ before_script:
  - cat /usr/local/cassandra/conf/cassandra-env.sh | sed "s/\${MAX_HEAP_SIZE}/512M/g" > cassandra-env.sh1
  - cat cassandra-env.sh1 | sed "s/\${HEAP_NEWSIZE}/32M/g" > cassandra-env.sh2
  - sudo mv cassandra-env.sh2 /usr/local/cassandra/conf/cassandra-env.sh
- - cat /usr/local/cassandra/conf/cassandra-env.sh
  - rm -rf cassandra-env.sh1
   #The restart script of cassandra is broken. 
  - sudo service cassandra stop
  - sudo service cassandra start
  - sleep 20
- #- sudo find / -name cassandra-limits.conf
  - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv_1.4.2-1_amd64.deb
  - sudo dpkg -i libuv_1.4.2-1_amd64.deb
  - wget http://downloads.datastax.com/cpp-driver/ubuntu/12.04/libuv-dev_1.4.2-1_amd64.deb
@@ -108,9 +106,7 @@ before_script:
  - echo `echo "source 'testdata.cql';" | /usr/local/cassandra/bin/cqlsh -u pdns -p pdns -k pdns > testdata_install.log 2>&1`
  - cat testdata_install.log
  - sudo rm -rf testdata_install.log
- - sudo ps -ef | grep java
  - sudo iptables -F
- - sudo cp /dev/null /var/log/messages
  - sudo service cassandra stop
  - cd ../../../..
  - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
@@ -234,15 +230,10 @@ script:
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
+ # Cassandra uses lot of memory resources.Its better to turn this on only before the test. Otherwise OOM killer kills it.
  - sudo service cassandra start
  - sleep 20
- - tail -100 /var/log/cassandra/system.log
- - sudo lsof -nP -i | grep LISTEN
  - ./timestamp ./start-test-stop 5300 cassandra
- - tail -100 /var/log/cassandra/system.log
- - sudo cat /var/log/kern.log
- - sudo lsof -nP -i | grep LISTEN
- - sudo cat /var/log/messages
  - rm -f tests/verify-dnssec-zone/allow-missing
  - rm -f tests/verify-dnssec-zone/skip.nsec3
  - rm -f tests/verify-dnssec-zone/skip.optout
