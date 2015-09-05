@@ -102,7 +102,7 @@ cassandradbmanager::cassandradbmanager()
 	  }
 
 	  /* Provide the cluster object as configuration to connect the session */
-	  for (int retry_count = 0; retry_count < 10; ++retry_count) {
+	  for (int retry_count = 0; retry_count < 3; ++retry_count) {
 		  L << Logger::Info << "Connection count "<<retry_count<<endl;
 		  connect_future = cass_session_connect_keyspace(session, cluster, keyspace.c_str());
 		  if ((cass_future_error_code(connect_future)) == CASS_OK) {
