@@ -39,6 +39,7 @@
 #include "pdns/lock.hh"
 #include "pdns/misc.hh"
 #include "pdns/dnsbackend.hh"
+#include "pdns/logger.hh"
 
 #include "pdns/namespaces.hh"
 using namespace ::boost::multi_index;
