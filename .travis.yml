@@ -4,7 +4,6 @@ compiler:
   - clang
 before_script:
  - git describe --always --dirty=+
- - dpkg -l
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
