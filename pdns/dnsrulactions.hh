@@ -4,12 +4,15 @@
 class MaxQPSIPRule : public DNSRule
 {
 public:
-  MaxQPSIPRule(unsigned int qps) : d_qps(qps) {}
+  MaxQPSIPRule(unsigned int qps, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64) : 
+    d_qps(qps), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc)
+  {}
 
   bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
   {
     ComboAddress zeroport(remote);
     zeroport.sin4.sin_port=0;
+    zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
     auto iter = d_limits.find(zeroport);
     if(iter == d_limits.end()) {
       iter=d_limits.insert({zeroport,QPSLimiter(d_qps, d_qps)}).first;
@@ -19,15 +22,43 @@ public:
 
   string toString() const override
   {
-    return "per IP match for QPS over " + std::to_string(d_qps);
+    return "IP (/"+std::to_string(d_ipv4trunc)+", /"+std::to_string(d_ipv6trunc)+") match for QPS over " + std::to_string(d_qps);
   }
 
 
 private:
   mutable std::map<ComboAddress, QPSLimiter> d_limits;
-  unsigned int d_qps;
+  unsigned int d_qps, d_ipv4trunc, d_ipv6trunc;
 
 };
+
+class MaxQPSRule : public DNSRule
+{
+public:
+  MaxQPSRule(unsigned int qps)
+   : d_qps(qps, qps)
+  {}
+
+  MaxQPSRule(unsigned int qps, unsigned int burst)
+   : d_qps(qps, burst)
+  {}
+
+
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  {
+    return d_qps.check();
+  }
+
+  string toString() const override
+  {
+    return "Max " + std::to_string(d_qps.getRate()) + " qps";
+  }
+
+
+private:
+  mutable QPSLimiter d_qps;
+};
+
 
 
 class NetmaskGroupRule : public DNSRule

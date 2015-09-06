@@ -359,6 +359,7 @@ public:
     setCloseOnExec(ret);
 
     int tries=10;
+    ComboAddress sin;
     while(--tries) {
       uint16_t port;
 
@@ -367,13 +368,13 @@ public:
       else
         port = 1025 + dns_random(64510);
 
-      ComboAddress sin=getQueryLocalAddress(family, port); // does htons for us
+      sin=getQueryLocalAddress(family, port); // does htons for us
 
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0)
         break;
     }
     if(!tries)
-      throw PDNSException("Resolver binding to local query client socket: "+stringerror());
+      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
 
     setNonBlocking(ret);
     return ret;
@@ -1341,6 +1342,16 @@ static void houseKeeping(void *)
       try {
 	res=sr.beginResolve(".", QType(QType::NS), 1, ret);
       }
+      catch(PDNSException& e)
+	{
+	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+	}
+
+      catch(std::exception& e)
+	{
+	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+	}
+
       catch(...)
 	{
 	  L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
