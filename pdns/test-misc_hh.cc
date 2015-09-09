@@ -5,8 +5,11 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <math.h>
 #include "misc.hh"
 #include "dns.hh"
+#include "dnswriter.hh"
+#include "dnsrecords.hh"
 #include <utility>
 
 using std::string;
@@ -117,6 +120,40 @@ BOOST_AUTO_TEST_CASE(test_AtomicCounter) {
     ++ac;
     ++ac;
     BOOST_CHECK_EQUAL(ac, 2);
+}
+
+BOOST_AUTO_TEST_CASE(test_QuestionHash) {
+  vector<unsigned char> packet;
+  reportBasicTypes();
+  DNSPacketWriter dpw1(packet, "www.ds9a.nl.", QType::AAAA);
+  
+  uint32_t hash1=hashQuestion((char*)&packet[0], packet.size(), 0);
+  DNSPacketWriter dpw2(packet, "wWw.Ds9A.nL.", QType::AAAA);
+  uint32_t hash2=hashQuestion((char*)&packet[0], packet.size(), 0);
+  BOOST_CHECK_EQUAL(hash1, hash2);
+ 
+  vector<uint32_t> counts(1500);
+ 
+  for(unsigned int n=0; n < 100000; ++n) {
+    packet.clear();
+    DNSPacketWriter dpw1(packet, lexical_cast<string>(n)+"."+lexical_cast<string>(n*2)+".", QType::AAAA);
+    counts[hashQuestion((char*)&packet[0], packet.size(), 0) % counts.size()]++;
+  }
+  
+  double sum = 0.0;
+  BOOST_FOREACH(double d, counts){
+    sum += d;
+  }
+
+  double m =  sum / counts.size();
+
+  double accum = 0.0;
+  BOOST_FOREACH(double d, counts) {
+      accum += (d - m) * (d - m);
+  };
+      
+  double stdev = sqrt(accum / (counts.size()-1));
+  BOOST_CHECK(stdev < 10);
 }
 
 BOOST_AUTO_TEST_CASE(test_endianness) {
