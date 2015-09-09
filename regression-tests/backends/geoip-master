@@ -65,7 +65,7 @@ EOF
 		if [ "$geoipdosec" = "yes" ]
 		then
 			echo "$geoipkeydir" >> pdns-geoip.conf
-			../pdns/pdnssec --config-dir=. --config-name=geoip secure-zone geo.example.com
+			$PDNSSEC --config-dir=. --config-name=geoip secure-zone geo.example.com
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
 

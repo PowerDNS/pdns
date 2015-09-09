@@ -2,8 +2,16 @@
 set -e
 set -x
 
-PDNS=${PDNS:-../pdns/pdns_server}
-PDNS2=${PDNS2:-../pdns/pdns_server}
+export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns_recursor}
+export SDIG=${SDIG:-${PWD}/../pdns/sdig}
+export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
+export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
+export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
+export PDNSSEC=${PDNSSEC:-${PWD}/../pdns/pdnssec}
+export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+
 
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
@@ -17,8 +25,10 @@ trap "kill_process 2" EXIT INT TERM
 
 tosql ()
 {
-	${MAKE} -C ../pdns zone2sql > /dev/null
-	../pdns/zone2sql --transactions --$1 --named-conf=./named.conf
+	if echo $ZONE2SQL | grep -q '../pdns'; then
+		${MAKE} -C ../pdns zone2sql > /dev/null
+	fi
+	$ZONE2SQL --transactions --$1 --named-conf=./named.conf
 }
 
 bindwait ()
@@ -26,7 +36,7 @@ bindwait ()
 	check_process
 	configname=$1
 	domcount=$(grep -c ^zone named.conf)
-	if [ ! -x ../pdns/pdns_control ]
+	if [ ! -x $PDNSCONTROL ]
 	then
 		echo "No pdns_control found"
 		exit
@@ -36,7 +46,7 @@ bindwait ()
 	while [ $loopcount -lt 20 ]
 	do
 		sleep 5
-		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]
 		then
 			return
@@ -61,11 +71,11 @@ securezone ()
 	fi
 	if [ "${zone: 0:16}" = "secure-delegated" ]
 	then
-		../pdns/pdnssec --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
-		../pdns/pdnssec --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
-		keyid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
-		../pdns/pdnssec --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
-		../pdns/pdnssec --config-dir=. $configname rectify-zone $zone 2>&1
+		$PDNSSEC --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
+		$PDNSSEC --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
+		keyid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
+		$PDNSSEC --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
+		$PDNSSEC --config-dir=. $configname rectify-zone $zone 2>&1
 	else
 		# check if PKCS#11 should be used
 		if [ "$pkcs11" -eq 1 ]; then
@@ -75,17 +85,17 @@ securezone ()
                     slot=$((slot+1))
                   fi
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot 
-                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'` 
+                  kid=`$PDNSSEC --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'` 
 # keep this until #1413 is merged
-                  kid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
-                  ../pdns/pdnssec --config-dir=. $configname hsm create-key $zone $kid
+                  kid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
+                  $PDNSSEC --config-dir=. $configname hsm create-key $zone $kid
                   slot=$((slot+1))
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot
-                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
-                  kid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
-                  ../pdns/pdnssec --config-dir=. $configname hsm create-key $zone $kid
+                  kid=`$PDNSSEC --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
+                  kid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
+                  $PDNSSEC --config-dir=. $configname hsm create-key $zone $kid
                 else
-                  ../pdns/pdnssec --config-dir=. $configname secure-zone $zone 2>&1
+                  $PDNSSEC --config-dir=. $configname secure-zone $zone 2>&1
                 fi
 	fi
 }
@@ -219,7 +229,12 @@ __EOF__
 	exit
 fi
 
-${MAKE} -C ../pdns sdig saxfr nsec3dig || exit
+for prog in $SDIG $SAXFR $NSEC3DIG; do
+  if `echo $prog | grep -q '../pdns'`; then
+    ${MAKE} -C ../pdns ${prog##../pdns/} || exit
+  fi
+done
+
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 do
