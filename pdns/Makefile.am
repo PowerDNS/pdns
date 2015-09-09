@@ -88,7 +88,8 @@ bin_PROGRAMS += \
 	notify \
 	nproxy \
 	nsec3dig \
-	saxfr
+	saxfr \
+	sdig
 
 if HAVE_RECVMMSG
 bin_PROGRAMS += calidns
