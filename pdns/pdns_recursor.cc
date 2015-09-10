@@ -633,12 +633,12 @@ void startDoResolve(void *p)
       return;
     }
     if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
-    {
+    { 
       string trace(sr.getTrace());
       if(!trace.empty()) {
         vector<string> lines;
         boost::split(lines, trace, boost::is_any_of("\n"));
-        BOOST_FOREACH(const string& line, lines) {
+        for(const string& line : lines) {
           if(!line.empty())
             L<<Logger::Warning<< line << endl;
         }
@@ -1416,7 +1416,7 @@ struct ThreadMSG
 void broadcastFunction(const pipefunc_t& func, bool skipSelf)
 {
   unsigned int n = 0;
-  BOOST_FOREACH(ThreadPipeSet& tps, g_pipes)
+  for(ThreadPipeSet& tps : g_pipes)
   {
     if(n++ == t_id) {
       if(!skipSelf)
@@ -1514,7 +1514,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
 {
   unsigned int n = 0;
   T ret=T();
-  BOOST_FOREACH(ThreadPipeSet& tps, g_pipes)
+  for(ThreadPipeSet& tps : g_pipes)
   {
     if(n++ == t_id) {
       if(!skipSelf) {
@@ -1867,7 +1867,7 @@ void parseACLs()
     std::vector<std::string> extraConfigs;
     ::arg().gatherIncludes(extraConfigs);
 
-    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+    for(const std::string& fn : extraConfigs) {
       if(!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
 	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
       if(!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
@@ -1992,7 +1992,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
 
       stringtok(addrs, ::arg()["query-local-address6"], ", ;");
-      BOOST_FOREACH(const string& addr, addrs) {
+      for(const string& addr : addrs) {
         g_localQueryAddresses6.push_back(ComboAddress(addr));
       }
     }
@@ -2001,7 +2001,7 @@ int serviceMain(int argc, char*argv[])
     }
     addrs.clear();
     stringtok(addrs, ::arg()["query-local-address"], ", ;");
-    BOOST_FOREACH(const string& addr, addrs) {
+    for(const string& addr : addrs) {
       g_localQueryAddresses4.push_back(ComboAddress(addr));
     }
   }
