@@ -12,7 +12,8 @@ MANPAGES_TARGET_TOOLS = dnsbulktest.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
 	nsec3dig.1 \
-	saxfr.1
+	saxfr.1 \
+	sdig.1
 
 MANPAGES_TARGET_DNSDIST = dnsdist.1
 

@@ -231,6 +231,7 @@ fi
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
+%{_bindir}/sdig
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
@@ -240,6 +241,7 @@ fi
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
+%{_mandir}/man1/sdig.1.gz
 
 %files backend-mysql
 %doc pdns/dnssec.schema.mysql.sql
@@ -490,6 +492,7 @@ exit 0
 %{_bindir}/nproxy
 %{_bindir}/nsec3dig
 %{_bindir}/saxfr
+%{_bindir}/sdig
 %{_mandir}/man1/dnsbulktest.1.gz
 %{_mandir}/man1/dnsgram.1.gz
 %{_mandir}/man1/dnsreplay.1.gz
@@ -499,6 +502,7 @@ exit 0
 %{_mandir}/man1/dnswasher.1.gz
 %{_mandir}/man1/nsec3dig.1.gz
 %{_mandir}/man1/saxfr.1.gz
+%{_mandir}/man1/sdig.1.gz
 
 %files backend-mysql
 %doc modules/gmysqlbackend/schema.mysql.sql

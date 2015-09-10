@@ -85,7 +85,7 @@ binary-main-prepare:
 
 	#FIXME: shell loops hide errors
 	for prog in dnsbulktest dnsgram dnsreplay dnsscan dnsscope dnstcpbench dnswasher \
-		notify nproxy nsec3dig saxfr ; do \
+		notify nproxy nsec3dig saxfr sdig ; do \
 		mv "$(tmpdir)"/usr/bin/$$prog "$(tools_tmpdir)"/usr/bin ; \
 		[ -e "$(tmpdir)"/usr/share/man/man8/"$$prog".8 ] && \
 			mv "$(tmpdir)"/usr/share/man/man8/"$$prog".8 "$(tools_tmpdir)"/usr/share/man/man8/ ; \

@@ -7,3 +7,4 @@ usr/bin/dnstcpbench
 usr/bin/dnswasher
 usr/bin/nsec3dig
 usr/bin/saxfr
+usr/bin/sdig
