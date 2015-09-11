@@ -1,9 +1,8 @@
 /*
  *  SSLv3/TLSv1 client-side functions
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -1269,7 +1270,7 @@ static int ssl_parse_server_hello( mbedtls_ssl_context *ssl )
         return( MBEDTLS_ERR_SSL_BAD_HS_SERVER_HELLO );
     }
 
-    if( ssl->in_hslen > 39 + n )
+    if( ssl->in_hslen > mbedtls_ssl_hs_hdr_len( ssl ) + 39 + n )
     {
         ext_len = ( ( buf[38 + n] <<  8 )
                   | ( buf[39 + n]       ) );
@@ -1281,7 +1282,7 @@ static int ssl_parse_server_hello( mbedtls_ssl_context *ssl )
             return( MBEDTLS_ERR_SSL_BAD_HS_SERVER_HELLO );
         }
     }
-    else if( ssl->in_hslen == 38 + n )
+    else if( ssl->in_hslen == mbedtls_ssl_hs_hdr_len( ssl ) + 38 + n )
     {
         ext_len = 0;
     }
@@ -1747,6 +1748,12 @@ static int ssl_write_encrypted_pms( mbedtls_ssl_context *ssl,
     int ret;
     size_t len_bytes = ssl->minor_ver == MBEDTLS_SSL_MINOR_VERSION_0 ? 0 : 2;
     unsigned char *p = ssl->handshake->premaster + pms_offset;
+
+    if( offset + len_bytes > MBEDTLS_SSL_MAX_CONTENT_LEN )
+    {
+        MBEDTLS_SSL_DEBUG_MSG( 1, ( "buffer too small for encrypted pms" ) );
+        return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
+    }
 
     /*
      * Generate (part of) the pre-master as
@@ -2522,6 +2529,14 @@ static int ssl_write_client_key_exchange( mbedtls_ssl_context *ssl )
 
         i = 4;
         n = ssl->conf->psk_identity_len;
+
+        if( i + 2 + n > MBEDTLS_SSL_MAX_CONTENT_LEN )
+        {
+            MBEDTLS_SSL_DEBUG_MSG( 1, ( "psk identity too long or "
+                                        "SSL buffer too short" ) );
+            return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
+        }
+
         ssl->out_msg[i++] = (unsigned char)( n >> 8 );
         ssl->out_msg[i++] = (unsigned char)( n      );
 
@@ -2550,6 +2565,14 @@ static int ssl_write_client_key_exchange( mbedtls_ssl_context *ssl )
              * ClientDiffieHellmanPublic public (DHM send G^X mod P)
              */
             n = ssl->handshake->dhm_ctx.len;
+
+            if( i + 2 + n > MBEDTLS_SSL_MAX_CONTENT_LEN )
+            {
+                MBEDTLS_SSL_DEBUG_MSG( 1, ( "psk identity or DHM size too long"
+                                            " or SSL buffer too short" ) );
+                return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
+            }
+
             ssl->out_msg[i++] = (unsigned char)( n >> 8 );
             ssl->out_msg[i++] = (unsigned char)( n      );
 

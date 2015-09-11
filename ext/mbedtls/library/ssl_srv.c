@@ -1,9 +1,8 @@
 /*
  *  SSLv3/TLSv1 server-side functions
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -1480,8 +1481,6 @@ read_record_header:
             msg_len != ext_offset + 2 + ext_len )
         {
             MBEDTLS_SSL_DEBUG_MSG( 1, ( "bad client hello message" ) );
-            MBEDTLS_SSL_DEBUG_BUF( 3, "client hello extensions",
-                              buf + ext_offset + 2, ext_len );
             return( MBEDTLS_ERR_SSL_BAD_HS_CLIENT_HELLO );
         }
     }
@@ -1489,6 +1488,7 @@ read_record_header:
         ext_len = 0;
 
     ext = buf + ext_offset + 2;
+    MBEDTLS_SSL_DEBUG_BUF( 3, "client hello extensions", ext, ext_len );
 
     while( ext_len != 0 )
     {
@@ -1643,11 +1643,11 @@ read_record_header:
         if( p[0] == (unsigned char)( ( MBEDTLS_SSL_FALLBACK_SCSV_VALUE >> 8 ) & 0xff ) &&
             p[1] == (unsigned char)( ( MBEDTLS_SSL_FALLBACK_SCSV_VALUE      ) & 0xff ) )
         {
-            MBEDTLS_SSL_DEBUG_MSG( 0, ( "received FALLBACK_SCSV" ) );
+            MBEDTLS_SSL_DEBUG_MSG( 2, ( "received FALLBACK_SCSV" ) );
 
             if( ssl->minor_ver < ssl->conf->max_minor_ver )
             {
-                MBEDTLS_SSL_DEBUG_MSG( 0, ( "inapropriate fallback" ) );
+                MBEDTLS_SSL_DEBUG_MSG( 1, ( "inapropriate fallback" ) );
 
                 mbedtls_ssl_send_alert_message( ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
                                         MBEDTLS_SSL_ALERT_MSG_INAPROPRIATE_FALLBACK );
@@ -2482,7 +2482,7 @@ static int ssl_write_certificate_request( mbedtls_ssl_context *ssl )
         memcpy( p, crt->subject_raw.p, dn_size );
         p += dn_size;
 
-        MBEDTLS_SSL_DEBUG_BUF( 3, "requested DN", p, dn_size );
+        MBEDTLS_SSL_DEBUG_BUF( 3, "requested DN", p - dn_size, dn_size );
 
         total_dn_size += 2 + dn_size;
         crt = crt->next;

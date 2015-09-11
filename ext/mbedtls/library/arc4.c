@@ -1,9 +1,8 @@
 /*
  *  An implementation of the ARCFOUR algorithm
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 /*
  *  The ARCFOUR algorithm was publicly disclosed on 94/09.

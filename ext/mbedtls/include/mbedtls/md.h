@@ -6,8 +6,7 @@
  * \author Adriaan de Jong <dejong@fox-it.com>
  *
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +21,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 #ifndef MBEDTLS_MD_H
 #define MBEDTLS_MD_H
@@ -154,7 +155,7 @@ int mbedtls_md_init_ctx( mbedtls_md_context_t *ctx, const mbedtls_md_info_t *md_
  *
  * \param ctx       Context to set up.
  * \param md_info   Message digest to use.
- * \param hmac      0 to save some meory is HMAC will not be use,
+ * \param hmac      0 to save some memory if HMAC will not be used,
  *                  non-zero is HMAC is going to be used with this context.
  *
  * \returns         \c 0 on success,
