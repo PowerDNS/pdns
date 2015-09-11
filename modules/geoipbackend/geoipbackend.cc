@@ -188,8 +188,6 @@ void GeoIPBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *
     return;
   }
 
-  if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
-
   string ip = "0.0.0.0";
   bool v6 = false;
   if (pkt_p != NULL) {
@@ -202,6 +200,20 @@ void GeoIPBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *
   string format = target->second;
   
   format = format2str(format, ip, v6);
+
+  // see if the record can be found
+  if (dom.records.count(format)) { // return static value
+    map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(format);
+    BOOST_FOREACH(DNSResourceRecord rr, i->second) {
+      if (qtype == QType::ANY || rr.qtype == qtype) {
+        d_result.push_back(rr);
+        d_result.back().qname = qdomain;
+      }
+    }
+    return;
+  }
+
+  if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
 
   DNSResourceRecord rr;
   rr.domain_id = dom.id;
