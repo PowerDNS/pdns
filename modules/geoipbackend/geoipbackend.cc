@@ -128,6 +128,48 @@ void GeoIPBackend::initialize() {
       dom.services[service->first.as<string>()] = service->second.as<string>();
     }
 
+    // rectify the zone, first static records
+    for(auto &item : dom.records) {
+      // ensure we have parent in records
+      DNSName name = item.first;
+      while(name.chopOff() && name.isPartOf(dom.domain)) {
+        if (dom.records.find(name) == dom.records.end()) {
+          DNSResourceRecord rr;
+          vector<DNSResourceRecord> rrs;
+          rr.domain_id = dom.id;
+          rr.ttl = dom.ttl;
+          rr.qname = name;
+          rr.qtype = "NULL";
+          rr.content = "";
+          rr.auth = 1;
+          rr.d_place = DNSResourceRecord::ANSWER;
+          rrs.push_back(rr);
+          std::swap(dom.records[name], rrs);
+        }
+      }
+    }
+
+    // then services
+    for(auto &item : dom.services) {
+      // ensure we have parent in records
+      DNSName name = item.first;
+      while(name.chopOff() && name.isPartOf(dom.domain)) {
+        if (dom.records.find(name) == dom.records.end()) {
+          DNSResourceRecord rr;
+          vector<DNSResourceRecord> rrs;
+          rr.domain_id = dom.id;
+          rr.ttl = dom.ttl;
+          rr.qname = name;
+          rr.qtype = "NULL";
+          rr.content = "";
+          rr.auth = 1;
+          rr.d_place = DNSResourceRecord::ANSWER;
+          rrs.push_back(rr);
+          std::swap(dom.records[name], rrs);
+        }
+      }
+    }
+
     tmp_domains.push_back(dom);
   }
 
