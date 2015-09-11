@@ -157,7 +157,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--disable-silent-rules \
 	--with-modules='' \
 	--with-lua \
-	--with-dynmodules='%{backends}' \
+	--with-dynmodules='%{backends} random' \
 	--enable-cryptopp \
 	--enable-tools \
 	--enable-remotebackend-http \
@@ -214,6 +214,7 @@ fi
 %{_mandir}/man1/pdnssec.1.gz
 %{_initrddir}/pdns
 %dir %{_libdir}/%{name}/
+%{_libdir}/%{name}/librandombackend.so
 %dir %{_sysconfdir}/%{name}/
 %config(noreplace) %{_sysconfdir}/%{name}/pdns.conf
 
@@ -408,7 +409,7 @@ export CPPFLAGS="-DLDAP_DEPRECATED"
 	--with-modules='' \
 	--with-system-mbedtls \
 	--with-lua \
-	--with-dynmodules='%{backends}' \
+	--with-dynmodules='%{backends} random' \
 	--enable-cryptopp \
 	--enable-tools \
 	--enable-unit-tests
@@ -475,6 +476,7 @@ exit 0
 %{_mandir}/man1/pdnssec.1.gz
 %{_unitdir}/pdns.service
 %dir %{_libdir}/%{name}/
+%{_libdir}/%{name}/librandombackend.so
 %dir %{_sysconfdir}/%{name}/
 %config(noreplace) %{_sysconfdir}/%{name}/pdns.conf
 
