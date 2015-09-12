@@ -144,18 +144,21 @@ public:
       throw SSqlException("Could not execute mysql statement: " + d_query + string(": ") + error);
     }
 
+    // MySQL documentation says you can call this safely for all queries
+    if ((err = mysql_stmt_store_result(d_stmt))) {
+      string error(mysql_stmt_error(d_stmt));
+      throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
+    }
+
     if ((d_fnum = static_cast<int>(mysql_stmt_field_count(d_stmt)))>0) {
       // prepare for result
-      if ((err = mysql_stmt_store_result(d_stmt))) {
-        string error(mysql_stmt_error(d_stmt));
-        throw SSqlException("Could not store mysql statement: " + d_query + string(": ") + error);
-      }
       d_resnum = mysql_stmt_num_rows(d_stmt);
       
       if (d_resnum>0 && d_res_bind == NULL) {
+        MYSQL_RES* meta = mysql_stmt_result_metadata(d_stmt);
+        d_fnum = static_cast<int>(mysql_num_fields(meta)); // ensure correct number of fields
         d_res_bind = new MYSQL_BIND[d_fnum];
         memset(d_res_bind, 0, sizeof(MYSQL_BIND)*d_fnum);
-        MYSQL_RES* meta = mysql_stmt_result_metadata(d_stmt);
         MYSQL_FIELD* fields = mysql_fetch_fields(meta);
 
         for(int i = 0; i < d_fnum; i++) {
@@ -181,13 +184,37 @@ public:
   }
 
   bool hasNextRow() {
+#if MYSQL_VERSION_ID >= 50500
+    if (d_residx >= d_resnum) {
+      mysql_stmt_free_result(d_stmt);
+      while(!mysql_stmt_next_result(d_stmt)) {
+        int err,fnum;
+        if ((err = mysql_stmt_store_result(d_stmt))) {
+          string error(mysql_stmt_error(d_stmt));
+          throw PDNSException("Could not store mysql statement: " + d_query + string(": ") + error);
+        }
+        d_resnum = mysql_stmt_num_rows(d_stmt);
+        // XXX: For some reason mysql_stmt_result_metadata returns NULL here, so we cannot
+        // ensure row field count matches first result set.
+        if (d_resnum>0) { // ignore empty result set
+          if ((err = mysql_stmt_bind_result(d_stmt, d_res_bind))) {
+            string error(mysql_stmt_error(d_stmt));
+            throw SSqlException("Could not bind parameters to mysql statement: " + d_query + string(": ") + error);
+          }
+          d_residx = 0;
+          break;
+        }
+        mysql_stmt_free_result(d_stmt);
+      }
+    }
+#endif
     return d_residx < d_resnum;
   }
 
   SSqlStatement* nextRow(row_t& row) {
     int err;
     row.clear();
-    if (d_residx >= d_resnum) return this;
+    if (!hasNextRow()) return this; // hasNextRow will move to next result set automatically
 
     if ((err =mysql_stmt_fetch(d_stmt))) {
       if (err != MYSQL_DATA_TRUNCATED) {
@@ -229,7 +256,15 @@ public:
 
   SSqlStatement* reset() {
     if (!d_stmt) return this;
-
+    int err;
+    mysql_stmt_free_result(d_stmt);
+    while((err = mysql_stmt_next_result(d_stmt)) == 0) {
+      mysql_stmt_free_result(d_stmt);
+    }
+    if (err>0) {
+      string error(mysql_stmt_error(d_stmt));
+      throw SSqlException("Could not get next result from mysql statement: " + d_query + string(": ") + error);
+    }
     mysql_stmt_reset(d_stmt);
     if (d_req_bind) {
       for(int i=0;i<d_parnum;i++) {
