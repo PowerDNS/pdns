@@ -166,8 +166,16 @@ bool SPgSQL::getRow(row_t &row)
     return false;
   }
   
-  for(int i=0;i<PQnfields(d_result);i++)
-    row.push_back(PQgetvalue(d_result,d_count,i) ?: "");
+  for(int i=0;i<PQnfields(d_result);i++) {
+    if (PQgetisnull(d_result, d_count, i)) {
+      row.push_back("");
+    } else if (PQftype(d_result, i) == 16) { // BOOLEAN
+      char *val = PQgetvalue(d_result, d_count, i);
+      row.push_back(val[0] == 't' ? "1" : "0");
+    } else {
+      row.push_back(string(PQgetvalue(d_result, d_count, i)));
+    }
+  }
   d_count++;
   return true;
 }
