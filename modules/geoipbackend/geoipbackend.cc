@@ -248,6 +248,7 @@ void GeoIPBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *
     map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(format);
     BOOST_FOREACH(DNSResourceRecord rr, i->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
+        rr.scopeMask = (v6 ? 128 : 32);
         d_result.push_back(rr);
         d_result.back().qname = qdomain;
       }
