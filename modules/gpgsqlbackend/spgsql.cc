@@ -96,8 +96,10 @@ public:
     // by stored procedures. you can return more than one
     // if you return SETOF refcursor.
     if (PQftype(d_res_set, 0) == 1790) { // REFCURSOR
-      string portal = string(PQgetvalue(d_res_set, d_cur_set++, 0));
-      string cmd = string("FETCH ALL FROM \"") + portal + string("\"");
+      char *val = PQgetvalue(d_res_set, d_cur_set++, 0);
+      char *portal =  PQescapeIdentifier(d_db(), val, strlen(val));
+      string cmd = string("FETCH ALL FROM \"") + string(portal) + string("\"");
+      PQfreemem(portal);
       // execute FETCH
       if (d_dolog)
          L<<Logger::Warning<<"Query: "<<cmd<<endl;
