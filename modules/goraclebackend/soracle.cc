@@ -427,20 +427,20 @@ SOracle::SOracle(const string &database,
 
   int err = OCIHandleAlloc(d_environmentHandle, (dvoid**) &d_errorHandle, OCI_HTYPE_ERROR, 0, NULL);
   if (err) {
-    throw sPerrorException("OCIHandleAlloc(errorHandle)");
+    throw sPerrorException("OCIHandleAlloc(errorHandle)" + string(": ") + getOracleError());
   }
 
   err = OCILogon2(d_environmentHandle, d_errorHandle, &d_serviceContextHandle, (OraText*)user.c_str(), user.size(), 
                  (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()), OCI_LOGON2_STMTCACHE);
   // increase statement cache to 100
   if (err) {
-    throw sPerrorException("OCILogon2");
+    throw sPerrorException(string("OCILogon2") + string(": ") + getOracleError());
   }
 
   ub4 cacheSize = 100;
   err = OCIAttrSet(d_serviceContextHandle, OCI_HTYPE_SVCCTX, &cacheSize, sizeof(ub4), OCI_ATTR_STMTCACHESIZE, d_errorHandle);
   if (err) {
-    throw sPerrorException("OCIAttrSet(stmtcachesize)");
+    throw sPerrorException("OCIAttrSet(stmtcachesize): " + string(": ") + getOracleError());
   }
 
 }
