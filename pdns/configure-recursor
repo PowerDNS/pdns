@@ -26,8 +26,16 @@ CF_PIE=""
 LD_PIE=""
 CF_FORTIFY=""
 CF_STACK=""
-BUILD_HOST="$(id -u -n)@$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo localhost)"
 
+BUILD_USER="$(id -u -n)"
+case $(uname) in
+  SunOS)
+    BUILD_HOST="${BUILD_USER}@$(hostname).$(domainname)" ;;
+  *)
+    BUILD_HOST="${BUILD_USER}@$(hostname -f || echo 'localhost')" ;;
+esac
+
+perl -p -i -e '/#define BUILD_HOST/d' config.h
 cat >> config.h << EOF
 #define BUILD_HOST "${BUILD_HOST}"
 EOF
