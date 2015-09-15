@@ -128,6 +128,9 @@ public:
     for(i=0;i<PQnfields(d_res);i++) {
       if (PQgetisnull(d_res, d_residx, i)) {
         row.push_back("");
+      } else if (PQftype(d_res, i) == 16) { // BOOLEAN
+        char *val = PQgetvalue(d_res, d_residx, i);
+        row.push_back(val[0] == 't' ? "1" : "0");
       } else {
         row.push_back(string(PQgetvalue(d_res, d_residx, i)));
       }
