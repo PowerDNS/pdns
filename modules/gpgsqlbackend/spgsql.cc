@@ -37,7 +37,7 @@ public:
       throw SSqlException("Fatal error during prepare: " + d_query + string(": ") + errmsg);
     } 
     paramValues=NULL;
-    d_cur_set=0;d_paridx=d_residx=d_resnum=0;
+    d_cur_set=d_paridx=d_residx=d_resnum=d_fnum=0;
     paramLengths=NULL;
     d_res=NULL;
     d_res_set=NULL;
