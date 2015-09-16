@@ -4,14 +4,16 @@
 #include <glob.h>
 
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
+typedef map<string, string> service_map_t;
+typedef map<string, vector<DNSResourceRecord> > record_map_t;
 
 class GeoIPDomain {
 public:
   int id;
   string domain;
   int ttl;
-  map<string, string> services;
-  map<string, vector<DNSResourceRecord> > records;
+  service_map_t services;
+  record_map_t records;
 };
 
 static vector<GeoIPDomain> s_domains;
@@ -129,10 +131,10 @@ void GeoIPBackend::initialize() {
     }
 
     // rectify the zone, first static records
-    for(auto &item : dom.records) {
+    BOOST_FOREACH(record_map_t::value_type& item, dom.records) {
       // ensure we have parent in records
-      DNSName name = item.first;
-      while(name.chopOff() && name.isPartOf(dom.domain)) {
+      string name = item.first;
+      while(chopOff(name) && endsOn(name, dom.domain)) {
         if (dom.records.find(name) == dom.records.end()) {
           DNSResourceRecord rr;
           vector<DNSResourceRecord> rrs;
@@ -150,10 +152,10 @@ void GeoIPBackend::initialize() {
     }
 
     // then services
-    for(auto &item : dom.services) {
+    BOOST_FOREACH(service_map_t::value_type& item, dom.services) {
       // ensure we have parent in records
-      DNSName name = item.first;
-      while(name.chopOff() && name.isPartOf(dom.domain)) {
+      string name = item.first;
+      while(chopOff(name) && endsOn(name, dom.domain)) {
         if (dom.records.find(name) == dom.records.end()) {
           DNSResourceRecord rr;
           vector<DNSResourceRecord> rrs;
@@ -245,7 +247,7 @@ void GeoIPBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *
 
   // see if the record can be found
   if (dom.records.count(format)) { // return static value
-    map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(format);
+    record_map_t::iterator i = dom.records.find(format);
     BOOST_FOREACH(DNSResourceRecord rr, i->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
         rr.scopeMask = (v6 ? 128 : 32);
