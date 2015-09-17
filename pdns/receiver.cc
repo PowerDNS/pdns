@@ -130,6 +130,9 @@ static void takedown(int i)
 
 static void writePid(void)
 {
+  if(!::arg().mustDo("write-pid"))
+    return;
+
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
