@@ -114,8 +114,8 @@ public:
   void lookup(const QType &, const string &qdomain, DNSPacket *pkt_p=0,  int zoneId=-1);
 
   /* 5-arg version is only valid for backends and should never be called directly */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len) {
-    throw PDNSException("5-arg version of getAuth should not be called in UeberBackend");
+  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len, map<string,int>& negCacheMap) {
+    throw PDNSException("6-arg version of getAuth should not be called in UeberBackend");
   }
 
   bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId);

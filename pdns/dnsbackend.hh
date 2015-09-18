@@ -163,7 +163,7 @@ public:
   virtual void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false) { }
 
   /** Determines if we are authoritative for a zone, and at what level */
-  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len);
+  virtual bool getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len, map<string,int>& negCacheMap);
 
   struct KeyData {
     unsigned int id;

@@ -44,7 +44,7 @@ bool DNSBackend::getRemote(DNSPacket *p, struct sockaddr *sa, Utility::socklen_t
   return true;
 }
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len)
+bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *zoneId, const int best_match_len, map<string,int>& negCacheMap)
 {
   bool found=false;
   string subdomain(target);
@@ -52,13 +52,17 @@ bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int *z
     if( best_match_len >= (int)subdomain.length() )
       break;
 
-    if( this->getSOA( subdomain, *sd, p ) ) {
+    map<string,int>::iterator it = negCacheMap.find(subdomain);
+    bool negCached = ( it != negCacheMap.end() && it->second == 1 );
+
+    if(! negCached && this->getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
       if(zoneId)
         *zoneId = sd->domain_id;
 
       if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
         // Found authoritative zone but look for parent zone with 'DS' record.
+        negCacheMap[subdomain]=2;
         found=true;
       } else
         return true;
