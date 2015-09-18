@@ -283,7 +283,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
   // If not special case of caching explicitly disabled (sd->db = -1), first
   // find the best match from the cache. If DS then we need to find parent so
   // dont bother with caching as it confuses matters.
-  if( sd->db != (DNSBackend *)-1 && d_cache_ttl && p->qtype != QType::DS ) {
+  if( sd->db != (DNSBackend *)-1 && d_cache_ttl ) {
       string subdomain(target);
       int cstat, loops = 0;
       do {
@@ -302,13 +302,14 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
           //L<<Logger::Error<<"Best cache match: " << sd->qname << " itteration " << loops <<endl;
 
           // Found first time round this must be the best match
-          if( loops == 0 )
+          if( loops == 0  && p->qtype != QType::DS)
             return true;
 
           from_cache = true;
           best_match_len = sd->qname.length();
 
-          break;
+          if ( p->qtype != QType::DS || best_match_len < (int)target.length())
+            break;
         } else if (cstat==0) {
           negCacheMap[subdomain]=1;
         } else
@@ -319,14 +320,15 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
   }
 
   for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i) {
+
+    // Shortcut for the case that we got a direct hit - no need to go
+    // through the other backends then.
+    if( best_match_len == (int)target.length() && p->qtype != QType::DS )
+      goto auth_found;
+
     if((*i)->getAuth(p, sd, target, zoneId, best_match_len, negCacheMap)) {
         best_match_len = sd->qname.length();
         from_cache = false;
-
-        // Shortcut for the case that we got a direct hit - no need to go
-        // through the other backends then.
-        if( best_match_len == (int)target.length() )
-          goto auth_found;
     }
   }
 
