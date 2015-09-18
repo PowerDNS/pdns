@@ -38,7 +38,7 @@ bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const
   bool found=false;
   DNSName subdomain(target);
   do {
-    if( best_match_len >= (int)subdomain.toString().length() )
+    if( best_match_len >= (int)subdomain.toString().length() && p->qtype != QType::DS )
       break;
 
     map<DNSName,int>::iterator it = negCacheMap.find(subdomain);
@@ -46,14 +46,17 @@ bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const
 
     if(! negCached && this->getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
+      if (found) // Second SOA found, we are done
+        return true;
 
       if(p->qtype.getCode() == QType::DS && subdomain==target) {
         // Found authoritative zone but look for parent zone with 'DS' record.
-        negCacheMap[subdomain]=2;
         found=true;
       } else
         return true;
     }
+    if (found)
+      negCacheMap[subdomain]=2; // don't cache SOA's during our quest for a parent zone
   }
   while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
 
