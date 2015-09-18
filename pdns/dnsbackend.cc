@@ -33,7 +33,7 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const int best_match_len)
+bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const int best_match_len, map<DNSName,int>& negCacheMap)
 {
   bool found=false;
   DNSName subdomain(target);
@@ -41,11 +41,15 @@ bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const
     if( best_match_len >= (int)subdomain.toString().length() )
       break;
 
-    if( this->getSOA( subdomain, *sd, p ) ) {
+    map<DNSName,int>::iterator it = negCacheMap.find(subdomain);
+    bool negCached = ( it != negCacheMap.end() && it->second == 1 );
+
+    if(! negCached && this->getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
 
       if(p->qtype.getCode() == QType::DS && subdomain==target) {
         // Found authoritative zone but look for parent zone with 'DS' record.
+        negCacheMap[subdomain]=2;
         found=true;
       } else
         return true;

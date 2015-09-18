@@ -251,6 +251,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 {
   int best_match_len = -1;
   bool from_cache = false;  // Was this result fetched from the cache?
+  map<DNSName,int> negCacheMap;
 
   // If not special case of caching explicitly disabled (sd->db = -1), first
   // find the best match from the cache. If DS then we need to find parent so
@@ -281,14 +282,17 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
           best_match_len = sd->qname.countLabels();
 
           break;
-        }
+        } else if (cstat==0) {
+          negCacheMap[subdomain]=1;
+        } else
+          negCacheMap[subdomain]=0;
         loops++;
       }
       while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   }
 
-  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
-    if((*i)->getAuth(p, sd, target, best_match_len)) {
+  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i) {
+    if((*i)->getAuth(p, sd, target, best_match_len, negCacheMap)) {
         best_match_len = sd->qname.countLabels(); // FIXME400
         from_cache = false;
 
@@ -297,6 +301,23 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
         if( best_match_len == (int)target.countLabels() )
             goto auth_found;
     }
+  }
+
+  if( sd->db != (DNSBackend *)-1 && d_negcache_ttl) {
+    DNSName shorter(target);
+
+    d_question.qtype=QType::SOA;
+    d_question.zoneId=-1;
+    while((int)shorter.countLabels() > best_match_len ) {
+      map<DNSName,int>::iterator it = negCacheMap.find(shorter);
+      if (it == negCacheMap.end() || it->second == 0) {
+        d_question.qname=shorter;
+        addNegCache(d_question);
+      }
+      if (!shorter.chopOff())
+        break;
+    }
+  }
 
   if( best_match_len == -1 )
       return false;
