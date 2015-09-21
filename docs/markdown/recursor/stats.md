@@ -39,7 +39,7 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `packetcache-hits`: packet cache hits (since 3.2)
 * `packetcache-misses`: packet cache misses (since 3.2)
 * `policy-drops`: packets dropped because of (Lua) policy decision
-* `qa-latency`: shows the current latency average, in microseconds
+* `qa-latency`: shows the current latency average, in microseconds, exponentially weighted over past 'latency-statistic-size' packets
 * `questions`: counts all end-user initiated queries with the RD bit set
 * `resource-limits`: counts number of queries that could not be performed because of resource limits
 * `security-status`: security status based on [security polling](../common/security.md#implementation)
