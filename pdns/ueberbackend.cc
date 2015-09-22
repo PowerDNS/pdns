@@ -283,7 +283,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
   // If not special case of caching explicitly disabled (sd->db = -1), first
   // find the best match from the cache. If DS then we need to find parent so
   // dont bother with caching as it confuses matters.
-  if( sd->db != (DNSBackend *)-1 && d_cache_ttl ) {
+  if( sd->db != (DNSBackend *)-1 && (d_cache_ttl || d_negcache_ttl)) {
       string subdomain(target);
       int cstat, loops = 0;
       do {
@@ -293,7 +293,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
 
         cstat = cacheHas(d_question,d_answers);
 
-        if(cstat==1 && !d_answers.empty()) {
+        if(cstat==1 && !d_answers.empty() && d_cache_ttl) {
           fillSOAData(d_answers[0].content,*sd);
           sd->domain_id = d_answers[0].domain_id;
           sd->ttl = d_answers[0].ttl;
@@ -310,7 +310,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
 
           if ( p->qtype != QType::DS || best_match_len < (int)target.length())
             break;
-        } else if (cstat==0) {
+        } else if (cstat==0 && d_negcache_ttl) {
           negCacheMap[subdomain]=1;
         } else
           negCacheMap[subdomain]=0;
@@ -332,7 +332,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, int 
     }
   }
 
-  if( sd->db != (DNSBackend *)-1 && d_cache_ttl) {
+  if( sd->db != (DNSBackend *)-1 && d_negcache_ttl) {
     string shorter(target);
 
     d_question.qtype=QType::SOA;
