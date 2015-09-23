@@ -37,7 +37,7 @@ before_script:
      libssl-dev
      libtolua-dev
      libtool
-     links  
+     links
      moreutils
      p11-kit
      pkg-config
