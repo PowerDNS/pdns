@@ -23,11 +23,15 @@ public:
   void rollback();
   void commit();
 
+  PGconn* db() { return d_db; }
+  bool in_trx() { return d_in_trx; }
+
 private:
-  PGconn* d_db; 
+  PGconn* d_db;
   string d_connectstr;
   string d_connectlogstr;
   static bool s_dolog;
+  bool d_in_trx;
 };
       
 #endif /* SPGSQL_HH */

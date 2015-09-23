@@ -1,9 +1,8 @@
 /*
  *  RFC 1115/1319 compliant MD2 implementation
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 /*
  *  The MD2 algorithm was designed by Ron Rivest in 1989.
@@ -47,12 +48,12 @@
 #endif /* MBEDTLS_PLATFORM_C */
 #endif /* MBEDTLS_SELF_TEST */
 
+#if !defined(MBEDTLS_MD2_ALT)
+
 /* Implementation that should never be optimized out by the compiler */
 static void mbedtls_zeroize( void *v, size_t n ) {
     volatile unsigned char *p = v; while( n-- ) *p++ = 0;
 }
-
-#if !defined(MBEDTLS_MD2_ALT)
 
 static const unsigned char PI_SUBST[256] =
 {

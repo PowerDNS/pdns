@@ -1,9 +1,8 @@
 /*
  *  Platform-specific and custom entropy polling functions
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -140,7 +141,7 @@ int mbedtls_platform_entropy_poll( void *data,
                            unsigned char *output, size_t len, size_t *olen )
 {
     FILE *file;
-    size_t ret;
+    size_t read_len;
     ((void) data);
 
 #if defined(HAVE_GETRANDOM)
@@ -165,8 +166,8 @@ int mbedtls_platform_entropy_poll( void *data,
     if( file == NULL )
         return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );
 
-    ret = fread( output, 1, len, file );
-    if( ret != len )
+    read_len = fread( output, 1, len, file );
+    if( read_len != len )
     {
         fclose( file );
         return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );

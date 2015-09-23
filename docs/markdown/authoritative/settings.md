@@ -787,3 +787,9 @@ The port where webserver to listen on. See ["Performance Monitoring"](../common/
 * Default: no
 
 If the webserver should print arguments. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
+
+## `write-pid`
+* Boolean
+* Default: yes
+
+If a PID file should be written. Available since 4.0.

@@ -209,6 +209,37 @@ BOOST_AUTO_TEST_CASE(test_Append) {
   BOOST_CHECK(dn == DNSName("www.powerdns.com."));
 }
 
+BOOST_AUTO_TEST_CASE(test_QuestionHash) {
+  vector<unsigned char> packet;
+  reportBasicTypes();
+  DNSPacketWriter dpw1(packet, "www.ds9a.nl.", QType::AAAA);
+  
+  auto hash1=hashQuestion((char*)&packet[0], packet.size(), 0);
+  DNSPacketWriter dpw2(packet, "wWw.Ds9A.nL.", QType::AAAA);
+  auto hash2=hashQuestion((char*)&packet[0], packet.size(), 0);
+  BOOST_CHECK_EQUAL(hash1, hash2);
+ 
+  vector<uint32_t> counts(1500);
+ 
+  for(unsigned int n=0; n < 100000; ++n) {
+    packet.clear();
+    DNSPacketWriter dpw1(packet, std::to_string(n)+"."+std::to_string(n*2)+".", QType::AAAA);
+    counts[hashQuestion((char*)&packet[0], packet.size(), 0) % counts.size()]++;
+  }
+  
+  double sum = std::accumulate(std::begin(counts), std::end(counts), 0.0);
+  double m =  sum / counts.size();
+  
+  double accum = 0.0;
+  std::for_each (std::begin(counts), std::end(counts), [&](const double d) {
+      accum += (d - m) * (d - m);
+  });
+      
+  double stdev = sqrt(accum / (counts.size()-1));
+  BOOST_CHECK(stdev < 10);      
+}
+  
+
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
   reportBasicTypes();

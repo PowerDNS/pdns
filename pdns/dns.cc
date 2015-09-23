@@ -145,7 +145,7 @@ uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
   while((labellen=*pos++) && pos < end) { 
     if(pos + labellen + 1 > end) // include length field  in hash
       return 0;
-    ret=burtle(pos, labellen+1, ret);
+    ret=burtleCI(pos, labellen+1, ret);
     pos += labellen;
   }
   return ret;

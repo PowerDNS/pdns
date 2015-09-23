@@ -13,10 +13,10 @@
 #include "htmlfiles.h"
 #include "base64.hh"
 
+static time_t s_start=time(0);
 static int uptimeOfProcess()
 {
-  static time_t start=time(0);
-  return time(0) - start;
+  return time(0) - s_start;
 }
 
 

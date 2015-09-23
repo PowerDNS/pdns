@@ -359,6 +359,7 @@ public:
     setCloseOnExec(ret);
 
     int tries=10;
+    ComboAddress sin;
     while(--tries) {
       uint16_t port;
 
@@ -367,13 +368,13 @@ public:
       else
         port = 1025 + dns_random(64510);
 
-      ComboAddress sin=getQueryLocalAddress(family, port); // does htons for us
+      sin=getQueryLocalAddress(family, port); // does htons for us
 
       if (::bind(ret, (struct sockaddr *)&sin, sin.getSocklen()) >= 0)
         break;
     }
     if(!tries)
-      throw PDNSException("Resolver binding to local query client socket: "+stringerror());
+      throw PDNSException("Resolver binding to local query client socket on "+sin.toString()+": "+stringerror());
 
     setNonBlocking(ret);
     return ret;
@@ -469,6 +470,8 @@ int arecvfrom(char *data, int len, int flags, const ComboAddress& fromaddr, int 
 string s_pidfname;
 static void writePid(void)
 {
+  if(!::arg().mustDo("write-pid"))
+    return;
   ofstream of(s_pidfname.c_str(), std::ios_base::app);
   if(of)
     of<< Utility::getpid() <<endl;
@@ -632,12 +635,12 @@ void startDoResolve(void *p)
       return;
     }
     if(tracedQuery || res == PolicyDecision::PASS || res == RCode::ServFail || pw.getHeader()->rcode == RCode::ServFail)
-    {
+    { 
       string trace(sr.getTrace());
       if(!trace.empty()) {
         vector<string> lines;
         boost::split(lines, trace, boost::is_any_of("\n"));
-        BOOST_FOREACH(const string& line, lines) {
+        for(const string& line : lines) {
           if(!line.empty())
             L<<Logger::Warning<< line << endl;
         }
@@ -1341,6 +1344,16 @@ static void houseKeeping(void *)
       try {
 	res=sr.beginResolve(".", QType(QType::NS), 1, ret);
       }
+      catch(PDNSException& e)
+	{
+	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.reason<<endl;
+	}
+
+      catch(std::exception& e)
+	{
+	  L<<Logger::Error<<"Failed to update . records, got an exception: "<<e.what()<<endl;
+	}
+
       catch(...)
 	{
 	  L<<Logger::Error<<"Failed to update . records, got an exception"<<endl;
@@ -1405,7 +1418,7 @@ struct ThreadMSG
 void broadcastFunction(const pipefunc_t& func, bool skipSelf)
 {
   unsigned int n = 0;
-  BOOST_FOREACH(ThreadPipeSet& tps, g_pipes)
+  for(ThreadPipeSet& tps : g_pipes)
   {
     if(n++ == t_id) {
       if(!skipSelf)
@@ -1503,7 +1516,7 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
 {
   unsigned int n = 0;
   T ret=T();
-  BOOST_FOREACH(ThreadPipeSet& tps, g_pipes)
+  for(ThreadPipeSet& tps : g_pipes)
   {
     if(n++ == t_id) {
       if(!skipSelf) {
@@ -1856,7 +1869,7 @@ void parseACLs()
     std::vector<std::string> extraConfigs;
     ::arg().gatherIncludes(extraConfigs);
 
-    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+    for(const std::string& fn : extraConfigs) {
       if(!::arg().preParseFile(fn.c_str(), "allow-from-file", ::arg()["allow-from-file"]))
 	throw runtime_error("Unable to re-parse configuration file include '"+fn+"'");
       if(!::arg().preParseFile(fn.c_str(), "allow-from", ::arg()["allow-from"]))
@@ -1981,7 +1994,7 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Warning<<"Enabling IPv6 transport for outgoing queries"<<endl;
 
       stringtok(addrs, ::arg()["query-local-address6"], ", ;");
-      BOOST_FOREACH(const string& addr, addrs) {
+      for(const string& addr : addrs) {
         g_localQueryAddresses6.push_back(ComboAddress(addr));
       }
     }
@@ -1990,7 +2003,7 @@ int serviceMain(int argc, char*argv[])
     }
     addrs.clear();
     stringtok(addrs, ::arg()["query-local-address"], ", ;");
-    BOOST_FOREACH(const string& addr, addrs) {
+    for(const string& addr : addrs) {
       g_localQueryAddresses4.push_back(ComboAddress(addr));
     }
   }
@@ -2273,6 +2286,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("daemon","Operate as a daemon")="yes";
+    ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";
     ::arg().set("chroot","switch to chroot jail")="";

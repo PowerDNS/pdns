@@ -524,4 +524,9 @@
 #
 # webserver-print-arguments=no
 
+#################################
+# write-pid	Write a PID file
+#
+# write-pid=yes
+
 

@@ -1,3 +1,3 @@
 SUBDIRS = library
 
-EXTRA_DIST = LICENSE README.rst include/mbedtls
+EXTRA_DIST = LICENSE README.md include/mbedtls

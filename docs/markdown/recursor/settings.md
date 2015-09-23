@@ -617,3 +617,9 @@ recursor is installed on a system. Available since version 3.1.5.
 
 By default, PowerDNS replies to the 'version.bind' query with its version number.
 Security conscious users may wish to override the reply PowerDNS issues.
+
+## `write-pid`
+* Boolean
+* Default: yes
+
+If a PID file should be written. Available since 4.0.

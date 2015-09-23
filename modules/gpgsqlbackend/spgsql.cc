@@ -16,12 +16,12 @@
 class SPgSQLStatement: public SSqlStatement
 {
 public:
-  SPgSQLStatement(const string& query, bool dolog, int nparams, PGconn* db) {
+  SPgSQLStatement(const string& query, bool dolog, int nparams, SPgSQL* db) {
     struct timeval tv;
 
     d_query = query;
     d_dolog = dolog;
-    d_db = db;
+    d_parent = db;
 
     // prepare a statement
     gettimeofday(&tv,NULL);
@@ -29,7 +29,7 @@ public:
 
     d_nparams = nparams;
  
-    PGresult* res = PQprepare(d_db, d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
+    PGresult* res = PQprepare(d_db(), d_stmt.c_str(), d_query.c_str(), d_nparams, NULL);
     ExecStatusType status = PQresultStatus(res);
     string errmsg(PQresultErrorMessage(res));
     PQclear(res);
@@ -37,9 +37,11 @@ public:
       throw SSqlException("Fatal error during prepare: " + d_query + string(": ") + errmsg);
     } 
     paramValues=NULL;
-    d_paridx=d_residx=d_resnum=0;
+    d_cur_set=d_paridx=d_residx=d_resnum=d_fnum=0;
     paramLengths=NULL;
     d_res=NULL;
+    d_res_set=NULL;
+    d_do_commit=false;
   }
 
   SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }
@@ -65,17 +67,52 @@ public:
     if (d_dolog) {
       L<<Logger::Warning<<"Query: "<<d_query<<endl;
     }
-    d_res = PQexecPrepared(d_db, d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
-    ExecStatusType status = PQresultStatus(d_res);
-    string errmsg(PQresultErrorMessage(d_res));
+    if (!d_parent->in_trx()) {
+      PQexec(d_db(),"BEGIN");
+      d_do_commit = true;
+    } else d_do_commit = false;
+    d_res_set = PQexecPrepared(d_db(), d_stmt.c_str(), d_nparams, paramValues, paramLengths, NULL, 0);
+    ExecStatusType status = PQresultStatus(d_res_set);
+    string errmsg(PQresultErrorMessage(d_res_set));
     if (status != PGRES_COMMAND_OK && status != PGRES_TUPLES_OK && status != PGRES_NONFATAL_ERROR) {
-      string errmsg(PQresultErrorMessage(d_res));
-      PQclear(d_res);
+      string errmsg(PQresultErrorMessage(d_res_set));
+      PQclear(d_res_set);
       d_res = NULL;
       throw SSqlException("Fatal error during query: " + d_query + string(": ") + errmsg);
     }
-    d_resnum = PQntuples(d_res);
+    d_cur_set = 0;
+    nextResult();
     return this;
+  }
+
+  void nextResult() {
+    if (d_res_set == NULL) return; // no refcursor
+    if (d_cur_set >= PQntuples(d_res_set)) {
+      PQclear(d_res_set);
+      d_res_set = NULL;
+      return;
+    }
+    // this code handles refcursors if they are returned
+    // by stored procedures. you can return more than one
+    // if you return SETOF refcursor.
+    if (PQftype(d_res_set, 0) == 1790) { // REFCURSOR
+      char *val = PQgetvalue(d_res_set, d_cur_set++, 0);
+      char *portal =  PQescapeIdentifier(d_db(), val, strlen(val));
+      string cmd = string("FETCH ALL FROM \"") + string(portal) + string("\"");
+      PQfreemem(portal);
+      // execute FETCH
+      if (d_dolog)
+         L<<Logger::Warning<<"Query: "<<cmd<<endl;
+      d_res = PQexec(d_db(),cmd.c_str());
+      d_resnum = PQntuples(d_res);
+      d_fnum = PQnfields(d_res);
+      d_residx = 0;
+    } else {
+      d_res = d_res_set;
+      d_res_set = NULL;
+      d_resnum = PQntuples(d_res);
+      d_fnum = PQnfields(d_res);
+    }
   }
 
   bool hasNextRow() 
@@ -91,6 +128,9 @@ public:
     for(i=0;i<PQnfields(d_res);i++) {
       if (PQgetisnull(d_res, d_residx, i)) {
         row.push_back("");
+      } else if (PQftype(d_res, i) == 16) { // BOOLEAN
+        char *val = PQgetvalue(d_res, d_residx, i);
+        row.push_back(val[0] == 't' ? "1" : "0");
       } else {
         row.push_back(string(PQgetvalue(d_res, d_residx, i)));
       }
@@ -99,6 +139,7 @@ public:
     if (d_residx >= d_resnum) {
       PQclear(d_res);
       d_res = NULL;
+      nextResult();
     }
     return this;
   }
@@ -114,8 +155,15 @@ public:
 
   SSqlStatement* reset() {
      int i;
+     if (!d_parent->in_trx() && d_do_commit) {
+       PQexec(d_db(),"COMMIT");
+     }
+     d_do_commit = false;
      if (d_res) 
        PQclear(d_res);
+     if (d_res_set)
+       PQclear(d_res_set);
+     d_res_set = NULL;
      d_res = NULL;
      d_paridx = d_residx = d_resnum = 0;
      if (paramValues) 
@@ -134,6 +182,10 @@ public:
     reset();
   }
 private:
+  PGconn* d_db() {
+    return d_parent->db();
+  }
+
   void allocate() {
      if (paramValues != NULL) return;
      paramValues = new char*[d_nparams];
@@ -144,7 +196,8 @@ private:
 
   string d_query;
   string d_stmt;
-  PGconn *d_db;
+  SPgSQL *d_parent;
+  PGresult *d_res_set;
   PGresult *d_res;
   bool d_dolog;
   int d_nparams;
@@ -153,6 +206,9 @@ private:
   int *paramLengths;
   int d_residx;
   int d_resnum;
+  int d_fnum;
+  int d_cur_set;
+  bool d_do_commit;
 };
 
 bool SPgSQL::s_dolog;
@@ -161,6 +217,7 @@ SPgSQL::SPgSQL(const string &database, const string &host, const string& port, c
                const string &password)
 {
   d_db=0;
+  d_in_trx = false;
   d_connectstr="";
 
   if (!database.empty())
@@ -225,17 +282,20 @@ void SPgSQL::execute(const string& query)
 
 SSqlStatement* SPgSQL::prepare(const string& query, int nparams) 
 {
-  return new SPgSQLStatement(query, s_dolog, nparams, d_db);
+  return new SPgSQLStatement(query, s_dolog, nparams, this);
 }
 
 void SPgSQL::startTransaction() {
   execute("begin");
+  d_in_trx = true;
 }
 
 void SPgSQL::commit() {
   execute("commit");
+  d_in_trx = false;
 }
 
 void SPgSQL::rollback() {
   execute("rollback");
+  d_in_trx = false;
 }

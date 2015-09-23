@@ -73,6 +73,7 @@ int main(int argc, char **argv)
   if(::arg().mustDo("help")) {
     cout<<"syntax:"<<endl<<endl;
     cout<<::arg().helpstring(::arg()["help"])<<endl;
+    cout<<"In addition, 'pdns_control help' can be used to retrieve a list\nof available commands from PowerDNS"<<endl;
     exit(0);
   }
 

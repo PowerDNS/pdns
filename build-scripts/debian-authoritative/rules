@@ -5,7 +5,7 @@ version := $(shell dpkg-parsechangelog -SVersion).$(shell dpkg-vendor --query Ve
 CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
 
 # Backends
-backends := bind ldap pipe gmysql gpgsql gsqlite3 geoip lua mydns remote
+backends := bind ldap pipe gmysql gpgsql gsqlite3 geoip lua mydns remote random
 
 DEB_HOST_MULTIARCH  ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
@@ -43,15 +43,6 @@ override_dh_fixperms:
 	chmod 755 debian/pdns-server/etc/resolvconf/update.d/pdns
 
 override_dh_auto_install:
-	./pdns/pdns_server --no-config --config | sed \
-	  -e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
-	  -e 's!# daemon=.*!daemon=yes!' \
-	  -e 's!# guardian=.*!guardian=yes!' \
-	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
-	  -e 's!# launch=.*!&\nlaunch=!' \
-	  -e 's!# setgid=.*!setgid=pdns!' \
-	  -e 's!# setuid=.*!setuid=pdns!' \
-	  > debian/pdns-server/etc/powerdns/pdns.conf
 	dh_auto_install
 	rm -f debian/pdns-server/etc/powerdns/pdns.conf-dist
 
@@ -60,6 +51,18 @@ override_dh_installinit:
 	dh_systemd_enable --name=pdns
 	dh_installinit --name=pdns
 	dh_systemd_start --restart-after-upgrade
+
+override_dh_install:
+	dh_install
+	./pdns/pdns_server --no-config --config | sed \
+	  -e 's!# config-dir=.*!config-dir=/etc/powerdns!' \
+	  -e 's!# daemon=.*!daemon=yes!' \
+	  -e 's!# guardian=.*!guardian=yes!' \
+	  -e 's!# include-dir=.*!&\ninclude-dir=/etc/powerdns/pdns.d!' \
+	  -e 's!# launch=.*!&\nlaunch=!' \
+	  -e 's!# setgid=.*!setgid=pdns!' \
+	  -e 's!# setuid=.*!setuid=pdns!' \
+	  > debian/pdns-server/usr/share/pdns-server/pdns.conf
 
 # Verbose build (shows used compiler/linker and their flags)
 override_dh_auto_build-arch:

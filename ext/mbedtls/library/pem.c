@@ -1,9 +1,8 @@
 /*
  *  Privacy Enhanced Mail (PEM) decoding
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -236,12 +237,14 @@ int mbedtls_pem_read_buffer( mbedtls_pem_context *ctx, const char *header, const
         return( MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT );
 
     s1 += strlen( header );
+    if( *s1 == ' '  ) s1++;
     if( *s1 == '\r' ) s1++;
     if( *s1 == '\n' ) s1++;
     else return( MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT );
 
     end = s2;
     end += strlen( footer );
+    if( *end == ' '  ) end++;
     if( *end == '\r' ) end++;
     if( *end == '\n' ) end++;
     *use_len = end - data;

@@ -34,6 +34,7 @@ make
 
 Packaged
 --------
+We build packages for dnsdist on our [repositories](https://repo.powerdns.com). In addition
 dnsdist has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
 
 Examples
@@ -41,7 +42,9 @@ Examples
 
 The absolute minimum configuration:
 
+````
 # dnsdist 2001:4860:4860::8888 8.8.8.8
+```
 
 This will listen on 0.0.0.0:53 and forward queries to the two listed IP
 addresses, with a sensible load balancing policy.
@@ -195,6 +198,8 @@ Rules have selectors and actions. Current selectors are:
  * Source address
  * Query type
  * Query domain
+ * QPS Limit total
+ * QPS Limit per IP address or subnet
 
 Current actions are:
  * Drop
@@ -203,6 +208,7 @@ Current actions are:
  * Force a ServFail, NotImp or Refused answer
  * Send out a crafted response (NXDOMAIN or "real" data)
  * Delay a response by n milliseconds
+ * Modify query to remove RD bit
 
 More power
 ----------
@@ -227,6 +233,42 @@ servers that lack this feature.
 
 Note that calling `addAnyTCRule()` achieves the same thing, without
 involving Lua.
+
+Rules for traffic exceeding QPS limits
+--------------------------------------
+Traffic that exceeds a QPS limit, in total or per IP (subnet) can be matched by a rule.
+
+For example:
+
+```
+addDelay(MaxQPSIPRule(5, 32, 48), 100)
+```
+
+This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for such 
+an address (range) exceeds 5 qps, it gets delayed by 100ms.
+
+As another example:
+
+```
+addAction(MaxQPSIPRule(5), NoRecurseAction())
+```
+
+This strips the Recursion Desired (RD) bit from any traffic per IPv4 or IPv6 /64 
+that exceeds 5 qps. This means any those traffic bins is allowed to make a recursor do 'work'
+for only 5 qps.
+
+If this is not enough, try:
+
+```
+addAction(MaxQPSIPRule(5), DropAction())
+-- or
+addAction(MaxQPSIPRule(5), TCAction())
+```
+
+This will respectively drop traffic exceeding that 5 QPS limit per IP or range, or return it with TC=1, forcing
+clients to fall back to TCP/IP.
+
+To turn this per IP or range limit into a global limt, use MaxQPSRule(5000) instead of MaxQPSIPRule.
 
 Lua actions in rules
 --------------------

@@ -3,9 +3,8 @@
  *
  * \brief Consistency checks for configuration options
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +19,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 /*
@@ -51,6 +52,11 @@
 #define MBEDTLS_PLATFORM_SNPRINTF_ALT
 #endif
 #endif /* _WIN32 */
+
+#if defined(TARGET_LIKE_MBED) && \
+    ( defined(MBEDTLS_NET_C) || defined(MBEDTLS_TIMING_C) )
+#error "The NET and TIMING modules are not available for mbed OS - please use the network and timing functions provided by mbed OS"
+#endif
 
 #if defined(MBEDTLS_DEPRECATED_WARNING) && \
     !defined(__GNUC__) && !defined(__clang__)

@@ -1,9 +1,8 @@
 /*
  *  Portable interface to the CPU cycle counter
  *
- *  Copyright (C) 2006-2014, ARM Limited, All Rights Reserved
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
+ *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  SPDX-License-Identifier: GPL-2.0
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +17,8 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -414,7 +415,9 @@ int mbedtls_timing_self_test( int verbose )
 
         millisecs = mbedtls_timing_get_timer( &hires, 0 );
 
-        if( millisecs < 900 * secs || millisecs > 1100 * secs )
+        /* For some reason on Windows it looks like alarm has an extra delay
+         * (maybe related to creating a new thread). Allow some room here. */
+        if( millisecs < 800 * secs || millisecs > 1200 * secs + 300 )
         {
             if( verbose != 0 )
                 mbedtls_printf( "failed\n" );
@@ -429,25 +432,25 @@ int mbedtls_timing_self_test( int verbose )
     if( verbose != 0 )
         mbedtls_printf( "  TIMING test #2 (set/get_delay        ): " );
 
-    for( a = 100; a <= 200; a += 100 )
+    for( a = 200; a <= 400; a += 200 )
     {
-        for( b = 100; b <= 200; b += 100 )
+        for( b = 200; b <= 400; b += 200 )
         {
             mbedtls_timing_set_delay( &ctx, a, a + b );
 
-            busy_msleep( a - a / 10 );
+            busy_msleep( a - a / 8 );
             if( mbedtls_timing_get_delay( &ctx ) != 0 )
                 FAIL;
 
-            busy_msleep( a / 5 );
+            busy_msleep( a / 4 );
             if( mbedtls_timing_get_delay( &ctx ) != 1 )
                 FAIL;
 
-            busy_msleep( b - a / 5 );
+            busy_msleep( b - a / 8 - b / 8 );
             if( mbedtls_timing_get_delay( &ctx ) != 1 )
                 FAIL;
 
-            busy_msleep( b / 5 );
+            busy_msleep( b / 4 );
             if( mbedtls_timing_get_delay( &ctx ) != 2 )
                 FAIL;
         }

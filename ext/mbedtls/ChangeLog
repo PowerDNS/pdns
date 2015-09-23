@@ -1,5 +1,56 @@
 mbed TLS ChangeLog (Sorted per branch, date)
 
+= mbed TLS 2.1.0 released 2015-09-04
+
+Features
+   * Added support for yotta as a build system.
+   * Primary open source license changed to Apache 2.0 license.
+
+Bugfix
+   * Fix segfault in the benchmark program when benchmarking DHM.
+   * Fix build error with CMake and pre-4.5 versions of GCC (found by Hugo
+     Leisink).
+   * Fix bug when parsing a ServerHello without extensions (found by David
+     Sears).
+   * Fix bug in CMake lists that caused libmbedcrypto.a not to be installed
+     (found by Benoit Lecocq).
+   * Fix bug in Makefile that caused libmbedcrypto and libmbedx509 not to be
+     installed (found by Rawi666).
+   * Fix compile error with armcc 5 with --gnu option.
+   * Fix bug in Makefile that caused programs not to be installed correctly
+     (found by robotanarchy) (#232).
+   * Fix bug in Makefile that prevented from installing without building the
+     tests (found by robotanarchy) (#232).
+   * Fix missing -static-libgcc when building shared libraries for Windows
+     with make.
+   * Fix link error when building shared libraries for Windows with make.
+   * Fix error when loading libmbedtls.so.
+   * Fix bug in mbedtls_ssl_conf_default() that caused the default preset to
+     be always used (found by dcb314) (#235)
+   * Fix bug in mbedtls_rsa_public() and mbedtls_rsa_private() that could
+     result trying to unlock an unlocked mutex on invalid input (found by
+     Fredrik Axelsson) (#257)
+   * Fix -Wshadow warnings (found by hnrkp) (#240)
+   * Fix memory corruption on client with overlong PSK identity, around
+     SSL_MAX_CONTENT_LEN or higher - not triggerrable remotely (found by
+     Aleksandrs Saveljevs) (#238)
+   * Fix unused function warning when using MBEDTLS_MDx_ALT or
+     MBEDTLS_SHAxxx_ALT (found by Henrik) (#239)
+   * Fix memory corruption in pkey programs (found by yankuncheng) (#210)
+
+Changes
+   * The PEM parser now accepts a trailing space at end of lines (#226).
+   * It is now possible to #include a user-provided configuration file at the
+     end of the default config.h by defining MBEDTLS_USER_CONFIG_FILE on the
+     compiler's command line.
+   * When verifying a certificate chain, if an intermediate certificate is
+     trusted, no later cert is checked. (suggested by hannes-landeholm)
+     (#220).
+   * Prepend a "thread identifier" to debug messages (issue pointed out by
+     Hugo Leisink) (#210).
+   * Add mbedtls_ssl_get_max_frag_len() to query the current maximum fragment
+     length.
+
 = mbed TLS 2.0.0 released 2015-07-13
 
 Features
