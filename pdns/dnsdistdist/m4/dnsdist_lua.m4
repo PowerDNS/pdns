@@ -36,3 +36,4 @@ AC_DEFUN([DNSDIST_LUA],[
   ])
   AM_CONDITIONAL([LUA], [test "x$with_lua" = "xyes"])
 ])
+
