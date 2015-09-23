@@ -150,8 +150,10 @@ public:
 			}
 		} catch (const std::exception &exc) {
 			L << Logger::Critical << "LIST exception " << exc.what() << endl;
+			throw PDNSException("LIST exception");
 		} catch (...) {
 			L << Logger::Critical << "Unknown exception in LIST" << endl;
+			throw PDNSException("Unknown exception in LIST");
 		}
 		return false;
 	}
@@ -230,8 +232,10 @@ public:
 			return false;
 		} catch (const std::exception &exc) {
 			L << Logger::Critical << "[CassandraBackend] SOA exception " << exc.what() << endl;
+			throw PDNSException("SOA exception");
 		} catch (...) {
 			L << Logger::Critical << "[CassandraBackend] Unknown exception in SOA" << endl;
+			throw PDNSException("Unknown exception in SOA");
 		}
 		return false;
 	}
@@ -249,8 +253,10 @@ public:
 			fetchdata();
 		} catch (const std::exception &exc) {
 			L << Logger::Critical << "[CassandraBackend] lookup exception " << exc.what() << endl;
+			throw PDNSException("lookup exception");
 		} catch (...) {
 			L << Logger::Critical << "[CassandraBackend] Unknown exception in lookup" << endl;
+			throw PDNSException("Unknown exception in lookup");
 		}
 	}
 
@@ -306,8 +312,10 @@ public:
 			}
 		} catch (const std::exception &exc) {
 			L << Logger::Critical << "[CassandraBackend] GET exception " << exc.what() << endl;
+			throw PDNSException("GET exception");
 		} catch (...) {
 			L << Logger::Critical << "[CassandraBackend] Unknown exception in GET" << endl;
+			throw PDNSException("Unknown exception in GET");
 		}
 		return false;
 	}
