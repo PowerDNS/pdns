@@ -597,7 +597,7 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordCo
     xfrPacket(rtr);                                                                                \
   }                                                                                                \
   catch(RecordTextException& rtr) {                                                                \
-    throw MOADNSException("Parsing record content: "+string(rtr.what()));                          \
+    throw MOADNSException("Parsing record content (try 'pdnssec check-zone'): "+string(rtr.what()));  \
   }        											   \
 }                                                                                                  \
                                                                                                    \

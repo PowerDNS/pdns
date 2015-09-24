@@ -879,7 +879,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       }
       // this line needs to identify the 'self-resolving' behaviour, but we get it wrong now
       if(pdns_iequals(qname, *tns) && qtype.getCode()==QType::A && rnameservers.size() > (unsigned)(1+1*s_doIPv6)) {
-        LOG(prefix<<qname.toString()<<": Not using NS to resolve itself!"<<endl);
+        LOG(prefix<<qname.toString()<<": Not using NS to resolve itself! ("<<(1+tns-rnameservers.begin())<<"/"<<rnameservers.size()<<")"<<endl);
         continue;
       }
 
