@@ -87,7 +87,7 @@ reload-acls
 :    Reloads ACLs.
 
 reload-lua-script *FILENAME*
-:    (Re)loads Lua script *FILENAME*.
+:    (Re)loads Lua script *FILENAME*. This replaces the script currently loaded.
 
 reload-zones
 :    Reload authoritative and forward zones. Retains current configuration
@@ -98,7 +98,7 @@ set-minimum-ttl *NUM*
 
 top-remotes
 :    Shows the top-20 most active remote hosts. Statistics are over the
-     last 'remotes-ringbuffer-entries' queries, which defaults to 0.
+     last 'stats-ringbuffer-entries' queries.
 
 trace-regex *REGEX*
 :    Emit resolution trace for matching queries. Empty regex to disable trace.

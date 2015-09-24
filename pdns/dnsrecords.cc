@@ -63,12 +63,9 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
   string lcontent=toLower(content);
   string rcontent=toLower(rhs.content);
 
-  string llabel=toLower(qname);
-  string rlabel=toLower(rhs.qname);
-
   return
-    tie(llabel, qtype, lcontent, ttl) ==
-    tie(rlabel, rhs.qtype, rcontent, rhs.ttl);
+    tie(qname, qtype, lcontent, ttl) ==
+    tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
 
@@ -77,8 +74,8 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   auth=true;
   disabled=false;
   qname = p.d_label;
-  if(!qname.empty())
-    boost::erase_tail(qname, 1); // strip .
+  // if(!qname.empty())
+  //   boost::erase_tail(qname, 1); // strip .
 
   qtype = p.d_type;
   ttl = p.d_ttl;
@@ -159,7 +156,7 @@ boilerplate_conv(TSIG, QType::TSIG,
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
-MXRecordContent::MXRecordContent(uint16_t preference, const string& mxname) : DNSRecordContent(QType::MX), d_preference(preference), d_mxname(mxname)
+MXRecordContent::MXRecordContent(uint16_t preference, const DNSName& mxname) : DNSRecordContent(QType::MX), d_preference(preference), d_mxname(mxname)
 {
 }
 
@@ -225,8 +222,8 @@ boilerplate_conv(NAPTR, QType::NAPTR,
                  )
 
 
-SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const string& target) 
-: DNSRecordContent(QType::SRV), d_preference(preference), d_weight(weight), d_port(port), d_target(target)
+SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target) 
+: DNSRecordContent(QType::SRV), d_weight(weight), d_port(port), d_target(target), d_preference(preference)
 {}
 
 boilerplate_conv(SRV, QType::SRV, 
@@ -234,7 +231,7 @@ boilerplate_conv(SRV, QType::SRV,
                  conv.xfrName(d_target); 
                  )
 
-SOARecordContent::SOARecordContent(const string& mname, const string& rname, const struct soatimes& st) 
+SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
 : DNSRecordContent(QType::SOA), d_mname(mname), d_rname(rname)
 {
   d_st=st;
@@ -481,6 +478,8 @@ void reportBasicTypes()
   DNSRecordContent::regist(QClass::CHAOS, QType::TXT, &TXTRecordContent::make, &TXTRecordContent::make, "TXT");
   TXTRecordContent::report();
   DNSRecordContent::regist(QClass::IN, QType::ANY, 0, 0, "ANY");
+  DNSRecordContent::regist(QClass::IN, QType::AXFR, 0, 0, "AXFR");
+  DNSRecordContent::regist(QClass::IN, QType::IXFR, 0, 0, "IXFR");
 }
 
 void reportOtherTypes()

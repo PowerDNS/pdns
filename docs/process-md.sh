@@ -25,6 +25,7 @@ post() {
   # Add class="table-bordered" to tables
   find html -type f -name '*.html' -exec perl -i -p \
     -e 's/\<table>/<table class="table-bordered">/;' \
+    -e 's/\<title>None\<\/title>/<title>PowerDNS<\/title>/' \
     {} +
 }
 

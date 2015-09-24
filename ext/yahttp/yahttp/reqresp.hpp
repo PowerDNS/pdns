@@ -206,6 +206,15 @@ public:
       HTTPBase::initialize();
       this->kind = YAHTTP_TYPE_RESPONSE;
     }
+    void initialize(const HTTPBase& rhs) {
+      HTTPBase::initialize();
+      this->kind = YAHTTP_TYPE_RESPONSE;
+      // copy SOME attributes
+      this->url = rhs.url;
+      this->method = rhs.method;
+      this->jar = rhs.jar;
+      this->version = rhs.version;
+    }
     friend std::ostream& operator<<(std::ostream& os, const Response &resp);
     friend std::istream& operator>>(std::istream& is, Response &resp);
   };
@@ -225,6 +234,15 @@ public:
     void initialize() {
       HTTPBase::initialize();
       this->kind = YAHTTP_TYPE_REQUEST;
+    }
+    void initialize(const HTTPBase& rhs) {
+      HTTPBase::initialize();
+      this->kind = YAHTTP_TYPE_REQUEST;
+      // copy SOME attributes
+      this->url = rhs.url;
+      this->method = rhs.method;
+      this->jar = rhs.jar;
+      this->version = rhs.version;
     }
     void setup(const std::string& method, const std::string& url) {
       this->url.parse(url);

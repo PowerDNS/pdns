@@ -59,8 +59,9 @@ Action/Execute methods return a JSON body of this format:
 Authentication
 --------------
 
-The PowerDNS daemons accept a static API Key, which has to be sent in the
-`X-API-Key` header.
+The PowerDNS daemons accept a static API Key, configured with the
+[`experimental-api-key`]('../authoritative/settings.md#experimental-api-key')
+option, which has to be sent in the `X-API-Key` header.
 
 Note: Authoritative Server 3.4.0 and Recursor 3.6.0 and 3.6.1 use HTTP
 Basic Authentication instead.

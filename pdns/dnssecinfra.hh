@@ -48,8 +48,8 @@ class DNSCryptoKeyEngine
     
     static void report(unsigned int algorithm, maker_t* maker, bool fallback=false);
     static std::pair<unsigned int, unsigned int> testMakers(unsigned int algorithm, maker_t* creator, maker_t* signer, maker_t* verifier);
-    static void testAll();
-    static void testOne(int algo);
+    static bool testAll();
+    static bool testOne(int algo);
   private:
     
     typedef std::map<unsigned int, maker_t*> makers_t;
@@ -82,9 +82,10 @@ struct DNSSECPrivateKey
     d_key = key;
   }
   DNSKEYRecordContent getDNSKEY() const;
-  uint8_t d_algorithm;
+
   uint16_t d_flags;
-  
+  uint8_t d_algorithm;
+
 private:
   shared_ptr<DNSCryptoKeyEngine> d_key;
 };
@@ -107,37 +108,30 @@ struct CanonicalCompare: public std::binary_function<string, string, bool>
 };
 
 bool sharedDNSSECCompare(const std::shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b);
-string getMessageForRRSET(const std::string& qname, const RRSIGRecordContent& rrc, std::vector<std::shared_ptr<DNSRecordContent> >& signRecords);
+string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, std::vector<std::shared_ptr<DNSRecordContent> >& signRecords);
 
-DSRecordContent makeDSFromDNSKey(const std::string& qname, const DNSKEYRecordContent& drc, int digest=1);
+DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest=1);
 
-
-int countLabels(const std::string& signQName);
 
 class RSAContext;
 class DNSSECKeeper; 
 struct DNSSECPrivateKey;
 
-void fillOutRRSIG(DNSSECPrivateKey& dpk, const std::string& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
+void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& toSign);
 uint32_t getStartOfWeek();
-void addSignature(DNSSECKeeper& dk, UeberBackend& db, const std::string& signer, const std::string signQName, const std::string& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace,
+void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName signQName, const DNSName& wildcardname, uint16_t signQType, uint32_t signTTL, DNSPacketWriter::Place signPlace,
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL);
-int getRRSIGsForRRSET(DNSSECKeeper& dk, const std::string& signer, const std::string signQName, uint16_t signQType, uint32_t signTTL,
+int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName signQName, uint16_t signQType, uint32_t signTTL,
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<RRSIGRecordContent> &rrc);
 
-std::string hashQNameWithSalt(unsigned int times, const std::string& salt, const std::string& qname);
+string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& qname);
 void decodeDERIntegerSequence(const std::string& input, vector<string>& output);
 class DNSPacket;
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<string, CIStringCompare>& authMap, vector<DNSResourceRecord>& rrs);
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSResourceRecord>& rrs);
 
-typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512 } TSIGHashEnum;
-
-string calculateMD5HMAC(const std::string& key, const std::string& text);
-string calculateSHAHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
 string calculateHMAC(const std::string& key, const std::string& text, TSIGHashEnum hash);
 
-string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const string& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
-bool getTSIGHashEnum(const string &algoName, TSIGHashEnum& algoEnum);
-void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const string& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
+string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigoffset, const DNSName& keyname, const TSIGRecordContent& trc, const string& previous, bool timersonly, unsigned int dnsHeaderOffset=0);
+void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
 uint64_t signatureCacheSize(const std::string& str);
 #endif

@@ -21,7 +21,7 @@ using namespace ::boost::multi_index;
 struct TinyDomainInfo {
 	uint32_t id;
 	uint32_t notified_serial;
-	string zone;
+	DNSName zone;
 
 	bool operator<(const TinyDomainInfo& tdi) const
 	{
@@ -47,8 +47,8 @@ class TinyDNSBackend : public DNSBackend
 public:
 	// Methods for simple operation
 	TinyDNSBackend(const string &suffix);
-	void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
-	bool list(const string &target, int domain_id, bool include_disabled=false);
+	void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
+	bool list(const DNSName &target, int domain_id, bool include_disabled=false);
 	bool get(DNSResourceRecord &rr);
 	void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
 
@@ -64,7 +64,7 @@ private:
 	typedef multi_index_container<
 		TinyDomainInfo,
 		indexed_by<
-			hashed_unique<tag<tag_zone>, member<TinyDomainInfo, string, &TinyDomainInfo::zone> >,
+			hashed_unique<tag<tag_zone>, member<TinyDomainInfo, DNSName, &TinyDomainInfo::zone> >,
 			hashed_unique<tag<tag_domainid>, member<TinyDomainInfo, uint32_t, &TinyDomainInfo::id> >
 		>
 	> TDI_t;

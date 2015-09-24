@@ -646,7 +646,7 @@ Creates new domain with given record(s) as master servers. IP address is the add
 
 * Mandatory: No
 * Parameters: ip,domain,nsset,account
-* Reply: true for success, false for failure. can also return account=&gt;name of account
+* Reply: true for success, false for failure. can also return account=&gt;name of account&lt; and nameserver.
 
 #### Example JSON/RPC
 Query:
@@ -661,7 +661,7 @@ Response:
 
 Alternative response:
 ```
-{"result":{"account":"my account"}}
+{"result":{"account":"my account","nameserver":"ns2.example.com"}}
 ```
 
 #### Example HTTP/RPC
@@ -695,7 +695,7 @@ Creates new domain. This method is called when NOTIFY is received and you are su
 
 Mandatory: No
 Parameters: ip, domain
-Optional parameters: account
+Optional parameters: nameserver, account
 Reply: true for success, false for failure
 
 #### Example JSON/RPC
@@ -1007,6 +1007,74 @@ HTTP/1.1 200 OK
 Content-Type: text/javascript; charset=utf-8
 
 {"result":2013060501}
+```
+
+### `directBackendCmd`
+Can be used to send arbitrary commands to your backend using (backend-cmd)(dnssec.md#pdnssec).
+
+* Mandatory: no
+* Parameters: query
+* Reply: anything but boolean false for success, false for failure
+
+#### Example JSON/RPC
+Query:
+```
+{"method":"directBackendCmd","parameters":{"query":"PING"}}
+```
+
+Response:
+```
+{"result":"PONG"}
+```
+
+#### Example HTTP/RPC
+Query:
+```
+POST /dnsapi/directBackendCmd
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+
+query=PING
+```
+
+Response:
+```
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":"PONG"}
+```
+
+### `searchRecords`
+Can be used to search records from the backend. This is used by web api.
+
+* Mandatory: no
+* Parameters: pattern, maxResults
+* Reply: same as [lookup](#lookup) or false to indicate failed search
+
+#### Example JSON/RPC
+Query:
+```
+{"method":"searchRecords","parameters":{"pattern":"www.example*","maxResults":100}}
+```
+
+Response:
+```
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
+```
+
+#### Example HTTP/RPC
+Query:
+```
+GET /dnsapi/searchRecords?q=www.example*&maxResults=100
+```
+
+Response:
+```
+HTTP/1.1 200 OK
+Content-Type: text/javascript; charset=utf-8
+
+{"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 ```
 
 # Examples

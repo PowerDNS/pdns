@@ -143,13 +143,14 @@ private:
 
 struct IDState
 {
-  IDState() : origFD(-1) { origDest.sin4.sin_family = 0;}
+  IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
     origID = orig.origID;
     origRemote = orig.origRemote;
     origDest = orig.origDest;
+    delayMsec = orig.delayMsec;
     age.store(orig.age.load());
   }
 
@@ -162,6 +163,7 @@ struct IDState
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
   uint16_t origID;                                            // 2
+  int delayMsec;
 };
 
 struct Rings {
@@ -284,7 +286,7 @@ public:
 class DNSAction
 {
 public:
-  enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, None};
+  enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, Delay, None};
   virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const =0;
   virtual string toString() const = 0;
 };
@@ -313,7 +315,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
 
-extern std::vector<ComboAddress> g_locals; // not changed at runtime
+extern std::vector<std::pair<ComboAddress, bool>> g_locals; // not changed at runtime (we hope XXX)
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
 struct dnsheader;

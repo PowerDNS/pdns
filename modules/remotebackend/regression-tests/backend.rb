@@ -205,4 +205,8 @@ class Handler
         end
 	return true
    end
+
+   def do_directbackendcmd(args)
+     return [args["query"]]
+   end
 end

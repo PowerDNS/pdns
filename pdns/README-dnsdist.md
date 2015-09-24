@@ -32,12 +32,19 @@ scl enable devtoolset-2 bash
 make
 ```
 
+Packaged
+--------
+We build packages for dnsdist on our [repositories](https://repo.powerdns.com). In addition
+dnsdist has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
+
 Examples
 --------
 
 The absolute minimum configuration:
 
+````
 # dnsdist 2001:4860:4860::8888 8.8.8.8
+```
 
 This will listen on 0.0.0.0:53 and forward queries to the two listed IP
 addresses, with a sensible load balancing policy.
@@ -191,6 +198,8 @@ Rules have selectors and actions. Current selectors are:
  * Source address
  * Query type
  * Query domain
+ * QPS Limit total
+ * QPS Limit per IP address or subnet
 
 Current actions are:
  * Drop
@@ -198,6 +207,8 @@ Current actions are:
  * Return with TC=1 (truncated, ie, instruction to retry with TCP)
  * Force a ServFail, NotImp or Refused answer
  * Send out a crafted response (NXDOMAIN or "real" data)
+ * Delay a response by n milliseconds
+ * Modify query to remove RD bit
 
 More power
 ----------
@@ -222,6 +233,42 @@ servers that lack this feature.
 
 Note that calling `addAnyTCRule()` achieves the same thing, without
 involving Lua.
+
+Rules for traffic exceeding QPS limits
+--------------------------------------
+Traffic that exceeds a QPS limit, in total or per IP (subnet) can be matched by a rule.
+
+For example:
+
+```
+addDelay(MaxQPSIPRule(5, 32, 48), 100)
+```
+
+This measures traffic per IPv4 address and per /48 of IPv6, and if traffic for such 
+an address (range) exceeds 5 qps, it gets delayed by 100ms.
+
+As another example:
+
+```
+addAction(MaxQPSIPRule(5), NoRecurseAction())
+```
+
+This strips the Recursion Desired (RD) bit from any traffic per IPv4 or IPv6 /64 
+that exceeds 5 qps. This means any those traffic bins is allowed to make a recursor do 'work'
+for only 5 qps.
+
+If this is not enough, try:
+
+```
+addAction(MaxQPSIPRule(5), DropAction())
+-- or
+addAction(MaxQPSIPRule(5), TCAction())
+```
+
+This will respectively drop traffic exceeding that 5 QPS limit per IP or range, or return it with TC=1, forcing
+clients to fall back to TCP/IP.
+
+To turn this per IP or range limit into a global limt, use MaxQPSRule(5000) instead of MaxQPSIPRule.
 
 Lua actions in rules
 --------------------
@@ -319,6 +366,26 @@ To delete a limit (or a rule in general):
 0           0 h4xorbooter.xyz.                                   qps limit to 10
 1           0 nl., be.                                           qps limit to 1
 ```
+
+Delaying answers
+----------------
+Sometimes, runaway scripts will hammer your servers with back-to-back
+queries.  While it is possible to drop such packets, this may paradoxically
+lead to more traffic. 
+
+An attractive middleground is to delay answers to such back-to-back queries,
+causing a slowdown on the side of the source of the traffic.
+
+To do so, use:
+```
+> addDelay("yourdomain.in.ua.", 500)
+> addDelay({"65.55.37.0/24"}, 500)
+```
+This will delay responses for questions to the mentioned domain, or coming
+from the configured subnet, by half a second.
+
+Like the QPSLimits and other rules, the delaying instructions can be
+inspected or edited using showRule(), rmRule(), topRule(), mvRule() etc.
 
 Dynamic load balancing
 ----------------------
@@ -528,6 +595,11 @@ Here are all functions:
    * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second
    * `addQPSLimit(netmask, n)`: limit queries within that netmask to n per second
    * `addQPSLimit({netmask, netmask}, n)`: limit queries within those netmasks (together) to n per second   
+ * Delaying related:
+   * `addDelay(domain, n)`: delay answers within that domain by n milliseconds
+   * `addDelay({domain, domain}, n)`: delay answers within those domains (together) by n milliseconds
+   * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
+   * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds     
  * Answer changing functions:
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
  * Advanced functions for writing your own policies and hooks

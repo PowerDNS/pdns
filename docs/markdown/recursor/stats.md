@@ -7,7 +7,7 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `answers1-10`: counts the number of queries answered within 10 milliseconds
 * `answers10-100`: counts the number of queries answered within 100 milliseconds
 * `answers100-1000`: counts the number of queries answered within 1 second
-* `cache-bytes`: Size of the cache in bytes (since 3.3.1)
+* `cache-bytes`: size of the cache in bytes (since 3.3.1)
 * `cache-entries`: shows the number of entries in the cache
 * `cache-hits`: counts the number of cache hits since starting, this does **not** include hits that got answered from the packet-cache
 * `cache-misses`: counts the number of cache misses since starting
@@ -21,11 +21,11 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `edns-ping-mismatches`: number of servers that sent an invalid EDNS PING response
 * `failed-host-entries`: number of servers that failed to resolve
 * `ipv6-outqueries`: number of outgoing queries over IPv6
-* `ipv6-questions`: counts all End-user initiated queries with the RD bit set, received over IPv6 UDP
+* `ipv6-questions`: counts all end-user initiated queries with the RD bit set, received over IPv6 UDP
 * `malloc-bytes`: returns the number of bytes allocated by the process (broken, always returns 0)
 * `max-mthread-stack`: maximum amount of thread stack ever used
-* `negcache-entries`: shows the number of entries in the Negative answer cache
-* `no-packet-error`: number of errornous received packets
+* `negcache-entries`: shows the number of entries in the negative answer cache
+* `no-packet-error`: number of errorneous received packets
 * `noedns-outqueries`: number of queries sent out without EDNS
 * `noerror-answers`: counts the number of times it answered NOERROR since starting
 * `noping-outqueries`: number of queries sent out without ENDS PING
@@ -33,25 +33,28 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `nsspeeds-entries`: shows the number of entries in the NS speeds map
 * `nxdomain-answers`: counts the number of times it answered NXDOMAIN since starting
 * `outgoing-timeouts`: counts the number of timeouts on outgoing UDP queries since starting
-* `over-capacity-drops`: Questions dropped because over maximum concurrent query limit (since 3.2)
-* `packetcache-bytes`: Size of the packet cache in bytes (since 3.3.1)
-* `packetcache-entries`: Size of packet cache (since 3.2)
-* `packetcache-hits`: Packet cache hits (since 3.2)
-* `packetcache-misses`: Packet cache misses (since 3.2)
-* `policy-drops`: Packets dropped because of (Lua) policy decision
-* `qa-latency`: shows the current latency average, in microseconds
-* `questions`: counts all End-user initiated queries with the RD bit set
+* `over-capacity-drops`: questions dropped because over maximum concurrent query limit (since 3.2)
+* `packetcache-bytes`: size of the packet cache in bytes (since 3.3.1)
+* `packetcache-entries`: size of packet cache (since 3.2)
+* `packetcache-hits`: packet cache hits (since 3.2)
+* `packetcache-misses`: packet cache misses (since 3.2)
+* `policy-drops`: packets dropped because of (Lua) policy decision
+* `qa-latency`: shows the current latency average, in microseconds, exponentially weighted over past 'latency-statistic-size' packets
+* `questions`: counts all end-user initiated queries with the RD bit set
 * `resource-limits`: counts number of queries that could not be performed because of resource limits
+* `security-status`: security status based on [security polling](../common/security.md#implementation)
 * `server-parse-errors`: counts number of server replied packets that could not be parsed
 * `servfail-answers`: counts the number of times it answered SERVFAIL since starting
 * `spoof-prevents`: number of times PowerDNS considered itself spoofed, and dropped the data
 * `sys-msec`: number of CPU milliseconds spent in 'system' mode
 * `tcp-client-overflow`: number of times an IP address was denied TCP access because it already had too many connections
+* `tcp-clients`: counts the number of currently active TCP/IP clients
 * `tcp-outqueries`: counts the number of outgoing TCP queries since starting
 * `tcp-questions`: counts all incoming TCP queries (since starting)
 * `throttle-entries`: shows the number of entries in the throttle map
 * `throttled-out`: counts the number of throttled outgoing UDP queries since starting
 * `throttled-outqueries`: idem to throttled-out
+* `too-old-drops`: questions dropped that were too old
 * `unauthorized-tcp`: number of TCP questions denied because of allow-from restrictions
 * `unauthorized-udp`: number of UDP questions denied because of allow-from restrictions
 * `unexpected-packets`: number of answers from remote servers that were unexpected (might point to spoofing)

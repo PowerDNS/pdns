@@ -83,6 +83,18 @@ void* tcpClientThread(int pipefd)
 {
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
+     
+  typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
+  blockfilter_t blockFilter = 0;
+
+  
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto candidate = g_lua.readVariable<boost::optional<blockfilter_t> >("blockFilter");
+    if(candidate)
+      blockFilter = *candidate;
+  }     
+     
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
 
@@ -112,6 +124,22 @@ void* tcpClientThread(int pipefd)
 	DNSName qname(query, qlen, 12, false, &qtype);
 	string ruleresult;
 	struct dnsheader* dh =(dnsheader*)query;
+	
+        if(blockFilter) {
+	  std::lock_guard<std::mutex> lock(g_luamutex);
+	
+	  if(blockFilter(ci.remote, qname, qtype, dh)) {
+	    g_stats.blockFilter++;
+	    goto drop;
+          }
+          if(dh->tc && dh->qr) { // don't truncate on TCP/IP!
+            dh->tc=false;        // maybe we should just pass blockFilter the TCP status
+            dh->qr=false;
+          }
+        }
+
+	
+	
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
 	  if(lr.first->matches(ci.remote, qname, qtype, dh, qlen)) {
@@ -143,6 +171,7 @@ void* tcpClientThread(int pipefd)
 	  break;
 	case DNSAction::Action::Allow:
 	case DNSAction::Action::None:
+	case DNSAction::Action::Delay:
 	  break;
 	}
 	

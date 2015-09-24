@@ -13,6 +13,12 @@ if [ "$STATIC" = "" ]; then
   STATIC="no"
 fi
 
+if [ "$REPRODUCIBLE" = "1" ]; then
+  cat >> config.h << EOF
+#define REPRODUCIBLE 1
+EOF
+fi
+
 set -u
 
 LD_RELRO=""
@@ -20,6 +26,19 @@ CF_PIE=""
 LD_PIE=""
 CF_FORTIFY=""
 CF_STACK=""
+
+BUILD_USER="$(id -u -n)"
+case $(uname) in
+  SunOS)
+    BUILD_HOST="${BUILD_USER}@$(hostname).$(domainname)" ;;
+  *)
+    BUILD_HOST="${BUILD_USER}@$(hostname -f || echo 'localhost')" ;;
+esac
+
+perl -p -i -e '/#define BUILD_HOST/d' config.h
+cat >> config.h << EOF
+#define BUILD_HOST "${BUILD_HOST}"
+EOF
 
 test_flags() {
   # test for relocation

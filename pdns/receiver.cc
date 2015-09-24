@@ -46,6 +46,9 @@
 #include <fcntl.h>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 
 #include "dns.hh"
 #include "dnsbackend.hh"
@@ -127,6 +130,9 @@ static void takedown(int i)
 
 static void writePid(void)
 {
+  if(!::arg().mustDo("write-pid"))
+    return;
+
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
@@ -482,6 +488,13 @@ int main(int argc, char **argv)
 #endif
 
     seedRandom(::arg()["entropy-source"]);
+
+#ifdef HAVE_LIBSODIUM
+      if (sodium_init() == -1) {
+        cerr<<"Unable to initialize sodium crypto library"<<endl;
+        exit(99);
+      }
+#endif
     
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
