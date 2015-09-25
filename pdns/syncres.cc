@@ -77,6 +77,20 @@ SyncRes::LogMode SyncRes::s_lm;
 
 bool SyncRes::s_noEDNS;
 
+void accountAuthLatency(int usec)
+{
+  if(usec < 1000)
+    g_stats.authAnswers0_1++;
+  else if(usec < 10000)
+    g_stats.authAnswers1_10++;
+  else if(usec < 100000)
+    g_stats.authAnswers10_100++;
+  else if(usec < 1000000)
+    g_stats.authAnswers100_1000++;
+  else
+    g_stats.authAnswersSlow++;
+}
+
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_doDNSSEC(false), d_now(now),
 					       d_cacheonly(false), d_nocache(false), d_doEDNS0(false), d_lm(s_lm)
@@ -934,6 +948,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	      throw ImmediateServFailException("Query killed by policy");
 
 	    d_totUsec += lwr.d_usec;
+	    accountAuthLatency(lwr.d_usec);
 	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname.toString()<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);

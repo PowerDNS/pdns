@@ -7,6 +7,11 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `answers1-10`: counts the number of queries answered within 10 milliseconds
 * `answers10-100`: counts the number of queries answered within 100 milliseconds
 * `answers100-1000`: counts the number of queries answered within 1 second
+* `auth-answers-slow`: counts the number of queries answered by auths after 1 second (4.0)
+* `auth-answers0-1`: counts the number of queries answered by auths within 1 millisecond (4.0)
+* `auth-answers1-10`: counts the number of queries answered by auths within 10 milliseconds (4.0)
+* `auth-answers10-100`: counts the number of queries answered by auths within 100 milliseconds (4.0)
+* `auth-answers100-1000`: counts the number of queries answered by auths within 1 second (4.0)
 * `cache-bytes`: size of the cache in bytes (since 3.3.1)
 * `cache-entries`: shows the number of entries in the cache
 * `cache-hits`: counts the number of cache hits since starting, this does **not** include hits that got answered from the packet-cache
