@@ -57,6 +57,8 @@ unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
 uint64_t SyncRes::s_queries;
 uint64_t SyncRes::s_outgoingtimeouts;
+uint64_t SyncRes::s_outgoing4timeouts;
+uint64_t SyncRes::s_outgoing6timeouts;
 uint64_t SyncRes::s_outqueries;
 uint64_t SyncRes::s_tcpoutqueries;
 uint64_t SyncRes::s_throttledqueries;
@@ -77,18 +79,32 @@ SyncRes::LogMode SyncRes::s_lm;
 bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
 
-void accountAuthLatency(int usec)
+void accountAuthLatency(int usec, int family)
 {
-  if(usec < 1000)
-    g_stats.authAnswers0_1++;
-  else if(usec < 10000)
-    g_stats.authAnswers1_10++;
-  else if(usec < 100000)
-    g_stats.authAnswers10_100++;
-  else if(usec < 1000000)
-    g_stats.authAnswers100_1000++;
-  else
-    g_stats.authAnswersSlow++;
+  if(family == AF_INET) {
+    if(usec < 1000)
+      g_stats.auth4Answers0_1++;
+    else if(usec < 10000)
+      g_stats.auth4Answers1_10++;
+    else if(usec < 100000)
+      g_stats.auth4Answers10_100++;
+    else if(usec < 1000000)
+      g_stats.auth4Answers100_1000++;
+    else
+      g_stats.auth4AnswersSlow++;
+  } else  {
+    if(usec < 1000)
+      g_stats.auth6Answers0_1++;
+    else if(usec < 10000)
+      g_stats.auth6Answers1_10++;
+    else if(usec < 100000)
+      g_stats.auth6Answers10_100++;
+    else if(usec < 1000000)
+      g_stats.auth6Answers100_1000++;
+    else
+      g_stats.auth6AnswersSlow++;
+  }
+
 }
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
@@ -992,12 +1008,16 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	      throw ImmediateServFailException("Query killed by policy");
 
 	    d_totUsec += lwr.d_usec;
-	    accountAuthLatency(lwr.d_usec);
+	    accountAuthLatency(lwr.d_usec, remoteIP->sin4.sin_family);
 	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname.toString()<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);
                 d_timeouts++;
                 s_outgoingtimeouts++;
+		if(remoteIP->sin4.sin_family == AF_INET)
+		  s_outgoing4timeouts++;
+		else
+		  s_outgoing6timeouts++;
               }
               else if(resolveret==-2) {
                 LOG(prefix<<qname.toString()<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);

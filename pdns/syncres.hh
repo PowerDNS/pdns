@@ -291,6 +291,8 @@ public:
 
   static uint64_t s_queries;
   static uint64_t s_outgoingtimeouts;
+  static uint64_t s_outgoing4timeouts;
+  static uint64_t s_outgoing6timeouts;
   static uint64_t s_throttledqueries;
   static uint64_t s_dontqueries;
   static uint64_t s_outqueries;
@@ -545,7 +547,8 @@ struct RecursorStats
   uint64_t nxDomains;
   uint64_t noErrors;
   uint64_t answers0_1, answers1_10, answers10_100, answers100_1000, answersSlow;
-  uint64_t authAnswers0_1, authAnswers1_10, authAnswers10_100, authAnswers100_1000, authAnswersSlow;
+  uint64_t auth4Answers0_1, auth4Answers1_10, auth4Answers10_100, auth4Answers100_1000, auth4AnswersSlow;
+  uint64_t auth6Answers0_1, auth6Answers1_10, auth6Answers10_100, auth6Answers100_1000, auth6AnswersSlow;
   double avgLatencyUsec;
   uint64_t qcounter;     // not increased for unauth packets
   uint64_t ipv6qcounter;
