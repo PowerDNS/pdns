@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2003 - 2014  PowerDNS.COM BV
+    Copyright (C) 2003 - 2015  PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as published
@@ -76,6 +76,20 @@ SyncRes::LogMode SyncRes::s_lm;
 
 bool SyncRes::s_noEDNSPing;
 bool SyncRes::s_noEDNS;
+
+void accountAuthLatency(int usec)
+{
+  if(usec < 1000)
+    g_stats.authAnswers0_1++;
+  else if(usec < 10000)
+    g_stats.authAnswers1_10++;
+  else if(usec < 100000)
+    g_stats.authAnswers10_100++;
+  else if(usec < 1000000)
+    g_stats.authAnswers100_1000++;
+  else
+    g_stats.authAnswersSlow++;
+}
 
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_now(now),
@@ -978,6 +992,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	      throw ImmediateServFailException("Query killed by policy");
 
 	    d_totUsec += lwr.d_usec;
+	    accountAuthLatency(lwr.d_usec);
 	    if(resolveret != 1) {
               if(resolveret==0) {
                 LOG(prefix<<qname.toString()<<": timeout resolving after "<<lwr.d_usec/1000.0<<"msec "<< (doTCP ? "over TCP" : "")<<endl);

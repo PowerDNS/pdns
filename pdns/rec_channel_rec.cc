@@ -523,6 +523,12 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
+  addGetStat("auth-answers0-1", &g_stats.authAnswers0_1);
+  addGetStat("auth-answers1-10", &g_stats.authAnswers1_10);
+  addGetStat("auth-answers10-100", &g_stats.authAnswers10_100);
+  addGetStat("auth-answers100-1000", &g_stats.authAnswers100_1000);
+  addGetStat("auth-answers-slow", &g_stats.authAnswersSlow);
+
   addGetStat("qa-latency", doGetAvgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
