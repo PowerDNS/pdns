@@ -68,12 +68,11 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
     tie(rhs.qname, rhs.qtype, rcontent, rhs.ttl);
 }
 
-
-
 DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   auth=true;
   disabled=false;
   qname = p.d_label;
+  d_place = (DNSResourceRecord::Place)p.d_place;
   // if(!qname.empty())
   //   boost::erase_tail(qname, 1); // strip .
 
