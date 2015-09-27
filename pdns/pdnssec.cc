@@ -2178,7 +2178,7 @@ try
         return 1;
       }
 
-      string zone = cmds[2];
+      DNSName zone(cmds[2]);
 
       // verify zone
       if (!B.getDomainInfo(zone, di)) {
@@ -2257,7 +2257,7 @@ try
         return 1;
       }
       DomainInfo di;
-      string zone = cmds[2];
+      DNSName zone(cmds[2]);
       unsigned int id;
       int bits = 2048;
       // verify zone
