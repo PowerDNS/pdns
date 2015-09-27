@@ -77,7 +77,7 @@ try
   }
 
   vector<uint8_t> packet;
-  string qname=argv[3];
+  DNSName qname(argv[3]);
   DNSPacketWriter pw(packet, qname, DNSRecordContent::TypeToNumber(argv[4]));
 
   if(recurse)
@@ -118,7 +118,7 @@ try
   delete[] creply;
 
   MOADNSParser mdp(reply);
-  cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+  cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
   cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
@@ -152,7 +152,7 @@ try
 
     if(i->first.d_type == QType::CNAME)
     {
-      namesseen.insert(stripDot(i->first.d_content->getZoneRepresentation()));
+      namesseen.insert(DNSName(i->first.d_content->getZoneRepresentation()));
     }
 
     cout<<i->first.d_place-1<<"\t"<<i->first.d_label.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
@@ -173,7 +173,7 @@ try
   cout<<"== nsec3 prove/deny report follows =="<<endl;
   set<DNSName> proven;
   set<DNSName> denied;
-  namesseen.insert(stripDot(qname));
+  namesseen.insert(qname);
   for(const auto &n: namesseen)
   {
     DNSName shorter(n);
@@ -184,10 +184,10 @@ try
   for(const auto &n: namestocheck)
   {
     proveOrDeny(nsec3s, n, nsec3salt, nsec3iters, proven, denied);
-    proveOrDeny(nsec3s, "*."+n, nsec3salt, nsec3iters, proven, denied);
+    proveOrDeny(nsec3s, DNSName("*")+n, nsec3salt, nsec3iters, proven, denied);
   }
 
-  if(names.count(qname+"."))
+  if(names.count(qname))
   {
     cout<<"== qname found in names, investigating NSEC3s in case it's a wildcard"<<endl;
     // exit(EXIT_SUCCESS);

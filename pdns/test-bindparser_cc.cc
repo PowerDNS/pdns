@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(test_parser) {
         BOOST_CHECK_EQUAL(domains.size(), 11);
 
 #define checkzone(i, dname, fname, ztype, nmasters) { \
-                BOOST_CHECK(domains[i].name == #dname); \
+	        BOOST_CHECK(domains[i].name == DNSName(#dname));     \
                 BOOST_CHECK_EQUAL(domains[i].filename, fname); \
                 BOOST_CHECK_EQUAL(domains[i].type, #ztype); \
                 BOOST_CHECK_EQUAL(domains[i].masters.size(), nmasters); \

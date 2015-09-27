@@ -44,7 +44,7 @@ try
 
   vector<uint8_t> packet;
   
-  DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
+  DNSPacketWriter pw(packet, DNSName(argv[3]), DNSRecordContent::TypeToNumber(argv[4]));
 
   if(dnssec || getenv("SDIGBUFSIZE"))
   {

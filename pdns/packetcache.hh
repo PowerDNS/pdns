@@ -66,7 +66,7 @@ public:
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
-  int purge(const string &match);
+  int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
 
   map<char,int> getCounts();
 private:

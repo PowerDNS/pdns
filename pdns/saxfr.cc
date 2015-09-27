@@ -53,7 +53,7 @@ try
   bool gss=false;
   bool tsig=false;
   TSIGHashEnum tsig_algo;
-  string tsig_key;
+  DNSName tsig_key;
   string tsig_secret;
   string tsigprevious;
   string remote_principal;
@@ -84,12 +84,12 @@ try
           cerr<<"Invalid syntax for tsig"<<endl;
           exit(EXIT_FAILURE);
         }
-        if (!getTSIGHashEnum(parts[2], tsig_algo)) {
+        if (!getTSIGHashEnum(DNSName(parts[2]), tsig_algo)) {
           cerr<<"Cannot understand TSIG algorithm '"<<parts[1]<<"'"<<endl;
           exit(EXIT_FAILURE);
         }
-        tsig_key = parts[1];
-        if (tsig_key.size()==0) {
+        tsig_key = DNSName(parts[1]);
+        if (tsig_key == DNSName()) {
           cerr<<"Key name must be set for tsig"<<endl;
           exit(EXIT_FAILURE);
         }
@@ -179,11 +179,11 @@ try
       exit(EXIT_FAILURE);
     }
 
-    tsig_key = gssctx.getLabel();
+    tsig_key = DNSName(gssctx.getLabel());
 #endif
   }
 
-  DNSPacketWriter pw(packet, argv[3], 252);
+  DNSPacketWriter pw(packet, DNSName(argv[3]), 252);
 
   pw.getHeader()->id = dns_random(0xffff);
 
@@ -295,7 +295,7 @@ try
       DNSName shorter(i->first.d_label);
       do {
         labels.insert(shorter);
-        if (pdns_iequals(shorter, argv[3]))
+        if (shorter == DNSName(argv[3]))
           break;
       }while(shorter.chopOff());
 
@@ -317,7 +317,7 @@ try
     DNSName label /* FIXME400 rename */=record.first;
     if (isNSEC3 && unhash)
     {
-      auto i = hashes.find(label.makeRelative(argv[3]).toStringNoDot());
+      auto i = hashes.find(label.makeRelative(DNSName(argv[3])).toStringNoDot());
       if (i != hashes.end())
         label=i->second;
     }

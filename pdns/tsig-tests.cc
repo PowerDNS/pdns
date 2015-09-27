@@ -39,7 +39,7 @@ try
 
   vector<uint8_t> packet;
   
-  DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
+  DNSPacketWriter pw(packet, DNSName(argv[3]), DNSRecordContent::TypeToNumber(argv[4]));
 
   pw.getHeader()->id=htons(0x4831);
   
@@ -49,7 +49,7 @@ try
   DNSName keyname("pdns-b-aa");
 
   TSIGRecordContent trc;
-  trc.d_algoName="hmac-md5.sig-alg.reg.int";
+  trc.d_algoName=DNSName("hmac-md5.sig-alg.reg.int");
   trc.d_time=time(0);
   trc.d_fudge=300;
   trc.d_origID=ntohs(pw.getHeader()->id);

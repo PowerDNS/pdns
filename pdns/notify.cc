@@ -53,7 +53,7 @@ try
     throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toString()+": "+stringerror());
   
   vector<uint8_t> outpacket;
-  DNSPacketWriter pw(outpacket, argv[2], QType::SOA, 1, Opcode::Notify);
+  DNSPacketWriter pw(outpacket, DNSName(argv[2]), QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = random();
 
 

@@ -197,13 +197,13 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
         default:
            REC_CHECK_EQUAL(rec->getZoneRepresentation(), val.get<2>());
         }
-        recData = rec->serialize("rec.test");
+        recData = rec->serialize(DNSName("rec.test"));
       } else {
-        std::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize("rec.test",q.getCode(),(val.get<3>()));
+        std::shared_ptr<DNSRecordContent> rec3 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),(val.get<3>()));
         // TSIG special, only works the other way
-        recData = rec3->serialize("rec.test");
+        recData = rec3->serialize(DNSName("rec.test"));
       }
-      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize("rec.test",q.getCode(),recData);
+      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::unserialize(DNSName("rec.test"),q.getCode(),recData);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "unserialize(rec.test, " << q.getCode() << ", recData) returned NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
@@ -260,14 +260,14 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
     BOOST_TEST_MESSAGE("Checking bad value for record type " << q.getName() << " test #" << n);
  
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, "unit.test", q.getCode());
+    DNSPacketWriter pw(packet, DNSName("unit.test"), q.getCode());
 
     if (val.get<2>()) {
       bool success=true;
-      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); success=false; }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::runtime_error, test_dnsrecords_cc_predicate );
       if (success==false) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
-      BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord("unit.test", q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
     }
   };
 }
@@ -296,8 +296,8 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
   vector<uint8_t> pak;
   vector<pair<uint16_t,string > > opts;
 
-  DNSPacketWriter pw(pak, "www.powerdns.com", QType::A);
-  pw.startRecord("www.powerdns.com", QType::A, 16, 1, DNSPacketWriter::ANSWER);
+  DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
+  pw.startRecord(DNSName("www.powerdns.com"), QType::A, 16, 1, DNSPacketWriter::ANSWER);
   pw.xfrIP(htonl(0x7f000001));
   opts.push_back(pair<uint16_t,string>(3, "powerdns"));
   pw.addOpt(1280, 0, 0, opts);
