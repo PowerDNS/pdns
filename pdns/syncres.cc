@@ -375,9 +375,9 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSResou
           res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);
           // filter out the good stuff from lwr.result()
 
-          for(LWResult::res_t::const_iterator i=lwr.getResult().begin();i!=lwr.getResult().end();++i) {
-            if(i->d_place == DNSResourceRecord::ANSWER)
-              ret.push_back(*i);
+	  for(const auto& rec : lwr.d_records) {
+            if((DNSResourceRecord::Place)rec.first.d_place == DNSResourceRecord::ANSWER)
+              ret.push_back(DNSResourceRecord(rec.first));
           }
           return res;
         }
@@ -1026,8 +1026,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       }
 
       if(s_minimumTTL) {
-	for(LWResult::res_t::iterator i=lwr.getResult().begin();i != lwr.getResult().end();++i) {
-	  i->ttl = max(i->ttl, s_minimumTTL);
+	for(auto& rec : lwr.d_records) {
+	  rec.first.d_ttl = max(rec.first.d_ttl, s_minimumTTL);
 	}
       }
 
