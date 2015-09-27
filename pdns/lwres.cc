@@ -171,7 +171,6 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     }
 
     lwr->d_records = mdp.d_answers;
-    
 
     EDNSOpts edo;
     if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
@@ -203,7 +202,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 vector<DNSResourceRecord>& LWResult::getResult()
 {
   if(d_result.empty()) {
-    for(auto i=d_records.begin(); i != d_records.end(); ++i) {          
+    for(auto i=d_records.cbegin(); i != d_records.cend(); ++i) {          
       DNSResourceRecord rr;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;
