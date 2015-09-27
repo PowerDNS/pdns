@@ -34,7 +34,7 @@ struct DNSResult
 struct TypedQuery
 {
   TypedQuery(const string& name_, uint16_t type_) : name(name_), type(type_){}
-  string name;
+  DNSName name;
   uint16_t type;
 };
 
@@ -101,6 +101,8 @@ struct SendReceive
     if(::send(d_socket, &*packet.begin(), packet.size(), 0) < 0)
       d_senderrors++;
     
+    if(!g_quiet)
+      cout<<"Sent out query for '"<<domain.name<<"' with id "<<pw.getHeader()->id<<endl;
     return pw.getHeader()->id;
   }
   
@@ -149,6 +151,9 @@ struct SendReceive
   
   void deliverTimeout(const Identifier& id)
   {
+    if(!g_quiet) {
+      cout<<"Timeout for id "<<id<<endl;
+    }
     d_idqueue.push_back(id);
   }
   
