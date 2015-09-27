@@ -60,17 +60,18 @@ void primeHints(void)
       static char templ[40];
       strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
       *templ=c;
-      aaaarr.qname=arr.qname=nsrr.content=templ;
+      aaaarr.qname=arr.qname=DNSName(templ);
+      nsrr.content=templ; 
       arr.content=ips[c-'a'];
       set<DNSResourceRecord> aset;
       aset.insert(arr);
-      t_RC->replace(time(0), string(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, nuke it all
+      t_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, nuke it all
       if (ip6s[c-'a'] != NULL) {
         aaaarr.content=ip6s[c-'a'];
 
         set<DNSResourceRecord> aaaaset;
         aaaaset.insert(aaaarr);
-        t_RC->replace(time(0), string(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), true);
+        t_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), true);
       }
       
       nsset.insert(nsrr);
@@ -96,7 +97,7 @@ void primeHints(void)
       }
     }
   }
-  t_RC->replace(time(0),".", QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // and stuff in the cache (auth)
+  t_RC->replace(time(0), DNSName(), QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // and stuff in the cache (auth)
 }
 
 static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostname, const string& ip)
@@ -367,7 +368,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         }
       }
       
-      (*newMap)[headers.first]=ad; 
+      (*newMap)[DNSName(headers.first)]=ad; 
     }
   }
   
@@ -413,7 +414,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         throw PDNSException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
-      (*newMap)[domain]=ad;
+      (*newMap)[DNSName(domain)]=ad;
     }
     L<<Logger::Warning<<"Done parsing " << newMap->size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-file"]<<"'"<<endl;
   }
@@ -443,10 +444,10 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         
         for(unsigned int n=1; n < parts.size(); ++n) {
           if(searchSuffix.empty() || parts[n].find('.') != string::npos)
-              makeNameToIPZone(newMap, parts[n], parts[0]);
+	    makeNameToIPZone(newMap, DNSName(parts[n]), parts[0]);
           else {
-              DNSName canonic=toCanonic(DNSName(searchSuffix), parts[n]);
-              if(canonic != parts[n]) {
+	    DNSName canonic=toCanonic(DNSName(searchSuffix), parts[n]); /// XXXX DNSName pain
+	    if(canonic != DNSName(parts[n])) {   // XXX further DNSName pain
               makeNameToIPZone(newMap, canonic, parts[0]);
             }
           }

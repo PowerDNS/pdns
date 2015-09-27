@@ -140,7 +140,7 @@ public:
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
 
-  string getName();
+  DNSName getName();
   string getText(bool multi);
 
   uint16_t d_pos;
@@ -169,7 +169,7 @@ public:
   virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
-    string empty;
+    DNSName empty;
     DNSPacketWriter pw(packet, empty, 1);
     if(canonic)
       pw.setCanonic(true);

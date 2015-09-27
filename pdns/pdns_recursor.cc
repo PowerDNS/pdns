@@ -1347,7 +1347,7 @@ static void houseKeeping(void *)
       sr.setNoCache();
       int res=-1;
       try {
-	res=sr.beginResolve(".", QType(QType::NS), 1, ret);
+	res=sr.beginResolve(DNSName(), QType(QType::NS), 1, ret);
       }
       catch(PDNSException& e)
 	{
@@ -1449,10 +1449,9 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
 }
 
 uint32_t g_disthashseed;
-void distributeAsyncFunction(const DNSName& question, const pipefunc_t& func)
+void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
-  string squestion = question.toString();
-  unsigned int hash = hashQuestion(squestion.c_str(), squestion.length(), g_disthashseed);
+  unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
   unsigned int target = 1 + (hash % (g_pipes.size()-1));
 
   if(target == t_id) {
@@ -1698,7 +1697,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     try {
-      pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+      pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment

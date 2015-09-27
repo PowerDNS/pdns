@@ -42,24 +42,6 @@ std::string RCode::to_s(unsigned short rcode) {
   return RCode::rcodes_s[rcode];
 }
 
-static void appendEscapedLabel(string& ret, const char* begin, unsigned char labellen)
-{
-  unsigned char n = 0;
-  for(n = 0 ; n < labellen; ++n)
-    if(begin[n] == '.' || begin[n] == '\\' || begin[n] == ' ')
-      break;
-  
-  if( n == labellen) {
-    ret.append(begin, labellen);
-    return;
-  }
-  string label(begin, labellen);
-  boost::replace_all(label, "\\",  "\\\\");
-  boost::replace_all(label, ".",  "\\.");
-  boost::replace_all(label, " ",  "\\032");
-  ret.append(label);
-}
-
 class BoundsCheckingPointer
 {
 public:
@@ -151,36 +133,6 @@ uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
   return ret;
 }
 
-string questionExpand(const char* packet, uint16_t len, uint16_t& type)
-{
-  type=0;
-  string ret;
-  if(len < 12) 
-    throw runtime_error("Error parsing question in incoming packet: packet too short");
-    
-  const unsigned char* end = (const unsigned char*)packet+len;
-  const unsigned char* pos = (const unsigned char*)packet+12;
-  unsigned char labellen;
-  
-  if(!*pos)
-    ret.assign(1, '.');
-  
-  while((labellen=*pos++) && pos < end) { // "scan and copy"
-    if(pos + labellen > end)
-      throw runtime_error("Error parsing question in incoming packet: label extends beyond packet");
-    
-    appendEscapedLabel(ret, (const char*) pos, labellen);
-    
-    ret.append(1, '.');
-    pos += labellen;
-  }
-
-  if(pos + labellen + 2 <= end)  
-    type=(*pos)*256 + *(pos+1);
-  // cerr << "returning: '"<<ret<<"'"<<endl;
-  return ret;
-}
-
 void fillSOAData(const string &content, SOAData &data)
 {
   // content consists of fields separated by spaces:
@@ -195,10 +147,10 @@ void fillSOAData(const string &content, SOAData &data)
   //  cout<<"'"<<content<<"'"<<endl;
 
   if(pleft)
-    data.nameserver=parts[0];
+    data.nameserver=DNSName(parts[0]);
 
   if(pleft>1) 
-    data.hostmaster=attodot(parts[1]); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
+    data.hostmaster=DNSName(attodot(parts[1])); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
 
   data.serial = pleft > 2 ? pdns_strtoui(parts[2].c_str(), NULL, 10) : 0;
   if (data.serial == UINT_MAX && errno == ERANGE) throw PDNSException("serial number too large in '"+parts[2]+"'");

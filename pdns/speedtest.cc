@@ -489,9 +489,9 @@ struct TCacheComp
 
 struct NegCacheEntry
 {
-  string d_name;
+  DNSName d_name;
   QType d_qtype;
-  string d_qname;
+  DNSName d_qname;
   uint32_t d_ttd;
 };
 

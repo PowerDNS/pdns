@@ -109,8 +109,11 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   if( (qtype.getCode() == QType::AXFR))
     return -1;
 
-  if( (qtype.getCode()==QType::PTR && pdns_iequals(qname, "1.0.0.127.in-addr.arpa.")) ||
-      (qtype.getCode()==QType::A && pdns_iequals(qname, "localhost."))) {
+  static const DNSName arpa("1.0.0.127.in-addr.arpa."), localhost("localhost."), 
+    versionbind("version.bind."), idserver("id.server."), versionpdns("version.pdns.");
+
+  if( (qtype.getCode()==QType::PTR && qname==arpa) ||
+      (qtype.getCode()==QType::A && qname==localhost)) {
     ret.clear();
     DNSResourceRecord rr;
     rr.qname=qname;
@@ -126,7 +129,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
   }
 
   if(qclass==QClass::CHAOS && qtype.getCode()==QType::TXT &&
-        (pdns_iequals(qname, "version.bind.") || pdns_iequals(qname, "id.server.") || pdns_iequals(qname, "version.pdns.") )
+        (qname==versionbind || qname==idserver || qname==versionpdns )
      ) {
     ret.clear();
     DNSResourceRecord rr;
@@ -134,7 +137,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     rr.qtype=qtype;
     rr.qclass=qclass;
     rr.ttl=86400;
-    if(pdns_iequals(qname,"version.bind.")  || pdns_iequals(qname,"version.pdns."))
+    if(qname==versionbind  || qname==versionpdns)
       rr.content="\""+::arg()["version-string"]+"\"";
     else
       rr.content="\""+s_serverID+"\"";
@@ -314,19 +317,19 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, 
     ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, res);
 
     if(ret == 0 || ret < 0) {
-      cerr<<"Transport error or timeout (ret="<<ret<<"), no change in mode"<<endl;
+      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret="<<ret<<"), no change in mode"<<endl;
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
       if(res->d_rcode == RCode::FormErr || res->d_rcode == RCode::NotImp)  {
-	cerr<<"Downgrading to NOEDNS because of FORMERR or NotImp!"<<endl;
+	cerr<<"Downgrading to NOEDNS because of "<<RCode::to_s(res->d_rcode)<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"'"<<endl;
         mode = EDNSStatus::NOEDNS;
         continue;
       }
       else if(!res->d_haveEDNS) {
         if(mode != EDNSStatus::EDNSIGNORANT) {
           mode = EDNSStatus::EDNSIGNORANT;
-	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer, moving to mode 3"<<endl;
+	  cerr<<"We find that "<<ip.toString()<<" is an EDNS-ignorer for '"<<domain.toString()<<"', moving to mode 3"<<endl;
 	}
       }
       else {
@@ -512,7 +515,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, set<D
 
           DNSResourceRecord rr=*k;
           rr.content=k->content;
-          if(!DNSName(rr.content).isPartOf(subdomain) || t_RC->get(d_now.tv_sec, rr.content, s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
+          if(!DNSName(rr.content).isPartOf(subdomain) || t_RC->get(d_now.tv_sec, DNSName(rr.content), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
                                                             doLog() ? &aset : 0) > 5) {
             bestns.insert(rr);
             LOG(prefix<<qname.toString()<<": NS (with ip, or non-glue) in cache for '"<<subdomain.toString()<<"' -> '"<<rr.content<<"'"<<endl);
@@ -585,7 +588,9 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
       nsset.insert(DNSName()); // this gets picked up in doResolveAt, if empty it means "we are auth", otherwise it denotes a forward
     else {
       for(vector<ComboAddress>::const_iterator server=iter->second.d_servers.begin(); server != iter->second.d_servers.end(); ++server)
-        nsset.insert((iter->second.d_rdForward ? "+" : "-") + server->toStringWithPort()); // add a '+' if the rd bit should be set
+	//        nsset.insert((iter->second.d_rdForward ? "+" : "-") + server->toStringWithPort()); // add a '+' if the rd bit should be set
+      // XXX this doesn't work, nsset can't contain a port number, or a plus etc!
+	abort();
     }
 
     return authdomain;
@@ -595,7 +600,7 @@ DNSName SyncRes::getBestNSNamesFromCache(const DNSName &qname, const QType& qtyp
   getBestNSFromCache(subdomain, qtype, bestns, flawedNSSet, depth, beenthere);
 
   for(set<DNSResourceRecord>::const_iterator k=bestns.begin();k!=bestns.end();++k) {
-    nsset.insert(k->content);
+    nsset.insert(DNSName(k->content));
     if(k==bestns.begin())
       subdomain=k->qname;
   }
@@ -628,7 +633,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         ret.push_back(rr);
         if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!
           set<GetBestNSAnswer>beenthere;
-          res=doResolve(j->content, qtype, ret, depth+1, beenthere);
+          res=doResolve(DNSName(j->content), qtype, ret, depth+1, beenthere);
         }
         else
           res=0;
@@ -640,11 +645,11 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   return false;
 }
 
-// accepts . terminated names, www.powerdns.com. -> com.
-static const string getLastLabel(const DNSName& qname)
+static const DNSName getLastLabel(const DNSName& qname)
 {
-  auto parts = qname.getRawLabels();
-  return parts[parts.size()-1];
+  DNSName ret(qname);
+  ret.trimToLabels(1);
+  return ret;
 }
 
 bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res)
@@ -840,7 +845,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 		for(vector<DNSName >::const_iterator tns=rnameservers.begin();;++tns) {
       if(tns==rnameservers.end()) {
         LOG(prefix<<qname.toString()<<": Failed to resolve via any of the "<<(unsigned int)rnameservers.size()<<" offered NS at level '"<<auth.toString()<<"'"<<endl);
-        if(auth!="." && flawedNSSet) {
+        if(auth!=DNSName() && flawedNSSet) {
           LOG(prefix<<qname.toString()<<": Ageing nameservers for level '"<<auth.toString()<<"', next query might succeed"<<endl);
           if(t_RC->doAgeCache(d_now.tv_sec, auth, QType::NS, 10))
             g_stats.nsSetInvalidations++;
@@ -1150,7 +1155,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
         }
         else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && i->qtype.getCode()==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(*i);
-          newtarget=i->content;
+          newtarget=DNSName(i->content);
         }
 	else if(d_doDNSSEC && (i->qtype==QType::RRSIG || i->qtype==QType::NSEC || i->qtype==QType::NSEC3) && i->d_place==DNSResourceRecord::ANSWER){
 	  ret.push_back(*i); // enjoy your DNSSEC
@@ -1176,7 +1181,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           }
           else
             LOG(prefix<<qname.toString()<<": got upwards/level NS record '"<<i->qname.toString()<<"' -> '"<<i->content<<"', had '"<<auth.toString()<<"'"<<endl);
-          nsset.insert(i->content);
+          nsset.insert(DNSName(i->content));
         }
         else if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::DS) { 
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<i->qname.toString()<<"' -> '"<<i->content<<"'"<<endl);
@@ -1260,6 +1265,6 @@ int directResolve(const std::string& qname, const QType& qtype, int qclass, vect
 
   SyncRes sr(now);
 
-  int res = sr.beginResolve(qname, QType(qtype), qclass, ret);
+  int res = sr.beginResolve(DNSName(qname), QType(qtype), qclass, ret); // DNSName conversion XXX
   return res;
 }

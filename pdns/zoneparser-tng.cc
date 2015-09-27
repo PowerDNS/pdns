@@ -304,7 +304,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     rr.qname=d_prevqname;
     prevqname=true;
   }else {
-    rr.qname=qname;
+    rr.qname=DNSName(qname); 
     parts.pop_front();
     if(qname.empty() || qname[0]==';')
       goto retry;

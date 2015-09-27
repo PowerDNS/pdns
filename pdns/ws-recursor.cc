@@ -131,11 +131,11 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
   resp->setBody(document);
 }
 
-static void fillZone(const string& zonename, HttpResponse* resp)
+static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
-  SyncRes::domainmap_t::const_iterator iter = t_sstorage->domainmap->find(zonename);
+  auto iter = t_sstorage->domainmap->find(zonename);
   if (iter == t_sstorage->domainmap->end())
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   Document doc;
   doc.SetObject();
@@ -143,7 +143,7 @@ static void fillZone(const string& zonename, HttpResponse* resp)
   const SyncRes::AuthDomain& zone = iter->second;
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-  string zoneId = apiZoneNameToId(iter->first.toString());
+  string zoneId = apiZoneNameToId(iter->first);
   Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("id", jzoneid, doc.GetAllocator());
   string url = "/servers/localhost/zones/" + zoneId;
@@ -187,14 +187,10 @@ static void doCreateZone(const Value& document)
     throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
   }
 
-  string zonename = stringFromJson(document, "name");
-  // TODO: better validation of zonename - apiZoneNameToId takes care of escaping / however
-  if(zonename.empty())
+  if(stringFromJson(document, "name").empty())
     throw ApiException("Zone name empty");
-
-  if (zonename[zonename.size()-1] != '.') {
-    zonename += ".";
-  }
+  
+  DNSName zonename(stringFromJson(document, "name"));
 
   string singleIPTarget = stringFromJson(document, "single_target_ip", "");
   string kind = toUpper(stringFromJson(document, "kind"));
@@ -228,7 +224,7 @@ static void doCreateZone(const Value& document)
     }
     ofzone.close();
 
-    apiWriteConfigFile(confbasename, "auth-zones+=" + zonename + "=" + zonefilename);
+    apiWriteConfigFile(confbasename, "auth-zones+=" + zonename.toString() + "=" + zonefilename);
   } else if (kind == "FORWARDED") {
     const Value &servers = document["servers"];
     if (kind == "FORWARDED" && (!servers.IsArray() || servers.Size() == 0))
@@ -245,16 +241,16 @@ static void doCreateZone(const Value& document)
     }
 
     if (rd) {
-      apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename + "=" + serverlist);
+      apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename.toString() + "=" + serverlist);
     } else {
-      apiWriteConfigFile(confbasename, "forward-zones+=" + zonename + "=" + serverlist);
+      apiWriteConfigFile(confbasename, "forward-zones+=" + zonename.toString() + "=" + serverlist);
     }
   } else {
     throw ApiException("invalid kind");
   }
 }
 
-static bool doDeleteZone(const string& zonename)
+static bool doDeleteZone(const DNSName& zonename)
 {
   if (::arg()["experimental-api-config-dir"].empty()) {
     throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
@@ -285,12 +281,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     Document document;
     req->json(document);
 
-    string zonename = stringFromJson(document, "name");
-    if (zonename[zonename.size()-1] != '.') {
-      zonename += ".";
-    }
+    DNSName zonename(stringFromJson(document, "name"));
 
-    SyncRes::domainmap_t::const_iterator iter = t_sstorage->domainmap->find(zonename);
+    auto iter = t_sstorage->domainmap->find(zonename);
     if (iter != t_sstorage->domainmap->end())
       throw ApiException("Zone already exists");
 
@@ -312,7 +305,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     Value jdi;
     jdi.SetObject();
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
-    string zoneId = apiZoneNameToId(val.first.toString());
+    string zoneId = apiZoneNameToId(val.first);
     Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("id", jzoneid, doc.GetAllocator());
     string url = "/servers/localhost/zones/" + zoneId;
@@ -336,12 +329,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 {
-  string zonename = apiZoneIdToName(req->parameters["id"]);
-  zonename += ".";
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   SyncRes::domainmap_t::const_iterator iter = t_sstorage->domainmap->find(zonename);
   if (iter == t_sstorage->domainmap->end())
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
     Document document;
@@ -350,7 +342,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     doDeleteZone(zonename);
     doCreateZone(document);
     reloadAuthAndForwards();
-    fillZone(stringFromJson(document, "name"), resp);
+    fillZone(DNSName(stringFromJson(document, "name")), resp);
   }
   else if(req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
     if (!doDeleteZone(zonename)) {
@@ -380,7 +372,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   doc.SetArray();
 
   BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
-    string zoneId = apiZoneNameToId(val.first.toString());
+    string zoneId = apiZoneNameToId(val.first);
     if (pdns_ci_find(val.first.toString(), q) != string::npos) {
       Value object;
       object.SetObject();
@@ -393,7 +385,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     }
 
     // if zone name is an exact match, don't bother with returning all records/comments in it
-    if (val.first == q) {
+    if (val.first == DNSName(q)) {
       continue;
     }
 
@@ -425,7 +417,7 @@ static void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
-  DNSName canon = req->getvars["domain"];
+  DNSName canon(req->getvars["domain"]);
   int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
   map<string, string> object;

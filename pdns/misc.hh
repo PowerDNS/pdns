@@ -507,9 +507,9 @@ inline bool isCanonical(const DNSName& qname)
 inline DNSName toCanonic(const DNSName& zone, const string& qname)
 {
   if(qname.size()==1 && qname[0]=='@')
-    return zone.toString();
+    return zone;
   if(isCanonical(qname))
-    return DNSName(qname).toString();
+    return DNSName(qname);
   return DNSName(qname) += zone;
 }
 

@@ -220,7 +220,7 @@ struct dnsheader {
 
 #define L theL()
 extern time_t s_starttime;
-std::string questionExpand(const char* packet, uint16_t len, uint16_t& type);
+
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init);
 bool dnspacketLessThan(const std::string& a, const std::string& b);
 

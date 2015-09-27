@@ -425,7 +425,7 @@ TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) { d_other
 
 uint16_t DNSKEYRecordContent::getTag()
 {
-  string data=this->serialize("");
+  string data=this->serialize(DNSName()); 
   const unsigned char* key=(const unsigned char*)data.c_str();
   unsigned int keysize=data.length();
 

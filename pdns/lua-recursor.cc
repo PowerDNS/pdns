@@ -67,7 +67,7 @@ extern "C" {
 
 static int getRegisteredNameLua(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
-  string regname=getRegisteredName(name).toString();
+  string regname=getRegisteredName(DNSName(name)).toString(); // hnnggg
   lua_pushstring(L, regname.c_str());
   return 1;
 }
@@ -126,13 +126,13 @@ int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vect
   return rcode;
 }
 
-int getFakePTRRecords(const std::string& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
+int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
 {
   /* qname has a reverse ordered IPv6 address, need to extract the underlying IPv4 address from it
      and turn it into an IPv4 in-addr.arpa query */
   ret.clear();
-  vector<string> parts;
-  stringtok(parts, qname, ".");
+  vector<string> parts = qname.getRawLabels();
+
   if(parts.size() < 8)
     return -1;
 
@@ -289,7 +289,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
       string luaprefix = lua_tostring(d_lua, 2);
       string luaqname = lua_tostring(d_lua,1);
       lua_pop(d_lua, 2);
-      res = getFakePTRRecords(luaqname, luaprefix, ret);
+      res = getFakePTRRecords(DNSName(luaqname), luaprefix, ret);
     }
     else if(tocall == "followCNAMERecords") {
       popResourceRecordsTable(d_lua, query, ret);

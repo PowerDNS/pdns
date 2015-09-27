@@ -726,6 +726,7 @@ void sortPublicSuffixList()
   sort(g_pubs.begin(), g_pubs.end());
 }
 
+// XXX DNSName Pain - this function should benefit from native DNSName methods
 DNSName getRegisteredName(const DNSName& dom)
 {
   auto parts=dom.getRawLabels();
@@ -746,13 +747,13 @@ DNSName getRegisteredName(const DNSName& dom)
       BOOST_REVERSE_FOREACH(const std::string& p, parts) {
 	ret+=p+".";
       }
-      return ret;
+      return DNSName(ret);
     }
 
     last=parts[parts.size()-1];
     parts.resize(parts.size()-1);
   }
-  return "??";
+  return DNSName("??");
 }
 
 static DNSName nopFilter(const DNSName& name)

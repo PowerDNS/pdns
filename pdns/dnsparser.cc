@@ -255,7 +255,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       unsigned int recordStartPos=pr.d_pos;
 
-      string label=pr.getName();
+      DNSName label=pr.getName();
       
       pr.getDnsrecordheader(ah);
       dr.d_ttl=ah.d_ttl;
@@ -389,23 +389,23 @@ uint8_t PacketReader::get8BitInt()
   return d_content.at(d_pos++);
 }
 
-string PacketReader::getName()
+DNSName PacketReader::getName()
 {
   unsigned int consumed;
   vector<uint8_t> content(d_content);
   content.insert(content.begin(), sizeof(dnsheader), 0);
 
   try {
-    string ret = DNSName((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed).toString();
+    DNSName dn((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed);
     
     d_pos+=consumed;
-    return ret;
+    return dn;
   }
   catch(...)
     {
       throw std::out_of_range("dnsname issue");
     }
-
+  return DNSName(); // if this ever happens..
 }
 
 static string txtEscape(const string &name)

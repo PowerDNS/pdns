@@ -1076,13 +1076,13 @@ bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 {
   switch(algoEnum) {
-  case TSIG_MD5: return "hmac-md5.sig-alg.reg.int.";
-  case TSIG_SHA1: return "hmac-sha1.";
-  case TSIG_SHA224: return "hmac-sha224.";
-  case TSIG_SHA256: return "hmac-sha256.";
-  case TSIG_SHA384: return "hmac-sha384.";
-  case TSIG_SHA512: return "hmac-sha512.";
-  case TSIG_GSS: return "gss-tsig.";
+  case TSIG_MD5: return DNSName("hmac-md5.sig-alg.reg.int.");
+  case TSIG_SHA1: return DNSName("hmac-sha1.");
+  case TSIG_SHA224: return DNSName("hmac-sha224.");
+  case TSIG_SHA256: return DNSName("hmac-sha256.");
+  case TSIG_SHA384: return DNSName("hmac-sha384.");
+  case TSIG_SHA512: return DNSName("hmac-sha512.");
+  case TSIG_GSS: return DNSName("gss-tsig.");
   }
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
 }

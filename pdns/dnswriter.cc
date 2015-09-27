@@ -99,7 +99,7 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z, const vector<pair
 
   ttl=ntohl(ttl); // will be reversed later on
 
-  startRecord("", QType::OPT, ttl, udpsize, ADDITIONAL, false);
+  startRecord(DNSName(), QType::OPT, ttl, udpsize, ADDITIONAL, false);
   for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
     xfr16BitInt(iter->first);
     xfr16BitInt(iter->second.length());

@@ -31,8 +31,9 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype)
     if(packet->qdcount==0)
       break;
     uint16_t t;
-    string found=questionExpand(iter->d_packet.c_str(), iter->d_packet.length(), t);
-    if(!pdns_iequals(found, name)) {  
+
+    DNSName found(iter->d_packet.c_str(), iter->d_packet.size(), 12, false, &t);
+    if(found==name) {   // this is case insensitive
       break;
     }
     if(t==qtype || qtype==0xffff) {
