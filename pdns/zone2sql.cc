@@ -407,7 +407,7 @@ try
               if(rr.qtype.getCode() == QType::SOA)
                 seenSOA=true;
 
-              emitRecord(i->name.toStringNoDot(), rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl, comment);
+              emitRecord(i->name.toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
             }
             num_domainsdone++;
           }
@@ -431,11 +431,11 @@ try
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
-      string zonename = ::arg()["zone-name"];
+      DNSName zonename(::arg()["zone-name"]);
       ZoneParserTNG zpt(zonefile, zonename);
       DNSResourceRecord rr;
       startNewTransaction();
-      emitDomain(zonename);
+      emitDomain(zonename.toStringNoDot());
       string comment;
       bool seenSOA=false;
       while(zpt.get(rr, &comment))  {
@@ -444,7 +444,7 @@ try
 	if(rr.qtype.getCode() == QType::SOA)
 	  seenSOA=true;
 
-        emitRecord(zonename, rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+        emitRecord(zonename.toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
       }
       num_domainsdone=1;
     }

@@ -507,7 +507,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
 
   for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
     BB2DomainInfo bbd;
-    if(safeGetBBDomainInfo(*i, &bbd)) {
+    if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {
       Bind2Backend bb2;
       bb2.queueReloadAndStore(bbd.d_id);
       ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
@@ -528,7 +528,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
   if(parts.size() > 1) {
     for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
       BB2DomainInfo bbd;
-      if(safeGetBBDomainInfo(*i, &bbd)) {	
+      if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {	
         ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";
     }
       else
@@ -724,7 +724,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   {
     rr.qname=nt.first+bbd.d_name;
     if(nsec3zone)
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname.toString()));
+      hashed=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
     insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
   }
 }

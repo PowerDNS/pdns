@@ -173,7 +173,7 @@ try
             obj["name"] = i->name.toStringNoDot();
 
             while(zpt.get(rr)) 
-              recs.push_back(emitRecord(i->name.toStringNoDot(), rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
+              recs.push_back(emitRecord(i->name.toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
             obj["records"] = recs;
             Json tmp = obj;
             cout<<tmp.dump();
@@ -199,7 +199,7 @@ try
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
-      ZoneParserTNG zpt(zonefile, ::arg()["zone-name"]);
+      ZoneParserTNG zpt(zonefile, DNSName(::arg()["zone-name"]));
       DNSResourceRecord rr;
       string zname;
       Json::object obj;
@@ -208,7 +208,7 @@ try
       obj["name"] = ::arg()["zone-name"];
 
       while(zpt.get(rr)) 
-        records.push_back(emitRecord(::arg()["zone-name"], rr.qname.toStringNoDot(), rr.qtype.getName(), rr.content, rr.ttl));
+        records.push_back(emitRecord(::arg()["zone-name"], rr.qname, rr.qtype.getName(), rr.content, rr.ttl));
       obj["records"] = records;
 
       Json tmp = obj;
