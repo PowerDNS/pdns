@@ -125,7 +125,7 @@ command:
 global_zone_command:
 	ZONETOK quotedname zone_block
 	{
-		s_di.name=stripDot($2);
+		s_di.name=DNSName(stripDot($2));
 		free($2);
 		parent->commit(s_di);
 		s_di.clear();
@@ -133,7 +133,7 @@ global_zone_command:
 	|	
 	ZONETOK quotedname AWORD zone_block
 	{
-	        s_di.name=stripDot($2);
+	        s_di.name=DNSName(stripDot($2));
 		free($2);
 		parent->commit(s_di);
 		s_di.clear();

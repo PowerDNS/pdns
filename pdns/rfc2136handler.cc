@@ -709,7 +709,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
       }
     } else {
       for(vector<string>::const_iterator key=tsigKeys.begin(); key != tsigKeys.end(); key++) {
-        if (inputkey == *key) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
+        if (inputkey == DNSName(*key)) { // because checkForCorrectTSIG has already been performed earlier on, if the names of the ky match with the domain given. THis is valid.
           validKey=true;
           break;
         }

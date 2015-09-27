@@ -68,7 +68,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
 {
   vector<uint8_t> packet;
 
-  DNSPacketWriter pw(packet, qname, qtype);
+  DNSPacketWriter pw(packet, DNSName(qname), qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
   if (s_secpollresolvers.empty()) {

@@ -223,7 +223,7 @@ int PacketCache::purge(const string &match)
       string prefix(match);
       prefix.resize(prefix.size()-1);
 
-      string zone = pcReverse(prefix);
+      string zone = pcReverse(DNSName(prefix));
 
       cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(zone));
       cmap_t::const_iterator start=iter;
@@ -238,7 +238,7 @@ int PacketCache::purge(const string &match)
     }
   
     else {
-      string qname = pcReverse(match);
+      string qname = pcReverse(DNSName(match));
       
       delcount+=mc.d_map.count(tie(qname));
       pair<cmap_t::iterator, cmap_t::iterator> range = mc.d_map.equal_range(tie(qname));

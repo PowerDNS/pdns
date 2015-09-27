@@ -25,7 +25,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   GssContext ctx(label.toStringNoDot());
 
   if (tkey_in.d_mode == 3) { // establish context
-    if (tkey_in.d_algo == "gss-tsig.") {
+    if (tkey_in.d_algo == DNSName("gss-tsig.")) {
       std::vector<std::string> meta;
       DNSName tmpLabel(label);
       do {
@@ -87,7 +87,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   if (sign)
   {
     TSIGRecordContent trc;
-    trc.d_algoName = "gss-tsig";
+    trc.d_algoName = DNSName("gss-tsig");
     trc.d_time = tkey_out->d_inception;
     trc.d_fudge = 300;
     trc.d_mac = "";
