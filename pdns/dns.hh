@@ -74,7 +74,7 @@ class DNSResourceRecord
 {
 public:
   DNSResourceRecord() : last_modified(0), signttl(0), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
-  DNSResourceRecord(const struct DNSRecord&);
+  explicit DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
 
   enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket
