@@ -344,7 +344,7 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
       d_overloaded = overloadQueueLength && (val > overloadQueueLength);
 
     if(val>::arg().asNum("max-queue-length")) {
-      L<<Logger::Error<<val<<" questions waiting for database attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
+      L<<Logger::Error<<val<<" questions waiting for database/backend attention. Limit is "<<::arg().asNum("max-queue-length")<<", respawning"<<endl;
       _exit(1);
     }
 
