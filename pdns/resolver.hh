@@ -59,22 +59,22 @@ public:
 
   typedef vector<DNSResourceRecord> res_t;
   //! synchronously resolve domain|type at IP, store result in result, rcode in ret
-  int resolve(const string &ip, const char *domain, int type, res_t* result, const ComboAddress& local);
+  int resolve(const string &ip, const DNSName &domain, int type, res_t* result, const ComboAddress& local);
 
-  int resolve(const string &ip, const char *domain, int type, res_t* result);
+  int resolve(const string &ip, const DNSName &domain, int type, res_t* result);
 
   //! only send out a resolution request
-  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const char *domain, int type, bool dnssecOk=false,
-    const string& tsigkeyname="", const string& tsigalgorithm="", const string& tsigsecret="");
+  uint16_t sendResolve(const ComboAddress& remote, const ComboAddress& local, const DNSName &domain, int type, bool dnssecOk=false,
+    const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
-  uint16_t sendResolve(const ComboAddress& remote, const char *domain, int type, bool dnssecOk=false,
-    const string& tsigkeyname="", const string& tsigalgorithm="", const string& tsigsecret="");
+  uint16_t sendResolve(const ComboAddress& remote, const DNSName &domain, int type, bool dnssecOk=false,
+    const DNSName& tsigkeyname=DNSName(), const DNSName& tsigalgorithm=DNSName(), const string& tsigsecret="");
 
   //! see if we got a SOA response from our sendResolve
-  bool tryGetSOASerial(string* theirDomain, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
+  bool tryGetSOASerial(DNSName *theirDomain, uint32_t* theirSerial, uint32_t* theirInception, uint32_t* theirExpire, uint16_t* id);
   
   //! convenience function that calls resolve above
-  void getSoaSerial(const string &, const string &, uint32_t *);
+  void getSoaSerial(const string &, const DNSName &, uint32_t *);
   
 private:
   std::map<std::string, int> locals;
@@ -84,9 +84,9 @@ class AXFRRetriever : public boost::noncopyable
 {
   public:
     AXFRRetriever(const ComboAddress& remote,
-        const string& zone,
-        const string& tsigkeyname=string(),
-        const string& tsigalgorithm=string(),
+        const DNSName& zone,
+        const DNSName& tsigkeyname=DNSName(),
+        const DNSName& tsigalgorithm=DNSName(),
         const string& tsigsecret=string(),
         const ComboAddress* laddr = NULL);
 	~AXFRRetriever();
@@ -103,7 +103,7 @@ class AXFRRetriever : public boost::noncopyable
     int d_soacount;
     ComboAddress d_remote;
     
-    string d_tsigkeyname;
+    DNSName d_tsigkeyname;
     string d_tsigsecret;
     string d_prevMac; // RFC2845 4.4
     string d_signData;
@@ -116,7 +116,7 @@ class AXFRRetriever : public boost::noncopyable
 class FindNS
 {
 public:
-  vector<string> lookup(const string &name, DNSBackend *b)
+  vector<string> lookup(const DNSName &name, DNSBackend *b)
   {
     vector<string> addresses;
 
@@ -131,7 +131,7 @@ public:
     return addresses;
   }
 
-  vector<string> lookup(const string &name, UeberBackend *b)
+  vector<string> lookup(const DNSName &name, UeberBackend *b)
   {
     vector<string> addresses;
 
@@ -147,7 +147,7 @@ public:
   }
 
 private:
-  void resolve_name(vector<string>* addresses, const string& name)
+  void resolve_name(vector<string>* addresses, const DNSName& name)
   {
     struct addrinfo* res;
     struct addrinfo hints;
@@ -157,7 +157,7 @@ private:
       hints.ai_family = n ? AF_INET : AF_INET6;
       ComboAddress remote;
       remote.sin4.sin_family = AF_INET6;
-      if(!getaddrinfo(name.c_str(), 0, &hints, &res)) {
+      if(!getaddrinfo(name.toString().c_str(), 0, &hints, &res)) {
         struct addrinfo* address = res;
         do {
           memcpy(&remote, address->ai_addr, address->ai_addrlen);

@@ -36,21 +36,9 @@ the init.d script provided.
 For authoritative listing of options, consult the online documentation at
 http://doc.powerdns.com/md/recursor/settings/
 
---aaaa-additional-processing
-:    Turn on to do AAAA additional processing (slow).
-
 --allow-from=*NETWORK*[,*NETWORK*]...
 :    If set, only allow these comma separated *NETWORK*s, with network mask to
      recurse. For example: 192.0.2.0/24,203.0.113.128/25.
-
---auth-can-lower-ttl
-:    Authoritative zones can transmit a TTL value that is lower than that
-     specified in the parent zone. This is called a 'delegation inconsistency'.
-     To follow RFC 2181 paragraphs 5.2 and 5.4 to the letter, enable this
-     feature. This will mean a slight deterioration of performance, and it will
-     not solve any problems, but does make the recursor more standards
-     compliant. Not recommended unless you have to tick an 'RFC 2181 compliant'
-     box. Off by default.
 
 --auth-zones=*ZONENAME*=*FILENAME*[,*ZONENAME*=*FILENAME*]...
 :    Serve *ZONENAME* from *FILENAME* authoritatively. For example:
@@ -78,9 +66,6 @@ http://doc.powerdns.com/md/recursor/settings/
 --export-etc-hosts
 :    If set, this flag will export the hostnames and IP addresses mentioned in
      /etc/hosts.
-
---fork
-:    If set, fork the daemon for possible double performance.
 
 --forward-zones=*ZONENAME*=*ADDRESS*[,*ZONENAME*=*ADDRESS*]...
 :    Queries for *ZONENAME* will be forwarded to *ADDRESS*. *ADDRESS*
@@ -129,9 +114,6 @@ http://doc.powerdns.com/md/recursor/settings/
 
 --quiet
 :    Suppress logging of questions and answers.
-
---remotes-ringbuffer-entries=*NUM*
-:    maximum number of packets to store statistics for.
 
 --server-id=*TEXT*
 :    Return *TEXT* when queried for 'server.id' TXT, defaults to hostname.

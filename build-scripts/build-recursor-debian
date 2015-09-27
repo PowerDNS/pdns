@@ -1,0 +1,39 @@
+#!/bin/sh
+
+if [ "$0" != "./build-scripts/build-recursor-debian" ]; then
+  echo "Please run me from the root checkout dir" >&2
+  exit 1
+fi
+
+if [ -z "$VERSION" ]; then
+  echo 'Please set $VERSION' >&2
+  exit 1
+fi
+
+if [ -z "$RELEASE" ];then
+  echo 'Please set $RELEASE' >&2
+  exit 1
+fi
+
+if [ -z "$DISTDIR" ]; then
+  echo 'Please set $DISTDIR to the directory where pdns-recursor.tar.gz was unpacked' >&2
+  exit 1
+fi
+
+set -e
+set -x
+
+rm -rf $DISTDIR/debian
+cp -r build-scripts/debian-recursor $DISTDIR/debian
+cat > $DISTDIR/debian/changelog << EOF
+pdns-recursor (${VERSION}-${RELEASE}) unstable; urgency=medium
+
+  * Automatic build
+
+ -- PowerDNS.COM AutoBuilder <noreply@powerdns.com>  $(date -R)
+
+EOF
+
+cd $DISTDIR
+
+fakeroot debian/rules binary

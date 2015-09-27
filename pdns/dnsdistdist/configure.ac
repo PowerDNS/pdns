@@ -13,8 +13,9 @@ BOOST_REQUIRE([1.35])
 BOOST_FOREACH
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/ext/yahttp/yahttp -lyahttp'])
-PDNS_WITH_LUA
+DNSDIST_LUA
 AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
+AC_DEFINE([HAVE_MBEDTLS2], [1], [Defined if mbed TLS version 2.x.x is used])
 
 AC_CONFIG_FILES([Makefile
 	ext/yahttp/Makefile

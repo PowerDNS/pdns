@@ -1,0 +1,2 @@
+This starts the server, does some IPv4 and IPv6 queries and checks if the
+statistics emitted are correct.

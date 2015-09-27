@@ -25,7 +25,7 @@ string AuthLua::policycmd(const vector<string>&parts) {
   return "no policy script loaded";
 }
 
-bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
+bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
 {
   return false;
 }
@@ -57,7 +57,7 @@ AuthLua::AuthLua(const std::string &fname)
   pthread_mutex_init(&d_lock,0);
 }
 
-bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
+bool AuthLua::axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out)
 {
   lua_getglobal(d_lua,  "axfrfilter");
   if(!lua_isfunction(d_lua, -1)) {
@@ -67,8 +67,8 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
   }
   
   lua_pushstring(d_lua,  remote.toString().c_str() );
-  lua_pushstring(d_lua,  zone.c_str() );
-  lua_pushstring(d_lua,  in.qname.c_str() );
+  lua_pushstring(d_lua,  zone.toString().c_str() ); // FIXME400 expose DNSName to Lua?
+  lua_pushstring(d_lua,  in.qname.toString().c_str() );
   lua_pushnumber(d_lua,  in.qtype.getCode() );
   lua_pushnumber(d_lua,  in.ttl );
   lua_pushstring(d_lua,  in.content.c_str() );
@@ -113,7 +113,8 @@ bool AuthLua::axfrfilter(const ComboAddress& remote, const string& zone, const D
     if(!getFromTable("ttl", rr.ttl))
       rr.ttl=3600;
 
-    if(!getFromTable("qname", rr.qname))
+    string qname = rr.qname.toString();
+    if(!getFromTable("qname", qname))
       rr.qname = zone;
 
     if(!getFromTable("place", tmpnum))
@@ -155,27 +156,27 @@ static int ldp_setRcode(lua_State *L) {
 
 static int ldp_getQuestion(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->qdomain.c_str());
+  lua_pushstring(L, p->qdomain.toString().c_str());
   lua_pushnumber(L, p->qtype.getCode());
   return 2;
 }
 
 static int ldp_getWild(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->qdomainwild.c_str());
+  lua_pushstring(L, p->qdomainwild.toString().c_str());
   return 1;
 }
 
 static int ldp_getZone(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  lua_pushstring(L, p->qdomainzone.c_str());
+  lua_pushstring(L, p->qdomainzone.toString().c_str());
   return 1;
 }
 
 static int ldp_addRecords(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
   vector<DNSResourceRecord> rrs;
-  popResourceRecordsTable(L, "BOGUS", rrs);
+  popResourceRecordsTable(L, DNSName("BOGUS"), rrs);
   BOOST_FOREACH(DNSResourceRecord rr, rrs) {
     p->addRecord(rr);
   }

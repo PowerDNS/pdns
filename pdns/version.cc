@@ -25,8 +25,12 @@
 #endif
 #include "logger.hh"
 #include "version.hh"
-#include "version_generated.h"
+#ifdef HAVE_MBEDTLS2
+#include <mbedtls/version.h>
+#else
 #include <polarssl/version.h>
+#include "mbedtlscompat.hh"
+#endif
 
 static ProductType productType;
 
@@ -54,7 +58,7 @@ string productName() {
 
 string getPDNSVersion()
 {
-  return PDNS_VERSION;
+  return VERSION;
 }
 
 // REST API product type
@@ -70,10 +74,14 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  theL()<<Logger::Warning<<productName()<<" "<< PDNS_VERSION <<" (" DIST_HOST ") "
-    "(C) 2001-2015 PowerDNS.COM BV" << endl;
+  theL()<<Logger::Warning<<productName()<<" "<< VERSION << " (C) 2001-2015 "
+    "PowerDNS.COM BV" << endl;
   theL()<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
-    "Built on " BUILD_DATE " by " BUILD_HOST ", "<<compilerVersion()<<"."<<endl;
+    "Built using " << compilerVersion()
+#ifndef REPRODUCIBLE
+    <<" on " __DATE__ " " __TIME__ " by " BUILD_HOST
+#endif
+    <<"."<< endl;
   theL()<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2." << endl;
@@ -91,8 +99,8 @@ void showBuildConfiguration()
 #ifdef HAVE_CRYPTOPP
     "cryptopp " <<
 #endif
-#ifdef HAVE_ED25519
-    "ed25519 " <<
+#ifdef HAVE_LIBSODIUM
+    "sodium " <<
 #endif
 #ifdef HAVE_LIBDL
     "libdl " <<
@@ -111,8 +119,8 @@ void showBuildConfiguration()
   // Auth only
   theL()<<Logger::Warning<<"Built-in modules: "<<PDNS_MODULES<<endl;
 #endif
-#ifndef POLARSSL_SYSTEM
-  theL()<<Logger::Warning<<"Built-in PolarSSL: "<<POLARSSL_VERSION_STRING<<endl;
+#ifndef MBEDTLS_SYSTEM
+  theL()<<Logger::Warning<<"Built-in mbed TLS: "<<MBEDTLS_VERSION_STRING<<endl;
 #endif
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
@@ -126,7 +134,10 @@ void showBuildConfiguration()
 string fullVersionString()
 {
   ostringstream s;
-  s<<productName()<<" " PDNS_VERSION " (" DIST_HOST " built " BUILD_DATE " " BUILD_HOST ")";
+  s<<productName()<<" " VERSION;
+#ifndef REPRODUCIBLE
+  s<<" (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
+#endif
   return s.str();
 }
 

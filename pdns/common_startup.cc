@@ -54,6 +54,7 @@ void declareArguments()
 {
   ::arg().set("local-port","The port on which we listen")="53";
   ::arg().setSwitch("experimental-dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
+  ::arg().setSwitch("write-pid","Write a PID file")="yes";
   ::arg().set("allow-dnsupdate-from","A global setting to allow DNS updates from these IP ranges.")="127.0.0.0/8,::1";
   ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
   ::arg().setSwitch("log-dns-details","If PDNS should log DNS non-erroneous details")="no";
@@ -92,7 +93,6 @@ void declareArguments()
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500"; 
   ::arg().set("recursor","If recursion is desired, IP address of a recursing nameserver")="no"; 
   ::arg().set("allow-recursion","List of subnets that are allowed to recurse")="0.0.0.0/0";
-  ::arg().set("pipebackend-abi-version","Version of the pipe backend ABI")="1";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
   ::arg().set("disable-tcp","Do not listen to TCP queries")="no";
   
@@ -176,10 +176,10 @@ void declareArguments()
   ::arg().set("security-poll-suffix","Domain name from which to query security update notifications")="secpoll.powerdns.com.";
 }
 
+static time_t s_start=time(0);
 static uint64_t uptimeOfProcess(const std::string& str)
 {
-  static time_t start=time(0);
-  return time(0) - start;
+  return time(0) - s_start;
 }
 
 static uint64_t getSysUserTimeMsec(const std::string& str)
@@ -202,10 +202,7 @@ try
   BOOST_FOREACH(DNSDistributor* d, g_distributors) {
     if(!d)
       continue;
-    int qcount, acount;
-    
-    d->getQueueSizes(qcount, acount);  // this does locking and other things, so don't get smart
-    totcount+=qcount;
+    totcount += d->getQueueSize();  // this does locking and other things, so don't get smart
   }
   return totcount;
 }
@@ -231,6 +228,8 @@ void declareStats(void)
   S.declare("udp-do-queries","Number of UDP queries received with DO bit");
   S.declare("udp-answers","Number of answers sent out over UDP");
   S.declare("udp-answers-bytes","Total size of answers sent out over UDP");
+  S.declare("udp4-answers-bytes","Total size of answers sent out over UDPv4");
+  S.declare("udp6-answers-bytes","Total size of answers sent out over UDPv6");
 
   S.declare("udp4-answers","Number of IPv4 answers sent out over UDP");
   S.declare("udp4-queries","Number of IPv4 UDP queries received");
@@ -245,6 +244,10 @@ void declareStats(void)
   S.declare("signatures", "Number of DNSSEC signatures made");
   S.declare("tcp-queries","Number of TCP queries received");
   S.declare("tcp-answers","Number of answers sent out over TCP");
+  S.declare("tcp-answers-bytes","Total size of answers sent out over TCP");
+  S.declare("tcp4-answers-bytes","Total size of answers sent out over TCPv4");
+  S.declare("tcp6-answers-bytes","Total size of answers sent out over TCPv6");
+
   S.declare("tcp4-queries","Number of IPv4 TCP queries received");
   S.declare("tcp4-answers","Number of IPv4 answers sent out over TCP");
   
@@ -303,16 +306,16 @@ int isGuarded(char **argv)
   return !!p;
 }
 
-void sendout(const AnswerData<DNSPacket> &AD)
+void sendout(DNSPacket* a)
 {
-  if(!AD.A)
+  if(!a)
     return;
   
-  N->send(AD.A);
+  N->send(a);
 
-  int diff=AD.A->d_dt.udiff();
+  int diff=a->d_dt.udiff();
   avg_latency=(int)(0.999*avg_latency+0.001*diff);
-  delete AD.A;  
+  delete a;  
 }
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
@@ -372,7 +375,7 @@ void *qthread(void *number)
      if(P->d.qr)
        continue;
 
-    S.ringAccount("queries", P->qdomain+"/"+P->qtype.getName());
+    S.ringAccount("queries", P->qdomain.toString()+"/"+P->qtype.getName());
     S.ringAccount("remotes",P->d_remote);
     if(logDNSQueries) {
       string remote;
@@ -429,7 +432,12 @@ void *qthread(void *number)
     if(logDNSQueries) 
       L<<"packetcache MISS"<<endl;
 
-    distributor->question(P, &sendout); // otherwise, give to the distributor
+    try {
+      distributor->question(P, &sendout); // otherwise, give to the distributor
+    }
+    catch(DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
+      _exit(1);
+    }
   }
   return 0;
 }

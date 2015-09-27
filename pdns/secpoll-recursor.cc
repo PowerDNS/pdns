@@ -27,14 +27,15 @@ void doSecPoll(time_t* last_secpoll)
   vector<DNSResourceRecord> ret;
 
   string version = "recursor-" +string(PACKAGEVERSION);
-  string query = version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"];
+  string qstring(version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"]);
 
-  if(*query.rbegin()!='.')
-    query+='.';
+  if(*qstring.rbegin()!='.')
+    qstring+='.';
 
-  boost::replace_all(query, "+", "_");
-  boost::replace_all(query, "~", "_");
+  boost::replace_all(qstring, "+", "_");
+  boost::replace_all(qstring, "~", "_");
 
+  DNSName query(qstring);
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
   if(!res && !ret.empty()) {
     string content=ret.begin()->content;
@@ -51,8 +52,11 @@ void doSecPoll(time_t* last_secpoll)
   }
   else {
     string pkgv(PACKAGEVERSION);
-    if(pkgv.find("git"))
-      L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    if(pkgv.find("0.0."))
+      L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
+    else
+      L<<Logger::Warning<<"Not validating response for security status update, this a non-release version."<<endl;
+
     if(g_security_status == 1) // it was ok, not it is unknown
       g_security_status = 0;
     if(res == RCode::NXDomain) // if we had servfail, keep on trying more more frequently

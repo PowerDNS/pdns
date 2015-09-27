@@ -29,6 +29,12 @@ When notifying this domain, also notify this nameserver (can occur multiple time
 ## AXFR-MASTER-TSIG
 Use this named TSIG key to retrieve this zone from its master (see [Provisioning signed notification and AXFR requests](modes-of-operation.md#provisioning-signed-notification-and-axfr-requests)).
 
+## GSS-ALLOW-AXFR-PRINCIPAL
+Allow this GSS principal to perform AXFR retrieval. Most commonly it is host/something@REALM, DNS/something@REALM or user@REALM. (See [GSS-TSIG support](gss-tsig.md)).
+
+## GSS-ACCEPTOR-PRINCIPAL
+Use this principal for accepting GSS context. (See [GSS-TSIG support](gss-tsig.md)).
+
 ## LUA-AXFR-SCRIPT
 Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).
 
@@ -57,3 +63,6 @@ Available modes are:
 
 ## TSIG-ALLOW-AXFR
 Allow these named TSIG keys to AXFR this zone (see [Provisioning outbound AXFR access](modes-of-operation.md#provisioning-outbound-axfr-access)).
+
+## TSIG-ALLOW-DNSUPDATE
+This setting allows you to set the TSIG key required to do an DNS update. If GSS-TSIG is enabled, you can put kerberos principals here as well.

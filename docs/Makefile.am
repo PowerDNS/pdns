@@ -12,7 +12,8 @@ MANPAGES_TARGET_TOOLS = dnsbulktest.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
 	nsec3dig.1 \
-	saxfr.1
+	saxfr.1 \
+	sdig.1
 
 MANPAGES_TARGET_DNSDIST = dnsdist.1
 
@@ -71,5 +72,5 @@ clean:
 	rm -rf html html.tar.bz2 *.8 *.1
 
 publish: html html.tar.bz2
-	rsync -crv --exclude '*~' ./html/ pdnsdocs@xs.powerdns.com:md/
-	rsync -crv --exclude '*~' ./html.tar.bz2 pdnsdocs@xs.powerdns.com:html.tar.bz2
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html/ web1.powerdns.com:/srv/www/doc.powerdns.com/md
+	rsync -crv --no-p --chmod=g=rwX --exclude '*~' ./html.tar.bz2 web1.powerdns.com:/srv/www/doc.powerdns.com/html.tar.bz2

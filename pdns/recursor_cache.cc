@@ -15,10 +15,10 @@
 #include "namespaces.hh"
 
 
-DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const string& serial, uint32_t ttd)
+DNSResourceRecord String2DNSRR(const DNSName& qname, const QType& qt, const string& serial, uint32_t ttd)
 {
   DNSResourceRecord rr;
-  rr.ttl=ttd; 
+  rr.ttl=ttd;
   rr.qtype=qt;
   rr.qname=qname;
 
@@ -40,7 +40,7 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
 
     while((labellen=serial.at(frompos++))) {
       if((labellen & 0xc0) == 0xc0) {
-        string encoded=simpleCompress(qname);
+        string encoded=qname.toDNSString();
         uint16_t offset=256*(labellen & ~0xc0) + (unsigned int)serial.at(frompos++) - sizeof(dnsheader)-5;
 
         simpleExpandTo(encoded, offset, rr.content);
@@ -59,7 +59,7 @@ DNSResourceRecord String2DNSRR(const string& qname, const QType& qt, const strin
     rr.content=regen->getZoneRepresentation();
   }
   rr.content.reserve(0);
-  rr.qname.reserve(0);
+  // rr.qname.reserve(0);
   return rr;
 }
 
@@ -78,7 +78,7 @@ string DNSRR2String(const DNSResourceRecord& rr)
     return string((char*)&ca.sin6.sin6_addr.s6_addr, 16);
   }
   else if(type==QType::NS || type==QType::CNAME)
-      return simpleCompress(rr.content, rr.qname);
+      return simpleCompress(rr.content, rr.qname.toString());
   else {
     string ret;
     shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(type, 1, rr.content));
@@ -100,14 +100,14 @@ unsigned int MemRecursorCache::bytes()
 
   for(cache_t::const_iterator i=d_cache.begin(); i!=d_cache.end(); ++i) {
     ret+=sizeof(struct CacheEntry);
-    ret+=(unsigned int)i->d_qname.length();
+    ret+=(unsigned int)i->d_qname.toString().length();
     for(vector<StoredRecord>::const_iterator j=i->d_records.begin(); j!= i->d_records.end(); ++j)
       ret+=j->size();
   }
   return ret;
 }
 
-int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<DNSResourceRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
+int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, set<DNSResourceRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
 {
   unsigned int ttd=0;
   //  cerr<<"looking up "<< qname+"|"+qt.getName()<<"\n";
@@ -123,16 +123,16 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
   if(res)
     res->clear();
 
-  if(d_cachecache.first!=d_cachecache.second) { 
-    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) 
-      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY || 
+  if(d_cachecache.first!=d_cachecache.second) {
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
+      if(i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
          (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )
-         ) {     
+         ) {
         for(vector<StoredRecord>::const_iterator k=i->d_records.begin(); k != i->d_records.end(); ++k) {
           if(k->d_ttd < 1000000000 || k->d_ttd > (uint32_t) now) {  // FIXME what does the 100000000 number mean?
             ttd=k->d_ttd;
             if(res) {
-              DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd); 
+              DNSResourceRecord rr=String2DNSRR(qname, QType(i->d_qtype),  k->d_string, ttd);
               res->insert(rr);
             }
           }
@@ -156,7 +156,7 @@ int MemRecursorCache::get(time_t now, const string &qname, const QType& qt, set<
 }
 
 
- 
+
 bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored)
 {
   if(!stored.d_auth) {
@@ -188,10 +188,10 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const set<DNSResou
 /* the code below is rather tricky - it basically replaces the stuff cached for qname by content, but it is special
    cased for when inserting identical records with only differing ttls, in which case the entry is not
    touched, but only given a new ttd */
-void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,  const set<DNSResourceRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const set<DNSResourceRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth)
 {
   d_cachecachevalid=false;
-  boost::tuple<string, uint16_t> key=boost::make_tuple(qname, qt.getCode());
+  boost::tuple<DNSName, uint16_t> key=boost::make_tuple(qname, qt.getCode());
   cache_t::iterator stored=d_cache.find(key);
   uint32_t maxTTD=UINT_MAX;
 
@@ -214,8 +214,8 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     vector<StoredRecord>::iterator j;
-    for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) 
-      if((time_t)j->d_ttd > now) 
+    for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j)
+      if((time_t)j->d_ttd > now)
         break;
     if(j != ce.d_records.end()) { // we still have valid data, ignore unauth data
       //      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
@@ -225,18 +225,18 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
       ce.d_auth = false;  // new data won't be auth
     }
   }
-  
+
   // limit TTL of auth->auth NSset update if needed, except for root
-  if(ce.d_auth && auth && qt.getCode()==QType::NS && !((qname.length()==1 && qname[0]=='.'))) {
+  if(ce.d_auth && auth && qt.getCode()==QType::NS && !(qname == DNSName("."))) {
     // cerr<<"\tLimiting TTL of auth->auth NS set replace"<<endl;
     vector<StoredRecord>::iterator j;
     for(j = ce.d_records.begin() ; j != ce.d_records.end(); ++j) {
       maxTTD=min(maxTTD, j->d_ttd);
-    }      
+    }
   }
 
   // make sure that we CAN refresh the root
-  if(auth && ((qname.length()==1 && qname[0]=='.') || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
+  if(auth && ((qname == DNSName(".")) || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
     // cerr<<"\tGot auth data, and it was not refresh attempt of an unchanged NS set, nuking storage"<<endl;
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
@@ -255,8 +255,8 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
     dr.d_ttd=min(maxTTD, i->ttl);
     dr.d_string=DNSRR2String(*i);
-    
-    if(isNew) 
+
+    if(isNew)
       ce.d_records.push_back(dr);
     else {
       range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
@@ -290,14 +290,14 @@ void MemRecursorCache::replace(time_t now, const string &qname, const QType& qt,
     //    cerr<<"\tSorting (because of isNew)\n";
     sort(ce.d_records.begin(), ce.d_records.end());
   }
-  
+
   if(ce.d_records.capacity() != ce.d_records.size())
     vector<StoredRecord>(ce.d_records).swap(ce.d_records);
-  
+
   d_cache.replace(stored, ce);
 }
 
-int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
+int MemRecursorCache::doWipeCache(const DNSName& name, uint16_t qtype)
 {
   int count=0;
   d_cachecachevalid=false;
@@ -314,7 +314,7 @@ int MemRecursorCache::doWipeCache(const string& name, uint16_t qtype)
   return count;
 }
 
-bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype, int32_t newTTL)
+bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, uint16_t qtype, int32_t newTTL)
 {
   cache_t::iterator iter = d_cache.find(tie(name, qtype));
   uint32_t maxTTD=std::numeric_limits<uint32_t>::min();
@@ -341,12 +341,12 @@ bool MemRecursorCache::doAgeCache(time_t now, const string& name, uint16_t qtype
     d_cachecachevalid=false;
 
     uint32_t newTTD = now + newTTL;
-    
+
     for(vector<StoredRecord>::iterator j = ce.d_records.begin() ; j != ce.d_records.end(); ++j)  {
       if(j->d_ttd>newTTD) // do never renew expired or older TTLs
         j->d_ttd = newTTD;
     }
-    
+
     d_cache.replace(iter, ce);
     return true;
   }
@@ -364,7 +364,7 @@ uint64_t MemRecursorCache::doDumpNSSpeeds(int fd)
   for(SyncRes::nsspeeds_t::iterator i = t_sstorage->nsSpeeds.begin() ; i!= t_sstorage->nsSpeeds.end(); ++i)
   {
     count++;
-    fprintf(fp, "%s -> ", i->first.c_str());
+    fprintf(fp, "%s -> ", i->first.toString().c_str());
     for(SyncRes::DecayingEwmaCollection::collection_t::iterator j = i->second.d_collection.begin(); j!= i->second.d_collection.end(); ++j)
     {
       // typedef vector<pair<ComboAddress, DecayingEwma> > collection_t;
@@ -393,10 +393,10 @@ uint64_t MemRecursorCache::doDump(int fd)
       count++;
       try {
         DNSResourceRecord rr=String2DNSRR(i->d_qname, QType(i->d_qtype), j->d_string, j->d_ttd - now);
-        fprintf(fp, "%s %d IN %s %s\n", rr.qname.c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
+        fprintf(fp, "%s %d IN %s %s\n", rr.qname.toString().c_str(), rr.ttl, rr.qtype.getName().c_str(), rr.content.c_str());
       }
       catch(...) {
-        fprintf(fp, "; error printing '%s'\n", i->d_qname.c_str());
+        fprintf(fp, "; error printing '%s'\n", i->d_qname.toString().c_str());
       }
     }
   }
@@ -411,4 +411,3 @@ void MemRecursorCache::doPrune(void)
   unsigned int maxCached=::arg().asNum("max-cache-entries") / g_numThreads;
   pruneCollection(d_cache, maxCached);
 }
-

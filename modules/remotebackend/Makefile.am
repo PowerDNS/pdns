@@ -1,7 +1,7 @@
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
-	$(POLARSSL_CFLAGS) \
+	$(MBEDTLS_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
 AM_LDFLAGS = $(THREADFLAGS)
@@ -118,6 +118,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/nameserver.cc \
 	../../pdns/rcpgenerator.cc \
 	../../pdns/unix_utility.cc \
+	../../pdns/gss_context.cc ../../pdns/gss_context.hh \
 	httpconnector.cc \
 	pipeconnector.cc \
 	unixconnector.cc \
@@ -128,7 +129,7 @@ libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 libtestremotebackend_la_LIBADD = \
 	$(YAHTTP_LIBS) \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
@@ -152,6 +153,13 @@ libtestremotebackend_la_LIBADD += \
 
 libtestremotebackend_la_CPPFLAGS += \
 	$(P11KIT1_CFLAGS)
+endif
+
+if GSS_TSIG
+libtestremotebackend_la_LIBADD += \
+	$(GSS_LIBS)
+libtestremotebackend_la_CPPFLAGS+= \
+	$(GSS_CFLAGS)
 endif
 
 remotebackend_http_test_SOURCES = \

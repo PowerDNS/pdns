@@ -5,10 +5,8 @@
 #include <stdio.h>
 #include "dnsseckeeper.hh"
 #include "dns.hh"
-using std::string;
-using std::vector;
 
-void writeLStringToSocket(int fd, const pdns::string& msg);
+void writeLStringToSocket(int fd, const string& msg);
 bool readLStringFromSocket(int fd, string& msg);
 
 /** input: DNSResourceRecords ordered in qname,qtype (we emit a signature chunk on a break)
@@ -21,12 +19,13 @@ public:
   typedef vector<DNSResourceRecord> rrset_t; 
   typedef rrset_t chunk_t; // for now
   
-  ChunkedSigningPipe(const std::string& signerName, bool mustSign, const pdns::string& servers=pdns::string(), unsigned int numWorkers=3);
+  ChunkedSigningPipe(const DNSName& signerName, bool mustSign, /* FIXME servers is unused? */ const string& servers=string(), unsigned int numWorkers=3);
   ~ChunkedSigningPipe();
   bool submit(const DNSResourceRecord& rr);
   chunk_t getChunk(bool final=false);
-  int d_queued;
+
   AtomicCounter d_signed;
+  int d_queued;
   int d_outstanding;
   unsigned int getReady();
 private:
@@ -39,19 +38,21 @@ private:
   void worker(int n, int fd);
   
   static void* helperWorker(void* p);
+
+  unsigned int d_numworkers;
+  int d_submitted;
+
   rrset_t* d_rrsetToSign;
   std::deque< std::vector<DNSResourceRecord> > d_chunks;
-  string d_signer;
+  DNSName d_signer;
   
   chunk_t::size_type d_maxchunkrecords;
   
   std::vector<int> d_sockets;
   std::set<int> d_eof;
-  unsigned int d_numworkers;
   vector<pthread_t> d_tids;
   bool d_mustSign;
   bool d_final;
-  int d_submitted;
 };
 
 #endif

@@ -1,0 +1,49 @@
+<?xml version='1.0'?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<!--
+        NOTE:  This service manifest is not editable; its  contents  will
+        be  overwritten by package or patch operations, including operat-
+        ing system upgrade.
+-->
+
+<service_bundle type='manifest' name='powerdns:recursor'>
+  <service name='site/powerdns' type='service' version='1'>
+    <instance name='recursor' enabled='true'>
+      <dependency name='multi-user' grouping='require_all' restart_on='refresh' type='service'>
+        <service_fmri value='svc:/milestone/multi-user' />
+      </dependency>
+
+      <dependency name='config_data' grouping='require_all' restart_on='restart' type='path'>
+        <service_fmri value='file:///etc/opt/powerdns//recursor.conf' />
+      </dependency>
+
+      <exec_method type='method' name='start' exec='/opt/powerdns/sbin/pdns_recursor --daemon' timeout_seconds='60' >
+        <method_context>
+          <method_credential user='root' group='root' privileges=':default'/>
+        </method_context>
+      </exec_method>
+
+      <exec_method type='method' name='stop' exec='/opt/powerdns//sbin/rec_control quit' timeout_seconds='60' />
+
+      <exec_method type='method' name='refresh' exec='/opt/powerdns/sbin/rec_control reload-zones' timeout_seconds='60' />
+
+      <template>
+        <common_name>
+          <loctext xml:lang='C'>
+            PowerDNS recursive name server
+          </loctext>
+        </common_name>
+        <description>
+          <loctext xml:lang='C'>
+            PowerDNS recursor performs resolution of recursive name queries.
+          </loctext>
+        </description>
+        <documentation>
+          <manpage title='pdns_recursor' section='1M' manpath='/opt/powerdns/share/man' />
+        </documentation>
+      </template>
+    </instance>
+
+    <stability value='Unstable' />
+  </service>
+</service_bundle>

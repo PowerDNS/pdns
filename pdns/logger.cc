@@ -142,6 +142,12 @@ Logger& Logger::operator<<(const string &s)
   return *this;
 }
 
+Logger& Logger::operator<<(const char *s)
+{
+  *this<<string(s);
+  return *this;
+}
+
 Logger& Logger::operator<<(int i)
 {
   ostringstream tmp;
@@ -190,7 +196,6 @@ Logger& Logger::operator<<(unsigned long long i)
   return *this;
 }
 
-
 Logger& Logger::operator<<(long i)
 {
   ostringstream tmp;
@@ -208,5 +213,12 @@ Logger& Logger::operator<<(ostream & (&)(ostream &))
   log(pt->d_output, pt->d_urgency);
   pt->d_output.clear();
   pt->d_urgency=Info;
+  return *this;
+}
+
+Logger& Logger::operator<<(const DNSName &d)
+{
+  *this<<d.toString();
+
   return *this;
 }

@@ -149,7 +149,7 @@ static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
   BOOST_FOREACH(const NegCacheEntry& neg, sidx)
   {
     ++count;
-    fprintf(fp, "%s IN %s %d VIA %s\n", neg.d_name.c_str(), neg.d_qtype.getName().c_str(), (unsigned int) (neg.d_ttd - now), neg.d_qname.c_str());
+    fprintf(fp, "%s IN %s %d VIA %s\n", neg.d_name.toString().c_str(), neg.d_qtype.getName().c_str(), (unsigned int) (neg.d_ttd - now), neg.d_qname.toString().c_str());
   }
   fclose(fp);
   return count;
@@ -227,14 +227,14 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
-uint64_t* pleaseWipeCache(const std::string& canon)
+uint64_t* pleaseWipeCache(const DNSName& canon)
 {
   // clear packet cache too
   return new uint64_t(t_RC->doWipeCache(canon) + t_packetCache->doWipePacketCache(canon));
 }
 
 
-uint64_t* pleaseWipeAndCountNegCache(const std::string& canon)
+uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon)
 {
   uint64_t res = t_sstorage->negcache.count(tie(canon));
   pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=t_sstorage->negcache.equal_range(tie(canon));
@@ -247,7 +247,7 @@ string doWipeCache(T begin, T end)
 {
   int count=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
-    string canon=toCanonic("", *i);
+    DNSName canon=DNSName(*i);
     count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
   }
@@ -317,7 +317,7 @@ static string* pleaseGetCurrentQueries()
   for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end() && n < 100; ++mthread, ++n) {
     const PacketID& pident = mthread->key;
     ostr << (fmt 
-             % pident.domain % DNSRecordContent::NumberToType(pident.type) 
+             % pident.domain.toString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              );
@@ -523,6 +523,12 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
+  addGetStat("auth-answers0-1", &g_stats.authAnswers0_1);
+  addGetStat("auth-answers1-10", &g_stats.authAnswers1_10);
+  addGetStat("auth-answers10-100", &g_stats.authAnswers10_100);
+  addGetStat("auth-answers100-1000", &g_stats.authAnswers100_1000);
+  addGetStat("auth-answers-slow", &g_stats.authAnswersSlow);
+
   addGetStat("qa-latency", doGetAvgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
@@ -601,9 +607,9 @@ static void doExitNicely()
   doExitGeneric(true);
 }
 
-vector<pair<string, uint16_t> >* pleaseGetQueryRing()
+vector<pair<DNSName, uint16_t> >* pleaseGetQueryRing()
 {
-  typedef pair<string,uint16_t> query_t;
+  typedef pair<DNSName,uint16_t> query_t;
   vector<query_t >* ret = new vector<query_t>();
   if(!t_queryring)
     return ret;
@@ -614,9 +620,9 @@ vector<pair<string, uint16_t> >* pleaseGetQueryRing()
   }
   return ret;
 }
-vector<pair<string,uint16_t> >* pleaseGetServfailQueryRing()
+vector<pair<DNSName,uint16_t> >* pleaseGetServfailQueryRing()
 {
-  typedef pair<string,uint16_t> query_t;
+  typedef pair<DNSName,uint16_t> query_t;
   vector<query_t>* ret = new vector<query_t>();
   if(!t_servfailqueryring)
     return ret;
@@ -630,7 +636,7 @@ vector<pair<string,uint16_t> >* pleaseGetServfailQueryRing()
 
 
 typedef boost::function<vector<ComboAddress>*()> pleaseremotefunc_t;
-typedef boost::function<vector<pair<string,uint16_t> >*()> pleasequeryfunc_t;
+typedef boost::function<vector<pair<DNSName,uint16_t> >*()> pleasequeryfunc_t;
 
 vector<ComboAddress>* pleaseGetRemotes()
 {
@@ -720,10 +726,10 @@ void sortPublicSuffixList()
   sort(g_pubs.begin(), g_pubs.end());
 }
 
-string getRegisteredName(const std::string& dom)
+// XXX DNSName Pain - this function should benefit from native DNSName methods
+DNSName getRegisteredName(const DNSName& dom)
 {
-  vector<string> parts;
-  stringtok(parts, dom, ".");
+  auto parts=dom.getRawLabels();
   if(parts.size()<=2)
     return dom;
   reverse(parts.begin(), parts.end());
@@ -741,23 +747,23 @@ string getRegisteredName(const std::string& dom)
       BOOST_REVERSE_FOREACH(const std::string& p, parts) {
 	ret+=p+".";
       }
-      return ret;
+      return DNSName(ret);
     }
 
     last=parts[parts.size()-1];
     parts.resize(parts.size()-1);
   }
-  return "??";
+  return DNSName("??");
 }
 
-static string nopFilter(const std::string& str)
+static DNSName nopFilter(const DNSName& name)
 {
-  return str;
+  return name;
 }
 
-string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const std::string&)> filter=nopFilter)
+string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const DNSName&)> filter=nopFilter)
 {
-  typedef pair<string,uint16_t> query_t;
+  typedef pair<DNSName,uint16_t> query_t;
   typedef map<query_t, int> counts_t;
   counts_t counts;
   vector<query_t> queries=broadcastAccFunction<vector<query_t> >(func);
@@ -765,7 +771,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const 
   unsigned int total=0;
   BOOST_FOREACH(const query_t& q, queries) {
     total++;
-    counts[make_pair(toLower(filter(q.first)),q.second)]++;
+    counts[make_pair(filter(q.first),q.second)]++;
   }
 
   typedef std::multimap<int, query_t> rcounts_t;
@@ -780,7 +786,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const 
   int limit=0, accounted=0;
   if(total) {
     for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret<< fmt % (-100.0*i->first/total) % (i->second.first+"|"+DNSRecordContent::NumberToType(i->second.second));
+      ret<< fmt % (-100.0*i->first/total) % (i->second.first.toString()+"|"+DNSRecordContent::NumberToType(i->second.second));
       accounted+= -i->first;
     }
     ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";

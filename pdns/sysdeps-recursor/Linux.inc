@@ -8,8 +8,8 @@ endif
 CXXFLAGS := $(CXXFLAGS) -D_GNU_SOURCE -DHAVE_STRCASESTR -std=gnu++11
 CFLAGS := $(CFLAGS) -D_GNU_SOURCE
 
-LUA_CPPFLAGS_CONFIG ?= -I/usr/include/lua5.1
-LUA_LIBS_CONFIG ?= -llua5.1 -rdynamic
+LUA_CPPFLAGS_CONFIG ?= -I/usr/include/lua5.2
+LUA_LIBS_CONFIG ?= -llua5.2 -rdynamic
 
 # Lua 5.0 settings
 #LUA_CPPFLAGS_CONFIG=-I/usr/include/lua50 

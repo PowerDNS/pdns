@@ -34,16 +34,20 @@ private:
   func_t d_func;
 };
 
-std::shared_ptr<DNSRule> makeRule(const boost::variant<string,vector<pair<int, string>> >& var)
+typedef boost::variant<string,vector<pair<int, string>>, std::shared_ptr<DNSRule> > luadnsrule_t;
+std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
+  if(auto src = boost::get<std::shared_ptr<DNSRule>>(&var))
+    return *src;
+  
   SuffixMatchNode smn;
   NetmaskGroup nmg;
-  
+
   auto add=[&](string src) {
     try {
-      smn.add(DNSName(src));
+      nmg.addMask(src); // need to try mask first, all masks are domain names!
     } catch(...) {
-      nmg.addMask(src);
+      smn.add(DNSName(src));
     }
   };
   if(auto src = boost::get<string>(&var))
@@ -248,12 +252,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
-  g_lua.writeFunction("addLocal", [client](const std::string& addr) {
+  g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
       if(client)
 	return;
       try {
 	ComboAddress loc(addr, 53);
-	g_locals.push_back(loc); /// only works pre-startup, so no sync necessary
+	g_locals.push_back({loc, doTCP ? *doTCP : true}); /// only works pre-startup, so no sync necessary
       }
       catch(std::exception& e) {
 	g_outputBuffer="Error: "+string(e.what())+"\n";
@@ -332,7 +336,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }catch(std::exception& e) { g_outputBuffer=e.what(); throw; }
     });
 
-  g_lua.writeFunction("addLuaAction", [](boost::variant<string,vector<pair<int, string>> > var, LuaAction::func_t func) 
+  g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func) 
 		      {
 			auto rule=makeRule(var);
 			g_rulactions.modify([rule,func](decltype(g_rulactions)::value_type& rulactions){
@@ -342,7 +346,42 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		      });
 
 
-  g_lua.writeFunction("addPoolRule", [](boost::variant<string,vector<pair<int, string>> > var, string pool) {
+  g_lua.writeFunction("NoRecurseAction", []() {
+      return std::shared_ptr<DNSAction>(new NoRecurseAction);
+    });
+
+  g_lua.writeFunction("DropAction", []() {
+      return std::shared_ptr<DNSAction>(new DropAction);
+    });
+
+  g_lua.writeFunction("TCAction", []() {
+      return std::shared_ptr<DNSAction>(new TCAction);
+    });
+
+
+  g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
+      return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
+    });
+
+
+  g_lua.writeFunction("MaxQPSRule", [](unsigned int qps, boost::optional<int> burst) {
+      if(!burst)
+        return std::shared_ptr<DNSRule>(new MaxQPSRule(qps));
+      else
+        return std::shared_ptr<DNSRule>(new MaxQPSRule(qps, *burst));      
+    });
+
+
+  g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
+		      {
+			auto rule=makeRule(var);
+			g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){
+			    rulactions.push_back({rule, ea});
+			  });
+		      });
+
+
+  g_lua.writeFunction("addPoolRule", [](luadnsrule_t var, string pool) {
       auto rule=makeRule(var);
 	g_rulactions.modify([rule, pool](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -350,7 +389,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		  std::make_shared<PoolAction>(pool)  });
 	  });
     });
-  g_lua.writeFunction("addQPSPoolRule", [](boost::variant<string,vector<pair<int, string>> > var, int limit, string pool) {
+
+  g_lua.writeFunction("addNoRecurseRule", [](luadnsrule_t var) {
+      auto rule=makeRule(var);
+	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+		rule,
+		  std::make_shared<NoRecurseAction>()  });
+	  });
+    });
+
+
+  g_lua.writeFunction("addQPSPoolRule", [](luadnsrule_t var, int limit, string pool) {
       auto rule = makeRule(var);
       g_rulactions.modify([rule, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({
@@ -366,7 +416,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	});
     });
 
-  g_lua.writeFunction("addQPSLimit", [](boost::variant<string,vector<pair<int, string>> > var, int lim) {
+  g_lua.writeFunction("addQPSLimit", [](luadnsrule_t var, int lim) {
       auto rule = makeRule(var);
       g_rulactions.modify([lim,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
@@ -374,6 +424,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	});
     });
    
+  g_lua.writeFunction("addDelay", [](luadnsrule_t var, int msec) {
+      auto rule = makeRule(var);
+      g_rulactions.modify([msec,rule](decltype(g_rulactions)::value_type& rulactions) {
+	  rulactions.push_back({rule, 
+		std::make_shared<DelayAction>(msec)});
+	});
+    });
 
 
   g_lua.writeFunction("showRules", []() {

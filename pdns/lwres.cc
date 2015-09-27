@@ -52,7 +52,7 @@
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -163,7 +163,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     }
 
     if(!pdns_iequals(domain, mdp.d_qname)) { 
-      if(!mdp.d_qname.empty() && domain.find((char)0) == string::npos) {// embedded nulls are too noisy, plus empty domains are too
+      if(!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) {// embedded nulls are too noisy, plus empty domains are too
         L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
       }
       // unexpected count has already been done @ pdns_recursor.cc
@@ -171,7 +171,6 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
     }
 
     lwr->d_records = mdp.d_answers;
-    
 
     EDNSOpts edo;
     if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
@@ -203,7 +202,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 vector<DNSResourceRecord>& LWResult::getResult()
 {
   if(d_result.empty()) {
-    for(auto i=d_records.begin(); i != d_records.end(); ++i) {          
+    for(auto i=d_records.cbegin(); i != d_records.cend(); ++i) {          
       DNSResourceRecord rr;
       rr.qtype=i->first.d_type;
       rr.qname=i->first.d_label;

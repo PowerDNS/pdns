@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) -I$(CURDIR)/ext/mbedtls/include -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -17,6 +17,7 @@ man_MANS=dnsdist.1
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   README.md \
+	   delaypipe.cc delaypipe.hh \
 	   html \
 	   dnsdist.1 \
 	   .version \
@@ -49,7 +50,12 @@ dnsdist_SOURCES = \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
-	ext/incbin/incbin.h
+	ext/incbin/incbin.h \
+	ext/mbedtls/include/mbedtls/config.h \
+	ext/mbedtls/include/mbedtls/check_config.h \
+	ext/mbedtls/include/mbedtls/base64.h \
+	ext/mbedtls/include/mbedtls/platform.h \
+	ext/mbedtls/library/base64.c
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \

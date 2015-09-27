@@ -32,18 +32,6 @@ BOOST_AUTO_TEST_CASE(test_sha1summer) {
    }
 }
 
-BOOST_AUTO_TEST_CASE(test_sha224summer) {
-   cases_t cases = list_of 
-      (case_t("abc", "23 09 7d 22 34 05 d8 22 86 42 a4 77 bd a2 55 b3 2a ad bc e4 bd a0 b3 f7 e3 6c 9d a7 ")) 
-      (case_t("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", "75 38 8b 16 51 27 76 cc 5d ba 5d a1 fd 89 01 50 b0 c6 45 5c b4 f5 8b 19 52 52 25 25 ")); 
-
-   BOOST_FOREACH(case_t& val, cases) { 
-      SHA224Summer s; 
-      s.feed(val.get<0>()); 
-      BOOST_CHECK_EQUAL(makeHexDump(s.get()), val.get<1>()); 
-   } 
-}
-
 BOOST_AUTO_TEST_CASE(test_sha256summer) {
    cases_t cases = list_of 
       (case_t("abc", "ba 78 16 bf 8f 01 cf ea 41 41 40 de 5d ae 22 23 b0 03 61 a3 96 17 7a 9c b4 10 ff 61 f2 00 15 ad ")) 

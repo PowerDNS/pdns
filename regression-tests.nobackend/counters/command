@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+port=5600
+
+rm -f pdns*.pid
+
+../pdns/pdns_server --daemon=no --local-ipv6=::1 --local-address=127.0.0.1 \
+  --local-port=$port --socket-dir=./ --no-shuffle --launch=random --no-config \
+  --module-dir=../regression-tests/modules &
+
+sleep 2
+
+../pdns/sdig 127.0.0.1 $port random.example.com A >&2 >/dev/null
+../pdns/sdig 127.0.0.1 $port example.com SOA >&2 >/dev/null
+
+../pdns/sdig 127.0.0.1 $port random.example.com A tcp >&2 >/dev/null
+../pdns/sdig 127.0.0.1 $port example.com SOA tcp >&2 >/dev/null
+
+../pdns/sdig ::1 $port random.example.com A >&2 >/dev/null
+../pdns/sdig ::1 $port random.example.com A tcp >&2 >/dev/null
+
+../pdns/sdig ::1 $port example.com SOA >&2 >/dev/null
+../pdns/sdig ::1 $port example.com SOA tcp >&2 >/dev/null
+
+../pdns/pdns_control --config-name= --no-config --socket-dir=./ 'show *' | \
+  tr ',' '\n'| grep -v -E '(user-msec|sys-msec|uptime|udp-noport-errors|udp-in-errors|udp-recvbuf-errors|udp-sndbuf-errors|-hit|-miss)' | LC_ALL=C sort
+
+kill $(cat pdns*.pid)
+rm pdns*.pid

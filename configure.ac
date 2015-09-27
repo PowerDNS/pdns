@@ -1,9 +1,6 @@
 AC_PREREQ([2.61])
 
-dnl The following lines may be patched by set-version-auth.
-AC_INIT([pdns], [git])
-dnl AC_SUBST([DIST_HOST], [TO_BE_PATCHED])
-dnl End patch area.
+AC_INIT([pdns], m4_esyscmd_s(build-aux/gen-version))
 
 AC_CONFIG_SRCDIR([pdns/receiver.cc])
 AC_CONFIG_MACRO_DIR([m4])
@@ -29,7 +26,6 @@ PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-
 
 AC_PROG_CXX
 AS_IF([test "x$CXX" = "xno" || test "x$CXX:x$GXX" = "xg++:x"],
@@ -78,8 +74,6 @@ LT_INIT([disable-static dlopen])
 
 MC_TM_GMTOFF
 
-AM_CONDITIONAL([RELEASE_BUILD], [test "$PACKAGE_VERSION" != "git"])
-
 # Define full_libdir to be the fully expanded (${exec_prefix}, etc.)
 # "system" library path.
 # We use this to search for other libraries.
@@ -124,6 +118,7 @@ BOOST_PROGRAM_OPTIONS([mt])
 BOOST_SERIALIZATION([mt])
 
 PDNS_ENABLE_UNIT_TESTS
+PDNS_ENABLE_REPRODUCIBLE
 
 PDNS_WITH_SQLITE3
 
@@ -182,19 +177,19 @@ AC_SUBST(THREADFLAGS)
 AC_SUBST([DYNLINKFLAGS], [-export-dynamic])
 
 PDNS_ENABLE_VERBOSE_LOGGING
-PDNS_WITH_SYSTEM_POLARSSL
+PDNS_WITH_SYSTEM_MBEDTLS
 PDNS_ENABLE_BOTAN
 PDNS_ENABLE_PKCS11
 PDNS_WITH_CRYPTOPP
-PDNS_ENABLE_ED25519
+PDNS_ENABLE_GSS_TSIG
 
 AS_IF([test "x$static" != "xno"], [
   LDFLAGS="-all-static $LDFLAGS"
 ])
 
-modules="bind gmysql geo random"
+modules="bind gmysql random"
 AC_ARG_WITH([modules],
-  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=bind gmysql geo random@:>@])],
+  [AS_HELP_STRING([--with-modules],[which backends to compile with @<:@default=bind gmysql random@:>@])],
   [modules="$withval"]
 )
 
@@ -353,14 +348,13 @@ AC_CONFIG_FILES([
   docs/Makefile
   pdns/pdns.init
   ext/Makefile
-  ext/ed25519/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile
-  ext/polarssl/Makefile
-  ext/polarssl/library/Makefile
+  ext/mbedtls/Makefile
+  ext/mbedtls/library/Makefile
   ext/rapidjson/Makefile
+  ext/json11/Makefile
   modules/bindbackend/Makefile
-  modules/geobackend/Makefile
   modules/geoipbackend/Makefile
   modules/gmysqlbackend/Makefile
   modules/goraclebackend/Makefile
@@ -407,5 +401,8 @@ AS_IF([test "x$needsqlite3" != "x"],
 AS_IF([test "x$LUAPC" != "x"],
   [AC_MSG_NOTICE([Lua support: $LUAPC])],
   [AC_MSG_NOTICE([Lua support: no])]
+)
+AS_IF(test "x$enable_experimental_gss_tsig" == "xyes"],
+  [AC_MSG_NOTICE([GSS-TSIG support: yes])]
 )
 AC_MSG_NOTICE([])

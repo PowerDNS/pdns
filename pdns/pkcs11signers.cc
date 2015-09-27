@@ -1,10 +1,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <polarssl/rsa.h>
-#include <polarssl/base64.h>
-#include <polarssl/entropy.h>
-#include <polarssl/ctr_drbg.h>
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_of.hpp>
 #include <boost/make_shared.hpp>
@@ -688,7 +684,6 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<Pkcs11Slot>& slot, const std::str
   this->d_label = label;
   this->d_err = 0;
   this->d_loaded = false;
-  Lock l(d_slot->m());
   if (this->d_slot->LoggedIn()) LoadAttributes();
 }
 

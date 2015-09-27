@@ -63,11 +63,10 @@ public:
       d_beforeOrderQuery_stmt = d_db->prepare(d_beforeOrderQuery, 2);
       d_afterOrderQuery_stmt = d_db->prepare(d_afterOrderQuery, 2);
       d_lastOrderQuery_stmt = d_db->prepare(d_lastOrderQuery, 1);
-      d_setOrderAuthQuery_stmt = d_db->prepare(d_setOrderAuthQuery, 4);
+      d_updateOrderNameAndAuthQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthQuery, 4);
+      d_updateOrderNameAndAuthTypeQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthTypeQuery, 5);
       d_nullifyOrderNameAndUpdateAuthQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthQuery, 3);
-      d_nullifyOrderNameAndAuthQuery_stmt = d_db->prepare(d_nullifyOrderNameAndAuthQuery, 3);
-      d_nullifyOrderNameAndAuthENTQuery_stmt = d_db->prepare(d_nullifyOrderNameAndAuthENTQuery, 0);
-      d_setAuthOnDsRecordQuery_stmt = d_db->prepare(d_setAuthOnDsRecordQuery, 2);
+      d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthTypeQuery, 4);
       d_removeEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_removeEmptyNonTerminalsFromZoneQuery, 1);
       d_insertEmptyNonTerminalQuery_stmt = d_db->prepare(d_insertEmptyNonTerminalQuery, 2);
       d_deleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_deleteEmptyNonTerminalQuery, 2);
@@ -91,6 +90,8 @@ public:
       d_InsertCommentQuery_stmt = d_db->prepare(d_InsertCommentQuery, 6);
       d_DeleteCommentRRsetQuery_stmt = d_db->prepare(d_DeleteCommentRRsetQuery, 3);
       d_DeleteCommentsQuery_stmt = d_db->prepare(d_DeleteCommentsQuery, 1);
+      d_SearchRecordsQuery_stmt = d_db->prepare(d_SearchRecordsQuery, 3);
+      d_SearchCommentsQuery_stmt = d_db->prepare(d_SearchCommentsQuery, 3);
     }
   }
 
@@ -132,11 +133,10 @@ public:
     release(&d_beforeOrderQuery_stmt);
     release(&d_afterOrderQuery_stmt);
     release(&d_lastOrderQuery_stmt);
-    release(&d_setOrderAuthQuery_stmt);
+    release(&d_updateOrderNameAndAuthQuery_stmt);
+    release(&d_updateOrderNameAndAuthTypeQuery_stmt);
     release(&d_nullifyOrderNameAndUpdateAuthQuery_stmt);
-    release(&d_nullifyOrderNameAndAuthQuery_stmt);
-    release(&d_nullifyOrderNameAndAuthENTQuery_stmt);
-    release(&d_setAuthOnDsRecordQuery_stmt);
+    release(&d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt);
     release(&d_removeEmptyNonTerminalsFromZoneQuery_stmt);
     release(&d_insertEmptyNonTerminalQuery_stmt);
     release(&d_deleteEmptyNonTerminalQuery_stmt);
@@ -160,69 +160,78 @@ public:
     release(&d_InsertCommentQuery_stmt);
     release(&d_DeleteCommentRRsetQuery_stmt);
     release(&d_DeleteCommentsQuery_stmt);
+    release(&d_SearchRecordsQuery_stmt);
+    release(&d_SearchCommentsQuery_stmt);
   }
 
-  void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int domain_id, bool include_disabled=false);
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
   void getAllDomains(vector<DomainInfo> *domains, bool include_disabled=false);
-  bool isMaster(const string &domain, const string &ip);
-  void alsoNotifies(const string &domain, set<string> *ips);
-  bool startTransaction(const string &domain, int domain_id=-1);
+  bool isMaster(const DNSName &domain, const string &ip);
+  void alsoNotifies(const DNSName &domain, set<string> *ips);
+  bool startTransaction(const DNSName &domain, int domain_id=-1);
   bool commitTransaction();
   bool abortTransaction();
   bool feedRecord(const DNSResourceRecord &r, string *ordername=0);
-  bool feedEnts(int domain_id, map<string,bool>& nonterm);
-  bool feedEnts3(int domain_id, const string &domain, map<string,bool> &nonterm, unsigned int times, const string &salt, bool narrow);
-  bool createDomain(const string &domain);
-  bool createSlaveDomain(const string &ip, const string &domain, const string &nameserver, const string &account);
-  bool deleteDomain(const string &domain);
-  bool superMasterBackend(const string &ip, const string &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+  bool feedEnts(int domain_id, map<DNSName,bool>& nonterm);
+  bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
+  bool createDomain(const DNSName &domain);
+  bool createSlaveDomain(const string &ip, const DNSName &domain, const string &nameserver, const string &account);
+  bool deleteDomain(const DNSName &domain);
+  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
   void setFresh(uint32_t domain_id);
   void getUnfreshSlaveInfos(vector<DomainInfo> *domains);
   void getUpdatedMasters(vector<DomainInfo> *updatedDomains);
-  bool getDomainInfo(const string &domain, DomainInfo &di);
+  bool getDomainInfo(const DNSName &domain, DomainInfo &di);
   void setNotified(uint32_t domain_id, uint32_t serial);
-  bool setMaster(const string &domain, const string &ip);
-  bool setKind(const string &domain, const DomainInfo::DomainKind kind);
-  bool setAccount(const string &domain, const string &account);
+  bool setMaster(const DNSName &domain, const string &ip);
+  bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind);
+  bool setAccount(const DNSName &domain, const string &account);
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string& qname, std::string& unhashed, std::string& before, std::string& after);
-  bool updateDNSSECOrderAndAuth(uint32_t domain_id, const std::string& zonename, const std::string& qname, bool auth);
-  virtual bool updateDNSSECOrderAndAuthAbsolute(uint32_t domain_id, const std::string& qname, const std::string& ordername, bool auth);
-  virtual bool nullifyDNSSECOrderNameAndUpdateAuth(uint32_t domain_id, const std::string& qname, bool auth);
-  virtual bool nullifyDNSSECOrderNameAndAuth(uint32_t domain_id, const std::string& qname, const std::string& type);
-  virtual bool setDNSSECAuthOnDsRecord(uint32_t domain_id, const std::string& qname);
-  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const std::string& zonename, set<string>& insert ,set<string>& erase, bool remove);
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qname, DNSName& unhashed, std::string& before, std::string& after);
+  virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& zonename, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY);
+
+  virtual bool updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert ,set<DNSName>& erase, bool remove);
   virtual bool doesDNSSEC();
 
-  virtual bool calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial);
+  virtual bool calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial);
 
-  bool replaceRRSet(uint32_t domain_id, const string& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
-  bool listSubZone(const string &zone, int domain_id);
-  int addDomainKey(const string& name, const KeyData& key);
-  bool getDomainKeys(const string& name, unsigned int kind, std::vector<KeyData>& keys);
-  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
-  bool clearDomainAllMetadata(const string& domain);
+  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset);
+  bool listSubZone(const DNSName &zone, int domain_id);
+  int addDomainKey(const DNSName& name, const KeyData& key);
+  bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<KeyData>& keys);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool clearDomainAllMetadata(const DNSName& domain);
   
-  bool removeDomainKey(const string& name, unsigned int id);
-  bool activateDomainKey(const string& name, unsigned int id);
-  bool deactivateDomainKey(const string& name, unsigned int id);
+  bool removeDomainKey(const DNSName& name, unsigned int id);
+  bool activateDomainKey(const DNSName& name, unsigned int id);
+  bool deactivateDomainKey(const DNSName& name, unsigned int id);
   
-  bool getTSIGKey(const string& name, string* algorithm, string* content);
-  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
-  bool deleteTSIGKey(const string& name);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
+  bool deleteTSIGKey(const DNSName& name);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
   bool listComments(const uint32_t domain_id);
   bool getComment(Comment& comment);
   void feedComment(const Comment& comment);
+  bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments);
   bool replaceComments(const uint32_t domain_id, const string& qname, const QType& qt, const vector<Comment>& comments);
+  string directBackendCmd(const string &query);
+  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
+
+protected:
+  string pattern2SQLPattern(const string& pattern);
+  void extractRecord(const SSqlStatement::row_t& row, DNSResourceRecord& rr);
+  void extractComment(const SSqlStatement::row_t& row, Comment& c);
 
 private:
-  string d_qname;
+  string d_query_name;
+  DNSName d_qname;
   SSql *d_db;
   SSqlStatement::result_t d_result;
 
@@ -264,11 +273,12 @@ private:
   string d_beforeOrderQuery;
   string d_afterOrderQuery;
   string d_lastOrderQuery;
-  string d_setOrderAuthQuery;
+
+  string d_updateOrderNameAndAuthQuery;
+  string d_updateOrderNameAndAuthTypeQuery;
   string d_nullifyOrderNameAndUpdateAuthQuery;
-  string d_nullifyOrderNameAndAuthQuery;
-  string d_nullifyOrderNameAndAuthENTQuery;
-  string d_setAuthOnDsRecordQuery;
+  string d_nullifyOrderNameAndUpdateAuthTypeQuery;
+
   string d_removeEmptyNonTerminalsFromZoneQuery;
   string d_insertEmptyNonTerminalQuery;
   string d_deleteEmptyNonTerminalQuery;
@@ -297,6 +307,9 @@ private:
   string d_InsertCommentQuery;
   string d_DeleteCommentRRsetQuery;
   string d_DeleteCommentsQuery;
+
+  string d_SearchRecordsQuery;
+  string d_SearchCommentsQuery;
 
   SSqlStatement* d_query_stmt;
 
@@ -332,11 +345,10 @@ private:
   SSqlStatement* d_beforeOrderQuery_stmt;
   SSqlStatement* d_afterOrderQuery_stmt;
   SSqlStatement* d_lastOrderQuery_stmt;
-  SSqlStatement* d_setOrderAuthQuery_stmt;
+  SSqlStatement* d_updateOrderNameAndAuthQuery_stmt;
+  SSqlStatement* d_updateOrderNameAndAuthTypeQuery_stmt;
   SSqlStatement* d_nullifyOrderNameAndUpdateAuthQuery_stmt;
-  SSqlStatement* d_nullifyOrderNameAndAuthQuery_stmt;
-  SSqlStatement* d_nullifyOrderNameAndAuthENTQuery_stmt;
-  SSqlStatement* d_setAuthOnDsRecordQuery_stmt;
+  SSqlStatement* d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt;
   SSqlStatement* d_removeEmptyNonTerminalsFromZoneQuery_stmt;
   SSqlStatement* d_insertEmptyNonTerminalQuery_stmt;
   SSqlStatement* d_deleteEmptyNonTerminalQuery_stmt;
@@ -360,6 +372,9 @@ private:
   SSqlStatement* d_InsertCommentQuery_stmt;
   SSqlStatement* d_DeleteCommentRRsetQuery_stmt;
   SSqlStatement* d_DeleteCommentsQuery_stmt;
+  SSqlStatement* d_SearchRecordsQuery_stmt;
+  SSqlStatement* d_SearchCommentsQuery_stmt;
+
 protected:
   bool d_dnssecQueries;
 };

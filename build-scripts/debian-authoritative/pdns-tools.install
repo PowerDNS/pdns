@@ -1,0 +1,10 @@
+usr/bin/dnsbulktest
+usr/bin/dnsgram
+usr/bin/dnsreplay
+usr/bin/dnsscan
+usr/bin/dnsscope
+usr/bin/dnstcpbench
+usr/bin/dnswasher
+usr/bin/nsec3dig
+usr/bin/saxfr
+usr/bin/sdig

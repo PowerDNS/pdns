@@ -8,14 +8,13 @@ EXTRA_DIST = \
 	INSTALL \
 	NOTICE \
 	README \
-	build-scripts/redhat/pdns-server-test.spec \
+	.version \
+	build-aux/gen-version \
 	build-scripts/semistaticg++ \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
 	contrib/systemd-pdns-recursor.service \
 	contrib/systemd-pdns.service \
-	debian \
-	pdns.spec \
 	pdns/named.conf.parsertest \
 	regression-tests/zones/unit.test
 

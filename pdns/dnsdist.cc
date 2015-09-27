@@ -32,7 +32,7 @@
 #include "dnswriter.hh"
 #include "base64.hh"
 #include <fstream>
-
+#include "delaypipe.hh"
 #include <unistd.h>
 #include "sodcrypto.hh"
 #include "dnsrulactions.hh"
@@ -63,7 +63,7 @@ bool g_console;
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
-vector<ComboAddress> g_locals;
+vector<std::pair<ComboAddress, bool>> g_locals;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -118,6 +118,23 @@ catch(...)
   g_stats.truncFail++;
 }
 
+struct DelayedPacket
+{
+  int fd;
+  string packet;
+  ComboAddress destination;
+  ComboAddress origDest;
+  void operator()()
+  {
+    if(origDest.sin4.sin_family == 0)
+      sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
+    else
+      sendfromto(fd, packet.c_str(), packet.size(), 0, origDest, destination);
+  }
+};
+
+DelayPipe<DelayedPacket> g_delay;
+
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
@@ -145,10 +162,17 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     dh->id = ids->origID;
     g_stats.responses++;
-    if(ids->origDest.sin4.sin_family == 0)
-      sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
-    else
-      sendfromto(ids->origFD, packet, len, 0, ids->origDest, ids->origRemote);
+
+    if(ids->delayMsec) {
+      DelayedPacket dp{ids->origFD, string(packet,len), ids->origRemote, ids->origDest};
+      g_delay.submit(dp, ids->delayMsec);
+    }
+    else {
+      if(ids->origDest.sin4.sin_family == 0)
+	sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+      else
+	sendfromto(ids->origFD, packet, len, 0, ids->origDest, ids->origRemote);
+    }
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
@@ -180,6 +204,12 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   }
   return 0;
 }
+
+bool operator<(const struct timespec&a, const struct timespec& b) 
+{ 
+  return std::tie(a.tv_sec, a.tv_nsec) < std::tie(b.tv_sec, b.tv_nsec); 
+}
+
 
 DownstreamState::DownstreamState(const ComboAddress& remote_)
 {
@@ -412,6 +442,7 @@ try
 	  }
 	}
       }
+      int delayMsec=0;
       switch(action) {
       case DNSAction::Action::Drop:
 	g_stats.ruleDrop++;
@@ -429,6 +460,10 @@ try
 	;
       case DNSAction::Action::HeaderModify:
 	dh->qr=true;
+	break;
+
+      case DNSAction::Action::Delay:
+	delayMsec = atoi(ruleresult.c_str()); // sorry
 	break;
       case DNSAction::Action::Allow:
       case DNSAction::Action::None:
@@ -480,6 +515,7 @@ try
       ids->qname = qname;
       ids->qtype = qtype;
       ids->origDest.sin4.sin_family=0;
+      ids->delayMsec = delayMsec;
       HarvestDestinationAddress(&msgh, &ids->origDest);
       
       dh->id = idOffset;
@@ -636,6 +672,10 @@ try
         // e is the exception that was thrown from inside the lambda
         response+= string(e.what());
       }
+      catch(const PDNSException& e) {
+        // e is the exception that was thrown from inside the lambda
+        response += string(e.reason);
+      }
     }
     response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
@@ -689,7 +729,8 @@ void doClient(ComboAddress server, const std::string& command)
     string response;
     string msg=sodEncryptSym(command, g_key, ours);
     putMsgLen(fd, msg.length());
-    writen2(fd, msg);
+    if(!msg.empty())
+      writen2(fd, msg);
     uint16_t len;
     getMsgLen(fd, &len);
     char resp[len];
@@ -733,8 +774,10 @@ void doClient(ComboAddress server, const std::string& command)
     writen2(fd, msg);
     uint16_t len;
     getMsgLen(fd, &len);
+
     char resp[len];
-    readn2(fd, resp, len);
+    if(len)
+      readn2(fd, resp, len);
     msg.assign(resp, len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
@@ -803,6 +846,10 @@ void doConsole()
         // e is the exception that was thrown from inside the lambda
         std::cerr << e.what() << std::endl;      
       }
+      catch(const PDNSException& e) {
+        // e is the exception that was thrown from inside the lambda
+        std::cerr << e.reason << std::endl;      
+      }
     }
     catch(const std::exception& e) {
       // e is the exception that was thrown from inside the lambda
@@ -844,7 +891,7 @@ char* my_generator(const char* text, int state)
   vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
       "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
       "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
-      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool("};
+      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "addDelay("};
   static int s_counter=0;
   int counter=0;
   if(!state)
@@ -984,27 +1031,29 @@ try
   if(g_cmdLine.locals.size()) {
     g_locals.clear();
     for(auto loc : g_cmdLine.locals)
-      g_locals.push_back(ComboAddress(loc, 53));
+      g_locals.push_back({ComboAddress(loc, 53), true});
   }
   
   if(g_locals.empty())
-    g_locals.push_back(ComboAddress("0.0.0.0", 53));
+    g_locals.push_back({ComboAddress("0.0.0.0", 53), true});
   
 
   vector<ClientState*> toLaunch;
   for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= local;
+    cs->local= local.first;
     cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
     //if(g_vm.count("bind-non-local"))
-    bindAny(local.sin4.sin_family, cs->udpFD);
+    bindAny(local.first.sin4.sin_family, cs->udpFD);
 
-    //    setSocketTimestamps(cs->udpFD);
+    //    if (!setSocketTimestamps(cs->udpFD))
+    //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
-    if(IsAnyAddress(local)) {
+
+    if(IsAnyAddress(local.first)) {
       int one=1;
       setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
@@ -1057,7 +1106,11 @@ try
 
   for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= local;
+    if(!local.second) { // no TCP/IP
+      warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
+      continue;
+    }
+    cs->local= local.first;
 
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
 
@@ -1096,8 +1149,10 @@ try
 catch(std::exception &e)
 {
   errlog("Fatal error: %s", e.what());
+  _exit(EXIT_FAILURE);
 }
 catch(PDNSException &ae)
 {
   errlog("Fatal pdns error: %s", ae.reason);
+  _exit(EXIT_FAILURE);
 }

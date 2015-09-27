@@ -341,8 +341,8 @@ public:
   }
   
 private:
-  int d_socket;
   char *d_buffer;
+  int d_socket;
   int d_buflen;
 };
 

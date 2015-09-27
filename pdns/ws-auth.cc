@@ -296,7 +296,8 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   string url = "/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
-  jdi.AddMember("name", di.zone.c_str(), doc.GetAllocator());
+  Value jname(di.zone.toString().c_str(), doc.GetAllocator()); // copy
+  jdi.AddMember("name", jname, doc.GetAllocator());
   jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
   jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
   jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());
@@ -312,11 +313,11 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
 }
 
-static void fillZone(const string& zonename, HttpResponse* resp) {
+static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   Document doc;
   fillZoneInfo(di, doc, doc);
@@ -339,7 +340,7 @@ static void fillZone(const string& zonename, HttpResponse* resp) {
 
     Value object;
     object.SetObject();
-    Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+    Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
     object.AddMember("name", jname, doc.GetAllocator());
     Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
@@ -393,7 +394,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
   if (records.IsArray()) {
     for (SizeType idx = 0; idx < records.Size(); ++idx) {
       const Value& record = records[idx];
-      rr.qname = stringFromJson(record, "name");
+      rr.qname = DNSName(stringFromJson(record, "name"));
       rr.qtype = stringFromJson(record, "type");
       rr.content = stringFromJson(record, "content");
       rr.auth = 1;
@@ -401,7 +402,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       rr.disabled = boolFromJson(record, "disabled");
 
       if (rr.qtype.getCode() == 0) {
-        throw ApiException("Record "+rr.qname+"/"+stringFromJson(record, "type")+" is of unknown type");
+        throw ApiException("Record "+rr.qname.toString()+"/"+stringFromJson(record, "type")+" is of unknown type");
       }
 
       try {
@@ -421,7 +422,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
       }
       catch(std::exception& e)
       {
-        throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" '"+rr.content+"': "+e.what());
+        throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+rr.content+"': "+e.what());
       }
 
       if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
@@ -434,7 +435,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
         SOAData sd;
         fakePacket.qtype = QType::PTR;
         if (!B.getAuth(&fakePacket, &sd, ptr.qname))
-          throw ApiException("Could not find domain for PTR '"+ptr.qname+"' requested for '"+ptr.content+"'");
+          throw ApiException("Could not find domain for PTR '"+ptr.qname.toString()+"' requested for '"+ptr.content+"'");
 
         ptr.domain_id = sd.domain_id;
         new_ptrs.push_back(ptr);
@@ -469,7 +470,7 @@ static void gatherComments(const Value& container, vector<Comment>& new_comments
   }
 }
 
-static void updateDomainSettingsFromDocument(const DomainInfo& di, const string& zonename, Document& document) {
+static void updateDomainSettingsFromDocument(const DomainInfo& di, const DNSName& zonename, Document& document) {
   string master;
   const Value &masters = document["masters"];
   if (masters.IsArray()) {
@@ -497,19 +498,19 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw ApiException("Only GET is implemented");
 
-  string zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   UeberBackend B;
   DomainInfo di;
   DNSSECKeeper dk;
 
   if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zonename, boost::indeterminate, false);
 
   if (keyset.empty())
-    throw ApiException("No keys for zone '"+zonename+"'");
+    throw ApiException("No keys for zone '"+zonename.toString()+"'");
 
   Document doc;
   doc.SetArray();
@@ -566,7 +567,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-static void gatherRecordsFromZone(const Value &container, vector<DNSResourceRecord>& new_records, string zonename) {
+static void gatherRecordsFromZone(const Value &container, vector<DNSResourceRecord>& new_records, DNSName zonename) {
   DNSResourceRecord rr;
   vector<string> zonedata;
   stringtok(zonedata, stringFromJson(container, "zone"), "\r\n");
@@ -584,7 +585,7 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
       if(rr.qtype.getCode() == QType::SOA)
         seenSOA=true;
 
-      rr.qname = stripDot(rr.qname);
+      // rr.qname = stripDot(rr.qname);
       new_records.push_back(rr);
     }
   }
@@ -601,16 +602,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     Document document;
     req->json(document);
     string zonename = stringFromJson(document, "name");
+    DNSName dzonename(zonename);
 
     // strip trailing dot (from spec PoV this is wrong, but be nice to clients)
     if (zonename.size() > 0 && zonename.substr(zonename.size()-1) == ".") {
       zonename.resize(zonename.size()-1);
     }
 
-    string dotsuffix = "." + zonename;
     string zonestring = stringFromJson(document, "zone", "");
 
-    bool exists = B.getDomainInfo(zonename, di);
+    bool exists = B.getDomainInfo(dzonename, di);
     if(exists)
       throw ApiException("Domain '"+zonename+"' already exists");
 
@@ -645,7 +646,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if (records.IsArray()) {
       gatherRecords(document, new_records, new_ptrs);
     } else if (zonestring != "") {
-      gatherRecordsFromZone(document, new_records, zonename);
+      gatherRecordsFromZone(document, new_records, DNSName(zonename));
     }
 
     gatherComments(document, new_comments, false);
@@ -653,16 +654,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     DNSResourceRecord rr;
 
     BOOST_FOREACH(rr, new_records) {
-      if (!iends_with(rr.qname, dotsuffix) && !pdns_iequals(rr.qname, zonename))
-        throw ApiException("RRset "+rr.qname+" IN "+rr.qtype.getName()+": Name is out of zone");
+      if (!rr.qname.isPartOf(dzonename) && rr.qname != dzonename)
+        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
 
-      if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
+      if (rr.qtype.getCode() == QType::SOA && rr.qname==dzonename) {
         have_soa = true;
         increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
     }
 
-    rr.qname = zonename;
+    rr.qname = dzonename;
     rr.auth = 1;
     rr.ttl = ::arg().asNum("default-ttl");
 
@@ -670,13 +671,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       // synthesize a SOA record so the zone "really" exists
 
       SOAData sd;
-      sd.qname = zonename;
-      sd.nameserver = arg()["default-soa-name"];
+      sd.qname = dzonename;
+      sd.nameserver = DNSName(arg()["default-soa-name"]);
       if (!arg().isEmpty("default-soa-mail")) {
-        sd.hostmaster = arg()["default-soa-mail"];
-        attodot(sd.hostmaster);
+        sd.hostmaster = DNSName(arg()["default-soa-mail"]); // needs attodot?
+        // attodot(sd.hostmaster); FIXME400
       } else {
-        sd.hostmaster = "hostmaster." + zonename;
+        sd.hostmaster = DNSName("hostmaster.") + dzonename;
       }
       sd.serial = intFromJson(document, "serial", 0);
       sd.ttl = rr.ttl;
@@ -703,13 +704,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     // no going back after this
-    if(!B.createDomain(zonename))
+    if(!B.createDomain(dzonename))
       throw ApiException("Creating domain '"+zonename+"' failed");
 
-    if(!B.getDomainInfo(zonename, di))
+    if(!B.getDomainInfo(dzonename, di))
       throw ApiException("Creating domain '"+zonename+"' failed: lookup of domain ID failed");
 
-    di.backend->startTransaction(zonename, di.id);
+    di.backend->startTransaction(dzonename, di.id);
 
     BOOST_FOREACH(rr, new_records) {
       rr.domain_id = di.id;
@@ -720,11 +721,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       di.backend->feedComment(c);
     }
 
-    updateDomainSettingsFromDocument(di, zonename, document);
+    updateDomainSettingsFromDocument(di, dzonename, document);
 
     di.backend->commitTransaction();
 
-    fillZone(zonename, resp);
+    fillZone(dzonename, resp);
     resp->status = 201;
     return;
   }
@@ -747,14 +748,14 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
-  string zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
     // update domain settings
     UeberBackend B;
     DomainInfo di;
     if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Could not find domain '"+zonename+"'");
+      throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
     Document document;
     req->json(document);
@@ -769,10 +770,10 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     UeberBackend B;
     DomainInfo di;
     if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Could not find domain '"+zonename+"'");
+      throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
     if(!di.backend->deleteDomain(zonename))
-      throw ApiException("Deleting domain '"+zonename+"' failed: backend delete failed/unsupported");
+      throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
 
     // empty body on success
     resp->body = "";
@@ -789,18 +790,18 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   throw HttpMethodNotAllowedException();
 }
 
-static string makeDotted(string in) {
-  if (in.empty()) {
-    return ".";
-  }
-  if (in[in.size()-1] != '.') {
-    return in + ".";
-  }
-  return in;
-}
+// static string makeDotted(string in) {
+//   if (in.empty()) {
+//     return ".";
+//   }
+//   if (in[in.size()-1] != '.') {
+//     return in + ".";
+//   }
+//   return in;
+// }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
-  string zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
@@ -810,7 +811,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   DNSResourceRecord rr;
   SOAData sd;
@@ -824,8 +825,8 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     switch(rr.qtype.getCode()) {
     case QType::SOA:
       fillSOAData(rr.content, sd);
-      sd.nameserver = makeDotted(sd.nameserver);
-      sd.hostmaster = makeDotted(sd.hostmaster);
+      /*      sd.nameserver = sd.nameserver.toString();
+	      sd.hostmaster = sd.hostmaster.toString(); */ // XXX DNSName pain - these looked like noops?
       content = serializeSOAData(sd);
       break;
     case QType::MX:
@@ -833,14 +834,14 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
     case QType::CNAME:
     case QType::NS:
     case QType::AFSDB:
-      content = makeDotted(rr.content);
+      content = rr.content;
       break;
     default:
       break;
     }
 
     ss <<
-      makeDotted(rr.qname) << "\t" <<
+      rr.qname.toString() << "\t" <<
       rr.ttl << "\t" <<
       rr.qtype.getName() << "\t" <<
       content <<
@@ -860,7 +861,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
-  string zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
@@ -868,18 +869,18 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if(di.masters.empty())
-    throw ApiException("Domain '"+zonename+"' is not a slave domain (or has no master defined)");
+    throw ApiException("Domain '"+zonename.toString()+"' is not a slave domain (or has no master defined)");
 
   random_shuffle(di.masters.begin(), di.masters.end());
   Communicator.addSuckRequest(zonename, di.masters.front());
-  resp->body = returnJsonMessage("Added retrieval request for '"+zonename+"' from master "+di.masters.front());
+  resp->body = returnJsonMessage("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front());
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
-  string zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
@@ -887,7 +888,7 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
   if(!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if(!Communicator.notifyDomain(zonename))
     throw ApiException("Failed to add to the queue - see server log");
@@ -901,12 +902,12 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
     if (!IpToU32(rr.content, &ip)) {
       throw ApiException("PTR: Invalid IP address given");
     }
-    ptr->qname = (boost::format("%u.%u.%u.%u.in-addr.arpa")
+    ptr->qname = DNSName((boost::format("%u.%u.%u.%u.in-addr.arpa")
                   % ((ip >> 24) & 0xff)
                   % ((ip >> 16) & 0xff)
                   % ((ip >>  8) & 0xff)
                   % ((ip      ) & 0xff)
-      ).str();
+			  ).str());
   } else if (rr.qtype.getCode() == QType::AAAA) {
     ComboAddress ca(rr.content);
     char buf[3];
@@ -921,25 +922,24 @@ static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {
     string tmp = ss.str();
     tmp.resize(tmp.size()-1); // remove last dot
     // reverse and append arpa domain
-    ptr->qname = string(tmp.rbegin(), tmp.rend()) + ".ip6.arpa";
+    ptr->qname = DNSName(string(tmp.rbegin(), tmp.rend())) + DNSName("ip6.arpa");
   } else {
-    throw ApiException("Unsupported PTR source '" + rr.qname + "' type '" + rr.qtype.getName() + "'");
+    throw ApiException("Unsupported PTR source '" + rr.qname.toString() + "' type '" + rr.qtype.getName() + "'");
   }
 
   ptr->qtype = "PTR";
   ptr->ttl = rr.ttl;
   ptr->disabled = rr.disabled;
-  ptr->content = rr.qname;
+  ptr->content = rr.qname.toString();
 }
 
 static void patchZone(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DomainInfo di;
-  string zonename = apiZoneIdToName(req->parameters["id"]);
+  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
   if (!B.getDomainInfo(zonename, di))
-    throw ApiException("Could not find domain '"+zonename+"'");
+    throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  string dotsuffix = "." + zonename;
   vector<DNSResourceRecord> new_records;
   vector<Comment> new_comments;
   vector<DNSResourceRecord> new_ptrs;
@@ -962,9 +962,9 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
 
     for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
       const Value& rrset = rrsets[rrsetIdx];
-      string qname, changetype;
+      string changetype;
       QType qtype;
-      qname = stringFromJson(rrset, "name");
+      DNSName qname(stringFromJson(rrset, "name"));
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
 
@@ -976,8 +976,8 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       }
       else if (changetype == "REPLACE") {
 		// we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
-        if (!iends_with(qname, dotsuffix) && !pdns_iequals(qname, zonename))
-          throw ApiException("RRset "+qname+" IN "+qtype.getName()+": Name is out of zone");
+        if (!qname.isPartOf(zonename) && !pdns_iequals(qname, zonename))
+          throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
 
 		new_records.clear();
         new_comments.clear();
@@ -989,7 +989,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           rr.domain_id = di.id;
 
           if (rr.qname != qname || rr.qtype != qtype)
-            throw ApiException("Record "+rr.qname+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname + "/" + qtype.getName());
+            throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname.toString() + "/" + qtype.getName());
 
           if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
             soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
@@ -1004,7 +1004,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         bool replace_comments = rrset["comments"].IsArray();
 
         if (!replace_records && !replace_comments) {
-          throw ApiException("No change for RRset " + qname + "/" + qtype.getName());
+          throw ApiException("No change for RRset " + qname.toString() + "/" + qtype.getName());
         }
 
         if (replace_records) {
@@ -1026,7 +1026,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     if (!soa_edit_api_kind.empty() && !soa_edit_done) {
       SOAData sd;
       if (!B.getSOA(zonename, sd))
-        throw ApiException("No SOA found for domain '"+zonename+"'");
+        throw ApiException("No SOA found for domain '"+zonename.toString()+"'");
 
       DNSResourceRecord rr;
       rr.qname = zonename;
@@ -1049,7 +1049,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   di.backend->commitTransaction();
 
   extern PacketCache PC;
-  PC.purge(zonename);
+  PC.purge(zonename.toString()); // XXX DNSName pain - this seems the wrong way round!
 
   // now the PTRs
   BOOST_FOREACH(const DNSResourceRecord& rr, new_ptrs) {
@@ -1059,15 +1059,15 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     fakePacket.qtype = QType::PTR;
 
     if (!B.getAuth(&fakePacket, &sd, rr.qname))
-      throw ApiException("Could not find domain for PTR '"+rr.qname+"' requested for '"+rr.content+"' (while saving)");
+      throw ApiException("Could not find domain for PTR '"+rr.qname.toString()+"' requested for '"+rr.content+"' (while saving)");
 
     sd.db->startTransaction(rr.qname);
     if (!sd.db->replaceRRSet(sd.domain_id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
       sd.db->abortTransaction();
-      throw ApiException("PTR-Hosting backend for "+rr.qname+"/"+rr.qtype.getName()+" does not support editing records.");
+      throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
     }
     sd.db->commitTransaction();
-    PC.purge(rr.qname);
+    PC.purge(rr.qname.toString());
   }
 
   // success
@@ -1079,81 +1079,88 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   string q = req->getvars["q"];
+  string sMax = req->getvars["max"];
+  int maxEnts = 100;
+  int ents = 0;
+
   if (q.empty())
     throw ApiException("Query q can't be blank");
+  if (sMax.empty() == false)
+    maxEnts = boost::lexical_cast<int>(sMax);
+  if (maxEnts < 1)
+    throw ApiException("Maximum entries must be larger than 0");
 
+  SimpleMatch sm(q,true);
   UeberBackend B;
-
   vector<DomainInfo> domains;
-  B.getAllDomains(&domains, true); // incl. disabled
-
+  vector<DNSResourceRecord> result_rr;
+  vector<Comment> result_c;
+  map<int,DNSName> zoneIdZone;
+  map<int,DNSName>::iterator val;
   Document doc;
+
   doc.SetArray();
 
-  DNSResourceRecord rr;
-  Comment comment;
+  B.getAllDomains(&domains, true);
 
-  BOOST_FOREACH(const DomainInfo& di, domains) {
-    string zoneId = apiZoneNameToId(di.zone);
-
-    if (pdns_ci_find(di.zone, q) != string::npos) {
+  for(const DomainInfo di: domains)
+  {   
+    if (ents < maxEnts && sm.match(di.zone)) {
       Value object;
       object.SetObject();
-      object.AddMember("type", "zone", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("object_type", "zone", doc.GetAllocator());
+      object.AddMember("zone_id", di.id, doc.GetAllocator());
+      Value jzoneName(di.zone.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jzoneName, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
+      ents++;
     }
+    zoneIdZone[di.id] = di.zone; // populate cache
+  }
 
-    // if zone name is an exact match, don't bother with returning all records/comments in it
-    if (di.zone == q) {
-      continue;
-    }
-    // the code below is too slow
-#if 0
-    di.backend->list(di.zone, di.id, true); // incl. disabled
-    while(di.backend->get(rr)) {
-      if (!rr.qtype.getCode())
-        continue; // skip empty non-terminals
-
-      if (pdns_ci_find(rr.qname, q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
-        continue;
-
+  if (B.searchRecords(q, maxEnts, result_rr))
+  {
+    for(const DNSResourceRecord& rr: result_rr)
+    {
       Value object;
       object.SetObject();
-      object.AddMember("type", "record", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
-      Value jname(rr.qname.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("object_type", "record", doc.GetAllocator());
+      object.AddMember("zone_id", rr.domain_id, doc.GetAllocator());
+      if ((val = zoneIdZone.find(rr.domain_id)) != zoneIdZone.end()) {
+        Value zname(val->second.toString().c_str(), doc.GetAllocator()); // copy
+        object.AddMember("zone", zname, doc.GetAllocator()); // copy
+      }
+      Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
+      Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
+      object.AddMember("type", jtype, doc.GetAllocator());
+      object.AddMember("ttl", rr.ttl, doc.GetAllocator());
+      object.AddMember("disabled", rr.disabled, doc.GetAllocator());
       Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
       object.AddMember("content", jcontent, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
+  }
 
-    di.backend->listComments(di.id);
-    while(di.backend->getComment(comment)) {
-      if (pdns_ci_find(comment.qname, q) == string::npos && pdns_ci_find(comment.content, q) == string::npos)
-        continue;
+  if (B.searchComments(q, maxEnts, result_c))
+  {
+    for(const Comment &c: result_c)
+    {
 
       Value object;
       object.SetObject();
-      object.AddMember("type", "comment", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(di.zone.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
-      Value jname(comment.qname.c_str(), doc.GetAllocator()); // copy
+      object.AddMember("object_type", "comment", doc.GetAllocator());
+      object.AddMember("zone_id", c.domain_id, doc.GetAllocator());
+      if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {
+        Value zname(val->second.toString().c_str(), doc.GetAllocator()); // copy
+        object.AddMember("zone", zname, doc.GetAllocator()); // copy
+      }
+      Value jname(c.qname.c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
-      Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
+      Value jcontent(c.content.c_str(), doc.GetAllocator()); // copy
       object.AddMember("content", jcontent, doc.GetAllocator());
       doc.PushBack(object, doc.GetAllocator());
     }
-#endif
   }
 
   resp->setBody(doc);

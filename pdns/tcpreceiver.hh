@@ -52,7 +52,7 @@ private:
   static void sendPacket(std::shared_ptr<DNSPacket> p, int outsock);
   static int readLength(int fd, ComboAddress *remote);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote);
-  static int doAXFR(const string &target, std::shared_ptr<DNSPacket> q, int outsock);
+  static int doAXFR(const DNSName &target, std::shared_ptr<DNSPacket> q, int outsock);
   static int doIXFR(std::shared_ptr<DNSPacket> q, int outsock);
   static bool canDoAXFR(std::shared_ptr<DNSPacket> q);
   static void *doConnection(void *data);

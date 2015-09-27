@@ -179,17 +179,7 @@ void connectWithTimeout(int fd, struct sockaddr* remote, size_t socklen)
 
 void TCPNameserver::sendPacket(shared_ptr<DNSPacket> p, int outsock)
 {
-
-  /* Query statistics */
-  if(p->qtype.getCode()!=QType::AXFR && p->qtype.getCode()!=QType::IXFR) {
-    if(p->d.aa) {
-      if(p->d.rcode==RCode::NXDomain)
-        S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
-    } else if(p->isEmpty()) {
-      S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
-      S.ringAccount("remotes-unauth",p->d_remote);
-    }
-  }
+  g_rs.submitResponse(*p, false);
 
   uint16_t len=htons(p->getString().length());
   string buffer((const char*)&len, 2);
@@ -275,7 +265,7 @@ void *TCPNameserver::doConnection(void *data)
       ComboAddress remote;
       socklen_t remotelen=sizeof(remote);
       if(getpeername(fd, (struct sockaddr *)&remote, &remotelen) < 0) {
-        L<<Logger::Error<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
+        L<<Logger::Warning<<"Received question from socket which had no remote address, dropping ("<<stringerror()<<")"<<endl;
         break;
       }
 
@@ -293,7 +283,7 @@ void *TCPNameserver::doConnection(void *data)
       // do not remove this check as it will catch if someone
       // decreases the mesg buffer size for some reason. 
       if(pktlen > mesgsize) {
-        L<<Logger::Error<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
+        L<<Logger::Warning<<"Received an overly large question from "<<remote.toString()<<", dropping"<<endl;
         break;
       }
       
@@ -347,8 +337,6 @@ void *TCPNameserver::doConnection(void *data)
         if(LPE) LPE->police(&(*packet), &(*cached), true);
 
         sendPacket(cached, fd); // presigned, don't do it again
-        incTCPAnswerCount(remote);
-
         continue;
       }
       if(logDNSQueries)
@@ -373,8 +361,7 @@ void *TCPNameserver::doConnection(void *data)
 
       if(!reply)  // unable to write an answer?
         break;
-        
-      incTCPAnswerCount(remote);
+
       sendPacket(reply, fd);
     }
   }
@@ -417,21 +404,41 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 
   if(q->d_havetsig) { // if you have one, it must be good
     TSIGRecordContent trc;
-    string keyname, secret;
-    if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc))
+    DNSName keyname;
+    string secret;
+    if(!checkForCorrectTSIG(q.get(), s_P->getBackend(), &keyname, &secret, &trc)) {
       return false;
-    
+    } else {
+      getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+      if (q->d_tsig_algo == TSIG_GSS) {
+        GssContext gssctx(keyname.toStringNoDot());
+        if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
+          L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+        }
+      }
+    }
+
     DNSSECKeeper dk;
 
-    string algorithm=toLowerCanonic(trc.d_algoName);
-    if (algorithm == "hmac-md5.sig-alg.reg.int")
-      algorithm = "hmac-md5";
+    if (q->d_tsig_algo == TSIG_GSS) {
+      vector<string> princs;
+      s_P->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
+      BOOST_FOREACH(const std::string& princ, princs) {
+        if (q->d_peer_principal == princ) {
+          L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
+          return true;
+        }
+      }
+      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
+      return false;
+    }
+
     if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
-      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<algorithm<<"' does not grant access to zone"<<endl;
+      L<<Logger::Error<<"AXFR '"<<q->qdomain<<"' denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access to zone"<<endl;
       return false;
     }
     else {
-      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<algorithm<<"'"<<endl;
+      L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
       return true;
     }
   }
@@ -457,13 +464,13 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
         // cerr<<"AUTO-NS magic please!"<<endl;
 
         DNSResourceRecord rr;
-        set<string> nsset;
+        set<DNSName> nsset;
 
         B->lookup(QType(QType::NS),q->qdomain);
         while(B->get(rr)) 
-          nsset.insert(rr.content);
-        for(set<string>::const_iterator j=nsset.begin();j!=nsset.end();++j) {
-          vector<string> nsips=fns.lookup(*j, B);
+          nsset.insert(DNSName(rr.content));
+        for(const auto & j: nsset) {
+          vector<string> nsips=fns.lookup(j, B);
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
             // cerr<<"got "<<*k<<" from AUTO-NS"<<endl;
             if(*k == q->getRemote())
@@ -532,7 +539,7 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int outsock)
+int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int outsock)
 {
   shared_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
@@ -600,18 +607,21 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   }
 
   TSIGRecordContent trc;
-  string tsigkeyname, tsigsecret;
+  DNSName tsigkeyname;
+  string tsigsecret;
 
   q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
   if(!tsigkeyname.empty()) {
     string tsig64;
-    string algorithm=toLowerCanonic(trc.d_algoName);
-    if (algorithm == "hmac-md5.sig-alg.reg.int")
-      algorithm = "hmac-md5";
-    Lock l(&s_plock);
-    s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
-    B64Decode(tsig64, tsigsecret);
+    DNSName algorithm=trc.d_algoName; // FIXME400: check
+    if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
+      algorithm = DNSName("hmac-md5");
+    if (algorithm != DNSName("gss-tsig")) {
+      Lock l(&s_plock);
+      s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
+      B64Decode(tsig64, tsigsecret);
+    }
   }
   
   
@@ -623,7 +633,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   outpacket->addRecord(soa);
   editSOA(dk, sd.qname, outpacket.get());
   if(securedZone) {
-    set<string, CIStringCompare> authSet;
+    set<DNSName> authSet;
     authSet.insert(target);
     addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
   }
@@ -654,7 +664,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
   BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
     rr.qtype = QType(QType::DNSKEY);
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
-    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
+    string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, rr.qname) : labelReverse(rr.qname.toString());
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(rr.qtype.getCode());
@@ -678,7 +688,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     ns3pr.d_flags = 0;
     rr.content = ns3pr.getZoneRepresentation();
     ns3pr.d_flags = flags;
-    string keyname = hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname);
+    string keyname = hashQNameWithSalt(ns3pr, rr.qname);
     NSECXEntry& ne = nsecxrepo[keyname];
     
     ne.d_set.insert(rr.qtype.getCode());
@@ -695,11 +705,11 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
 
 
   const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
-  set<string> qnames, nsset, terms;
+  set<DNSName> qnames, nsset, terms;
   vector<DNSResourceRecord> rrs;
 
   while(sd.db->get(rr)) {
-    if(endsOn(rr.qname, target)) {
+    if(rr.qname.isPartOf(target)) {
       if (rectify) {
         if (rr.qtype.getCode()) {
           qnames.insert(rr.qname);
@@ -722,13 +732,13 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
       rr.auth=true;
       if (rr.qtype.getCode() != QType::NS || !pdns_iequals(rr.qname, target)) {
-        string shorter(rr.qname);
+        DNSName shorter(rr.qname);
         do {
           if (pdns_iequals(shorter, target)) // apex is always auth
             continue;
           if(nsset.count(shorter) && !(pdns_iequals(rr.qname, shorter) && rr.qtype.getCode() == QType::DS))
             rr.auth=false;
-        } while(chopOff(shorter));
+        } while(shorter.chopOff());
       } else
         continue;
     }
@@ -736,17 +746,17 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     if(NSEC3Zone) {
       // ents are only required for NSEC3 zones
       uint32_t maxent = ::arg().asNum("max-ent-entries");
-      map<string,bool> nonterm;
+      map<DNSName,bool> nonterm;
       BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
-        string shorter(rr.qname);
-        while(!pdns_iequals(shorter, target) && chopOff(shorter)) {
+        DNSName shorter(rr.qname);
+        while(!pdns_iequals(shorter, target) && shorter.chopOff()) {
           if(!qnames.count(shorter)) {
             if(!(maxent)) {
               L<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;
               return 0;
             }
             if (!nonterm.count(shorter)) {
-              nonterm.insert(pair<string, bool>(shorter, rr.auth));
+              nonterm.insert(pair<DNSName, bool>(shorter, rr.auth));
               --maxent;
             } else if (rr.auth)
               nonterm[shorter]=true;
@@ -754,7 +764,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
         }
       }
 
-      pair<string,bool> nt;
+      pair<DNSName,bool> nt;
       BOOST_FOREACH(nt, nonterm) {
         DNSResourceRecord rr;
         rr.qname=nt.first;
@@ -778,7 +788,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       if(presignedZone && rrc.d_type == QType::NSEC3)
-        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname, target)));
+        ns3rrs.insert(fromBase32Hex(makeRelative(rr.qname.toString(), target.toString())));
       continue;
     }
 
@@ -790,7 +800,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
     records++;
     if(securedZone && (rr.auth || rr.qtype.getCode() == QType::NS)) {
       if (NSEC3Zone || rr.qtype.getCode()) {
-        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr.d_iterations, ns3pr.d_salt, rr.qname) : labelReverse(rr.qname);
+        keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, rr.qname) : labelReverse(rr.qname.toString());
         NSECXEntry& ne = nsecxrepo[keyname];
         ne.d_ttl = sd.default_ttl;
         ne.d_auth = (ne.d_auth || rr.auth || (NSEC3Zone && (!ns3pr.d_flags || (presignedZone && ns3pr.d_flags))));
@@ -850,7 +860,7 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
               inext = nsecxrepo.begin();
           }
           n3rc.d_nexthash = inext->first;
-          rr.qname = dotConcat(toBase32Hex(iter->first), sd.qname);
+          rr.qname = DNSName(toBase32Hex(iter->first))+DNSName(sd.qname);
 
           rr.ttl = sd.default_ttl;
           rr.content = n3rc.getZoneRepresentation();
@@ -880,12 +890,12 @@ int TCPNameserver::doAXFR(const string &target, shared_ptr<DNSPacket> q, int out
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
       if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = labelReverse(boost::next(iter)->first);
+        nrc.d_next = DNSName(labelReverse(boost::next(iter)->first));
       }
       else
-        nrc.d_next=labelReverse(nsecxrepo.begin()->first);
+        nrc.d_next=DNSName(labelReverse(nsecxrepo.begin()->first));
   
-      rr.qname = labelReverse(iter->first);
+      rr.qname = DNSName(labelReverse(iter->first));
   
       rr.ttl = sd.default_ttl;
       rr.content = nrc.getZoneRepresentation();
@@ -1013,7 +1023,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     }
   }
 
-  string target = q->qdomain;
+  DNSName target = q->qdomain;
 
   UeberBackend db;
   if(!db.getSOAUncached(target, sd)) {
@@ -1027,15 +1037,16 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   dk.getFromMeta(target, "SOA-EDIT", soaedit);
   if (!rfc1982LessThan(serial, calculateEditSOA(sd, soaedit))) {
     TSIGRecordContent trc;
-    string tsigkeyname, tsigsecret;
+    DNSName tsigkeyname;
+    string tsigsecret;
 
     q->getTSIGDetails(&trc, &tsigkeyname, 0);
 
     if(!tsigkeyname.empty()) {
       string tsig64;
-      string algorithm=toLowerCanonic(trc.d_algoName);
-      if (algorithm == "hmac-md5.sig-alg.reg.int")
-        algorithm = "hmac-md5";
+      DNSName algorithm=trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
+      if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
+        algorithm = DNSName("hmac-md5");
       Lock l(&s_plock);
       s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
       B64Decode(tsig64, tsigsecret);
@@ -1049,7 +1060,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     outpacket->addRecord(soa);
     editSOA(dk, sd.qname, outpacket.get());
     if(securedZone) {
-      set<string, CIStringCompare> authSet;
+      set<DNSName> authSet;
       authSet.insert(target);
       addRRSigs(dk, signatureDB, authSet, outpacket->getRRS());
     }

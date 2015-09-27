@@ -11,7 +11,7 @@ class AuthLua : public PowerDNSLua
 public:
   explicit AuthLua(const std::string& fname);
   // ~AuthLua();
-  bool axfrfilter(const ComboAddress& remote, const string& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out);
+  bool axfrfilter(const ComboAddress& remote, const DNSName& zone, const DNSResourceRecord& in, vector<DNSResourceRecord>& out);
   DNSPacket* prequery(DNSPacket *p);
   int police(DNSPacket *req, DNSPacket *resp, bool isTcp=false);
   string policycmd(const vector<string>&parts);

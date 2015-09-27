@@ -27,6 +27,9 @@ enabled, other distributions may differ.  To compile with Lua support, use:
 files and binaries may be found near the top of the `Makefile`, or passed 
 to `configure`.
 
+**note**: Only one script can be loaded at the same time. If you load a different
+script, the current one will be replaced!
+
 If Lua support is available, a script can be configured either via the
 configuration file, or at runtime via the `rec_control` tool.  Scripts can
 be reloaded or unloaded at runtime with no interruption in operations.  If a

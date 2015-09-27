@@ -68,7 +68,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
 {
   vector<uint8_t> packet;
 
-  DNSPacketWriter pw(packet, qname, qtype);
+  DNSPacketWriter pw(packet, DNSName(qname), qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
   if (s_secpollresolvers.empty()) {
@@ -167,8 +167,11 @@ void doSecPoll(bool first)
   }
   else {
     string pkgv(PACKAGEVERSION);
-    if(pkgv.find("git"))
+    if(pkgv.find("0.0."))
       L<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    else
+      L<<Logger::Warning<<"Not validating response for security status update, this a non-release version."<<endl;
+
     if(security_status == 1) // it was ok, not it is unknown
       security_status = 0;
   }

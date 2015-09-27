@@ -35,16 +35,12 @@ using std::ofstream;
 using std::ostream;
 using std::min; // these are a bit scary, everybody uses 'min'
 using std::max;
-
-namespace pdns {
-  typedef std::string string;  
-};
-
-typedef pdns::string string;
+using std::string;
 
 using boost::lexical_cast;
 using boost::tie;
 using std::shared_ptr;
+using std::unique_ptr;
 using boost::shared_array;
 using boost::scoped_array;
 using boost::tuple;
