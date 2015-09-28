@@ -208,13 +208,13 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend) {
    DNSBackend *dbd;
    BOOST_TEST_MESSAGE("Testing superMasterBackend method");
 
-   rr.qname = "example.com";
+   rr.qname = DNSName("example.com");
    rr.qtype = QType::NS;
    rr.qclass = QClass::IN;
    rr.ttl = 300;
    rr.content = "ns1.example.com";
    nsset.push_back(rr);
-   rr.qname = "example.com";
+   rr.qname = DNSName("example.com");
    rr.qtype = QType::NS;
    rr.qclass = QClass::IN;
    rr.ttl = 300;
@@ -236,13 +236,13 @@ BOOST_AUTO_TEST_CASE(test_method_feedRecord) {
    DNSResourceRecord rr;
    BOOST_TEST_MESSAGE("Testing feedRecord method");
    be->startTransaction(DNSName("example.com"),2);
-   rr.qname = "example.com";
+   rr.qname = DNSName("example.com");
    rr.qtype = QType::SOA;
    rr.qclass = QClass::IN;
    rr.ttl = 300;
    rr.content = "ns1.example.com hostmaster.example.com 2013013441 7200 3600 1209600 300";
    BOOST_CHECK(be->feedRecord(rr, NULL));
-   rr.qname = "replace.example.com";
+   rr.qname = DNSName("replace.example.com");
    rr.qtype = QType::A;
    rr.qclass = QClass::IN;
    rr.ttl = 300;
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(test_method_replaceRRSet) {
    DNSResourceRecord rr;
    std::vector<DNSResourceRecord> rrset;
    BOOST_TEST_MESSAGE("Testing replaceRRSet method");
-   rr.qname = "replace.example.com";
+   rr.qname = DNSName("replace.example.com");
    rr.qtype = QType::A;
    rr.qclass = QClass::IN;
    rr.ttl = 300;
