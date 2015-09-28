@@ -284,7 +284,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 
       SuffixMatchNode smn;
-      smn.add(domain);
+      smn.add(DNSName(domain));
 	g_rulactions.modify([smn](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
 				   std::make_shared<SuffixMatchNodeRule>(smn), 

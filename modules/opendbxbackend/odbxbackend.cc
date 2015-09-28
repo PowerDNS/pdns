@@ -148,7 +148,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-        			di.zone = string( tmp, odbx_field_length( m_result, 1 ) );
+			        di.zone = DNSName(string( tmp, odbx_field_length( m_result, 1 ) ));
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
@@ -365,7 +365,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
         		if( m_qname.empty() && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-        			rr.qname = DNSName( tmp, odbx_field_length( m_result, 1 ) );
+			        rr.qname = DNSName( string(tmp, odbx_field_length( m_result, 1 ) ));
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )
