@@ -113,8 +113,8 @@ script:
  - cd ..
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/
- - ./configure
- - make -k -j 4
+ - OPTFLAGS=-O0 ./configure
+ - OPTFLAGS=-O0 make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
  - cd ..
@@ -122,7 +122,7 @@ script:
  - cd pdns/dnsdistdist
  - tar xf dnsdist*.tar.bz2
  - cd dnsdist-*
- - ./configure
+ - CXXFLAGS=-O0 ./configure
  - make -k -j 4
  - cd ..
  - rm -rf dnsdist-*/
