@@ -84,7 +84,7 @@ void GeoIPBackend::initialize() {
   BOOST_FOREACH(YAML::Node domain, config["domains"]) {
     GeoIPDomain dom;
     dom.id = s_domains.size();
-    dom.domain = domain["domain"].as<string>();
+    dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
     for(YAML::const_iterator recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
@@ -236,8 +236,8 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   format = format2str(format, ip, v6);
 
   // see if the record can be found
-  if (dom.records.count(format)) { // return static value
-    map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(format);
+  if (dom.records.count(DNSName(format))) { // return static value
+    map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(DNSName(format));
     BOOST_FOREACH(DNSResourceRecord rr, i->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
         rr.scopeMask = (v6 ? 128 : 32);
