@@ -574,7 +574,7 @@ string makeTSIGMessageFromTSIGPacket(const string& opacket, unsigned int tsigOff
     //    dw.xfrBlob(trc->d_otherData);
   }
   const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  message.append(&*signRecord.begin(), &*signRecord.end());
+  message.append(signRecord.begin(), signRecord.end());
   return message;
 }
 
@@ -614,7 +614,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
   }
   
   const vector<uint8_t>& signRecord=dw.getRecordBeingWritten();
-  toSign.append(&*signRecord.begin(), &*signRecord.end());
+  toSign.append(signRecord.begin(), signRecord.end());
 
   if (algo == TSIG_GSS) {
     if (!gss_add_signature(tsigkeyname, toSign, trc->d_mac)) {

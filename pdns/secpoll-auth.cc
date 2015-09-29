@@ -85,7 +85,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
   BOOST_FOREACH(ComboAddress& dest, s_secpollresolvers) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
-    sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
+    sock.sendTo(string(packet.begin(), packet.end()), dest);
 
     string reply;
 
