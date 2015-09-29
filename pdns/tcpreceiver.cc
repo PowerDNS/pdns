@@ -1119,7 +1119,7 @@ TCPNameserver::TCPNameserver()
 {
 //  sem_init(&d_connectionroom_sem,0,::arg().asNum("max-tcp-connections"));
   d_connectionroom_sem = new Semaphore( ::arg().asNum( "max-tcp-connections" ));
-
+  d_tid=0;
   s_timeout=10;
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
