@@ -73,7 +73,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : last_modified(0), signttl(0), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
+  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
   explicit DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
 
