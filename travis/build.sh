@@ -3,7 +3,7 @@
 linux_configure() {
   #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
   #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
-  ./configure \
+  CFLAGS='-O0' CXXFLAGS='-O0' ./configure \
     --with-dynmodules='bind gmysql gpgsql gsqlite3 geoip mydns tinydns pipe remote random opendbx ldap lua' \
     --with-modules='' \
     --with-sqlite3 \
@@ -28,7 +28,7 @@ osx_configure(){
 
 dist_make_auth() {
   make -k dist
-  make -j4 -k
+  CFLAGS='-O0' CXXFLAGS='-O0' make -j4 -k
 }
 
 make_docs(){
@@ -39,7 +39,7 @@ dist_make_recursor(){
   ./build-scripts/dist-recursor
   cd pdns/pdns-recursor-*/
   ./configure
-  make -k -j 4
+  CFLAGS='-O0' CXXFLAGS='-O0' make -k -j 4
   cd ..
   ln -s pdns-recursor*/pdns_recursor .
   cd ..
@@ -51,7 +51,7 @@ dist_make_dnsdist(){
   tar xf dnsdist*.tar.bz2
   cd dnsdist-*
   ./configure
-  make -k -j 4
+  CFLAGS='-O0' CXXFLAGS='-O0' make -k -j 4
   cd ..
   rm -rf dnsdist-*/
   # back to the repo root
