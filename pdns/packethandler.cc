@@ -214,12 +214,12 @@ bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 
   DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
 
-  for(auto value : keyset) {
+  for(auto const &value : keyset) {
     if (!value.second.keyOrZone) {
       // Don't send out CDS records for ZSKs
       continue;
     }
-    for(auto digestAlgo : digestAlgos){
+    for(auto const &digestAlgo : digestAlgos){
       rr.content=makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), lexical_cast<int>(digestAlgo)).getZoneRepresentation();
       r->addRecord(rr);
       haveOne=true;

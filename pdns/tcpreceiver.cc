@@ -688,7 +688,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         rr.qtype=QType(QType::CDS);
         vector<string> digestAlgos;
         stringtok(digestAlgos, publishCDS, ", ");
-        for(auto digestAlgo : digestAlgos) {
+        for(auto const &digestAlgo : digestAlgos) {
           rr.content=makeDSFromDNSKey(target, value.first.getDNSKEY(), lexical_cast<int>(digestAlgo)).getZoneRepresentation();
           cds.push_back(rr);
         }
@@ -733,10 +733,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   vector<DNSResourceRecord> rrs;
 
   // Add the CDNSKEY and CDS records we created earlier
-  for (auto const rr : cds)
+  for (auto const &rr : cds)
     rrs.push_back(rr);
 
-  for (auto const rr : cdnskey)
+  for (auto const &rr : cdnskey)
     rrs.push_back(rr);
 
   while(sd.db->get(rr)) {
