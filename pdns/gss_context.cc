@@ -19,8 +19,8 @@
 #ifndef ENABLE_GSS_TSIG
 
 bool GssContext::supported() { return false; }
-GssContext::GssContext() {};
-GssContext::GssContext(const std::string& label) {};
+GssContext::GssContext() { d_error = GSS_CONTEXT_UNSUPPORTED; d_type = GSS_CONTEXT_NONE; }
+GssContext::GssContext(const std::string& label) { d_error = GSS_CONTEXT_UNSUPPORTED; d_type = GSS_CONTEXT_NONE; }
 void GssContext::setLocalPrincipal(const std::string& name) {}
 bool GssContext::getLocalPrincipal(std::string& name) { return false; }
 void GssContext::setPeerPrincipal(const std::string& name) {}
