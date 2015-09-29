@@ -38,7 +38,7 @@ class DNSName; // FIXME400
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0),  db(0), domain_id(-1), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1), scopeMask(0) {};
 
   DNSName qname;
   DNSName nameserver;
