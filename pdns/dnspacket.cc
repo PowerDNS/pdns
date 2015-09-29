@@ -118,6 +118,7 @@ DNSPacket::DNSPacket(const DNSPacket &orig)
   d_wrapped=orig.d_wrapped;
 
   d_rawpacket=orig.d_rawpacket;
+  d_tsig_algo=orig.d_tsig_algo;
   d=orig.d;
 }
 
