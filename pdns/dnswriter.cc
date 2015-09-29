@@ -50,6 +50,12 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
   d_stuff=0xffff;
   d_labelmap.reserve(16);
   d_truncatemarker=d_content.size();
+  d_sor = 0;
+  d_rollbackmarker = 0;
+  d_recordttl = 0;
+  d_recordqtype = 0;
+  d_recordqclass = QClass::IN;
+  d_recordplace = DNSPacketWriter::ANSWER;
 }
 
 dnsheader* DNSPacketWriter::getHeader()
