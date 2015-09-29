@@ -4,14 +4,16 @@
 #include <glob.h>
 
 pthread_rwlock_t GeoIPBackend::s_state_lock=PTHREAD_RWLOCK_INITIALIZER;
+typedef map<string, string> service_map_t;
+typedef map<string, vector<DNSResourceRecord> > record_map_t;
 
 class GeoIPDomain {
 public:
   int id;
   string domain;
   int ttl;
-  map<string, string> services;
-  map<string, vector<DNSResourceRecord> > records;
+  service_map_t services;
+  record_map_t records;
 };
 
 static vector<GeoIPDomain> s_domains;
@@ -128,6 +130,48 @@ void GeoIPBackend::initialize() {
       dom.services[service->first.as<string>()] = service->second.as<string>();
     }
 
+    // rectify the zone, first static records
+    BOOST_FOREACH(record_map_t::value_type& item, dom.records) {
+      // ensure we have parent in records
+      string name = item.first;
+      while(chopOff(name) && endsOn(name, dom.domain)) {
+        if (dom.records.find(name) == dom.records.end()) {
+          DNSResourceRecord rr;
+          vector<DNSResourceRecord> rrs;
+          rr.domain_id = dom.id;
+          rr.ttl = dom.ttl;
+          rr.qname = name;
+          rr.qtype = "NULL";
+          rr.content = "";
+          rr.auth = 1;
+          rr.d_place = DNSResourceRecord::ANSWER;
+          rrs.push_back(rr);
+          std::swap(dom.records[name], rrs);
+        }
+      }
+    }
+
+    // then services
+    BOOST_FOREACH(service_map_t::value_type& item, dom.services) {
+      // ensure we have parent in records
+      string name = item.first;
+      while(chopOff(name) && endsOn(name, dom.domain)) {
+        if (dom.records.find(name) == dom.records.end()) {
+          DNSResourceRecord rr;
+          vector<DNSResourceRecord> rrs;
+          rr.domain_id = dom.id;
+          rr.ttl = dom.ttl;
+          rr.qname = name;
+          rr.qtype = "NULL";
+          rr.content = "";
+          rr.auth = 1;
+          rr.d_place = DNSResourceRecord::ANSWER;
+          rrs.push_back(rr);
+          std::swap(dom.records[name], rrs);
+        }
+      }
+    }
+
     tmp_domains.push_back(dom);
   }
 
@@ -188,8 +232,6 @@ void GeoIPBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *
     return;
   }
 
-  if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
-
   string ip = "0.0.0.0";
   bool v6 = false;
   if (pkt_p != NULL) {
@@ -202,6 +244,21 @@ void GeoIPBackend::lookup(const QType &qtype, const string &qdomain, DNSPacket *
   string format = target->second;
   
   format = format2str(format, ip, v6);
+
+  // see if the record can be found
+  if (dom.records.count(format)) { // return static value
+    record_map_t::iterator i = dom.records.find(format);
+    BOOST_FOREACH(DNSResourceRecord rr, i->second) {
+      if (qtype == QType::ANY || rr.qtype == qtype) {
+        rr.scopeMask = (v6 ? 128 : 32);
+        d_result.push_back(rr);
+        d_result.back().qname = qdomain;
+      }
+    }
+    return;
+  }
+
+  if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
 
   DNSResourceRecord rr;
   rr.domain_id = dom.id;
