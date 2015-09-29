@@ -43,6 +43,7 @@ linux(){
     libtool \
     links \
     moreutils \
+    parallel \
     p11-kit \
     pkg-config \
     python-virtualenv \

@@ -5,42 +5,43 @@ regression_tests() {
   touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
   touch tests/verify-dnssec-zone/skip.optout
   export geoipregion=oc geoipregionip=1.2.3.4
-  ./timestamp ./start-test-stop 5300 bind-both
-  ./timestamp ./start-test-stop 5300 bind-dnssec-both
-  ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
-  ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
-  ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
-  ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
-  ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
-  ./timestamp ./start-test-stop 5300 geoipbackend
-  ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
-  ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
-  ./timestamp ./start-test-stop 5300 gmysql-both
-  ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
-  ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
-  ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
-  ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
-  ./timestamp ./start-test-stop 5300 gpgsql-both
-  ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
-  ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
-  ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
-  ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
-  ./timestamp ./start-test-stop 5300 gsqlite3-both
-  ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
-  ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
-  ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
-#DNSName ./timestamp ./start-test-stop 5300 lmdb-nodnssec
-  ./timestamp ./start-test-stop 5300 mydns
-  ./timestamp ./start-test-stop 5300 opendbx-sqlite3
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
-  travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
-  ./timestamp ./start-test-stop 5300 tinydns
+  echo \
+  "./timestamp ./start-test-stop 5300 bind-both 2>&1
+  ./timestamp ./start-test-stop 5350 bind-dnssec-both 2>&1
+  ./timestamp ./start-test-stop 5400 bind-dnssec-pkcs11 2>&1
+  ./timestamp ./start-test-stop 5450 bind-dnssec-nsec3-both 2>&1
+  ./timestamp ./start-test-stop 5500 bind-dnssec-nsec3-optout-both 2>&1
+  ./timestamp ./start-test-stop 5550 bind-dnssec-nsec3-narrow 2>&1
+  ./timestamp ./start-test-stop 5600 bind-hybrid-nsec3 2>&1
+  ./timestamp ./start-test-stop 5650 geoipbackend 2>&1
+  ./timestamp ./start-test-stop 5700 geoipbackend-nsec3-narrow 2>&1
+  ./timestamp ./start-test-stop 5750 gmysql-nodnssec-both 2>&1
+  ./timestamp ./start-test-stop 5800 gmysql-both 2>&1
+  ./timestamp ./start-test-stop 5850 gmysql-nsec3-both 2>&1
+  ./timestamp ./start-test-stop 5900 gmysql-nsec3-optout-both 2>&1
+  ./timestamp ./start-test-stop 5950 gmysql-nsec3-narrow 2>&1
+  ./timestamp ./start-test-stop 6000 gpgsql-nodnssec-both 2>&1
+  ./timestamp ./start-test-stop 6050 gpgsql-both 2>&1
+  ./timestamp ./start-test-stop 6100 gpgsql-nsec3-both 2>&1
+  ./timestamp ./start-test-stop 6150 gpgsql-nsec3-optout-both 2>&1
+  ./timestamp ./start-test-stop 6200 gpgsql-nsec3-narrow 2>&1
+  ./timestamp ./start-test-stop 6250 gsqlite3-nodnssec-both 2>&1
+  ./timestamp ./start-test-stop 6300 gsqlite3-both 2>&1
+  ./timestamp ./start-test-stop 6350 gsqlite3-nsec3-both 2>&1
+  ./timestamp ./start-test-stop 6400 gsqlite3-nsec3-optout-both 2>&1
+  ./timestamp ./start-test-stop 6450 gsqlite3-nsec3-narrow 2>&1
+#DNSName ./timestamp ./start-test-stop 6500 lmdb-nodnssec 2>&1
+  ./timestamp ./start-test-stop 6550 mydns 2>&1
+  ./timestamp ./start-test-stop 6600 opendbx-sqlite3 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6650 remotebackend-pipe 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6700 remotebackend-pipe-dnssec 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6750 remotebackend-unix 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6800 remotebackend-unix-dnssec 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6850 remotebackend-http 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6900 remotebackend-http-dnssec 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 6950 remotebackend-zeromq 2>&1
+  travis_retry ./timestamp timeout 120s ./start-test-stop 7000 remotebackend-zeromq-dnssec 2>&1
+  ./timestamp ./start-test-stop 7050 tinydns 2>&1" | parallel
   rm -f tests/verify-dnssec-zone/allow-missing
   rm -f tests/verify-dnssec-zone/skip.nsec3
   rm -f tests/verify-dnssec-zone/skip.optout
