@@ -235,6 +235,8 @@ public:
   Netmask()
   {
 	d_network.sin4.sin_family=0; // disable this doing anything useful
+	d_mask=0;
+	d_bits=0;
   }
   
   Netmask(const ComboAddress& network, uint8_t bits=0xff)
