@@ -26,7 +26,7 @@
 class DNSName
 {
 public:
-  DNSName() : d_empty(true) {}                 //!< Don't constructs the root name
+  DNSName() : d_empty(true), d_recurse(0) {}                 //!< Don't constructs the root name
   explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
