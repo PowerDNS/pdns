@@ -182,6 +182,7 @@ int Semaphore::getValue(Semaphore::sem_value_t *sval)
 
 Semaphore::~Semaphore()
 {
+  delete m_pSemaphore;
 }
 
 #endif
