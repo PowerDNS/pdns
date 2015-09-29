@@ -62,6 +62,15 @@ DNSPacket::DNSPacket()
   d_dnssecOk=false;
   d_ednsversion=0;
   d_ednsrcode=0;
+  memset(&d, 0, sizeof(d));
+  qclass = QClass::IN;
+  d_tsig_algo = TSIG_MD5;
+  d_havetsig = false;
+  d_socket = -1;
+  d_maxreplylen = 0;
+  d_qlen = 0;
+  d_tsigtimersonly = false;
+  d_haveednssection = false;
 }
 
 const string& DNSPacket::getString()
