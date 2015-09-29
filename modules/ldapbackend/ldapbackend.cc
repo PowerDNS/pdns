@@ -269,7 +269,6 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
         string filter, attr, qesc, dn;
         const char** attributes = ldap_attrany + 1;   // skip associatedDomain
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
-        vector<string>::reverse_iterator i;
         vector<string> parts;
 
 
@@ -287,7 +286,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
         filter = strbind( ":target:", filter, getArg( "filter-lookup" ) );
 
         stringtok( parts, toLower( qname.toString() ), "." );
-        for( i = parts.rbegin(); i != parts.rend(); i++ )
+        for(auto i = parts.crbegin(); i != parts.crend(); i++ )
         {
         	dn = "dc=" + *i + "," + dn;
         }
@@ -349,8 +348,7 @@ inline bool LdapBackend::prepare_simple()
         {
         	if( m_result.count( "associatedDomain" ) )
         	{
-        		vector<string>::iterator i;
-        		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
+        		for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
         			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
 				  m_adomains.push_back( DNSName(*i) );
         			}
@@ -379,8 +377,7 @@ inline bool LdapBackend::prepare_strict()
         {
         	if( m_result.count( "associatedDomain" ) )
         	{
-        		vector<string>::iterator i;
-        		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
+        		for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
         			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
 				  m_adomains.push_back( DNSName(*i) );
         			}
