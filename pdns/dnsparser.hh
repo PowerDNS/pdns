@@ -73,6 +73,7 @@ public:
     : d_pos(0), d_startrecordpos(0), d_content(content)
   {
     d_recordlen = content.size();
+    not_used = 0;
   }
 
   uint32_t get32BitInt();
