@@ -28,7 +28,7 @@ linux(){
     dnsutils \
     faketime \
     geoip-database \
-    libboost-all-dev \
+    boost1.55 \
     libbotan1.10-dev \
     libcdb-dev \
     libcdb-dev \
@@ -58,7 +58,7 @@ linux(){
     xmlto
   sudo sh -c 'sed s/precise/trusty/g /etc/apt/sources.list > /etc/apt/sources.list.d/trusty.list'
   sudo apt-get update --quiet --quiet
-  sudo apt-get install --quiet --quiet
+  sudo apt-get install --quiet --quiet \
     liblmdb0 \
     liblmdb-dev \
     lmdb-utils \
