@@ -171,9 +171,6 @@ void doSecPoll(bool first)
       L<<Logger::Warning<<"Could not retrieve security status update for '" + pkgv + "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
     else
       L<<Logger::Warning<<"Not validating response for security status update, this a non-release version."<<endl;
-
-    if(security_status == 1) // it was ok, not it is unknown
-      security_status = 0;
   }
 
   if(security_status == 1 && first) {
