@@ -100,6 +100,7 @@ Logger::Logger(const string &n, int facility)
   opened=false;
   flags=LOG_PID|LOG_NDELAY;
   d_facility=facility;
+  d_loglevel=Logger::None;
   consoleUrgency=Error;
   name=n;
 
