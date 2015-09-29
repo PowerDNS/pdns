@@ -153,6 +153,10 @@ public:
 
     d_tickinterval=60;
     d_masterschanged=d_slaveschanged=true;
+    d_nsock4 = -1;
+    d_nsock6 = -1;
+    d_havepriosuckrequest = false;
+    d_preventSelfNotification = false;
   }
   time_t doNotifications();    
   void go();
