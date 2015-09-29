@@ -405,6 +405,10 @@ UeberBackend::UeberBackend(const string &pname)
   instances.push_back(this); // report to the static list of ourself
   pthread_mutex_unlock(&instances_lock);
 
+  d_negcached=0;
+  d_ancount=0;
+  domain_id=-1;
+  d_cached=0;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
 
