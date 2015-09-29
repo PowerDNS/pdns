@@ -92,6 +92,7 @@ void CoWrapper::receive(string &line)
 
 PipeBackend::PipeBackend(const string &suffix)
 {
+   d_disavow=false;
    signal(SIGCHLD, SIG_IGN);
    setArgPrefix("pipe"+suffix);
    try {
