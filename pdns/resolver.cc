@@ -405,9 +405,9 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   
     uint16_t replen=htons(packet.size());
     Utility::iovec iov[2];
-    iov[0].iov_base=(char*)&replen;
+    iov[0].iov_base=reinterpret_cast<char*>(&replen);
     iov[0].iov_len=2;
-    iov[1].iov_base=(char*)&packet[0];
+    iov[1].iov_base=packet.data();
     iov[1].iov_len=packet.size();
   
     int ret=Utility::writev(d_sock, iov, 2);
