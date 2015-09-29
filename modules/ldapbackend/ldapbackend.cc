@@ -17,6 +17,9 @@ LdapBackend::LdapBackend( const string &suffix )
         	m_msgid = 0;
         	m_qname.clear();
         	m_pldap = NULL;
+        	m_ttl = 0;
+        	m_axfrqlen = 0;
+        	m_last_modified = 0;
         	m_qlog = arg().mustDo( "query-logging" );
         	m_default_ttl = arg().asNum( "default-ttl" );
         	m_myname = "[LdapBackend]";
