@@ -5,8 +5,7 @@ regression_tests() {
   touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
   touch tests/verify-dnssec-zone/skip.optout
   export geoipregion=oc geoipregionip=1.2.3.4
-  echo \
-  "./timestamp ./start-test-stop 5300 bind-both 2>&1
+  ./timestamp ./start-test-stop 5300 bind-both 2>&1
   ./timestamp ./start-test-stop 5350 bind-dnssec-both 2>&1
   ./timestamp ./start-test-stop 5400 bind-dnssec-pkcs11 2>&1
   ./timestamp ./start-test-stop 5450 bind-dnssec-nsec3-both 2>&1
@@ -41,7 +40,7 @@ regression_tests() {
   travis_retry ./timestamp timeout 120s ./start-test-stop 6900 remotebackend-http-dnssec 2>&1
   travis_retry ./timestamp timeout 120s ./start-test-stop 6950 remotebackend-zeromq 2>&1
   travis_retry ./timestamp timeout 120s ./start-test-stop 7000 remotebackend-zeromq-dnssec 2>&1
-  ./timestamp ./start-test-stop 7050 tinydns 2>&1" | parallel
+  ./timestamp ./start-test-stop 7050 tinydns 2>&1
   rm -f tests/verify-dnssec-zone/allow-missing
   rm -f tests/verify-dnssec-zone/skip.nsec3
   rm -f tests/verify-dnssec-zone/skip.optout

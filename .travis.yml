@@ -8,7 +8,6 @@ compiler:
 before_script:
   - travis/prepare.sh
 script:
-  - which travis_retry
   - travis/build.sh
   - travis/test.sh
 #notifications:
