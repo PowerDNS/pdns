@@ -35,7 +35,7 @@ __EOF__
 				securezone $zone oracle
 				if [ $context = oracle-nsec3 ]
 				then
-					../pdns/pdnssec --config-dir=. --config-name=oracle set-nsec3 $zone "1 0 1 abcd" 2>&1
+					$PDNSSEC --config-dir=. --config-name=oracle set-nsec3 $zone "1 0 1 abcd" 2>&1
 				fi
 			done
 		fi
@@ -43,8 +43,8 @@ __EOF__
 		echo "TRUNCATE TABLE records;" | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
 		../pdns/zone2sql --oracle | grep -v 'INSERT INTO Zones' | sqlplus -S $ORACLEUSER/$ORACLEPASSWD@xe >> oracle.log
 
-		../pdns/pdnssec --config-dir=. --config-name=oracle import-tsig-key test $ALGORITHM $KEY
-		../pdns/pdnssec --config-dir=. --config-name=oracle activate-tsig-key tsig.com test master
+		$PDNSSEC --config-dir=. --config-name=oracle import-tsig-key test $ALGORITHM $KEY
+		$PDNSSEC --config-dir=. --config-name=oracle activate-tsig-key tsig.com test master
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 			--config-name=oracle --socket-dir=./ --no-shuffle \

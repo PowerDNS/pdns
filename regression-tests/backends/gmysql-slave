@@ -31,11 +31,11 @@ __EOF__
 			"$GMYSQL2DB" -e "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
 	done
 
-	../pdns/pdnssec --config-dir=. --config-name=gmysql2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gmysql2 activate-tsig-key tsig.com test slave
+	$PDNSSEC --config-dir=. --config-name=gmysql2 import-tsig-key test $ALGORITHM $KEY
+	$PDNSSEC --config-dir=. --config-name=gmysql2 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
-		../pdns/pdnssec --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSSEC --config-dir=. --config-name=gmysql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 
 	port=$((port+100))

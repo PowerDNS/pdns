@@ -12,7 +12,7 @@ bindwait ()
         loopcount=0
         while [ $loopcount -lt 20 ]; do
                 sleep 1
-                done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+                done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
                 if [ $done = $domcount ]
                         then
                         return
@@ -24,7 +24,7 @@ bindwait ()
         fi
 }
 
-$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./          \
+$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./          \
         --no-shuffle --launch=bind --bind-config=edns-packet-cache/named.conf   \
         --send-root-referral --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
 bindwait
