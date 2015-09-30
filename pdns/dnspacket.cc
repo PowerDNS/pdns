@@ -474,7 +474,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
       *trc = *std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       
       gotit=true;
-      *keyname = i->first.d_label;
+      *keyname = i->first.d_name;
     }
   }
   if(!gotit)
@@ -498,7 +498,7 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 
     if(i->first.d_type == QType::TKEY) {
       *tr = *std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
-      *keyname = i->first.d_label;
+      *keyname = i->first.d_name;
       gotit=true;
     }
   }

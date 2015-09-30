@@ -1043,8 +1043,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	for(const auto& rec : lwr.d_records) {
 	  if(rec.first.d_type == QType::RRSIG) {
 	    auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.first.d_content);
-	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.first.d_label.toString()<<"'"<<endl;
-	    tcache[make_pair(rec.first.d_label, QType(rrsig->d_type))].signatures.push_back(rrsig);
+	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.first.d_name<<"'"<<endl;
+	    tcache[make_pair(rec.first.d_name, QType(rrsig->d_type))].signatures.push_back(rrsig);
 	  }
 	}
       }

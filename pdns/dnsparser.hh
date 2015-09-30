@@ -263,7 +263,7 @@ protected:
 
 struct DNSRecord
 {
-  DNSName d_label; //FIXME400 rename
+  DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
   uint16_t d_class;
@@ -279,9 +279,10 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label.toString()); //FIXME400
-    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
+    string llabel=toLower(d_name.toString());  
+    string rlabel=toLower(rhs.d_name.toString());
 
+    // XXX is anyone expecting a specific canonical ordering? can we use DNSName builtin < ?
     return 
       tie(llabel,     d_type,     d_class, lzrp) <
       tie(rlabel, rhs.d_type, rhs.d_class, rzrp);
@@ -295,8 +296,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label.toString()); //FIXME400
-    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
+    string llabel=toLower(d_name.toString()); 
+    string rlabel=toLower(rhs.d_name.toString()); 
     
     return 
       tie(llabel,     d_type,     d_class, lzrp) ==

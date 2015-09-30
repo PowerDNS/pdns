@@ -196,7 +196,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
   vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-    rr.qname = i->first.d_label;
+    rr.qname = i->first.d_name;
     rr.qtype = i->first.d_type;
     rr.ttl = i->first.d_ttl;
     rr.content = i->first.d_content->getZoneRepresentation();

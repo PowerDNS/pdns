@@ -47,7 +47,7 @@ public:
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
-      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.toString() % relevant.size() % (2*total)).str());
+      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_name.toString() % relevant.size() % (2*total)).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
@@ -135,7 +135,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
   MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   ret->header.d_type=ret->d_qtype;
-  ret->label=mdp.d_answers.begin()->first.d_label;
+  ret->label=mdp.d_answers.begin()->first.d_name;
   ret->header.d_ttl=mdp.d_answers.begin()->first.d_ttl;
   return ret;
 }
@@ -255,14 +255,14 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       unsigned int recordStartPos=pr.d_pos;
 
-      DNSName label=pr.getName();
+      DNSName name=pr.getName();
       
       pr.getDnsrecordheader(ah);
       dr.d_ttl=ah.d_ttl;
       dr.d_type=ah.d_type;
       dr.d_class=ah.d_class;
       
-      dr.d_label=label;
+      dr.d_name=name;
       dr.d_clen=ah.d_clen;
 
       dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));

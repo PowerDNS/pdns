@@ -131,13 +131,13 @@ try
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {     
     if(i->first.d_type == QType::NSEC3)
     {
-      // cerr<<"got nsec3 ["<<i->first.d_label<<"]"<<endl;
+      // cerr<<"got nsec3 ["<<i->first.d_name<<"]"<<endl;
       // cerr<<i->first.d_content->getZoneRepresentation()<<endl;
       NSEC3RecordContent r = dynamic_cast<NSEC3RecordContent&> (*(i->first.d_content));
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
       vector<string> parts;
-      string sname=i->first.d_label.toString();
+      string sname=i->first.d_name.toString();
       boost::split(parts, sname /* FIXME400 */, boost::is_any_of("."));
       nsec3s.insert(make_pair(toLower(parts[0]), toBase32Hex(r.d_nexthash)));
       nsec3salt = r.d_salt;
@@ -145,9 +145,9 @@ try
     }
     else
     {
-      // cerr<<"namesseen.insert('"<<i->first.d_label<<"')"<<endl;
-      names.insert(i->first.d_label);
-      namesseen.insert(i->first.d_label);
+      // cerr<<"namesseen.insert('"<<i->first.d_name<<"')"<<endl;
+      names.insert(i->first.d_name);
+      namesseen.insert(i->first.d_name);
     }
 
     if(i->first.d_type == QType::CNAME)
@@ -155,7 +155,7 @@ try
       namesseen.insert(DNSName(i->first.d_content->getZoneRepresentation()));
     }
 
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_label.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
     cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
   }
 
