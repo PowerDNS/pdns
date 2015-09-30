@@ -37,7 +37,7 @@ __EOF__
 	fi
 	set -e
 
-	port=$((port+100))
+	port=$((port+1))
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=oracle2 --socket-dir=./ --no-shuffle \

@@ -1,4 +1,4 @@
-CXXFLAGS+=-D_XOPEN_SOURCE -DHAVE_STRCASESTR -D__APPLE_USE_RFC_3542 -Wno-deprecated-declarations
+CXXFLAGS+=-D_XOPEN_SOURCE -DHAVE_STRCASESTR -D__APPLE_USE_RFC_3542 -Wno-deprecated-declarations -std=gnu++11
 
 LUA_CPPFLAGS_CONFIG ?= -I/usr/include/lua5.1
 LUA_LIBS_CONFIG ?= -llua5.1 -rdynamic

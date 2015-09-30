@@ -24,7 +24,7 @@
 	fi
 	set -e
 
-	port=$((port+100))
+	port=$((port+1))
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./ \
 		--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave \

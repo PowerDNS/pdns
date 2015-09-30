@@ -2,7 +2,7 @@
 	context=$context-presigned-ext-bind
 	cat > nsd-slave.conf << __EOF__
 server:
-	ip-address: 127.0.0.1@$((port+100))
+	ip-address: 127.0.0.1@$((port+1))
 	database: ./nsd-slave.db
 	difffile: ./ixfr-slave.db
 	xfrdfile: ./ixfr-slave.state
@@ -40,7 +40,7 @@ __EOF__
 		fi
 	done
 
-	port=$((port+100))
+	port=$((port+1))
 	nsdc -c nsd-slave.conf rebuild
 
 	nsd -c nsd-slave.conf -P ../pdns-slave.pid -d &
