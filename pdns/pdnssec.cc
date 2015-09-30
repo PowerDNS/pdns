@@ -2163,7 +2163,7 @@ try
       cerr << "Unable to set meta for '" << zone << "'" << endl;
       return 1;
     } else {
-      cout << "Set '" << zone << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
+      cout << "Set '" << zone.toStringNoDot() << "' meta " << kind << " = " << boost::join(meta, ", ") << endl;
     }
   } else if (cmds[0]=="hsm") {
 #ifdef HAVE_P11KIT1
