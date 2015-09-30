@@ -122,6 +122,9 @@ static string htmlescape(const string &s) {
     case '>':
       result += "&gt;";
       break;
+    case '"':
+      result += "&quot;";
+      break;
     default:
       result += *it;
     }
@@ -141,15 +144,15 @@ void printtable(ostringstream &ret, const string &ringname, const string &title,
   }
 
   ret<<"<div class=\"panel\">";
-  ret<<"<span class=resetring><i></i><a href=\"?resetring="<<ringname<<"\">Reset</a></span>"<<endl;
+  ret<<"<span class=resetring><i></i><a href=\"?resetring="<<htmlescape(ringname)<<"\">Reset</a></span>"<<endl;
   ret<<"<h2>"<<title<<"</h2>"<<endl;
   ret<<"<div class=ringmeta>";
-  ret<<"<a class=topXofY href=\"?ring="<<ringname<<"\">Showing: Top "<<limit<<" of "<<entries<<"</a>"<<endl;
+  ret<<"<a class=topXofY href=\"?ring="<<htmlescape(ringname)<<"\">Showing: Top "<<limit<<" of "<<entries<<"</a>"<<endl;
   ret<<"<span class=resizering>Resize: ";
   unsigned int sizes[]={10,100,500,1000,10000,500000,0};
   for(int i=0;sizes[i];++i) {
     if(S.getRingSize(ringname)!=sizes[i])
-      ret<<"<a href=\"?resizering="<<ringname<<"&amp;size="<<sizes[i]<<"\">"<<sizes[i]<<"</a> ";
+      ret<<"<a href=\"?resizering="<<htmlescape(ringname)<<"&amp;size="<<sizes[i]<<"\">"<<sizes[i]<<"</a> ";
     else
       ret<<"("<<sizes[i]<<") ";
   }
