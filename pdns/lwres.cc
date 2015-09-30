@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2014 PowerDNS.COM BV
+    Copyright (C) 2002 - 2015 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -203,12 +203,7 @@ vector<DNSResourceRecord>& LWResult::getResult()
 {
   if(d_result.empty()) {
     for(auto i=d_records.cbegin(); i != d_records.cend(); ++i) {          
-      DNSResourceRecord rr;
-      rr.qtype=i->first.d_type;
-      rr.qname=i->first.d_label;
-      rr.ttl=i->first.d_ttl;
-      rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
-      rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
+      DNSResourceRecord rr(i->first);
       d_result.push_back(rr);
     }
   }

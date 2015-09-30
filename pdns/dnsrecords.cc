@@ -70,6 +70,7 @@ bool DNSResourceRecord::operator==(const DNSResourceRecord& rhs)
 
 DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   auth=true;
+  qclass = p.d_class;
   disabled=false;
   qname = p.d_label;
   d_place = (DNSResourceRecord::Place)p.d_place;
