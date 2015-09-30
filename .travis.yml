@@ -83,7 +83,7 @@ script:
  - ./bootstrap
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
- - CFLAGS="-Wall -O0" CXXFLAGS="-Wall -O0" ./configure
+ - CFLAGS="-Wall -O1" CXXFLAGS="-Wall -O1" ./configure
      --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
      --with-modules=''
      --with-sqlite3
@@ -165,9 +165,9 @@ script:
  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
 #DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
@@ -179,7 +179,7 @@ script:
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
 # - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
 # - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
  - rm -f tests/verify-dnssec-zone/allow-missing
