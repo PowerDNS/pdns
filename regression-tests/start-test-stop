@@ -231,7 +231,7 @@ fi
 
 for prog in $SDIG $SAXFR $NSEC3DIG; do
   if `echo $prog | grep -q '../pdns'`; then
-    ${MAKE} -C ../pdns ${prog##../pdns/} || exit
+    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
   fi
 done
 
