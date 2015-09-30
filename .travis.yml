@@ -83,7 +83,7 @@ script:
  - ./bootstrap
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
- - ./configure
+ - CFLAGS="-Wall -O0" CXXFLAGS="-Wall -O0" ./configure
      --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
      --with-modules=''
      --with-sqlite3
