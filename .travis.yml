@@ -149,27 +149,27 @@ script:
  - ./timestamp ./start-test-stop 5300 bind-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
-# - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
-# - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
-# - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
+ - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
  - ./timestamp ./start-test-stop 5300 geoipbackend
  - ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
-# - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
-# - ./timestamp ./start-test-stop 5300 gmysql-both
-# - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
+ - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
+ - ./timestamp ./start-test-stop 5300 gmysql-both
+ - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
-# - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
-# - ./timestamp ./start-test-stop 5300 gpgsql-both
-# - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
-# - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
+ - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
-# - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
-# - ./timestamp ./start-test-stop 5300 gsqlite3-both
-# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-both
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
-# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
 #DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
  - ./timestamp ./start-test-stop 5300 mydns
  - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
