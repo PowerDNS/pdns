@@ -4,7 +4,7 @@
 options {
 	directory "./zones";
 	dnssec-enable yes;
-	listen-on port $(($port+100)) { 127.0.0.1; };
+	listen-on port $(($port+1)) { 127.0.0.1; };
 	minimal-responses yes;
 	pid-file "../pdns-slave.pid";
 };
@@ -33,7 +33,7 @@ __EOF__
 		echo "};" >> bind-slave.conf
 	done
 
-	port=$((port+100))
+	port=$((port+1))
 
 	named -c bind-slave.conf -g &
 	sleep 20
