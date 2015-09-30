@@ -107,7 +107,7 @@ script:
 # DNSName: - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
  - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|zone2lmdb|speedtest')
  - cd pdns
- - make -k -3 1 pdns_recursor
+ - make -k -j 2 pdns_recursor
  - rm -f pdns_recursor
  - ./pdnssec test-algorithms
  - cd ..
