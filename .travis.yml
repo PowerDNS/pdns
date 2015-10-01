@@ -83,7 +83,7 @@ script:
  - ./bootstrap
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
- - ./configure
+ - CFLAGS='-O0' CXXFLAGS='-O0' ./configure
      --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
      --with-modules=''
      --with-sqlite3
@@ -113,7 +113,7 @@ script:
  - cd ..
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/
- - ./configure
+ - CFLAGS='-O0' CXXFLAGS='-O0' ./configure
  - make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
@@ -122,7 +122,7 @@ script:
  - cd pdns/dnsdistdist
  - tar xf dnsdist*.tar.bz2
  - cd dnsdist-*
- - ./configure
+ - CFLAGS='-O0' CXXFLAGS='-O0' ./configure
  - make -k -j 4
  - cd ..
  - rm -rf dnsdist-*/
@@ -163,24 +163,24 @@ script:
  - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
  - ./timestamp ./start-test-stop 5300 gpgsql-both
  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-both
+# - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
+# - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
 #DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
- - ./timestamp ./start-test-stop 5300 mydns
- - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
+# - ./timestamp ./start-test-stop 5300 mydns
+# - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
  - rm -f tests/verify-dnssec-zone/allow-missing
  - rm -f tests/verify-dnssec-zone/skip.nsec3
