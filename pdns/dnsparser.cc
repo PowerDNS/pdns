@@ -207,6 +207,15 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
   return zmakermap;
 }
 
+DNSRecord::DNSRecord(const DNSResourceRecord& rr)
+{
+  d_name = rr.qname;
+  d_type = rr.qtype.getCode();
+  d_ttl = rr.ttl;
+  d_class = rr.qclass;
+  d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
+}
+
 void MOADNSParser::init(const char *packet, unsigned int len)
 {
   if(len < sizeof(dnsheader))
