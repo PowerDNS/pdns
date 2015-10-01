@@ -25,6 +25,7 @@
 #endif
 #include "utility.hh"
 #include "dnsrecords.hh"
+#include "iputils.hh"
 #include <boost/foreach.hpp>
 
 void DNSResourceRecord::setContent(const string &cont) {
@@ -82,7 +83,6 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   setContent(p.d_content->getZoneRepresentation());
 }
 
-
 boilerplate_conv(A, QType::A, conv.xfrIP(d_ip));
 
 ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(QType::A)
@@ -90,10 +90,37 @@ ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(QType::A)
   d_ip = ip;
 }
 
-uint32_t ARecordContent::getIP() const
+ARecordContent::ARecordContent(const ComboAddress& ca) : DNSRecordContent(QType::A)
 {
-  return d_ip;
+  d_ip = ca.sin4.sin_addr.s_addr;
 }
+
+AAAARecordContent::AAAARecordContent(const ComboAddress& ca) : DNSRecordContent(QType::AAAA)
+{
+  d_ip6.assign((const char*)ca.sin6.sin6_addr.s6_addr, 16);
+}
+
+
+ComboAddress ARecordContent::getCA(int port) const
+{
+  ComboAddress ret;
+  ret.sin4.sin_family=AF_INET;
+  ret.sin4.sin_port=htons(port);
+  memcpy(&ret.sin4.sin_addr.s_addr, &d_ip, 4);
+  return ret;
+}
+
+ComboAddress AAAARecordContent::getCA(int port) const
+{
+  ComboAddress ret;
+  memset(&ret, 0, sizeof(ret));
+
+  ret.sin4.sin_family=AF_INET6;
+  ret.sin6.sin6_port = htons(port);
+  memcpy(&ret.sin6.sin6_addr.s6_addr, d_ip6.c_str(), 16);
+  return ret;
+}
+
 
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
 {  
