@@ -1762,7 +1762,7 @@ try
       cerr<<"Syntax: pdnssec set-publish-cdnskey ZONE"<<endl;
       return 0;
     }
-    if (! dk.setPublishCDNSKEY(cmds[1])) {
+    if (! dk.setPublishCDNSKEY(DNSName(cmds[1]))) {
       cerr << "Could not set publishing for CDNSKEY records for "<< cmds[1]<<endl;
       return 1;
     }
@@ -1778,7 +1778,7 @@ try
     if(cmds.size() == 2)
       cmds.push_back("1,2");
 
-    if (! dk.setPublishCDS(cmds[1], cmds[2])) {
+    if (! dk.setPublishCDS(DNSName(cmds[1]), cmds[2])) {
       cerr << "Could not set publishing for CDS records for "<< cmds[1]<<endl;
       return 1;
     }
@@ -1800,7 +1800,7 @@ try
       cerr<<"Syntax: pdnssec unset-publish-cdnskey ZONE"<<endl;
       return 0;
     }
-    if (! dk.unsetPublishCDNSKEY(cmds[1])) {
+    if (! dk.unsetPublishCDNSKEY(DNSName(cmds[1]))) {
       cerr << "Could not unset publishing for CDNSKEY records for "<< cmds[1]<<endl;
       return 1;
     }
@@ -1811,7 +1811,7 @@ try
       cerr<<"Syntax: pdnssec unset-publish-cds ZONE"<<endl;
       return 0;
     }
-    if (! dk.unsetPublishCDS(cmds[1])) {
+    if (! dk.unsetPublishCDS(DNSName(cmds[1]))) {
       cerr << "Could not unset publishing for CDS records for "<< cmds[1]<<endl;
       return 1;
     }
