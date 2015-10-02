@@ -241,7 +241,7 @@ bool RemoteBackend::get(DNSResourceRecord &rr) {
 
    value = "";
    rr.qtype = getString(JSON_GET((*d_result)["result"][d_index], "qtype", value));
-   rr.qname = getString(JSON_GET((*d_result)["result"][d_index], "qname", value));
+   rr.qname = DNSName(getString(JSON_GET((*d_result)["result"][d_index], "qname", value)));
    rr.qclass = QClass::IN;
    rr.content = getString(JSON_GET((*d_result)["result"][d_index], "content",value));
    value = -1;
@@ -283,7 +283,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::strin
    if (this->send(query) == false || this->recv(answer) == false)
      return false;
 
-   unhashed = getString(answer["result"]["unhashed"]);
+   unhashed = DNSName(getString(answer["result"]["unhashed"]));
    before = getString(answer["result"]["before"]);
    after = getString(answer["result"]["after"]);
  
@@ -521,7 +521,7 @@ bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, std::str
        !answer["result"].HasMember("content")) 
      throw PDNSException("Invalid response to getTSIGKey, missing field(s)");
 
-   (*algorithm) = getString(answer["result"]["algorithm"]);
+   (*algorithm) = DNSName(getString(answer["result"]["algorithm"]));
    content->assign(getString(answer["result"]["content"]));
    
    return true;
@@ -583,8 +583,8 @@ bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys) {
          struct TSIGKey key;
          rapidjson::Value value;
          value = "";
-         key.name = getString(JSON_GET((*iter), "name", value));
-         key.algorithm = getString(JSON_GET((*iter), "algorithm", value));
+         key.name = DNSName(getString(JSON_GET((*iter), "name", value)));
+         key.algorithm = DNSName(getString(JSON_GET((*iter), "algorithm", value)));
          key.key = getString(JSON_GET((*iter), "content", value));
 
          if (key.name.empty() ||
@@ -622,7 +622,7 @@ bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
    value = -1;
    // parse return value. we need at least zone,serial,kind
    di.id = getInt(JSON_GET(answer["result"],"id",value));
-   di.zone = getString(answer["result"]["zone"]);
+   di.zone = DNSName(getString(answer["result"]["zone"]));
 
    if (answer["result"].HasMember("masters") && answer["result"]["masters"].IsArray()) {
      rapidjson::Value& value = answer["result"]["masters"];
@@ -977,7 +977,7 @@ bool RemoteBackend::searchRecords(const string &pattern, int maxResults, vector<
      rapidjson::Value value;
      value = "";
      rr.qtype = getString(JSON_GET((*d_result)["result"][d_index], "qtype", value));
-     rr.qname = getString(JSON_GET((*d_result)["result"][d_index], "qname", value));
+     rr.qname = DNSName(getString(JSON_GET((*d_result)["result"][d_index], "qname", value)));
      rr.qclass = QClass::IN;
      rr.content = getString(JSON_GET((*d_result)["result"][d_index], "content",value));
      value = -1;

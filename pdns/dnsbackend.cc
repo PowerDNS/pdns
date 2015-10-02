@@ -250,11 +250,11 @@ bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
     return false;
   sd.qname = domain;
   if(!sd.nameserver.countLabels())
-    sd.nameserver=arg()["default-soa-name"];
+    sd.nameserver= DNSName(arg()["default-soa-name"]);
 
   if(!sd.hostmaster.countLabels()) {
     if (!arg().isEmpty("default-soa-mail")) {
-      sd.hostmaster=arg()["default-soa-mail"];
+      sd.hostmaster= DNSName(arg()["default-soa-mail"]);
       // attodot(sd.hostmaster); FIXME400
     }
     else
@@ -363,16 +363,18 @@ extern PacketCache PC;
 #define DLOG(x) x
 #endif
 
-bool _add_to_negcache( const string &zone ) {
+// XXX DNSName pain, should be DNSName native. 
+static bool add_to_negcache( const string &zone ) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
     // add the zone to the negative query cache and return false
     if(negqueryttl) {
         DLOG(L<<Logger::Error<<"Adding to neg qcache: " << zone<<endl);
-        PC.insert(zone, QType(QType::SOA), PacketCache::QUERYCACHE, "", negqueryttl, 0);
+        PC.insert(DNSName(zone), QType(QType::SOA), PacketCache::QUERYCACHE, "", negqueryttl, 0);
     }
     return false;
 }
 
+// XXX DNSName Pain, this should be DNSName native!                     vvvvvvvvvvvvvv
 inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const string &querykey, const int best_match_len) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
 
@@ -393,7 +395,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
      * failed to look up this zone */
     if( negqueryttl ) {
         string content;
-        bool ret = PC.getEntry( inZone, QType(QType::SOA), PacketCache::QUERYCACHE, content, 0 );
+        bool ret = PC.getEntry( DNSName(inZone), QType(QType::SOA), PacketCache::QUERYCACHE, content, 0 );
         if( ret && content.empty() ) {
             DLOG(L<<Logger::Error<<"Found in neg qcache: " << inZone << ":" << content << ":" << ret << ":"<<endl);
             return GET_AUTH_NEG_DONTCACHE;
@@ -418,11 +420,11 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
     if( getAuthData( *soa, p ) ) {
         /* all the keys are reversed. rather than reversing them again it is
          * presumably quicker to just substring the zone down to size */
-        soa->qname = inZone.substr( inZone.length() - foundkey.length(), string::npos );
+      soa->qname = DNSName(inZone.substr( inZone.length() - foundkey.length(), string::npos ));
 
-        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
+      DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
 
-        return GET_AUTH_SUCCESS;
+      return GET_AUTH_SUCCESS;
     }
 
     return GET_AUTH_NEG_CACHE;
@@ -440,7 +442,7 @@ bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const DNSName &inZo
      * size
      */
     if( ret == GET_AUTH_NEG_CACHE )
-      _add_to_negcache( inZone.toStringNoDot() );
+      add_to_negcache( inZone.toStringNoDot() );
 
     return ret == GET_AUTH_SUCCESS;
 }

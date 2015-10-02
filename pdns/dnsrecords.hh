@@ -29,8 +29,6 @@
 #include <boost/lexical_cast.hpp>
 #include <set>
 #include <bitset>
-
-#include "namespaces.hh"
 #include "namespaces.hh"
 
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
@@ -60,11 +58,11 @@ private:
 class ARecordContent : public DNSRecordContent
 {
 public:
+  explicit ARecordContent(const ComboAddress& ca);
   explicit ARecordContent(uint32_t ip);
   includeboilerplate(A);
   void doRecordCheck(const DNSRecord& dr);
-  uint32_t getIP() const;
-
+  ComboAddress getCA(int port=0) const;
 private:
   uint32_t d_ip;
 };
@@ -73,9 +71,11 @@ class AAAARecordContent : public DNSRecordContent
 {
 public:
   AAAARecordContent(std::string &val);
+  explicit AAAARecordContent(const ComboAddress& ca);
   includeboilerplate(AAAA);
+  ComboAddress getCA(int port=0) const;
 private:
-  std::string d_ip6;
+  string d_ip6; // why??
 };
 
 class MXRecordContent : public DNSRecordContent
@@ -180,7 +180,8 @@ class NSRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(NS)
-
+  explicit NSRecordContent(const DNSName& content) : DNSRecordContent(QType::NS), d_content(content){}
+  DNSName getNS() const { return d_content; } 
 private:
   DNSName d_content;
 };
@@ -198,7 +199,7 @@ class CNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(CNAME)
-
+  DNSName getTarget() const { return d_content; }
 private:
   DNSName d_content;
 };
@@ -623,8 +624,8 @@ struct EDNSOpts
 {
   enum zFlags { DNSSECOK=32768 };
   vector<pair<uint16_t, string> > d_options;
-  uint16_t d_packetsize;
-  uint16_t d_Z;
+  uint16_t d_packetsize{0};
+  uint16_t d_Z{0};
   uint8_t d_extRCode, d_version;
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any

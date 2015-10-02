@@ -277,10 +277,10 @@ bool isRootReferral(const MOADNSParser::answers_t& answers)
 
   bool ok=true;
   for(MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
-    //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_label<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
+    //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_name<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
     if(iter->first.d_place!=2)
       ok=false;
-    if(!iter->first.d_label.isRoot() || iter->first.d_type!=QType::NS)
+    if(!iter->first.d_name.isRoot() || iter->first.d_type!=QType::NS)
       ok=false;
   }
   return ok;
@@ -379,10 +379,10 @@ void measureResultAndClean(qids_t::const_iterator iter)
     if(!g_quiet) {
       cout<<"orig: rcode="<<qd.d_origRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
-        cout<<"\t"<<i->d_label.toString()<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_name.toString()<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"new: rcode="<<qd.d_newRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-        cout<<"\t"<<i->d_label.toString()<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_name.toString()<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
       cout<<"\n";
       cout<<"-\n";
 

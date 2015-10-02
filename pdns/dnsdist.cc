@@ -555,7 +555,7 @@ bool upCheck(const ComboAddress& remote)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, "a.root-servers.net.", QType::A);
+  DNSPacketWriter dpw(packet, DNSName("a.root-servers.net."), QType::A);
   dpw.getHeader()->rd=true;
 
   Socket sock(remote.sin4.sin_family, SOCK_DGRAM);

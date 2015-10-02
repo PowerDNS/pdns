@@ -212,10 +212,10 @@ BOOST_AUTO_TEST_CASE(test_Append) {
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet;
   reportBasicTypes();
-  DNSPacketWriter dpw1(packet, "www.ds9a.nl.", QType::AAAA);
+  DNSPacketWriter dpw1(packet, DNSName("www.ds9a.nl."), QType::AAAA);
   
   auto hash1=hashQuestion((char*)&packet[0], packet.size(), 0);
-  DNSPacketWriter dpw2(packet, "wWw.Ds9A.nL.", QType::AAAA);
+  DNSPacketWriter dpw2(packet, DNSName("wWw.Ds9A.nL."), QType::AAAA);
   auto hash2=hashQuestion((char*)&packet[0], packet.size(), 0);
   BOOST_CHECK_EQUAL(hash1, hash2);
  
@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(test_QuestionHash) {
  
   for(unsigned int n=0; n < 100000; ++n) {
     packet.clear();
-    DNSPacketWriter dpw1(packet, std::to_string(n)+"."+std::to_string(n*2)+".", QType::AAAA);
+    DNSPacketWriter dpw1(packet, DNSName(std::to_string(n)+"."+std::to_string(n*2)+"."), QType::AAAA);
     counts[hashQuestion((char*)&packet[0], packet.size(), 0) % counts.size()]++;
   }
   
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(test_QuestionHash) {
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
   reportBasicTypes();
-  DNSPacketWriter dpw(packet, "www.ds9a.nl.", QType::AAAA);
+  DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
   
   uint16_t qtype, qclass;
   DNSName dn((char*)&packet[0], packet.size(), 12, false, &qtype, &qclass);
@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   BOOST_CHECK(qtype == QType::AAAA);
   BOOST_CHECK_EQUAL(qclass, 1);
 
-  dpw.startRecord("ds9a.nl.", DNSRecordContent::TypeToNumber("NS"));
+  dpw.startRecord(DNSName("ds9a.nl."), DNSRecordContent::TypeToNumber("NS"));
   NSRecordContent nrc("ns1.powerdns.com");
   nrc.toPacket(dpw);
 
@@ -344,20 +344,25 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(lower.canonCompare(higher));
 
 
-  vector<DNSName> vec({"bert.com.", "alpha.nl.", "articles.xxx.",
+  vector<DNSName> vec;
+  for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",
 	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
-	"test.powerdns.com."});
+	"test.powerdns.com."}) {
+    vec.push_back(DNSName(a));
+  }
   sort(vec.begin(), vec.end(), CanonDNSNameCompare());
   //  for(const auto& v : vec)
   //  cerr<<'"'<<v.toString()<<'"'<<endl;
 
-  vector<DNSName> right({"bert.com.",  "Aleph1.powerdns.com.",
+  vector<DNSName> right;
+  for(const auto& a: {"bert.com.",  "Aleph1.powerdns.com.",
 	"test.powerdns.com.",
 	"ZOMG.powerdns.com.",
 	"alpha.nl.",
 	"aaa.XXX.",
 	"articles.xxx.",
-	"yyy.XXX."});
+	"yyy.XXX."})
+    right.push_back(DNSName(a));
 
   BOOST_CHECK(vec==right);
 }

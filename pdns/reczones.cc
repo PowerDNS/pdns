@@ -36,7 +36,7 @@ extern char** g_argv;
 void primeHints(void)
 {
   // prime root cache
-  set<DNSResourceRecord>nsset;
+  vector<DNSRecord> nsset;
   if(!t_RC)
     t_RC = new MemRecursorCache();
 
@@ -50,30 +50,31 @@ void primeHints(void)
       "2001:503:c27::2:30", "2001:7fd::1", "2001:500:3::42", "2001:dc3::35"
     };
     
-    DNSResourceRecord arr, aaaarr, nsrr;
-    arr.qtype=QType::A;
-    aaaarr.qtype=QType::AAAA;
-    nsrr.qtype=QType::NS;
-    arr.ttl=aaaarr.ttl=nsrr.ttl=time(0)+3600000;
+    DNSRecord arr, aaaarr, nsrr;
+    arr.d_type=QType::A;
+    aaaarr.d_type=QType::AAAA;
+    nsrr.d_type=QType::NS;
+    arr.d_ttl=aaaarr.d_ttl=nsrr.d_ttl=time(0)+3600000;
     
     for(char c='a';c<='m';++c) {
       static char templ[40];
       strncpy(templ,"a.root-servers.net.", sizeof(templ) - 1);
       *templ=c;
-      aaaarr.qname=arr.qname=nsrr.content=templ;
-      arr.content=ips[c-'a'];
-      set<DNSResourceRecord> aset;
-      aset.insert(arr);
-      t_RC->replace(time(0), string(templ), QType(QType::A), aset, true); // auth, nuke it all
+      aaaarr.d_name=arr.d_name=DNSName(templ);
+      nsrr.d_content=std::make_shared<NSRecordContent>(DNSName(templ));
+      arr.d_content=std::make_shared<ARecordContent>(ComboAddress(ips[c-'a']));
+      vector<DNSRecord> aset;
+      aset.push_back(arr);
+      t_RC->replace(time(0), DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, nuke it all
       if (ip6s[c-'a'] != NULL) {
-        aaaarr.content=ip6s[c-'a'];
+        aaaarr.d_content=std::make_shared<AAAARecordContent>(ComboAddress(ip6s[c-'a']));
 
-        set<DNSResourceRecord> aaaaset;
-        aaaaset.insert(aaaarr);
-        t_RC->replace(time(0), string(templ), QType(QType::AAAA), aaaaset, true);
+        vector<DNSRecord> aaaaset;
+        aaaaset.push_back(aaaarr);
+        t_RC->replace(time(0), DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), true);
       }
       
-      nsset.insert(nsrr);
+      nsset.push_back(nsrr);
     }
   }
   else {
@@ -83,20 +84,20 @@ void primeHints(void)
     while(zpt.get(rr)) {
       rr.ttl+=time(0);
       if(rr.qtype.getCode()==QType::A) {
-        set<DNSResourceRecord> aset;
-        aset.insert(rr);
-        t_RC->replace(time(0), rr.qname, QType(QType::A), aset, true); // auth, etc see above
+        vector<DNSRecord> aset;
+        aset.push_back(DNSRecord(rr));
+        t_RC->replace(time(0), rr.qname, QType(QType::A), aset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // auth, etc see above
       } else if(rr.qtype.getCode()==QType::AAAA) {
-        set<DNSResourceRecord> aaaaset;
-        aaaaset.insert(rr);
-        t_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, true);
+        vector<DNSRecord> aaaaset;
+        aaaaset.push_back(DNSRecord(rr));
+        t_RC->replace(time(0), rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<RRSIGRecordContent>>(), true);
       } else if(rr.qtype.getCode()==QType::NS) {
         rr.content=toLower(rr.content);
-        nsset.insert(rr);
+        nsset.push_back(DNSRecord(rr));
       }
     }
   }
-  t_RC->replace(time(0),".", QType(QType::NS), nsset, true); // and stuff in the cache (auth)
+  t_RC->replace(time(0), DNSName(), QType(QType::NS), nsset, vector<std::shared_ptr<RRSIGRecordContent>>(), true); // and stuff in the cache (auth)
 }
 
 static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostname, const string& ip)
@@ -104,30 +105,31 @@ static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostna
   SyncRes::AuthDomain ad;
   ad.d_rdForward=false;
 
-  DNSResourceRecord rr;
-  rr.qname=hostname;
-  rr.d_place=DNSResourceRecord::ANSWER;
-  rr.ttl=86400;
-  rr.qtype=QType::SOA;
-  rr.content="localhost. root 1 604800 86400 2419200 604800";
+  DNSRecord dr;
+  dr.d_name=hostname;
+  dr.d_place=DNSRecord::Answer;
+  dr.d_ttl=86400;
+  dr.d_type=QType::SOA;
+  dr.d_class = 1;
+  dr.d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800"));
   
-  ad.d_records.insert(rr);
+  ad.d_records.insert(dr);
 
-  rr.qtype=QType::NS;
-  rr.content="localhost.";
+  dr.d_type=QType::NS;
+  dr.d_content=std::make_shared<NSRecordContent>("localhost.");
 
-  ad.d_records.insert(rr);
+  ad.d_records.insert(dr);
   
-  rr.qtype=QType::A;
-  rr.content=ip;
-  ad.d_records.insert(rr);
+  dr.d_type=QType::A;
+  dr.d_content= std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::A, 1, ip));
+  ad.d_records.insert(dr);
   
-  if(newMap->count(rr.qname)) {  
-    L<<Logger::Warning<<"Hosts file will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
+  if(newMap->count(dr.d_name)) {  
+    L<<Logger::Warning<<"Hosts file will not overwrite zone '"<<dr.d_name<<"' already loaded"<<endl;
   }
   else {
-    L<<Logger::Warning<<"Inserting forward zone '"<<rr.qname<<"' based on hosts file"<<endl;
-    (*newMap)[rr.qname]=ad;
+    L<<Logger::Warning<<"Inserting forward zone '"<<dr.d_name<<"' based on hosts file"<<endl;
+    (*newMap)[dr.d_name]=ad;
   }
 }
 
@@ -141,39 +143,39 @@ static void makeIPToNamesZone(SyncRes::domainmap_t* newMap, const vector<string>
   SyncRes::AuthDomain ad;
   ad.d_rdForward=false;
 
-  DNSResourceRecord rr;
+  DNSRecord dr;
   for(int n=ipparts.size()-1; n>=0 ; --n) {
-    rr.qname.appendRawLabel(ipparts[n]);
+    dr.d_name.appendRawLabel(ipparts[n]);
   }
-  rr.qname.appendRawLabel("in-addr");
-  rr.qname.appendRawLabel("arpa");
-
-  rr.d_place=DNSResourceRecord::ANSWER;
-  rr.ttl=86400;
-  rr.qtype=QType::SOA;
-  rr.content="localhost. root. 1 604800 86400 2419200 604800";
+  dr.d_name.appendRawLabel("in-addr");
+  dr.d_name.appendRawLabel("arpa");
+  dr.d_class = 1;
+  dr.d_place=DNSRecord::Answer;
+  dr.d_ttl=86400;
+  dr.d_type=QType::SOA;
+  dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800"));
   
-  ad.d_records.insert(rr);
+  ad.d_records.insert(dr);
 
-  rr.qtype=QType::NS;
-  rr.content="localhost.";
+  dr.d_type=QType::NS;
+  dr.d_content=std::make_shared<NSRecordContent>(DNSName("localhost."));
 
-  ad.d_records.insert(rr);
-  rr.qtype=QType::PTR;
+  ad.d_records.insert(dr);
+  dr.d_type=QType::PTR;
 
   if(ipparts.size()==4)  // otherwise this is a partial zone
     for(unsigned int n=1; n < parts.size(); ++n) {
-      rr.content=DNSName(parts[n]).toString();
-      ad.d_records.insert(rr);
+      dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::PTR, 1, DNSName(parts[n]).toString())); // XXX FIXME DNSNAME PAIN CAN THIS BE RIGHT?
+      ad.d_records.insert(dr);
     }
 
-  if(newMap->count(rr.qname)) {  
-    L<<Logger::Warning<<"Will not overwrite zone '"<<rr.qname<<"' already loaded"<<endl;
+  if(newMap->count(dr.d_name)) {  
+    L<<Logger::Warning<<"Will not overwrite zone '"<<dr.d_name<<"' already loaded"<<endl;
   }
   else {
     if(ipparts.size()==4)
-      L<<Logger::Warning<<"Inserting reverse zone '"<<rr.qname<<"' based on hosts file"<<endl;
-    (*newMap)[rr.qname]=ad;
+      L<<Logger::Warning<<"Inserting reverse zone '"<<dr.d_name<<"' based on hosts file"<<endl;
+    (*newMap)[dr.d_name]=ad;
   }
 }
 
@@ -249,7 +251,7 @@ string reloadAuthAndForwards()
   
     for(SyncRes::domainmap_t::const_iterator i = t_sstorage->domainmap->begin(); i != t_sstorage->domainmap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->d_name));
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -290,7 +292,7 @@ string reloadAuthAndForwards()
     // purge again - new zones need to blank out the cache
     for(SyncRes::domainmap_t::const_iterator i = newDomainMap->begin(); i != newDomainMap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->qname));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->d_name));
     }
 
     // this is pretty blunt
@@ -335,10 +337,11 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         L<<Logger::Error<<"Parsing authoritative data for zone '"<<headers.first<<"' from file '"<<headers.second<<"'"<<endl;
         ZoneParserTNG zpt(headers.second, DNSName(headers.first));
         DNSResourceRecord rr;
+	DNSRecord dr;
         while(zpt.get(rr)) {
           try {
-            string tmp=DNSRR2String(rr);
-            rr=String2DNSRR(rr.qname, rr.qtype, tmp, rr.ttl);
+	    dr=DNSRecord(rr);
+	    dr.d_place=DNSRecord::Answer;
           }
           catch(std::exception &e) {
             delete newMap;
@@ -349,7 +352,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
             throw PDNSException("Error parsing record '"+rr.qname.toString()+"' of type "+rr.qtype.getName()+" in zone '"+headers.first+"' from file '"+headers.second+"'");
           }
 
-          ad.d_records.insert(rr);
+          ad.d_records.insert(dr);
         }
       }
       else {
@@ -367,7 +370,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         }
       }
       
-      (*newMap)[headers.first]=ad; 
+      (*newMap)[DNSName(headers.first)]=ad; 
     }
   }
   
@@ -413,7 +416,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         throw PDNSException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
-      (*newMap)[domain]=ad;
+      (*newMap)[DNSName(domain)]=ad;
     }
     L<<Logger::Warning<<"Done parsing " << newMap->size() - before<<" forwarding instructions from file '"<<::arg()["forward-zones-file"]<<"'"<<endl;
   }
@@ -443,10 +446,10 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         
         for(unsigned int n=1; n < parts.size(); ++n) {
           if(searchSuffix.empty() || parts[n].find('.') != string::npos)
-              makeNameToIPZone(newMap, parts[n], parts[0]);
+	    makeNameToIPZone(newMap, DNSName(parts[n]), parts[0]);
           else {
-              DNSName canonic=toCanonic(DNSName(searchSuffix), parts[n]);
-              if(canonic != parts[n]) {
+	    DNSName canonic=toCanonic(DNSName(searchSuffix), parts[n]); /// XXXX DNSName pain
+	    if(canonic != DNSName(parts[n])) {   // XXX further DNSName pain
               makeNameToIPZone(newMap, canonic, parts[0]);
             }
           }

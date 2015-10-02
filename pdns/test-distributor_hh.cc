@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_dies) {
     for(int n=0; n < 100; ++n)  {
       auto q = new Question();
       q->d_dt.set(); 
-      q->qdomain=std::to_string(n);
+      q->qdomain=DNSName(std::to_string(n));
       d->question(q, report2);
     }
 

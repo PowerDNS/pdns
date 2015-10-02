@@ -99,7 +99,7 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z, const vector<pair
 
   ttl=ntohl(ttl); // will be reversed later on
 
-  startRecord("", QType::OPT, ttl, udpsize, ADDITIONAL, false);
+  startRecord(DNSName(), QType::OPT, ttl, udpsize, ADDITIONAL, false);
   for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
     xfr16BitInt(iter->first);
     xfr16BitInt(iter->second.length());
@@ -165,7 +165,7 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& nmap, const DNSN
 {
   DNSPacketWriter::lmap_t::iterator ret;
   for(ret=nmap.begin(); ret != nmap.end(); ++ret)
-    if(pdns_iequals(ret->first ,name))
+    if(ret->first == name)
       break;
   return ret;
 }

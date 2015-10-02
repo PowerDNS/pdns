@@ -35,8 +35,8 @@ void apiServerSearchLog(HttpRequest* req, HttpResponse* resp);
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
 // helpers
-string apiZoneIdToName(const string& id);
-string apiZoneNameToId(const string& name);
+DNSName apiZoneIdToName(const string& id);
+string apiZoneNameToId(const DNSName& name);
 
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string,string>& out);

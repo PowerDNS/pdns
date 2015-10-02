@@ -37,6 +37,7 @@ extern "C" {
 #include <stdexcept>
 #include "logger.hh"
 #include "namespaces.hh"
+#include "dnsparser.hh"
 
 bool netmaskMatchTable(lua_State* lua, const std::string& ip)
 {
@@ -82,35 +83,35 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
   return ret;
 }
 
-void pushResourceRecordsTable(lua_State* lua, const vector<DNSResourceRecord>& records)
+void pushResourceRecordsTable(lua_State* lua, const vector<DNSRecord>& records)
 {
   // make a table of tables
   lua_newtable(lua);
 
   int pos=0;
-  BOOST_FOREACH(const DNSResourceRecord& rr, records)
+  for(const auto& rr: records)
   {
     // row number, used by 'lua_settable' below
     lua_pushnumber(lua, ++pos);
     // "row" table
     lua_newtable(lua);
 
-    lua_pushstring(lua, rr.qname.toString().c_str());
+    lua_pushstring(lua, rr.d_name.toString().c_str());
     lua_setfield(lua, -2, "qname");  // pushes value at the top of the stack to the table immediately below that (-1 = top, -2 is below)
 
-    lua_pushstring(lua, rr.content.c_str());
+    lua_pushstring(lua, rr.d_content->getZoneRepresentation().c_str());
     lua_setfield(lua, -2, "content");
 
-    lua_pushnumber(lua, rr.qtype.getCode());
+    lua_pushnumber(lua, rr.d_type);
     lua_setfield(lua, -2, "qtype");
 
-    lua_pushnumber(lua, rr.ttl);
+    lua_pushnumber(lua, rr.d_ttl);
     lua_setfield(lua, -2, "ttl");
 
     lua_pushnumber(lua, rr.d_place);
     lua_setfield(lua, -2, "place");
 
-    lua_pushnumber(lua, rr.qclass);
+    lua_pushnumber(lua, rr.d_class);
     lua_setfield(lua, -2, "qclass");
 
     lua_settable(lua, -3); // pushes the table we just built into the master table at position pushed above
@@ -164,13 +165,13 @@ int getLuaTableLength(lua_State* lua, int depth)
 }
 
 // expects a table at offset 2, and, importantly DOES NOT POP IT from the stack - only the contents
-void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSResourceRecord>& ret)
+void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRecord>& ret)
 {
   /* get the result */
-  DNSResourceRecord rr;
-  rr.qname = query;
-  rr.d_place = DNSResourceRecord::ANSWER;
-  rr.ttl = 3600;
+  DNSRecord rr;
+  rr.d_name = query;
+  rr.d_place = DNSRecord::Answer;
+  rr.d_ttl = 3600;
 
   int tableLen = getLuaTableLength(lua, 2);
 
@@ -180,31 +181,36 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRes
 
     uint32_t tmpnum=0;
     if(!getFromTable(lua, "qtype", tmpnum))
-      rr.qtype=QType::A;
+      rr.d_type=QType::A;
     else
-      rr.qtype=tmpnum;
-
-    getFromTable(lua, "content", rr.content);
-    if(!getFromTable(lua, "ttl", rr.ttl))
-      rr.ttl=3600;
-
-    string qname = rr.qname.toString();
-    if(!getFromTable(lua, "qname", qname))
-      rr.qname = query;
-
-    if(!getFromTable(lua, "place", tmpnum))
-      rr.d_place = DNSResourceRecord::ANSWER;
-    else {
-      rr.d_place = (DNSResourceRecord::Place) tmpnum;
-      if(rr.d_place > DNSResourceRecord::ADDITIONAL)
-        rr.d_place = DNSResourceRecord::ADDITIONAL;
-    }
+      rr.d_type=tmpnum;
 
     if(!getFromTable(lua, "qclass", tmpnum))
-      rr.qclass = QClass::IN;
+      rr.d_class = QClass::IN;
     else {
-      rr.qclass = tmpnum;
+      rr.d_class = tmpnum;
     }
+
+
+    string content;
+    getFromTable(lua, "content", content);
+    rr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(rr.d_type, rr.d_class, content));
+
+    if(!getFromTable(lua, "ttl", rr.d_ttl))
+      rr.d_ttl=3600;
+
+    string qname = rr.d_name.toString();
+    if(!getFromTable(lua, "qname", qname))
+      rr.d_name = query;
+
+    if(!getFromTable(lua, "place", tmpnum))
+      rr.d_place = DNSRecord::Answer;
+    else {
+      rr.d_place = (DNSRecord::Place) tmpnum;
+      if(rr.d_place > DNSRecord::Additional)
+        rr.d_place = DNSRecord::Additional;
+    }
+
 
     /* removes 'value'; keeps 'key' for next iteration */
     lua_pop(lua, 1); // table

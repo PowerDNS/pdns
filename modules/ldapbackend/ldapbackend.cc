@@ -3,11 +3,7 @@
 #endif
 #include "ldapbackend.hh"
 
-
-
 unsigned int ldap_host_index = 0;
-
-
 
 LdapBackend::LdapBackend( const string &suffix )
 {
@@ -19,7 +15,7 @@ LdapBackend::LdapBackend( const string &suffix )
         try
         {
         	m_msgid = 0;
-        	m_qname = "";
+        	m_qname.clear();
         	m_pldap = NULL;
         	m_qlog = arg().mustDo( "query-logging" );
         	m_default_ttl = arg().asNum( "default-ttl" );
@@ -101,12 +97,12 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
         }
         catch( LDAPTimeout &lt )
         {
-        	L << Logger::Warning << m_myname << " Unable to get zone " + target + " from LDAP directory: " << lt.what() << endl;
+	        L << Logger::Warning << m_myname << " Unable to get zone " << target << " from LDAP directory: " << lt.what() << endl;
         	throw( DBException( "LDAP server timeout" ) );
         }
         catch( LDAPException &le )
         {
-        	L << Logger::Error << m_myname << " Unable to get zone " + target + " from LDAP directory: " << le.what() << endl;
+	        L << Logger::Error << m_myname << " Unable to get zone " << target << " from LDAP directory: " << le.what() << endl;
         	throw( PDNSException( "LDAP server unreachable" ) );   // try to reconnect to another server
         }
         catch( std::exception &e )
@@ -356,7 +352,7 @@ inline bool LdapBackend::prepare_simple()
         		vector<string>::iterator i;
         		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
         			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
-        				m_adomains.push_back( *i );
+				  m_adomains.push_back( DNSName(*i) );
         			}
         		}
         		m_result.erase( "associatedDomain" );
@@ -386,7 +382,7 @@ inline bool LdapBackend::prepare_strict()
         		vector<string>::iterator i;
         		for( i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
         			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
-        				m_adomains.push_back( *i );
+				  m_adomains.push_back( DNSName(*i) );
         			}
         		}
         		m_result.erase( "associatedDomain" );
@@ -482,7 +478,7 @@ bool LdapBackend::get( DNSResourceRecord &rr )
 
         	di.id = 0;
         	di.serial = sd.serial;
-        	di.zone = domain;
+        	di.zone = DNSName(domain);
         	di.last_check = 0;
         	di.backend = this;
         	di.kind = DomainInfo::Master;

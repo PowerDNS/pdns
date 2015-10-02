@@ -319,7 +319,7 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
   ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 7);
 
   di.id=atol(d_result[0][0].c_str());
-  di.zone=d_result[0][1];
+  di.zone=DNSName(d_result[0][1]);
   stringtok(di.masters, d_result[0][2], " ,\t");
   di.last_check=atol(d_result[0][3].c_str());
   di.notified_serial = atol(d_result[0][4].c_str());
@@ -364,7 +364,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     DomainInfo sd;
     ASSERT_ROW_COLUMNS("info-all-slaves-query", d_result[n], 4);
     sd.id=atol(d_result[n][0].c_str());
-    sd.zone=d_result[n][1];
+    sd.zone= DNSName(d_result[n][1]);
     stringtok(sd.masters, d_result[n][2], ", \t");
     sd.last_check=atol(d_result[n][3].c_str());
     sd.backend=this;
@@ -404,7 +404,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
     DomainInfo sd;
     ASSERT_ROW_COLUMNS("info-all-master-query", d_result[n], 5);
     sd.id=atol(d_result[n][0].c_str());
-    sd.zone=d_result[n][1];
+    sd.zone= DNSName(d_result[n][1]);
     sd.last_check=atol(d_result[n][3].c_str());
     sd.notified_serial=atoi(d_result[n][4].c_str());
     sd.backend=this;
@@ -595,7 +595,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
         d_beforeOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-before-query", row, 2);
         before=row[0];
-        unhashed=row[1];
+        unhashed=DNSName(row[1]);
       }
       d_beforeOrderQuery_stmt->reset();
     }
@@ -617,7 +617,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
         d_lastOrderQuery_stmt->nextRow(row);
         ASSERT_ROW_COLUMNS("get-order-last-query", row, 2);
         before=row[0];
-        unhashed=row[1];
+        unhashed=DNSName(row[1]);
       }
       d_lastOrderQuery_stmt->reset();
     }
@@ -718,8 +718,8 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* co
     while(d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-key-query", row, 2);
-      if(algorithm->empty() || *algorithm==row[0]) {
-        *algorithm = row[0];
+      if(algorithm->empty() || *algorithm==DNSName(row[0])) {
+        *algorithm = DNSName(row[0]);
         *content = row[1];
       }
     }
@@ -775,8 +775,8 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
       d_getTSIGKeysQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-keys-query", row, 3);
       struct TSIGKey key;
-      key.name = row[0];
-      key.algorithm = row[1];
+      key.name = DNSName(row[0]);
+      key.algorithm = DNSName(row[1]);
       key.key = row[2];
       keys.push_back(key);
     }
@@ -1153,7 +1153,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       ASSERT_ROW_COLUMNS("get-all-domains-query", row, 8);
       DomainInfo di;
       di.id = atol(row[0].c_str());
-      di.zone = row[1];
+      di.zone = DNSName(row[1]);
   
       if (!row[4].empty()) {
         stringtok(di.masters, row[4], " ,\t");
@@ -1587,7 +1587,7 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
   if(!d_qname.empty())
     r.qname=d_qname;
   else
-    r.qname=row[6];
+    r.qname=DNSName(row[6]);
   r.qtype=row[3];
 
   if (r.qtype==QType::MX || r.qtype==QType::SRV)

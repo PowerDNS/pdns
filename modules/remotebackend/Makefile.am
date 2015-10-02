@@ -75,16 +75,16 @@ remotebackend_post.log: remotebackend_http.log
 
 remotebackend_json.log: remotebackend_http.log remotebackend_post.log
 
-if UNIT_TESTS
-TESTS = \
-	remotebackend_pipe.test \
-	remotebackend_unix.test \
-	remotebackend_http.test \
-	remotebackend_post.test \
-	remotebackend_json.test \
-	remotebackend_zeromq.test
-
-endif
+#if UNIT_TESTS
+#TESTS = \
+#	remotebackend_pipe.test \
+#	remotebackend_unix.test \
+#	remotebackend_http.test \
+#	remotebackend_post.test \
+#	remotebackend_json.test \
+#	remotebackend_zeromq.test
+#
+#endif
 
 BUILT_SOURCES = ../../pdns/dnslabeltext.cc
 

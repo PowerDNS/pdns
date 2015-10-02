@@ -101,7 +101,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
         	do
         	{
         		di.id = 0;
-        		di.zone = "";
+        		di.zone.clear();
         		di.masters.clear();
         		di.last_check = 0;
         		di.notified_serial = 0;
@@ -148,7 +148,7 @@ bool OdbxBackend::getDomainInfo( const string& domain, DomainInfo& di )
 
         		if( ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-        			di.zone = string( tmp, odbx_field_length( m_result, 1 ) );
+			        di.zone = DNSName(string( tmp, odbx_field_length( m_result, 1 ) ));
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 0 ) ) != NULL )
@@ -212,12 +212,12 @@ bool OdbxBackend::getSOA( const DNSName& domain, SOAData& sd, DNSPacket* p )
 
         		if( sd.nameserver.empty() )
         		{
-        			sd.nameserver = arg()["default-soa-name"];
+			        sd.nameserver = DNSName(arg()["default-soa-name"]);
         		}
 
         		if( sd.hostmaster.empty() )
         		{
-        			sd.hostmaster = "hostmaster." + domain;
+			        sd.hostmaster = DNSName("hostmaster") + DNSName(domain);
         		}
 
         		sd.db = this;
@@ -365,7 +365,7 @@ bool OdbxBackend::get( DNSResourceRecord& rr )
 
         		if( m_qname.empty() && ( tmp = odbx_field_value( m_result, 1 ) ) != NULL )
         		{
-        			rr.qname = string( tmp, odbx_field_length( m_result, 1 ) );
+			        rr.qname = DNSName( string(tmp, odbx_field_length( m_result, 1 ) ));
         		}
 
         		if( ( tmp = odbx_field_value( m_result, 2 ) ) != NULL )

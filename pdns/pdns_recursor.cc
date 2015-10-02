@@ -546,7 +546,7 @@ void startDoResolve(void *p)
     }
     ComboAddress local;
     listenSocketsAddresses_t::const_iterator lociter;
-    vector<DNSResourceRecord> ret;
+    vector<DNSRecord> ret;
     vector<uint8_t> packet;
 
     DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
@@ -557,6 +557,7 @@ void startDoResolve(void *p)
     pw.getHeader()->tc=0;
     pw.getHeader()->id=dc->d_mdp.d_header.id;
     pw.getHeader()->rd=dc->d_mdp.d_header.rd;
+    pw.getHeader()->cd=dc->d_mdp.d_header.cd;
 
     uint32_t minTTL=std::numeric_limits<uint32_t>::max();
 
@@ -565,6 +566,10 @@ void startDoResolve(void *p)
       sr.setLuaEngine(*t_pdl);
       sr.d_requestor=dc->d_remote;
     }
+    
+    if(pw.getHeader()->cd || edo.d_Z & EDNSOpts::DNSSECOK)
+      sr.d_doDNSSEC=true;
+
     bool tracedQuery=false; // we could consider letting Lua know about this too
     bool variableAnswer = false;
 
@@ -602,6 +607,7 @@ void startDoResolve(void *p)
     }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
+
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
@@ -614,11 +620,11 @@ void startDoResolve(void *p)
 
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
-                vector<DNSResourceRecord>::const_iterator i;
-                for(i=ret.begin(); i!=ret.end(); ++i)
-                  if(i->qtype.getCode() == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
+	        auto i=ret.cbegin();
+                for(; i!= ret.cend(); ++i)
+                  if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSRecord::Answer)
                           break;
-                if(i == ret.end())
+                if(i == ret.cend())
                   (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
               }
               else if(res == RCode::NXDomain)
@@ -655,23 +661,15 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
 
-
       if(ret.size()) {
         orderAndShuffle(ret);
-        for(vector<DNSResourceRecord>::const_iterator i=ret.begin(); i!=ret.end(); ++i) {
-          pw.startRecord(i->qname, i->qtype.getCode(), i->ttl, i->qclass, (DNSPacketWriter::Place)i->d_place);
-          minTTL = min(minTTL, i->ttl);
-          if(i->qtype.getCode() == QType::A) { // blast out A record w/o doing whole dnswriter thing
-            uint32_t ip=0;
-            IpToU32(i->content, &ip);
-            pw.xfr32BitInt(htonl(ip));
-          } else {
-            shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(i->qtype.getCode(), i->qclass, i->content));
-            drc->toPacket(pw);
-          }
+        for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
+          pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, (DNSPacketWriter::Place)i->d_place);
+          minTTL = min(minTTL, i->d_ttl);
+	  i->d_content->toPacket(pw);
           if(pw.size() > maxanswersize) {
             pw.rollback();
-            if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
+            if(i->d_place==DNSRecord::Answer)  // only truncate if we actually omitted parts of the answer
             {
               pw.getHeader()->tc=1;
               pw.truncate();
@@ -1337,12 +1335,12 @@ static void houseKeeping(void *)
     if(now.tv_sec - last_rootupdate > 7200) {
       SyncRes sr(now);
       sr.setDoEDNS0(true);
-      vector<DNSResourceRecord> ret;
+      vector<DNSRecord> ret;
 
       sr.setNoCache();
       int res=-1;
       try {
-	res=sr.beginResolve(".", QType(QType::NS), 1, ret);
+	res=sr.beginResolve(DNSName(), QType(QType::NS), 1, ret);
       }
       catch(PDNSException& e)
 	{
@@ -1444,10 +1442,9 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
 }
 
 uint32_t g_disthashseed;
-void distributeAsyncFunction(const DNSName& question, const pipefunc_t& func)
+void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
-  string squestion = question.toString();
-  unsigned int hash = hashQuestion(squestion.c_str(), squestion.length(), g_disthashseed);
+  unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
   unsigned int target = 1 + (hash % (g_pipes.size()-1));
 
   if(target == t_id) {
@@ -1693,7 +1690,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
   }
   else {
     try {
-      pident.domain=questionExpand(data, len, pident.type); // don't copy this from above - we need to do the actual read
+      pident.domain=DNSName(data, len, 12, false, &pident.type); // don't copy this from above - we need to do the actual read
     }
     catch(std::exception& e) {
       g_stats.serverParseError++; // won't be fed to lwres.cc, so we have to increment
@@ -1715,7 +1712,7 @@ retryWithName:
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
     for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end(); ++mthread) {
       if(pident.fd==mthread->key.fd && mthread->key.remote==pident.remote &&  mthread->key.type == pident.type &&
-         pdns_iequals(pident.domain, mthread->key.domain)) {
+         pident.domain == mthread->key.domain) {
         mthread->key.nearMisses++;
       }
 
@@ -1933,7 +1930,6 @@ void parseACLs()
 int serviceMain(int argc, char*argv[])
 {
   L.setName(s_programname);
-
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
   if(!::arg()["logging-facility"].empty()) {
@@ -2010,12 +2006,6 @@ int serviceMain(int argc, char*argv[])
   catch(std::exception& e) {
     L<<Logger::Error<<"Assigning local query addresses: "<<e.what();
     exit(99);
-  }
-
-  SyncRes::s_noEDNSPing = true; // ::arg().mustDo("disable-edns-ping");
-  SyncRes::s_noEDNS = ::arg().mustDo("disable-edns");
-  if(!SyncRes::s_noEDNS) {
-    L<<Logger::Warning<<"Running in experimental EDNS mode - may cause problems"<<endl;
   }
 
   SyncRes::s_nopacketcache = ::arg().mustDo("disable-packetcache");

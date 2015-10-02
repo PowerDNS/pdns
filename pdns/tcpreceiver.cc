@@ -468,7 +468,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
 
         B->lookup(QType(QType::NS),q->qdomain);
         while(B->get(rr)) 
-          nsset.insert(rr.content);
+          nsset.insert(DNSName(rr.content));
         for(const auto & j: nsset) {
           vector<string> nsips=fns.lookup(j, B);
           for(vector<string>::const_iterator k=nsips.begin();k!=nsips.end();++k) {
@@ -615,9 +615,9 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   if(!tsigkeyname.empty()) {
     string tsig64;
     DNSName algorithm=trc.d_algoName; // FIXME400: check
-    if (algorithm == "hmac-md5.sig-alg.reg.int")
-      algorithm = "hmac-md5";
-    if (algorithm != "gss-tsig") {
+    if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
+      algorithm = DNSName("hmac-md5");
+    if (algorithm != DNSName("gss-tsig")) {
       Lock l(&s_plock);
       s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
       B64Decode(tsig64, tsigsecret);
@@ -713,7 +713,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       if (rectify) {
         if (rr.qtype.getCode()) {
           qnames.insert(rr.qname);
-          if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, target))
+          if(rr.qtype.getCode() == QType::NS && rr.qname!=target)
             nsset.insert(rr.qname);
         } else {
           // remove existing ents
@@ -731,12 +731,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     // set auth
     BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
       rr.auth=true;
-      if (rr.qtype.getCode() != QType::NS || !pdns_iequals(rr.qname, target)) {
+      if (rr.qtype.getCode() != QType::NS || rr.qname!=target) {
         DNSName shorter(rr.qname);
         do {
-          if (pdns_iequals(shorter, target)) // apex is always auth
+          if (shorter==target) // apex is always auth
             continue;
-          if(nsset.count(shorter) && !(pdns_iequals(rr.qname, shorter) && rr.qtype.getCode() == QType::DS))
+          if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS))
             rr.auth=false;
         } while(shorter.chopOff());
       } else
@@ -749,7 +749,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       map<DNSName,bool> nonterm;
       BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
         DNSName shorter(rr.qname);
-        while(!pdns_iequals(shorter, target) && shorter.chopOff()) {
+        while(shorter != target && shorter.chopOff()) {
           if(!qnames.count(shorter)) {
             if(!(maxent)) {
               L<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;
@@ -890,12 +890,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       nrc.d_set.insert(QType::RRSIG);
       nrc.d_set.insert(QType::NSEC);
       if(boost::next(iter) != nsecxrepo.end()) {
-        nrc.d_next = labelReverse(boost::next(iter)->first);
+        nrc.d_next = DNSName(labelReverse(boost::next(iter)->first));
       }
       else
-        nrc.d_next=labelReverse(nsecxrepo.begin()->first);
+        nrc.d_next=DNSName(labelReverse(nsecxrepo.begin()->first));
   
-      rr.qname = labelReverse(iter->first);
+      rr.qname = DNSName(labelReverse(iter->first));
   
       rr.ttl = sd.default_ttl;
       rr.content = nrc.getZoneRepresentation();
@@ -1045,8 +1045,8 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
     if(!tsigkeyname.empty()) {
       string tsig64;
       DNSName algorithm=trc.d_algoName; // FIXME400: was toLowerCanonic, compare output
-      if (algorithm == "hmac-md5.sig-alg.reg.int")
-        algorithm = "hmac-md5";
+      if (algorithm == DNSName("hmac-md5.sig-alg.reg.int"))
+        algorithm = DNSName("hmac-md5");
       Lock l(&s_plock);
       s_P->getBackend()->getTSIGKey(tsigkeyname, &algorithm, &tsig64);
       B64Decode(tsig64, tsigsecret);

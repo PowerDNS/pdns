@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
   if(!p)
     p = ".";
   pathbuf << p << "/../regression-tests/zones/unit.test";
-  ZoneParserTNG zp(pathbuf.str(), "unit.test");
+  ZoneParserTNG zp(pathbuf.str(), DNSName("unit.test"));
   DNSResourceRecord rr;
 
   ifstream ifs(pathbuf.str());

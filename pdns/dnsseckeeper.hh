@@ -96,7 +96,7 @@ public:
   
   void startTransaction()
   {
-    (*d_keymetadb->backends.begin())->startTransaction("", -1);
+    (*d_keymetadb->backends.begin())->startTransaction(DNSName(), -1);
   }
   
   void commitTransaction()
