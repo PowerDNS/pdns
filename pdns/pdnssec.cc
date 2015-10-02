@@ -418,6 +418,10 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
   DNSResourceRecord rr;
   uint64_t numrecords=0, numerrors=0, numwarnings=0;
 
+  if (haveNSEC3 && isSecure && zone.wirelength() > 222) {
+    numerrors++;
+    cerr<<"[Error] zone '" << zone.toStringNoDot() << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+  }
 
   // Check for delegation in parent zone
   DNSName parent(zone);
@@ -1729,6 +1733,10 @@ try
     NSEC3PARAMRecordContent ns3pr(nsec3params);
 
     DNSName zone(cmds[1]);
+    if (zone.wirelength() > 222) {
+      cerr<<"Cannot enable NSEC3 for " << zone.toString() << " as it is too long (" << zone.wirelength() << " bytes, maximum is 222 bytes)"<<endl;
+      return 1;
+    }
     if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
       cerr<<"Cannot set NSEC3 param for " << zone.toString() << endl;
       return 1;
