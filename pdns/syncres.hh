@@ -239,7 +239,7 @@ public:
 
   explicit SyncRes(const struct timeval& now);
 
-  int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSResourceRecord>&ret);
+  int beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret);
   void setId(int id)
   {
     if(doLog())
@@ -394,14 +394,14 @@ public:
     vector<ComboAddress> d_servers;
     bool d_rdForward;
     typedef multi_index_container <
-      DNSResourceRecord,
+      DNSRecord,
       indexed_by <
         ordered_non_unique<
-          composite_key< DNSResourceRecord,
-        	         member<DNSResourceRecord, DNSName, &DNSResourceRecord::qname>,
-        	         member<DNSResourceRecord, QType, &DNSResourceRecord::qtype>
+          composite_key< DNSRecord,
+        	         member<DNSRecord, DNSName, &DNSRecord::d_name>,
+        	         member<DNSRecord, uint16_t, &DNSRecord::d_type>
                        >,
-          composite_key_compare<std::less<DNSName>, std::less<QType> >
+          composite_key_compare<std::less<DNSName>, std::less<uint16_t> >
         >
       >
     > records_t;
@@ -439,14 +439,14 @@ public:
 
 private:
   struct GetBestNSAnswer;
-  int doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret,
+  int doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSet, const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret,
         	  int depth, set<GetBestNSAnswer>&beenthere);
-  int doResolve(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
-  bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
+  int doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, set<GetBestNSAnswer>& beenthere);
+  bool doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
   domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
-  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSResourceRecord>&ret, int depth, int &res);
-  void getBestNSFromCache(const DNSName &qname, const QType &qtype, set<DNSResourceRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
+  bool doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
+  bool doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSRecord>&ret, int depth, int &res);
+  void getBestNSFromCache(const DNSName &qname, const QType &qtype, vector<DNSRecord>&bestns, bool* flawedNSSet, int depth, set<GetBestNSAnswer>& beenthere);
   DNSName getBestNSNamesFromCache(const DNSName &qname, const QType &qtype, set<DNSName>& nsset, bool* flawedNSSet, int depth, set<GetBestNSAnswer>&beenthere);
 
   inline vector<DNSName> shuffleInSpeedOrder(set<DNSName> &nameservers, const string &prefix);
@@ -629,7 +629,7 @@ typedef boost::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func, bool skipSelf = false);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
-int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
+int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
 

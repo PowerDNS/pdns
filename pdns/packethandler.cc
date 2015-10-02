@@ -597,7 +597,7 @@ void PacketHandler::addNSEC3(DNSPacket *p, DNSPacket *r, const DNSName& target, 
     do {
       unhashed=next;
     }
-    while( next.chopOff() && !pdns_iequals(next, closest));
+    while( next.chopOff() && !(next==closest));
 
     hashed=hashQNameWithSalt(ns3rc, unhashed);
     DLOG(L<<"2 hash: "<<toBase32Hex(hashed)<<" "<<unhashed<<endl);
@@ -952,7 +952,7 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
     return;
     
   addNSECX(p, r, target, DNSName(), sd.qname, 5);
-  if(pdns_iequals(sd.qname, p->qdomain)) {
+  if(sd.qname == p->qdomain) {
     addDNSKEY(p, r, sd);
     addNSEC3PARAM(p, r, sd);
   }
@@ -1191,8 +1191,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
 
     if(!retargetcount) r->qdomainzone=sd.qname;
 
-
-    if(pdns_iequals(sd.qname, p->qdomain)) {
+    if(sd.qname==p->qdomain) {
       if(p->qtype.getCode() == QType::DNSKEY)
       {
         if(addDNSKEY(p, r, sd))
@@ -1205,7 +1204,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       }
     }
 
-    if(p->qtype.getCode() == QType::SOA && pdns_iequals(sd.qname, p->qdomain)) {
+    if(p->qtype.getCode() == QType::SOA && sd.qname==p->qdomain) {
       rr.qname=sd.qname;
       rr.qtype=QType::SOA;
       rr.content=serializeSOAData(sd);
@@ -1253,7 +1252,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       if((p->qtype.getCode() == QType::ANY || rr.qtype == p->qtype) && rr.auth) 
         weDone=1;
       // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
-      if((rr.qtype == p->qtype && !rr.auth) || (rr.qtype.getCode() == QType::NS && (!rr.auth || !pdns_iequals(sd.qname, rr.qname))))
+      if((rr.qtype == p->qtype && !rr.auth) || (rr.qtype.getCode() == QType::NS && (!rr.auth || !(sd.qname==rr.qname))))
         weHaveUnauth=1;
 
       if(rr.qtype.getCode() == QType::CNAME && p->qtype.getCode() != QType::CNAME) 
@@ -1271,7 +1270,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     }
 
     /* Add in SOA if required */
-    if( pdns_iequals( target, sd.qname ) ) {
+    if(target==sd.qname) {
         rr.qtype = QType::SOA;
         rr.content = serializeSOAData(sd);
         rr.qname = sd.qname;

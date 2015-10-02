@@ -58,16 +58,12 @@ class LWResult
 {
 public:
   LWResult() : d_usec(0) {}
-  typedef vector<DNSResourceRecord> res_t;
-  res_t& getResult();
 
-  vector<pair<DNSRecord, uint16_t>> d_records;
+  vector<DNSRecord> d_records;
   int d_rcode;
   bool d_aabit, d_tcbit;
   uint32_t d_usec;
   bool d_haveEDNS;
-
-  vector<DNSResourceRecord> d_result;
 };
 
 int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult* res);

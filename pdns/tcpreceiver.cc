@@ -713,7 +713,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       if (rectify) {
         if (rr.qtype.getCode()) {
           qnames.insert(rr.qname);
-          if(rr.qtype.getCode() == QType::NS && !pdns_iequals(rr.qname, target))
+          if(rr.qtype.getCode() == QType::NS && rr.qname!=target)
             nsset.insert(rr.qname);
         } else {
           // remove existing ents
@@ -731,12 +731,12 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     // set auth
     BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
       rr.auth=true;
-      if (rr.qtype.getCode() != QType::NS || !pdns_iequals(rr.qname, target)) {
+      if (rr.qtype.getCode() != QType::NS || rr.qname!=target) {
         DNSName shorter(rr.qname);
         do {
-          if (pdns_iequals(shorter, target)) // apex is always auth
+          if (shorter==target) // apex is always auth
             continue;
-          if(nsset.count(shorter) && !(pdns_iequals(rr.qname, shorter) && rr.qtype.getCode() == QType::DS))
+          if(nsset.count(shorter) && !(rr.qname==shorter && rr.qtype.getCode() == QType::DS))
             rr.auth=false;
         } while(shorter.chopOff());
       } else
@@ -749,7 +749,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       map<DNSName,bool> nonterm;
       BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
         DNSName shorter(rr.qname);
-        while(!pdns_iequals(shorter, target) && shorter.chopOff()) {
+        while(shorter != target && shorter.chopOff()) {
           if(!qnames.count(shorter)) {
             if(!(maxent)) {
               L<<Logger::Warning<<"Zone '"<<target<<"' has too many empty non terminals."<<endl;

@@ -150,7 +150,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   if(ret <= 0) // includes 'timeout'
     return ret;
 
-  lwr->d_result.clear();
+  lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;
     MOADNSParser mdp((const char*)buf.get(), len);
@@ -162,15 +162,16 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
-    if(!pdns_iequals(domain, mdp.d_qname)) { 
+    if(domain != mdp.d_qname) { 
       if(!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) {// embedded nulls are too noisy, plus empty domains are too
         L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
       }
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
     }
-
-    lwr->d_records = mdp.d_answers;
+    
+    for(const auto& a : mdp.d_answers)
+      lwr->d_records.push_back(a.first);
 
     EDNSOpts edo;
     if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
@@ -199,13 +200,3 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
   return -1;
 }
 
-vector<DNSResourceRecord>& LWResult::getResult()
-{
-  if(d_result.empty()) {
-    for(auto i=d_records.cbegin(); i != d_records.cend(); ++i) {          
-      DNSResourceRecord rr(i->first);
-      d_result.push_back(rr);
-    }
-  }
-  return d_result;
-}

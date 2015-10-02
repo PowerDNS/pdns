@@ -3,7 +3,7 @@
 #endif
 #include "lua-recursor.hh"
 // to avoid including all of syncres.hh
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSResourceRecord>& ret);
+int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
 #if !defined(HAVE_LUA)
 
@@ -13,28 +13,28 @@ RecursorLua::RecursorLua(const std::string &fname)
   // empty
 }
 
-bool RecursorLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::nodata(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nodata(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
 
-bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   return false;
 }
 
-bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool RecursorLua::preoutquery(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res)
 {
   return false;
 }
@@ -62,8 +62,10 @@ extern "C" {
 #include <stdexcept>
 #include <boost/foreach.hpp>
 #include "logger.hh"
+#include "dnsparser.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
+#include "dnsrecords.hh"
 
 static int getRegisteredNameLua(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
@@ -79,13 +81,13 @@ RecursorLua::RecursorLua(const std::string &fname)
   lua_setglobal(d_lua, "getregisteredname");
 }
 
-int followCNAMERecords(vector<DNSResourceRecord>& ret, const QType& qtype)
+int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
-  vector<DNSResourceRecord> resolved;
-  string target;
-  BOOST_FOREACH(DNSResourceRecord& rr, ret) {
-    if(rr.qtype.getCode() == QType::CNAME) {
-      target=rr.content;
+  vector<DNSRecord> resolved;
+  string target; // XXX DNSNAME PAIN
+  BOOST_FOREACH(DNSRecord& rr, ret) {
+    if(rr.d_type == QType::CNAME) {
+      target=std::dynamic_pointer_cast<CNAMERecordContent>(rr.d_content)->getTarget().toString();
       break;
     }
   }
@@ -97,7 +99,7 @@ int followCNAMERecords(vector<DNSResourceRecord>& ret, const QType& qtype)
 
   int rcode=directResolve(target, qtype, 1, resolved); // 1 == class
 
-  BOOST_FOREACH(const DNSResourceRecord& rr, resolved)
+  BOOST_FOREACH(const DNSRecord& rr, resolved)
   {
     ret.push_back(rr);
   }
@@ -105,28 +107,28 @@ int followCNAMERecords(vector<DNSResourceRecord>& ret, const QType& qtype)
 
 }
 
-int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
+int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
   int rcode=directResolve(qname, QType(QType::A), 1, ret);
 
   ComboAddress prefixAddress(prefix);
 
-  BOOST_FOREACH(DNSResourceRecord& rr, ret)
+  BOOST_FOREACH(DNSRecord& rr, ret)
   {
-    if(rr.qtype.getCode() == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
-      ComboAddress ipv4(rr.content);
+    if(rr.d_type == QType::A && rr.d_place==DNSRecord::Answer) {
+      ComboAddress ipv4(std::dynamic_pointer_cast<ARecordContent>(rr.d_content)->getCA());
       uint32_t tmp;
       memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
       // tmp=htonl(tmp);
       memcpy(((char*)&prefixAddress.sin6.sin6_addr.s6_addr)+12, &tmp, 4);
-      rr.content = prefixAddress.toString();
-      rr.qtype = QType(QType::AAAA);
+      rr.d_content = std::make_shared<AAAARecordContent>(prefixAddress);
+      rr.d_type = QType::AAAA;
     }
   }
   return rcode;
 }
 
-int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DNSResourceRecord>& ret)
+int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
   /* qname has a reverse ordered IPv6 address, need to extract the underlying IPv4 address from it
      and turn it into an IPv4 in-addr.arpa query */
@@ -146,17 +148,17 @@ int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DN
 
 
   int rcode = directResolve(newquery, QType(QType::PTR), 1, ret);
-  BOOST_FOREACH(DNSResourceRecord& rr, ret)
+  BOOST_FOREACH(DNSRecord& rr, ret)
   {
-    if(rr.qtype.getCode() == QType::PTR && rr.d_place==DNSResourceRecord::ANSWER) {
-      rr.qname = qname;
+    if(rr.d_type == QType::PTR && rr.d_place==DNSRecord::Answer) {
+      rr.d_name = qname;
     }
   }
   return rcode;
 
 }
 
-bool RecursorLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nxdomain(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   if(d_nofuncs.nxdomain)
     return false;
@@ -164,14 +166,14 @@ bool RecursorLua::nxdomain(const ComboAddress& remote, const ComboAddress& local
   return passthrough("nxdomain", remote, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::preresolve(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   if(d_nofuncs.preresolve)
     return false;
   return passthrough("preresolve", remote, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::nodata(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::nodata(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   if(d_nofuncs.nodata)
     return false;
@@ -179,14 +181,14 @@ bool RecursorLua::nodata(const ComboAddress& remote, const ComboAddress& local,c
   return passthrough("nodata", remote, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::postresolve(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res, bool* variable)
+bool RecursorLua::postresolve(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
 {
   if(d_nofuncs.postresolve)
     return false;
   return passthrough("postresolve", remote, local, query, qtype, ret, res, variable);
 }
 
-bool RecursorLua::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret, int& res)
+bool RecursorLua::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res)
 {
   if(d_nofuncs.preoutquery)
     return false;
@@ -226,7 +228,7 @@ bool RecursorLua::ipfilter(const ComboAddress& remote, const ComboAddress& local
 }
 
 
-bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSResourceRecord>& ret,
+bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret,
   int& res, bool* variable)
 {
   d_variable = false;

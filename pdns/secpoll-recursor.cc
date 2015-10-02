@@ -24,7 +24,7 @@ void doSecPoll(time_t* last_secpoll)
   gettimeofday(&now, 0);
   SyncRes sr(now);
   sr.d_doDNSSEC=true;
-  vector<DNSResourceRecord> ret;
+  vector<DNSRecord> ret;
 
   string version = "recursor-" +string(PACKAGEVERSION);
   string qstring(version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"]);
@@ -38,7 +38,7 @@ void doSecPoll(time_t* last_secpoll)
   DNSName query(qstring);
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
   if(!res && !ret.empty()) {
-    string content=ret.begin()->content;
+    string content=ret.begin()->d_content->getZoneRepresentation();
     if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
       content=content.substr(1, content.length()-2);
     }

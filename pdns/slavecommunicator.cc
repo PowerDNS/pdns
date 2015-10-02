@@ -190,7 +190,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
               } else if (optOutFlag != (ns3rc.d_flags & 1))
                 throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
               optOutFlag = ns3rc.d_flags & 1;
-              if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(rr.qname, domain))
+              if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain))
                 secured.insert(DNSName(toLower(makeRelative(rr.qname.toString(), domain.toString())))); // XXX DNSName pain
               continue;
             }
@@ -207,7 +207,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
               break;
             }
             case QType::NS: {
-              if(!pdns_iequals(rr.qname, domain))
+              if(rr.qname!=domain)
                 nsset.insert(rr.qname);
               break;
             }
@@ -318,7 +318,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         if(nsset.count(shorter) && rr.qtype.getCode() != QType::DS)
           rr.auth=false;
 
-        if (pdns_iequals(shorter, domain)) // stop at apex
+        if (shorter==domain) // stop at apex
           break;
       }while(shorter.chopOff());
 

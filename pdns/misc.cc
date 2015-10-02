@@ -51,7 +51,7 @@
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
 #include "iputils.hh"
-
+#include "dnsparser.hh"
 
 bool g_singleThreaded;
 
@@ -547,16 +547,42 @@ void shuffle(vector<DNSResourceRecord>& rrs)
   // we don't shuffle the rest
 }
 
-static bool comparePlace(DNSResourceRecord a, DNSResourceRecord b)
+
+// shuffle, maintaining some semblance of order
+void shuffle(vector<DNSRecord>& rrs)
 {
-  return (a.d_place < b.d_place);
+  vector<DNSRecord>::iterator first, second;
+  for(first=rrs.begin();first!=rrs.end();++first)
+    if(first->d_place==DNSRecord::Answer && first->d_type != QType::CNAME) // CNAME must come first
+      break;
+  for(second=first;second!=rrs.end();++second)
+    if(second->d_place!=DNSRecord::Answer)
+      break;
+
+  if(second-first>1)
+    random_shuffle(first,second);
+
+  // now shuffle the additional records
+  for(first=second;first!=rrs.end();++first)
+    if(first->d_place==DNSRecord::Additional && first->d_type != QType::CNAME) // CNAME must come first
+      break;
+  for(second=first; second!=rrs.end(); ++second)
+    if(second->d_place!=DNSRecord::Additional)
+      break;
+
+  if(second-first>1)
+    random_shuffle(first,second);
+
+  // we don't shuffle the rest
 }
 
 // make sure rrs is sorted in d_place order to avoid surprises later
 // then shuffle the parts that desire shuffling
-void orderAndShuffle(vector<DNSResourceRecord>& rrs)
+void orderAndShuffle(vector<DNSRecord>& rrs)
 {
-  std::stable_sort(rrs.begin(), rrs.end(), comparePlace);
+  std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord&a, const DNSRecord& b) { 
+      return a.d_place < b.d_place;
+    });
   shuffle(rrs);
 }
 

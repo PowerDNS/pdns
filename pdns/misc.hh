@@ -300,8 +300,9 @@ inline void unixDie(const string &why)
 }
 
 string makeHexDump(const string& str);
+void shuffle(vector<DNSRecord>& rrs);
 void shuffle(vector<DNSResourceRecord>& rrs);
-void orderAndShuffle(vector<DNSResourceRecord>& rrs);
+void orderAndShuffle(vector<DNSRecord>& rrs);
 
 void normalizeTV(struct timeval& tv);
 const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
@@ -347,13 +348,6 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
     bPtr++;
   }
   return true;
-}
-
-// FIXME400 remove this, it's just here to move faster while we DNSName the things
-inline bool pdns_iequals(const DNSName& a, const DNSName& b) __attribute__((pure));
-inline bool pdns_iequals(const DNSName& a, const DNSName& b)
-{
-  return a==b;
 }
 
 inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));

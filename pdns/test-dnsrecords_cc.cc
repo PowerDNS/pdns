@@ -21,7 +21,6 @@ BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 typedef enum { zone, wire } case_type_enum_t;
 
-
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
   typedef boost::tuple<const QType::typeenum, const std::string, const std::string, const std::string, bool> case_t;

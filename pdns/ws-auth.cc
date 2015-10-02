@@ -976,7 +976,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       }
       else if (changetype == "REPLACE") {
 		// we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
-        if (!qname.isPartOf(zonename) && !pdns_iequals(qname, zonename))
+        if (!qname.isPartOf(zonename) && qname != zonename)
           throw ApiException("RRset "+qname.toString()+" IN "+qtype.getName()+": Name is out of zone");
 
 		new_records.clear();
@@ -991,7 +991,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           if (rr.qname != qname || rr.qtype != qtype)
             throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" "+rr.content+": Record wrongly bundled with RRset " + qname.toString() + "/" + qtype.getName());
 
-          if (rr.qtype.getCode() == QType::SOA && pdns_iequals(rr.qname, zonename)) {
+          if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
             soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
           }
         }

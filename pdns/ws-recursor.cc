@@ -164,15 +164,15 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
   Value records;
   records.SetArray();
-  BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
+  BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& dr, zone.d_records) {
     Value object;
     object.SetObject();
-    Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
+    Value jname(dr.d_name.toString().c_str(), doc.GetAllocator()); // copy
     object.AddMember("name", jname, doc.GetAllocator());
-    Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
+    Value jtype(DNSRecordContent::NumberToType(dr.d_type).c_str(), doc.GetAllocator()); // copy
     object.AddMember("type", jtype, doc.GetAllocator());
-    object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-    Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+    object.AddMember("ttl", dr.d_ttl, doc.GetAllocator());
+    Value jcontent(dr.d_content->getZoneRepresentation().c_str(), doc.GetAllocator()); // copy
     object.AddMember("content", jcontent, doc.GetAllocator());
     records.PushBack(object, doc.GetAllocator());
   }
@@ -392,7 +392,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
     const SyncRes::AuthDomain& zone = val.second;
 
     BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
-      if (pdns_ci_find(rr.qname.toString(), q) == string::npos && pdns_ci_find(rr.content, q) == string::npos)
+      if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.d_content->getZoneRepresentation(), q) == string::npos)
         continue;
 
       Value object;
@@ -402,9 +402,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
       object.AddMember("zone_id", jzoneId, doc.GetAllocator());
       Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("zone_name", jzoneName, doc.GetAllocator());
-      Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
+      Value jname(rr.d_name.toString().c_str(), doc.GetAllocator()); // copy
       object.AddMember("name", jname, doc.GetAllocator());
-      Value jcontent(rr.content.c_str(), doc.GetAllocator()); // copy
+      Value jcontent(rr.d_content->getZoneRepresentation().c_str(), doc.GetAllocator()); // copy
       object.AddMember("content", jcontent, doc.GetAllocator());
 
       doc.PushBack(object, doc.GetAllocator());
