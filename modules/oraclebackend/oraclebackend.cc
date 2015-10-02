@@ -501,8 +501,8 @@ OracleBackend::getBeforeAndAfterNames (
   check_indicator(mResultPrevNameInd, false);
   check_indicator(mResultNextNameInd, false);
 
-  before = mResultPrevName;
-  after = mResultNextName;
+  before = DNSName(mResultPrevName);
+  after = DNSName(mResultNextName);
 
   release_query(stmt, prevNextNameQueryKey);
   return true;
@@ -542,7 +542,7 @@ OracleBackend::getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
   check_indicator(mResultPrevNameInd, false);
   check_indicator(mResultNextNameInd, false);
 
-  unhashed = mResultName;
+  unhashed = DNSName(mResultName);
   before = mResultPrevName;
   after = mResultNextName;
 
@@ -680,7 +680,7 @@ OracleBackend::getDomainInfo (const DNSName& domain, DomainInfo &di)
   if (zone_id < 0) throw std::underflow_error("OracleBackend: Zone ID < 0 when writing into uint32_t");
 
   di.id = zone_id;
-  di.zone = mResultName;
+  di.zone = DNSName(mResultName);
   di.serial = serial;
   di.backend = this;
 
@@ -695,7 +695,7 @@ OracleBackend::getDomainInfo (const DNSName& domain, DomainInfo &di)
     di.kind = DomainInfo::Slave;
     check_indicator(last_check_ind, true);
     di.last_check = last_check;
-    di.masters = getDomainMasters(mResultName, zone_id);
+    di.masters = getDomainMasters(DNSName(mResultName), zone_id);
   } else {
     throw OracleException("Unknown zone type in Oracle backend");
   }
@@ -792,7 +792,7 @@ OracleBackend::getUnfreshSlaveInfos (vector<DomainInfo>* domains)
 
     DomainInfo di;
     di.id = mResultZoneId;
-    di.zone = mResultName;
+    di.zone = DNSName(mResultName);
     di.last_check = last_check;
     di.kind = DomainInfo::Slave;
     di.backend = this;
@@ -857,7 +857,7 @@ OracleBackend::getUpdatedMasters (vector<DomainInfo>* domains)
 
     DomainInfo di;
     di.id = mResultZoneId;
-    di.zone = mResultName;
+    di.zone = DNSName(mResultName);
     di.serial = serial;
     di.notified_serial = notified_serial;
     di.kind = DomainInfo::Master;
@@ -1004,7 +1004,7 @@ bool OracleBackend::get (DNSResourceRecord &rr)
   if (d_dnssecQueries)
     check_indicator(mResultIsAuthInd, false);
 
-  rr.qname = mResultName;
+  rr.qname = DNSName(mResultName);
   rr.ttl = mResultTTL;
   rr.qtype = mResultType;
   rr.content = mResultContent;
@@ -1415,8 +1415,8 @@ OracleBackend::getTSIGKey (const DNSName& name, DNSName* algorithm, string* cont
     check_indicator(mResultTypeInd, false);
     check_indicator(mResultContentInd, false);
 
-    if(algorithm->empty() || pdns_iequals(*algorithm, mResultType)) {
-      *algorithm = mResultType;
+    if(algorithm->empty() || *algorithm==DNSName(mResultType)) {
+      *algorithm = DNSName(mResultType);
       *content = mResultContent;
     }
 
@@ -1533,8 +1533,8 @@ OracleBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 
     struct TSIGKey key;
 
-    key.name = mResultName;
-    key.algorithm = mResultType;
+    key.name = DNSName(mResultName);
+    key.algorithm = DNSName(mResultType);
     key.key = mResultContent;
     keys.push_back(key);
 
