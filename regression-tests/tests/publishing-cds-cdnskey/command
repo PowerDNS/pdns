@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cleandig secure-delegated.dnssec-parent.com CDS dnssec
+cleandig secure-delegated.dnssec-parent.com CDNSKEY dnssec
+cleandig secure-delegated.dnssec-parent.com ANY dnssec tcp | grep 'CDS\|CDNSKEY' | grep -v 'NSEC'

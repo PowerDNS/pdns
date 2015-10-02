@@ -76,6 +76,8 @@ securezone ()
 		keyid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
 		$PDNSSEC --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
 		$PDNSSEC --config-dir=. $configname rectify-zone $zone 2>&1
+		$PDNSSEC --config-dir=. $configname set-publish-cds $zone 2>&1
+		$PDNSSEC --config-dir=. $configname set-publish-cdnskey $zone 2>&1
 	else
 		# check if PKCS#11 should be used
 		if [ "$pkcs11" -eq 1 ]; then
