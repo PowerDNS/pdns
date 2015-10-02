@@ -415,7 +415,7 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
   }
   ReadLock rl(&s_state_lock);  
   for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(pdns_iequals(i->d_name,domain)) {
+    if(i->d_name == domain) {
       for(set<string>::iterator it = i->d_also_notify.begin(); it != i->d_also_notify.end(); it++) {
         (*ips).insert(*it);
       }
@@ -968,7 +968,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       }
 
       wraponce = false;
-      while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
+      while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && iter->qname!= auth && !ns3pr.d_flags)) || iter->nsec3hash.empty())
       {
         iter--;
         if(iter == hashindex.begin()) {
@@ -999,7 +999,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     }
 
     wraponce = false;
-    while((!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
+    while((!iter->auth && !(iter->qtype == QType::NS && iter->qname != auth && !ns3pr.d_flags)) || iter->nsec3hash.empty())
     {
       iter++;
       if(iter == hashindex.end()) {
