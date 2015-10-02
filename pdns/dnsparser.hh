@@ -162,6 +162,7 @@ public:
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
   static DNSRecordContent* mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
+  static std::unique_ptr<DNSRecordContent> makeunique(uint16_t qtype, uint16_t qclass, const string& content);
 
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
