@@ -1407,7 +1407,7 @@ try
   if(cmds[0] == "create-bind-db") {
 #ifdef HAVE_SQLITE3
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec create-bind-db fname"<<endl;
+      cerr << "Syntax: pdnssec create-bind-db FNAME"<<endl;
       return 0;
     }
     try {

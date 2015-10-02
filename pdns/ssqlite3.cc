@@ -139,10 +139,13 @@ private:
 // Constructor.
 SSQLite3::SSQLite3( const std::string & database, bool creat )
 {
-  // Open the database connection.
-  if(!creat) 
-    if ( access( database.c_str(), F_OK ) == -1 )
+  if (access( database.c_str(), F_OK ) == -1){
+    if (!creat)
       throw sPerrorException( "SQLite database '"+database+"' does not exist yet" );
+  } else {
+    if (creat)
+      throw sPerrorException( "SQLite database '"+database+"' already exists" );
+  }
 
   if ( sqlite3_open( database.c_str(), &m_pDB)!=SQLITE_OK )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
