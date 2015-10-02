@@ -165,7 +165,7 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& nmap, const DNSN
 {
   DNSPacketWriter::lmap_t::iterator ret;
   for(ret=nmap.begin(); ret != nmap.end(); ++ret)
-    if(pdns_iequals(ret->first ,name))
+    if(ret->first == name)
       break;
   return ret;
 }
