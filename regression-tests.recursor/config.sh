@@ -2,6 +2,9 @@
 set -e
 set -x
 
+export PDNS=${PDNS:-../../../pdns/pdns_server}
+export PDNSRECURSOR=${PDNSRECURSOR:-../../../pdns/pdns_recursor}
+
 . ./vars
 
 if [ -z "$PREFIX" ]

@@ -523,11 +523,18 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
-  addGetStat("auth-answers0-1", &g_stats.authAnswers0_1);
-  addGetStat("auth-answers1-10", &g_stats.authAnswers1_10);
-  addGetStat("auth-answers10-100", &g_stats.authAnswers10_100);
-  addGetStat("auth-answers100-1000", &g_stats.authAnswers100_1000);
-  addGetStat("auth-answers-slow", &g_stats.authAnswersSlow);
+  addGetStat("auth4-answers0-1", &g_stats.auth4Answers0_1);
+  addGetStat("auth4-answers1-10", &g_stats.auth4Answers1_10);
+  addGetStat("auth4-answers10-100", &g_stats.auth4Answers10_100);
+  addGetStat("auth4-answers100-1000", &g_stats.auth4Answers100_1000);
+  addGetStat("auth4-answers-slow", &g_stats.auth4AnswersSlow);
+
+  addGetStat("auth6-answers0-1", &g_stats.auth6Answers0_1);
+  addGetStat("auth6-answers1-10", &g_stats.auth6Answers1_10);
+  addGetStat("auth6-answers10-100", &g_stats.auth6Answers10_100);
+  addGetStat("auth6-answers100-1000", &g_stats.auth6Answers100_1000);
+  addGetStat("auth6-answers-slow", &g_stats.auth6AnswersSlow);
+
 
   addGetStat("qa-latency", doGetAvgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
@@ -552,6 +559,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
   addGetStat("security-status", &g_security_status);
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
+  addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
+  addGetStat("outgoing6-timeouts", &SyncRes::s_outgoing6timeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("ipv6-outqueries", &g_stats.ipv6queries);

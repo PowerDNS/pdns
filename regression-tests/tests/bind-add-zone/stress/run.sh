@@ -24,7 +24,7 @@ bindwait ()
 	check_process
 	configname=$1
 	domcount=$(grep -c zone named.conf)
-	if [ ! -x ../pdns/pdns_control ]; then
+	if [ ! -x $PDNSCONTROL ]; then
 		echo "No pdns_control found"
 		exit 1
 	fi
@@ -32,7 +32,7 @@ bindwait ()
 
 	while [ $loopcount -lt 20 ]; do
 		sleep 10
-		done=$( (../pdns/pdns_control --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+		done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
 		if [ $done = $domcount ]; then
 			return
 		fi
