@@ -1204,7 +1204,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           newtarget=DNSName(rec.d_content->getZoneRepresentation());
         }
 	else if(d_doDNSSEC && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSRecord::Answer){
-	  ret.push_back(rec); // enjoy your DNSSEC
+	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
+	    ret.push_back(rec); // enjoy your DNSSEC
 	}
         // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
         else if(rec.d_place==DNSRecord::Answer && rec.d_name == qname &&
