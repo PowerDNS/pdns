@@ -651,7 +651,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 
   LOG(prefix<<qname.toString()<<": Looking for CNAME cache hit of '"<<(qname.toString()+"|CNAME")<<"'"<<endl);
   vector<DNSRecord> cset;
-  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME),&cset) > 0) {
+  vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, &signatures) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
@@ -659,6 +660,18 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
         DNSRecord dr=*j;
         dr.d_ttl-=d_now.tv_sec;
         ret.push_back(dr);
+
+	for(const auto& signature : signatures) {
+	  DNSRecord dr;
+	  dr.d_type=QType::RRSIG;
+	  dr.d_name=qname;
+	  dr.d_ttl=j->d_ttl - d_now.tv_sec;
+	  dr.d_content=signature;
+	  dr.d_place=DNSRecord::Answer;
+	  dr.d_class=1;
+	  ret.push_back(dr);
+	}
+
         if(!(qtype==QType(QType::CNAME))) { // perhaps they really wanted a CNAME!
           set<GetBestNSAnswer>beenthere;
           res=doResolve(std::dynamic_pointer_cast<CNAMERecordContent>(j->d_content)->getTarget(), qtype, ret, depth+1, beenthere);
@@ -1087,7 +1100,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       // reap all answers from this packet that are acceptable
       for(auto& rec : lwr.d_records) {
         if(rec.d_type == QType::OPT) {
-          LOG(prefix<<qname.toString()<<": skipping OPT answer '"<<rec.d_name<<"' from '"<<auth.toString()<<"' nameservers" <<endl);
+          LOG(prefix<<qname.toString()<<": OPT answer '"<<rec.d_name<<"' from '"<<auth.toString()<<"' nameservers" <<endl);
           continue;
         }
         LOG(prefix<<qname.toString()<<": accept answer '"<<rec.d_name<<"|"<<DNSRecordContent::NumberToType(rec.d_type)<<"|"<<rec.d_content->getZoneRepresentation()<<"' from '"<<auth.toString()<<"' nameservers? "<<(int)rec.d_place<<" ");
