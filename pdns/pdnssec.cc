@@ -776,6 +776,84 @@ int deleteZone(const DNSName &zone) {
   return 1;
 }
 
+void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
+  if (printHeader) {
+    cout<<"Zone                          Type    Size    Algorithm    ID   Location    Keytag"<<endl;
+    cout<<"----------------------------------------------------------------------------------"<<endl;
+  }
+  unsigned int spacelen = 0;
+  for (auto const &key : dk.getKeys(di.zone)) {
+    cout<<di.zone.toStringNoDot();
+    if (di.zone.toStringNoDot().length() > 29)
+      cout<<endl<<string(30, ' ');
+    else
+      cout<<string(30 - di.zone.toStringNoDot().length(), ' ');
+
+    cout<<(key.second.keyOrZone ? "KSK" : "ZSK")<<"     ";
+
+    spacelen = (lexical_cast<string>(key.first.getKey()->getBits()).length() >= 8) ? 1 : 8 - lexical_cast<string>(key.first.getKey()->getBits()).length();
+    if (key.first.getKey()->getBits() < 1) {
+      cout<<"invalid "<<endl;
+      continue; 
+    } else {
+      cout<<key.first.getKey()->getBits()<<string(spacelen, ' ');
+    }
+
+    string algname;
+    algorithm2name(key.first.d_algorithm, algname);
+    spacelen = (algname.length() >= 13) ? 1 : 13 - algname.length();
+    cout<<algname<<string(spacelen, ' ');
+
+    spacelen = (lexical_cast<string>(key.second.id).length() > 5) ? 1 : 5 - lexical_cast<string>(key.second.id).length();
+    cout<<key.second.id<<string(spacelen, ' ');
+
+#ifdef HAVE_P11KIT1
+    auto stormap = key.first.getKey()->convertToISCVector();
+    string engine, slot, label = "";
+    for (auto const &elem : stormap) {
+      //cout<<elem.first<<" "<<elem.second<<endl;
+      if (elem.first == "Engine")
+        engine = elem.second;
+      if (elem.first == "Slot")
+        slot = elem.second;
+      if (elem.first == "Label")
+        label = elem.second;
+    }
+    if (engine.empty() || slot.empty()){
+      cout<<"cryptokeys  ";
+    } else {
+      spacelen = (engine.length()+slot.length()+label.length()+2 >= 12) ? 1 : 12 - engine.length()-slot.length()-label.length()-2;
+      cout<<engine<<","<<slot<<","<<label<<string(spacelen, ' ');
+    }
+#else
+    cout<<"cryptokeys  ";
+#endif
+    cout<<key.first.getDNSKEY().getTag()<<endl;
+  }
+}
+
+bool listKeys(const string &zname, DNSSECKeeper& dk){
+  UeberBackend B("default");
+
+  if (zname != "all") {
+    DomainInfo di;
+    if(!B.getDomainInfo(DNSName(zname), di)) {
+      cerr << "Zone "<<zname<<" not found."<<endl;
+      return false;
+    }
+    listKey(di, dk);
+  } else {
+    vector<DomainInfo> domainInfo;
+    B.getAllDomains(&domainInfo);
+    bool printHeader = true;
+    for (auto const di : domainInfo) {
+      listKey(di, dk, printHeader);
+      printHeader = false;
+    }
+  }
+  return true;
+}
+
 int listZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
@@ -1356,6 +1434,7 @@ try
     cerr<<"       [active|passive] [ksk|zsk]  Defaults to KSK and active"<<endl;
     cerr<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cerr<<"                                   replacing contents"<<endl;
+    cerr<<"list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset or \"all\", display all keys for all zones"<<endl;
     cerr<<"list-zone ZONE                     List zone contents"<<endl;
     cerr<<"list-all-zones [master|slave|native]"<<endl;
     cerr<<"                                   List all zone names"<<endl;;
@@ -1652,6 +1731,14 @@ try
       cmds[1].clear();
 
     exit(listZone(DNSName(cmds[1])));
+  }
+  else if(cmds[0] == "list-keys") {
+    if(cmds.size() > 2) {
+      cerr<<"Syntax: pdnssec list-keys [ZONE]"<<endl;
+      return 0;
+    }
+    string zname = (cmds.size() == 2) ? cmds[1] : "all";
+    exit(listKeys(zname, dk));
   }
   else if(cmds[0] == "load-zone") {
     if(cmds.size() != 3) {

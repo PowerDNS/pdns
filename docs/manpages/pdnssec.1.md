@@ -164,6 +164,9 @@ hash-zone-record *ZONE* *RNAME*
 :    This convenience command hashes the name *RNAME* according to the NSEC3
      settings of *ZONE*. Refuses to hash for zones with no NSEC3 settings.
 
+list-keys [*ZONE*]
+:    List DNSSEC information for all keys or for *ZONE*.
+
 list-all-zones:
 :    List all zone names.
 
