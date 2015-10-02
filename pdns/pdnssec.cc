@@ -1313,10 +1313,10 @@ try
   if(cmds.empty() || g_vm.count("help")) {
     cerr<<"Usage: \npdnssec [options] <command> [params ..]\n"<<endl;
     cerr<<"Commands:"<<endl;
-    cerr<<"activate-tsig-key ZONE NAME [master|slave]"<<endl;
+    cerr<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
-    cerr<<"add-zone-key ZONE zsk|ksk [bits] [active|passive]"<<endl;
+    cerr<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|passive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
     cerr<<"|experimental-ed25519";
@@ -1324,14 +1324,14 @@ try
     cerr<<"]"<<endl;
     cerr<<"                                   Add a ZSK or KSK to zone and specify algo&bits"<<endl;
     cerr<<"backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands"<<endl;
-    cerr<<"b2b-migrate old new                Move all data from one backend to another"<<endl;
+    cerr<<"b2b-migrate OLD NEW                Move all data from one backend to another"<<endl;
     cerr<<"bench-db [filename]                Bench database backend with queries, one domain per line"<<endl;
     cerr<<"check-zone ZONE                    Check a zone for correctness"<<endl;
     cerr<<"check-all-zones [exit-on-error]    Check all zones for correctness. Set exit-on-error to exit immediately"<<endl;
     cerr<<"                                   after finding an error in a zone."<<endl;
     cerr<<"create-bind-db FNAME               Create DNSSEC db for BIND backend (bind-dnssec-db)"<<endl;
     cerr<<"create-zone ZONE                   Create empty zone ZONE"<<endl;
-    cerr<<"deactivate-tsig-key ZONE NAME [master|slave]"<<endl;
+    cerr<<"deactivate-tsig-key ZONE NAME {master|slave}"<<endl;
     cerr<<"                                   Disable TSIG key for a zone"<<endl;
     cerr<<"deactivate-zone-key ZONE KEY-ID    Deactivate the key with key id KEY-ID in ZONE"<<endl;
     cerr<<"delete-tsig-key NAME               Delete TSIG key (warning! will not unmap key!)"<<endl;
@@ -1340,20 +1340,20 @@ try
     cerr<<"export-zone-dnskey ZONE KEY-ID     Export to stdout the public DNSKEY described"<<endl;
     cerr<<"export-zone-key ZONE KEY-ID        Export to stdout the private key described"<<endl;
     cerr<<"generate-tsig-key NAME ALGORITHM   Generate new TSIG key"<<endl;
-    cerr<<"generate-zone-key zsk|ksk [algorithm] [bits]"<<endl;
-    cerr<<"                                   Generate a ZSK or KSK to stdout with specified algo&bits"<<endl;
-    cerr<<"get-meta ZONE [kind kind ..]       Get zone metadata. If no KIND given, lists all known"<<endl;
+    cerr<<"generate-zone-key {zsk|ksk} [ALGORITHM] [BITS]"<<endl;
+    cerr<<"                                   Generate a ZSK or KSK to stdout with specified ALGORITHM and BITS"<<endl;
+    cerr<<"get-meta ZONE [KIND ...]           Get zone metadata. If no KIND given, lists all known"<<endl;
     cerr<<"hash-zone-record ZONE RNAME        Calculate the NSEC3 hash for RNAME in ZONE"<<endl;
 #ifdef HAVE_P11KIT1
-    cerr<<"hsm assign zone algorithm ksk|zsk module slot pin label"<<endl<<
+    cerr<<"hsm assign ZONE ALGORITHM {ksk|zsk} MODULE SLOT PIN LABEL"<<endl<<
           "                                   Assign a hardware signing module to a ZONE"<<endl;
-    cerr<<"hsm create-key zone key-id [bits]  Create a key using hardware signing module for ZONE (use assign first)"<<endl; 
-    cerr<<"                                   bits defaults to 2048"<<endl;
+    cerr<<"hsm create-key ZONE KEY-ID [BITS]  Create a key using hardware signing module for ZONE (use assign first)"<<endl; 
+    cerr<<"                                   BITS defaults to 2048"<<endl;
 #endif
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
-    cerr<<"       [active|passive][ksk|zsk]   Defaults to KSK and active"<<endl;
+    cerr<<"       [active|passive] [ksk|zsk]  Defaults to KSK and active"<<endl;
     cerr<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cerr<<"                                   replacing contents"<<endl;
     cerr<<"list-zone ZONE                     List zone contents"<<endl;
@@ -1364,13 +1364,13 @@ try
     cerr<<"rectify-all-zones                  Rectify all zones."<<endl;
     cerr<<"remove-zone-key ZONE KEY-ID        Remove key with KEY-ID from ZONE"<<endl;
     cerr<<"secure-all-zones [increase-serial] Secure all zones without keys."<<endl;
-    cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs"<<endl;
-    cerr<<"set-nsec3 ZONE ['params' [narrow]] Enable NSEC3 with PARAMs. Optionally narrow"<<endl;
+    cerr<<"secure-zone ZONE [ZONE ..]         Add KSK and two ZSKs for ZONE"<<endl;
+    cerr<<"set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow"<<endl;
     cerr<<"set-presigned ZONE                 Use presigned RRSIGs from storage"<<endl;
     cerr<<"set-publish-cdnskey ZONE           Enable sending CDNSKEY responses for ZONE"<<endl;
     cerr<<"set-publish-cds ZONE [DIGESTALGOS] Enable sending CDS responses for ZONE, using DIGESTALGOS as signature algirithms"<<endl;
-    cerr<<"                                   DIGESTALGORITHMS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
-    cerr<<"set-meta ZONE KIND [value value ..]"<<endl;
+    cerr<<"                                   DIGESTALGOS should be a comma separated list of numbers, is is '1,2' by default"<<endl;
+    cerr<<"set-meta ZONE KIND [VALUE ..]"<<endl;
     cerr<<"                                   Set zone metadata, optionally providing a value. Empty clears meta."<<endl;
     cerr<<"show-zone ZONE                     Show DNSSEC (public) key details about a zone"<<endl;
     cerr<<"unset-nsec3 ZONE                   Switch back to NSEC"<<endl;
@@ -1875,7 +1875,7 @@ try
   }
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
-      cerr<<"Syntax: pdnssec import-zone-key-pem ZONE FILE algorithm [ksk|zsk]"<<endl;
+      cerr<<"Syntax: pdnssec import-zone-key-pem ZONE FILE ALGORITHM {ksk|zsk}"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -2112,7 +2112,7 @@ try
   } else if (cmds[0]=="activate-tsig-key") {
      string metaKey;
      if (cmds.size() < 4) {
-        cerr << "Syntax: " << cmds[0] << " zone name [master|slave]" << endl;
+        cerr << "Syntax: " << cmds[0] << " ZONE NAME {master|slave}" << endl;
         return 0;
      }
      DNSName zname(cmds[1]);
@@ -2146,7 +2146,7 @@ try
   } else if (cmds[0]=="deactivate-tsig-key") {
      string metaKey;
      if (cmds.size() < 4) {
-        cerr << "Syntax: " << cmds[0] << " zone name [master|slave]" << endl;
+        cerr << "Syntax: " << cmds[0] << " ZONE NAME {master|slave}" << endl;
         return 0;
      }
      DNSName zname(cmds[1]);
@@ -2236,7 +2236,7 @@ try
       std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
-        std::cout << "Usage: pdnssec hsm assign zone algorithm ksk|zsk module token pin label" << std::endl;
+        std::cout << "Usage: pdnssec hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL" << std::endl;
         return 1;
       }
 
@@ -2315,7 +2315,7 @@ try
     } else if (cmds[1] == "create-key") {
 
       if (cmds.size() < 4) {
-        cerr << "Usage: pdnssec hsm create-key zone key-id [bits]" << endl;
+        cerr << "Usage: pdnssec hsm create-key ZONE KEY-ID [BITS]" << endl;
         return 1;
       }
       DomainInfo di;
@@ -2372,7 +2372,7 @@ try
 #endif
   } else if (cmds[0] == "b2b-migrate") {
     if (cmds.size() < 3) {
-      cerr<<"Usage: b2b-migrate old new"<<endl;
+      cerr<<"Usage: b2b-migrate OLD NEW"<<endl;
       return 1;
     }
 
