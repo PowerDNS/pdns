@@ -90,6 +90,7 @@ box.answer-cname-in-local.example.net. 3600 IN NS ns.answer-cname-in-local.examp
 ns.answer-cname-in-local.example.net. 3600 IN A  $PREFIX.22
 not-auth-zone.example.net. 3600 IN NS ns.not-auth-zone.example.net.
 ns.not-auth-zone.example.net. 3600 IN A $PREFIX.23
+*.wild.example.net.	3600 IN	TXT "Hi there!"
 EOF
 
 mkdir $PREFIX.11
