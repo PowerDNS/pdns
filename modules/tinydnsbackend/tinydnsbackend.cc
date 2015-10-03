@@ -260,11 +260,11 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 			rr.auth = true;
 
 			rr.ttl = pr.get32BitInt();
-			unsigned long long timestamp = pr.get32BitInt();
+			std::uint64_t timestamp = pr.get32BitInt();
 			timestamp <<= 32;
 			timestamp += pr.get32BitInt();
 			if(timestamp) {
-				unsigned long long now = d_taiepoch + time(NULL);
+				std::uint64_t now = d_taiepoch + time(NULL);
 				if (rr.ttl == 0) {
 					if (timestamp < now) {
 						continue;

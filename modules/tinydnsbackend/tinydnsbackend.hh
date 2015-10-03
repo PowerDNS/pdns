@@ -73,7 +73,7 @@ private:
 	typedef TDI_t::index<tag_domainid>::type TDIById_t;
 
 	//data member variables
-	unsigned long long d_taiepoch;
+	std::uint64_t d_taiepoch;
 	QType d_qtype;
 	CDB *d_cdbReader;
 	DNSPacket *d_dnspacket; // used for location and edns-client support.
