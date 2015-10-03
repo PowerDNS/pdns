@@ -169,7 +169,7 @@ bool PipeBackend::list(const DNSName& target, int inZoneId, bool include_disable
       L<<Logger::Error<<kBackendId<<" Error from coprocess: "<<ae.reason<<endl;
       throw;
    }
-   d_qname=itoa(inZoneId);
+   d_qname=DNSName(itoa(inZoneId)); // why do we store a number here??
    return true;
 }
 
@@ -262,7 +262,7 @@ bool PipeBackend::get(DNSResourceRecord &r)
            r.scopeMask = 0;
            r.auth = 1;
          }
-         r.qname=parts[1+extraFields];
+         r.qname=DNSName(parts[1+extraFields]);
          r.qtype=parts[3+extraFields];
          r.ttl=atoi(parts[4+extraFields].c_str());
          r.domain_id=atoi(parts[5+extraFields].c_str());

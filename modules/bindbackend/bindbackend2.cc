@@ -415,7 +415,7 @@ void Bind2Backend::alsoNotifies(const DNSName& domain, set<string> *ips)
   }
   ReadLock rl(&s_state_lock);  
   for(state_t::const_iterator i = s_state.begin(); i != s_state.end() ; ++i) {
-    if(pdns_iequals(i->d_name,domain)) {
+    if(i->d_name == domain) {
       for(set<string>::iterator it = i->d_also_notify.begin(); it != i->d_also_notify.end(); it++) {
         (*ips).insert(*it);
       }
@@ -507,7 +507,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>&parts, Utility::pid
 
   for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
     BB2DomainInfo bbd;
-    if(safeGetBBDomainInfo(*i, &bbd)) {
+    if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {
       Bind2Backend bb2;
       bb2.queueReloadAndStore(bbd.d_id);
       ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";      
@@ -528,7 +528,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>&parts, Utility::pid
   if(parts.size() > 1) {
     for(vector<string>::const_iterator i=parts.begin()+1;i<parts.end();++i) {
       BB2DomainInfo bbd;
-      if(safeGetBBDomainInfo(*i, &bbd)) {	
+      if(safeGetBBDomainInfo(DNSName(*i), &bbd)) {	
         ret<< *i << ": "<< (bbd.d_loaded ? "": "[rejected]") <<"\t"<<bbd.d_status<<"\n";
     }
       else
@@ -724,7 +724,7 @@ void Bind2Backend::doEmptyNonTerminals(BB2DomainInfo& bbd, bool nsec3zone, NSEC3
   {
     rr.qname=nt.first+bbd.d_name;
     if(nsec3zone)
-      hashed=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname.toString()));
+      hashed=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
     insertRecord(bbd, rr.qname, rr.qtype, rr.content, rr.ttl, hashed, &nt.second);
   }
 }
@@ -968,7 +968,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
       }
 
       wraponce = false;
-      while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
+      while(iter == hashindex.end() || (!iter->auth && !(iter->qtype == QType::NS && iter->qname!= auth && !ns3pr.d_flags)) || iter->nsec3hash.empty())
       {
         iter--;
         if(iter == hashindex.begin()) {
@@ -999,7 +999,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     }
 
     wraponce = false;
-    while((!iter->auth && !(iter->qtype == QType::NS && !pdns_iequals(iter->qname, auth) && !ns3pr.d_flags)) || iter->nsec3hash.empty())
+    while((!iter->auth && !(iter->qtype == QType::NS && iter->qname != auth && !ns3pr.d_flags)) || iter->nsec3hash.empty())
     {
       iter++;
       if(iter == hashindex.end()) {

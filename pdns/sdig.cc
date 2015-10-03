@@ -44,7 +44,7 @@ try
 
   vector<uint8_t> packet;
   
-  DNSPacketWriter pw(packet, argv[3], DNSRecordContent::TypeToNumber(argv[4]));
+  DNSPacketWriter pw(packet, DNSName(argv[3]), DNSRecordContent::TypeToNumber(argv[4]));
 
   if(dnssec || getenv("SDIGBUFSIZE"))
   {
@@ -127,7 +127,7 @@ try
   cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
 
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-    cout<<i->first.d_place-1<<"\t"<<i->first.d_label.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+    cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
     if(i->first.d_type == QType::RRSIG) 
     {
       string zoneRep = i->first.d_content->getZoneRepresentation();

@@ -474,7 +474,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
       *trc = *std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
       
       gotit=true;
-      *keyname = i->first.d_label;
+      *keyname = i->first.d_name;
     }
   }
   if(!gotit)
@@ -498,7 +498,7 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 
     if(i->first.d_type == QType::TKEY) {
       *tr = *std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
-      *keyname = i->first.d_label;
+      *keyname = i->first.d_name;
       gotit=true;
     }
   }
@@ -642,10 +642,10 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
   }
 
   DNSName algoName = trc->d_algoName; // FIXME400
-  if (algoName == "hmac-md5.sig-alg.reg.int")
-    algoName = "hmac-md5";
+  if (algoName == DNSName("hmac-md5.sig-alg.reg.int"))
+    algoName = DNSName("hmac-md5");
 
-  if (algoName == "gss-tsig") {
+  if (algoName == DNSName("gss-tsig")) {
     if (!gss_verify_signature(*keyname, message, trc->d_mac)) {
       L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: TSIG signature mismatch using '"<<*keyname<<"' and algorithm '"<<trc->d_algoName<<"'"<<endl;
       return false;
@@ -658,8 +658,8 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
     L<<Logger::Error<<"Packet for domain '"<<q->qdomain<<"' denied: can't find TSIG key with name '"<<*keyname<<"' and algorithm '"<<algoName<<"'"<<endl;
     return false;
   }
-  if (trc->d_algoName == "hmac-md5")
-    trc->d_algoName += "sig-alg.reg.int";
+  if (trc->d_algoName == DNSName("hmac-md5"))
+    trc->d_algoName += DNSName("sig-alg.reg.int");
 
   TSIGHashEnum algo;
   if(!getTSIGHashEnum(trc->d_algoName, algo)) {

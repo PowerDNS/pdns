@@ -47,7 +47,7 @@ public:
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
     unsigned int total=atoi(parts[1].c_str());
     if(relevant.size()!=2*total)
-      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_label.toString() % relevant.size() % (2*total)).str());
+      throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_name.toString() % relevant.size() % (2*total)).str());
     string out;
     out.reserve(total+1);
     for(unsigned int n=0; n < total; ++n) {
@@ -135,7 +135,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
   MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
   ret->header.d_type=ret->d_qtype;
-  ret->label=mdp.d_answers.begin()->first.d_label;
+  ret->label=mdp.d_answers.begin()->first.d_name;
   ret->header.d_ttl=mdp.d_answers.begin()->first.d_ttl;
   return ret;
 }
@@ -163,6 +163,18 @@ DNSRecordContent* DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
 
   return i->second(content);
 }
+
+std::unique_ptr<DNSRecordContent> DNSRecordContent::makeunique(uint16_t qtype, uint16_t qclass,
+                                               const string& content)
+{
+  zmakermap_t::const_iterator i=getZmakermap().find(make_pair(qclass, qtype));
+  if(i==getZmakermap().end()) {
+    return std::unique_ptr<DNSRecordContent>(new UnknownRecordContent(content));
+  }
+
+  return std::unique_ptr<DNSRecordContent>(i->second(content));
+}
+
 
 DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
   // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
@@ -205,6 +217,15 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
 {
   static DNSRecordContent::zmakermap_t zmakermap;
   return zmakermap;
+}
+
+DNSRecord::DNSRecord(const DNSResourceRecord& rr)
+{
+  d_name = rr.qname;
+  d_type = rr.qtype.getCode();
+  d_ttl = rr.ttl;
+  d_class = rr.qclass;
+  d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
 }
 
 void MOADNSParser::init(const char *packet, unsigned int len)
@@ -255,14 +276,14 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       
       unsigned int recordStartPos=pr.d_pos;
 
-      string label=pr.getName();
+      DNSName name=pr.getName();
       
       pr.getDnsrecordheader(ah);
       dr.d_ttl=ah.d_ttl;
       dr.d_type=ah.d_type;
       dr.d_class=ah.d_class;
       
-      dr.d_label=label;
+      dr.d_name=name;
       dr.d_clen=ah.d_clen;
 
       dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
@@ -389,16 +410,23 @@ uint8_t PacketReader::get8BitInt()
   return d_content.at(d_pos++);
 }
 
-string PacketReader::getName()
+DNSName PacketReader::getName()
 {
   unsigned int consumed;
   vector<uint8_t> content(d_content);
   content.insert(content.begin(), sizeof(dnsheader), 0);
 
-  string ret = DNSName((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed).toString();
-
-  d_pos+=consumed;
-  return ret;
+  try {
+    DNSName dn((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed);
+    
+    d_pos+=consumed;
+    return dn;
+  }
+  catch(...)
+    {
+      throw std::out_of_range("dnsname issue");
+    }
+  return DNSName(); // if this ever happens..
 }
 
 static string txtEscape(const string &name)

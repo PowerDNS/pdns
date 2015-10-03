@@ -12,3 +12,6 @@ Reply to question for qname='host2.auth-zone.example.net.', qtype=A
 0	host3.auth-zone.example.net.	IN	CNAME	3600	host1.not-auth-zone.example.net.
 Rcode: 0, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='host3.auth-zone.example.net.', qtype=A
+0	you-are.wild.example.net.	IN	TXT	3600	"Hi there!"
+Rcode: 0, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='you-are.wild.example.net.', qtype=TXT

@@ -369,8 +369,8 @@ bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* c
     content->clear();
     while(d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
-      if(row.size() >= 2 && (algorithm->empty() || *algorithm == row[0])) {
-        *algorithm = row[0];
+      if(row.size() >= 2 && (algorithm->empty() || *algorithm == DNSName(row[0]))) {
+        *algorithm = DNSName(row[0]);
         *content = row[1];
       }
     }
@@ -432,8 +432,8 @@ bool Bind2Backend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
     while(d_getTSIGKeysQuery_stmt->hasNextRow()) {
       d_getTSIGKeysQuery_stmt->nextRow(row);
       struct TSIGKey key;
-      key.name = row[0];
-      key.algorithm = row[1];
+      key.name = DNSName(row[0]);
+      key.algorithm = DNSName(row[1]);
       key.key = row[2];
       keys.push_back(key);
     }

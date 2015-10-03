@@ -27,9 +27,9 @@ class DNSName
 {
 public:
   DNSName() : d_empty(true) {}                 //!< Don't constructs the root name
-  DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
-  DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
-  DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question
+  explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
+  explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
+  DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
   bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive)
@@ -172,3 +172,5 @@ struct SuffixMatchNode
   }
 
 };
+
+std::ostream & operator<<(std::ostream &os, const DNSName& d);

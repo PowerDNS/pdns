@@ -201,7 +201,7 @@ int main( int argc, char* argv[] )
                                         }
                                 try
                                 {
-                                        if( i->name != "." && i->name != "localhost" && i->name != "0.0.127.in-addr.arpa" )
+				  if( i->name != DNSName(".") && i->name != DNSName("localhost") && i->name != DNSName("0.0.127.in-addr.arpa") )
                                         {
                                                 cerr << "Parsing file: " << i->filename << ", domain: " << i->name.toString() << endl;
                                                 g_zonename = i->name;
@@ -229,8 +229,8 @@ int main( int argc, char* argv[] )
                                         return 1;
                         }
 
-                        g_zonename = args["zone-name"];
-                        ZoneParserTNG zpt(args["zone-file"], args["zone-name"]);
+                        g_zonename = DNSName(args["zone-name"]);
+                        ZoneParserTNG zpt(args["zone-file"], g_zonename);
                         DNSResourceRecord rr;
                         while(zpt.get(rr))
                                 callback(0, rr.qname, rr.qtype.getName(), rr.content, rr.ttl);

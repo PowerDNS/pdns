@@ -24,6 +24,7 @@ pages:
     - Domain metadata: authoritative/domainmetadata.md
     - Dynamic DNS Update: authoritative/dnsupdate.md
     - GSS-TSIG: authoritative/gss-tsig.md
+    - Various How To's: authoritative/howtos.md
     - Internals: authoritative/internals.md
     - Virtual Hosting: authoritative/virtual.md
     - Performance Tuning and Monitoring: authoritative/performance.md

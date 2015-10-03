@@ -140,7 +140,7 @@ public:
   void copyRecord(vector<unsigned char>& dest, uint16_t len);
   void copyRecord(unsigned char* dest, uint16_t len);
 
-  string getName();
+  DNSName getName();
   string getText(bool multi);
 
   uint16_t d_pos;
@@ -162,6 +162,7 @@ public:
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
   static DNSRecordContent* mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
+  static std::unique_ptr<DNSRecordContent> makeunique(uint16_t qtype, uint16_t qclass, const string& content);
 
   virtual std::string getZoneRepresentation() const = 0;
   virtual ~DNSRecordContent() {}
@@ -169,7 +170,7 @@ public:
   virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
   {
     vector<uint8_t> packet;
-    string empty;
+    DNSName empty;
     DNSPacketWriter pw(packet, empty, 1);
     if(canonic)
       pw.setCanonic(true);
@@ -263,13 +264,15 @@ protected:
 
 struct DNSRecord
 {
-  DNSName d_label; //FIXME400 rename
+  DNSRecord() = default;
+  explicit DNSRecord(const DNSResourceRecord& rr);
+  DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
   uint16_t d_type;
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-  enum : uint8_t {Answer=1, Nameserver, Additional} d_place;
+  enum Place : uint8_t {Answer=1, Nameserver=2, Additional=3} d_place;
 
   bool operator<(const DNSRecord& rhs) const
   {
@@ -279,9 +282,10 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label.toString()); //FIXME400
-    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
+    string llabel=toLower(d_name.toString());  
+    string rlabel=toLower(rhs.d_name.toString());
 
+    // XXX is anyone expecting a specific canonical ordering? can we use DNSName builtin < ?
     return 
       tie(llabel,     d_type,     d_class, lzrp) <
       tie(rlabel, rhs.d_type, rhs.d_class, rzrp);
@@ -295,8 +299,8 @@ struct DNSRecord
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_label.toString()); //FIXME400
-    string rlabel=toLower(rhs.d_label.toString()); //FIXME400
+    string llabel=toLower(d_name.toString()); 
+    string rlabel=toLower(rhs.d_name.toString()); 
     
     return 
       tie(llabel,     d_type,     d_class, lzrp) ==

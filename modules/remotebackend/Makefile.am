@@ -75,7 +75,7 @@ remotebackend_post.log: remotebackend_http.log
 
 remotebackend_json.log: remotebackend_http.log remotebackend_post.log
 
-if UNIT_TESTS
+if BACKEND_UNIT_TESTS
 TESTS = \
 	remotebackend_pipe.test \
 	remotebackend_unix.test \

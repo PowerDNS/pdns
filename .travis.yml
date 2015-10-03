@@ -128,8 +128,13 @@ script:
  - ./bootstrap
 #DNSName     --with-dynmodules='bind gmysql gpgsql gsqlite3 mydns tinydns remote random opendbx ldap lmdb lua'
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
+<<<<<<< HEAD
  - ./configure
      --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua cassandra'
+=======
+ - CFLAGS='-O1' CXXFLAGS='-O1' ./configure
+     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
+>>>>>>> PowerDNS/master
      --with-modules=''
      --with-sqlite3
      --enable-unit-tests
@@ -137,30 +142,38 @@ script:
      --enable-libsodium
      --enable-experimental-pkcs11
      --enable-tools
-     --disable-silent-rules
      --disable-dependency-tracking
  - make -k dist
- - make -k -j 4
+ - make -k -j 2
  - cd docs
  - sudo pwd
  - make check-links
  - cd ..
  - make -k install DESTDIR=/tmp/pdns-install-dir
  - find /tmp/pdns-install-dir -ls
+<<<<<<< HEAD
  - make -j 1 check
+=======
+ - make -j 2 check
+>>>>>>> PowerDNS/master
  - test -f pdns/test-suite.log && cat pdns/test-suite.log || true
  - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
-# DNSName: - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
- - make -k -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|zone2lmdb|speedtest')
+# DNSName: - make -k -j 2 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
+ - make -k -j 2 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|zone2lmdb|speedtest')
  - cd pdns
- - make -k -j 4 pdns_recursor
+ - make -k -j 2 pdns_recursor
  - rm -f pdns_recursor
  - ./pdnssec test-algorithms
  - cd ..
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/
+<<<<<<< HEAD
  - ./configure
  - make -k -j 1
+=======
+ - OPTFLAGS=-O0 ./configure
+ - OPTFLAGS=-O0 make -k -j 2
+>>>>>>> PowerDNS/master
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
  - cd ..
@@ -168,8 +181,13 @@ script:
  - cd pdns/dnsdistdist
  - tar xf dnsdist*.tar.bz2
  - cd dnsdist-*
+<<<<<<< HEAD
  - ./configure
  - make -k -j 1
+=======
+ - CFLAGS='-O0' CXXFLAGS='-O0' ./configure
+ - make -k -j 2
+>>>>>>> PowerDNS/master
  - cd ..
  - rm -rf dnsdist-*/
  - cd ../../
@@ -207,25 +225,25 @@ script:
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gpgsql-both
+# - ./timestamp ./start-test-stop 5300 gpgsql-both
  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
+# - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
+# - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-both
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+# - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
 #DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
  - ./timestamp ./start-test-stop 5300 mydns
  - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
+# - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
  - ./timestamp ./start-test-stop 5300 tinydns
  # Cassandra uses lot of memory resources.Its better to turn this on only before the test. Otherwise OOM killer kills it.
@@ -235,7 +253,7 @@ script:
  - rm -f tests/verify-dnssec-zone/allow-missing
  - rm -f tests/verify-dnssec-zone/skip.nsec3
  - rm -f tests/verify-dnssec-zone/skip.optout
- - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300
+ - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300 25000
  - cd ../regression-tests.nobackend/
  - ./runtests
  - test ! -s ./failed_tests

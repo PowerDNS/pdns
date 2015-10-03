@@ -129,8 +129,8 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   if(!tsigkeyname.empty()) {
     // cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
     TSIGRecordContent trc;
-    if (tsigalgorithm == "hmac-md5")
-      trc.d_algoName = tsigalgorithm + "sig-alg.reg.int";
+    if (tsigalgorithm == DNSName("hmac-md5"))
+      trc.d_algoName = tsigalgorithm + DNSName("sig-alg.reg.int");
     else
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(0);
@@ -196,7 +196,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
   vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-    rr.qname = i->first.d_label;
+    rr.qname = i->first.d_name;
     rr.qtype = i->first.d_type;
     rr.ttl = i->first.d_ttl;
     rr.content = i->first.d_content->getZoneRepresentation();
@@ -392,8 +392,8 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     pw.getHeader()->id = dns_random(0xffff);
   
     if(!tsigkeyname.empty()) {
-      if (tsigalgorithm == "hmac-md5")
-        d_trc.d_algoName = tsigalgorithm + "sig-alg.reg.int";
+      if (tsigalgorithm == DNSName("hmac-md5"))
+        d_trc.d_algoName = tsigalgorithm + DNSName("sig-alg.reg.int");
       else
         d_trc.d_algoName = tsigalgorithm;
       d_trc.d_time = time(0);
@@ -451,7 +451,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
   timeoutReadn(len); 
   MOADNSParser mdp(d_buf.get(), len);
 
-  int err = parseResult(mdp, "", 0, 0, &res);
+  int err = parseResult(mdp, DNSName(), 0, 0, &res);
   if(err) 
     throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
 

@@ -175,10 +175,10 @@ static int ldp_getZone(lua_State *L) {
 
 static int ldp_addRecords(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
-  vector<DNSResourceRecord> rrs;
-  popResourceRecordsTable(L, "BOGUS", rrs);
-  BOOST_FOREACH(DNSResourceRecord rr, rrs) {
-    p->addRecord(rr);
+  vector<DNSRecord> rrs;
+  popResourceRecordsTable(L, DNSName("BOGUS"), rrs);
+  BOOST_FOREACH(const DNSRecord& dr, rrs) {
+    p->addRecord(DNSResourceRecord(dr));
   }
   return 0;
 }

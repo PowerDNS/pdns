@@ -190,8 +190,8 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
               } else if (optOutFlag != (ns3rc.d_flags & 1))
                 throw PDNSException("Zones with a mixture of Opt-Out NSEC3 RRs and non-Opt-Out NSEC3 RRs are not supported.");
               optOutFlag = ns3rc.d_flags & 1;
-              if (ns3rc.d_set.count(QType::NS) && !pdns_iequals(rr.qname, domain))
-                secured.insert(toLower(makeRelative(rr.qname.toString(), domain.toString())));
+              if (ns3rc.d_set.count(QType::NS) && !(rr.qname==domain))
+                secured.insert(DNSName(toLower(makeRelative(rr.qname.toString(), domain.toString())))); // XXX DNSName pain
               continue;
             }
             case QType::NSEC: {
@@ -207,7 +207,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
               break;
             }
             case QType::NS: {
-              if(!pdns_iequals(rr.qname, domain))
+              if(rr.qname!=domain)
                 nsset.insert(rr.qname);
               break;
             }
@@ -318,7 +318,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         if(nsset.count(shorter) && rr.qtype.getCode() != QType::DS)
           rr.auth=false;
 
-        if (pdns_iequals(shorter, domain)) // stop at apex
+        if (shorter==domain) // stop at apex
           break;
       }while(shorter.chopOff());
 
@@ -328,7 +328,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         if (!rr.auth && rr.qtype.getCode() == QType::NS) {
           if (isNSEC3)
             ordername=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
-          auth=(!isNSEC3 || !optOutFlag || secured.count(ordername));
+          auth=(!isNSEC3 || !optOutFlag || secured.count(DNSName(ordername)));
         } else
           auth=rr.auth;
 
@@ -355,7 +355,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
         if (isNSEC3) {
           // NSEC3
           ordername=toBase32Hex(hashQNameWithSalt(ns3pr, rr.qname));
-          if(!isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!optOutFlag || secured.count(ordername))))) {
+          if(!isNarrow && (rr.auth || (rr.qtype.getCode() == QType::NS && (!optOutFlag || secured.count(DNSName(ordername)))))) {
             di.backend->feedRecord(rr, &ordername);
           } else
             di.backend->feedRecord(rr);
@@ -390,35 +390,35 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
       notifyDomain(domain);
   }
   catch(DBException &re) {
-    L<<Logger::Error<<"Unable to feed record during incoming AXFR of '"+domain+"': "<<re.reason<<endl;
+    L<<Logger::Error<<"Unable to feed record during incoming AXFR of '" << domain<<"': "<<re.reason<<endl;
     if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(MOADNSException &re) {
-    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"' (MOADNSException): "<<re.what()<<endl;
+    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (MOADNSException): "<<re.what()<<endl;
     if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(std::exception &re) {
-    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"+domain+"' (std::exception): "<<re.what()<<endl;
+    L<<Logger::Error<<"Unable to parse record during incoming AXFR of '"<<domain<<"' (std::exception): "<<re.what()<<endl;
     if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(ResolverException &re) {
-    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (resolver): "<<re.reason<<endl;
+    L<<Logger::Error<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (resolver): "<<re.reason<<endl;
     if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();
     }
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<"Unable to AXFR zone '"+domain+"' from remote '"<<remote<<"' (PDNSException): "<<ae.reason<<endl;
+    L<<Logger::Error<<"Unable to AXFR zone '"<<domain<<"' from remote '"<<remote<<"' (PDNSException): "<<ae.reason<<endl;
     if(di.backend && transaction) {
       L<<Logger::Error<<"Aborting possible open transaction for domain '"<<domain<<"' AXFR"<<endl;
       di.backend->abortTransaction();

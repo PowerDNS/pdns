@@ -7,7 +7,7 @@
 #include "misc.hh"
 #include "dnsname.hh"
 #include <iostream>
-
+#include "dnsrecords.hh"
 #include <boost/utility.hpp>
 #undef L
 #include <boost/multi_index_container.hpp>
@@ -32,10 +32,9 @@ public:
   }
   unsigned int size();
   unsigned int bytes();
-  int get(time_t, const DNSName &qname, const QType& qt, set<DNSResourceRecord>* res);
+  int get(time_t, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures=0);
 
-  int getDirect(time_t now, const char* qname, const QType& qt, uint32_t ttd[10], char* data[10], uint16_t len[10]);
-  void replace(time_t, const DNSName &qname, const QType& qt,  const set<DNSResourceRecord>& content, bool auth);
+  void replace(time_t, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth);
   void doPrune(void);
   void doSlash(int perc);
   uint64_t doDump(int fd);
@@ -46,47 +45,25 @@ public:
   uint64_t cacheHits, cacheMisses;
 
 private:
-  struct StoredRecord
-  {
-    mutable uint32_t d_ttd;
-
-    string d_string;
-
-    bool operator<(const StoredRecord& rhs) const
-    {
-      return d_string < rhs.d_string;
-    }
-
-    unsigned int size() const
-    {
-      return sizeof(*this) + d_string.size();
-    }
-
-  };
 
   struct CacheEntry
   {
-    CacheEntry(const boost::tuple<DNSName, uint16_t>& key, const vector<StoredRecord>& records, bool auth) : 
-      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_records(records)
+    CacheEntry(const boost::tuple<DNSName, uint16_t>& key, const vector<shared_ptr<DNSRecordContent>>& records, bool auth) : 
+      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_records(records), d_ttd(0)
     {}
 
-    typedef vector<StoredRecord> records_t;
-
+    typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
+    vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
     uint32_t getTTD() const
     {
-      if(d_records.size()==1)
-        return d_records.begin()->d_ttd;
-
-      uint32_t earliest=std::numeric_limits<uint32_t>::max();
-      for(records_t::const_iterator i=d_records.begin(); i != d_records.end(); ++i)
-        earliest=min(earliest, i->d_ttd);
-      return earliest;
+      return d_ttd;
     }
 
     DNSName d_qname;
     uint16_t d_qtype;
     bool d_auth;
     records_t d_records;
+    uint32_t d_ttd;
   };
 
   typedef multi_index_container<
@@ -108,9 +85,6 @@ private:
   pair<cache_t::iterator, cache_t::iterator> d_cachecache;
   DNSName d_cachedqname;
   bool d_cachecachevalid;
-  bool attemptToRefreshNSTTL(const QType& qt, const set<DNSResourceRecord>& content, const CacheEntry& stored);
+  bool attemptToRefreshNSTTL(const QType& qt, const vector<DNSRecord>& content, const CacheEntry& stored);
 };
-string DNSRR2String(const DNSResourceRecord& rr);
-DNSResourceRecord String2DNSRR(const DNSName& qname, const QType& qt, const string& serial, uint32_t ttd);
-
 #endif

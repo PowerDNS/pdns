@@ -221,7 +221,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-string apiZoneIdToName(const string& id) {
+DNSName apiZoneIdToName(const string& id) {
   string zonename;
   ostringstream ss;
 
@@ -261,14 +261,11 @@ string apiZoneIdToName(const string& id) {
 
   zonename = ss.str();
 
-  // strip trailing dot
-  if (zonename.size() > 0 && zonename.substr(zonename.size()-1) == ".") {
-    zonename.resize(zonename.size()-1);
-  }
-  return zonename;
+  return DNSName(zonename);
 }
 
-string apiZoneNameToId(const string& name) {
+string apiZoneNameToId(const DNSName& dname) {
+  string name=dname.toString();
   ostringstream ss;
 
   for(string::const_iterator iter = name.begin(); iter != name.end(); ++iter) {

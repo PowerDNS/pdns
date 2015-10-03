@@ -129,7 +129,7 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(parts.size()>1) {
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
       ret+=PC.purge(*i);
-      dk.clearCaches(*i);
+      dk.clearCaches(DNSName(*i));
     }
   }
   else {
@@ -235,14 +235,14 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   const string& domain=parts[1];
   DomainInfo di;
   UeberBackend B;
-  if(!B.getDomainInfo(domain, di))
+  if(!B.getDomainInfo(DNSName(domain), di))
     return "Domain '"+domain+"' unknown";
   
   if(di.masters.empty())
     return "Domain '"+domain+"' is not a slave domain (or has no master defined)";
 
   random_shuffle(di.masters.begin(), di.masters.end());
-  Communicator.addSuckRequest(domain, di.masters.front());
+  Communicator.addSuckRequest(DNSName(domain), di.masters.front());
   return "Added retrieval request for '"+domain+"' from master "+di.masters.front();
 }
 
@@ -263,9 +263,12 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   }
   
   L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<parts[1]<<"' received"<<endl;
-  Communicator.notify(parts[1],parts[2]);
+  Communicator.notify(DNSName(parts[1]), parts[2]);
   return "Added to queue";
 }
+
+// XXX DNSName pain - if you pass us something that is not DNS,  you'll get an exception here, which you never got before
+// and I bet we don't report it well to the user...
 
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
@@ -295,7 +298,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
       return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
     return "Added "+itoa(total)+" MASTER zones to queue";
   } else {
-    if(!Communicator.notifyDomain(parts[1]))
+    if(!Communicator.notifyDomain(DNSName(parts[1])))
       return "Failed to add to the queue - see log";
     return "Added to queue";
   }

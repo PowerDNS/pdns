@@ -211,9 +211,9 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
 
   soadata.qname = name;
   soadata.domain_id = atol(rrow[0].c_str());
-  soadata.hostmaster = rrow[1];
+  soadata.hostmaster = DNSName(rrow[1]);
   soadata.serial = atol(rrow[2].c_str());
-  soadata.nameserver = rrow[3];
+  soadata.nameserver = DNSName(rrow[3]);
   soadata.refresh = atol(rrow[4].c_str());
   soadata.retry = atol(rrow[5].c_str());
   soadata.expire = atol(rrow[6].c_str());
@@ -225,7 +225,7 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
   soadata.db = this;
 
   if (d_result.size()>1) {
-    L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "+name<<endl;
+    L<<Logger::Warning<<backendName<<" Found more than one matching zone for: "<<name<<endl;
   };
 
   return true;
@@ -369,7 +369,7 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
   
     if(!d_qname.empty()) {
       // use this to distinguish between select with 'name' field (list()) and one without
-      rr.qname=d_qname;
+      rr.qname=DNSName(d_qname);
     } else {
       string tmpQname = rrow[5];
 

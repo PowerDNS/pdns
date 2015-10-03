@@ -38,7 +38,8 @@ public:
 
   void clear() 
   {
-    name=filename=type="";
+    name=DNSName();
+    filename=type="";
     masters.clear();
     alsoNotify.clear();
     d_dev=0;

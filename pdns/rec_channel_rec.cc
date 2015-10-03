@@ -523,6 +523,19 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
+  addGetStat("auth4-answers0-1", &g_stats.auth4Answers0_1);
+  addGetStat("auth4-answers1-10", &g_stats.auth4Answers1_10);
+  addGetStat("auth4-answers10-100", &g_stats.auth4Answers10_100);
+  addGetStat("auth4-answers100-1000", &g_stats.auth4Answers100_1000);
+  addGetStat("auth4-answers-slow", &g_stats.auth4AnswersSlow);
+
+  addGetStat("auth6-answers0-1", &g_stats.auth6Answers0_1);
+  addGetStat("auth6-answers1-10", &g_stats.auth6Answers1_10);
+  addGetStat("auth6-answers10-100", &g_stats.auth6Answers10_100);
+  addGetStat("auth6-answers100-1000", &g_stats.auth6Answers100_1000);
+  addGetStat("auth6-answers-slow", &g_stats.auth6AnswersSlow);
+
+
   addGetStat("qa-latency", doGetAvgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
@@ -546,6 +559,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
   addGetStat("security-status", &g_security_status);
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
+  addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
+  addGetStat("outgoing6-timeouts", &SyncRes::s_outgoing6timeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
@@ -720,6 +735,7 @@ void sortPublicSuffixList()
   sort(g_pubs.begin(), g_pubs.end());
 }
 
+// XXX DNSName Pain - this function should benefit from native DNSName methods
 DNSName getRegisteredName(const DNSName& dom)
 {
   auto parts=dom.getRawLabels();
@@ -740,13 +756,13 @@ DNSName getRegisteredName(const DNSName& dom)
       BOOST_REVERSE_FOREACH(const std::string& p, parts) {
 	ret+=p+".";
       }
-      return ret;
+      return DNSName(ret);
     }
 
     last=parts[parts.size()-1];
     parts.resize(parts.size()-1);
   }
-  return "??";
+  return DNSName("??");
 }
 
 static DNSName nopFilter(const DNSName& name)

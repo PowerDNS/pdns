@@ -7,6 +7,16 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `answers1-10`: counts the number of queries answered within 10 milliseconds
 * `answers10-100`: counts the number of queries answered within 100 milliseconds
 * `answers100-1000`: counts the number of queries answered within 1 second
+* `auth4-answers-slow`: counts the number of queries answered by auth4s after 1 second (4.0)
+* `auth4-answers0-1`: counts the number of queries answered by auth4s within 1 millisecond (4.0)
+* `auth4-answers1-10`: counts the number of queries answered by auth4s within 10 milliseconds (4.0)
+* `auth4-answers10-100`: counts the number of queries answered by auth4s within 100 milliseconds (4.0)
+* `auth4-answers100-1000`: counts the number of queries answered by auth4s within 1 second (4.0)
+* `auth6-answers-slow`: counts the number of queries answered by auth6s after 1 second (4.0)
+* `auth6-answers0-1`: counts the number of queries answered by auth6s within 1 millisecond (4.0)
+* `auth6-answers1-10`: counts the number of queries answered by auth6s within 10 milliseconds (4.0)
+* `auth6-answers10-100`: counts the number of queries answered by auth6s within 100 milliseconds (4.0)
+* `auth6-answers100-1000`: counts the number of queries answered by auth6s within 1 second (4.0)
 * `cache-bytes`: size of the cache in bytes (since 3.3.1)
 * `cache-entries`: shows the number of entries in the cache
 * `cache-hits`: counts the number of cache hits since starting, this does **not** include hits that got answered from the packet-cache
@@ -33,6 +43,8 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `nsspeeds-entries`: shows the number of entries in the NS speeds map
 * `nxdomain-answers`: counts the number of times it answered NXDOMAIN since starting
 * `outgoing-timeouts`: counts the number of timeouts on outgoing UDP queries since starting
+* `outgoing4-timeouts`: counts the number of timeouts on outgoing UDP IPv4 queries since starting (since 4.0)
+* `outgoing6-timeouts`: counts the number of timeouts on outgoing UDP IPv6 queries since starting (since 4.0)
 * `over-capacity-drops`: questions dropped because over maximum concurrent query limit (since 3.2)
 * `packetcache-bytes`: size of the packet cache in bytes (since 3.3.1)
 * `packetcache-entries`: size of packet cache (since 3.2)

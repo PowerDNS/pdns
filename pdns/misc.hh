@@ -300,8 +300,9 @@ inline void unixDie(const string &why)
 }
 
 string makeHexDump(const string& str);
+void shuffle(vector<DNSRecord>& rrs);
 void shuffle(vector<DNSResourceRecord>& rrs);
-void orderAndShuffle(vector<DNSResourceRecord>& rrs);
+void orderAndShuffle(vector<DNSRecord>& rrs);
 
 void normalizeTV(struct timeval& tv);
 const struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
@@ -347,13 +348,6 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
     bPtr++;
   }
   return true;
-}
-
-// FIXME400 remove this, it's just here to move faster while we DNSName the things
-inline bool pdns_iequals(const DNSName& a, const DNSName& b) __attribute__((pure));
-inline bool pdns_iequals(const DNSName& a, const DNSName& b)
-{
-  return a==b;
 }
 
 inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));
@@ -507,9 +501,9 @@ inline bool isCanonical(const DNSName& qname)
 inline DNSName toCanonic(const DNSName& zone, const string& qname)
 {
   if(qname.size()==1 && qname[0]=='@')
-    return zone.toString();
+    return zone;
   if(isCanonical(qname))
-    return DNSName(qname).toString();
+    return DNSName(qname);
   return DNSName(qname) += zone;
 }
 
@@ -627,3 +621,9 @@ bool setNonBlocking( int sock );
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);
+
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}

@@ -68,7 +68,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
 {
   vector<uint8_t> packet;
 
-  DNSPacketWriter pw(packet, qname, qtype);
+  DNSPacketWriter pw(packet, DNSName(qname), qtype);
   pw.getHeader()->id=dns_random(0xffff);
   pw.getHeader()->rd=1;
   if (s_secpollresolvers.empty()) {
@@ -111,7 +111,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       if(i->first.d_place == 1 && i->first.d_type==QType::TXT) {
         DNSResourceRecord rr;
-        rr.qname = i->first.d_label;
+        rr.qname = i->first.d_name;
         rr.qtype = QType(i->first.d_type);
         rr.content = i->first.d_content->getZoneRepresentation();
         rr.ttl=i->first.d_ttl;

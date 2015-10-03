@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include "dnsparser.hh"
 #include <arpa/inet.h>
 #undef res_mkquery
 
@@ -57,13 +58,11 @@ class LWResult
 {
 public:
   LWResult() : d_usec(0) {}
-  typedef vector<DNSResourceRecord> res_t;
 
-  vector<DNSResourceRecord> d_result;
+  vector<DNSRecord> d_records;
   int d_rcode;
   bool d_aabit, d_tcbit;
   uint32_t d_usec;
-  bool d_pingCorrect;
   bool d_haveEDNS;
 };
 

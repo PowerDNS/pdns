@@ -15,8 +15,12 @@
    a primitive is nextLabel()
 */
 
-/* FIXME400: @nlyan suggests that we should only have a string constructor, and make sure
- * char* does not implicitly map to it, to avoid issues with embedded NULLs */
+std::ostream & operator<<(std::ostream &os, const DNSName& d)
+{
+  return os <<d.toString();
+}
+
+
 DNSName::DNSName(const char* p)
 {
   d_empty=false;
