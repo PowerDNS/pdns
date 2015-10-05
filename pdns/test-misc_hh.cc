@@ -145,6 +145,15 @@ BOOST_AUTO_TEST_CASE(test_parseService) {
     BOOST_CHECK_EQUAL(tp.port, 25);
 }
 
+BOOST_AUTO_TEST_CASE(test_ternary) {
+  int maxqps=1024;
+  BOOST_CHECK_EQUAL(defTer(maxqps, 16384), maxqps);
+  BOOST_CHECK_EQUAL(defTer(0, 16384), 16384);
+
+  int* qps=0;
+  BOOST_CHECK_EQUAL(*defTer(qps, &maxqps), 1024);
+}
+
 BOOST_AUTO_TEST_CASE(test_SimpleMatch) {
   BOOST_CHECK_EQUAL(SimpleMatch("").match(std::string("")), true);
   BOOST_CHECK_EQUAL(SimpleMatch("?").match(std::string("")), false);
