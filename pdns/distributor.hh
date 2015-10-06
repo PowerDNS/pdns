@@ -147,6 +147,11 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
     d_pipes.push_back({fds[0],fds[1]});
   }
   
+  if (n<1) {
+    L<<Logger::Error<<"Asked for less than 1 threads, nothing to do"<<endl;
+    exit(0);
+  }
+
   L<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
   for(int i=0;i<n;i++) {
     pthread_create(&tid,0,&makeThread,static_cast<void *>(this));
