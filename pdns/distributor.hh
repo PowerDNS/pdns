@@ -148,8 +148,8 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
   }
   
   if (n<1) {
-    L<<Logger::Error<<"Asked for less than 1 threads, nothing to do"<<endl;
-    exit(0);
+    L<<Logger::Error<<"Asked for fewer than 1 threads, nothing to do"<<endl;
+    exit(1);
   }
 
   L<<Logger::Warning<<"About to create "<<n<<" backend threads for UDP"<<endl;
