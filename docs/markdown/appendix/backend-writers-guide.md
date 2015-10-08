@@ -1,5 +1,5 @@
 # Backend writers' guide
-PDNS backends are implemented via a simple yet powerful C++ interface. If your needs are not met by the PipeBackend, you may want to write your own. Before doing any PowerDNS development, please visit [the wiki](http://wiki.powerdns.com).
+PowerDNS backends are implemented via a simple yet powerful C++ interface. If your needs are not met by the PipeBackend, you may want to write your own. Before doing any PowerDNS development, please visit [the wiki](http://wiki.powerdns.com).
 
 A backend contains zero DNS logic. It need not look for CNAMEs, it need not return NS records unless explicitly asked for, etcetera. All DNS logic is contained within PDNS itself - backends should simply return records matching the description asked for.
 
