@@ -309,7 +309,7 @@ Content-Type: text/javascript; charset=utf-8
 ```
 
 ### `getDomainKeys`
-Retrieves any keys of kind. The id, flags are unsigned integers, and active is boolean. Content must be valid key record in format that PowerDNS understands. You are encouraged to implement [the section called "addDomainKey](#adddomainkey), as you can use [`pdnssec`](internals.md#pdnssec) to provision keys.
+Retrieves any keys of kind. The id, flags are unsigned integers, and active is boolean. Content must be valid key record in format that PowerDNS understands. You are encouraged to implement [the section called "addDomainKey"](#adddomainkey), as you can use [`pdnssec`](internals.md#pdnssec) to provision keys.
 
 * Mandatory: for DNSSEC
 * Parameters: name, kind
