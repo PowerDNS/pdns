@@ -76,8 +76,6 @@ class HTTPConnector: public Connector {
     int timeout;
     bool d_post; 
     bool d_post_json;
-    std::string d_capath;
-    std::string d_cafile;
     bool json2string(const rapidjson::Value &input, std::string &output);
     void restful_requestbuilder(const std::string &method, const rapidjson::Value &parameters, YaHTTP::Request& req);
     void post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req);
