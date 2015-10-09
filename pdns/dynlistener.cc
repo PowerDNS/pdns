@@ -164,10 +164,18 @@ DynListener::DynListener(const ComboAddress& local)
 {
   listenOnTCP(local);
   d_tcp=true;
+  d_client=-1;
+  d_tid=0;
+  d_ppid=0;
 }
 
 DynListener::DynListener(const string &progname)
 {
+  d_client=-1;
+  d_tid=0;
+  d_ppid=0;
+  d_s=-1;
+
   if(!progname.empty()) {
     string socketname=arg()["socket-dir"]+"/";
     cleanSlashes(socketname);

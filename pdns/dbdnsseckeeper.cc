@@ -450,7 +450,7 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const D
                         // cerr<<"Got it"<<endl;
                         if (wildcardname.countLabels())
                                 rr.qname = qname;
-                        rr.d_place = (DNSResourceRecord::Place)signPlace;
+                        rr.d_place = static_cast<DNSResourceRecord::Place>(signPlace);
                         rr.ttl = signTTL;
                         rrsigs.push_back(rr);
                 }

@@ -264,6 +264,7 @@ template<class Answer, class Question, class Backend>int MultiThreadDistributor<
 {
   q=new Question(*q);
 
+  // this is passed to other process over pipe and released there
   auto QD=new QuestionData();
   QD->Q=q;
   auto ret = QD->id = nextid++; // might be deleted after write!

@@ -24,6 +24,7 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
 DNSName::DNSName(const char* p)
 {
   d_empty=false;
+  d_recurse=0;
   auto labels = segmentDNSName(p);
   for(const auto& e : labels)
     appendRawLabel(e);

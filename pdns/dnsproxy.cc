@@ -301,3 +301,8 @@ void DNSProxy::mainloop(void)
   L<<Logger::Error<<"Exiting because DNS proxy failed"<<endl;
   exit(1);
 }
+
+DNSProxy::~DNSProxy() {
+  if (d_sock>-1) closesocket(d_sock);
+  d_sock=-1;
+}

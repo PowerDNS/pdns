@@ -52,6 +52,7 @@ class DNSProxy
 {
 public:
   DNSProxy(const string &ip); //!< creates socket
+  ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
   void onlyFrom(const string &ips); //!< Only these netmasks are allowed to recurse via us
   bool sendPacket(DNSPacket *p);    //!< send out a packet and make a conntrack entry to we can send back the answer

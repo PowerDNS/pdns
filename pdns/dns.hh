@@ -38,7 +38,7 @@ class DNSName; // FIXME400
 
 struct SOAData
 {
-  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0),  db(0), domain_id(-1), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1), scopeMask(0) {};
 
   DNSName qname;
   DNSName nameserver;
@@ -73,7 +73,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : last_modified(0), signttl(0), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
+  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
   explicit DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
 

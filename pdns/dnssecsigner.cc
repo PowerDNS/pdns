@@ -117,7 +117,7 @@ void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, con
     else
       rr.ttl=signTTL;
     rr.auth=false;
-    rr.d_place = (DNSResourceRecord::Place) signPlace;
+    rr.d_place = static_cast<DNSResourceRecord::Place> (signPlace);
     BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
       rr.content = rrc.getZoneRepresentation();
       outsigned.push_back(rr);
@@ -230,7 +230,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     else
       signTTL = pos->ttl;
     origTTL = pos->ttl;
-    signPlace = (DNSPacketWriter::Place) pos->d_place;
+    signPlace = static_cast<DNSPacketWriter::Place>(pos->d_place);
     if(pos->auth || pos->qtype.getCode() == QType::DS) {
       string content = pos->content;
       if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {

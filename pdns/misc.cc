@@ -374,6 +374,7 @@ string humanDuration(time_t passed)
 DTime::DTime()
 {
 //  set(); // saves lots of gettimeofday calls
+  d_set.tv_sec=d_set.tv_usec=0;
 }
 
 DTime::DTime(const DTime &dt)

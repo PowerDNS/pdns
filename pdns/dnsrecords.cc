@@ -81,6 +81,12 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   qtype = p.d_type;
   ttl = p.d_ttl;
   setContent(p.d_content->getZoneRepresentation());
+  last_modified = 0;
+  signttl = 0;
+  domain_id = -1;
+  qclass = p.d_class;
+  d_place = static_cast<DNSResourceRecord::Place>(p.d_place);
+  scopeMask = 0;
 }
 
 boilerplate_conv(A, QType::A, conv.xfrIP(d_ip));
