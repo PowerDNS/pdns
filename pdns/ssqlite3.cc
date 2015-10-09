@@ -31,10 +31,6 @@ int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
   return rc;
 }
 
-void my_trace(void *foo, const char *sql) {
-  L<<Logger::Warning<< "Query: " << sql << endl;
-}
-
 class SSQLite3Statement: public SSqlStatement 
 {
 public:
@@ -72,6 +68,8 @@ public:
   SSqlStatement* bindNull(const string& name) { int idx = name2idx(name); if (idx>0) { sqlite3_bind_null(d_stmt, idx); }; return this; }
 
   SSqlStatement* execute() {
+    if (d_dolog)
+      L<<Logger::Warning<< "Query: " << d_query << endl;
     int attempts = d_db->inTransaction(); // try only once
     while(attempts < 2 && (d_rc = sqlite3_step(d_stmt)) == SQLITE_BUSY) attempts++;
 
@@ -155,8 +153,6 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
 
 void SSQLite3::setLog(bool state)
 { 
-  if (state)
-      sqlite3_trace(m_pDB, my_trace, NULL);
   m_dolog=state;
 }
 
