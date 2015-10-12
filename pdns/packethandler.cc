@@ -996,6 +996,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
     return 0;
   }
 
+  if(p->d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
+    if(d_logDNSDetails)
+      L<<Logger::Error<<"Received truncated query packet from "<<p->getRemote()<<", dropping"<<endl;
+    S.inc("corrupt-packets");
+    S.ringAccount("remotes-corrupt", p->getRemote());
+    return 0;
+  }
+
   if (p->hasEDNS() && p->getEDNSVersion() > 0) {
     r = p->replyPacket();
     r->setRcode(16 & 0xF);
