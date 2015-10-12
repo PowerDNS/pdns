@@ -119,7 +119,7 @@ bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   }
   if (ns3p->d_iterations > maxNSEC3Iterations) {
     ns3p->d_iterations = maxNSEC3Iterations;
-    L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjsted to: "<<maxNSEC3Iterations<<endl;
+    L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
   }
   return true;
 }
