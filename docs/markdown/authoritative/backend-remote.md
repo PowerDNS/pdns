@@ -59,7 +59,7 @@ HTTP connector tries to do RESTful requests to your server. See examples. You ca
 
 URL should not end with /, and url-suffix is optional, but if you define it, it's up to you to write the ".php" or ".json". Lack of dot causes lack of dot in URL. Timeout is divided by 1000 because libcurl only supports seconds, but this is given in milliseconds for consistency with other connectors.
 
-HTTPS is not supported. HTTP Authentication is not supported.
+HTTPS is not supported, [stunnel](https://www.stunnel.org) is the suggested workaround. HTTP Authentication is not supported.
 
 ### ZeroMQ connector
 parameters: endpoint, timeout (default 2000ms)
