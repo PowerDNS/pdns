@@ -25,7 +25,7 @@ gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
 __EOF__
 
-		gsql-master gmysql
+		gsql_master gmysql
 		;;
 
 	*)
