@@ -21,7 +21,7 @@ oracle-master-password=$ORACLE2PASSWD
 oracle-dnssec
 __EOF__
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
 		echo "INSERT ALL INTO zones (id, name, type) VALUES (zones_id_seq.nextval, name, 'SLAVE') INTO zonemasters (zone_id, master) VALUES (zones_id_seq.nextval, master) SELECT '$zone' AS name, '127.0.0.1:$port' AS master FROM dual;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe >> oracle2.log
 	done

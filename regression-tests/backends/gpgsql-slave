@@ -18,7 +18,7 @@ __EOF__
 		echo "gpgsql-dnssec" >> pdns-gpgsql2.conf
 	fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
 		psql --user="$GPGSQL2USER" \
 		-c "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')" \
