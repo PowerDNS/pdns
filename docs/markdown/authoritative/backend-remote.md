@@ -49,7 +49,7 @@ remote-connection-string=pipe:command=/path/to/executable,timeout=2000
 ```
 
 ### HTTP connector
-parameters: url, url-suffix, post, post\_json, cafile, capath, timeout (default 2000)
+parameters: url, url-suffix, post, post\_json, timeout (default 2000)
 
 ```
 remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
@@ -59,7 +59,7 @@ HTTP connector tries to do RESTful requests to your server. See examples. You ca
 
 URL should not end with /, and url-suffix is optional, but if you define it, it's up to you to write the ".php" or ".json". Lack of dot causes lack of dot in URL. Timeout is divided by 1000 because libcurl only supports seconds, but this is given in milliseconds for consistency with other connectors.
 
-You can use HTTPS requests. If cafile and capath is left empty, remote SSL certificate is not checked. HTTP Authentication is not supported. SSL support requires that your cURL is compiled with it.
+HTTPS is not supported, [stunnel](https://www.stunnel.org) is the suggested workaround. HTTP Authentication is not supported.
 
 ### ZeroMQ connector
 parameters: endpoint, timeout (default 2000ms)
