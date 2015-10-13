@@ -106,6 +106,7 @@ public:
   }
   
   void getFromMeta(const std::string& zname, const std::string& key, std::string& value);
+  void getSoaEdit(const std::string& zname, std::string& value);
 private:
 
 

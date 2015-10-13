@@ -138,6 +138,8 @@ void declareArguments()
   ::arg().set("soa-refresh-default","Default SOA refresh")="10800";
   ::arg().set("soa-retry-default","Default SOA retry")="3600";
   ::arg().set("soa-expire-default","Default SOA expire")="604800";
+  ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
+  ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy")="";
   ::arg().set("slave-renotify", "If we should send out notifications for slaved updates")="no";
