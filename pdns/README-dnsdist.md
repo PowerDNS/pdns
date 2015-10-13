@@ -14,7 +14,7 @@ our feature set.
 
 Do not quite yet take this into production, but please DO let us know your
 thoughts!  Test packages and/or tarballs can be found on
-http://xs.powerdns.com/dnsdist/
+http://xs.powerdns.com/dnsdist/ (but see 'Packaged' below for more links).
 
 Compiling
 ---------
@@ -22,7 +22,7 @@ Compiling
 compiler (g++ 4.8 or higher, clang 3.5). It can optionally use libsodium
 for encrypted communications with its client.
 
-To compile on CentOS 6 / RHEL6:
+To compile on CentOS 6 / RHEL6, use this script to install a working compiler:
 
 ```
 wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
@@ -31,6 +31,8 @@ scl enable devtoolset-2 bash
 ./configure
 make
 ```
+
+On other recent platforms, installing a Lua and the system C++ compiler should be enough. 
 
 Packaged
 --------
@@ -42,7 +44,7 @@ Examples
 
 The absolute minimum configuration:
 
-````
+```
 # dnsdist 2001:4860:4860::8888 8.8.8.8
 ```
 
