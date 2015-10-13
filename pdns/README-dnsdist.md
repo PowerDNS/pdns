@@ -569,6 +569,11 @@ Here are all functions:
    * `rmRule(n)`: remove rule n
    * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
+ * Built-in Actions for Rules:
+   * `AllowAction()`: let these packets go through
+   * `DropAction()`: drop these packets
+   * `NoRecurseAction()`: strip RD bit from the question, let it go through
+   * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
    * addAnyTCRule(): generate TC=1 answers to ANY queries, moving them to TCP
    * setDNSSECPool(): move queries requesting DNSSEC processing to this pool
