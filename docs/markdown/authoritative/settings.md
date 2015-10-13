@@ -151,14 +151,14 @@ Name to insert in the SOA record if none set in the backend.
 * Default: empty
 * Available since: 3.4.7
 
-Use this soa-edit value for all zones if no [`SOA-EDIT`](metadata.md#SOA-EDIT) metadata value is set.
+Use this soa-edit value for all zones if no [`SOA-EDIT`](domainmetadata.md#SOA-EDIT) metadata value is set.
 
 ## `default-soa-edit-signed`
 * String
 * Default: empty
 * Available since: 3.4.7
 
-Use this soa-edit value for all signed zones if no [`SOA-EDIT`](metadata.md#SOA-EDIT) metadata value is set. Overrides [`default-soa-edit`](#default-soa-edit)
+Use this soa-edit value for all signed zones if no [`SOA-EDIT`](domainmetadata.md#SOA-EDIT) metadata value is set. Overrides [`default-soa-edit`](#default-soa-edit)
 
 ## `default-soa-mail`
 * String
