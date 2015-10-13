@@ -3,6 +3,7 @@ compiler:
   - gcc
   - clang
 before_script:
+ - export POSIXLY_CORRECT=1
  - git describe --always --dirty=+
  - sudo /sbin/ip addr add 10.0.3.0/24 dev lo
  - sudo /sbin/ip addr add 1.2.3.4/32 dev lo

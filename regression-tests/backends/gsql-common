@@ -1,4 +1,4 @@
-gsql-master()
+gsql_master()
 {
 	backend=$1
 	skipreasons=$2

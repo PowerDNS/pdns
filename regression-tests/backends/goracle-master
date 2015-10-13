@@ -34,7 +34,7 @@ goracle-user=$GORACLEUSER
 goracle-password=$GORACLEPASSWD
 __EOF__
 
-		gsql-master goracle nodyndns
+		gsql_master goracle nodyndns
 		;;
 
 	*)

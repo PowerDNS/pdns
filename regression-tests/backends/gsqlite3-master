@@ -13,7 +13,7 @@ launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 __EOF__
 
-		gsql-master gsqlite3 nodyndns
+		gsql_master gsqlite3 nodyndns
 		;;
 
 	*)
