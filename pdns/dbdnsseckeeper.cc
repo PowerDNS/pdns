@@ -215,6 +215,23 @@ void DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
   }
 }
 
+void DNSSECKeeper::getSoaEdit(const DNSName& zname, std::string& value)
+{
+  static const string soaEdit(::arg()["default-soa-edit"]);
+  static const string soaEditSigned(::arg()["default-soa-edit-signed"]);
+
+  getFromMeta(zname, "SOA-EDIT", value);
+
+  if ((!soaEdit.empty() || !soaEditSigned.empty()) && value.empty() && !isPresigned(zname)) {
+    if (!soaEditSigned.empty() && isSecuredZone(zname))
+      value=soaEditSigned;
+    if (value.empty())
+      value=soaEdit;
+  }
+
+  return;
+}
+
 uint64_t DNSSECKeeper::dbdnssecCacheSizes(const std::string& str)
 {
   if(str=="meta-cache-size") {
