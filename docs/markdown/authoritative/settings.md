@@ -146,6 +146,20 @@ The default keysize for the KSK generated with
 
 Name to insert in the SOA record if none set in the backend.
 
+## `default-soa-edit`
+* String
+* Default: empty
+* Available since: 3.4.7
+
+Use this soa-edit value for all zones if no [`SOA-EDIT`](metadata.md#SOA-EDIT) metadata value is set.
+
+## `default-soa-edit-signed`
+* String
+* Default: empty
+* Available since: 3.4.7
+
+Use this soa-edit value for all signed zones if no [`SOA-EDIT`](metadata.md#SOA-EDIT) metadata value is set. Overrides [`default-soa-edit`](#default-soa-edit)
+
 ## `default-soa-mail`
 * String
 
