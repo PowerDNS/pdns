@@ -13,6 +13,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Powerful, scriptable DNS loadbalancer
 
 Package: dnsdist-dbg
+Architecture: any
 Section: debug
 Priority: optional
 Depends: dnsdist (= ${binary:Version}), ${misc:Depends}
