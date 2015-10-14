@@ -11,3 +11,10 @@ Package: dnsdist
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Powerful, scriptable DNS loadbalancer
+
+Package: dnsdist-dbg
+Section: debug
+Priority: optional
+Depends: dnsdist (= ${binary:Version}), ${misc:Depends}
+Description: debugging symbols for dnsdist
+
