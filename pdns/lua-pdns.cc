@@ -38,6 +38,7 @@ extern "C" {
 #include "logger.hh"
 #include "namespaces.hh"
 #include "dnsparser.hh"
+#undef L
 
 bool netmaskMatchTable(lua_State* lua, const std::string& ip)
 {
@@ -82,6 +83,8 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
   lua_pop(lua, 1);
   return ret;
 }
+
+
 
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSRecord>& records)
 {
@@ -362,7 +365,6 @@ bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
 {
   return ::getFromTable(d_lua, key, value);
 }
-
 
 PowerDNSLua::~PowerDNSLua()
 {
