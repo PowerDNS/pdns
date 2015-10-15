@@ -60,7 +60,7 @@ Nameserver record. Specifies nameservers for a domain. Stored plainly: 'ns1.powe
 Since 2.9.21. The NSEC DNSSEC record type is fully supported, as described in [RFC 3757](http://tools.ietf.org/html/rfc3757). Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnssec`](authoritative/dnssec.md#pdnssec "'pdnssec' for PowerDNSSEC command & control").
 
 ## OPENPGPKEY
-Since 3.5.0. The OPENPGPKEY records, specified in [RFC TBD](https://tools.ietf.org/html/draft-ietf-dane-openpgpkey-02), are used to bind OpenPGP certificates to email addresses.
+Since 4.0.0. The OPENPGPKEY records, specified in [RFC TBD](https://tools.ietf.org/html/draft-ietf-dane-openpgpkey-05), are used to bind OpenPGP certificates to email addresses.
 
 ## PTR
 Reverse pointer, used to specify the host name belonging to an IP or IPv6 address. Name is stored plainly: 'www.powerdns.com'. As always, no terminating dot.
