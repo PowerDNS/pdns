@@ -1,0 +1,6 @@
+cassandra.pdns.com.	123	IN	A	127.0.1.255
+cassandra.pdns.com.	234	IN	A	127.0.0.1
+cassandra.pdns.com.	345	IN	TXT	"TXT Record1"
+cassandra.pdns.com.	3600	IN	SOA	ns1.dns.com. hm1.dns.com. 0 10 10 10 10
+cassandra.pdns.com.	3600	IN	SOA	ns1.dns.com. hm1.dns.com. 0 10 10 10 10
+cassandra.pdns.com.	456	IN	TXT	"TXT Record2"

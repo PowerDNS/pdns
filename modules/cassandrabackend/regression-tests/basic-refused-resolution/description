@@ -1,0 +1,2 @@
+This test tries to resolve a ANY record that is not available in the database.
+Assumption: scripts.cql already installed to the cassandra database.

@@ -46,6 +46,10 @@ start_master ()
 			tinydns*)
 				source ./backends/tinydns-master
 				;;
+			
+			cassandra*)
+				source ./backends/cassandra-master
+				;;
 
 			ext-nsd*)
 				source ./ext/nsd-master

@@ -29,6 +29,7 @@ The following table describes the capabilities of the backends.
 | [Remote](backend-remote.md) | Supported | Yes | Yes\* | Yes\* | Yes\* | Yes\* | Yes\* | Unknown (No) | Unknown(No) | `remote` |
 | [SQLite](backend-gsqlite.md) 3 | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `gsqlite3` |
 | [TinyDNS](backend-tinydns.md) | Experimental | Yes | Yes | No | No | No | No | Unknown (No) | Unknown (No) | `tinydns` |
+| [Cassandra](backend-cassandra.md) | Beta | Yes | Yes | No | No | No | No | Unknown (No) | Unknown (No) | `cassandra` |
 
 \*: Please read the backend-specific documentation.
 

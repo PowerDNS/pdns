@@ -1,0 +1,51 @@
+case $context in
+	cassandra)
+
+		testsdir=../modules/cassandrabackend/regression-tests/
+
+		if [ "${context: -5}" = "-zone" ]
+		then
+			orgcontext=$context
+
+			source ./backends/bind-master
+
+			pids=$(cat pdns*.pid)
+
+			if [ -n "$pids" ]
+			then
+				kill $pids
+				set +e
+				loopcount=0
+				done=0
+				while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+				do
+					done=1
+					for pid in $pids
+					do
+						kill -0 $pid > /dev/null 2>&1
+						if [ $? -eq 0 ];
+						then
+							done=0
+						fi
+					done
+					let loopcount=loopcount+1
+					sleep 1
+				done
+
+				kill -9 $pids
+				set -e
+			fi
+			rm -rf pdns*.pid
+
+			#context=${orgcontext%-zone}
+		fi
+
+		#${MAKE} -C ../pdns zone2cassandra > /dev/null
+
+		$RUNWRAPPER $PDNS --daemon=no --local-port=$port  --socket-dir=./ --no-shuffle --config-dir=/home/travis/build/PowerDNS/pdns/modules/cassandrabackend/test/ --module-dir=/tmp/pdns-install-dir/usr/local/lib/pdns/ &
+		skipreasons="nodnssec noent nodyndns nometa noaxfr"
+		;;
+
+	*)
+		nocontext=yes
+esac
