@@ -236,7 +236,7 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
       handler(&req, &resp);
       L<<Logger::Debug<<"HTTP: Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl;
     }
-    catch(HttpException) {
+    catch(HttpException&) {
       throw;
     }
     catch(PDNSException &e) {
