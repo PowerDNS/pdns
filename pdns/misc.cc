@@ -55,12 +55,6 @@
 
 bool g_singleThreaded;
 
-void sometests()
-{
-  vector<std::unique_ptr<int>> vec;
-  vec.push_back(make_unique<int>(12));
-}
-
 int writen2(int fd, const void *buf, size_t count)
 {
   const char *ptr = (char*)buf;

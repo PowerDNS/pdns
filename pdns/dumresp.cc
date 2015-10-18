@@ -39,7 +39,7 @@ try
     len=recvfrom(s.getHandle(), buffer, sizeof(buffer), 0, (struct sockaddr*)&rem, &socklen);
     if(len < 0)
       unixDie("recvfrom");
-    cout<<"Had packet: "<<string(buffer, len)<<endl;
+
     if(dh->qr)
       continue;
     dh->qr=1;
