@@ -372,27 +372,27 @@ PowerDNSLua::~PowerDNSLua()
 }
 
 #if 0
-void luaStackDump (lua_State *L) {
+void luaStackDump (lua_State *Lua) {
   int i;
-  int top = lua_gettop(L);
+  int top = lua_gettop(Lua);
   for (i = 1; i <= top; i++) {  /* repeat for each level */
-    int t = lua_type(L, i);
+    int t = lua_type(Lua, i);
     switch (t) {
 
     case LUA_TSTRING:  /* strings */
-      printf("`%s'", lua_tostring(L, i));
+      printf("`%s'", lua_tostring(Lua, i));
       break;
 
     case LUA_TBOOLEAN:  /* booleans */
-      printf(lua_toboolean(L, i) ? "true" : "false");
+      printf(lua_toboolean(Lua, i) ? "true" : "false");
       break;
 
     case LUA_TNUMBER:  /* numbers */
-      printf("%g", lua_tonumber(L, i));
+      printf("%g", lua_tonumber(Lua, i));
       break;
 
     default:  /* other values */
-      printf("%s", lua_typename(L, t));
+      printf("%s", lua_typename(Lua, t));
       break;
 
     }
