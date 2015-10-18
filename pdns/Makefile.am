@@ -109,6 +109,7 @@ EXTRA_PROGRAMS = \
 	dnstcpbench \
 	dnswasher \
 	dumresp \
+	kvresp \
 	notify \
 	nproxy \
 	nsec3dig \
@@ -532,6 +533,14 @@ dumresp_SOURCES = \
 	unix_utility.cc \
 	qtype.cc 
 
+kvresp_SOURCES = \
+	dnslabeltext.cc dnsname.cc dnsname.hh \
+	kvresp.cc \
+	logger.cc \
+	misc.cc misc.hh \
+	statbag.cc \
+	unix_utility.cc \
+	qtype.cc 
 
 saxfr_SOURCES = \
 	base32.cc \
