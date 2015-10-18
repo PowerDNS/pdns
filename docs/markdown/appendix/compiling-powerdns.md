@@ -51,8 +51,8 @@ tested on OS X.
 
 The recursor has been reported to crash for some OS X users.
 
-### OpenBSD
-Compiles, but use gmake.
+### OpenBSD 5.8
+Compiles, but use gmake and g++-4.9.3 or higher.
 
 ### Solaris
 Solaris 8 and 9 work fine. The 'Sunpro' compiler has not been tried but is
