@@ -1071,6 +1071,7 @@ pdns_recursor_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
+	filterpo.cc filterpo.hh \
 	iputils.cc \
 	json.cc json.hh \
 	logger.cc \
@@ -1094,6 +1095,7 @@ pdns_recursor_SOURCES = \
 	reczones.cc \
 	resolver.hh \
 	responsestats.cc \
+	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
 	selectmplexer.cc \

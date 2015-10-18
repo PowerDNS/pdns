@@ -919,6 +919,9 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
         LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<tns->toString()<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
 	;
 
+	if(g_dfe.getProcessingPolicy(*tns) != DNSFilterEngine::Policy::NoAction)
+	  throw ImmediateServFailException("Dropped because of policy");
+
         if(!isCanonical(*tns)) {
           LOG(prefix<<qname.toString()<<": Domain has hardcoded nameserver(s)"<<endl);
 

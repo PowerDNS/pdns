@@ -29,6 +29,7 @@
 #include "logger.hh"
 #include "dnsrecords.hh"
 #include <boost/foreach.hpp>
+#include "rpzloader.hh"
 
 extern int g_argc;
 extern char** g_argv;
@@ -311,6 +312,16 @@ string reloadAuthAndForwards()
     L<<Logger::Error<<"Encountered unknown error reloading zones, keeping original data"<<endl;
   }
   return "reloading failed, see log\n";
+}
+
+void loadRPZFiles()
+{
+  vector<string> fnames;
+  stringtok(fnames, ::arg()["rpz-files"],",");
+  int count=0;
+  for(const auto& f : fnames) {
+    loadRPZFromFile(f, g_dfe, count++);
+  }
 }
 
 SyncRes::domainmap_t* parseAuthAndForwards()

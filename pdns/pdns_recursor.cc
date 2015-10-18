@@ -71,6 +71,8 @@
 #include "responsestats.hh"
 #include "secpoll-recursor.hh"
 #include "dnsname.hh"
+#include "filterpo.hh"
+#include "rpzloader.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
@@ -90,6 +92,8 @@ __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
 
 __thread boost::circular_buffer<pair<DNSName, uint16_t> >* t_queryring, *t_servfailqueryring;
 __thread shared_ptr<Regex>* t_traceRegex;
+
+DNSFilterEngine g_dfe;
 
 RecursorControlChannel s_rcc; // only active in thread 0
 
@@ -608,6 +612,31 @@ void startDoResolve(void *p)
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
 
+    switch(g_dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote)) {
+    case DNSFilterEngine::Policy::NoAction:
+      break;
+    case DNSFilterEngine::Policy::Drop:
+      g_stats.policyDrops++;
+      delete dc;
+      dc=0;
+      return; 
+    case DNSFilterEngine::Policy::NXDOMAIN:
+      res=RCode::NXDomain;
+      goto haveAnswer;
+
+    case DNSFilterEngine::Policy::NODATA:
+      res=RCode::NoError;
+      goto haveAnswer;
+
+    case DNSFilterEngine::Policy::Truncate:
+      if(!dc->d_tcp) {
+	res=RCode::NoError;	
+	pw.getHeader()->tc=1;
+	goto haveAnswer;
+      }
+      break;
+    }
+
     if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
@@ -618,6 +647,34 @@ void startDoResolve(void *p)
         res = RCode::ServFail;
       }
 
+      switch(g_dfe.getPostPolicy(ret)) {
+      case DNSFilterEngine::Policy::NoAction:
+	break;
+      case DNSFilterEngine::Policy::Drop:
+	g_stats.policyDrops++;
+	delete dc;
+	dc=0;
+	return; 
+      case DNSFilterEngine::Policy::NXDOMAIN:
+	ret.clear();
+	res=RCode::NXDomain;
+	goto haveAnswer;
+	
+      case DNSFilterEngine::Policy::NODATA:
+	ret.clear();
+	res=RCode::NoError;
+	goto haveAnswer;
+	
+      case DNSFilterEngine::Policy::Truncate:
+	if(!dc->d_tcp) {
+	  ret.clear();
+	  res=RCode::NoError;	
+	  pw.getHeader()->tc=1;
+	  goto haveAnswer;
+	}
+	break;
+      }
+      
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
 	        auto i=ret.cbegin();
@@ -628,12 +685,13 @@ void startDoResolve(void *p)
                   (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
               }
               else if(res == RCode::NXDomain)
-          (*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-
-      (*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+		(*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	
+	
+	(*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
-
+  haveAnswer:;
     if(res == PolicyDecision::DROP) {
       g_stats.policyDrops++;
       delete dc;
@@ -1929,6 +1987,7 @@ void parseACLs()
 
 int serviceMain(int argc, char*argv[])
 {
+
   L.setName(s_programname);
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
@@ -2050,6 +2109,8 @@ int serviceMain(int argc, char*argv[])
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file
 
+  loadRPZFiles();
+
   if(::arg().mustDo("daemon")) {
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
@@ -2063,6 +2124,8 @@ int serviceMain(int argc, char*argv[])
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
+
+
 
   int newgid=0;
   if(!::arg()["setgid"].empty())
@@ -2332,6 +2395,8 @@ int main(int argc, char **argv)
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
+    ::arg().set("rpz-files", "RPZ files to load in order, domain or domain=policy pairs separated by commas")="";
+
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-file", "File with (+)domain=ip pairs for forwarding")="";
