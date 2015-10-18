@@ -238,7 +238,9 @@ public:
   }
 
   explicit DNSRecordContent(uint16_t type) : d_qtype(type)
-  {}
+  {
+     memset(&header,0,sizeof(header));
+  }
   
   
   DNSRecordContent& operator=(const DNSRecordContent& orig) 
