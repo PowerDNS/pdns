@@ -365,7 +365,7 @@ vector<uint8_t> makeRootReferral()
   
   for(char c='a';c<='m';++c) {
     *templ=c;
-    pw.startRecord(DNSName(), QType::NS, 3600, 1, DNSPacketWriter::AUTHORITY);
+    pw.startRecord(DNSName(), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
     DNSRecordContent* drc = DNSRecordContent::mastermake(QType::NS, 1, templ);
     drc->toPacket(pw);
     delete drc;
@@ -373,7 +373,7 @@ vector<uint8_t> makeRootReferral()
 
   for(char c='a';c<='m';++c) {
     *templ=c;
-    pw.startRecord(DNSName(), QType::A, 3600, 1, DNSPacketWriter::ADDITIONAL);
+    pw.startRecord(DNSName(), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
     DNSRecordContent* drc = DNSRecordContent::mastermake(QType::A, 1, ips[c-'a']);
     drc->toPacket(pw);
     delete drc;
@@ -388,23 +388,23 @@ vector<uint8_t> makeTypicalReferral()
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, DNSName("outpost.ds9a.nl"), QType::A);
 
-  pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSPacketWriter::AUTHORITY);
+  pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
   DNSRecordContent* drc = DNSRecordContent::mastermake(QType::NS, 1, "ns1.ds9a.nl");
   drc->toPacket(pw);
   delete drc;
 
-  pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSPacketWriter::AUTHORITY);
+  pw.startRecord(DNSName("ds9a.nl"), QType::NS, 3600, 1, DNSResourceRecord::AUTHORITY);
   drc = DNSRecordContent::mastermake(QType::NS, 1, "ns2.ds9a.nl");
   drc->toPacket(pw);
   delete drc;
 
 
-  pw.startRecord(DNSName("ns1.ds9a.nl"), QType::A, 3600, 1, DNSPacketWriter::ADDITIONAL);
+  pw.startRecord(DNSName("ns1.ds9a.nl"), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
   drc = DNSRecordContent::mastermake(QType::A, 1, "1.2.3.4");
   drc->toPacket(pw);
   delete drc;
 
-  pw.startRecord(DNSName("ns2.ds9a.nl"), QType::A, 3600, 1, DNSPacketWriter::ADDITIONAL);
+  pw.startRecord(DNSName("ns2.ds9a.nl"), QType::A, 3600, 1, DNSResourceRecord::ADDITIONAL);
   drc = DNSRecordContent::mastermake(QType::A, 1, "4.3.2.1");
   drc->toPacket(pw);
   delete drc;
@@ -618,7 +618,7 @@ struct ParsePacketTest
       string auth(".");
  
       for(vector<DNSResourceRecord>::const_iterator i=lwr.d_result.begin();i!=lwr.d_result.end();++i) {
-        if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA && 
+        if(i->d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,i->qname) && i->qtype.getCode()==QType::SOA &&
            lwr.d_rcode==RCode::NXDomain) {
           // LOG<<prefix<<qname<<": got negative caching indication for RECORD '"<<qname+"'"<<endl;
           ret.push_back(*i);
@@ -640,7 +640,7 @@ struct ParsePacketTest
           newtarget=i->content;
         }
         // for ANY answers we *must* have an authoritative answer
-        else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) && 
+        else if(i->d_place==DNSResourceRecord::ANSWER && pdns_iequals(i->qname, qname) &&
                 (
                  i->qtype==qtype || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, i->qtype) ) )
                 ) 

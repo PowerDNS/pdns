@@ -170,7 +170,7 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRec
   /* get the result */
   DNSRecord rr;
   rr.d_name = query;
-  rr.d_place = DNSRecord::Answer;
+  rr.d_place = DNSResourceRecord::ANSWER;
   rr.d_ttl = 3600;
 
   int tableLen = getLuaTableLength(lua, 2);
@@ -188,7 +188,7 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRec
     if(!getFromTable(lua, "qclass", tmpnum))
       rr.d_class = QClass::IN;
     else {
-      rr.d_class = tmpnum;
+      rr.d_class = static_cast<DNSResourceRecord::Place>(tmpnum);
     }
 
 
@@ -204,11 +204,11 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRec
       rr.d_name = query;
 
     if(!getFromTable(lua, "place", tmpnum))
-      rr.d_place = DNSRecord::Answer;
+      rr.d_place = DNSResourceRecord::ANSWER;
     else {
-      rr.d_place = (DNSRecord::Place) tmpnum;
-      if(rr.d_place > DNSRecord::Additional)
-        rr.d_place = DNSRecord::Additional;
+      rr.d_place = static_cast<DNSResourceRecord::Place>(tmpnum);
+      if(rr.d_place > DNSResourceRecord::ADDITIONAL)
+        rr.d_place = DNSResourceRecord::ADDITIONAL;
     }
 
 

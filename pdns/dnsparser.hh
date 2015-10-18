@@ -273,7 +273,7 @@ struct DNSRecord
   uint16_t d_class;
   uint32_t d_ttl;
   uint16_t d_clen;
-  enum Place : uint8_t {Answer=1, Nameserver=2, Additional=3} d_place;
+  DNSResourceRecord::Place d_place;
 
   bool operator<(const DNSRecord& rhs) const
   {

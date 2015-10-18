@@ -180,7 +180,7 @@ DNSRecordContent* DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader
   // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
   // not used within the prerequisite section of RFC2136, so - we can simply use unknownrecordcontent.
   // For section 3.2.3, we do need content so we need to get it properly. But only for the correct Qclasses.
-  if (oc == Opcode::Update && dr.d_place == DNSRecord::Answer && dr.d_class != 1)
+  if (oc == Opcode::Update && dr.d_place == DNSResourceRecord::ANSWER && dr.d_class != 1)
     return new UnknownRecordContent(dr, pr);
 
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
@@ -268,11 +268,11 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       DNSRecord dr;
       
       if(n < d_header.ancount)
-        dr.d_place=DNSRecord::Answer;
+        dr.d_place=DNSResourceRecord::ANSWER;
       else if(n < d_header.ancount + d_header.nscount)
-        dr.d_place=DNSRecord::Nameserver;
+        dr.d_place=DNSResourceRecord::AUTHORITY;
       else 
-        dr.d_place=DNSRecord::Additional;
+        dr.d_place=DNSResourceRecord::ADDITIONAL;
       
       unsigned int recordStartPos=pr.d_pos;
 
