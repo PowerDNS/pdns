@@ -50,6 +50,7 @@ PacketCache::PacketCache()
   d_statnumhit=S.getPointer("packetcache-hit");
   d_statnummiss=S.getPointer("packetcache-miss");
   d_statnumentries=S.getPointer("packetcache-size");
+  d_doRecursion=false;
 }
 
 PacketCache::~PacketCache()
