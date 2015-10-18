@@ -591,7 +591,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
     
     toSign.append(tsigprevious);
   }
-  toSign.append(&*pw.getContent().begin(), &*pw.getContent().end());
+  toSign.append(pw.getContent().begin(), pw.getContent().end());
   
   // now add something that looks a lot like a TSIG record, but isn't
   vector<uint8_t> signVect;
