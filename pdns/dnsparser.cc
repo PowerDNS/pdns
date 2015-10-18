@@ -225,6 +225,8 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr)
   d_type = rr.qtype.getCode();
   d_ttl = rr.ttl;
   d_class = rr.qclass;
+  d_place = rr.d_place;
+  d_clen = 0;
   d_content = std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(d_type, rr.qclass, rr.content));
 }
 
