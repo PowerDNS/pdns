@@ -402,7 +402,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   int numanswers=d_result.size();
   for(int n=0;n<numanswers;++n) { // id,name,master,last_check,notified_serial
     DomainInfo sd;
-    ASSERT_ROW_COLUMNS("info-all-master-query", d_result[n], 5);
+    ASSERT_ROW_COLUMNS("info-all-master-query", d_result[n], 6);
     sd.id=atol(d_result[n][0].c_str());
     sd.zone= DNSName(d_result[n][1]);
     sd.last_check=atol(d_result[n][3].c_str());
