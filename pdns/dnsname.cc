@@ -24,7 +24,6 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
 DNSName::DNSName(const char* p)
 {
   d_empty=false;
-  d_recurse=0;
   d_storage.reserve(strlen(p)+1);
   auto labels = segmentDNSName(p);
   for(const auto& e : labels)
@@ -34,12 +33,11 @@ DNSName::DNSName(const char* p)
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
   d_empty=false;
-  d_recurse = 0;
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
 }
 
 // this should be the __only__ dns name parser in PowerDNS.
-void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
+void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth)
 {
   unsigned char labellen;
   const char *opos = pos;
@@ -54,9 +52,9 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       int newpos = (labellen << 8) + *(const unsigned char*)pos;
 
       if(newpos < offset) {
-        if (++d_recurse > 100)
+        if (++depth > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
-        packetParser(opos, len, newpos, true); 
+        packetParser(opos, len, newpos, true, 0, 0, 0, depth);
       } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;
