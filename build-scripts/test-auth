@@ -28,43 +28,44 @@ done
 
 cd ..
 
+EXIT=0
 export geoipregion=oc geoipregionip=1.2.3.4
-./timestamp ./start-test-stop 5300 bind-both
-./timestamp ./start-test-stop 5300 bind-dnssec-both
-./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
-./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
-./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
-./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
-./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
-./timestamp ./start-test-stop 5300 geoipbackend
-./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
-./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
-./timestamp ./start-test-stop 5300 gmysql-both
-./timestamp ./start-test-stop 5300 gmysql-nsec3-both
-./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
-./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
-./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
-./timestamp ./start-test-stop 5300 gpgsql-both
-./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
-./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
-./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
-./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
-./timestamp ./start-test-stop 5300 gsqlite3-both
-./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
-./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
-./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
-#DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec
-./timestamp ./start-test-stop 5300 mydns
-./timestamp ./start-test-stop 5300 opendbx-sqlite3
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
-./timestamp ./start-test-stop 5300 tinydns
+./timestamp ./start-test-stop 5300 bind-both || EXIT=1
+./timestamp ./start-test-stop 5300 bind-dnssec-both || EXIT=1
+./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11 || EXIT=1
+./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both || EXIT=1
+./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both || EXIT=1
+./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow || EXIT=1
+./timestamp ./start-test-stop 5300 bind-hybrid-nsec3 || EXIT=1
+./timestamp ./start-test-stop 5300 geoipbackend || EXIT=1
+./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow || EXIT=1
+./timestamp ./start-test-stop 5300 gmysql-nodnssec-both || EXIT=1
+./timestamp ./start-test-stop 5300 gmysql-both || EXIT=1
+./timestamp ./start-test-stop 5300 gmysql-nsec3-both || EXIT=1
+./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both || EXIT=1
+./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow || EXIT=1
+./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both || EXIT=1
+./timestamp ./start-test-stop 5300 gpgsql-both || EXIT=1
+./timestamp ./start-test-stop 5300 gpgsql-nsec3-both || EXIT=1
+./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both || EXIT=1
+./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow || EXIT=1
+./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both || EXIT=1
+./timestamp ./start-test-stop 5300 gsqlite3-both || EXIT=1
+./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both || EXIT=1
+./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXIT=1
+./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow || EXIT=1
+#DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec || EXIT=1
+./timestamp ./start-test-stop 5300 mydns || EXIT=1
+./timestamp ./start-test-stop 5300 opendbx-sqlite3 || EXIT=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe || EXIT=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec || EXIT=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix || EXIT=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec || EXIT=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http || EXIT=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || EXIT=1
+#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq || EXIT=1
+#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec || EXIT=1
+./timestamp ./start-test-stop 5300 tinydns || EXIT=1
 
 cd ../regression-tests.nobackend/
 
@@ -73,3 +74,5 @@ touch pdnsconfdist/skip
 
 ./runtests
 test ! -s ./failed_tests
+
+exit $EXIT
