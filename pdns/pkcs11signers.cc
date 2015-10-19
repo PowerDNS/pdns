@@ -926,7 +926,7 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
   boost::assign::push_back(storvect)
    (make_pair("Algorithm", boost::lexical_cast<std::string>(d_algorithm)))
    (make_pair("Engine", d_module))
-   (make_pair("Slot", boost::lexical_cast<std::string>(d_slot_id)))
+   (make_pair("Slot", d_slot_id))
    (make_pair("PIN", d_pin))
    (make_pair("Label", d_label));
   return storvect;
