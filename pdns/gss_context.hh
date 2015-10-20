@@ -120,7 +120,7 @@ class GssContext {
 public:
   static bool supported(); //<! Returns true if GSS is supported in the first place
   GssContext(); //<! Construct new GSS context with random name
-  GssContext(const std::string& label); //<! Create or open existing named context
+  GssContext(const DNSName& label); //<! Create or open existing named context
 
   void setLocalPrincipal(const std::string& name); //<! Set our gss name
   bool getLocalPrincipal(std::string& name); //<! Get our name
@@ -128,8 +128,8 @@ public:
   bool getPeerPrincipal(std::string &name); //<! Return remote name, returns actual name after negotatioan
 
   void generateLabel(const std::string& suffix); //<! Generate random context name using suffix (such as mydomain.com)
-  void setLabel(const std::string& label); //<! Set context name to this label
-  const std::string& getLabel() { return d_label; } //<! Return context name
+  void setLabel(const DNSName& label); //<! Set context name to this label
+  const DNSName& getLabel() { return d_label; } //<! Return context name
 
   bool init(const std::string &input, std::string& output); //<! Perform GSS Initiate Security Context handshake
   bool accept(const std::string &input, std::string& output); //<! Perform GSS Acccept Security Context handshake
@@ -148,7 +148,7 @@ public:
 #ifdef ENABLE_GSS_TSIG
   void processError(const string& method, OM_uint32 maj, OM_uint32 min); //<! Process and fill error text vector
 #endif
-  std::string d_label; //<! Context name
+  DNSName d_label; //<! Context name
   std::string d_peerPrincipal; //<! Remote name
   std::string d_localPrincipal; //<! Our name
   GssContextError d_error; //<! Context error

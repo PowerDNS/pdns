@@ -504,7 +504,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
       }
 
       if (algo == TSIG_GSS) {
-        GssContext gssctx(d_tsigkeyname.toStringNoDot());
+        GssContext gssctx(d_tsigkeyname);
         if (!gss_verify_signature(d_tsigkeyname, message, theirMac)) {
           throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname.toString()+"'");
         }
