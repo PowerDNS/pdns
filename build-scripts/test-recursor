@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export PDNSRECURSOR=/usr/sbin/pdns_recursor
+export PDNS=/usr/sbin/pdns_server
 export SDIG=/usr/bin/sdig
 export NSEC3DIG=/usr/bin/nsec3dig
 export SAXFR=/usr/bin/saxfr
