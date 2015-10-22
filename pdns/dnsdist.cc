@@ -1001,8 +1001,10 @@ try
       break;
     case 'p':
       g_cmdLine.pidfile=optarg;
+      break;
     case 's':
       g_cmdLine.beSupervised=true;
+      break;
     case 'v':
       g_verbose=true;
       break;
