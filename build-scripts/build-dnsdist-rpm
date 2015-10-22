@@ -113,7 +113,7 @@ ${DEFAULTS_INSTALL}
 %doc README.md
 %dir %{_sysconfdir}/dnsdist
 ${INIT_FILES}
-${DEFAULTS_FILES}
+%config(noreplace) ${DEFAULTS_FILES}
 
 EOF
 
