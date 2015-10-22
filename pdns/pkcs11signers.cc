@@ -640,6 +640,8 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
   functions = p11_kit_registered_name_to_module(module.c_str());
 #endif
   if (functions == NULL) throw PDNSException("Cannot find PKCS#11 module " + module);
+  // Calling C_Finalize before C_Initialize forces softhsm 2 to reload tokens from disk
+  functions->C_Finalize(NULL);
   functions->C_Initialize(NULL); // initialize the module in case it hasn't been done yet.
 
   // try to locate a slot
