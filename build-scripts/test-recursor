@@ -13,7 +13,25 @@ fi
 
 set -x
 
-cd regression-tests.recursor
+cd regression-tests/modules
+
+MODULES=""
+
+for dir in /usr/lib/x86_64-linux-gnu/pdns /usr/lib64/pdns; do
+  if [ -d $dir ]; then
+    MODULES=$dir
+    break
+  fi
+done
+[ -z $MODULES ] && echo "No module directory found" >&2 && exit 1
+
+# Symlink the modules on the system
+cd regression-tests/modules
+for backend in *.so; do
+  ln -sf $MODULES/$backend $backend
+done
+
+cd ../../regression-tests.recursor
 cp vars.sample vars
 sed -i 's!PREFIX=.*!PREFIX=127.0.0!' vars
 
