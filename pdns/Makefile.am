@@ -89,6 +89,7 @@ bin_PROGRAMS += \
 	nproxy \
 	nsec3dig \
 	saxfr \
+	ixplore \
 	sdig
 
 if HAVE_RECVMMSG
@@ -109,6 +110,7 @@ EXTRA_PROGRAMS = \
 	dnstcpbench \
 	dnswasher \
 	dumresp \
+	ixplore \
 	notify \
 	nproxy \
 	nsec3dig \
@@ -566,6 +568,34 @@ endif
 if GSS_TSIG
 saxfr_LDADD += $(GSS_LIBS)
 endif
+
+
+ixplore_SOURCES = \
+	base32.cc \
+	base64.cc base64.hh \
+        dns_random.cc dns_random.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnssecinfra.cc \
+	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
+	logger.cc \
+	mbedtlscompat.hh \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	ixplore.cc \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	unix_utility.cc
+
+ixplore_LDADD = $(MBEDTLS_LIBS)
+
+
 
 dnstcpbench_SOURCES = \
 	base32.cc \
