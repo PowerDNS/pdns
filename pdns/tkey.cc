@@ -22,7 +22,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   tkey_out->d_inception = time((time_t*)NULL);
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
-  GssContext ctx(name.toStringNoDot());
+  GssContext ctx(name);
 
   if (tkey_in.d_mode == 3) { // establish context
     if (tkey_in.d_algo == DNSName("gss-tsig.")) {

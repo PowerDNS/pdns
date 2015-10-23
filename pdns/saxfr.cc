@@ -16,7 +16,7 @@
 
 StatBag S;
 
-bool validateTSIG(const string& message, const TSIGHashEnum& algo, const string& key, const string& secret, const TSIGRecordContent *trc) {
+bool validateTSIG(const string& message, const TSIGHashEnum& algo, const DNSName& key, const string& secret, const TSIGRecordContent *trc) {
   int64_t now = time(0);
   if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
     cerr<<"TSIG (key '"<<key<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
