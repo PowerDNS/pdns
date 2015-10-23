@@ -5,6 +5,7 @@
 #include <deque>
 #include <strings.h>
 #include <stdexcept>
+
 // #include "dns.hh"
 // #include "logger.hh"
 
@@ -77,11 +78,12 @@ public:
     ar & d_empty;
   }
 
-  bool canonCompare(const DNSName& rhs) const;
+  inline bool canonCompare(const DNSName& rhs) const;
   
 private:
   //  typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
+  bool slowCanonCompare(const DNSName& rhs) const;
   string_t d_storage;
   bool d_empty;
   int d_recurse;
@@ -92,6 +94,80 @@ private:
 };
 
 size_t hash_value(DNSName const& d);
+
+inline char dns2_tolower(char c)
+{
+  if(c>='A' && c<='Z')
+    c+='a'-'A';
+  return c;
+}
+
+
+inline bool DNSName::canonCompare(const DNSName& rhs) const
+{
+  //      01234567890abcd
+  // us:  1a3www4ds9a2nl
+  // rhs: 3www6online3com
+  // to compare, we start at the back, is nl < com? no -> done
+  //
+  // 0,2,6,a
+  // 0,4,a
+  
+  uint8_t ourpos[64], rhspos[64];
+  uint8_t ourcount=0, rhscount=0;
+  //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && ourcount < sizeof(ourpos); p+=*p+1)
+    ourpos[ourcount++]=(p-d_storage.c_str());
+  for(const char* p = rhs.d_storage.c_str(); p < rhs.d_storage.c_str() + rhs.d_storage.size() && rhscount < sizeof(rhspos); p+=*p+1)
+    rhspos[rhscount++]=(p-rhs.d_storage.c_str());
+
+  if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
+    return slowCanonCompare(rhs);
+  }
+  
+  for(;;) {
+    if(ourcount == 0 && rhscount != 0)
+      return true;
+    if(ourcount == 0 && rhscount == 0)
+      return false;
+    if(ourcount !=0 && rhscount == 0)
+      return false;
+    ourcount--;
+    rhscount--;
+
+    /*
+    cout<<"Going to compare: '"<<string(d_storage.c_str() + ourpos[ourcount] + 1, 
+					d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]))<<"'"<<endl;
+    cout<<"Against: '"<<string(rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
+			      rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]))<<"'"<<endl;
+    */
+    bool res=std::lexicographical_compare(
+					  d_storage.c_str() + ourpos[ourcount] + 1, 
+					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
+					  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
+					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
+					  [](const char& a, const char& b) {
+					    return dns2_tolower(a) < dns2_tolower(b); 
+					  });
+    
+    //    cout<<"Forward: "<<res<<endl;
+    if(res)
+      return true;
+
+    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
+					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
+					  d_storage.c_str() + ourpos[ourcount] + 1, 
+					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
+					  [](const char& a, const char& b) {
+					    return dns2_tolower(a) < dns2_tolower(b); 
+					  });
+    //    cout<<"Reverse: "<<res<<endl;
+    if(res)
+      return false;
+  }
+  return false;
+}
+
 
 struct CanonDNSNameCompare: public std::binary_function<DNSName, DNSName, bool>
 {

@@ -182,6 +182,12 @@ void DNSName::prependRawLabel(const std::string& label)
   d_storage = prep+d_storage;
 }
 
+bool DNSName::slowCanonCompare(const DNSName& rhs) const 
+{
+  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
+  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
+}
+
 vector<string> DNSName::getRawLabels() const
 {
   vector<string> ret;
@@ -192,11 +198,6 @@ vector<string> DNSName::getRawLabels() const
   return ret;
 }
 
-bool DNSName::canonCompare(const DNSName& rhs) const
-{
-  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
-  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
-}
 
 bool DNSName::chopOff()
 {
