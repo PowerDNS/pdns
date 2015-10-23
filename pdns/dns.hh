@@ -54,7 +54,6 @@ struct SOAData
   uint8_t scopeMask;
 };
 
-
 class RCode
 {
 public:
@@ -78,6 +77,7 @@ public:
   ~DNSResourceRecord(){};
 
   enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket
+
   void setContent(const string& content);
   string getZoneRepresentation() const;
 

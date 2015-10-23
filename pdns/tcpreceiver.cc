@@ -998,7 +998,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   MOADNSParser mdp(q->getString());
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
-    if (rr->d_type == QType::SOA && rr->d_place == DNSRecord::Nameserver) {
+    if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());
       if (parts.size() >= 3) {

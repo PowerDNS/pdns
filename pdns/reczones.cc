@@ -107,7 +107,7 @@ static void makeNameToIPZone(SyncRes::domainmap_t* newMap, const DNSName& hostna
 
   DNSRecord dr;
   dr.d_name=hostname;
-  dr.d_place=DNSRecord::Answer;
+  dr.d_place=DNSResourceRecord::ANSWER;
   dr.d_ttl=86400;
   dr.d_type=QType::SOA;
   dr.d_class = 1;
@@ -150,7 +150,7 @@ static void makeIPToNamesZone(SyncRes::domainmap_t* newMap, const vector<string>
   dr.d_name.appendRawLabel("in-addr");
   dr.d_name.appendRawLabel("arpa");
   dr.d_class = 1;
-  dr.d_place=DNSRecord::Answer;
+  dr.d_place=DNSResourceRecord::ANSWER;
   dr.d_ttl=86400;
   dr.d_type=QType::SOA;
   dr.d_content=std::shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::SOA, 1, "localhost. root 1 604800 86400 2419200 604800"));
@@ -341,7 +341,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         while(zpt.get(rr)) {
           try {
 	    dr=DNSRecord(rr);
-	    dr.d_place=DNSRecord::Answer;
+	    dr.d_place=DNSResourceRecord::ANSWER;
           }
           catch(std::exception &e) {
             delete newMap;

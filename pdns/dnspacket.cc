@@ -209,7 +209,7 @@ vector<DNSResourceRecord*> DNSPacket::getAPRecords()
       i!=d_rrs.end();
       ++i)
     {
-      if(i->d_place!=DNSResourceRecord::ADDITIONAL && 
+      if(i->d_place!=DNSResourceRecord::ADDITIONAL &&
          (i->qtype.getCode()==QType::MX ||
           i->qtype.getCode()==QType::NS ||
           i->qtype.getCode()==QType::SRV))
@@ -230,7 +230,7 @@ vector<DNSResourceRecord*> DNSPacket::getAnswerRecords()
       i!=d_rrs.end();
       ++i)
     {
-      if(i->d_place!=DNSResourceRecord::ADDITIONAL) 
+      if(i->d_place!=DNSResourceRecord::ADDITIONAL)
         arrs.push_back(&*i);
     }
   return arrs;
@@ -326,7 +326,7 @@ void DNSPacket::wrapup()
         if(pos->content.empty())  // empty contents confuse the MOADNS setup
           pos->content=".";
         
-        pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, (DNSPacketWriter::Place)pos->d_place); 
+        pw.startRecord(pos->qname, pos->qtype.getCode(), pos->ttl, pos->qclass, pos->d_place);
         shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(pos->qtype.getCode(), pos->qclass, pos->content));
               drc->toPacket(pw);
         if(pw.size() + 20U > (d_tcp ? 65535 : getMaxReplyLen())) { // 20 = room for EDNS0

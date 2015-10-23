@@ -137,7 +137,7 @@ try
       tkrc.d_key = output;
       tkrc.d_othersize = 0;
       pwtkey.getHeader()->id = dns_random(0xffff);
-      pwtkey.startRecord(gssctx.getLabel(), QType::TKEY, 3600, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
+      pwtkey.startRecord(gssctx.getLabel(), QType::TKEY, 3600, QClass::ANY, DNSResourceRecord::ADDITIONAL, false);
       tkrc.toPacket(pwtkey);
       pwtkey.commit();
       BOOST_FOREACH(const string& msg, gssctx.getErrorStrings()) {

@@ -422,12 +422,12 @@ bool DNSSECKeeper::secureZone(const DNSName& name, int algorithm, int size)
 
 bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,
         const DNSName& wildcardname, const QType& qtype,
-        DNSPacketWriter::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
+        DNSResourceRecord::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
   vector<DNSResourceRecord> sigs;
   if(db.getDirectRRSIGs(signer, wildcardname.countLabels() ? wildcardname : qname, qtype, sigs)) {
     BOOST_FOREACH(DNSResourceRecord &rr, sigs) {
-      rr.d_place = (DNSResourceRecord::Place)signPlace;
+      rr.d_place = signPlace;
       rr.ttl = signTTL;
       rrsigs.push_back(rr);
     }
@@ -450,7 +450,7 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const D
                         // cerr<<"Got it"<<endl;
                         if (wildcardname.countLabels())
                                 rr.qname = qname;
-                        rr.d_place = static_cast<DNSResourceRecord::Place>(signPlace);
+                        rr.d_place = signPlace;
                         rr.ttl = signTTL;
                         rrsigs.push_back(rr);
                 }

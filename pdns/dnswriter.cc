@@ -55,7 +55,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
   d_recordttl = 0;
   d_recordqtype = 0;
   d_recordqclass = QClass::IN;
-  d_recordplace = DNSPacketWriter::ANSWER;
+  d_recordplace = DNSResourceRecord::ANSWER;
 }
 
 dnsheader* DNSPacketWriter::getHeader()
@@ -63,7 +63,7 @@ dnsheader* DNSPacketWriter::getHeader()
   return (dnsheader*)&*d_content.begin();
 }
 
-void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, Place place, bool compress)
+void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)
 {
   if(!d_record.empty())
     commit();
@@ -105,7 +105,7 @@ void DNSPacketWriter::addOpt(int udpsize, int extRCode, int Z, const vector<pair
 
   ttl=ntohl(ttl); // will be reversed later on
 
-  startRecord(DNSName(), QType::OPT, ttl, udpsize, ADDITIONAL, false);
+  startRecord(DNSName(), QType::OPT, ttl, udpsize, DNSResourceRecord::ADDITIONAL, false);
   for(optvect_t::const_iterator iter = options.begin(); iter != options.end(); ++iter) {
     xfr16BitInt(iter->first);
     xfr16BitInt(iter->second.length());
@@ -343,13 +343,16 @@ void DNSPacketWriter::commit()
 
   dnsheader* dh=reinterpret_cast<dnsheader*>( &*d_content.begin());
   switch(d_recordplace) {
-  case ANSWER:
+  case DNSResourceRecord::QUESTION:
+    dh->qdcount = htons(ntohs(dh->qdcount) + 1);
+    break;
+  case DNSResourceRecord::ANSWER:
     dh->ancount = htons(ntohs(dh->ancount) + 1);
     break;
-  case AUTHORITY:
+  case DNSResourceRecord::AUTHORITY:
     dh->nscount = htons(ntohs(dh->nscount) + 1);
     break;
-  case ADDITIONAL:
+  case DNSResourceRecord::ADDITIONAL:
     dh->arcount = htons(ntohs(dh->arcount) + 1);
     break;
   }
