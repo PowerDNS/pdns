@@ -128,7 +128,7 @@ try
       input="";
       DNSPacketWriter pwtkey(packet, gssctx.getLabel(), QType::TKEY, QClass::ANY);
       TKEYRecordContent tkrc;
-      tkrc.d_algo = "gss-tsig";
+      tkrc.d_algo = DNSName("gss-tsig.");
       tkrc.d_inception = time((time_t*)NULL);
       tkrc.d_expiration = tkrc.d_inception+15;
       tkrc.d_mode = 3;
