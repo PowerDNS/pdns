@@ -35,7 +35,7 @@ case $(uname) in
     BUILD_HOST="${BUILD_USER}@$(hostname -f || echo 'localhost')" ;;
 esac
 
-perl -p -i -e '/#define BUILD_HOST/d' config.h
+perl -p -n -i -e 'print unless /#define BUILD_HOST/' config.h
 cat >> config.h << EOF
 #define BUILD_HOST "${BUILD_HOST}"
 EOF
