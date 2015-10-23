@@ -8,17 +8,13 @@ if [ "$0" != "./build-scripts/test-recursor-bulk" ]; then
   exit 1
 fi
 
-set -e
 set -x
 
 cd regression-tests
 
 wget -c -N http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
 
-rm -rf csv
-mkdir csv
-
-unzip top-1m.csv.zip -d csv
+unzip top-1m.csv.zip
 
 numdomains="1000 5000 10000 50000 100000 500000 100000"
 if [ ! -z "$1" ]; then
@@ -28,20 +24,22 @@ fi
 set +x
 for prefix in 'www' 'wildcard'; do
   for num in $(seq 0 1000000); do
-    echo "${num},${prefix}.www.powerdnssec.org" >> csv/${prefix}.csv
+    echo "${num},${prefix}.www.powerdnssec.org" >> ${prefix}.csv
   done
 done
 set -x
 
+EXIT=0
+
 version=$($PDNSRECURSOR --version 2>&1 | awk '/PowerDNS Recursor/ { print $6 }')
 for IPv6 in 0 1; do
-  for CSV in $(ls csv/); do
+  for CSV in $(ls *.csv); do
     for domains in $numdomains; do
       export context="${version}.v6:${IPv6}.csv:${CSV%%.*}"
       export IPv6
       export CSV
-      RECURSOR=$PDNSRECURSOR THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains
-      mv recursor.log recursor-${context}.log
+      RECURSOR=$PDNSRECURSOR THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains || EXIT=1
+      mv -f recursor.log recursor-${context}.log
       sleep 10
     done
   done
@@ -50,5 +48,7 @@ done
 
 # cleanup
 rm -rf csv/
-rm *.log
-rm bulktest-results.json
+rm -f *.log
+rm -f bulktest-results.json
+
+exit $EXIT
