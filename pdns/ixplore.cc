@@ -161,25 +161,6 @@ uint32_t getHighestSerialFromDir(const std::string& dir)
   return 1445497587;
 }
 
-bool canonCompare(const DNSRecord& a, const DNSRecord& b)
-{
-  if(a.d_name.canonCompare(b.d_name))
-    return true;
-  if(a.d_name!=b.d_name) {
-    return false;
-  }
-  string lzrp, rzrp;
-  if(a.d_content)
-    lzrp=toLower(a.d_content->getZoneRepresentation());
-  if(b.d_content)
-    rzrp=toLower(b.d_content->getZoneRepresentation());
-  auto atype = a.d_type == QType::SOA ? 0 : a.d_type;
-  auto btype = b.d_type == QType::SOA ? 0 : b.d_type;
-  
-  return tie(atype, a.d_class, lzrp) <
-         tie(btype, b.d_class, rzrp);
-}
-
 int main(int argc, char** argv)
 try
 {
@@ -221,7 +202,6 @@ try
     rr.qname = rr.qname.makeRelative(zone);
     records.insert(DNSRecord(rr));
   }
-
   cout<<"Parsed "<<nrecords<<" records"<<endl;
   sr->d_st.serial= ourSerial;
 
