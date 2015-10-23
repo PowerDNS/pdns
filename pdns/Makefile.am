@@ -591,7 +591,7 @@ ixplore_SOURCES = \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc zoneparser-tng.cc
 
 ixplore_LDADD = $(MBEDTLS_LIBS)
 
