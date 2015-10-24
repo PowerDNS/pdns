@@ -277,19 +277,19 @@ struct DNSRecord
 
   bool operator<(const DNSRecord& rhs) const
   {
+    if(tie(d_name, d_type, d_class) < tie(rhs.d_name, rhs.d_type, rhs.d_class))
+      return true;
+    
+    if(tie(d_name, d_type, d_class) != tie(rhs.d_name, rhs.d_type, rhs.d_class))
+      return false;
+    
     string lzrp, rzrp;
     if(d_content)
       lzrp=toLower(d_content->getZoneRepresentation());
     if(rhs.d_content)
       rzrp=toLower(rhs.d_content->getZoneRepresentation());
     
-    string llabel=toLower(d_name.toString());  
-    string rlabel=toLower(rhs.d_name.toString());
-
-    // XXX is anyone expecting a specific canonical ordering? can we use DNSName builtin < ?
-    return 
-      tie(llabel,     d_type,     d_class, lzrp) <
-      tie(rlabel, rhs.d_type, rhs.d_class, rzrp);
+    return lzrp < rzrp;
   }
 
   bool operator==(const DNSRecord& rhs) const
