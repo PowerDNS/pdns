@@ -90,7 +90,7 @@ class AXFRRetriever : public boost::noncopyable
         const string& tsigsecret=string(),
         const ComboAddress* laddr = NULL);
 	~AXFRRetriever();
-    int getChunk(Resolver::res_t &res);  
+    int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0);  
   
   private:
     void connect();

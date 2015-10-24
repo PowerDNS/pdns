@@ -438,7 +438,7 @@ AXFRRetriever::~AXFRRetriever()
 
 
 
-int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making sure RFC2845 4.4 is followed.
+int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) // Implementation is making sure RFC2845 4.4 is followed.
 {
   if(d_soacount > 1)
     return false;
@@ -451,7 +451,16 @@ int AXFRRetriever::getChunk(Resolver::res_t &res) // Implementation is making su
   timeoutReadn(len); 
   MOADNSParser mdp(d_buf.get(), len);
 
-  int err = parseResult(mdp, DNSName(), 0, 0, &res);
+  int err;
+  if(!records)
+    err=parseResult(mdp, DNSName(), 0, 0, &res);
+  else {
+    records->clear();
+    for(const auto& r: mdp.d_answers)
+      records->push_back(r.first);
+    err = mdp.d_header.rcode;
+  }
+  
   if(err) 
     throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
 
