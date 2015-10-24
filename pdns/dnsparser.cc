@@ -413,15 +413,19 @@ uint8_t PacketReader::get8BitInt()
 DNSName PacketReader::getName()
 {
   unsigned int consumed;
-  vector<uint8_t> content(d_content);
-  content.insert(content.begin(), sizeof(dnsheader), 0);
-
   try {
-    DNSName dn((const char*) content.data(), content.size(), d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed);
+    DNSName dn((const char*) d_content.data() - 12, d_content.size() + 12, d_pos + sizeof(dnsheader), true /* uncompress */, 0 /* qtype */, 0 /* qclass */, &consumed);
     
+    // the -12 fakery is because we don't have the header in 'd_content', but we do need to get 
+    // the internal offsets to work
     d_pos+=consumed;
     return dn;
   }
+  catch(std::range_error& re)
+    {
+      throw std::out_of_range(string("dnsname issue: ")+re.what());
+    }
+
   catch(...)
     {
       throw std::out_of_range("dnsname issue");
