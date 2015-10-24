@@ -595,6 +595,14 @@ ixplore_SOURCES = \
 
 ixplore_LDADD = $(MBEDTLS_LIBS)
 
+if PKCS11
+ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
+ixplore_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+ixplore_LDADD += $(GSS_LIBS)
+endif
 
 
 dnstcpbench_SOURCES = \
