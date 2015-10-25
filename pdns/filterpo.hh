@@ -1,6 +1,7 @@
 #pragma once
 #include "iputils.hh"
 #include "dns.hh"
+#include "dnsparser.hh"
 #include <map>
 
 /* This class implements a filtering policy that is able to fully implement RPZ, but is not bound to it.
@@ -42,7 +43,16 @@
 class DNSFilterEngine
 {
 public:
-  enum class Policy { NoAction, Drop, NXDOMAIN, NODATA, Truncate};
+  enum class PolicyKind { NoAction, Drop, NXDOMAIN, NODATA, Truncate, Custom};
+  struct Policy
+  {
+    bool operator==(const Policy& rhs) const
+    {
+      return d_kind == rhs.d_kind; // XXX check d_custom too!
+    }
+    PolicyKind d_kind;
+    std::shared_ptr<DNSRecordContent> d_custom;
+  };
 
   DNSFilterEngine();
   void clear();
@@ -51,6 +61,12 @@ public:
   void addQNameTrigger(const DNSName& nm, Policy pol, int zone=0);
   void addNSTrigger(const DNSName& dn, Policy pol, int zone=0);
   void addResponseTrigger(const Netmask& nm, Policy pol, int zone=0);
+
+  bool rmClientTrigger(const Netmask& nm, Policy pol, int zone=0);
+  bool rmQNameTrigger(const DNSName& nm, Policy pol, int zone=0);
+  bool rmNSTrigger(const DNSName& dn, Policy pol, int zone=0);
+  bool rmResponseTrigger(const Netmask& nm, Policy pol, int zone=0);
+
 
   Policy getQueryPolicy(const DNSName& qname, const ComboAddress& nm) const;
   Policy getProcessingPolicy(const DNSName& qname) const;

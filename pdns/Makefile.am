@@ -590,6 +590,7 @@ ixplore_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
+	ixfr.cc ixfr.hh \
 	ixplore.cc \
 	sillyrecords.cc \
 	sstuff.hh \
@@ -1111,9 +1112,12 @@ pdns_recursor_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
+	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	filterpo.cc filterpo.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
+	ixfr.cc ixfr.hh \
 	json.cc json.hh \
 	logger.cc \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
@@ -1134,6 +1138,7 @@ pdns_recursor_SOURCES = \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	reczones.cc \
+	resolver.cc \
 	resolver.hh \
 	responsestats.cc \
 	rpzloader.cc rpzloader.hh \

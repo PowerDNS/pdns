@@ -36,7 +36,8 @@ dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
 ws-recursor.hh ws-api.hh secpoll-recursor.hh \
 responsestats.hh webserver.hh dnsname.hh dnspacket.hh ednssubnet.hh \
-filterpo.hh rpzloader.hh"
+filterpo.hh rpzloader.hh ixfr.hh gss_context.hh resolver.hh dnssecinfra.hh \
+dnsseckeeper.hh statbag.hh ueberbackend.hh sha.hh dnsbackend.hh comment.hh"
 
 CFILES="syncres.cc iputils.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc lua-iputils.cc \
@@ -47,7 +48,7 @@ sillyrecords.cc pubsuffix.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
 dnslabeltext.cc json.cc ws-recursor.cc ws-api.cc version.cc dns_random.cc \
 responsestats.cc webserver.cc rec-carbon.cc secpoll-recursor.cc dnsname.cc \
-filterpo.cc rpzloader.cc"
+filterpo.cc rpzloader.cc ixfr.cc dnssecinfra.cc gss_context.cc resolver.cc"
 
 ./mkpubsuffixcc
 
@@ -69,9 +70,9 @@ mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
 cp -a ../ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
 cp -a ../ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
 mkdir -p $DIRNAME/ext/mbedtls/include/mbedtls
-cp -a ../ext/mbedtls/include/mbedtls/config.h ../ext/mbedtls/include/mbedtls/check_config.h ../ext/mbedtls/include/mbedtls/aes.h ../ext/mbedtls/include/mbedtls/base64.h ../ext/mbedtls/include/mbedtls/platform.h ../ext/mbedtls/include/mbedtls/version.h $DIRNAME/ext/mbedtls/include/mbedtls
+cp -a ../ext/mbedtls/include/mbedtls/{config.h,check_config.h,aes.h,ripemd160.h,sha1.h,md.h,md5.h,sha256.h,sha512.h,md_internal.h} ../ext/mbedtls/include/mbedtls/base64.h ../ext/mbedtls/include/mbedtls/platform.h ../ext/mbedtls/include/mbedtls/version.h $DIRNAME/ext/mbedtls/include/mbedtls
 mkdir -p $DIRNAME/ext/mbedtls/library
-cp -a ../ext/mbedtls/library/aes.c ../ext/mbedtls/library/base64.c $DIRNAME/ext/mbedtls/library
+cp -a ../ext/mbedtls/library/{aes.c,base64.c,md.c,md_wrap.c,md5.c,sha1.c,sha256.c,sha512.c,ripemd160.c} $DIRNAME/ext/mbedtls/library
 cp -a ../ext/yahttp/ $DIRNAME/ext/yahttp
 echo '#include "../../../config.h"' > $DIRNAME/ext/yahttp/yahttp/yahttp-config.h
 mkdir $DIRNAME/rrd

@@ -29,6 +29,8 @@
 #include "logger.hh"
 #include "dnsrecords.hh"
 #include <boost/foreach.hpp>
+#include <thread>
+#include "ixfr.hh"
 #include "rpzloader.hh"
 
 extern int g_argc;
@@ -314,6 +316,61 @@ string reloadAuthAndForwards()
   return "reloading failed, see log\n";
 }
 
+void ixfrTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent> oursr) 
+{
+  for(;;) {
+    DNSRecord dr;
+    dr.d_content=oursr;
+
+    sleep(oursr->d_st.refresh);
+    
+
+    L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<std::dynamic_pointer_cast<SOARecordContent>(dr.d_content)->d_st.serial<<endl;
+
+    auto deltas = getIXFRDeltas(master, zone, dr);
+    if(deltas.empty())
+      continue;
+    L<<Logger::Info<<"Processing "<<deltas.size()<<" deltas for RPZ "<<zone<<endl;
+
+    int totremove=0, totadd=0;
+    for(const auto& delta : deltas) {
+      const auto& remove = delta.first;
+      const auto& add = delta.second;
+      
+      for(const auto& rr : remove) { // should always contain the SOA
+	totremove++;
+	if(rr.d_type == QType::SOA) {
+	  auto oldsr = std::dynamic_pointer_cast<SOARecordContent>(rr.d_content);
+	  if(oldsr->d_st.serial == oursr->d_st.serial) {
+	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
+	  }
+	  else
+	    cerr<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
+	}
+	else {
+	  L<<Logger::Info<<"Had removal of "<<rr.d_name<<endl;
+	  RPZRecordToPolicy(rr, g_dfe, false, 0);
+	}
+      }
+
+      for(const auto& rr : add) { // should always contain the new SOA
+	totadd++;
+	if(rr.d_type == QType::SOA) {
+	  auto newsr = std::dynamic_pointer_cast<SOARecordContent>(rr.d_content);
+	  //	  L<<Logger::Info<<"New SOA serial for "<<zone<<": "<<newsr->d_st.serial<<endl;
+	  oursr = newsr;
+	}
+	else {
+	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;
+	  RPZRecordToPolicy(rr, g_dfe, true, 0);
+	}
+      }
+    }
+    L<<Logger::Info<<"Had "<<totremove<<" RPZ removals, "<<totadd<<" additions for "<<zone<<" New serial: "<<oursr->d_st.serial<<endl;
+  }
+}
+
+
 void loadRPZFiles()
 {
   vector<string> fnames;
@@ -322,6 +379,19 @@ void loadRPZFiles()
   for(const auto& f : fnames) {
     loadRPZFromFile(f, g_dfe, count++);
   }
+
+  fnames.clear();
+  stringtok(fnames, ::arg()["rpz-masters"],",");
+
+  for(const auto& f : fnames) {
+    auto s = splitField(f, ':');
+    ComboAddress master(s.first, 53);
+    DNSName zone(s.second);
+    auto sr=loadRPZFromServer(master,zone, g_dfe, count++);
+    std::thread t(ixfrTracker, master, zone, sr);
+    t.detach();
+  }
+
 }
 
 SyncRes::domainmap_t* parseAuthAndForwards()

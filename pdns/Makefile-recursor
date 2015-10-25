@@ -21,11 +21,14 @@ arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
 dns_random.o pubsuffix.o ext/mbedtls/library/aes.o ext/mbedtls/library/base64.o dnslabeltext.o \
+ext/mbedtls/library/md5.o ext/mbedtls/library/sha1.o ext/mbedtls/library/sha256.o  \
+ext/mbedtls/library/sha512.o ext/mbedtls/library/md.o ext/mbedtls/library/md_wrap.o \
+ext/mbedtls/library/ripemd160.o \
 lua-pdns.o lua-recursor.o randomhelper.o recpacketcache.o dns.o \
 reczones.o base32.o nsecrecords.o json.o ws-recursor.o ws-api.o \
 version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yahttp/router.o \
 rec-carbon.o secpoll-recursor.o lua-iputils.o iputils.o dnsname.o \
-rpzloader.o filterpo.o
+rpzloader.o filterpo.o resolver.o ixfr.o dnssecinfra.o gss_context.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
 	unix_utility.o logger.o qtype.o dnslabeltext.o dnsname.o

@@ -578,7 +578,8 @@ void startDoResolve(void *p)
     bool variableAnswer = false;
 
     int res;
-
+    DNSFilterEngine::Policy dfepol;
+    DNSRecord spoofed;
     if(dc->d_mdp.d_qtype==QType::ANY && !dc->d_tcp && g_anyToTcp) {
       pw.getHeader()->tc = 1;
       res = 0;
@@ -612,23 +613,37 @@ void startDoResolve(void *p)
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
 
-    switch(g_dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote)) {
-    case DNSFilterEngine::Policy::NoAction:
+    dfepol = g_dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote);
+
+    switch(dfepol.d_kind) {
+    case DNSFilterEngine::PolicyKind::NoAction:
       break;
-    case DNSFilterEngine::Policy::Drop:
+    case DNSFilterEngine::PolicyKind::Drop:
       g_stats.policyDrops++;
       delete dc;
       dc=0;
       return; 
-    case DNSFilterEngine::Policy::NXDOMAIN:
+    case DNSFilterEngine::PolicyKind::NXDOMAIN:
       res=RCode::NXDomain;
       goto haveAnswer;
 
-    case DNSFilterEngine::Policy::NODATA:
+    case DNSFilterEngine::PolicyKind::NODATA:
       res=RCode::NoError;
       goto haveAnswer;
 
-    case DNSFilterEngine::Policy::Truncate:
+    case DNSFilterEngine::PolicyKind::Custom:
+      res=RCode::NoError;
+      spoofed.d_name=dc->d_mdp.d_qname;
+      spoofed.d_type=dfepol.d_custom->d_qtype;
+      spoofed.d_ttl = 1234;
+      spoofed.d_class = 1;
+      spoofed.d_content = dfepol.d_custom;
+      spoofed.d_place = DNSRecord::Answer;
+      ret.push_back(spoofed);
+      goto haveAnswer;
+
+
+    case DNSFilterEngine::PolicyKind::Truncate:
       if(!dc->d_tcp) {
 	res=RCode::NoError;	
 	pw.getHeader()->tc=1;
@@ -647,25 +662,26 @@ void startDoResolve(void *p)
         res = RCode::ServFail;
       }
 
-      switch(g_dfe.getPostPolicy(ret)) {
-      case DNSFilterEngine::Policy::NoAction:
+      dfepol = g_dfe.getPostPolicy(ret); 
+      switch(dfepol.d_kind) {
+      case DNSFilterEngine::PolicyKind::NoAction:
 	break;
-      case DNSFilterEngine::Policy::Drop:
+      case DNSFilterEngine::PolicyKind::Drop:
 	g_stats.policyDrops++;
 	delete dc;
 	dc=0;
 	return; 
-      case DNSFilterEngine::Policy::NXDOMAIN:
+      case DNSFilterEngine::PolicyKind::NXDOMAIN:
 	ret.clear();
 	res=RCode::NXDomain;
 	goto haveAnswer;
 	
-      case DNSFilterEngine::Policy::NODATA:
+      case DNSFilterEngine::PolicyKind::NODATA:
 	ret.clear();
 	res=RCode::NoError;
 	goto haveAnswer;
 	
-      case DNSFilterEngine::Policy::Truncate:
+      case DNSFilterEngine::PolicyKind::Truncate:
 	if(!dc->d_tcp) {
 	  ret.clear();
 	  res=RCode::NoError;	
@@ -673,6 +689,17 @@ void startDoResolve(void *p)
 	  goto haveAnswer;
 	}
 	break;
+
+      case DNSFilterEngine::PolicyKind::Custom:
+	res=RCode::NoError;
+	spoofed.d_name=dc->d_mdp.d_qname;
+	spoofed.d_type=dfepol.d_custom->d_qtype;
+	spoofed.d_ttl = 1234;
+	spoofed.d_class = 1;
+	spoofed.d_content = dfepol.d_custom;
+	spoofed.d_place = DNSRecord::Answer;
+	ret.push_back(spoofed);
+	goto haveAnswer;
       }
       
       if(t_pdl->get()) {
@@ -2396,6 +2423,7 @@ int main(int argc, char **argv)
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("rpz-files", "RPZ files to load in order, domain or domain=policy pairs separated by commas")="";
+    ::arg().set("rpz-masters", "RPZ master servers, address:name pairs separated by commas")="";
 
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
