@@ -22,7 +22,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "packetcache.hh"
 #include "utility.hh"
 #include "resolver.hh"
 #include <pthread.h>
@@ -39,9 +38,8 @@
 #include <boost/algorithm/string.hpp>
 #include "dns.hh"
 #include "qtype.hh"
-#include "tcpreceiver.hh"
+
 #include "pdnsexception.hh"
-#include "statbag.hh"
 #include "arguments.hh"
 #include "base64.hh"
 #include "dnswriter.hh"
@@ -49,7 +47,8 @@
 
 #include <boost/foreach.hpp>
 #include "dns_random.hh"
-
+#include <sys/poll.h>
+#include "gss_context.hh"
 #include "namespaces.hh"
 
 int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
