@@ -1159,6 +1159,12 @@ pdns_recursor_LDADD = \
 	$(MBEDTLS_LIBS) \
 	$(YAHTTP_LIBS)
 
+if PKCS11
+pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
+pdns_recursor_LDADD += $(P11KIT1_LIBS)
+endif
+
+
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
 endif
