@@ -106,7 +106,7 @@ deque<string> segmentDNSName(const string& input )
         char val = 0;
 
         string label;
-
+	label.reserve(10);
         %%{
                 action labelEnd { 
                         ret.push_back(label);
