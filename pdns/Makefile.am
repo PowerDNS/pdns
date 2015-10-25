@@ -571,8 +571,10 @@ endif
 
 
 ixplore_SOURCES = \
+	arguments.cc \
 	base32.cc \
 	base64.cc base64.hh \
+	dns.cc \
         dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -587,6 +589,7 @@ ixplore_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
 	ixplore.cc \
 	sillyrecords.cc \
 	sstuff.hh \
