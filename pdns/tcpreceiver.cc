@@ -411,7 +411,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     } else {
       getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
       if (q->d_tsig_algo == TSIG_GSS) {
-        GssContext gssctx(keyname.toStringNoDot());
+        GssContext gssctx(keyname);
         if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
           L<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
         }
@@ -998,7 +998,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   MOADNSParser mdp(q->getString());
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
-    if (rr->d_type == QType::SOA && rr->d_place == DNSRecord::Nameserver) {
+    if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());
       if (parts.size() >= 3) {

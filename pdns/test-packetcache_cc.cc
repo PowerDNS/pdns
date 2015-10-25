@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCachePacket) {
 
     pak.clear();
     DNSPacketWriter pw2(pak, DNSName("www.powerdns.com"), QType::A);
-    pw2.startRecord(DNSName("www.powerdns.com"), QType::A, 16, 1, DNSPacketWriter::ANSWER);
+    pw2.startRecord(DNSName("www.powerdns.com"), QType::A, 16, 1, DNSResourceRecord::ANSWER);
     pw2.xfrIP(htonl(0x7f000001));
     pw2.commit();
 

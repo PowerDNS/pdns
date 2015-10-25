@@ -12,23 +12,23 @@
 class CDB
 {
 public:
-	CDB(const string &cdbfile);
-	~CDB();
+  CDB(const string &cdbfile);
+  ~CDB();
 
-	int searchKey(const string &key);
-	bool searchSuffix(const string &key);
-	void searchAll();
-	bool readNext(pair<string, string> &value);
-	vector<string> findall(string &key);
+  int searchKey(const string &key);
+  bool searchSuffix(const string &key);
+  void searchAll();
+  bool readNext(pair<string, string> &value);
+  vector<string> findall(string &key);
 
 private:
-	int d_fd;
-	bool moveToNext();
-	struct cdb d_cdb;
-	struct cdb_find d_cdbf;
-	char *d_key;
-	unsigned d_seqPtr;
-	enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType;
+  int d_fd;
+  bool moveToNext();
+  struct cdb d_cdb;
+  struct cdb_find d_cdbf;
+  char *d_key;
+  unsigned d_seqPtr;
+  enum SearchType { SearchSuffix, SearchKey, SearchAll } d_searchType;
 };
 
-#endif // CDB_HH 
+#endif // CDB_HH

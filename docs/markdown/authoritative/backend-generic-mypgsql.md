@@ -206,7 +206,7 @@ Called during incoming AXFR. Default: `insert into records (content,ttl,prio,typ
 Called to update the last notified serial of a master domain. Default: `update domains set notified_serial=%d where id=%d`
 
 ### `update-lastcheck-query`
-Called to update the last time a slave domain was checked for freshness. Default: `update domains set last_check=%d where id=%d`
+Called to update the last time a slave domain was successfully checked for freshness. Default: `update domains set last_check=%d where id=%d`
 
 ### `info-all-master-query`
 Called to get data on all domains for which the server is master. Default: `select id,name,master,last_check,notified_serial,type from domains where type='MASTER'`

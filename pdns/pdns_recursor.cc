@@ -706,7 +706,7 @@ void startDoResolve(void *p)
         if(res == RCode::NoError) {
 	        auto i=ret.cbegin();
                 for(; i!= ret.cend(); ++i)
-                  if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSRecord::Answer)
+                  if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
                 if(i == ret.cend())
                   (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
@@ -749,12 +749,12 @@ void startDoResolve(void *p)
       if(ret.size()) {
         orderAndShuffle(ret);
         for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
-          pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, (DNSPacketWriter::Place)i->d_place);
+          pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
           minTTL = min(minTTL, i->d_ttl);
 	  i->d_content->toPacket(pw);
           if(pw.size() > maxanswersize) {
             pw.rollback();
-            if(i->d_place==DNSRecord::Answer)  // only truncate if we actually omitted parts of the answer
+            if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
             {
               pw.getHeader()->tc=1;
               pw.truncate();

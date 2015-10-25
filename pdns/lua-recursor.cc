@@ -115,7 +115,7 @@ int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vect
 
   BOOST_FOREACH(DNSRecord& rr, ret)
   {
-    if(rr.d_type == QType::A && rr.d_place==DNSRecord::Answer) {
+    if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
       ComboAddress ipv4(std::dynamic_pointer_cast<ARecordContent>(rr.d_content)->getCA());
       uint32_t tmp;
       memcpy((void*)&tmp, &ipv4.sin4.sin_addr.s_addr, 4);
@@ -150,7 +150,7 @@ int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DN
   int rcode = directResolve(newquery, QType(QType::PTR), 1, ret);
   BOOST_FOREACH(DNSRecord& rr, ret)
   {
-    if(rr.d_type == QType::PTR && rr.d_place==DNSRecord::Answer) {
+    if(rr.d_type == QType::PTR && rr.d_place==DNSResourceRecord::ANSWER) {
       rr.d_name = qname;
     }
   }

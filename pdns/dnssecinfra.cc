@@ -624,7 +624,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
     trc->d_mac = calculateHMAC(tsigsecret, toSign, algo);
     //  d_trc->d_mac[0]++; // sabotage
   }
-  pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
+  pw.startRecord(tsigkeyname, QType::TSIG, 0, QClass::ANY, DNSResourceRecord::ADDITIONAL, false);
   trc->toPacket(pw);
   pw.commit();
 }
