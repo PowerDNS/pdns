@@ -7,7 +7,8 @@
 #include <vector>
 #include <map>
 #include "misc.hh"
-#include "ueberbackend.hh"
+
+class UeberBackend;
 
 // rules of the road: Algorithm must be set in 'make' for each KeyEngine, and will NEVER change!
 

@@ -25,6 +25,7 @@ DNSName::DNSName(const char* p)
 {
   d_empty=false;
   d_recurse=0;
+  d_storage.reserve(strlen(p)+1);
   auto labels = segmentDNSName(p);
   for(const auto& e : labels)
     appendRawLabel(e);
@@ -55,7 +56,7 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       if(newpos < offset) {
         if (++d_recurse > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
-        packetParser(opos, len, newpos, true);
+        packetParser(opos, len, newpos, true); 
       } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;
@@ -121,7 +122,7 @@ bool DNSName::isPartOf(const DNSName& parent) const
     if (std::distance(us,d_storage.cend()) == static_cast<unsigned int>(parent.d_storage.size())) {
       auto p = parent.d_storage.cbegin();
       for(; us != d_storage.cend(); ++us, ++p) {
-        if(tolower(*p) != tolower(*us))
+        if(dns2_tolower(*p) != dns2_tolower(*us))
           return false;
       }
       return true;
@@ -133,11 +134,16 @@ bool DNSName::isPartOf(const DNSName& parent) const
 DNSName DNSName::makeRelative(const DNSName& zone) const
 {
   DNSName ret(*this);
-  if (ret.isPartOf(zone)) {
-    ret.d_storage.erase(ret.d_storage.size()-zone.d_storage.size());
-  } else
-    ret.clear();
+  ret.makeUsRelative(zone);
   return ret;
+}
+void DNSName::makeUsRelative(const DNSName& zone) 
+{
+  if (isPartOf(zone)) {
+    d_storage.erase(d_storage.size()-zone.d_storage.size());
+  } 
+  else
+    clear();
 }
 
 DNSName DNSName::labelReverse() const
@@ -182,6 +188,12 @@ void DNSName::prependRawLabel(const std::string& label)
   d_storage = prep+d_storage;
 }
 
+bool DNSName::slowCanonCompare(const DNSName& rhs) const 
+{
+  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
+  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
+}
+
 vector<string> DNSName::getRawLabels() const
 {
   vector<string> ret;
@@ -192,11 +204,6 @@ vector<string> DNSName::getRawLabels() const
   return ret;
 }
 
-bool DNSName::canonCompare(const DNSName& rhs) const
-{
-  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
-  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
-}
 
 bool DNSName::chopOff()
 {

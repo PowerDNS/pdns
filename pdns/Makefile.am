@@ -89,6 +89,7 @@ bin_PROGRAMS += \
 	nproxy \
 	nsec3dig \
 	saxfr \
+	ixplore \
 	sdig
 
 if HAVE_RECVMMSG
@@ -109,6 +110,7 @@ EXTRA_PROGRAMS = \
 	dnstcpbench \
 	dnswasher \
 	dumresp \
+	ixplore \
 	notify \
 	nproxy \
 	nsec3dig \
@@ -566,6 +568,46 @@ endif
 if GSS_TSIG
 saxfr_LDADD += $(GSS_LIBS)
 endif
+
+
+ixplore_SOURCES = \
+	arguments.cc \
+	base32.cc \
+	base64.cc base64.hh \
+	dns.cc \
+        dns_random.cc dns_random.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnssecinfra.cc \
+	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
+	logger.cc \
+	mbedtlscompat.hh \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
+	ixfr.cc ixfr.hh \
+	ixplore.cc \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	unix_utility.cc zoneparser-tng.cc
+
+ixplore_LDADD = $(MBEDTLS_LIBS)
+
+if PKCS11
+ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
+ixplore_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+ixplore_LDADD += $(GSS_LIBS)
+endif
+
 
 dnstcpbench_SOURCES = \
 	base32.cc \
@@ -1070,8 +1112,12 @@ pdns_recursor_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
+	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	filterpo.cc filterpo.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
+	ixfr.cc ixfr.hh \
 	json.cc json.hh \
 	logger.cc \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
@@ -1092,8 +1138,10 @@ pdns_recursor_SOURCES = \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	reczones.cc \
+	resolver.cc \
 	resolver.hh \
 	responsestats.cc \
+	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
 	selectmplexer.cc \
@@ -1110,6 +1158,12 @@ pdns_recursor_SOURCES = \
 pdns_recursor_LDADD = \
 	$(MBEDTLS_LIBS) \
 	$(YAHTTP_LIBS)
+
+if PKCS11
+pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
+pdns_recursor_LDADD += $(P11KIT1_LIBS)
+endif
+
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)

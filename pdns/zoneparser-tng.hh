@@ -39,12 +39,13 @@ public:
   bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
   typedef deque<pair<string::size_type, string::size_type> > parts_t;
+  string getLineOfFile();
 private:
   bool getLine();
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   unsigned makeTTLFromZone(const std::string& str);
-  string getLineOfFile();
+
   struct filestate {
     filestate(FILE* fp, string filename) : d_fp(fp), d_filename(filename), d_lineno(0){}
     FILE *d_fp;

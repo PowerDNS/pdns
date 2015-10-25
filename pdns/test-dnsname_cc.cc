@@ -343,6 +343,9 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   DNSName lower("bert.com."), higher("alpha.nl.");
   BOOST_CHECK(lower.canonCompare(higher));
 
+  BOOST_CHECK(DNSName("bert.com").canonCompare(DNSName("www.bert.com")));
+  BOOST_CHECK(DNSName("BeRt.com").canonCompare(DNSName("WWW.berT.com")));
+  BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
 
   vector<DNSName> vec;
   for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",
@@ -352,7 +355,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   }
   sort(vec.begin(), vec.end(), CanonDNSNameCompare());
   //  for(const auto& v : vec)
-  //  cerr<<'"'<<v.toString()<<'"'<<endl;
+  //    cerr<<'"'<<v.toString()<<'"'<<endl;
 
   vector<DNSName> right;
   for(const auto& a: {"bert.com.",  "Aleph1.powerdns.com.",
@@ -364,6 +367,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
 	"yyy.XXX."})
     right.push_back(DNSName(a));
 
+  
   BOOST_CHECK(vec==right);
 }
 
