@@ -12,7 +12,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
   pw.getHeader()->qr=0;
   pw.getHeader()->rd=0;
   pw.getHeader()->id=dns_random(0xffff);
-  pw.startRecord(zone, QType::SOA, 3600, QClass::IN, DNSPacketWriter::AUTHORITY);
+  pw.startRecord(zone, QType::SOA, 3600, QClass::IN, DNSResourceRecord::AUTHORITY);
   oursr.d_content->toPacket(pw);
   pw.commit();
   
