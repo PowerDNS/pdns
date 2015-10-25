@@ -82,10 +82,10 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
   DNSPacketWriter pw(packet, zone, QType::IXFR);
   pw.getHeader()->qr=0;
   pw.getHeader()->rd=0;
+  pw.getHeader()->id=dns_random(0xffff);
   pw.startRecord(zone, QType::SOA, 3600, QClass::IN, DNSPacketWriter::AUTHORITY);
   sr.d_content->toPacket(pw);
   pw.commit();
-  
   
   uint16_t len=htons(packet.size());
   string msg((const char*)&len, 2);
@@ -135,26 +135,20 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
     if(sr->d_st.serial == masterSOA->d_st.serial)
       break;
     
-    //    cout<<"Got delta going from "<<sr->d_st.serial<<endl;
     vector<DNSRecord> remove, add;
     remove.push_back(records[pos]); // this adds the SOA
     for(pos++; pos < records.size() && records[pos].d_type != QType::SOA; ++pos) {
-      // cout<<"Should remove "<<records[pos].d_name<<" "<<DNSRecordContent::NumberToType(records[pos].d_type)<<" "<<records[pos].d_content->getZoneRepresentation()<<endl;
       remove.push_back(records[pos]);
     }
     sr = std::dynamic_pointer_cast<SOARecordContent>(records[pos].d_content);
-    //    cout<<"This delta goes to "<<sr->d_st.serial<<endl;
+
     add.push_back(records[pos]); // this adds the new SOA
     for(pos++; pos < records.size() && records[pos].d_type != QType::SOA; ++pos)  {
-      //      cout<<"Should ADD "<<records[pos].d_name<<" "<<DNSRecordContent::NumberToType(records[pos].d_type)<<" "<<records[pos].d_content->getZoneRepresentation()<<endl;
       add.push_back(records[pos]);
     }
     ret.push_back(make_pair(remove,add));
-    //    cout<<"End of this delta"<<endl<<endl;
   }
-  
   return ret;
-  
 }
 
 uint32_t getSerialsFromDir(const std::string& dir)
@@ -195,13 +189,15 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   int serial = getSerialFromRecords(records, soa);
   string fname=directory +"/"+std::to_string(serial);
   FILE* fp=fopen((fname+".partial").c_str(), "w");
+  if(!fp)
+    throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+string(strerror(errno)));
+
   records_t soarecord;
   soarecord.insert(soa);
-
+  fprintf(fp, "$ORIGIN %s\n", zone.toString().c_str());
   for(const auto& outer : {soarecord, records, soarecord} ) {
     for(const auto& r: outer) {
-      fprintf(fp, "%s\t%d\tIN\t%s\t%s\n", (r.d_name+zone).toString().c_str(),
-	      r.d_ttl,
+      fprintf(fp, "%s\tIN\t%s\t%s\n", r.d_name.toStringNoDot().c_str(),
 	      DNSRecordContent::NumberToType(r.d_type).c_str(),
 	      r.d_content->getZoneRepresentation().c_str());
     }
@@ -243,8 +239,14 @@ int main(int argc, char** argv)
 try
 {
   reportAllTypes();
-  if(argc==5 && string(argv[1])=="diff") {
+  string command;
+  if(argc < 5 || (command=argv[1], (command!="diff" && command !="track"))) {
     cerr<<"Syntax: ixplore diff zone file1 file2"<<endl;
+    cerr<<"Syntax: ixplore track IP-address port zone directory"<<endl;
+    exit(EXIT_FAILURE);
+  }
+  if(command=="diff") {
+
     records_t before, after;
     DNSName zone(argv[2]);
     cout<<"Loading before from "<<argv[3]<<endl;
@@ -265,12 +267,8 @@ try
     }
     exit(1);
   }
-  if(argc < 4) {
-    cerr<<"Syntax: ixplore IP-address port zone directory"<<endl;
-    exit(EXIT_FAILURE);
-  }
-
-
+  
+  // must be "track" then
 
     /* goal in life:
      in directory/zone-name we leave files with their name the serial number
@@ -282,18 +280,19 @@ try
      Next up, loop this every REFRESH seconds */
   dns_random_init("0123456789abcdef");
 
-  DNSName zone(argv[3]);
-  ComboAddress master(argv[1], atoi(argv[2]));
+  DNSName zone(argv[4]);
+  ComboAddress master(argv[2], atoi(argv[3]));
+  string directory(argv[5]);
   records_t records;
 
-  uint32_t ourSerial = getSerialsFromDir(argv[4]);
+  uint32_t ourSerial = getSerialsFromDir(directory);
 
   cout<<"Loading zone, our highest available serial is "<< ourSerial<<endl;
 
   try {
     if(!ourSerial)
       throw std::runtime_error("There is no local zone available");
-    string fname=argv[4]+string("/")+std::to_string(ourSerial);
+    string fname=directory+"/"+std::to_string(ourSerial);
     cout<<"Loading serial number "<<ourSerial<<" from file "<<fname<<endl;
     loadZoneFromDisk(records, fname, zone);
   }
@@ -324,7 +323,7 @@ try
     }
     cout <<"\rDone, got "<<nrecords<<"                                            "<<endl;
     cout<<"Writing to disk.."<<endl;
-    writeZoneToDisk(records, zone, argv[4]);
+    writeZoneToDisk(records, zone, directory);
   }
 
   for(;;) {
@@ -358,7 +357,7 @@ try
       }
       cout<<"This delta ("<<ourSerial<<" - "<<newserial<<") has "<<remove.size()<<" removals, "<<add.size()<<" additions"<<endl;
       bool stop=false;
-      ofstream report(string(argv[4]) +"/delta."+std::to_string(ourSerial)+"-"+std::to_string(newserial));
+      ofstream report(directory +"/delta."+std::to_string(ourSerial)+"-"+std::to_string(newserial));
       for(const auto& rr : remove) {
 	report<<'-'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.d_content->getZoneRepresentation()<<endl;
 	auto range = records.equal_range(tie(rr.d_name, rr.d_type, rr.d_class, rr.d_content));
@@ -382,7 +381,7 @@ try
       }
     }
     cout<<"Writing zone to disk.. "; cout.flush();
-    writeZoneToDisk(records, zone, argv[4]);
+    writeZoneToDisk(records, zone, directory);
     cout<<"Done"<<endl;
   }
 }
