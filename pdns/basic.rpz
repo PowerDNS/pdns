@@ -1,7 +1,7 @@
 $TTL 2h;
 $ORIGIN domain.example.com.
 @               SOA powerdns.example.net. hostmaster.example.com ( 1 12h 15m 3w 2h)
-                NS powerdns.example.net.  // out-of-zone no A/AAAA RR required
+                NS powerdns.example.net.  
 ; begin RPZ RR definitions
 
 ;; QNAME Trigger
