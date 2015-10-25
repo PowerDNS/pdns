@@ -9,7 +9,7 @@
 // #include "dns.hh"
 // #include "logger.hh"
 
-// #include <ext/vstring.h>
+//#include <ext/vstring.h>
 
 /* Quest in life: 
      accept escaped ascii presentations of DNS names and store them "natively"
@@ -44,6 +44,7 @@ public:
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
   DNSName makeRelative(const DNSName& zone) const;
+  void makeUsRelative(const DNSName& zone);
   DNSName labelReverse() const;
   bool isWildcard() const;
   unsigned int countLabels() const;
@@ -81,7 +82,7 @@ public:
   inline bool canonCompare(const DNSName& rhs) const;
   
 private:
-  //  typedef __gnu_cxx::__sso_string string_t;
+  //typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
   bool slowCanonCompare(const DNSName& rhs) const;
   string_t d_storage;
