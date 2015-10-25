@@ -80,7 +80,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
   ComboAddress ca;
 
   for(const auto& r : records) {
-    if(r.d_place != DNSRecord::Answer) 
+    if(r.d_place != DNSResourceRecord::Answer) 
       continue;
     if(r.d_type == QType::A) 
       ca = std::dynamic_pointer_cast<ARecordContent>(r.d_content)->getCA();

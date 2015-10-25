@@ -638,7 +638,7 @@ void startDoResolve(void *p)
       spoofed.d_ttl = 1234;
       spoofed.d_class = 1;
       spoofed.d_content = dfepol.d_custom;
-      spoofed.d_place = DNSRecord::Answer;
+      spoofed.d_place = DNSResourceRecord::Answer;
       ret.push_back(spoofed);
       goto haveAnswer;
 
@@ -697,7 +697,7 @@ void startDoResolve(void *p)
 	spoofed.d_ttl = 1234;
 	spoofed.d_class = 1;
 	spoofed.d_content = dfepol.d_custom;
-	spoofed.d_place = DNSRecord::Answer;
+	spoofed.d_place = DNSResourceRecord::Answer;
 	ret.push_back(spoofed);
 	goto haveAnswer;
       }
