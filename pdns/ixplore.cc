@@ -3,6 +3,9 @@
 #endif
 #include "arguments.hh"
 #include "base64.hh"
+#include <sys/types.h>
+#include <dirent.h>
+              
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
