@@ -206,6 +206,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
     // ick ick ick!
     static int overloadQueueLength=::arg().asNum("overload-queue-length");
     for(;;) {
+      bool must_die = false;
       ++(us->d_idle_threads);
 
       us->numquestions.getValue( &qcount );
@@ -247,6 +248,9 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
         S.ringAccount("servfail-queries",q->qdomain);
+
+	delete QD->Q;
+	must_die = true;
       }
       catch(...) {
         L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
@@ -274,9 +278,12 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
     }
     
     delete b;
+    if (must_die)
+      throw PDNSException("Deferred backend error");
   }
   catch(const PDNSException &AE) {
     L<<Logger::Error<<Logger::NTLog<<"Distributor caught fatal exception: "<<AE.reason<<endl;
+    throw;
   }
   catch(...) {
     L<<Logger::Error<<Logger::NTLog<<"Caught an unknown exception when creating backend, probably"<<endl;
@@ -298,6 +305,8 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",q->qdomain);
+    callback(a);
+    throw;
   }
   catch(...) {
     L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
