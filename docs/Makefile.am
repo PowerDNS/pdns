@@ -11,6 +11,7 @@ MANPAGES_TARGET_TOOLS = dnsbulktest.1 \
 	dnsscope.1 \
 	dnstcpbench.1 \
 	dnswasher.1 \
+	ixplore.1 \
 	nsec3dig.1 \
 	saxfr.1 \
 	sdig.1
