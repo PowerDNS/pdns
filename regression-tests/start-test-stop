@@ -286,7 +286,7 @@ then
 fi
 
 # check for lua
-if grep -q "^#define HAVE_LUA 1" ../config.h
+if $PDNS --version 2>&1 | grep Features: | grep -q "lua"
 then
   lua_prequery="--lua-prequery-script=./check_stest_source"
   skiplua=0

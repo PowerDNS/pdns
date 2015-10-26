@@ -16,7 +16,7 @@
 
 StatBag S;
 
-bool validateTSIG(const string& message, const TSIGHashEnum& algo, const string& key, const string& secret, const TSIGRecordContent *trc) {
+bool validateTSIG(const string& message, const TSIGHashEnum& algo, const DNSName& key, const string& secret, const TSIGRecordContent *trc) {
   int64_t now = time(0);
   if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
     cerr<<"TSIG (key '"<<key<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
@@ -128,7 +128,7 @@ try
       input="";
       DNSPacketWriter pwtkey(packet, gssctx.getLabel(), QType::TKEY, QClass::ANY);
       TKEYRecordContent tkrc;
-      tkrc.d_algo = "gss-tsig";
+      tkrc.d_algo = DNSName("gss-tsig.");
       tkrc.d_inception = time((time_t*)NULL);
       tkrc.d_expiration = tkrc.d_inception+15;
       tkrc.d_mode = 3;
@@ -137,7 +137,7 @@ try
       tkrc.d_key = output;
       tkrc.d_othersize = 0;
       pwtkey.getHeader()->id = dns_random(0xffff);
-      pwtkey.startRecord(gssctx.getLabel(), QType::TKEY, 3600, QClass::ANY, DNSPacketWriter::ADDITIONAL, false);
+      pwtkey.startRecord(gssctx.getLabel(), QType::TKEY, 3600, QClass::ANY, DNSResourceRecord::ADDITIONAL, false);
       tkrc.toPacket(pwtkey);
       pwtkey.commit();
       BOOST_FOREACH(const string& msg, gssctx.getErrorStrings()) {

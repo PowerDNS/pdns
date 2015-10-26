@@ -36,4 +36,9 @@ dnsdist (${VERSION}-${RELEASE}) unstable; urgency=medium
 
 EOF
 
+. /etc/os-release
+export ID="${ID}"
+export VERSION_ID="${VERSION_ID}"
+
+fakeroot debian/rules debian/control
 fakeroot debian/rules binary

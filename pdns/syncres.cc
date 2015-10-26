@@ -134,7 +134,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     ret.clear();
     DNSRecord dr;
     dr.d_name=qname;
-    dr.d_place = DNSRecord::Answer;
+    dr.d_place = DNSResourceRecord::ANSWER;
     dr.d_type=qtype.getCode();
     dr.d_class=QClass::IN;
     dr.d_ttl=86400;
@@ -155,7 +155,7 @@ int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qcl
     dr.d_type=qtype.getCode();
     dr.d_class=qclass;
     dr.d_ttl=86400;
-    dr.d_place = DNSRecord::Answer;
+    dr.d_place = DNSResourceRecord::ANSWER;
     if(qname==versionbind  || qname==versionpdns)
       dr.d_content=shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(QType::TXT, 3, "\""+::arg()["version-string"]+"\""));
     else
@@ -215,7 +215,7 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
     ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType::SOA));
     if(ziter!=iter->second.d_records.end()) {
       DNSRecord dr=*ziter;
-      dr.d_place=DNSRecord::Nameserver;
+      dr.d_place=DNSResourceRecord::AUTHORITY;
       ret.push_back(dr);
     }
     else
@@ -236,7 +236,7 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
       DNSRecord dr=*ziter;
       if(dr.d_type == qtype.getCode() || qtype.getCode() == QType::ANY) {
         dr.d_name = qname;
-        dr.d_place=DNSRecord::Answer;
+        dr.d_place=DNSResourceRecord::ANSWER;
         ret.push_back(dr);
       }
     }
@@ -254,7 +254,7 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
 
     for(ziter=range.first; ziter!=range.second; ++ziter) {
       DNSRecord dr=*ziter;
-      dr.d_place=DNSRecord::Nameserver;
+      dr.d_place=DNSResourceRecord::AUTHORITY;
       ret.push_back(dr);
     }
   }
@@ -263,7 +263,7 @@ bool SyncRes::doOOBResolve(const DNSName &qname, const QType &qtype, vector<DNSR
     ziter=iter->second.d_records.find(boost::make_tuple(authdomain, QType::SOA));
     if(ziter!=iter->second.d_records.end()) {
       DNSRecord dr=*ziter;
-      dr.d_place=DNSRecord::Nameserver;
+      dr.d_place=DNSResourceRecord::AUTHORITY;
       ret.push_back(dr);
     }
     else {
@@ -397,7 +397,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
           // filter out the good stuff from lwr.result()
 
 	  for(const auto& rec : lwr.d_records) {
-            if(rec.d_place == DNSRecord::Answer)
+            if(rec.d_place == DNSResourceRecord::ANSWER)
               ret.push_back(rec);
           }
           return res;
@@ -668,7 +668,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
 	  dr.d_name=qname;
 	  dr.d_ttl=j->d_ttl - d_now.tv_sec;
 	  dr.d_content=signature;
-	  dr.d_place=DNSRecord::Answer;
+	  dr.d_place=DNSResourceRecord::ANSWER;
 	  dr.d_class=1;
 	  ret.push_back(dr);
 	}
@@ -768,7 +768,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
         DNSRecord dr=*j;
         ttl = (dr.d_ttl-=d_now.tv_sec);
         if(giveNegative) {
-          dr.d_place=DNSRecord::Nameserver;
+          dr.d_place=DNSResourceRecord::AUTHORITY;
           dr.d_ttl=sttl;
         }
         ret.push_back(dr);
@@ -787,7 +787,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       dr.d_name=sqname;
       dr.d_ttl=ttl; 
       dr.d_content=signature;
-      dr.d_place=DNSRecord::Answer;
+      dr.d_place=DNSResourceRecord::ANSWER;
       dr.d_class=1;
       ret.push_back(dr);
     }
@@ -919,6 +919,10 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       else {
         LOG(prefix<<qname.toString()<<": Trying to resolve NS '"<<tns->toString()<< "' ("<<1+tns-rnameservers.begin()<<"/"<<(unsigned int)rnameservers.size()<<")"<<endl);
 	;
+
+	// XXX NEED TO HANDLE OTHER POLICY KINDS HERE!
+	if(g_dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction)
+	  throw ImmediateServFailException("Dropped because of policy");
 
         if(!isCanonical(*tns)) {
           LOG(prefix<<qname.toString()<<": Domain has hardcoded nameserver(s)"<<endl);
@@ -1127,7 +1131,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 
         if(rec.d_name.isPartOf(auth)) {
-          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSRecord::Answer && ::arg().contains("delegation-only",auth.toString() /* ugh */)) {
+          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth.toString() /* ugh */)) {
             LOG("NO! Is from delegation-only zone"<<endl);
             s_nodelegated++;
             return RCode::NXDomain;
@@ -1141,7 +1145,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
             rec.d_ttl=min(s_maxcachettl, rec.d_ttl);
 
             DNSRecord dr(rec);
-            dr.d_place=DNSRecord::Answer;
+            dr.d_place=DNSResourceRecord::ANSWER;
 
             dr.d_ttl += d_now.tv_sec;
 
@@ -1175,7 +1179,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       DNSName newtarget;
 
       for(auto& rec : lwr.d_records) {
-        if(rec.d_place==DNSRecord::Nameserver && rec.d_type==QType::SOA && 
+        if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
            lwr.d_rcode==RCode::NXDomain && dottedEndsOn(qname,rec.d_name) && dottedEndsOn(rec.d_name, auth)) {
           LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<dottedEndsOn(rec.d_name, auth)<<"), newtarget='"<<newtarget.toString()<<"'"<<endl);
 
@@ -1200,16 +1204,16 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
           negindic=true;
         }
-        else if(rec.d_place==DNSRecord::Answer && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
+        else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(rec);
           newtarget=DNSName(rec.d_content->getZoneRepresentation());
         }
-	else if(d_doDNSSEC && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSRecord::Answer){
+	else if(d_doDNSSEC && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
 	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
 	    ret.push_back(rec); // enjoy your DNSSEC
 	}
         // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
-        else if(rec.d_place==DNSRecord::Answer && rec.d_name == qname &&
+        else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname &&
                 (
                  rec.d_type==qtype.getCode() || (lwr.d_aabit && (qtype==QType(QType::ANY) || magicAddrMatch(qtype, QType(rec.d_type)) ) ) || sendRDQuery
                 )
@@ -1221,7 +1225,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           done=true;
           ret.push_back(rec);
         }
-        else if(rec.d_place==DNSRecord::Nameserver && qname.isPartOf(rec.d_name) && rec.d_type==QType::NS) {
+        else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::NS) {
           if(moreSpecificThan(rec.d_name,auth)) {
             newauth=rec.d_name;
             LOG(prefix<<qname.toString()<<": got NS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
@@ -1232,11 +1236,11 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	  }
           nsset.insert(DNSName(rec.d_content->getZoneRepresentation()));
         }
-        else if(rec.d_place==DNSRecord::Nameserver && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::DS) { 
+        else if(rec.d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::DS) {
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
 	  sawDS=true;
 	}
-        else if(!done && rec.d_place==DNSRecord::Nameserver && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::SOA && 
+        else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::SOA &&
            lwr.d_rcode==RCode::NoError) {
           LOG(prefix<<qname.toString()<<": got negative caching indication for '"<< (qname.toString()+"|"+qtype.getName()+"'") <<endl);
 

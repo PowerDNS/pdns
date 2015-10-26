@@ -92,7 +92,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
 
 // this is the entrypoint from DNSPacket
 void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName signQName, const DNSName& wildcardname, uint16_t signQType,
-  uint32_t signTTL, DNSPacketWriter::Place signPlace, 
+  uint32_t signTTL, DNSResourceRecord::Place signPlace,
   vector<shared_ptr<DNSRecordContent> >& toSign, vector<DNSResourceRecord>& outsigned, uint32_t origTTL)
 {
   //cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
@@ -117,7 +117,7 @@ void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, con
     else
       rr.ttl=signTTL;
     rr.auth=false;
-    rr.d_place = static_cast<DNSResourceRecord::Place> (signPlace);
+    rr.d_place = signPlace;
     BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
       rr.content = rrc.getZoneRepresentation();
       outsigned.push_back(rr);
@@ -210,7 +210,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   uint32_t signTTL=0;
   uint32_t origTTL=0;
   
-  DNSPacketWriter::Place signPlace=DNSPacketWriter::ANSWER;
+  DNSResourceRecord::Place signPlace=DNSResourceRecord::ANSWER;
   vector<shared_ptr<DNSRecordContent> > toSign;
 
   vector<DNSResourceRecord> signedRecords;
@@ -230,7 +230,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     else
       signTTL = pos->ttl;
     origTTL = pos->ttl;
-    signPlace = static_cast<DNSPacketWriter::Place>(pos->d_place);
+    signPlace = pos->d_place;
     if(pos->auth || pos->qtype.getCode() == QType::DS) {
       string content = pos->content;
       if(!pos->content.empty() && pos->qtype.getCode()==QType::TXT && pos->content[0]!='"') {

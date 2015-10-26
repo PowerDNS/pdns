@@ -74,7 +74,7 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   qclass = p.d_class;
   disabled=false;
   qname = p.d_name;
-  d_place = (DNSResourceRecord::Place)p.d_place;
+  d_place = p.d_place;
   // if(!qname.empty())
   //   boost::erase_tail(qname, 1); // strip .
 
@@ -85,7 +85,7 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
   signttl = 0;
   domain_id = -1;
   qclass = p.d_class;
-  d_place = static_cast<DNSResourceRecord::Place>(p.d_place);
+  d_place = p.d_place;
   scopeMask = 0;
 }
 
@@ -303,6 +303,10 @@ boilerplate_conv(TLSA, 52,
                  conv.xfrHexBlob(d_cert, true);
                  )                 
                  
+boilerplate_conv(OPENPGPKEY, 61,
+                 conv.xfrBlob(d_keyring);
+                 )
+
 #undef DS
 DSRecordContent::DSRecordContent() : DNSRecordContent(43) {}
 boilerplate_conv(DS, 43, 
@@ -491,7 +495,7 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
     BOOST_FOREACH(const MOADNSParser::answers_t::value_type& val, mdp.d_answers) {
-      if(val.first.d_place == DNSRecord::Additional && val.first.d_type == QType::OPT) {
+      if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
         eo->d_packetsize=val.first.d_class;
        
         EDNS0Record stuff;
@@ -554,6 +558,7 @@ void reportOtherTypes()
    NSEC3RecordContent::report();
    NSEC3PARAMRecordContent::report();
    TLSARecordContent::report();
+   OPENPGPKEYRecordContent::report();
    DLVRecordContent::report();
    DNSRecordContent::regist(QClass::ANY, QType::TSIG, &TSIGRecordContent::make, &TSIGRecordContent::make, "TSIG");
    DNSRecordContent::regist(QClass::ANY, QType::TKEY, &TKEYRecordContent::make, &TKEYRecordContent::make, "TKEY");

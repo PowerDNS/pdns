@@ -628,8 +628,9 @@ Turn on slave support. See ["Modes of operation"](modes-of-operation.md#slave-op
 * Integer
 * 60
 
-Number of seconds to schedule slave up-to-date checks of domains whose status is
-unknown.
+On a master, this is the amounts of seconds between the master checking the SOA
+serials in its database to determine to send out NOTIFYs to the slaves. On slaves,
+this is the number of seconds between the slave checking for updates to zones.
 
 ## `slave-renotify`
 * Boolean

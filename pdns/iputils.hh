@@ -347,6 +347,17 @@ public:
   {
     return d_network.sin4.sin_family == AF_INET;
   }
+
+  bool operator<(const Netmask& rhs) const 
+  {
+    return tie(d_network, d_bits) < tie(rhs.d_network, rhs.d_bits);
+  }
+
+  bool operator==(const Netmask& rhs) const 
+  {
+    return tie(d_network, d_bits) == tie(rhs.d_network, rhs.d_bits);
+  }
+
 private:
   ComboAddress d_network;
   uint32_t d_mask;

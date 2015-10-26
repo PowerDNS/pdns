@@ -554,10 +554,10 @@ void shuffle(vector<DNSRecord>& rrs)
 {
   vector<DNSRecord>::iterator first, second;
   for(first=rrs.begin();first!=rrs.end();++first)
-    if(first->d_place==DNSRecord::Answer && first->d_type != QType::CNAME) // CNAME must come first
+    if(first->d_place==DNSResourceRecord::ANSWER && first->d_type != QType::CNAME) // CNAME must come first
       break;
   for(second=first;second!=rrs.end();++second)
-    if(second->d_place!=DNSRecord::Answer)
+    if(second->d_place!=DNSResourceRecord::ANSWER)
       break;
 
   if(second-first>1)
@@ -565,10 +565,10 @@ void shuffle(vector<DNSRecord>& rrs)
 
   // now shuffle the additional records
   for(first=second;first!=rrs.end();++first)
-    if(first->d_place==DNSRecord::Additional && first->d_type != QType::CNAME) // CNAME must come first
+    if(first->d_place==DNSResourceRecord::ADDITIONAL && first->d_type != QType::CNAME) // CNAME must come first
       break;
   for(second=first; second!=rrs.end(); ++second)
-    if(second->d_place!=DNSRecord::Additional)
+    if(second->d_place!=DNSResourceRecord::ADDITIONAL)
       break;
 
   if(second-first>1)

@@ -25,7 +25,7 @@ __EOF__
 		echo "goracle-dnssec" >> pdns-goracle2.conf
 	fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
 		echo "INSERT INTO domains (id, name, type, master) VALUES(domains_id_sequence.nextval, '$zone', 'SLAVE', '127.0.0.1:$port');" | sqlplus -S $GORACLE2USER/$GORACLE2PASSWD@xe >> goracle2.log
 	done

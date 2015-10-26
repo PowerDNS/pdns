@@ -39,14 +39,13 @@ class DNSPacketWriter : public boost::noncopyable
 
 public:
   typedef vector<pair<DNSName, uint16_t> > lmap_t;
-  enum Place : uint8_t {ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; 
 
   //! Start a DNS Packet in the vector passed, with question qname, qtype and qclass
   DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass=QClass::IN, uint8_t opcode=0);
 
   /** Start a new DNS record within this packet for namq, qtype, ttl, class and in the requested place. Note that packets can only be written in natural order -
       ANSWER, AUTHORITY, ADDITIONAL */
-  void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, Place place=ANSWER, bool compress=true);
+  void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, bool compress=true);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   typedef vector<pair<uint16_t,std::string> > optvect_t;
@@ -130,7 +129,7 @@ private:
   uint16_t d_recordqtype, d_recordqclass;
 
   uint16_t d_truncatemarker; // end of header, for truncate
-  Place d_recordplace;
+  DNSResourceRecord::Place d_recordplace;
   bool d_canonic, d_lowerCase;
 };
 

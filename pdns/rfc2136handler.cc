@@ -759,7 +759,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     const DNSRecord *rr = &i->first;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
-    if (! (rr->d_place == DNSRecord::Answer || rr->d_place == DNSRecord::Nameserver))
+    if (! (rr->d_place == DNSResourceRecord::ANSWER || rr->d_place == DNSResourceRecord::AUTHORITY))
       continue;
 
     if (!rr->d_name.isPartOf(di.zone)) {
@@ -779,7 +779,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   // 3.2.1 and 3.2.2 - Prerequisite check
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
-    if (rr->d_place == DNSRecord::Answer) {
+    if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
         L<<Logger::Error<<msgPrefix<<"Failed PreRequisites check, returning "<<res<<endl;
@@ -796,7 +796,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
   RRsetMap_t preReqRRsets;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
     const DNSRecord *rr = &i->first;
-    if (rr->d_place == DNSRecord::Answer) {
+    if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
       if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
         return RCode::FormErr;
@@ -844,7 +844,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     // 3.4.1 - Prescan section
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
-      if (rr->d_place == DNSRecord::Nameserver) {
+      if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         int res = checkUpdatePrescan(rr);
         if (res>0) {
           L<<Logger::Error<<msgPrefix<<"Failed prescan check, returning "<<res<<endl;
@@ -866,7 +866,7 @@ int PacketHandler::processUpdate(DNSPacket *p) {
     vector<const DNSRecord *> nsRRtoDelete;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
       const DNSRecord *rr = &i->first;
-      if (rr->d_place == DNSRecord::Nameserver) {
+      if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && rr->d_name == di.zone)
           nsRRtoDelete.push_back(rr);
         else

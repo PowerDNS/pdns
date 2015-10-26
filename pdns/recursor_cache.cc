@@ -61,7 +61,7 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
 	    dr.d_class = 1;
 	    dr.d_content = *k; 
 	    dr.d_ttl = i->d_ttd;
-	    dr.d_place = DNSRecord::Answer;
+	    dr.d_place = DNSResourceRecord::ANSWER;
 	    res->push_back(dr);
 	  }
 	}
