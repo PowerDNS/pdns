@@ -248,8 +248,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
         S.ringAccount("servfail-queries",q->qdomain);
-
-	delete QD->Q;
+        delete q;
 	must_die = true;
       }
       catch(...) {
@@ -258,6 +257,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         a->setRcode(RCode::ServFail);
         S.inc("servfail-packets");
         S.ringAccount("servfail-queries",q->qdomain);
+        delete q;
       }
 
       AnswerData<Answer> AD;
