@@ -293,6 +293,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 
 template<class Answer, class Question, class Backend>int SingleThreadDistributor<Answer,Question,Backend>::question(Question* q, void (*callback)(const AnswerData<Answer> &))
 {
+  bool must_die=false;
   Answer *a;
   try {
     a=b->question(q); // a can be NULL!
@@ -305,8 +306,7 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",q->qdomain);
-    callback(a);
-    throw;
+    must_die=true;
   }
   catch(...) {
     L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
@@ -331,6 +331,8 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     L<<Logger::Error<<"Unknown callback (sending reply) error"<<endl;
     delete AD.A;
   }
+  if (must_die)
+    throw PDNSException("Deferred backend error");
   return 0;
 }
 
