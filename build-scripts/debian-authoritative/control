@@ -26,6 +26,8 @@ Description: extremely powerful and versatile nameserver
 Package: pdns-tools
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Replaces: pdns-server (<< 3.4.6-2)
+Breaks: pdns-server (<< 3.4.6-2)
 Description: Tools for DNS debugging by PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
  of different backends ranging from simple zonefiles to relational
