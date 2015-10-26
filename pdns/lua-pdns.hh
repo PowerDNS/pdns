@@ -37,6 +37,8 @@ void pushResourceRecordsTable(lua_State* lua, const vector<DNSRecord>& records);
 void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRecord>& ret);
 void pushSyslogSecurityLevelTable(lua_State *lua);
 int getLuaTableLength(lua_State* lua, int depth);
+std::vector<std::pair<std::string, std::string>> getLuaTable(lua_State* lua, int index=0);
+void pushLuaTable(lua_State* lua, const vector<pair<string,string>>& table);
 void luaStackDump (lua_State *lua);
 extern "C" int luaopen_iputils(lua_State*);
 #endif

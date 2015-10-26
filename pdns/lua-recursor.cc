@@ -288,9 +288,8 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
       string callback;
       getFromTable("callback", callback);
 
-      lua_remove(d_lua, -2);
-
-      // XXX THIS IS PLAIN WRONG - WE LEAVE STUFF ON THE LUA STACK AND EXPECT IT TO STILL BE HERE WHEN WE GET BACK!
+      auto table = getLuaTable(d_lua, -1);
+      lua_pop(d_lua, 2);
       string answer = GenUDPQueryResponse(ComboAddress(dest), uquery);
 
       lua_getglobal(d_lua,  callback.c_str());
@@ -298,12 +297,8 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
       lua_pushstring(d_lua,  remote.toString().c_str() );
       lua_pushstring(d_lua,  query.toString().c_str() );
       lua_pushnumber(d_lua,  qtype.getCode() );
-
-      lua_pushvalue(d_lua, -5);
-      lua_remove(d_lua, -6);
-
-      lua_pushstring(d_lua, answer.c_str());
-      lua_setfield(d_lua, -2, "response");
+      table.push_back({"response", answer});
+      pushLuaTable(d_lua, table);
 
       if(lua_pcall(d_lua,  4, 3, 0)) {   // NOTE! Means we always get 3 stack entries back, no matter what our lua hook returned!
 	string error=string("lua error in '"+func+"' while callback for '"+query.toString()+"|"+qtype.getName()+": ")+lua_tostring(d_lua, -1);
