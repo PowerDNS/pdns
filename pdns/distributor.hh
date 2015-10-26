@@ -195,6 +195,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
 {
   pthread_detach(pthread_self());
   try {
+    bool must_die = false;
     Backend *b=new Backend(); // this will answer our questions
     MultiThreadDistributor *us=static_cast<MultiThreadDistributor *>(p);
     int qcount;
@@ -206,7 +207,6 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
     // ick ick ick!
     static int overloadQueueLength=::arg().asNum("overload-queue-length");
     for(;;) {
-      bool must_die = false;
       ++(us->d_idle_threads);
 
       us->numquestions.getValue( &qcount );
