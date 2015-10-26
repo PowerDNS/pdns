@@ -25,7 +25,6 @@ Description: extremely powerful and versatile nameserver
 
 Package: pdns-tools
 Architecture: any
-Priority: extra
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Tools for DNS debugging by PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
@@ -49,7 +48,6 @@ Description: Tools for DNS debugging by PowerDNS
 Package: pdns-server-dbg
 Section: debug
 Architecture: any
-Priority: extra
 Depends: pdns-server (= ${binary:Version}), ${misc:Depends}
 Description: debugging symbols for PowerDNS
  PowerDNS is a versatile nameserver which supports a large number
