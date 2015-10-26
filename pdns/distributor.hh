@@ -202,6 +202,8 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         S.ringAccount("servfail-queries",QD->Q->qdomain.toString());
 
 	delete QD->Q;
+	QD->callback(a);
+	throw;
       }
       catch(...) {
         L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(long)pthread_self()<<endl;
@@ -223,6 +225,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
   }
   catch(const PDNSException &AE) {
     L<<Logger::Error<<"Distributor caught fatal exception: "<<AE.reason<<endl;
+    throw;
   }
   catch(...) {
     L<<Logger::Error<<"Caught an unknown exception when creating backend, probably"<<endl;
@@ -244,6 +247,8 @@ template<class Answer, class Question, class Backend>int SingleThreadDistributor
     a->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries",q->qdomain.toString());
+    callback(a);
+    throw;
   }
   catch(...) {
     L<<Logger::Error<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
