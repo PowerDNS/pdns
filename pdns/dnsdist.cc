@@ -262,6 +262,11 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const C
 
     }
   }
+
+  // Catch poss & sum are empty to avoid SIGFPE
+  if(poss.empty())
+    return shared_ptr<DownstreamState>();
+
   int r = random() % sum;
   auto p = upper_bound(poss.begin(), poss.end(),r, [](int r, const decltype(poss)::value_type& a) { return  r < a.first;});
   if(p==poss.end())
