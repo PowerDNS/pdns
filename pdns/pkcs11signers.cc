@@ -666,9 +666,9 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
     L<<Logger::Warning<<"Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"<<std::endl;
     return 0;
   } catch (...) {
-    return CK_UNAVAILABLE_INFORMATION;
+    return CKR_SLOT_ID_INVALID;
   }
-  return CK_UNAVAILABLE_INFORMATION;
+  return CKR_SLOT_ID_INVALID;
 }
 
 std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const string& tokenId) {
@@ -698,7 +698,7 @@ std::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const
   CK_SLOT_ID slotId;
 
   if ((err = Pkcs11Slot::HuntSlot(tokenId, slotId, &info, functions))) {
-    throw PDNSException(std::string("Cannot find PKCS#11 token ") + tokenId + std::string(" on module ") + module + std::string(": error code ") + boost::lexical_cast<std::string>(err));
+    throw PDNSException(std::string("Cannot find PKCS#11 token ") + tokenId + std::string(" on module ") + module + std::string(": ") + boost::str( boost::format("%s (0x%X)") % p11_kit_strerror(err) % err));
   }
 
   // store slot
