@@ -5,5 +5,6 @@ debian/tmp/usr/share/man/man1/dnsscan.1
 debian/tmp/usr/share/man/man1/dnsscope.1
 debian/tmp/usr/share/man/man1/dnstcpbench.1
 debian/tmp/usr/share/man/man1/dnswasher.1
+debian/tmp/usr/share/man/man1/ixplore.1
 debian/tmp/usr/share/man/man1/nsec3dig.1
 debian/tmp/usr/share/man/man1/saxfr.1
