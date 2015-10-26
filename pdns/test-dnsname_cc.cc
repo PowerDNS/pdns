@@ -528,4 +528,17 @@ BOOST_AUTO_TEST_CASE(test_compression_loop2) { // Compression loop (deep recursi
   BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), name.size()-2, true), std::range_error);
 }
 
+BOOST_AUTO_TEST_CASE(test_wirelength) { // Testing if we get the correct value from the wirelength function
+  DNSName name("www.powerdns.com");
+  BOOST_CHECK_EQUAL(name.wirelength(), 18);
+
+  DNSName sname("powerdns.com");
+  sname.prependRawLabel(string("ww\x00""w", 4));
+  BOOST_CHECK_EQUAL(sname.wirelength(), 19);
+
+  sname = DNSName("powerdns.com");
+  sname.prependRawLabel(string("www\x00", 4));
+  BOOST_CHECK_EQUAL(sname.wirelength(), 19);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

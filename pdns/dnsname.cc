@@ -105,6 +105,15 @@ size_t DNSName::length() const {
   return this->toString().length();
 }
 
+/**
+ * Get the length of the DNSName on the wire
+ *
+ * @return the total wirelength of the DNSName
+ */
+size_t DNSName::wirelength() const {
+  return d_storage.length() + 1;
+}
+
 // are WE part of parent
 bool DNSName::isPartOf(const DNSName& parent) const
 {
