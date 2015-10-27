@@ -257,9 +257,11 @@ public:
     if (!d_stmt) return this;
     int err;
     mysql_stmt_free_result(d_stmt);
+#if MYSQL_VERSION_ID >= 50500
     while((err = mysql_stmt_next_result(d_stmt)) == 0) {
       mysql_stmt_free_result(d_stmt);
     }
+#endif
     if (err>0) {
       string error(mysql_stmt_error(d_stmt));
       throw SSqlException("Could not get next result from mysql statement: " + d_query + string(": ") + error);
