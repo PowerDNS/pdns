@@ -44,6 +44,7 @@ Description: Tools for DNS debugging by PowerDNS
  * dnsscope: Calculates statistics without replaying traffic
  * dnstcpbench: Perform TCP benchmarking of DNS servers
  * dnswasher: Clean a pcap of identifying IP information
+ * ixplore: Explore diffs from IXFRs
  * nsec3dig: Calculate the correctness of NSEC3 proofs
  * saxfr: AXFR zones and show extra information
 
