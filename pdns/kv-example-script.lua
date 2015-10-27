@@ -13,6 +13,8 @@ that needs to be called once the data is in.
 
 We'll add more parameters, like 'timeout' and perhaps 'protocol' as we improve this feature
 over time. 
+
+To test, use the 'kvresp' example program provided.
 --]]
 
 function preresolve ( remoteip, domain, qtype )

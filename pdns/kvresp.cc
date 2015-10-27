@@ -5,13 +5,17 @@
 #include "sstuff.hh"
 #include "statbag.hh"
 
+/* This tool REALLY wants to be rewritten in Python, by ahu does not speak it very well.
+   What it does is provide answers to queries from the Lua generic UDP Question/Answer
+   stuff in kv-example-script.lua */
+
 StatBag S;
 
 int main(int argc, char** argv)
 try
 {
   if(argc != 3) {
-    cerr<<"Syntax: dumresp local-address local-port"<<endl;
+    cerr<<"Syntax: kvresp local-address local-port"<<endl;
     exit(EXIT_FAILURE);
   }
 
