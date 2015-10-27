@@ -17,12 +17,17 @@ CDB::CDB(const string &cdbfile)
     throw new PDNSException("Failed to open cdb database file '"+cdbfile+"'. Error: " + stringerror());
   }
 
+  memset(&d_cdbf,0,sizeof(struct cdb_find));
   int cdbinit = cdb_init(&d_cdb, d_fd);
   if (cdbinit < 0)
   {
     L<<Logger::Error<<"Failed to initialize cdb structure. ErrorNr: '"<<cdbinit<<endl;
     throw new PDNSException("Failed to initialize cdb structure.");
   }
+
+  d_key = NULL;
+  d_seqPtr = 0;
+  d_searchType = SearchKey;
 }
 
 CDB::~CDB() {

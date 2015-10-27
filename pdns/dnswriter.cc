@@ -60,7 +60,7 @@ DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname,
 
 dnsheader* DNSPacketWriter::getHeader()
 {
-  return (dnsheader*)&*d_content.begin();
+  return reinterpret_cast<dnsheader*>(&*d_content.begin());
 }
 
 void DNSPacketWriter::startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl, uint16_t qclass, DNSResourceRecord::Place place, bool compress)

@@ -633,6 +633,10 @@ UeberBackend::handle::handle()
 {
   //  L<<Logger::Warning<<"Handle instances: "<<instances<<endl;
   ++instances;
+  parent=NULL;
+  d_hinterBackend=NULL;
+  pkt_p=NULL;
+  i=0;
 }
 
 UeberBackend::handle::~handle()

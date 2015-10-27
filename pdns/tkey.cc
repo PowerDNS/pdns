@@ -77,6 +77,7 @@ void PacketHandler::tkeyHandler(DNSPacket *p, DNSPacket *r) {
   rec.d_type = QType::TKEY;
   rec.d_class = QClass::ANY;
   rec.d_content = tkey_out;
+  rec.d_place = DNSResourceRecord::ANSWER;
 
   DNSResourceRecord rr(rec);
   rr.qclass = QClass::ANY;

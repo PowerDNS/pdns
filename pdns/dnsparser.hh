@@ -238,7 +238,9 @@ public:
   }
 
   explicit DNSRecordContent(uint16_t type) : d_qtype(type)
-  {}
+  {
+     memset(&header,0,sizeof(header));
+  }
   
   
   DNSRecordContent& operator=(const DNSRecordContent& orig) 
@@ -265,7 +267,13 @@ protected:
 
 struct DNSRecord
 {
-  DNSRecord() = default;
+  DNSRecord() {
+    d_type = 0;
+    d_class = QClass::IN;
+    d_ttl = 0;
+    d_clen = 0;
+    d_place = DNSResourceRecord::ANSWER;
+  }
   explicit DNSRecord(const DNSResourceRecord& rr);
   DNSName d_name;
   std::shared_ptr<DNSRecordContent> d_content;
