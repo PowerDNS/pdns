@@ -24,7 +24,7 @@ fi
 set +x
 for prefix in 'www' 'wildcard'; do
   for num in $(seq 0 1000000); do
-    echo "${num},${prefix}.www.powerdnssec.org" >> ${prefix}.csv
+    echo "${num},${prefix}.powerdnssec.org" >> ${prefix}.csv
   done
 done
 set -x
