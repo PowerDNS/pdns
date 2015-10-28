@@ -1,4 +1,4 @@
-0 test.dyndns. IN NSEC3PARAM 86400 1 0 1 abcd 0 test.dyndns. IN RRSIG 86400 NSEC3PARAM 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ... 2 . IN OPT 32768 Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0 Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+0 test.dyndns. IN NSEC3PARAM 86400 1 0 1 abcd 0 test.dyndns. IN RRSIG 86400 NSEC3PARAM 8 2 86400 [expiry] [inception] [keytag] test.dyndns. ... 2 . IN OPT 32768 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0 Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
