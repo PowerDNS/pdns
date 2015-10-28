@@ -19,47 +19,51 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "ext/luawrapper/include/LuaContext.hpp"
+
+#include "dnsdist.hh"
 #include "sstuff.hh"
 #include "misc.hh"
-#include "statbag.hh"
 #include <netinet/tcp.h>
-#include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
-#include <thread>
 #include <limits>
-#include <atomic>
-#include "arguments.hh"
 #include "dolog.hh"
+#include <readline/readline.h>
+#include <readline/history.h>
+#include "dnsname.hh"
+#include "dnswriter.hh"
+#include "base64.hh"
 #include <fstream>
-#undef L
+#include "delaypipe.hh"
+#include <unistd.h>
+#include "sodcrypto.hh"
+#include "dnsrulactions.hh"
 
+#include <getopt.h>
 
-/* syntax: dnsdist 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220
-   Added downstream server 8.8.8.8:53
-   Added downstream server 8.8.4.4:53
-   Added downstream server 208.67.222.222:53
-   Added downstream server 208.67.220.220:53
-   Listening on [::]:53
+/* Known sins:
 
-   And you are in business!
- */
+   Receiver is currently singlethreaded
+      not *that* bad actually, but now that we are thread safe, might want to scale
+   TCP is a bit wonky and may pick the wrong downstream
+   ringbuffers are on a wing & a prayer because partially unlocked
+*/
 
-ArgvMap& arg()
-{
-  static ArgvMap a;
-  return a;
-}
-StatBag S;
-namespace po = boost::program_options;
-po::variables_map g_vm;
+/* the Rulaction plan
+   Set of Rules, if one matches, it leads to an Action
+   Both rules and actions could conceivably be Lua based. 
+   On the C++ side, both could be inherited from a class Rule and a class Action, 
+   on the Lua side we can't do that. */
+
 using std::atomic;
 using std::thread;
 bool g_verbose;
-atomic<uint64_t> g_pos;
-atomic<uint64_t> g_regexBlocks;
+
+struct DNSDistStats g_stats;
 uint16_t g_maxOutstanding;
 bool g_console;
+
+GlobalStateHolder<NetmaskGroup> g_ACL;
+string g_outputBuffer;
+vector<std::pair<ComboAddress, bool>> g_locals;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -81,43 +85,58 @@ bool g_console;
    Round-robin with basic uptime checks
    Send to least loaded server (least outstanding)
    Send it to the first server that is not overloaded
+   Hashed weighted random
 */
 
-struct IDState
+/* Idea:
+   Multiple server groups, by default we load balance to the group with no name.
+   Each instance is either 'up', 'down' or 'auto', where 'auto' means that dnsdist 
+   determines if the instance is up or not. Auto should be the default and very very good.
+
+   In addition, to each instance you can attach a QPS object with rate & burst, which will optionally
+   limit the amount of queries we send there.
+
+   If all downstreams are over QPS, we pick the fastest server */
+
+GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction> > > > g_rulactions;
+Rings g_rings;
+
+GlobalStateHolder<servers_t> g_dstates;
+
+bool g_truncateTC{1};
+void truncateTC(const char* packet, unsigned int* len)
+try
 {
-  IDState() : origFD(-1) {}
-  IDState(const IDState& orig)
+  unsigned int consumed;
+  DNSName qname(packet, *len, 12, false, 0, 0, &consumed);
+  *len=consumed+12+4;
+  struct dnsheader* dh =(struct dnsheader*)packet;
+  dh->ancount = dh->arcount = dh->nscount=0;
+}
+catch(...)
+{
+  g_stats.truncFail++;
+}
+
+struct DelayedPacket
+{
+  int fd;
+  string packet;
+  ComboAddress destination;
+  ComboAddress origDest;
+  void operator()()
   {
-    origFD = orig.origFD;
-    origID = orig.origID;
-    origRemote = orig.origRemote;
-    age.store(orig.age.load());
+    if(origDest.sin4.sin_family == 0)
+      sendto(fd, packet.c_str(), packet.size(), 0, (struct sockaddr*)&destination, destination.getSocklen());
+    else
+      sendfromto(fd, packet.c_str(), packet.size(), 0, origDest, destination);
   }
-
-  int origFD;  // set to <0 to indicate this state is empty
-  uint16_t origID;
-  ComboAddress origRemote;
-  atomic<uint64_t> age;
 };
 
-struct DownstreamState 
-{
-  int fd;            
-  thread tid;
-  ComboAddress remote;
-  vector<IDState> idStates;
-  atomic<uint64_t> idOffset{0};
-  atomic<uint64_t> sendErrors{0};
-  atomic<uint64_t> outstanding{0};
-  atomic<uint64_t> reuseds{0};
-  atomic<uint64_t> queries{0};
-};
-
-DownstreamState* g_dstates;
-unsigned int g_numdownstreams;
+DelayPipe<DelayedPacket> g_delay;
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
-void* responderThread(DownstreamState* state)
+void* responderThread(std::shared_ptr<DownstreamState> state)
 {
   char packet[4096];
   
@@ -125,75 +144,180 @@ void* responderThread(DownstreamState* state)
   int len;
   for(;;) {
     len = recv(state->fd, packet, sizeof(packet), 0);
-    if(len < 0)
+    if(len < (signed)sizeof(dnsheader))
       continue;
 
-    if(dh->id >= g_maxOutstanding)
+    if(dh->id >= state->idStates.size())
       continue;
 
     IDState* ids = &state->idStates[dh->id];
-    if(ids->origFD < 0)
+    if(ids->origFD < 0) // duplicate
       continue;
     else
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
-    dh->id = ids->origID;
-    sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+    if(dh->tc && g_truncateTC) {
+      truncateTC(packet, (unsigned int*)&len);
+    }
 
-    vinfolog("Got answer from %s, relayed to %s", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort());
+    dh->id = ids->origID;
+    g_stats.responses++;
+
+    if(ids->delayMsec) {
+      DelayedPacket dp{ids->origFD, string(packet,len), ids->origRemote, ids->origDest};
+      g_delay.submit(dp, ids->delayMsec);
+    }
+    else {
+      if(ids->origDest.sin4.sin_family == 0)
+	sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+      else
+	sendfromto(ids->origFD, packet, len, 0, ids->origDest, ids->origRemote);
+    }
+    double udiff = ids->sentTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
+
+    {
+      std::lock_guard<std::mutex> lock(g_rings.respMutex);
+      g_rings.respRing.push_back({ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff});
+    }
+    if(dh->rcode == 2)
+      g_stats.servfailResponses++;
+    state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
+
+    if(udiff < 1000) g_stats.latency0_1++;
+    else if(udiff < 10000) g_stats.latency1_10++;
+    else if(udiff < 50000) g_stats.latency10_50++;
+    else if(udiff < 100000) g_stats.latency50_100++;
+    else if(udiff < 1000000) g_stats.latency100_1000++;
+    else g_stats.latencySlow++;
+    
+    auto doAvg = [](double& var, double n, double weight) {
+      var = (weight -1) * var/weight + n/weight;
+    };
+
+    doAvg(g_stats.latencyAvg100,     udiff,     100);
+    doAvg(g_stats.latencyAvg1000,    udiff,    1000);
+    doAvg(g_stats.latencyAvg10000,   udiff,   10000);
+    doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 
     ids->origFD = -1;
   }
   return 0;
 }
 
-struct ClientState
-{
-  ComboAddress local;
-  int udpFD;
-  int tcpFD;
-};
-
-#if 0
-DownstreamState& getBestDownstream()
-{
-  unsigned int lowest = std::numeric_limits<unsigned int>::max();
-  unsigned int chosen = 0;
-  for(unsigned int n = 0; n < g_numdownstreams; ++n) {
-    if(g_dstates[n].outstanding < lowest) {
-      chosen = n;
-      lowest=g_dstates[n].outstanding;
-    }
-  }      
-  return g_dstates[chosen];
+bool operator<(const struct timespec&a, const struct timespec& b) 
+{ 
+  return std::tie(a.tv_sec, a.tv_nsec) < std::tie(b.tv_sec, b.tv_nsec); 
 }
-#endif
-LuaContext g_lua;
-class Object {
-public:
-  Object() : value(10) {}
-
-  void increment() { std::cout << "incrementing" << std::endl; value++; } 
-
-  int value;
-};
 
 
-DownstreamState& getBestDownstream()
+DownstreamState::DownstreamState(const ComboAddress& remote_)
 {
-  auto pickServer=g_lua.readVariable<LuaContext::LuaFunctionCaller<int (void)> >("pickServer");
-  auto i = pickServer();
-  return g_dstates[i];
+  remote = remote_;
+  
+  fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
+  SConnect(fd, remote);
+  idStates.resize(g_maxOutstanding);
+  sw.start();
+  infolog("Added downstream server %s", remote.toStringWithPort());
+}
 
+std::mutex g_luamutex;
+LuaContext g_lua;
 
+GlobalStateHolder<ServerPolicy> g_policy;
 
+shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  for(auto& d : servers) {
+    if(d.second->isUp() && d.second->qps.check())
+      return d.second;
+  }
+  return leastOutstanding(servers, remote, qname, qtype, dh);
+}
+
+shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  vector<pair<pair<int,int>, shared_ptr<DownstreamState>>> poss;
+  poss.reserve(servers.size());
+  for(auto& d : servers) {    
+    if(d.second->isUp()) {
+      poss.push_back({make_pair(d.second->outstanding.load(), d.second->order), d.second});
+    }
+  }
+  if(poss.empty())
+    return shared_ptr<DownstreamState>();
+  nth_element(poss.begin(), poss.begin(), poss.end(), [](const decltype(poss)::value_type& a, const decltype(poss)::value_type& b) { return a.first < b.first; });
+  return poss.begin()->second;
+}
+
+shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  vector<pair<int, shared_ptr<DownstreamState>>> poss;
+  int sum=0;
+  for(auto& d : servers) {      // w=1, w=10 -> 1, 11
+    if(d.second->isUp()) {
+      sum+=d.second->weight;
+      poss.push_back({sum, d.second});
+
+    }
+  }
+
+  // Catch poss & sum are empty to avoid SIGFPE
+  if(poss.empty())
+    return shared_ptr<DownstreamState>();
+
+  int r = random() % sum;
+  auto p = upper_bound(poss.begin(), poss.end(),r, [](int r, const decltype(poss)::value_type& a) { return  r < a.first;});
+  if(p==poss.end())
+    return shared_ptr<DownstreamState>();
+  return p->second;
+}
+
+shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  NumberedServerVector poss;
+
+  for(auto& d : servers) {
+    if(d.second->isUp()) {
+      poss.push_back(d);
+    }
+  }
+
+  const auto *res=&poss;
+  if(poss.empty())
+    res = &servers;
+
+  if(res->empty())
+    return shared_ptr<DownstreamState>();
+
+  static unsigned int counter;
+ 
+  return (*res)[(counter++) % res->size()].second;
+}
+
+static void writepid(string pidfile) {
+  if (!pidfile.empty()) {
+    // Clean up possible stale file
+    unlink(pidfile.c_str());
+
+    // Write the pidfile
+    ofstream of(pidfile.c_str());
+    if (of) {
+      of << getpid();
+    } else {
+      errlog("Unable to write PID-file to '%s'.", pidfile);
+    }
+    of.close();
+  }
 }
 
 static void daemonize(void)
 {
   if(fork())
     _exit(0); // bye bye
-  
+  /* We are child */
+
   setsid(); 
 
   int i=open("/dev/null",O_RDWR); /* open stdin */
@@ -207,6 +331,42 @@ static void daemonize(void)
   }
 }
 
+ComboAddress g_serverControl{"127.0.0.1:5199"};
+
+
+NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool)
+{
+  NumberedServerVector ret;
+  int count=0;
+  for(const auto& s : servers) 
+    if((pool.empty() && s->pools.empty()) || s->pools.count(pool))
+      ret.push_back(make_pair(++count, s));
+  
+  return ret;
+}
+
+// goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
+int getEDNSZ(const char* packet, unsigned int len)
+{
+  struct dnsheader* dh =(struct dnsheader*)packet;
+
+  if(dh->ancount!=0 && ntohs(dh->arcount)!=1 && dh->nscount!=0)
+    return 0;
+  
+  unsigned int consumed;
+  DNSName qname(packet, len, 12, false, 0, 0, &consumed);
+  int pos = consumed + 4;
+  uint16_t qtype, qclass;
+
+  DNSName aname(packet, len, 12+pos, true, &qtype, &qclass, &consumed);
+  
+  if(qtype!=QType::OPT || 12+pos+consumed+7 >= len)
+    return 0;
+
+  uint8_t* z = (uint8_t*)packet+12+pos+consumed+6;
+  return 0x100 * (*z) + *(z+1);
+}
+
 
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 void* udpClientThread(ClientState* cs)
@@ -214,8 +374,6 @@ try
 {
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
-  socklen_t socklen = cs->local.getSocklen();
-  
   char packet[1500];
   struct dnsheader* dh = (struct dnsheader*) packet;
   int len;
@@ -223,46 +381,161 @@ try
   string qname;
   uint16_t qtype;
 
-  Regex* re=0;
-  if(g_vm.count("regex-drop"))
-    re=new Regex(g_vm["regex-drop"].as<string>());
+  typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
+  blockfilter_t blockFilter = 0;
+
+  
+  {
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto candidate = g_lua.readVariable<boost::optional<blockfilter_t> >("blockFilter");
+    if(candidate)
+      blockFilter = *candidate;
+  }
+  auto acl = g_ACL.getLocal();
+  auto localPolicy = g_policy.getLocal();
+
+  auto localRulactions = g_rulactions.getLocal();
+  auto localServers = g_dstates.getLocal();
+  struct msghdr msgh;
+  struct iovec iov;
+  char cbuf[256];
+
+  remote.sin6.sin6_family=cs->local.sin6.sin6_family;
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), packet, sizeof(packet), &remote);
 
   for(;;) {
-    len = recvfrom(cs->udpFD, packet, sizeof(packet), 0, (struct sockaddr*) &remote, &socklen);
-    if(len < (int)sizeof(struct dnsheader)) 
-      continue;
+    try {
+      len = recvmsg(cs->udpFD, &msgh, 0);
+      g_rings.clientRing.push_back(remote);
+      if(len < (int)sizeof(struct dnsheader)) 
+	continue;
 
-    if(re) {
-      qname=questionExpand(packet, len, qtype); 
-      if(re->match(qname)) {
-	g_regexBlocks++;
+      g_stats.queries++;
+      if(!acl->match(remote)) {
+	g_stats.aclDrops++;
 	continue;
       }
+      
+      if(dh->qr)    // don't respond to responses
+	continue;
+      
+      
+      DNSName qname(packet, len, 12, false, &qtype);
+
+      g_rings.queryRing.push_back(qname);
+            
+      if(blockFilter) {
+	std::lock_guard<std::mutex> lock(g_luamutex);
+	
+	if(blockFilter(remote, qname, qtype, dh)) {
+	  g_stats.blockFilter++;
+	  continue;
+	}
+      }
+      
+
+      DNSAction::Action action=DNSAction::Action::None;
+      string ruleresult;
+      string pool;
+
+      for(const auto& lr : *localRulactions) {
+	if(lr.first->matches(remote, qname, qtype, dh, len)) {
+	  action=(*lr.second)(remote, qname, qtype, dh, len, &ruleresult);
+	  if(action != DNSAction::Action::None) {
+	    lr.first->d_matches++;
+	    break;
+	  }
+	}
+      }
+      int delayMsec=0;
+      switch(action) {
+      case DNSAction::Action::Drop:
+	g_stats.ruleDrop++;
+	continue;
+      case DNSAction::Action::Nxdomain:
+	dh->rcode = RCode::NXDomain;
+	dh->qr=true;
+	g_stats.ruleNXDomain++;
+	break;
+      case DNSAction::Action::Pool: 
+	pool=ruleresult;
+	break;
+
+      case DNSAction::Action::Spoof:
+	;
+      case DNSAction::Action::HeaderModify:
+	dh->qr=true;
+	break;
+
+      case DNSAction::Action::Delay:
+	delayMsec = atoi(ruleresult.c_str()); // sorry
+	break;
+      case DNSAction::Action::Allow:
+      case DNSAction::Action::None:
+	break;
+      }
+
+      if(dh->qr) { // something turned it into a response
+	g_stats.selfAnswered++;
+	ComboAddress dest;
+	if(HarvestDestinationAddress(&msgh, &dest)) 
+	  sendfromto(cs->udpFD, packet, len, 0, dest, remote);
+	else
+	  sendto(cs->udpFD, packet, len, 0, (struct sockaddr*)&remote, remote.getSocklen());
+
+	continue;
+      }
+
+      DownstreamState* ss = 0;
+      auto candidates=getDownstreamCandidates(*localServers, pool);
+      auto policy=localPolicy->policy;
+      {
+	std::lock_guard<std::mutex> lock(g_luamutex);
+	ss = policy(candidates, remote, qname, qtype, dh).get();
+      }
+
+      if(!ss) {
+	g_stats.noPolicy++;
+	continue;
+	
+      }
+      
+      ss->queries++;
+      
+      unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
+      IDState* ids = &ss->idStates[idOffset];
+      
+      if(ids->origFD < 0) // if we are reusing, no change in outstanding
+	ss->outstanding++;
+      else {
+	ss->reuseds++;
+	g_stats.downstreamTimeouts++;
+      }
+      
+      ids->origFD = cs->udpFD;
+      ids->age = 0;
+      ids->origID = dh->id;
+      ids->origRemote = remote;
+      ids->sentTime.start();
+      ids->qname = qname;
+      ids->qtype = qtype;
+      ids->origDest.sin4.sin_family=0;
+      ids->delayMsec = delayMsec;
+      HarvestDestinationAddress(&msgh, &ids->origDest);
+      
+      dh->id = idOffset;
+      
+      len = send(ss->fd, packet, len, 0);
+      if(len < 0) {
+	ss->sendErrors++;
+	g_stats.downstreamSendErrors++;
+      }
+      
+      vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->remote.toStringWithPort());
     }
-
-    DownstreamState& ss = getBestDownstream();
-    ss.queries++;
-
-    unsigned int idOffset = (ss.idOffset++) % g_maxOutstanding;
-    IDState* ids = &ss.idStates[idOffset];
-
-    if(ids->origFD < 0) // if we are reusing, no change in outstanding
-      ss.outstanding++;
-    else
-      ss.reuseds++;
-
-    ids->origFD = cs->udpFD;
-    ids->age = 0;
-    ids->origID = dh->id;
-    ids->origRemote = remote;
-
-    dh->id = idOffset;
-    
-    len = send(ss.fd, packet, len, 0);
-    if(len < 0) 
-      ss.sendErrors++;
-
-    vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss.remote.toStringWithPort());
+    catch(std::exception& e){
+      errlog("Got an error in UDP question thread: %s", e.what());
+    }
   }
   return 0;
 }
@@ -282,367 +555,569 @@ catch(...)
   return 0;
 }
 
-/* TCP: the grand design. 
-   We forward 'messages' between clients and downstream servers. Messages are 65k bytes large, tops. 
-   An answer might theoretically consist of multiple messages (for example, in the case of AXFR), initially 
-   we will not go there.
 
-   In a sense there is a strong symmetry between UDP and TCP, once a connection to a downstream has been setup.
-   This symmetry is broken because of head-of-line blocking within TCP though, necessitating additional connections
-   to guarantee performance.
-
-   So the idea is to have a 'pool' of available downstream connections, and forward messages to/from them and never queue.
-   So whenever an answer comes in, we know where it needs to go.
-
-   Let's start naively.
-*/
-
-int getTCPDownstream(DownstreamState** ds)
-{
-  *ds = &getBestDownstream();
-  
-  vinfolog("TCP connecting to downstream %s", (*ds)->remote.toStringWithPort());
-  int sock = SSocket((*ds)->remote.sin4.sin_family, SOCK_STREAM, 0);
-  SConnect(sock, (*ds)->remote);
-  return sock;
-}
-
-bool getMsgLen(int fd, uint16_t* len)
+bool upCheck(const ComboAddress& remote)
 try
 {
-  uint16_t raw;
-  int ret = readn2(fd, &raw, 2);
-  if(ret != 2)
+  vector<uint8_t> packet;
+  DNSPacketWriter dpw(packet, DNSName("a.root-servers.net."), QType::A);
+  dpw.getHeader()->rd=true;
+
+  Socket sock(remote.sin4.sin_family, SOCK_DGRAM);
+  sock.setNonBlocking();
+  sock.connect(remote);
+  sock.write((char*)&packet[0], packet.size());  
+  int ret=waitForRWData(sock.getHandle(), true, 1, 0);
+  if(ret < 0 || !ret) // error, timeout, both are down!
     return false;
-  *len = ntohs(raw);
+  string reply;
+  ComboAddress dest=remote;
+  sock.recvFrom(reply, dest);
+
+  // XXX fixme do bunch of checking here etc 
   return true;
 }
-catch(...) {
-   return false;
-}
-
-bool putMsgLen(int fd, uint16_t len)
-try
+catch(...)
 {
-  uint16_t raw = htons(len);
-  int ret = writen2(fd, &raw, 2);
-  return ret==2;
-}
-catch(...) {
   return false;
 }
 
-struct ConnectionInfo
-{
-  int fd;
-  ComboAddress remote;
-};
-
-void* tcpClientThread(int pipefd);
-
-class TCPClientCollection {
-  vector<int> d_tcpclientthreads;
-  atomic<uint64_t> d_pos;
-public:
-  atomic<uint64_t> d_queued, d_numthreads;
-
-  TCPClientCollection()
-  {
-    d_tcpclientthreads.reserve(1024);
-  }
-
-  int getThread() 
-  {
-    int pos = d_pos++;
-    ++d_queued;
-    return d_tcpclientthreads[pos % d_numthreads];
-  }
-
-  // Should not be called simultaneously!
-  void addTCPClientThread()
-  {  
-    
-    vinfolog("Adding TCP Client thread");
-
-    int pipefds[2];
-    if(pipe(pipefds) < 0)
-      unixDie("Creating pipe");
-
-    d_tcpclientthreads.push_back(pipefds[1]);    
-    thread t1(tcpClientThread, pipefds[0]);
-    t1.detach();
-    ++d_numthreads;
-  }
-} g_tcpclientthreads;
-
-
-void* tcpClientThread(int pipefd)
-{
-  /* we get launched with a pipe on which we receive file descriptors from clients that we own
-     from that point on */
-  int dsock = -1;
-  DownstreamState *ds=0;
-  
-  for(;;) {
-    ConnectionInfo* citmp, ci;
-    readn2(pipefd, &citmp, sizeof(citmp));
-    --g_tcpclientthreads.d_queued;
-    ci=*citmp;
-    delete citmp;
-     
-    if(dsock == -1)
-      dsock = getTCPDownstream(&ds);
-    else {
-      vinfolog("Reusing existing TCP connection to %s", ds->remote.toStringWithPort());
-    }
-
-    uint16_t qlen, rlen;
-    try {
-      for(;;) {      
-        if(!getMsgLen(ci.fd, &qlen))
-          break;
-        
-        ds->queries++;
-        ds->outstanding++;
-        char query[qlen];
-        readn2(ci.fd, query, qlen);
-        // FIXME: drop AXFR queries here, they confuse us
-      retry:; 
-        if(!putMsgLen(dsock, qlen)) {
-	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
-          close(dsock);
-          dsock=getTCPDownstream(&ds);
-          goto retry;
-        }
-      
-        writen2(dsock, query, qlen);
-      
-        if(!getMsgLen(dsock, &rlen)) {
-	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
-          close(dsock);
-          dsock=getTCPDownstream(&ds);
-          goto retry;
-        }
-
-        char answerbuffer[rlen];
-        readn2(dsock, answerbuffer, rlen);
-      
-        putMsgLen(ci.fd, rlen);
-        writen2(ci.fd, answerbuffer, rlen);
-      }
-    }
-    catch(...){}
-    
-    vinfolog("Closing client connection with %s", ci.remote.toStringWithPort());
-    close(ci.fd); 
-    ci.fd=-1;
-    --ds->outstanding;
-  }
-  return 0;
-}
-
-
-/* spawn as many of these as required, they call Accept on a socket on which they will accept queries, and 
-   they will hand off to worker threads & spawn more of them if required
-*/
-void* tcpAcceptorThread(void* p)
-{
-  ClientState* cs = (ClientState*) p;
-
-  ComboAddress remote;
-  remote.sin4.sin_family = cs->local.sin4.sin_family;
-  
-  g_tcpclientthreads.addTCPClientThread();
-
-  for(;;) {
-    try {
-      ConnectionInfo* ci = new ConnectionInfo;      
-      ci->fd = SAccept(cs->tcpFD, remote);
-
-      vinfolog("Got connection from %s", remote.toStringWithPort());
-      
-      ci->remote = remote;
-      writen2(g_tcpclientthreads.getThread(), &ci, sizeof(ci));
-    }
-    catch(...){}
-  }
-
-  return 0;
-}
-
-
-void* statThread()
+void* maintThread()
 {
   int interval = 1;
-  if(!interval)
-    return 0;
-  uint32_t lastQueries=0;
-
-  uint64_t pqueries[g_numdownstreams];
-
-  for(unsigned int n=0; n < g_numdownstreams; ++n) 
-    pqueries[n] = g_dstates[n].queries.load();
 
   for(;;) {
     sleep(interval);
-    
+
     if(g_tcpclientthreads.d_queued > 1 && g_tcpclientthreads.d_numthreads < 10)
       g_tcpclientthreads.addTCPClientThread();
 
-    unsigned int outstanding=0;
-    uint64_t numQueries=0;
-    for(unsigned int n=0; n < g_numdownstreams; ++n) {
-      DownstreamState& dss = g_dstates[n];
+    for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
+      if(dss->availability==DownstreamState::Availability::Auto) {
+	bool newState=upCheck(dss->remote);
+	if(newState != dss->upStatus) {
+	  warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+	}
+	dss->upStatus = newState;
+      }
 
-      vinfolog(" %s: %d outstanding, %f qps", dss.remote.toStringWithPort(), dss.outstanding.load(), ((dss.queries.load() - pqueries[n])/interval));
-
-      outstanding += dss.outstanding;
-      pqueries[n]=dss.queries.load();
-      numQueries += dss.queries;
-      for(unsigned int i=0 ; i < g_maxOutstanding; ++i) {
-        IDState& ids = dss.idStates[i];
+      auto delta = dss->sw.udiffAndSet()/1000000.0;
+      dss->queryLoad = 1.0*(dss->queries.load() - dss->prev.queries.load())/delta;
+      dss->dropRate = 1.0*(dss->reuseds.load() - dss->prev.reuseds.load())/delta;
+      dss->prev.queries.store(dss->queries.load());
+      dss->prev.reuseds.store(dss->reuseds.load());
+      
+      for(IDState& ids  : dss->idStates) { // timeouts
         if(ids.origFD >=0 && ids.age++ > 2) {
           ids.age = 0;
           ids.origFD = -1;
-          dss.reuseds++;
-          --dss.outstanding;
+          dss->reuseds++;
+          --dss->outstanding;
+	  std::lock_guard<std::mutex> lock(g_rings.respMutex);
+	  g_rings.respRing.push_back({ids.qname, ids.qtype, 0, 2000000});
         }          
       }
     }
-
-    vinfolog("%d outstanding queries, %d qps", outstanding, ((numQueries - lastQueries)/interval));
-    lastQueries=numQueries;
   }
   return 0;
 }
 
+string g_key;
 
-struct Server
+void controlClientThread(int fd, ComboAddress client)
+try
 {
-  string d_name;
-  ComboAddress d_address;
-};
-vector<Server> g_servers;
-int defineServer(const std::string& name, const std::string& address)
+  SodiumNonce theirs;
+  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
+  SodiumNonce ours;
+  ours.init();
+  writen2(fd, (char*)ours.value, sizeof(ours.value));
+
+  for(;;) {
+    uint16_t len;
+    if(!getMsgLen(fd, &len))
+      break;
+    char msg[len];
+    readn2(fd, msg, len);
+    
+    string line(msg, len);
+    line = sodDecryptSym(line, g_key, theirs);
+    //    cerr<<"Have decrypted line: "<<line<<endl;
+    string response;
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      g_outputBuffer.clear();
+      auto ret=g_lua.executeCode<
+	boost::optional<
+	  boost::variant<
+	    string, 
+	    shared_ptr<DownstreamState>
+	    >
+	  >
+	>(line);
+
+      if(ret) {
+	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+	  response=(*strValue)->remote.toStringWithPort();
+	}
+	else if (const auto strValue = boost::get<string>(&*ret)) {
+	  response=*strValue;
+	}
+      }
+      else
+	response=g_outputBuffer;
+
+
+    }
+    catch(const LuaContext::ExecutionErrorException& e) {
+      response = "Error: " + string(e.what()) + ": ";
+      try {
+        std::rethrow_if_nested(e);
+      } catch(const std::exception& e) {
+        // e is the exception that was thrown from inside the lambda
+        response+= string(e.what());
+      }
+      catch(const PDNSException& e) {
+        // e is the exception that was thrown from inside the lambda
+        response += string(e.reason);
+      }
+    }
+    response = sodEncryptSym(response, g_key, ours);
+    putMsgLen(fd, response.length());
+    writen2(fd, response.c_str(), (uint16_t)response.length());
+  }
+  infolog("Closed control connection from %s", client.toStringWithPort());
+  close(fd);
+  fd=-1;
+}
+catch(std::exception& e)
 {
-  g_servers.push_back({name, ComboAddress(address, 53)});
-  return g_servers.size()-1;
+  errlog("Got an exception in client connection from %s: %s", client.toStringWithPort(), e.what());
+  if(fd >= 0)
+    close(fd);
 }
 
-void setupLua()
+
+void controlThread(int fd, ComboAddress local)
+try
 {
-  g_lua.writeVariable("defineServer", &defineServer);
-  std::ifstream ifs("dnsdistconf.lua");
-  g_lua.executeCode(ifs);
-
-  Object o1, o2;
-  g_lua.registerFunction("increment", &Object::increment);
-
-  g_lua.writeVariable("obj1", o1);
-  g_lua.writeVariable("obj2", o2);
-  g_lua.executeCode("obj1:increment();");
-  g_lua.executeCode("obj1:increment();");
-
-  std::cout << g_lua.readVariable<Object>("obj1").value << std::endl;
-  std::cout << g_lua.readVariable<Object>("obj2").value << std::endl;
-
+  ComboAddress client;
+  int sock;
+  warnlog("Accepting control connections on %s", local.toStringWithPort());
+  while((sock=SAccept(fd, client)) >= 0) {
+    warnlog("Got control connection from %s", client.toStringWithPort());
+    thread t(controlClientThread, sock, client);
+    t.detach();
+  }
 }
+catch(std::exception& e) 
+{
+  close(fd);
+  errlog("Control connection died: %s", e.what());
+}
+
+
+
+void doClient(ComboAddress server, const std::string& command)
+{
+  cout<<"Connecting to "<<server.toStringWithPort()<<endl;
+  int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
+  SConnect(fd, server);
+
+  SodiumNonce theirs, ours;
+  ours.init();
+
+  writen2(fd, (const char*)ours.value, sizeof(ours.value));
+  readn2(fd, (char*)theirs.value, sizeof(theirs.value));
+
+  if(!command.empty()) {
+    string response;
+    string msg=sodEncryptSym(command, g_key, ours);
+    putMsgLen(fd, msg.length());
+    if(!msg.empty())
+      writen2(fd, msg);
+    uint16_t len;
+    getMsgLen(fd, &len);
+    char resp[len];
+    readn2(fd, resp, len);
+    msg.assign(resp, len);
+    msg=sodDecryptSym(msg, g_key, theirs);
+    cout<<msg<<endl;
+    return; 
+  }
+
+  set<string> dupper;
+  {
+    ifstream history(".history");
+    string line;
+    while(getline(history, line))
+      add_history(line.c_str());
+  }
+  ofstream history(".history", std::ios_base::app);
+  string lastline;
+  for(;;) {
+    char* sline = readline("> ");
+    rl_bind_key('\t',rl_complete);
+    if(!sline)
+      break;
+
+    string line(sline);
+    if(!line.empty() && line != lastline) {
+      add_history(sline);
+      history << sline <<endl;
+      history.flush();
+    }
+    lastline=line;
+    free(sline);
+    
+    if(line=="quit")
+      break;
+
+    string response;
+    string msg=sodEncryptSym(line, g_key, ours);
+    putMsgLen(fd, msg.length());
+    writen2(fd, msg);
+    uint16_t len;
+    getMsgLen(fd, &len);
+
+    char resp[len];
+    if(len)
+      readn2(fd, resp, len);
+    msg.assign(resp, len);
+    msg=sodDecryptSym(msg, g_key, theirs);
+    cout<<msg<<endl;
+  }
+}
+
+void doConsole()
+{
+  set<string> dupper;
+  {
+    ifstream history(".history");
+    string line;
+    while(getline(history, line))
+      add_history(line.c_str());
+  }
+  ofstream history(".history", std::ios_base::app);
+  string lastline;
+  for(;;) {
+    char* sline = readline("> ");
+    rl_bind_key('\t',rl_complete);
+    if(!sline)
+      break;
+
+    string line(sline);
+    if(!line.empty() && line != lastline) {
+      add_history(sline);
+      history << sline <<endl;
+      history.flush();
+    }
+    lastline=line;
+    free(sline);
+    
+    if(line=="quit")
+      break;
+
+    string response;
+    try {
+      std::lock_guard<std::mutex> lock(g_luamutex);
+      g_outputBuffer.clear();
+      auto ret=g_lua.executeCode<
+	boost::optional<
+	  boost::variant<
+	    string, 
+	    shared_ptr<DownstreamState>
+	    >
+	  >
+	>(line);
+
+      if(ret) {
+	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+	  cout<<(*strValue)->remote.toStringWithPort()<<endl;
+	}
+	else if (const auto strValue = boost::get<string>(&*ret)) {
+	  cout<<*strValue<<endl;
+	}
+      }
+      else 
+	cout << g_outputBuffer;
+
+    }
+    catch(const LuaContext::ExecutionErrorException& e) {
+      std::cerr << e.what() << ": ";
+      try {
+        std::rethrow_if_nested(e);
+      } catch(const std::exception& e) {
+        // e is the exception that was thrown from inside the lambda
+        std::cerr << e.what() << std::endl;      
+      }
+      catch(const PDNSException& e) {
+        // e is the exception that was thrown from inside the lambda
+        std::cerr << e.reason << std::endl;      
+      }
+    }
+    catch(const std::exception& e) {
+      // e is the exception that was thrown from inside the lambda
+      std::cerr << e.what() << std::endl;      
+    }
+  }
+}
+
+static void bindAny(int af, int sock)
+{
+  int one = 1;
+
+#ifdef IP_FREEBIND
+  if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
+    warnlog("Warning: IP_FREEBIND setsockopt failed: %s", strerror(errno));
+#endif
+
+#ifdef IP_BINDANY
+  if (af == AF_INET)
+    if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0)
+      warnlog("Warning: IP_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+#ifdef IPV6_BINDANY
+  if (af == AF_INET6)
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0)
+      warnlog("Warning: IPV6_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+#ifdef SO_BINDANY
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDANY, &one, sizeof(one)) < 0)
+    warnlog("Warning: SO_BINDANY setsockopt failed: %s", strerror(errno));
+#endif
+}
+
+/**** CARGO CULT CODE AHEAD ****/
+extern "C" {
+char* my_generator(const char* text, int state)
+{
+  string t(text);
+  vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
+      "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
+      "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
+      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "addDelay("};
+  static int s_counter=0;
+  int counter=0;
+  if(!state)
+    s_counter=0;
+
+  for(auto w : words) {
+    if(boost::starts_with(w, t) && counter++ == s_counter)  {
+      s_counter++;
+      return strdup(w.c_str());
+    }
+  }
+  return 0;
+}
+
+static char** my_completion( const char * text , int start,  int end)
+{
+  char **matches=0;
+  if (start == 0)
+    matches = rl_completion_matches ((char*)text, &my_generator);
+  else
+    rl_bind_key('\t',rl_abort);
+ 
+  if(!matches)
+    rl_bind_key('\t', rl_abort);
+  return matches;
+}
+}
+
+struct 
+{
+  vector<string> locals;
+  vector<string> remotes;
+  bool beDaemon{false};
+  bool beClient{false};
+  bool beSupervised{false};
+  string pidfile;
+  string command;
+  string config;
+} g_cmdLine;
+
 
 int main(int argc, char** argv)
 try
 {
+  rl_attempted_completion_function = my_completion;
+  rl_completion_append_character = 0;
 
-  setupLua();
   signal(SIGPIPE, SIG_IGN);
+  signal(SIGCHLD, SIG_IGN);
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
-  po::options_description desc("Allowed options"), hidden, alloptions;
-  desc.add_options()
-    ("help,h", "produce help message")
-    ("daemon", po::value<bool>()->default_value(true), "run in background")
-    ("local", po::value<vector<string> >(), "Listen on which addresses")
-    ("max-outstanding", po::value<uint16_t>()->default_value(65535), "maximum outstanding queries per downstream")
-    ("regex-drop", po::value<string>(), "If set, block queries matching this regex. Mind trailing dot!")
-    ("verbose,v", "be verbose");
-    
-  hidden.add_options()
-    ("remotes", po::value<vector<string> >(), "remote-host");
 
-  alloptions.add(desc).add(hidden); 
-
-  po::positional_options_description p;
-  p.add("remotes", -1);
-
-  po::store(po::command_line_parser(argc, argv).options(alloptions).positional(p).run(), g_vm);
-  po::notify(g_vm);
-  
-  if(g_vm.count("help")) {
-    cout << desc<<endl;
-    exit(EXIT_SUCCESS);
-  }
-
-  g_verbose=g_vm.count("verbose");
-  g_maxOutstanding = g_vm["max-outstanding"].as<uint16_t>();
-
-  /*  
-  if(!g_vm.count("remotes")) {
-    cerr<<"Need to specify at least one remote address"<<endl;
-    cout<<desc<<endl;
+#ifdef HAVE_LIBSODIUM
+  if (sodium_init() == -1) {
+    cerr<<"Unable to initialize crypto library"<<endl;
     exit(EXIT_FAILURE);
   }
-  */
+#endif
+  g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
+  struct option longopts[]={ 
+    {"config", required_argument, 0, 'C'},
+    {"execute", required_argument, 0, 'e'},
+    {"command", optional_argument, 0, 'c'},
+    {"local",  required_argument, 0, 'l'},
+    {"daemon", 0, 0, 'd'},
+    {"pidfile",  required_argument, 0, 'p'},
+    {"supervised", 0, 0, 's'},
+    {"help", 0, 0, 'h'},
+    {0,0,0,0} 
+  };
+  int longindex=0;
+  for(;;) {
+    int c=getopt_long(argc, argv, "hbcde:C:l:m:vp:", longopts, &longindex);
+    if(c==-1)
+      break;
+    switch(c) {
+    case 'C':
+      g_cmdLine.config=optarg;
+      break;
+    case 'c':
+      g_cmdLine.beClient=true;
+      break;
+    case 'd':
+      g_cmdLine.beDaemon=true;
+      break;
+    case 'e':
+      g_cmdLine.command=optarg;
+      break;
+    case 'h':
+      cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
+      cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
+      cout<<"\n";
+      cout<<"-C,--config file      Load configuration from 'file'\n";
+      cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
+      cout<<"-d,--daemon           Operate as a daemon\n";
+      cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
+      cout<<"-h,--help             Display this helpful message\n";
+      cout<<"-l,--local address    Listen on this local address\n";
+      cout<<"--supervised          Don't open a console, I'm supervised\n";
+      cout<<"                        (use with e.g. systemd and daemontools)\n";
+      cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
+      cout<<"\n";
+      exit(EXIT_SUCCESS);
+      break;
+    case 'l':
+      g_cmdLine.locals.push_back(trim_copy(string(optarg)));
+      break;
+    case 'p':
+      g_cmdLine.pidfile=optarg;
+      break;
+    case 's':
+      g_cmdLine.beSupervised=true;
+      break;
+    case 'v':
+      g_verbose=true;
+      break;
+    }
+  }
+  argc-=optind;
+  argv+=optind;
+  for(auto p = argv; *p; ++p) {
+    g_cmdLine.remotes.push_back(*p);
+  }
 
-  if(g_vm["daemon"].as<bool>())  {
+
+  g_maxOutstanding = 1024;
+
+  ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
+
+  g_policy.setState(leastOutstandingPol);
+  if(g_cmdLine.beClient || !g_cmdLine.command.empty()) {
+    setupLua(true, g_cmdLine.config);
+    doClient(g_serverControl, g_cmdLine.command);
+    _exit(EXIT_SUCCESS);
+  }
+
+  auto todo=setupLua(false, g_cmdLine.config);
+
+  if(g_cmdLine.locals.size()) {
+    g_locals.clear();
+    for(auto loc : g_cmdLine.locals)
+      g_locals.push_back({ComboAddress(loc, 53), true});
+  }
+  
+  if(g_locals.empty())
+    g_locals.push_back({ComboAddress("0.0.0.0", 53), true});
+  
+
+  vector<ClientState*> toLaunch;
+  for(const auto& local : g_locals) {
+    ClientState* cs = new ClientState;
+    cs->local= local.first;
+    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+    //if(g_vm.count("bind-non-local"))
+    bindAny(local.first.sin4.sin_family, cs->udpFD);
+
+    //    if (!setSocketTimestamps(cs->udpFD))
+    //      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
+
+
+    if(IsAnyAddress(local.first)) {
+      int one=1;
+      setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+#ifdef IPV6_RECVPKTINFO
+      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+#endif
+    }
+
+    SBind(cs->udpFD, cs->local);    
+    toLaunch.push_back(cs);
+  }
+
+  if(g_cmdLine.beDaemon) {
     g_console=false;
     daemonize();
+    writepid(g_cmdLine.pidfile);
   }
   else {
     vinfolog("Running in the foreground");
   }
 
-  //  vector<string> remotes = g_vm["remotes"].as<vector<string> >();
+  for(auto& t : todo)
+    t();
 
-  g_numdownstreams = g_servers.size();
-  g_dstates = new DownstreamState[g_numdownstreams];
-  int pos=0;
-  for(const Server& server : g_servers) {
-    DownstreamState& dss = g_dstates[pos++];
- 
-    dss.remote = server.d_address;
+  auto acl = g_ACL.getCopy();
+  for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+    acl.addMask(addr);
+  g_ACL.setState(acl);
 
-    dss.fd = SSocket(dss.remote.sin4.sin_family, SOCK_DGRAM, 0);
-    SConnect(dss.fd, dss.remote);
-
-    dss.idStates.resize(g_maxOutstanding);
-
-    infolog("Added downstream server %s", dss.remote.toStringWithPort());
-
-    dss.tid = move(thread(responderThread, &dss));
+  if(g_cmdLine.remotes.size()) {
+    for(const auto& address : g_cmdLine.remotes) {
+      auto ret=std::make_shared<DownstreamState>(ComboAddress(address, 53));
+      ret->tid = move(thread(responderThread, ret));
+      g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
+    }
   }
 
-  vector<string> locals;
-  if(g_vm.count("local"))
-    locals = g_vm["local"].as<vector<string> >();
-  else
-    locals.push_back("::");
-
-  for(const string& local : locals) {
-    cerr<<local<<endl;
-    ClientState* cs = new ClientState;
-    cs->local= ComboAddress(local, 53);
-    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+  for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
+    if(dss->availability==DownstreamState::Availability::Auto) {
+      bool newState=upCheck(dss->remote);
+      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+      dss->upStatus = newState;
     }
-    SBind(cs->udpFD, cs->local);    
+  }
 
+
+  for(auto& cs : toLaunch) {
     thread t1(udpClientThread, cs);
     t1.detach();
   }
 
-  for(const string& local : locals) {
+  for(const auto& local : g_locals) {
     ClientState* cs = new ClientState;
-    cs->local= ComboAddress(local, 53);
+    if(!local.second) { // no TCP/IP
+      warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
+      continue;
+    }
+    cs->local= local.first;
 
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
 
@@ -653,7 +1128,8 @@ try
     if(cs->local.sin4.sin_family == AF_INET6) {
       SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
     }
-
+    //    if(g_vm.count("bind-non-local"))
+      bindAny(cs->local.sin4.sin_family, cs->tcpFD);
     SBind(cs->tcpFD, cs->local);
     SListen(cs->tcpFD, 64);
     warnlog("Listening on %s",cs->local.toStringWithPort());
@@ -662,16 +1138,28 @@ try
     t1.detach();
   }
 
-  thread stattid(statThread);
-  stattid.join();
+  thread carbonthread(carbonDumpThread);
+  carbonthread.detach();
+
+  thread stattid(maintThread);
+  
+  if(g_cmdLine.beDaemon || g_cmdLine.beSupervised) {
+    stattid.join();
+  }
+  else {
+    stattid.detach();
+    doConsole();
+  }
+  _exit(EXIT_SUCCESS);
+
 }
-/*
 catch(std::exception &e)
 {
-  errlog("Fatal: %s", e.what());
+  errlog("Fatal error: %s", e.what());
+  _exit(EXIT_FAILURE);
 }
-*/
 catch(PDNSException &ae)
 {
-  errlog("Fatal: %s", ae.reason);
+  errlog("Fatal pdns error: %s", ae.reason);
+  _exit(EXIT_FAILURE);
 }

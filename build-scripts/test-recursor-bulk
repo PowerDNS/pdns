@@ -1,0 +1,54 @@
+#!/bin/sh
+
+export PDNSRECURSOR=${PDNSRECURSOR:-/usr/sbin/pdns_recursor}
+export DNSBULKTEST=${DNSBULKTEST:-/usr/bin/dnsbulktest}
+
+if [ "$0" != "./build-scripts/test-recursor-bulk" ]; then
+  echo "Please run me from the root checkout dir"
+  exit 1
+fi
+
+set -x
+
+cd regression-tests
+
+wget -c -N http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+
+unzip top-1m.csv.zip
+
+numdomains="1000 5000 10000 50000 100000 500000 100000"
+if [ ! -z "$1" ]; then
+  numdomains="$1"
+fi
+
+set +x
+for prefix in 'www' 'wildcard'; do
+  for num in $(seq 0 1000000); do
+    echo "${num},${prefix}.powerdnssec.org" >> ${prefix}.csv
+  done
+done
+set -x
+
+EXIT=0
+
+version=$($PDNSRECURSOR --version 2>&1 | awk '/PowerDNS Recursor/ { print $6 }')
+for IPv6 in 0 1; do
+  for CSV in $(ls *.csv); do
+    for domains in $numdomains; do
+      export context="${version}_v6:${IPv6}_csv:${CSV%%.*}"
+      export IPv6
+      export CSV
+      RECURSOR=$PDNSRECURSOR THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains || EXIT=1
+      mv -f recursor.log recursor-${context}.log
+      sleep 10
+    done
+  done
+done
+./bulktest-to-json.py | tee bulktest-results.json
+
+# cleanup
+rm -rf csv/
+rm -f *.log
+rm -f bulktest-results.json
+
+exit $EXIT

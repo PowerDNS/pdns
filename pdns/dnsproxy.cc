@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dnsproxy.hh"
@@ -58,7 +61,7 @@ DNSProxy::DNSProxy(const string &remote)
       break;
   }
   if(n==10) {
-    Utility::closesocket(d_sock);
+    closesocket(d_sock);
     d_sock=-1;
     throw PDNSException(string("binding dnsproxy socket: ")+strerror(errno));
   }
@@ -123,7 +126,7 @@ bool DNSProxy::sendPacket(DNSPacket *p)
 }
 
 //! look up qname aname with r->qtype, plonk it in the answer section of 'r' with name target
-bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std::string& aname)
+bool DNSProxy::completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname)
 {
   uint16_t id;
   {
@@ -136,7 +139,7 @@ bool DNSProxy::completePacket(DNSPacket *r, const std::string& target,const std:
     ce.outsock  = r->getSocket();
     ce.created  = time( NULL );
     ce.qtype = r->qtype.getCode();
-    ce.qname = stripDot(target);
+    ce.qname = target;
     ce.anyLocal = r->d_anyLocal;
     ce.complete = r;
     ce.aname=aname;
@@ -244,7 +247,7 @@ void DNSProxy::mainloop(void)
 	  //	  cerr<<"Got completion, "<<mdp.d_answers.size()<<" answers, rcode: "<<mdp.d_header.rcode<<endl;
 	  for(MOADNSParser::answers_t::const_iterator j=mdp.d_answers.begin(); j!=mdp.d_answers.end(); ++j) {        
 	    //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-	    if(j->first.d_place == DNSRecord::Answer || (j->first.d_place == DNSRecord::Nameserver && j->first.d_type == QType::SOA)) {
+	    if(j->first.d_place == DNSResourceRecord::ANSWER || (j->first.d_place == DNSResourceRecord::AUTHORITY && j->first.d_type == QType::SOA)) {
 	    
 	      DNSResourceRecord rr;
 
@@ -252,7 +255,7 @@ void DNSProxy::mainloop(void)
 		rr.qname=i->second.aname;
 		rr.qtype = j->first.d_type;
 		rr.ttl=j->first.d_ttl;
-		rr.d_place= (DNSResourceRecord::Place)j->first.d_place;
+		rr.d_place= j->first.d_place;
 		rr.content=j->first.d_content->getZoneRepresentation();
 		i->second.complete->addRecord(rr);
 	      }
@@ -297,4 +300,9 @@ void DNSProxy::mainloop(void)
   }
   L<<Logger::Error<<"Exiting because DNS proxy failed"<<endl;
   exit(1);
+}
+
+DNSProxy::~DNSProxy() {
+  if (d_sock>-1) closesocket(d_sock);
+  d_sock=-1;
 }

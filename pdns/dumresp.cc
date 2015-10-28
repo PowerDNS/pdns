@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "iputils.hh"
 #include "sstuff.hh"
 #include "statbag.hh"

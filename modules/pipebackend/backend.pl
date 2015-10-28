@@ -29,6 +29,7 @@ while(<>)
 		next;
 	}
 
+	# note! the qname is what PowerDNS asks the backend. It need not be what the internet asked PowerDNS!
 	my ($type,$qname,$qclass,$qtype,$id,$ip)=split(/\t/);
 
 	if(($qtype eq "SOA" || $qtype eq "ANY") && $qname eq "example.com") {

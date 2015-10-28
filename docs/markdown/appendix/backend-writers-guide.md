@@ -1,5 +1,4 @@
 # Backend writers' guide
-
 PowerDNS backends are implemented via a simple yet powerful C++ interface. 
 If your needs are not met by the PipeBackend, you may want to write your
 own.  Before doing any PowerDNS development, please visit [the

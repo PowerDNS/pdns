@@ -19,6 +19,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include <cstdio>
 #include <cstring>
@@ -28,7 +31,7 @@
 #include <string>
 #include <sys/types.h>
 #include "responsestats.hh"
-#include <boost/shared_ptr.hpp>
+
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "dnspacket.hh"
@@ -104,9 +107,9 @@ void UDPNameserver::bindIPv4()
       throw PDNSException("Unable to acquire a UDP socket: "+string(strerror(errno)));
     }
   
-    Utility::setCloseOnExec(s);
+    setCloseOnExec(s);
   
-    if(!Utility::setNonBlocking(s))
+    if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDP socket to non-blocking: "+stringerror());
   
     memset(&locala,0,sizeof(locala));
@@ -115,7 +118,8 @@ void UDPNameserver::bindIPv4()
     if(localname=="0.0.0.0")
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
 
-    setSocketTimestamps(s);
+    if (!setSocketTimestamps(s))
+      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
@@ -206,19 +210,22 @@ void UDPNameserver::bindIPv6()
       throw PDNSException("Unable to acquire UDPv6 socket: "+string(strerror(errno)));
     }
 
-    Utility::setCloseOnExec(s);
-    if(!Utility::setNonBlocking(s))
+    setCloseOnExec(s);
+    if(!setNonBlocking(s))
       throw PDNSException("Unable to set UDPv6 socket to non-blocking: "+stringerror());
 
     ComboAddress locala(localname, ::arg().asNum("local-port"));
     
     if(IsAnyAddress(locala)) {
       setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+#ifdef IPV6_RECVPKTINFO
       setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+#endif
       setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
     }
 
-    setSocketTimestamps(s);
+    if (setSocketTimestamps(s))
+      L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
 #ifdef SO_REUSEPORT
     if( d_can_reuseport )
@@ -268,38 +275,14 @@ UDPNameserver::UDPNameserver( bool additional_socket )
     L<<Logger::Critical<<"PDNS is deaf and mute! Not listening on any interfaces"<<endl;    
 }
 
-ResponseStats g_rs;
-
 void UDPNameserver::send(DNSPacket *p)
 {
-  const string& buffer=p->getString();
-  static AtomicCounter &numanswered=*S.getPointer("udp-answers");
-  static AtomicCounter &numanswered4=*S.getPointer("udp4-answers");
-  static AtomicCounter &numanswered6=*S.getPointer("udp6-answers");
-  static AtomicCounter &bytesanswered=*S.getPointer("udp-answers-bytes");
-
-  g_rs.submitResponse(p->qtype.getCode(), buffer.length(), true);
+  string buffer=p->getString();
+  g_rs.submitResponse(*p, true);
 
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
-
-  /* Query statistics */
-  if(p->d.aa) {
-    if (p->d.rcode==RCode::NXDomain)
-      S.ringAccount("nxdomain-queries",p->qdomain+"/"+p->qtype.getName());
-  } else if (p->isEmpty()) {
-    S.ringAccount("unauth-queries",p->qdomain+"/"+p->qtype.getName());
-    S.ringAccount("remotes-unauth",p->d_remote);
-  }
-
-  /* Count responses (total/v4/v6) and byte counts */
-  numanswered++;
-  bytesanswered+=buffer.length();
-  if(p->d_remote.sin4.sin_family==AF_INET)
-    numanswered4++;
-  else
-    numanswered6++;
 
   fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)buffer.c_str(), buffer.length(), &p->d_remote);
 

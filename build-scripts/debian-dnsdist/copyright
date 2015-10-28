@@ -1,0 +1,7 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: dnsdist
+Source: http://dnsdist.net
+
+Files: *
+Copyright: 2015 Bert Hubert <bert.hubert@netherlabs.nl>
+License: GPL-2

@@ -1,4 +1,7 @@
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
@@ -11,13 +14,12 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
 
 StatBag S;
 
 struct Entry
 {
-  uint32_t ip;
+  ComboAddress ip;
   uint16_t port;
   uint16_t id;
 
@@ -49,22 +51,13 @@ try
 
           MOADNSParser mdp((const char*)pr.d_payload, pr.d_len);
 
-          memcpy(&entry.ip, &pr.d_ip->ip_src, 4);
+          entry.ip = pr.getSource();
           entry.port = pr.d_udp->uh_sport;
           entry.id=dh->id;
 
-          //          ecount[entry]++;
-          string::size_type pos = 0;
-          for(pos = 0; pos < mdp.d_qname.size() ; ++pos ) {
-            char c=mdp.d_qname[pos] ;
-            if(!isalnum(c) && c!='-' && c!='.')
-              break;
-          }
-          if(pos ==mdp.d_qname.size()) {
-            cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << U32ToIP(ntohl(entry.ip)) <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
-            cout <<", '"<<mdp.d_qname<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
-            cout <<", "<< ntohs(dh->arcount) <<");\n";
-          }
+          cout << "insert into dnsstats (source, port, id, query, qtype, tstampSec, tstampUsec, arcount) values ('" << entry.ip.toString() <<"', "<< ntohs(entry.port) <<", "<< ntohs(dh->id);
+          cout <<", '"<<mdp.d_qname.toString()<<"', "<<mdp.d_qtype<<", " << pr.d_pheader.ts.tv_sec <<", " << pr.d_pheader.ts.tv_usec;
+          cout <<", "<< ntohs(dh->arcount) <<");\n";
 
         }
         catch(MOADNSException& mde) {

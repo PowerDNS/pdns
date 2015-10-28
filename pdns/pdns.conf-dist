@@ -10,6 +10,11 @@
 # allow-dnsupdate-from=127.0.0.0/8,::1
 
 #################################
+# allow-notify-from	Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.
+#
+# allow-notify-from=0.0.0.0/0,::/0
+
+#################################
 # allow-recursion	List of subnets that are allowed to recurse
 #
 # allow-recursion=0.0.0.0/0
@@ -325,11 +330,6 @@
 # overload-queue-length=0
 
 #################################
-# pipebackend-abi-version	Version of the pipe backend ABI
-#
-# pipebackend-abi-version=1
-
-#################################
 # prevent-self-notification	Don't send notifications to what we think is ourself
 #
 # prevent-self-notification=yes
@@ -523,5 +523,10 @@
 # webserver-print-arguments	If the webserver should print arguments
 #
 # webserver-print-arguments=no
+
+#################################
+# write-pid	Write a PID file
+#
+# write-pid=yes
 
 

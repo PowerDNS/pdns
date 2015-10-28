@@ -52,10 +52,11 @@ class DNSProxy
 {
 public:
   DNSProxy(const string &ip); //!< creates socket
+  ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
   void onlyFrom(const string &ips); //!< Only these netmasks are allowed to recurse via us
   bool sendPacket(DNSPacket *p);    //!< send out a packet and make a conntrack entry to we can send back the answer
-  bool completePacket(DNSPacket *r, const std::string& target,const std::string& aname);
+  bool completePacket(DNSPacket *r, const DNSName& target,const DNSName& aname);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
   static void *launchhelper(void *p)
@@ -65,29 +66,31 @@ public:
   }
   bool recurseFor(DNSPacket* p);
 private:
+  struct ConntrackEntry
+  {
+    time_t created;
+    boost::optional<ComboAddress> anyLocal;
+    DNSName qname;
+    DNSPacket* complete;
+    DNSName aname;
+    ComboAddress remote;
+    uint16_t id;
+    uint16_t qtype;
+    int outsock;
+  };
+
+  typedef map<int,ConntrackEntry> map_t;
+
+  // Data
   NetmaskGroup d_ng;
-  int d_sock;
   AtomicCounter* d_resanswers;
   AtomicCounter* d_udpanswers;
   AtomicCounter* d_resquestions;
   pthread_mutex_t d_lock;
-  uint16_t d_xor;
-  int getID_locked();
-  struct ConntrackEntry
-  {
-    uint16_t id;
-    ComboAddress remote;
-    int outsock;
-    time_t created;
-    string qname;
-    uint16_t qtype;
-    DNSPacket* complete;
-    string aname;
-    boost::optional<ComboAddress> anyLocal;
-  };
-
-  typedef map<int,ConntrackEntry> map_t;
   map_t d_conntrack;
+  int d_sock;
+  int getID_locked();
+  uint16_t d_xor;
 };
 
 #endif

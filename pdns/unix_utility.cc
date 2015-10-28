@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include <cstring>
 #include <fcntl.h>
@@ -42,16 +45,6 @@ const char *inet_ntop(int af, const void *src, char *dst, size_t cnt);
 
 #include "namespaces.hh"
 
-// Closes a socket.
-int Utility::closesocket( Utility::sock_t socket )
-{
-  int ret=::close(socket);
-  if(ret < 0 && errno == ECONNRESET) // see ticket 192, odd BSD behaviour
-    return 0;
-  if(ret < 0) 
-    throw PDNSException("Error closing socket: "+stringerror());
-  return ret;
-}
 
 // Connects to socket with timeout
 int Utility::timed_connect( Utility::sock_t sock,
@@ -83,29 +76,7 @@ int Utility::timed_connect( Utility::sock_t sock,
   return ret;
 }
 
-bool Utility::setNonBlocking(sock_t sock)
-{
-  int flags=fcntl(sock,F_GETFL,0);    
-  if(flags<0 || fcntl(sock, F_SETFL,flags|O_NONBLOCK) <0)
-    return false;
-  return true;
-}
 
-bool Utility::setBlocking(sock_t sock)
-{
-  int flags=fcntl(sock,F_GETFL,0);    
-  if(flags<0 || fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) <0)
-    return false;
-  return true;
-}
-
-bool Utility::setCloseOnExec(sock_t sock)
-{
-  int flags=fcntl(sock,F_GETFD,0);    
-  if(flags<0 || fcntl(sock, F_SETFD,flags|FD_CLOEXEC) <0)
-    return false;
-  return true;
-}
 
 void Utility::setBindAny(int af, sock_t sock)
 {
@@ -208,19 +179,6 @@ int Utility::gettimeofday( struct timeval *tv, void *tz )
 }
 
 
-// Converts an address from dot and numbers format to binary data.
-int Utility::inet_aton( const char *cp, struct in_addr *inp )
-{
-  return ::inet_aton(cp,inp);
-
-}
-
-
-// Converts an address from presentation format to network format.
-int Utility::inet_pton( int af, const char *src, void *dst )
-{
-  return ::inet_pton(af, src, dst);
-}
 
 // Retrieves a gid using a groupname.
 int Utility::makeGidNumeric(const string &group)

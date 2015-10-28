@@ -1,0 +1,62 @@
+$TTL 2h;
+$ORIGIN domain.example.com.
+@               SOA powerdns.example.net. hostmaster.example.com ( 1 12h 15m 3w 2h)
+                NS powerdns.example.net.  
+; begin RPZ RR definitions
+
+;; QNAME Trigger
+
+; QNAME Trigger NXDOMAIN Action
+; kills whole domain
+nxdomain.org        CNAME .
+*.nxdomain-apex.org      CNAME .
+
+; QNAME Trigger PASSTHRU Action
+; typically only used for bypass
+mail.nxdomain-apix.org        CNAME rpz-passthru.
+
+; QNAME Trigger DROP Action
+; kills whole domain
+example.net        CNAME rpz-drop.
+*.example.net      CNAME rpz-drop.
+
+; QNAME Trigger Truncate Action
+; kills whole domain
+truncate.org        CNAME rpz-tcp-only.
+*.truncate-apex.org      CNAME rpz-tcp-only.
+
+; QNAME Trigger Local-Data Action
+; sends to a local website
+; kills whole domain
+local.org        CNAME explanation.example.com.
+*.local.org      CNAME explanation.example.com.
+
+local-a.org        A 192.168.2.5
+*.local-a-apex.org      A 192.168.2.5
+
+; CLIENT-IP Trigger DROP Action
+; kills all DNS activity from this client
+24.0.0.0.127.rpz-client-ip CNAME rpz-drop.
+
+; CLIENT-IP Trigger TCP-ONLY Action
+; slows-up all DNS activity from this client
+32.1.0.0.10.rpz-client-ip CNAME rpz-tcp-only.
+
+; IP Trigger NXDOMAIN Action
+; any answer containing IP range
+32.2.0.0.10.rpz-ip CNAME .
+
+;; NSDNAME Trigger
+;; if ns1.example.org appears in the authority section
+;; of any answer
+
+; NSDNAME Trigger NXDOMAIN Action
+; kills specific name server
+dns-eu1.powerdns.net.rpz-nsdname CNAME .
+; this will kill any name servers from example.org
+*.powerdns.net.rpz-nsdname   CNAME .
+
+; NSDNAME Trigger TCP-ONLY Action
+; kills specific name server
+*.gtld-servers.net.rpz-nsdname CNAME rpz-tcp-only.
+

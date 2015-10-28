@@ -51,9 +51,8 @@ tested on OS X.
 
 The recursor has been reported to crash for some OS X users.
 
-### OpenBSD
-Compiles but then does not work very well. We hear that it may work with more
-recent versions of gcc, please let us know on `<pdns-dev@mailman.powerdns.com>`.
+### OpenBSD 5.8
+Compiles, but use gmake and g++-4.9.3 or higher.
 
 ### Solaris
 Solaris 8 and 9 work fine. The 'Sunpro' compiler has not been tried but is

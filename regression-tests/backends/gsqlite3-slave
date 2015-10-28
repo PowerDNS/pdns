@@ -14,16 +14,16 @@ __EOF__
 		echo "gsqlite3-dnssec" >> pdns-gsqlite32.conf
 	fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
 		sqlite3 pdns.sqlite32 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 	done
 
-	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test slave
+	$PDNSSEC --config-dir=. --config-name=gsqlite32 import-tsig-key test $ALGORITHM $KEY
+	$PDNSSEC --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
-		../pdns/pdnssec --config-dir=. --config-name=gsqlite32 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSSEC --config-dir=. --config-name=gsqlite32 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 
 	port=$((port+100))

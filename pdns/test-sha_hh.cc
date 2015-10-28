@@ -1,5 +1,8 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
@@ -27,18 +30,6 @@ BOOST_AUTO_TEST_CASE(test_sha1summer) {
       s.feed(val.get<0>());
       BOOST_CHECK_EQUAL(makeHexDump(s.get()), val.get<1>());
    }
-}
-
-BOOST_AUTO_TEST_CASE(test_sha224summer) {
-   cases_t cases = list_of 
-      (case_t("abc", "23 09 7d 22 34 05 d8 22 86 42 a4 77 bd a2 55 b3 2a ad bc e4 bd a0 b3 f7 e3 6c 9d a7 ")) 
-      (case_t("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", "75 38 8b 16 51 27 76 cc 5d ba 5d a1 fd 89 01 50 b0 c6 45 5c b4 f5 8b 19 52 52 25 25 ")); 
-
-   BOOST_FOREACH(case_t& val, cases) { 
-      SHA224Summer s; 
-      s.feed(val.get<0>()); 
-      BOOST_CHECK_EQUAL(makeHexDump(s.get()), val.get<1>()); 
-   } 
 }
 
 BOOST_AUTO_TEST_CASE(test_sha256summer) {

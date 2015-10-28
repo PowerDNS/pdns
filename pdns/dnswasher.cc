@@ -12,6 +12,9 @@ otherwise, obfuscate the response IP address
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 
@@ -24,11 +27,11 @@ StatBag S;
 class IPObfuscator
 {
 public:
-  IPObfuscator() : d_romap(d_ipmap), d_counter(0)
+  IPObfuscator() : d_romap(d_ipmap), d_ro6map(d_ip6map), d_counter(0)
   {
   }
 
-  uint32_t obf(uint32_t orig)
+  uint32_t obf4(uint32_t orig)
   {
     if(d_romap.count(orig))
       return d_ipmap[orig];
@@ -37,9 +40,23 @@ public:
     }
   }
 
+  uint64_t obf6(uint64_t orig)
+  {
+    cout<<d_counter<<endl;
+    if(d_ro6map.count(orig))
+      return d_ip6map[orig];
+    else {
+      return d_ip6map[orig]=d_counter++;
+    }
+  }
+
 private:
   map<uint32_t, uint32_t> d_ipmap;
   const map<uint32_t, uint32_t>& d_romap;
+  // For IPv6 addresses
+  map<uint64_t, uint32_t> d_ip6map;
+  const map<uint64_t, uint32_t>& d_ro6map;
+  // The counter that we'll convert to an IP address
   uint32_t d_counter;
 };
 
@@ -58,16 +75,24 @@ try
     if(ntohs(pr.d_udp->uh_dport)==53 || (ntohs(pr.d_udp->uh_sport)==53 && pr.d_len > sizeof(dnsheader))) {
       dnsheader* dh=(dnsheader*)pr.d_payload;
 
-      uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
-      uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
-      
-      if(dh->qr)
-        *dst=htonl(ipo.obf(*dst));
-      else
-        *src=htonl(ipo.obf(*src));
-      
+      if (pr.d_ip->ip_v == 4){
+        uint32_t *src=(uint32_t*)&pr.d_ip->ip_src;
+        uint32_t *dst=(uint32_t*)&pr.d_ip->ip_dst;
+
+        if(dh->qr)
+          *dst=htonl(ipo.obf4(*dst));
+        else
+          *src=htonl(ipo.obf4(*src));
+      } else if (pr.d_ip->ip_v == 6) {
+        uint64_t *src=1+(uint64_t*)&pr.d_ip6->ip6_src;
+        uint64_t *dst=1+(uint64_t*)&pr.d_ip6->ip6_dst;
+
+        if(dh->qr)
+          *dst=ipo.obf6(*dst);
+        else
+          *src=ipo.obf6(*src);
+      }
       pr.d_ip->ip_sum=0;
-      
       pw.write();
     }
   }

@@ -32,31 +32,19 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, const string& zname="", const string& reldir="");
-  ZoneParserTNG(const vector<string> zonedata, const string& zname);
+  ZoneParserTNG(const string& fname, const DNSName& zname=DNSName(), const string& reldir="");
+  ZoneParserTNG(const vector<string> zonedata, const DNSName& zname);
 
   ~ZoneParserTNG();
   bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
   typedef deque<pair<string::size_type, string::size_type> > parts_t;
+  string getLineOfFile();
 private:
   bool getLine();
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   unsigned makeTTLFromZone(const std::string& str);
-  string getLineOfFile();
-  string d_reldir;
-  string d_line;
-  string d_prevqname;
-  string d_zonename;
-  vector<string> d_zonedata;
-  vector<string>::iterator d_zonedataline;
-  int d_defaultttl;
-  bool d_havedollarttl;
-  bool d_fromfile;
-  uint32_t d_templatecounter, d_templatestop, d_templatestep;
-  string d_templateline;
-  parts_t d_templateparts;
 
   struct filestate {
     filestate(FILE* fp, string filename) : d_fp(fp), d_filename(filename), d_lineno(0){}
@@ -64,7 +52,20 @@ private:
     string d_filename;
     int d_lineno;
   };
+
+  string d_reldir;
+  string d_line;
+  DNSName d_prevqname;
+  DNSName d_zonename;
+  string d_templateline;
+  vector<string> d_zonedata;
+  vector<string>::iterator d_zonedataline;
   std::stack<filestate> d_filestates;
+  parts_t d_templateparts;
+  int d_defaultttl;
+  uint32_t d_templatecounter, d_templatestop, d_templatestep;
+  bool d_havedollarttl;
+  bool d_fromfile;
 };
 
 #endif

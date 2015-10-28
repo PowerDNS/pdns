@@ -4,6 +4,9 @@
 // Copyright (C) 2003, Michel Stol <michel@powerdns.com>
 //
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <string>
 #include <sstream>
 #include "ssqlite3.hh"
@@ -11,6 +14,7 @@
 #include <fstream>
 #include "pdns/logger.hh"
 #include "misc.hh"
+#include "utility.hh"
 #include <unistd.h>
 
 /*
@@ -25,10 +29,6 @@ int pdns_sqlite3_clear_bindings(sqlite3_stmt *pStmt){
     rc = sqlite3_bind_null(pStmt, i);
   }
   return rc;
-}
-
-void my_trace(void *foo, const char *sql) {
-  L<<Logger::Warning<< "Query: " << sql << endl;
 }
 
 class SSQLite3Statement: public SSqlStatement 
@@ -68,6 +68,8 @@ public:
   SSqlStatement* bindNull(const string& name) { int idx = name2idx(name); if (idx>0) { sqlite3_bind_null(d_stmt, idx); }; return this; }
 
   SSqlStatement* execute() {
+    if (d_dolog)
+      L<<Logger::Warning<< "Query: " << d_query << endl;
     int attempts = d_db->inTransaction(); // try only once
     while(attempts < 2 && (d_rc = sqlite3_step(d_stmt)) == SQLITE_BUSY) attempts++;
 
@@ -129,18 +131,21 @@ public:
 private:
   string d_query;
   sqlite3_stmt* d_stmt;
-  int d_rc;
   SSQLite3* d_db;
+  int d_rc;
   bool d_dolog;
 };
 
 // Constructor.
 SSQLite3::SSQLite3( const std::string & database, bool creat )
 {
-  // Open the database connection.
-  if(!creat) 
-    if ( access( database.c_str(), F_OK ) == -1 )
+  if (access( database.c_str(), F_OK ) == -1){
+    if (!creat)
       throw sPerrorException( "SQLite database '"+database+"' does not exist yet" );
+  } else {
+    if (creat)
+      throw sPerrorException( "SQLite database '"+database+"' already exists" );
+  }
 
   if ( sqlite3_open( database.c_str(), &m_pDB)!=SQLITE_OK )
     throw sPerrorException( "Could not connect to the SQLite database '" + database + "'" );
@@ -151,8 +156,6 @@ SSQLite3::SSQLite3( const std::string & database, bool creat )
 
 void SSQLite3::setLog(bool state)
 { 
-  if (state)
-      sqlite3_trace(m_pDB, my_trace, NULL);
   m_dolog=state;
 }
 

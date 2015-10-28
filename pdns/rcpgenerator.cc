@@ -20,9 +20,13 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "rcpgenerator.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
+#include "utility.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
@@ -74,10 +78,14 @@ void RecordTextReader::xfrTime(uint32_t &val)
   struct tm tm;
   memset(&tm, 0, sizeof(tm));
   
-  string tmp;
-  xfrLabel(tmp); // ends on number, so this works 
+  uint64_t itmp;
+  xfr64BitInt(itmp); // ends on number, so this works 
 
-  sscanf(tmp.c_str(), "%04d%02d%02d" "%02d%02d%02d", 
+  ostringstream tmp;
+
+  tmp<<itmp;
+
+  sscanf(tmp.str().c_str(), "%04d%02d%02d" "%02d%02d%02d", 
          &tm.tm_year, &tm.tm_mon, &tm.tm_mday, 
          &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
 
@@ -180,11 +188,11 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 }
 
 // this code should leave all the escapes around 
-void RecordTextReader::xfrLabel(string& val, bool) 
+void RecordTextReader::xfrName(DNSName& val, bool) 
 {
   skipSpaces();
-  val.clear();
-  val.reserve(d_end - d_pos);
+  string sval;
+  sval.reserve(d_end - d_pos);
 
   const char* strptr=d_string.c_str();
   string::size_type begin_pos = d_pos;
@@ -194,18 +202,19 @@ void RecordTextReader::xfrLabel(string& val, bool)
       
     d_pos++;
   }
-  val.append(strptr+begin_pos, strptr+d_pos);      
+  sval.append(strptr+begin_pos, strptr+d_pos);      
 
-  if(val.empty())
-    val=d_zone;
+  if(sval.empty())
+    sval=d_zone;
   else if(!d_zone.empty()) {
-    char last=val[val.size()-1];
+    char last=sval[sval.size()-1];
    
     if(last =='.')
-      val.resize(val.size()-1);
+      sval.resize(sval.size()-1);
     else if(last != '.' && !isdigit(last)) // don't add zone to IP address
-      val+="."+d_zone;
+      sval+="."+d_zone;
   }
+  val = DNSName(sval);
 }
 
 static bool isbase64(char c, bool acceptspace)
@@ -494,12 +503,12 @@ void RecordTextWriter::xfr8BitInt(const uint8_t& val)
 }
 
 // should not mess with the escapes
-void RecordTextWriter::xfrLabel(const string& val, bool)
+void RecordTextWriter::xfrName(const DNSName& val, bool)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
   
-  d_string+=val;
+  d_string+=val.toString();
 }
 
 void RecordTextWriter::xfrBlobNoSpaces(const string& val, int size)
@@ -558,7 +567,7 @@ try
   rtr.xfrText(flags);
   rtr.xfrText(services);
   rtr.xfrText(regexp);
-  rtr.xfrLabel(replacement);
+  rtr.xfrName(replacement);
 
   cout<<"order: "<<order<<", pref: "<<pref<<"\n";
   cout<<"flags: \""<<flags<<"\", services: \""<<services<<"\", regexp: \""<<regexp<<"\", replacement: "<<replacement<<"\n";
@@ -571,7 +580,7 @@ try
   rtw.xfrText(flags);
   rtw.xfrText(services);
   rtw.xfrText(regexp);
-  rtw.xfrLabel(replacement);
+  rtw.xfrName(replacement);
 
   cout<<"Regenerated: '"<<out<<"'\n";
   

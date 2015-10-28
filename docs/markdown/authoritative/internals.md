@@ -56,11 +56,14 @@ Retrieve a slave domain from its master. Done nearly immediately.
 ## `set VARIABLE VALUE`
 Set a configuration parameter. Currently only the 'query-logging' parameter can be set.
 
+## `token-login MODULE SLOT PIN`
+Logs on to a PKCS#11 slot. You only need to login once per slot, even if you have multiple keys on single slot.
+
 ## `uptime`
 Reports the uptime of the daemon in human readable form.
 
 ## `show VARIABLE`
-Show a specific statistic. Use * for all. (You may need to quote as '*' or \\*).
+Show a specific statistic. Use * for all. (You may need to quote as '\*' or \\\*).
 
 ## `version`
 Returns the version of a running pdns daemon.
@@ -94,7 +97,7 @@ To run on the command line, use the `pdns_server` binary. For example, to see op
 ```
 
 # How PowerDNS translates DNS queries into backend queries
-A DNS query is not a straightforward lookup. Many DNS queries need to check the backend for additional data, for example to determine of an unfound record should lead to an NXDOMAIN ('we know about this domain, but that record does not exist') or an unauthoritative response.
+A DNS query is not a straightforward lookup. Many DNS queries need to check the backend for additional data, for example to determine if an unfound record should lead to an NXDOMAIN ('we know about this domain, but that record does not exist') or an unauthoritative response.
 
 Simplified, without CNAME processing, wildcards, referrals and DNSSEC, the algorithm is like this:
 

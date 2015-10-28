@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "pdns/namespaces.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"

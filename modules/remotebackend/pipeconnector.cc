@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "remotebackend.hh"
@@ -17,7 +20,8 @@ PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
 
   d_pid = -1;
   d_fp = NULL;
-  launch();
+  d_fd1[0] = d_fd1[1] = -1;
+  d_fd2[0] = d_fd2[1] = -1;
 }
 
 PipeConnector::~PipeConnector(){
@@ -59,9 +63,9 @@ void PipeConnector::launch() {
     throw PDNSException("Unable to fork for coprocess: "+stringerror());
   else if(d_pid>0) { // parent speaking
     close(d_fd1[0]);
-    Utility::setCloseOnExec(d_fd1[1]);
+    setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
-    Utility::setCloseOnExec(d_fd2[0]);
+    setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     if (d_timeout) 

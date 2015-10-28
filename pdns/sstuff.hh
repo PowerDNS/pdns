@@ -14,7 +14,7 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
+
 #include <boost/utility.hpp>
 #include <csignal>
 #include "namespaces.hh"
@@ -49,7 +49,7 @@ public:
   {
     if((d_socket=(int)socket(af,st, pt))<0)
       throw NetworkError(strerror(errno));
-    Utility::setCloseOnExec(d_socket);
+    setCloseOnExec(d_socket);
 
     d_buflen=4096;
     d_buffer=new char[d_buflen];
@@ -57,7 +57,7 @@ public:
 
   ~Socket()
   {
-    Utility::closesocket(d_socket);
+    closesocket(d_socket);
     delete[] d_buffer;
   }
 
@@ -97,12 +97,12 @@ public:
   //! Set the socket to non-blocking
   void setNonBlocking()
   {
-    Utility::setNonBlocking(d_socket);
+    ::setNonBlocking(d_socket);
   }
   //! Set the socket to blocking
   void setBlocking()
   {
-    Utility::setBlocking(d_socket);
+    ::setBlocking(d_socket);
   }
 
   void setReuseAddr()
@@ -341,8 +341,8 @@ public:
   }
   
 private:
-  int d_socket;
   char *d_buffer;
+  int d_socket;
   int d_buflen;
 };
 

@@ -2,10 +2,24 @@
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
 
+export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}
+export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns_recursor}
+export SDIG=${SDIG:-${PWD}/../pdns/sdig}
+export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
+export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
+export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
+export PDNSSEC=${PDNSSEC:-${PWD}/../pdns/pdnssec}
+export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+
 spectest=$1
 [ -z $spectest ] && spectest=""
 
-${MAKE} -C ../pdns sdig nsec3dig saxfr || exit 1
+for prog in $SDIG $SAXFR $NSEC3DIG; do
+  if `echo $prog | grep -q '../pdns'`; then
+    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+  fi
+done
 
 rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out ${testsdir}/*/start ${testsdir}/*/step.*
 

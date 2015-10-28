@@ -56,38 +56,40 @@ public:
 
   void insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned int maxttl=UINT_MAX);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  void insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
+  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
     unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
 
   int get(DNSPacket *p, DNSPacket *q, bool recursive); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
-  bool getEntry(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
+  bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
 
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
-  int purge(const string &match);
+  int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
 
   map<char,int> getCounts();
 private:
-  bool getEntryLocked(const string &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
+  bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
-  string pcReverse(const string &content);
+  string pcReverse(DNSName content);
   struct CacheEntry
   {
-    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}
+    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false; created=0; ttd=0; maxReplyLen=512;}
 
     string qname;
+    string value;
+    time_t created;
+    time_t ttd;
+
     uint16_t qtype;
     uint16_t ctype;
     int zoneID;
-    time_t created;
-    time_t ttd;
-    bool meritsRecursion;
     unsigned int maxReplyLen;
+
+    bool meritsRecursion;
     bool dnssecOk;
     bool hasEDNS;
-    string value;
   };
 
   void getTTLS();
@@ -127,14 +129,14 @@ private:
     return d_maps[burtle((const unsigned char*)qname.c_str(), qname.length(), 0) % d_maps.size()];
   }
 
-
   AtomicCounter d_ops;
-  int d_ttl;
-  int d_recursivettl;
-  bool d_doRecursion;
   AtomicCounter *d_statnumhit;
   AtomicCounter *d_statnummiss;
   AtomicCounter *d_statnumentries;
+
+  int d_ttl;
+  int d_recursivettl;
+  bool d_doRecursion;
 };
 
 

@@ -1,12 +1,10 @@
 AM_CPPFLAGS += \
-	-I$(top_srcdir)/pdns/ext/rapidjson/include \
+	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
-	$(POLARSSL_CFLAGS) \
+	$(MBEDTLS_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
 AM_LDFLAGS = $(THREADFLAGS)
-
-SUBDIRS = ../../pdns/ext/yahttp
 
 EXTRA_DIST = \
 	OBJECTFILES \
@@ -52,7 +50,6 @@ if REMOTEBACKEND_ZEROMQ
 libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
 endif
 
-if UNIT_TESTS
 TESTS_ENVIRONMENT = \
 	BOOST_TEST_LOG_LEVEL=message; \
 	export BOOST_TEST_LOG_LEVEL; \
@@ -62,14 +59,6 @@ TESTS_ENVIRONMENT = \
 TEST_EXTENSIONS = .test
 
 TEST_LOG_COMPILER = $(abs_srcdir)/testrunner.sh
-
-TESTS = \
-	remotebackend_pipe.test \
-	remotebackend_unix.test \
-	remotebackend_http.test \
-	remotebackend_post.test \
-	remotebackend_json.test \
-	remotebackend_zeromq.test
 
 RECHECK_LOGS = \
 	$(TEST_LOGS) \
@@ -85,6 +74,16 @@ RECHECK_LOGS = \
 remotebackend_post.log: remotebackend_http.log
 
 remotebackend_json.log: remotebackend_http.log remotebackend_post.log
+
+if BACKEND_UNIT_TESTS
+TESTS = \
+	remotebackend_pipe.test \
+	remotebackend_unix.test \
+	remotebackend_http.test \
+	remotebackend_post.test \
+	remotebackend_json.test \
+	remotebackend_zeromq.test
+
 endif
 
 BUILT_SOURCES = ../../pdns/dnslabeltext.cc
@@ -98,6 +97,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/base64.cc \
 	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
 	../../pdns/dnslabeltext.cc \
+	../../pdns/dnsname.cc ../../pdns/dnsname.hh \
 	../../pdns/dnspacket.cc \
 	../../pdns/dnsparser.cc \
 	../../pdns/dnsrecords.cc \
@@ -118,6 +118,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/nameserver.cc \
 	../../pdns/rcpgenerator.cc \
 	../../pdns/unix_utility.cc \
+	../../pdns/gss_context.cc ../../pdns/gss_context.hh \
 	httpconnector.cc \
 	pipeconnector.cc \
 	unixconnector.cc \
@@ -128,7 +129,7 @@ libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 libtestremotebackend_la_LIBADD = \
 	$(YAHTTP_LIBS) \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
@@ -152,6 +153,13 @@ libtestremotebackend_la_LIBADD += \
 
 libtestremotebackend_la_CPPFLAGS += \
 	$(P11KIT1_CFLAGS)
+endif
+
+if GSS_TSIG
+libtestremotebackend_la_LIBADD += \
+	$(GSS_LIBS)
+libtestremotebackend_la_CPPFLAGS+= \
+	$(GSS_CFLAGS)
 endif
 
 remotebackend_http_test_SOURCES = \

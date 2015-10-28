@@ -1,12 +1,22 @@
 #!/bin/sh
 set -e
 
+if [ "$HARDENING" = "" ]; then
+  HARDENING="yes"
+fi
+
 if [ "$CXX" = "" ]; then
   CXX="g++"
 fi
 
 if [ "$STATIC" = "" ]; then
   STATIC="no"
+fi
+
+if [ "$REPRODUCIBLE" = "1" ]; then
+  cat >> config.h << EOF
+#define REPRODUCIBLE 1
+EOF
 fi
 
 set -u
@@ -16,6 +26,19 @@ CF_PIE=""
 LD_PIE=""
 CF_FORTIFY=""
 CF_STACK=""
+
+BUILD_USER="$(id -u -n)"
+case $(uname) in
+  SunOS)
+    BUILD_HOST="${BUILD_USER}@$(hostname).$(domainname)" ;;
+  *)
+    BUILD_HOST="${BUILD_USER}@$(hostname -f || echo 'localhost')" ;;
+esac
+
+perl -p -n -i -e 'print unless /#define BUILD_HOST/' config.h
+cat >> config.h << EOF
+#define BUILD_HOST "${BUILD_HOST}"
+EOF
 
 test_flags() {
   # test for relocation
@@ -69,7 +92,9 @@ EOF
   rm -f $src a.out a2.out
 }
 
-test_flags
+if [ "$HARDENING" != "no" ]; then
+  test_flags
+fi
 
 sed -e "s/@LD_RELRO@/$LD_RELRO/g" -e "s/@LD_PIE@/$LD_PIE/g" -e "s/@CF_PIE@/$CF_PIE/g" -e "s/@CF_FORTIFY@/$CF_FORTIFY/g" -e "s/@CF_STACK@/$CF_STACK/g" < Makefile.in > Makefile
 

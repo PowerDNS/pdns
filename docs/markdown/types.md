@@ -17,6 +17,12 @@ Since 2.9.21. Specialised record type for the 'Andrew Filesystem'. Stored as: '\
 ## CERT
 Since 2.9.21. Specialised record type for storing certificates, defined in [RFC 2538](http://tools.ietf.org/html/rfc2538).
 
+## CDNSKEY
+Since 4.0.0. The CDNSKEY ([Child DNSKEY](https://tools.ietf.org/html/rfc7344#section-3.2)) type is supported.
+
+## CDS
+Since 4.0.0. The CDS ([Child DS](https://tools.ietf.org/html/rfc7344#section-3.1)) type is supported.
+
 ## CNAME
 The CNAME record specifies the canonical name of a record. It is stored plainly. Like all other records, it is not terminated by a dot. A sample might be 'webserver-01.yourcompany.com'.
 
@@ -52,6 +58,9 @@ Nameserver record. Specifies nameservers for a domain. Stored plainly: 'ns1.powe
 
 ## NSEC
 Since 2.9.21. The NSEC DNSSEC record type is fully supported, as described in [RFC 3757](http://tools.ietf.org/html/rfc3757). Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnssec`](authoritative/dnssec.md#pdnssec "'pdnssec' for PowerDNSSEC command & control").
+
+## OPENPGPKEY
+Since 4.0.0. The OPENPGPKEY records, specified in [RFC TBD](https://tools.ietf.org/html/draft-ietf-dane-openpgpkey-05), are used to bind OpenPGP certificates to email addresses.
 
 ## PTR
 Reverse pointer, used to specify the host name belonging to an IP or IPv6 address. Name is stored plainly: 'www.powerdns.com'. As always, no terminating dot.
@@ -93,7 +102,7 @@ Since 2.9.21. The SSHFP record type, used for storing Secure Shell (SSH) fingerp
 SRV records can be used to encode the location and port of services on a domain name. When encoding, the priority field is used to encode the priority. For example, '\_ldap.\_tcp.dc.\_msdcs.conaxis.ch SRV 0 100 389 mars.conaxis.ch' would be encoded with 0 in the priority field and '100 389 mars.conaxis.ch' in the content field.
 
 ## TLSA
-Since 3.0. The TLSA record, specified in [RFC 6698](http://tools.ietf.org/html/rfc6698), are used to bind SSL/TLS certificate to named hosts and ports.
+Since 3.0. The TLSA records, specified in [RFC 6698](http://tools.ietf.org/html/rfc6698), are used to bind SSL/TLS certificate to named hosts and ports.
 
 ## TXT
 The TXT field can be used to attach textual data to a domain. Text is stored plainly.

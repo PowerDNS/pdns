@@ -15,6 +15,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "luabackend.hh"
 #include "pdns/logger.hh"
 
@@ -49,7 +52,11 @@ public:
   {
     BackendMakers().report(new LUAFactory);
     
-    L << Logger::Info << "[luabackend] This is the lua backend version " VERSION " (" __DATE__ ", " __TIME__ ") reporting" << endl;
+    L << Logger::Info << "[luabackend] This is the lua backend version " VERSION
+#ifndef REPRODUCIBLE
+      << " (" __DATE__ " " __TIME__ ")"
+#endif
+      << " reporting" << endl;
   }  
 };
 

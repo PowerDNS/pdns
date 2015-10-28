@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 #include "utility.hh"
 #include "dynhandler.hh"
@@ -126,7 +129,7 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(parts.size()>1) {
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
       ret+=PC.purge(*i);
-      dk.clearCaches(*i);
+      dk.clearCaches(DNSName(*i));
     }
   }
   else {
@@ -232,14 +235,14 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   const string& domain=parts[1];
   DomainInfo di;
   UeberBackend B;
-  if(!B.getDomainInfo(domain, di))
+  if(!B.getDomainInfo(DNSName(domain), di))
     return "Domain '"+domain+"' unknown";
   
   if(di.masters.empty())
     return "Domain '"+domain+"' is not a slave domain (or has no master defined)";
 
   random_shuffle(di.masters.begin(), di.masters.end());
-  Communicator.addSuckRequest(domain, di.masters.front());
+  Communicator.addSuckRequest(DNSName(domain), di.masters.front());
   return "Added retrieval request for '"+domain+"' from master "+di.masters.front();
 }
 
@@ -260,9 +263,12 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   }
   
   L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<parts[1]<<"' received"<<endl;
-  Communicator.notify(parts[1],parts[2]);
+  Communicator.notify(DNSName(parts[1]), parts[2]);
   return "Added to queue";
 }
+
+// XXX DNSName pain - if you pass us something that is not DNS,  you'll get an exception here, which you never got before
+// and I bet we don't report it well to the user...
 
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
@@ -292,7 +298,7 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
       return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
     return "Added "+itoa(total)+" MASTER zones to queue";
   } else {
-    if(!Communicator.notifyDomain(parts[1]))
+    if(!Communicator.notifyDomain(DNSName(parts[1])))
       return "Failed to add to the queue - see log";
     return "Added to queue";
   }
@@ -321,32 +327,6 @@ string DLReloadHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Ok";
 }
 
-uint64_t udpErrorStats(const std::string& str)
-{
-  ifstream ifs("/proc/net/snmp");
-  if(!ifs)
-    return 0;
-  string line;
-  vector<string> parts;
-  while(getline(ifs,line)) {
-    if(boost::starts_with(line, "Udp: ") && isdigit(line[5])) {
-      stringtok(parts, line, " \n\t\r");
-      if(parts.size() < 7)
-	break;
-      if(str=="udp-rcvbuf-errors")
-	return boost::lexical_cast<uint64_t>(parts[5]);
-      else if(str=="udp-sndbuf-errors")
-	return boost::lexical_cast<uint64_t>(parts[6]);
-      else if(str=="udp-noport-errors")
-	return boost::lexical_cast<uint64_t>(parts[2]);
-      else if(str=="udp-in-errors")
-	return boost::lexical_cast<uint64_t>(parts[3]);
-      else
-	return 0;
-    }
-  }
-  return 0;
-}
 
 string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 {
@@ -369,7 +349,7 @@ string DLListZones(const vector<string>&parts, Utility::pid_t ppid)
 
   for (vector<DomainInfo>::const_iterator di=domains.begin(); di != domains.end(); di++) {
     if (di->kind == kindFilter || kindFilter == -1) {
-      ret<<di->zone<<endl;
+      ret<<di->zone.toString()<<endl;
       count++;
     }
   }
@@ -389,4 +369,25 @@ string DLPolicy(const vector<string>&parts, Utility::pid_t ppid)
   else {
     return "no policy script loaded";
   }
+}
+
+#ifdef HAVE_P11KIT1
+extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
+#endif
+
+string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
+{
+#ifndef HAVE_P11KIT1
+  return "PKCS#11 support not compiled in";
+#else
+  if (parts.size() != 4) {
+    return "invalid number of parameters, needs 4, got " + boost::lexical_cast<string>(parts.size());
+  }
+
+  if (PKCS11ModuleSlotLogin(parts[1], parts[2], parts[3])) {
+    return "logged in";
+  } else {
+    return "could not log in, check logs";
+  }
+#endif
 }

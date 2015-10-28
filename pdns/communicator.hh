@@ -44,7 +44,7 @@ using namespace boost::multi_index;
 
 struct SuckRequest
 {
-  string domain;
+  DNSName domain;
   string master;
   bool operator<(const SuckRequest& b) const
   {
@@ -66,7 +66,7 @@ typedef UniQueue::index<IDTag>::type domains_by_name_t;
 class NotificationQueue
 {
 public:
-  void add(const string &domain, const string &ip)
+  void add(const DNSName &domain, const string &ip)
   {
     const ComboAddress caIp(ip);
 
@@ -80,7 +80,7 @@ public:
     d_nqueue.push_back(nr);
   }
 
-  bool removeIf(const string &remote, uint16_t id, const string &domain)
+  bool removeIf(const string &remote, uint16_t id, const DNSName &domain)
   {
     ServiceTuple stRemote, stQueued;
     parseService(remote, stRemote);
@@ -95,7 +95,7 @@ public:
     return false;
   }
 
-  bool getOne(string &domain, string &ip, uint16_t *id, bool &purged)
+  bool getOne(DNSName &domain, string &ip, uint16_t *id, bool &purged)
   {
     for(d_nqueue_t::iterator i=d_nqueue.begin();i!=d_nqueue.end();++i) 
       if(i->next <= time(0)) {
@@ -128,11 +128,11 @@ public:
 private:
   struct NotificationRequest
   {
-    string domain;
+    DNSName domain;
     string ip;
+    time_t next;
     int attempts;
     uint16_t id;
-    time_t next;
   };
 
   typedef std::list<NotificationRequest> d_nqueue_t;
@@ -153,20 +153,24 @@ public:
 
     d_tickinterval=60;
     d_masterschanged=d_slaveschanged=true;
+    d_nsock4 = -1;
+    d_nsock6 = -1;
+    d_havepriosuckrequest = false;
+    d_preventSelfNotification = false;
   }
   time_t doNotifications();    
   void go();
   
   
-  void drillHole(const string &domain, const string &ip);
-  bool justNotified(const string &domain, const string &ip);
-  void addSuckRequest(const string &domain, const string &master);
+  void drillHole(const DNSName &domain, const string &ip);
+  bool justNotified(const DNSName &domain, const string &ip);
+  void addSuckRequest(const DNSName &domain, const string &master);
   void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTrySuperMasterRequest(DNSPacket *p);
-  void notify(const string &domain, const string &ip);
+  void notify(const DNSName &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
-  void sendNotification(int sock, const string &domain, const ComboAddress& remote, uint16_t id);
+  void sendNotification(int sock, const DNSName &domain, const ComboAddress& remote, uint16_t id);
 
   static void *launchhelper(void *p)
   {
@@ -178,32 +182,90 @@ public:
     static_cast<CommunicatorClass *>(p)->retrievalLoopThread();
     return 0;
   }
-  bool notifyDomain(const string &domain);
+  bool notifyDomain(const DNSName &domain);
 private:
   void makeNotifySockets();
-  void queueNotifyDomain(const string &domain, UeberBackend *B);
+  void queueNotifyDomain(const DNSName &domain, UeberBackend *B);
   int d_nsock4, d_nsock6;
-  map<pair<string,string>,time_t>d_holes;
+  map<pair<DNSName,string>,time_t>d_holes;
   pthread_mutex_t d_holelock;
   void launchRetrievalThreads();
-  void suck(const string &domain, const string &remote);
+  void suck(const DNSName &domain, const string &remote);
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
   pthread_mutex_t d_lock;
   
   UniQueue d_suckdomains;
   
-  bool d_havepriosuckrequest;
   Semaphore d_suck_sem;
   Semaphore d_any_sem;
   time_t d_tickinterval;
-  NotificationQueue d_nq;
-  bool d_masterschanged, d_slaveschanged;
   set<DomainInfo> d_tocheck;
   vector<DNSPacket> d_potentialsupermasters;
-  bool d_preventSelfNotification;
-  NetmaskGroup d_onlyNotify;
   set<string> d_alsoNotify;
+  NotificationQueue d_nq;
+  NetmaskGroup d_onlyNotify;
+  bool d_havepriosuckrequest;
+  bool d_masterschanged, d_slaveschanged;
+  bool d_preventSelfNotification;
 };
+
+// class that one day might be more than a function to help you get IP addresses for a nameserver
+class FindNS
+{
+public:
+  vector<string> lookup(const DNSName &name, DNSBackend *b)
+  {
+    vector<string> addresses;
+
+    this->resolve_name(&addresses, name);
+    
+    b->lookup(QType(QType::ANY),name);
+    DNSResourceRecord rr;
+    while(b->get(rr))
+      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
+        addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+
+    return addresses;
+  }
+
+  vector<string> lookup(const DNSName &name, UeberBackend *b)
+  {
+    vector<string> addresses;
+
+    this->resolve_name(&addresses, name);
+
+    b->lookup(QType(QType::ANY),name);
+    DNSResourceRecord rr;
+    while(b->get(rr))
+      if(rr.qtype.getCode() == QType::A || rr.qtype.getCode()==QType::AAAA)
+         addresses.push_back(rr.content);   // SOL if you have a CNAME for an NS
+
+    return addresses;
+  }
+
+private:
+  void resolve_name(vector<string>* addresses, const DNSName& name)
+  {
+    struct addrinfo* res;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+
+    for(int n = 0; n < 2; ++n) {
+      hints.ai_family = n ? AF_INET : AF_INET6;
+      ComboAddress remote;
+      remote.sin4.sin_family = AF_INET6;
+      if(!getaddrinfo(name.toString().c_str(), 0, &hints, &res)) {
+        struct addrinfo* address = res;
+        do {
+          memcpy(&remote, address->ai_addr, address->ai_addrlen);
+          addresses->push_back(remote.toString());
+        } while((address = address->ai_next));
+        freeaddrinfo(res);
+      }
+    }
+  }
+};
+
 
 #endif

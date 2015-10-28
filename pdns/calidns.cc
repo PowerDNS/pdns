@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <iostream>
 #include "dnsparser.hh"
 #include "sstuff.hh"
@@ -143,7 +146,7 @@ try
     vector<uint8_t> packet;
     boost::trim(line);
     auto p = splitField(line, ' ');
-    DNSPacketWriter pw(packet, p.first, DNSRecordContent::TypeToNumber(p.second));
+    DNSPacketWriter pw(packet, DNSName(p.first), DNSRecordContent::TypeToNumber(p.second));
     packets.push_back(packet);
   }
   cout<<"Generated "<<packets.size()<<" queries"<<endl;

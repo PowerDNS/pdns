@@ -88,24 +88,17 @@ remove-zone-key *ZONE* *KEY-ID*
 set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow**]
 :    Sets NSEC3 parameters for this zone. The quoted parameters are 4 values
      that are used for the the NSEC3PARAM record and decide how NSEC3 records
-     are created. The NSEC3 parameters must be quoted on the command line.
-
-     *HASH-ALGORITHM* must be 1 (SHA-1).
-
+     are created. The NSEC3 parameters must be quoted on the command line.<br><br>
+     *HASH-ALGORITHM* must be 1 (SHA-1).<br><br>
      Setting *FLAGS* to 1 enables NSEC3 opt-out operation. Only do this if you
-     know you need it.
-
+     know you need it.<br><br>
      For *ITERATIONS*, please consult RFC 5155, section 10.3. And be aware
-     that a high number might overload validating resolvers.
-
-     The *SALT* is a hexadecimal string encoding the bits for the salt.
-
+     that a high number might overload validating resolvers.<br><br>
+     The *SALT* is a hexadecimal string encoding the bits for the salt.<br><br>
      Setting **narrow** will make PowerDNS send out "white lies" about the next
      secure record. Instead of looking it up in the database, it will send out
-     the hash + 1 as the next secure record.
-
-     A sample commandline is: "pdnssec set-nsec3 powerdnssec.org '1 1 1 ab' narrow".
-
+     the hash + 1 as the next secure record. <br><br>
+     A sample commandline is: "pdnssec set-nsec3 powerdnssec.org '1 1 1 ab' narrow".<br><br>
      **WARNING**: If running in RSASHA1 mode (algorithm 5 or 7), switching from
      NSEC to NSEC3 will require a DS update in the parent zone.
 
@@ -113,6 +106,20 @@ unset-nsec3 *ZONE*
 :    Converts *ZONE* to NSEC operations. **WARNING**: If running in RSASHA1 mode
      (algorithm 5 or 7), switching from NSEC to NSEC3 will require a DS update
      at the parent zone!
+
+set-publish-cds *ZONE* [*DIGESTALGOS*]
+:    Set *ZONE* to respond to queries for its CDS records. the optional argument
+     *DIGESTALGOS* should be a comma-separated list of DS algorithms to use. By
+     default, this is 1,2 (SHA1 and SHA2-256).
+
+set-publish-cdnskey *ZONE*
+:    Set *ZONE* to publish CDNSKEY records.
+
+unset-publish-cds *ZONE*
+:    Set *ZONE* to stop responding to queries for its CDS records.
+
+unset-publish-cdnskey *ZONE*
+:    Set *ZONE* to stop publishing CDNSKEY records.
 
 ## TSIG RELATED COMMANDS
 These commands manipulate TSIG key information in the database. Some commands
@@ -157,6 +164,9 @@ hash-zone-record *ZONE* *RNAME*
 :    This convenience command hashes the name *RNAME* according to the NSEC3
      settings of *ZONE*. Refuses to hash for zones with no NSEC3 settings.
 
+list-keys [*ZONE*]
+:    List DNSSEC information for all keys or for *ZONE*.
+
 list-all-zones:
 :    List all zone names.
 
@@ -191,6 +201,12 @@ test-schema *ZONE*
 
 unset-presigned *ZONE*
 :    Disables presigned operation for *ZONE*.
+
+## DEBUGGING TOOLS
+
+backend-cmd *BACKEND* *CMD* [*CMD..*]
+:    Send a text command to a backend for execution. GSQL backends will take SQL
+     commands, other backends may take different things. Be careful!
 
 # SEE ALSO
 pdns_server (1), pdns_control (1)

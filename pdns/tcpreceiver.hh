@@ -27,7 +27,7 @@
 #include "dnsbackend.hh"
 #include "packethandler.hh"
 #include <vector>
-#include <boost/shared_ptr.hpp>
+
 #include <poll.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -49,12 +49,12 @@ public:
   void go();
 private:
 
-  static void sendPacket(boost::shared_ptr<DNSPacket> p, int outsock);
+  static void sendPacket(std::shared_ptr<DNSPacket> p, int outsock);
   static int readLength(int fd, ComboAddress *remote);
   static void getQuestion(int fd, char *mesg, int pktlen, const ComboAddress& remote);
-  static int doAXFR(const string &target, boost::shared_ptr<DNSPacket> q, int outsock);
-  static int doIXFR(boost::shared_ptr<DNSPacket> q, int outsock);
-  static bool canDoAXFR(boost::shared_ptr<DNSPacket> q);
+  static int doAXFR(const DNSName &target, std::shared_ptr<DNSPacket> q, int outsock);
+  static int doIXFR(std::shared_ptr<DNSPacket> q, int outsock);
+  static bool canDoAXFR(std::shared_ptr<DNSPacket> q);
   static void *doConnection(void *data);
   static void *launcher(void *data);
   void thread(void);

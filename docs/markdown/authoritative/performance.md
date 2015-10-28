@@ -43,27 +43,61 @@ The default values should work fine for many sites. When tuning, keep in mind th
 A number of counters and variables are set during PDNS Authoritative Server operation.
 
 ### Counters
-* **corrupt-packets**: Number of corrupt packets received
-* **latency**: Average number of microseconds a packet spends within PDNS
-* **packetcache-hit**: Number of packets which were answered out of the cache
-* **packetcache-miss**: Number of times a packet could not be answered out of the cache
-* **packetcache-size**: Amount of packets in the packetcache
-* **qsize-a**: Size of the queue before the transmitting socket.
-* **qsize-q**: Number of packets waiting for database attention
-* **rd-queries**:Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.
-* **recursing-questions**: Number of packets we supplied an answer to after recursive processing
-* **recursing-questions**: Number of packets we performed recursive processing for
-* **recursion-unanswered**: Number of packets we sent to our recursor, but did not get a timely answer for. Since 3.4.0.
-* **servfail-packets**: Amount of packets that could not be answered due to database problems
-* **tcp-answers**: Number of answers sent out over TCP
-* **tcp-questions**: Number of questions received over TCP
-* **timedout-questions**: Amount of packets that were dropped because they had to wait too long internally
-* **udp-answers**: Number of answers sent out over UDP
-* **udp-queries**: Number of questions received over UDP
-* **udp4-answers**: Number of answers sent out over UDPv4
-* **udp4-queries**: Number of questions received over UDPv4
-* **udp6-answers**: Number of answers sent out over UDPv6
-* **udp6-queries**: Number of questions received over UDPv6
+All counters that show the "number of X" count since the last startup of the
+daemon.
+
+* `corrupt-packets`: Number of corrupt packets received
+* `deferred-cache-inserts`: Number of cache inserts that were deferred because of maintenance
+* `deferred-cache-lookup`: Number of cache lookups that were deferred because of maintenance
+* `dnsupdate-answers`: Number of DNS update packets successfully answered
+* `dnsupdate-changes`: Total number of changes to records from DNS update
+* `dnsupdate-queries`: Number of DNS update packets received
+* `dnsupdate-refused`: Number of DNS update packets that were refused
+* `incoming-notifications`: Number of NOTIFY packets that were received
+* `key-cache-size`: Number of entries in the key cache
+* `latency`: Average number of microseconds a packet spends within PDNS
+* `meta-cache-size`: Number of entries in the metadata cache
+* `packetcache-hit`: Number of packets which were answered out of the cache
+* `packetcache-miss`: Number of times a packet could not be answered out of the cache
+* `packetcache-size`: Amount of packets in the packetcache
+* `qsize-q`: Number of packets waiting for database attention
+* `query-cache-hit`: Number of hits on the [query cache](performance.md#query-cache)
+* `query-cache-miss`: Number of misses on the [query cache](performance.md#query-cache)
+* `rd-queries`: Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion). Since 3.4.0.
+* `recursing-answers`: Number of packets we supplied an answer to after recursive processing
+* `recursing-questions`: Number of packets we performed recursive processing for
+* `recursion-unanswered`: Number of packets we sent to our recursor, but did not get a timely answer for. Since 3.4.0.
+* `security-status`: Security status based on [security polling](../common/security.md#implementation)
+* `servfail-packets`: Amount of packets that could not be answered due to database problems
+* `signature-cache-size`: Number of entries in the signature cache
+* `signatures`: Number of DNSSEC signatures created
+* `sys-msec`: Number of CPU miliseconds sent in system time
+* `tcp-answers-bytes`: Total number of answer bytes sent over TCP (since 4.0.0)
+* `tcp-answers`: Number of answers sent out over TCP
+* `tcp-queries`: Number of questions received over TCP
+* `tcp4-answers-bytes`: Total number of answer bytes sent over TCPv4 (since 4.0.0)
+* `tcp4-answers`: Number of answers sent out over TCPv4
+* `tcp4-queries`: Number of questions received over TCPv4
+* `tcp6-answers-bytes`: Total number of answer bytes sent over TCPv6 (since 4.0.0)
+* `tcp6-answers`: Number of answers sent out over TCPv6
+* `tcp6-queries`: Number of questions received over TCPv6
+* `timedout-questions`: Amount of packets that were dropped because they had to wait too long internally
+* `udp-answers-bytes`: Total number of answer bytes sent over UDP
+* `udp-answers`: Number of answers sent out over UDP
+* `udp-do-queries`: Number of queries received with the DO (DNSSEC OK) bit set
+* `udp-in-errors`: Number of packets, received faster than the OS could process them
+* `udp-noport-errors`: Number of UDP packets where an ICMP response was received that the remote port was not listening
+* `udp-queries`: Number of questions received over UDP
+* `udp-recvbuf-errors`: Number of errors caused in the UDP receive buffer
+* `udp-sndbuf-errors`: Number of errors caused in the UDP send buffer
+* `udp4-answers-bytes`: Total number of answer bytes sent over UDPv4 (Since 4.0.0)
+* `udp4-answers`: Number of answers sent out over UDPv4
+* `udp4-queries`: Number of questions received over UDPv4
+* `udp6-answers-bytes`: Total number of answer bytes sent over UDPv6 (Since 4.0.0)
+* `udp6-answers`: Number of answers sent out over UDPv6
+* `udp6-queries`: Number of questions received over UDPv6
+* `uptime`: Uptime in seconds of the daemon
+* `user-msec`: Number of milliseconds spend in CPU 'user' time
 
 ### Ring buffers
 Besides counters, PDNS also maintains the ringbuffers. A ringbuffer records events, each new event gets a place in the buffer until it is full. When full, earlier entries get overwritten, hence the name 'ring'.

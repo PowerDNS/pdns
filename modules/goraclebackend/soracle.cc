@@ -1,6 +1,9 @@
 /* Copyright 2005 Netherlabs BV, bert.hubert@netherlabs.nl. See LICENSE
    for more information. */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "soracle.hh"
 #include <string>
 #include <iostream>
@@ -9,6 +12,8 @@
 #include "pdns/dns.hh"
 #include "pdns/namespaces.hh"
 #include "pdns/md5.hh"
+
+static AtomicCounter s_txid;
 
 bool SOracle::s_dolog;
 
@@ -45,7 +50,7 @@ public:
     if (d_release_stmt) {
       if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)query.c_str(), query.size(), NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
         // failed.
-        throw SSqlException("Cannot prepare statement: " + OCIErrStr());
+        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
       }
       d_init = true;
     } else d_init = false;
@@ -61,12 +66,12 @@ public:
     if (d_query.size()==0) return;
     if (d_init == false) {
       if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), NULL, 0, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        throw SSqlException("Cannot prepare statement: " + OCIErrStr());
+        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
       }
       d_init = true;
     } else {
       if (OCIStmtPrepare2(d_svcctx, &d_stmt, d_err, (text*)d_query.c_str(), d_query.size(), d_stmt_key, d_stmt_keysize, OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        throw SSqlException("Cannot prepare statement: " + OCIErrStr());
+        throw SSqlException("Cannot prepare statement: " + d_query + string(": ") + OCIErrStr());
       }
     }
   }
@@ -78,7 +83,7 @@ public:
   SSqlStatement* bind(const string& name, int value) 
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].val4 = value;
@@ -91,7 +96,7 @@ public:
   SSqlStatement* bind(const string& name, uint32_t value)
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].val4 = value;
@@ -104,7 +109,7 @@ public:
   SSqlStatement* bind(const string& name, long value)
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].val4 = value;
@@ -117,7 +122,7 @@ public:
   SSqlStatement* bind(const string& name, unsigned long value) 
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].val4 = value;
@@ -130,7 +135,7 @@ public:
   SSqlStatement* bind(const string& name, long long value)
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].val8 = value;
@@ -143,7 +148,7 @@ public:
   SSqlStatement* bind(const string& name, unsigned long long value)
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].val8 = value;
@@ -156,7 +161,7 @@ public:
   SSqlStatement* bind(const string& name, const std::string& value) 
   {
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     d_bind[d_paridx].vals = new text[value.size()+1];
@@ -171,7 +176,7 @@ public:
   SSqlStatement* bindNull(const string& name) 
   { 
     if (d_paridx >= d_parnum)
-     throw SSqlException("Attempt to bind more parameters than query has");
+     throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     prepareStatement();
     string zName = string(":") + name;
     if (OCIBindByName(d_stmt, &(d_bind[d_paridx].handle), d_err, (text*)zName.c_str(), zName.size(), NULL, 0, SQLT_STR, &d_null_ind, 0, 0, 0, 0, OCI_DEFAULT) != OCI_SUCCESS) {
@@ -192,14 +197,14 @@ public:
     ub4 iters;
 
     if (OCIAttrGet(d_stmt, OCI_HTYPE_STMT, (dvoid*)&fntype, 0, OCI_ATTR_STMT_TYPE, d_err))
-      throw SSqlException("Cannot get statement type: " + OCIErrStr());
+      throw SSqlException("Cannot get statement type: " + d_query + string(": ") + OCIErrStr());
 
     if (fntype == OCI_STMT_SELECT) iters = 0;
     else iters = 1;
 
     d_queryResult = OCIStmtExecute(d_svcctx, d_stmt, d_err, iters, 0, NULL, NULL, OCI_DEFAULT);
     if (d_queryResult != OCI_NO_DATA && d_queryResult != OCI_SUCCESS && d_queryResult != OCI_SUCCESS_WITH_INFO) {
-      throw SSqlException("Cannot execute statement: " + OCIErrStr());
+      throw SSqlException("Cannot execute statement: " + d_query + string(": ") + OCIErrStr());
     }
 
     d_resnum = d_residx = 0; 
@@ -210,9 +215,9 @@ public:
 
       // figure out what the result looks like
       if (OCIAttrGet(d_stmt, OCI_HTYPE_STMT, (dvoid*)&o_resnum, 0, OCI_ATTR_ROW_COUNT, d_err)) 
-        throw SSqlException("Cannot get statement result row count: " + OCIErrStr()); // this returns 0 
+        throw SSqlException("Cannot get statement result row count: " + d_query + string(": ") + OCIErrStr()); // this returns 0 
       if (OCIAttrGet(d_stmt, OCI_HTYPE_STMT, (dvoid*)&o_fnum, 0, OCI_ATTR_PARAM_COUNT, d_err)) 
-        throw SSqlException("Cannot get statement result column count: " + OCIErrStr());
+        throw SSqlException("Cannot get statement result column count: " + d_query + string(": ") + OCIErrStr());
 
       d_residx = 0;
       d_resnum = o_resnum;
@@ -226,16 +231,16 @@ public:
 
         for(int i=0; i < d_fnum; i++) {
           if (OCIParamGet(d_stmt, OCI_HTYPE_STMT, d_err, (dvoid**)&parms, (ub4)i+1) != OCI_SUCCESS) {
-            throw SSqlException("Cannot get statement result column information: " + OCIErrStr());
+            throw SSqlException("Cannot get statement result column information: " + d_query + string(": ") + OCIErrStr());
           }
 
           if (OCIAttrGet(parms, OCI_DTYPE_PARAM, (dvoid*)&(d_res[i].colsize), 0, OCI_ATTR_DATA_SIZE, d_err) != OCI_SUCCESS) {
-            throw SSqlException("Cannot get statement result column information: " + OCIErrStr());
+            throw SSqlException("Cannot get statement result column information: " + d_query + string(": ") + OCIErrStr());
           }
           
           if (d_res[i].colsize == 0) {
             if (OCIAttrGet(parms, OCI_DTYPE_PARAM, (dvoid*)&o_attrtype, 0, OCI_ATTR_DATA_TYPE, d_err) != OCI_SUCCESS) {
-              throw SSqlException("Cannot get statement result column information: " + OCIErrStr());
+              throw SSqlException("Cannot get statement result column information: " + d_query + string(": ") + OCIErrStr());
             }
 
             // oracle 11g returns 0 for integer fields - we know oracle should return 22.
@@ -254,7 +259,7 @@ public:
       if (d_fnum > 0) {
         for(int i=0;i<d_fnum;i++) {
           if (OCIDefineByPos(d_stmt, &(d_res[i].handle), d_err, i+1, d_res[i].content, d_res[i].colsize+1, SQLT_STR, (dvoid*)&(d_res[i].ind), NULL, NULL, OCI_DEFAULT)) 
-            throw SSqlException("Cannot bind result column: " + OCIErrStr());
+            throw SSqlException("Cannot bind result column: " + d_query + string(": ") + OCIErrStr());
         }
       }
 
@@ -298,7 +303,7 @@ public:
     if (d_queryResult == OCI_NO_DATA) return this;
 
     if (d_queryResult != OCI_SUCCESS && d_queryResult != OCI_SUCCESS_WITH_INFO) {
-      throw SSqlException("Cannot get next row: " + OCIErrStr());
+      throw SSqlException("Cannot get next row: " + d_query + string(": ") + OCIErrStr());
     }
 
     row.reserve(d_fnum);
@@ -344,7 +349,7 @@ public:
   
     if (d_release_stmt) {
       if (OCIStmtRelease(d_stmt, d_err, (text*)d_stmt_key, d_stmt_keysize, OCI_DEFAULT) != OCI_SUCCESS)
-        throw SSqlException("Could not release statement: " + OCIErrStr());
+        throw SSqlException("Could not release statement: " + d_query + string(": ") + OCIErrStr());
       d_stmt = NULL;
     }
     return this;
@@ -422,20 +427,20 @@ SOracle::SOracle(const string &database,
 
   int err = OCIHandleAlloc(d_environmentHandle, (dvoid**) &d_errorHandle, OCI_HTYPE_ERROR, 0, NULL);
   if (err) {
-    throw sPerrorException("OCIHandleAlloc(errorHandle)");
+    throw sPerrorException("OCIHandleAlloc(errorHandle)" + string(": ") + getOracleError());
   }
 
   err = OCILogon2(d_environmentHandle, d_errorHandle, &d_serviceContextHandle, (OraText*)user.c_str(), user.size(), 
                  (OraText*) password.c_str(),  strlen(password.c_str()), (OraText*) database.c_str(), strlen(database.c_str()), OCI_LOGON2_STMTCACHE);
   // increase statement cache to 100
   if (err) {
-    throw sPerrorException("OCILogon2");
+    throw sPerrorException(string("OCILogon2") + string(": ") + getOracleError());
   }
 
   ub4 cacheSize = 100;
   err = OCIAttrSet(d_serviceContextHandle, OCI_HTYPE_SVCCTX, &cacheSize, sizeof(ub4), OCI_ATTR_STMTCACHESIZE, d_errorHandle);
   if (err) {
-    throw sPerrorException("OCIAttrSet(stmtcachesize)");
+    throw sPerrorException("OCIAttrSet(stmtcachesize): " + string(": ") + getOracleError());
   }
 
 }
@@ -459,6 +464,19 @@ SOracle::~SOracle()
     OCIHandleFree(d_errorHandle, OCI_HTYPE_ERROR);
     d_errorHandle = NULL;
   }
+}
+
+void SOracle::startTransaction() {
+  std::string cmd = "SET TRANSACTION NAME '" + boost::lexical_cast<std::string>(s_txid++) + "'";
+  execute(cmd);
+}
+
+void SOracle::commit() {
+  execute("COMMIT");
+}
+
+void SOracle::rollback() {
+  execute("ROLLBACK");
 }
 
 SSqlException SOracle::sPerrorException(const string &reason)

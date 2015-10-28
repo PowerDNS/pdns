@@ -21,8 +21,7 @@
 */
 // $Id$ 
 /* (C) 2002 POWERDNS.COM BV */
-#ifndef DNS_HH
-#define DNS_HH
+#pragma once
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -30,32 +29,30 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
-
-
-#include "utility.hh"
 #include "qtype.hh"
+#include "dnsname.hh"
 #include <time.h>
 #include <sys/types.h>
 class DNSBackend;
+class DNSName; // FIXME400
 
 struct SOAData
 {
-  SOAData() : db(0), scopeMask(0) {};
+  SOAData() : ttl(0), serial(0), refresh(0), retry(0), expire(0), default_ttl(0), db(0), domain_id(-1), scopeMask(0) {};
 
-  string qname;
-  string nameserver;
-  string hostmaster;
+  DNSName qname;
+  DNSName nameserver;
+  DNSName hostmaster;
   uint32_t ttl;
   uint32_t serial;
   uint32_t refresh;
   uint32_t retry;
   uint32_t expire;
   uint32_t default_ttl;
-  int domain_id;
   DNSBackend *db;
+  int domain_id;
   uint8_t scopeMask;
 };
-
 
 class RCode
 {
@@ -75,30 +72,35 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : qclass(1), signttl(0), last_modified(0), d_place(ANSWER), auth(1), disabled(0), scopeMask(0) {};
-  DNSResourceRecord(const struct DNSRecord&);
+  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), d_place(ANSWER), scopeMask(0), auth(1), disabled(0) {};
+  explicit DNSResourceRecord(const struct DNSRecord&);
   ~DNSResourceRecord(){};
+
+  enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket
 
   void setContent(const string& content);
   string getZoneRepresentation() const;
 
   // data
-  
-  QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
-  uint16_t qclass; //!< class of this record
-  string qname; //!< the name of this record, for example: www.powerdns.com
-  string wildcardname;
+  DNSName qname; //!< the name of this record, for example: www.powerdns.com
+  DNSName wildcardname;
   string content; //!< what this record points to. Example: 10.1.2.3
+
+  // Aligned on 8-byte boundries on systems where time_t is 8 bytes and int
+  // is 4 bytes, aka modern linux on x86_64
+  time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
+
   uint32_t ttl; //!< Time To Live of this record
   uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG
-  int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
-  time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
-  enum Place {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning of a DNSResourceRecord within, say, a DNSPacket
-  Place d_place; //!< This specifies where a record goes within the packet
 
+  int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
+  QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
+  uint16_t qclass; //!< class of this record
+
+  Place d_place; //!< This specifies where a record goes within the packet
+  uint8_t scopeMask;
   bool auth;
   bool disabled;
-  uint8_t scopeMask;
 
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version)
@@ -218,14 +220,13 @@ struct dnsheader {
 
 #define L theL()
 extern time_t s_starttime;
-std::string questionExpand(const char* packet, uint16_t len, uint16_t& type);
+
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init);
 bool dnspacketLessThan(const std::string& a, const std::string& b);
 
-/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string &content, SOAData &data);
 
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);
 string &attodot(string &str);  //!< for when you need to insert an email address in the SOA
-#endif
+
+vector<DNSResourceRecord> convertRRS(const vector<DNSRecord>& in);

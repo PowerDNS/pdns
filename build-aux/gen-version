@@ -1,0 +1,20 @@
+#!/bin/sh
+VERSION="unknown"
+
+if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
+  if $(git rev-parse --abbrev-ref HEAD | grep -q 'rel/'); then
+    REL_TYPE="$(git rev-parse --abbrev-ref HEAD | cut -d/ -f 2 | cut -d- -f 1)"
+    VERSION="$(git describe --match=${REL_TYPE}-* --dirty=.dirty | cut -d- -f 2-)"
+  else
+    GIT_VERSION=$(git show --no-patch --format=format:%h HEAD)
+    BRANCH=".$(git rev-parse --abbrev-ref HEAD | perl -p -e 's/-//g;')"
+    [ "${BRANCH}" = ".master" ] && BRANCH=''
+    git status | grep -q clean || DIRTY='.dirty'
+    VERSION="0.0${BRANCH}.${PDNS_BUILD_NUMBER}g${GIT_VERSION}${DIRTY}"
+  fi
+  echo "$VERSION" > .version
+elif [ -f .version ]; then
+  VERSION="$(cat .version)"
+fi
+
+echo $VERSION

@@ -18,6 +18,10 @@ pdns_server=$SBINARYPATH/pdns_recursor
 
 [ -f "$pdns_server" ] || exit 0
 
+[ -r /etc/default/pdns-recursor ] && . /etc/default/pdns-recursor
+
+[ "$START" = "no" ] && exit 0
+
 doPC()
 {
 	ret=`$BINARYPATH/rec_control $EXTRAOPTS $1 $2 2> /dev/null`
@@ -90,9 +94,9 @@ case "$1" in
 		then 
 			echo "already running"
 		else
-			$pdns_server --daemon=no --quiet=no --control-console --loglevel=9
+			$pdns_server --daemon=no --quiet=no --loglevel=9
 		fi 
-	;;		
+	;;
 
 	*)
 	echo pdns [start\|stop\|force-reload\|restart\|status\|monitor]

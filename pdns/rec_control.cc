@@ -19,11 +19,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "rec_channel.hh"
 #include <iostream>
 #include "pdnsexception.hh"
 #include "arguments.hh"
-#include "config.h"
 
 #include "namespaces.hh"
 
@@ -49,16 +51,11 @@ static void initArguments(int argc, char** argv)
   arg().setCmd("help","Provide this helpful message");
 
   arg().laxParse(argc,argv);  
-  if(arg().mustDo("help")) {
+  if(arg().mustDo("help") || arg().getCommands().empty()) {
     cout<<"syntax: rec_control [options] command, options as below: "<<endl<<endl;
     cout<<arg().helpstring(arg()["help"])<<endl;
-    exit(0);
-  }
-
-  if(arg().getCommands().empty()) {
-    cerr<<"syntax: rec_control [options] command, options as below: "<<endl<<endl;
-    cerr<<arg().helpstring(arg()["help"])<<endl;
-    exit(99);
+    cout<<"In addition, 'rec_control help' can be used to retrieve a list\nof available commands from PowerDNS"<<endl;
+    exit(arg().mustDo("help") ? 0 : 99);
   }
 
   string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -98,6 +95,10 @@ try
   }
   rccS.send(command);
   string receive=rccS.recv(0, arg().asNum("timeout"));
+  if(receive.compare(0, 7, "Unknown") == 0) {
+    cerr<<receive<<endl;
+    return 1;
+  }
   cout<<receive;
   return 0;
 }

@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "coprocess.hh"
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,6 +10,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "pdns/utility.hh"
 #include <sys/un.h>
 #include "pdns/misc.hh"
 #include "pdns/pdnsexception.hh"
@@ -47,9 +51,9 @@ void CoProcess::launch(const char **argv, int timeout, int infd, int outfd)
     throw PDNSException("Unable to fork for coprocess: "+stringerror());
   else if(d_pid>0) { // parent speaking
     close(d_fd1[0]);
-    Utility::setCloseOnExec(d_fd1[1]);
+    setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
-    Utility::setCloseOnExec(d_fd2[0]);
+    setCloseOnExec(d_fd2[0]);
     if(!(d_fp=fdopen(d_fd2[0],"r")))
       throw PDNSException("Unable to associate a file pointer with pipe: "+stringerror());
     if( d_timeout)

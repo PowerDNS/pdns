@@ -1,0 +1,122 @@
+#!/bin/sh
+
+if [ "$0" != "./build-scripts/build-dnsdist-rpm" ]; then
+  echo "Please run me from the root checkout dir"
+  exit 1
+fi
+
+if [ -z "$VERSION" ]; then
+  echo 'Please set $VERSION' >&2
+  exit 1
+fi
+
+if [ -z "$RELEASE" ];then
+  echo 'Please set $RELEASE' >&2
+  exit 1
+fi
+
+set -e
+set -x
+
+# Prepare the build environment
+rpmdev-setuptree
+
+# This is somethat ugly...
+if [ -f dnsdist-${VERSION}.tar.bz2 ]; then
+  mv dnsdist-${VERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
+else
+  echo "dnsdist-${VERSION}.tar.bz2 not found" >&2
+  exit 1
+fi
+
+
+# libsodium is not available on all RPM platforms (like CentOS 7)
+SODIUM_BUILDREQUIRES=''
+SODIUM_CONFIGURE=''
+
+# Some RPM platforms use systemd, others sysv, we default to systemd here
+INIT_BUILDREQUIRES='BuildRequires: systemd'
+INIT_INSTALL='install -d -m 755 %{buildroot}/%{_sysconfdir}/systemd/system/ && install -m 664 contrib/dnsdist.service %{buildroot}/%{_sysconfdir}/systemd/system/dnsdist.service'
+INIT_FILES='%{_sysconfdir}/systemd/system/dnsdist.service'
+
+# These two are the same for sysv and systemd
+DEFAULTS_INSTALL='install -d -m 755 %{buildroot}/%{_sysconfdir}/sysconfig && install -m 644 contrib/dnsdist.default %{buildroot}/%{_sysconfdir}/sysconfig/dnsdist'
+DEFAULTS_FILES='%{_sysconfdir}/sysconfig/dnsdist'
+
+# On some older distro's *cough* centos 6 *cough* autosetup fails
+SETUP='%autosetup -n %{name}-%{version}'
+
+# Some setups need rpmbuild in a 'special' env
+RPMBUILD_COMMAND='rpmbuild -bb dnsdist.spec'
+
+if [ -f /etc/redhat-release ]; then
+  OS="$(cat /etc/redhat-release)"
+  case "$OS" in
+    Fedora\ *\ 21*)
+      SODIUM_BUILDREQUIRES='BuildRequires: libsodium-devel'
+      SODIUM_CONFIGURE='--enable-libsodium'
+      ;;
+    CentOS\ *\ 6*)
+      INIT_BUILDREQUIRES=''
+      INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
+      INIT_FILES='%{_initrddir}/dnsdist'
+      SETUP='%setup -n %{name}-%{version}'
+      RPMBUILD_COMMAND="scl enable devtoolset-2 -- ${RPMBUILD_COMMAND}"
+      ;;
+    CentOS\ Linux\ *\ 7*)
+      ;;
+    *)
+      echo "No support for $OS (yet?)"
+      exit 1
+      ;;
+  esac
+fi
+
+# Generate the specfile
+cat > dnsdist.spec << EOF
+Name: dnsdist
+Version: ${VERSION}
+Release: ${RELEASE}
+Summary: Powerful and scriptable DNS loadbalancer
+License: GPLv2
+Vendor: PowerDNS.COM BV
+Group: System/DNS
+Source: dnsdist-${VERSION}.tar.bz2
+BuildRequires: readline-devel
+BuildRequires: boost-devel
+BuildRequires: lua-devel
+${SODIUM_BUILDREQUIRES}
+${INIT_BUILDREQUIRES}
+
+%description
+dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
+
+%prep
+${SETUP}
+
+%build
+%configure \
+  --sysconfdir=/etc/dnsdist \
+  ${SODIUM_CONFIGURE}
+
+make
+
+%install
+%make_install
+install -d %{buildroot}/%{_sysconfdir}/dnsdist
+${INIT_INSTALL}
+${DEFAULTS_INSTALL}
+
+%files
+%{_bindir}/*
+%{_mandir}/man1/*
+%doc README.md
+%dir %{_sysconfdir}/dnsdist
+${INIT_FILES}
+%config(noreplace) ${DEFAULTS_FILES}
+
+EOF
+
+${RPMBUILD_COMMAND}
+
+mv $HOME/rpmbuild/RPMS/x86_64/dnsdist*-${VERSION}-${RELEASE}.x86_64.rpm .

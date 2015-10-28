@@ -1,4 +1,6 @@
-#include "config.h"
+#ifndef PDNS_GEOIPBACKEND_HH
+#define PDNS_GEOIPBACKEND_HH
+
 #include "pdns/namespaces.hh"
 
 #include <vector>
@@ -25,22 +27,22 @@ public:
   GeoIPBackend(const std::string& suffix="");
   ~GeoIPBackend();
 
-  virtual void lookup(const QType &qtype, const string &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
-  virtual bool list(const string &target, int domain_id, bool include_disabled=false) { return false; } // not supported
+  virtual void lookup(const QType &qtype, const DNSName &qdomain, DNSPacket *pkt_p=0, int zoneId=-1);
+  virtual bool list(const DNSName &target, int domain_id, bool include_disabled=false) { return false; } // not supported
   virtual bool get(DNSResourceRecord &r);
   virtual void reload();
   virtual void rediscover(string *status = 0);
-  virtual bool getDomainInfo(const string &domain, DomainInfo &di);
+  virtual bool getDomainInfo(const DNSName& domain, DomainInfo &di);
 
   // dnssec support
   virtual bool doesDNSSEC() { return d_dnssec; };
-  virtual bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta);
-  virtual bool getDomainMetadata(const std::string& name, const std::string& kind, std::vector<std::string>& meta);
-  virtual bool getDomainKeys(const std::string& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
-  virtual bool removeDomainKey(const string& name, unsigned int id);
-  virtual int addDomainKey(const string& name, const KeyData& key);
-  virtual bool activateDomainKey(const string& name, unsigned int id);
-  virtual bool deactivateDomainKey(const string& name, unsigned int id);
+  virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  virtual bool getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys);
+  virtual bool removeDomainKey(const DNSName& name, unsigned int id);
+  virtual int addDomainKey(const DNSName& name, const KeyData& key);
+  virtual bool activateDomainKey(const DNSName& name, unsigned int id);
+  virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
 
   enum GeoIPQueryAttribute {
     Afi,
@@ -60,7 +62,9 @@ private:
   string format2str(string format, const string& ip, bool v6);  
   int d_dbmode;
   bool d_dnssec; 
-  bool hasDNSSECkey(const string &domain);
+  bool hasDNSSECkey(const DNSName& name);
 
   vector<DNSResourceRecord> d_result;
 };
+
+#endif /* PDNS_GEOIPBACKEND_HH */

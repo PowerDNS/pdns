@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <bitset>
 #include "dnsparser.hh"
 #include "iputils.hh"
@@ -50,7 +53,7 @@ try
     throw runtime_error("Failed to connect PowerDNS socket to address "+pdns.toString()+": "+stringerror());
   
   vector<uint8_t> outpacket;
-  DNSPacketWriter pw(outpacket, argv[2], QType::SOA, 1, Opcode::Notify);
+  DNSPacketWriter pw(outpacket, DNSName(argv[2]), QType::SOA, 1, Opcode::Notify);
   pw.getHeader()->id = random();
 
 
@@ -68,7 +71,7 @@ try
   MOADNSParser mdp(packet);
 
   cerr<<"Received notification response with error: "<<RCode::to_s(mdp.d_header.rcode)<<endl;
-  cerr<<"For: '"<<mdp.d_qname<<"'"<<endl;
+  cerr<<"For: '"<<mdp.d_qname.toString()<<"'"<<endl;
 }
 catch(std::exception& e)
 {

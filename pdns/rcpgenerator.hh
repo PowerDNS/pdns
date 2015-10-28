@@ -28,6 +28,7 @@
 #include <stdexcept>
 
 #include "namespaces.hh"
+#include "dnsname.hh"
 
 class RecordTextException : public runtime_error
 {
@@ -51,7 +52,7 @@ public:
   void xfrIP6(std::string& val);
   void xfrTime(uint32_t& val);
 
-  void xfrLabel(string& val, bool compress=false);
+  void xfrName(DNSName& val, bool compress=false);
   void xfrText(string& val, bool multi=false);
   void xfrHexBlob(string& val, bool keepReading=false);
   void xfrBase32HexBlob(string& val);
@@ -82,7 +83,7 @@ public:
   void xfrBase32HexBlob(const string& val);
 
   void xfrType(const uint16_t& val);
-  void xfrLabel(const string& val, bool compress=false);
+  void xfrName(const DNSName& val, bool compress=false);
   void xfrText(const string& val, bool multi=false);
   void xfrBlobNoSpaces(const string& val, int len=-1);
   void xfrBlob(const string& val, int len=-1);

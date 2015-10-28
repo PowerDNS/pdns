@@ -2,6 +2,20 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 **WARNING**: Version 3.X of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Please follow **all** instructions.
 
+# 3.X.X to 3.3.2
+
+Please run "pdnssec rectify-all-zones" and trigger an AXFR for all DNSSEC
+zones to make sure you benefit from all the compliance improvements present in
+this version.
+
+# 3.4.X to HEAD
+
+## API
+Incompatible change: `SOA-EDIT-API` now follows `SOA-EDIT-DNSUPDATE` instead of `SOA-EDIT` (incl. the fact that it now has a default value of `DEFAULT`). You must update your existing `SOA-EDIT-API` metadata (set `SOA-EDIT` to your previous `SOA-EDIT-API` value, and `SOA-EDIT-API` to `SOA-EDIT` to keep the old behaviour).
+
+# 3.4.2 to 3.4.3
+No breaking changes.
+
 # 3.4.1 to 3.4.2
 
 ## API
@@ -249,7 +263,7 @@ The 3.0 release of the PowerDNS Authoritative Server is significantly different 
 
 **Warning**: Version 3.0 of the PowerDNS Authoritative Server is the biggest change in PowerDNS history. In some senses, this means that it behaves somewhat like a '1.0' version. We advise operators to carefully perform the upgrade process from 2.9.x, and if possible test on a copy of the database beforehand.
 
-In addition, it may also be useful to have a support agreement in place during such upgrades. For first class and rapid support, please contact [powerdns-support@netherlabs.nl](mailto:powerdns-support@netherlabs.nl), or see [www.powerdns.com](http://www.powerdns.com). Alternatively, the [PowerDNS Community](http://wiki.powerdns.com) can be very helpful too.
+In addition, it may also be useful to have a support agreement in place during such upgrades. For first class and rapid support, please contact <a href="mailto:powerdns.support@powerdns.com">powerdns.support@powerdns.com</a>, or see [www.powerdns.com](http://www.powerdns.com). Alternatively, the [PowerDNS Community](http://wiki.powerdns.com) can be very helpful too.
 
 With similar settings, version 3.0 will most likely use a lot more memory than 2.9. This is due to the new DNSSEC key & signature caches, but also because the database query cache will now store multiple row answers, which it did not do previously. Memory use can be brought down again by tuning the cache-ttl settings.
 

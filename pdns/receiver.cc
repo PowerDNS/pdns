@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "packetcache.hh"
 
 #include <cstdio>
@@ -43,8 +46,10 @@
 #include <fcntl.h>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
 
-#include "config.h"
 #include "dns.hh"
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
@@ -125,6 +130,9 @@ static void takedown(int i)
 
 static void writePid(void)
 {
+  if(!::arg().mustDo("write-pid"))
+    return;
+
   string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   ofstream of(fname.c_str());
   if(of)
@@ -480,6 +488,13 @@ int main(int argc, char **argv)
 #endif
 
     seedRandom(::arg()["entropy-source"]);
+
+#ifdef HAVE_LIBSODIUM
+      if (sodium_init() == -1) {
+        cerr<<"Unable to initialize sodium crypto library"<<endl;
+        exit(99);
+      }
+#endif
     
     loadModules();
     BackendMakers().launch(::arg()["launch"]); // vrooooom!
@@ -501,12 +516,12 @@ int main(int argc, char **argv)
     }
 
     if(::arg().mustDo("list-modules")) {
-      vector<string>modules=BackendMakers().getModules();
-      cerr<<"Modules available:"<<endl;
-      for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i)
-        cout<<*i<<endl;
+      auto modules = BackendMakers().getModules();
+      cout<<"Modules available:"<<endl;
+      for(const auto& m : modules)
+        cout<< m <<endl;
 
-      exit(99);
+      _exit(99);
     }
 
     if(!::arg().asNum("local-port")) {
@@ -556,6 +571,7 @@ int main(int argc, char **argv)
     DynListener::registerFunc("CURRENT-CONFIG",&DLCurrentConfigHandler, "retrieve the current configuration");
     DynListener::registerFunc("LIST-ZONES",&DLListZones, "show list of zones", "[master|slave|native]");
     DynListener::registerFunc("POLICY",&DLPolicy, "interact with policy engine", "[policy command]");
+    DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");
 
     if(!::arg()["tcp-control-address"].empty()) {
       DynListener* dlTCP=new DynListener(ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));

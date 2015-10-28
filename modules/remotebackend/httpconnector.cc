@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "remotebackend.hh"
 #include <sys/socket.h>
 #include <unistd.h>
@@ -237,6 +240,16 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         req.POST()["serial"] = sparam;
         req.preparePost();
         verb = "PATCH";
+    } else if (method == "directBackendCmd") {
+        json2string(parameters["query"],sparam);
+        req.POST()["query"] = sparam;
+        req.preparePost();
+        verb = "POST";
+    } else if (method == "searchRecords" || method == "searchComments") {
+        json2string(parameters["pattern"],sparam);
+        req.GET()["pattern"] = sparam;
+        req.GET()["maxResults"] = boost::lexical_cast<std::string>(parameters["maxResults"].GetInt());
+        verb = "GET";
     } else {
         // perform normal get
         verb = "GET";
@@ -388,7 +401,7 @@ int HTTPConnector::recv_message(rapidjson::Document &output) {
 
     try {
       t0 = time((time_t*)NULL);
-      while(arl.ready() == false && (labs(time((time_t*)NULL) - t0) <= timeout/1000)) {
+      while(arl.ready() == false && (labs(time((time_t*)NULL) - t0) <= timeout)) {
         rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
         if (rd==0) 
           throw NetworkError("EOF while reading");

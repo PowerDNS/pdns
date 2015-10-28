@@ -27,6 +27,7 @@
 /dnsscope
 /dnstcpbench
 /dnswasher
+/ixplore
 /notify
 /nproxy
 /speedtest
@@ -48,3 +49,6 @@ version_generated.h
 /testrunner.log
 /testrunner.trs
 /pubsuffix.cc
+/calidns
+/dumresp
+/htmlfiles.h

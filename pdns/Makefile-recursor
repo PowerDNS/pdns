@@ -4,8 +4,8 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/polarssl/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp
-CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/polarssl/include -pthread
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/mbedtls/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/mbedtls/include -pthread -DHAVE_CONFIG_H
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @CF_STACK@ @LD_PIE@
 STRIP_BINARIES?=1
 
@@ -20,17 +20,21 @@ PDNS_RECURSOR_OBJECTS=syncres.o misc.o unix_utility.o qtype.o logger.o \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
-dns_random.o pubsuffix.o ext/polarssl/library/aes.o ext/polarssl/library/base64.o dnslabeltext.o \
+dns_random.o pubsuffix.o ext/mbedtls/library/aes.o ext/mbedtls/library/base64.o dnslabeltext.o \
+ext/mbedtls/library/md5.o ext/mbedtls/library/sha1.o ext/mbedtls/library/sha256.o  \
+ext/mbedtls/library/sha512.o ext/mbedtls/library/md.o ext/mbedtls/library/md_wrap.o \
+ext/mbedtls/library/ripemd160.o \
 lua-pdns.o lua-recursor.o randomhelper.o recpacketcache.o dns.o \
 reczones.o base32.o nsecrecords.o json.o ws-recursor.o ws-api.o \
 version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yahttp/router.o \
-rec-carbon.o secpoll-recursor.o lua-iputils.o iputils.o
+rec-carbon.o secpoll-recursor.o lua-iputils.o iputils.o dnsname.o \
+rpzloader.o filterpo.o resolver.o ixfr.o dnssecinfra.o gss_context.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
-	unix_utility.o logger.o qtype.o
+	unix_utility.o logger.o qtype.o dnslabeltext.o dnsname.o
 
 # what we need 
-all: message version_generated.h build
+all: message build
 
 # OS specific instructions
 -include sysdeps/$(shell uname).inc
@@ -69,26 +73,6 @@ CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 dnslabeltext.cc: dnslabeltext.rl
 	ragel $< -o $@
 
-# Version
-build_date := $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host := $(shell id -u -n)@$(shell hostname -f)
-
-.PHONY: version_generated.h
-version_generated.h:
-	@echo "$$create_version_generated_h" > $@
-
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#include "config.h"
-#define PDNS_VERSION VERSION
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-
-export create_version_generated_h
-
 message: 
 	@echo
 	@echo PLEASE READ: If you get an error mentioning \#include '<boost/something.hpp>', please read README
@@ -100,10 +84,11 @@ basic_checks:
 	-$(CXX) $(CXXFLAGS) pdns_hw.cc -o pdns_hw
 	@echo
 	@if test -x ./pdns_hw ; \
-		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; fi; \
+		 then if ./pdns_hw; then echo Everything ok, now run $(MAKE) using same settings \(if any\) you passed ./configure; else echo Could compile binary, but not run it, read README please ; exit 1 ; fi; \
 	 else 	\
 	 	echo; echo Could not compile simple binary, read README please; \
 		rm -f dep ; \
+		exit 1 ; \
 	 fi
 
 install: build-stamp
@@ -127,7 +112,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/library/*.o ext/yahttp/yahttp/*.o version_generated.h
+	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/library/*.o ext/yahttp/yahttp/*.o
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@

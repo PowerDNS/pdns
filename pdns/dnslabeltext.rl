@@ -5,7 +5,6 @@
 #include <string>
 #include "namespaces.hh"
 
-
 namespace {
 void appendSplit(vector<string>& ret, string& segment, char c)
 {
@@ -15,10 +14,12 @@ void appendSplit(vector<string>& ret, string& segment, char c)
   }
   segment.append(1, c);
 }
+
 }
 
 vector<string> segmentDNSText(const string& input )
 {
+  // cerr<<"segmentDNSText("<<input<<")"<<endl; 
 %%{
         machine dnstext;
         write data;
@@ -79,6 +80,79 @@ vector<string> segmentDNSText(const string& input )
 
         return ret;
 };
+
+deque<string> segmentDNSName(const string& input )
+{
+  // cerr<<"segmentDNSName("<<input<<")"<<endl; 
+%%{
+        machine dnsname;
+        write data;
+        alphtype unsigned char;
+}%%
+	(void)dnsname_error;  // silence warnings
+	(void)dnsname_en_main;
+
+        deque<string> ret;
+
+        string realinput;
+        if(input.empty() || input == ".") return ret;
+
+        if(input[input.size()-1]!='.') realinput=input+".";  // FIXME400 YOLO
+        else realinput=input;
+
+        const char *p = realinput.c_str(), *pe = realinput.c_str() + realinput.length();
+        const char* eof = pe;
+        int cs;
+        char val = 0;
+
+        string label;
+	label.reserve(10);
+        %%{
+                action labelEnd { 
+                        ret.push_back(label);
+                        label.clear();
+                }
+                action labelBegin { 
+                        label.clear();
+                }
+
+                action reportEscaped {
+                  char c = *fpc;
+                  label.append(1, c);
+                }
+                action reportEscapedNumber {
+                  char c = *fpc;
+                  val *= 10;
+                  val += c-'0';
+                  
+                }
+                action doneEscapedNumber {
+                  label.append(1, val);
+                  val=0;
+                }
+                
+                action reportPlain {
+                  label.append(1, *(fpc));
+                }
+
+                escaped = '\\' (([^0-9]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
+                plain = (extend-'\\'-'.') $ reportPlain;
+                labelElement = escaped | plain;            
+
+                main := ((labelElement+ '.') >labelBegin %labelEnd)+;
+
+                # Initialize and execute.
+                write init;
+                write exec;
+        }%%
+
+        if ( cs < dnsname_first_final ) {
+                throw runtime_error("Unable to parse DNS name '"+input+"' ('"+realinput+"'): cs="+std::to_string(cs));
+        }
+
+        return ret;
+};
+
 
 #if 0
 int main()

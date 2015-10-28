@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+# Enable lua
+export LUA := 1
+export LUA_CPPFLAGS_CONFIG := $(shell pkg-config lua5.2 --cflags)
+export LUA_LIBS_CONFIG := $(shell pkg-config lua5.2 --libs)
+
+# Enable hardening features for daemons
+# Note: blhc (build log hardening check) will find these false positivies: CPPFLAGS 2 missing, LDFLAGS 1 missing
+export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
+DPKG_EXPORT_BUILDFLAGS = 1
+# Include buildflags.mk so we can append to the vars it sets.
+include /usr/share/dpkg/buildflags.mk
+
+# Vendor and version (after buildflags.mk so we don't overwrite CXXFLAGS)
+version := $(shell dpkg-parsechangelog -SVersion).$(shell dpkg-vendor --query Vendor)
+CXXFLAGS += -DPACKAGEVERSION='"$(version)"'
+
+# Use new build system
+%:
+	dh $@ --with systemd --parallel
+
+override_dh_auto_install:
+	./pdns_recursor --config | sed \
+	  -e 's!# setgid=.*!setgid=pdns!' \
+	  -e 's!# setuid=.*!setuid=pdns!' \
+	  > debian/pdns-recursor/etc/powerdns/recursor.conf
+	dh_auto_install -- STRIP_BINARIES=0
+	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
+
+override_dh_strip:
+	dh_strip --dbg-package=pdns-recursor-dbg
+
+override_dh_installinit:
+	dh_installinit --error-handler=initscript_error -- defaults 19 85

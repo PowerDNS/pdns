@@ -1,7 +1,11 @@
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
+#include "dnsname.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <map>
@@ -15,6 +19,7 @@
 #include "arguments.hh"
 #include "namespaces.hh"
 #include <deque>
+#include "dnsrecords.hh"
 
 namespace po = boost::program_options;
 po::variables_map g_vm;
@@ -38,7 +43,7 @@ struct comboCompare
 class StatNode
 {
 public:
-  void submit(const std::string& domain, int rcode, const ComboAddress& remote);
+  void submit(const DNSName& domain, int rcode, const ComboAddress& remote);
   void submit(deque<string>& labels, const std::string& domain, int rcode, const ComboAddress& remote);
 
   string name;
@@ -127,13 +132,17 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
 }
 
 
-void StatNode::submit(const std::string& domain, int rcode, const ComboAddress& remote)
+void StatNode::submit(const DNSName& domain, int rcode, const ComboAddress& remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
-  deque<string> parts;
-  stringtok(parts, domain, ".");
-  if(parts.empty())
+  vector<string> tmp = domain.getRawLabels();
+  if(tmp.empty())
     return;
+
+  deque<string> parts;
+  for(auto const i : tmp) {
+    parts.push_back(i);
+  }
   children[parts.back()].submit(parts, "", rcode, remote);
 }
 
@@ -298,7 +307,8 @@ try
   unsigned int untracked=0, errorresult=0, reallylate=0, nonRDQueries=0, queries=0;
   unsigned int ipv4DNSPackets=0, ipv6DNSPackets=0, fragmented=0, rdNonRAAnswers=0;
   unsigned int answers=0, nonDNSIP=0, rdFilterMismatch=0;
-  
+  unsigned int dnssecOK=0, edns=0;
+  unsigned int dnssecCD=0, dnssecAD=0;
   typedef map<uint16_t,uint32_t> rcodes_t;
   rcodes_t rcodes;
   
@@ -308,14 +318,14 @@ try
   set<ComboAddress, comboCompare> requestors, recipients, rdnonra;
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
-
+  OPTRecordContent::report();
   for(unsigned int fno=0; fno < files.size(); ++fno) {
     PcapPacketReader pr(files[fno]);
     PcapPacketWriter* pw=0;
     if(!g_vm["write-failures"].as<string>().empty())
       pw=new PcapPacketWriter(g_vm["write-failures"].as<string>(), pr);
  
-
+    EDNSOpts edo;
     while(pr.getUDPPacket()) {
 
       if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
@@ -336,6 +346,17 @@ try
 	    rdFilterMismatch++;
 	    continue;
 	  }
+
+	  if(!mdp.d_header.qr && getEDNSOpts(mdp, &edo)) {
+	    edns++;
+	    if(edo.d_Z & EDNSOpts::DNSSECOK)
+	      dnssecOK++;
+	    if(mdp.d_header.cd)
+	      dnssecCD++;
+	    if(mdp.d_header.ad)
+	      dnssecAD++;
+	  }
+	  
 
 	  if(pr.d_ip->ip_v == 4) 
 	    ++ipv4DNSPackets;
@@ -360,7 +381,7 @@ try
 	  lowestTime=min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec);
 	  highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
 
-	  string name=mdp.d_qname+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
+	  string name=mdp.d_qname.toString()+"|"+DNSRecordContent::NumberToType(mdp.d_qtype);
         
 	  QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), mdp);
 
@@ -471,7 +492,7 @@ try
   cout<< rdNonRAAnswers << " answers had recursion desired bit set, but recursion available=0 (for "<<rdnonra.size()<<" remotes)"<<endl;
   cout<<statmap.size()<<" queries went unanswered, of which "<< statmap.size()-unanswered<<" were answered on exact retransmit"<<endl;
   cout<<untracked<<" responses could not be matched to questions"<<endl;
-
+  cout<<edns <<" questions requested EDNS processing, do=1: "<<dnssecOK<<", ad=1: "<<dnssecAD<<", cd=1: "<<dnssecCD<<endl;
 
   if(answers) {
     cout<<(boost::format("%1% %|25t|%2%") % "Rcode" % "Count\n");

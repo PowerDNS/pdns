@@ -10,9 +10,13 @@
 
 # DESCRIPTION
 dnswasher takes an *INFILE* in PCAP format and writes out *OUTFILE* also in
-PCAP format. It copies all network traffic found in *INFILE* to *OUTFILE*
-except for non DNS traffic. This might be handy when creating bug reports or
-test cases for DNS software e.g. PowerDNS.
+PCAP format, while obfuscating end-user IP addresses.
+
+This is useful to share data with third parties while attempting to protect
+the privacy of your users.
+
+Please check the output of **dnswasher** to make sure no customer IP
+addresses remain.
 
 # OPTIONS
 None

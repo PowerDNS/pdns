@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2002 - 2014 PowerDNS.COM BV
+    Copyright (C) 2002 - 2015 PowerDNS.COM BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -21,6 +21,9 @@
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "lwres.hh"
 #include <iostream>
@@ -49,7 +52,7 @@
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -65,18 +68,11 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
-    if(EDNS0Level > 1) {
-      uint32_t nonce=dns_random(0xffffffff);
-      ping.assign((char*) &nonce, 4);
 
-      opts.push_back(make_pair(5, ping));
-    }
-
-    pw.addOpt(1200, 0, 0, opts); // 1200 bytes answer size
+    pw.addOpt(1200, 0, EDNSOpts::DNSSECOK, opts); // 1200 bytes answer size
     pw.commit();
   }
   lwr->d_rcode = 0;
-  lwr->d_pingCorrect = false;
   lwr->d_haveEDNS = false;
   int ret;
 
@@ -154,7 +150,7 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
   if(ret <= 0) // includes 'timeout'
     return ret;
 
-  lwr->d_result.clear();
+  lwr->d_records.clear();
   try {
     lwr->d_tcbit=0;
     MOADNSParser mdp((const char*)buf.get(), len);
@@ -166,36 +162,20 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
       return 1; // this is "success", the error is set in lwr->d_rcode
     }
 
-    if(!pdns_iequals(domain, mdp.d_qname)) { 
-      if(!mdp.d_qname.empty() && domain.find((char)0) == string::npos) {// embedded nulls are too noisy, plus empty domains are too
+    if(domain != mdp.d_qname) { 
+      if(!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) {// embedded nulls are too noisy, plus empty domains are too
         L<<Logger::Notice<<"Packet purporting to come from remote server "<<ip.toString()<<" contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl;
       }
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
     }
-
-    for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
-      DNSResourceRecord rr;
-      rr.qtype=i->first.d_type;
-      rr.qname=i->first.d_label;
-      rr.ttl=i->first.d_ttl;
-      rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
-      rr.d_place=(DNSResourceRecord::Place) i->first.d_place;
-      lwr->d_result.push_back(rr);
-    }
+    
+    for(const auto& a : mdp.d_answers)
+      lwr->d_records.push_back(a.first);
 
     EDNSOpts edo;
-    if(EDNS0Level > 1 && getEDNSOpts(mdp, &edo)) {
+    if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
-      for(vector<pair<uint16_t, string> >::const_iterator iter = edo.d_options.begin();
-          iter != edo.d_options.end(); 
-          ++iter) {
-        if(iter->first == 5 || iter->first == 4) {// 'EDNS PING'
-          if(iter->second == ping)  {
-            lwr->d_pingCorrect = true;
-          }
-        }
-      }
     }
         
     return 1;
@@ -219,5 +199,4 @@ int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool do
 
   return -1;
 }
-
 

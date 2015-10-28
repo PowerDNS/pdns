@@ -59,8 +59,9 @@ Action/Execute methods return a JSON body of this format:
 Authentication
 --------------
 
-The PowerDNS daemons accept a static API Key, which has to be sent in the
-`X-API-Key` header.
+The PowerDNS daemons accept a static API Key, configured with the
+[`experimental-api-key`]('../authoritative/settings.md#experimental-api-key')
+option, which has to be sent in the `X-API-Key` header.
 
 Note: Authoritative Server 3.4.0 and Recursor 3.6.0 and 3.6.1 use HTTP
 Basic Authentication instead.
@@ -336,7 +337,8 @@ zone_collection
 
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
   a zone made through the API, the SOA record will be edited according to
-  the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT rules.)
+  the SOA-EDIT-API rules. (Which are the same as the SOA-EDIT-DNSUPDATE rules.)
+  If not set at all during zone creation, defaults to `DEFAULT`.
   **Note**: Authoritative only.
 
 * `account` MAY be set. It's value is defined by local policy.
@@ -452,7 +454,7 @@ Client body for PATCH:
       ]
     }
 
-Having `type` inside an RR differ from `type` at the top level is an error.
+Having `type` inside an RR differ from `type` at the RRset level is an error.
 
 * `name`
   Full name of the RRset to modify. (Example: `foo.example.org`)
@@ -520,7 +522,17 @@ configuration.
 
 Not supported for recursors.
 
-Clients MUST NOT send a body.
+**Note**: Added in 3.4.2
+
+
+URL: /servers/:server\_id/zones/:zone\_id/export
+-------------------------------------------------------
+
+Allowed methods: `GET`
+
+Returns the zone in AXFR format.
+
+Not supported for recursors.
 
 
 URL: /servers/:server\_id/zones/:zone\_id/check

@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 #include <sys/types.h>
-#include <boost/shared_ptr.hpp>
+
 
 #include "pdns/namespaces.hh"
 #include "pdns/misc.hh"
@@ -37,15 +37,15 @@ class PipeBackend : public DNSBackend
 public:
   PipeBackend(const string &suffix="");
   ~PipeBackend();
-  void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int domain_id, bool include_disabled=false);
+  void lookup(const QType&, const DNSName& qdomain, DNSPacket *p=0, int zoneId=-1);
+  bool list(const DNSName& target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
-  
+  string directBackendCmd(const string &query);
   static DNSBackend *maker();
   
 private:
   shared_ptr<CoWrapper> d_coproc;
-  string d_qname;
+  DNSName d_qname;
   QType d_qtype;
   Regex* d_regex;
   string d_regexstr;

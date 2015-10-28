@@ -11,13 +11,13 @@
 class MyDNSBackend : public DNSBackend
 {
 public:
-  MyDNSBackend(const string &suffix="");
+  MyDNSBackend(const string &suffix);
   ~MyDNSBackend();
   
-  void lookup(const QType &, const string &qdomain, DNSPacket *p=0, int zoneId=-1);
-  bool list(const string &target, int domain_id, bool include_disabled=false);
+  void lookup(const QType &, const DNSName &qdomain, DNSPacket *p=0, int zoneId=-1);
+  bool list(const DNSName &target, int domain_id, bool include_disabled=false);
   bool get(DNSResourceRecord &r);
-  bool getSOA(const string& name, SOAData& soadata, DNSPacket*);
+  bool getSOA(const DNSName& name, SOAData& soadata, DNSPacket*);
     
 private:
   SMySQL *d_db; 
@@ -37,4 +37,5 @@ private:
   SSqlStatement* d_basicQuery_stmt;
   SSqlStatement* d_anyQuery_stmt;
 };
+
 #endif /* MYDNSBACKEND_HH */

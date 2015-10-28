@@ -1,8 +1,12 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "rec_channel.hh"
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <vector>
+
 #include "misc.hh"
 #include "recursor_cache.hh"
 #include "syncres.hh"
@@ -145,7 +149,7 @@ static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
   BOOST_FOREACH(const NegCacheEntry& neg, sidx)
   {
     ++count;
-    fprintf(fp, "%s IN %s %d VIA %s\n", neg.d_name.c_str(), neg.d_qtype.getName().c_str(), (unsigned int) (neg.d_ttd - now), neg.d_qname.c_str());
+    fprintf(fp, "%s IN %s %d VIA %s\n", neg.d_name.toString().c_str(), neg.d_qtype.getName().c_str(), (unsigned int) (neg.d_ttd - now), neg.d_qname.toString().c_str());
   }
   fclose(fp);
   return count;
@@ -223,14 +227,14 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
-uint64_t* pleaseWipeCache(const std::string& canon)
+uint64_t* pleaseWipeCache(const DNSName& canon)
 {
   // clear packet cache too
   return new uint64_t(t_RC->doWipeCache(canon) + t_packetCache->doWipePacketCache(canon));
 }
 
 
-uint64_t* pleaseWipeAndCountNegCache(const std::string& canon)
+uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon)
 {
   uint64_t res = t_sstorage->negcache.count(tie(canon));
   pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=t_sstorage->negcache.equal_range(tie(canon));
@@ -243,7 +247,7 @@ string doWipeCache(T begin, T end)
 {
   int count=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
-    string canon=toCanonic("", *i);
+    DNSName canon=DNSName(*i);
     count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
     countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
   }
@@ -313,7 +317,7 @@ static string* pleaseGetCurrentQueries()
   for(MT_t::waiters_t::iterator mthread=MT->d_waiters.begin(); mthread!=MT->d_waiters.end() && n < 100; ++mthread, ++n) {
     const PacketID& pident = mthread->key;
     ostr << (fmt 
-             % pident.domain % DNSRecordContent::NumberToType(pident.type) 
+             % pident.domain.toString() /* ?? */ % DNSRecordContent::NumberToType(pident.type) 
              % pident.remote.toString() % (pident.sock ? 'Y' : 'n')
              % (pident.fd == -1 ? 'Y' : 'n')
              );
@@ -519,6 +523,19 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("answers100-1000", &g_stats.answers100_1000);
   addGetStat("answers-slow", &g_stats.answersSlow);
 
+  addGetStat("auth4-answers0-1", &g_stats.auth4Answers0_1);
+  addGetStat("auth4-answers1-10", &g_stats.auth4Answers1_10);
+  addGetStat("auth4-answers10-100", &g_stats.auth4Answers10_100);
+  addGetStat("auth4-answers100-1000", &g_stats.auth4Answers100_1000);
+  addGetStat("auth4-answers-slow", &g_stats.auth4AnswersSlow);
+
+  addGetStat("auth6-answers0-1", &g_stats.auth6Answers0_1);
+  addGetStat("auth6-answers1-10", &g_stats.auth6Answers1_10);
+  addGetStat("auth6-answers10-100", &g_stats.auth6Answers10_100);
+  addGetStat("auth6-answers100-1000", &g_stats.auth6Answers100_1000);
+  addGetStat("auth6-answers-slow", &g_stats.auth6AnswersSlow);
+
+
   addGetStat("qa-latency", doGetAvgLatencyUsec);
   addGetStat("unexpected-packets", &g_stats.unexpectedCount);
   addGetStat("case-mismatches", &g_stats.caseMismatchCount);
@@ -542,6 +559,8 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("concurrent-queries", boost::bind(getConcurrentQueries)); 
   addGetStat("security-status", &g_security_status);
   addGetStat("outgoing-timeouts", &SyncRes::s_outgoingtimeouts);
+  addGetStat("outgoing4-timeouts", &SyncRes::s_outgoing4timeouts);
+  addGetStat("outgoing6-timeouts", &SyncRes::s_outgoing6timeouts);
   addGetStat("tcp-outqueries", &SyncRes::s_tcpoutqueries);
   addGetStat("all-outqueries", &SyncRes::s_outqueries);
   addGetStat("ipv6-outqueries", &g_stats.ipv6queries);
@@ -551,6 +570,13 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("unreachables", &SyncRes::s_unreachables);
   addGetStat("chain-resends", &g_stats.chainResends);
   addGetStat("tcp-clients", boost::bind(TCPConnection::getCurrentConnections));
+
+#ifdef __linux__
+  addGetStat("udp-recvbuf-errors", boost::bind(udpErrorStats, "udp-recvbuf-errors"));
+  addGetStat("udp-sndbuf-errors", boost::bind(udpErrorStats, "udp-sndbuf-errors"));
+  addGetStat("udp-noport-errors", boost::bind(udpErrorStats, "udp-noport-errors"));
+  addGetStat("udp-in-errors", boost::bind(udpErrorStats, "udp-in-errors"));
+#endif
 
   addGetStat("edns-ping-matches", &g_stats.ednsPingMatches);
   addGetStat("edns-ping-mismatches", &g_stats.ednsPingMismatches);
@@ -590,9 +616,9 @@ static void doExitNicely()
   doExitGeneric(true);
 }
 
-vector<pair<string, uint16_t> >* pleaseGetQueryRing()
+vector<pair<DNSName, uint16_t> >* pleaseGetQueryRing()
 {
-  typedef pair<string,uint16_t> query_t;
+  typedef pair<DNSName,uint16_t> query_t;
   vector<query_t >* ret = new vector<query_t>();
   if(!t_queryring)
     return ret;
@@ -603,9 +629,9 @@ vector<pair<string, uint16_t> >* pleaseGetQueryRing()
   }
   return ret;
 }
-vector<pair<string,uint16_t> >* pleaseGetServfailQueryRing()
+vector<pair<DNSName,uint16_t> >* pleaseGetServfailQueryRing()
 {
-  typedef pair<string,uint16_t> query_t;
+  typedef pair<DNSName,uint16_t> query_t;
   vector<query_t>* ret = new vector<query_t>();
   if(!t_servfailqueryring)
     return ret;
@@ -619,7 +645,7 @@ vector<pair<string,uint16_t> >* pleaseGetServfailQueryRing()
 
 
 typedef boost::function<vector<ComboAddress>*()> pleaseremotefunc_t;
-typedef boost::function<vector<pair<string,uint16_t> >*()> pleasequeryfunc_t;
+typedef boost::function<vector<pair<DNSName,uint16_t> >*()> pleasequeryfunc_t;
 
 vector<ComboAddress>* pleaseGetRemotes()
 {
@@ -709,10 +735,10 @@ void sortPublicSuffixList()
   sort(g_pubs.begin(), g_pubs.end());
 }
 
-string getRegisteredName(const std::string& dom)
+// XXX DNSName Pain - this function should benefit from native DNSName methods
+DNSName getRegisteredName(const DNSName& dom)
 {
-  vector<string> parts;
-  stringtok(parts, dom, ".");
+  auto parts=dom.getRawLabels();
   if(parts.size()<=2)
     return dom;
   reverse(parts.begin(), parts.end());
@@ -730,23 +756,23 @@ string getRegisteredName(const std::string& dom)
       BOOST_REVERSE_FOREACH(const std::string& p, parts) {
 	ret+=p+".";
       }
-      return ret;
+      return DNSName(ret);
     }
 
     last=parts[parts.size()-1];
     parts.resize(parts.size()-1);
   }
-  return "??";
+  return DNSName("??");
 }
 
-static string nopFilter(const std::string& str)
+static DNSName nopFilter(const DNSName& name)
 {
-  return str;
+  return name;
 }
 
-string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const std::string&)> filter=nopFilter)
+string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const DNSName&)> filter=nopFilter)
 {
-  typedef pair<string,uint16_t> query_t;
+  typedef pair<DNSName,uint16_t> query_t;
   typedef map<query_t, int> counts_t;
   counts_t counts;
   vector<query_t> queries=broadcastAccFunction<vector<query_t> >(func);
@@ -754,7 +780,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const 
   unsigned int total=0;
   BOOST_FOREACH(const query_t& q, queries) {
     total++;
-    counts[make_pair(toLower(filter(q.first)),q.second)]++;
+    counts[make_pair(filter(q.first),q.second)]++;
   }
 
   typedef std::multimap<int, query_t> rcounts_t;
@@ -769,7 +795,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<string(const 
   int limit=0, accounted=0;
   if(total) {
     for(rcounts_t::const_iterator i=rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret<< fmt % (-100.0*i->first/total) % (i->second.first+"|"+DNSRecordContent::NumberToType(i->second.second));
+      ret<< fmt % (-100.0*i->first/total) % (i->second.first.toString()+"|"+DNSRecordContent::NumberToType(i->second.second));
       accounted+= -i->first;
     }
     ret<< '\n' << fmt % (100.0*(total-accounted)/total) % "rest";
@@ -815,7 +841,7 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
 "reload-acls                      reload ACLS\n"
 "reload-lua-script [filename]     (re)load Lua script\n"
 "reload-zones                     reload all auth and forward zones\n"
-"set-minimum-ttl value            set mininum-ttl-override\n"
+"set-minimum-ttl value            set minimum-ttl-override\n"
 "set-carbon-server                set a carbon server for telemetry\n"
 "trace-regex [regex]              emit resolution trace for matching queries (empty regex to clear trace)\n"
 "top-largeanswer-remotes          show top remotes receiving large answers\n"

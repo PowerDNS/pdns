@@ -6,5 +6,6 @@
 /named.conf
 /*.pyc
 acl.conf
+acl.list
 recursor.conf
 rec-conf.d

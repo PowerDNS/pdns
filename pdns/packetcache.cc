@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "packetcache.hh"
 #include "logger.hh"
@@ -47,6 +50,7 @@ PacketCache::PacketCache()
   d_statnumhit=S.getPointer("packetcache-hit");
   d_statnummiss=S.getPointer("packetcache-miss");
   d_statnumentries=S.getPointer("packetcache-size");
+  d_doRecursion=false;
 }
 
 PacketCache::~PacketCache()
@@ -157,7 +161,7 @@ void PacketCache::insert(DNSPacket *q, DNSPacket *r, bool recursive, unsigned in
 }
 
 // universal key appears to be: qname, qtype, kind (packet, query cache), optionally zoneid, meritsRecursion
-void PacketCache::insert(const string &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
+void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID, 
   bool meritsRecursion, unsigned int maxReplyLen, bool dnssecOk, bool EDNS)
 {
   if(!((++d_ops) % 300000)) {
@@ -220,7 +224,7 @@ int PacketCache::purge(const string &match)
       string prefix(match);
       prefix.resize(prefix.size()-1);
 
-      string zone = pcReverse(prefix);
+      string zone = pcReverse(DNSName(prefix));
 
       cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(zone));
       cmap_t::const_iterator start=iter;
@@ -235,7 +239,7 @@ int PacketCache::purge(const string &match)
     }
   
     else {
-      string qname = pcReverse(match);
+      string qname = pcReverse(DNSName(match));
       
       delcount+=mc.d_map.count(tie(qname));
       pair<cmap_t::iterator, cmap_t::iterator> range = mc.d_map.equal_range(tie(qname));
@@ -246,7 +250,7 @@ int PacketCache::purge(const string &match)
   return delcount;
 }
 // called from ueberbackend
-bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
+bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
   unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS, unsigned int *age)
 {
   if(d_ttl<0) 
@@ -268,7 +272,7 @@ bool PacketCache::getEntry(const string &qname, const QType& qtype, CacheEntryTy
 }
 
 
-bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
+bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion,
   unsigned int maxReplyLen, bool dnssecOK, bool hasEDNS, unsigned int *age)
 {
   uint16_t qt = qtype.getCode();
@@ -288,18 +292,10 @@ bool PacketCache::getEntryLocked(const string &qname, const QType& qtype, CacheE
 }
 
 
-string PacketCache::pcReverse(const string &content)
+string PacketCache::pcReverse(DNSName content)
 {
-  typedef vector<pair<unsigned int, unsigned int> > parts_t;
-  parts_t parts;
-  vstringtok(parts,toLower(content), ".");
-  string ret;
-  ret.reserve(content.size()+1);
-  for(parts_t::reverse_iterator i=parts.rbegin(); i!=parts.rend(); ++i) {
-    ret.append(1, (char)(i->second - i->first));
-    ret.append(content.c_str() + i->first, i->second - i->first);
-  }
-  return ret;
+  string ret=content.labelReverse().toDNSString();
+  return ret.substr(0, ret.size()-1);
 }
 
 map<char,int> PacketCache::getCounts()

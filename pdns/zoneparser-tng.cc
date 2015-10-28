@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -33,19 +36,18 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, const string& zname, const string& reldir) : d_reldir(reldir), 
+ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir) : d_reldir(reldir), 
                                                                                                d_zonename(zname), d_defaultttl(3600), 
-                                                                                               d_havedollarttl(false)
-{
-  d_zonename = toCanonic("", d_zonename);
+                                                                                               d_templatecounter(0), d_templatestop(0),
+                                                                                               d_templatestep(0), d_havedollarttl(false){
   stackFile(fname);
 }
 
-ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const string& zname):
+ZoneParserTNG::ZoneParserTNG(const vector<string> zonedata, const DNSName& zname):
                                                                         d_zonename(zname), d_defaultttl(3600), 
-                                                                        d_havedollarttl(false)
+                                                                        d_templatecounter(0), d_templatestop(0),
+                                                                        d_templatestep(0), d_havedollarttl(false)
 {
-  d_zonename = toCanonic("", d_zonename);
   d_zonedata = zonedata;
   d_zonedataline = d_zonedata.begin();
   d_fromfile = false;
@@ -119,7 +121,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
       break;
 
     default:
-      throw ZoneParserTNG::exception("Unable to parse time specification '"+str+"' "+getLineOfFile());
+      throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
     }
   return val;
 }
@@ -277,7 +279,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       stackFile(fname);
     }
     else if(pdns_iequals(command, "$ORIGIN") && parts.size() > 1) {
-      d_zonename = toCanonic("", makeString(d_line, parts[1]));
+      d_zonename = DNSName(makeString(d_line, parts[1]));
     }
     else if(pdns_iequals(command, "$GENERATE") && parts.size() > 2) {
       // $GENERATE 1-127 $ CNAME $.0
@@ -297,22 +299,21 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     goto retry;
   }
 
-  if(isspace(d_line[0])) 
+  bool prevqname=false;
+  string qname = makeString(d_line, parts[0]); // Don't use DNSName here!
+  if(isspace(d_line[0])) {
     rr.qname=d_prevqname;
-  else {
-    rr.qname=makeString(d_line, parts[0]); 
+    prevqname=true;
+  }else {
+    rr.qname=DNSName(qname); 
     parts.pop_front();
-    if(rr.qname.empty() || rr.qname[0]==';')
+    if(qname.empty() || qname[0]==';')
       goto retry;
   }
-  if(rr.qname=="@")
+  if(qname=="@")
     rr.qname=d_zonename;
-  else if(!isCanonical(rr.qname)) {
-    if(d_zonename.empty() || d_zonename[0]!='.') // prevent us from adding a double dot
-      rr.qname.append(1,'.');
-    
-    rr.qname.append(d_zonename);
-  }
+  else if(!prevqname && !isCanonical(qname))
+    rr.qname += d_zonename;
   d_prevqname=rr.qname;
 
   if(parts.empty()) 
@@ -371,7 +372,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   trim(rr.content);
 
   if(equals(rr.content, "@"))
-    rr.content=d_zonename;
+    rr.content=d_zonename.toStringNoDot();
 
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
@@ -394,7 +395,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
       if (recparts[1]!=".")
-        recparts[1] = stripDot(toCanonic(d_zonename, recparts[1]));
+        recparts[1] = toCanonic(d_zonename, recparts[1]).toStringNoDot();
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;
@@ -402,8 +403,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::RP:
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
-      recparts[0] = stripDot(toCanonic(d_zonename, recparts[0]));
-      recparts[1] = stripDot(toCanonic(d_zonename, recparts[1]));
+      recparts[0] = toCanonic(d_zonename, recparts[0]).toStringNoDot();
+      recparts[1] = toCanonic(d_zonename, recparts[1]).toStringNoDot();
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;
@@ -412,7 +413,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     stringtok(recparts, rr.content);
     if(recparts.size()==4) {
       if(recparts[3]!=".")
-        recparts[3] = stripDot(toCanonic(d_zonename, recparts[3]));
+        recparts[3] = toCanonic(d_zonename, recparts[3]).toStringNoDot();
       rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
     }
     break;
@@ -423,14 +424,14 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::DNAME:
   case QType::PTR:
   case QType::AFSDB:
-    rr.content=stripDot(toCanonic(d_zonename, rr.content));
+    rr.content=toCanonic(d_zonename, rr.content).toStringNoDot();
     break;
 
   case QType::SOA:
     stringtok(recparts, rr.content);
     if(recparts.size() > 1) {
-      recparts[0]=toCanonic(d_zonename, recparts[0]);
-      recparts[1]=toCanonic(d_zonename, recparts[1]);
+      recparts[0]=toCanonic(d_zonename, recparts[0]).toStringNoDot();
+      recparts[1]=toCanonic(d_zonename, recparts[1]).toStringNoDot();
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {

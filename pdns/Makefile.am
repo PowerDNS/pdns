@@ -1,7 +1,8 @@
 AM_CPPFLAGS += \
-	-I$(top_srcdir)/pdns/ext/rapidjson/include \
+	-I$(top_srcdir)/ext/json11 \
+	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
-	$(POLARSSL_CFLAGS)
+	$(MBEDTLS_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -35,6 +36,10 @@ if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
 endif
 
+if GSS_TSIG
+AM_CPPFLAGS +=$(GSS_CFLAGS)
+endif
+
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
@@ -44,17 +49,15 @@ EXTRA_DIST = \
 	bind-dnssec.schema.sqlite3.sql \
 	bindparser.h \
 	named.conf.parsertest \
-	pdns.conf-dist
-
-SUBDIRS = ext
+	pdns.conf-dist \
+	dnsdistdist/html \
+	delaypipe.hh delaypipe.cc
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	version_generated.h \
-	bindparser.h
+	bindparser.h htmlfiles.h 
 
 CLEANFILES = \
-	version_generated.h \
 	*.gcda \
 	*.gcno \
 	*.gcov \
@@ -81,13 +84,16 @@ bin_PROGRAMS += \
 	dnsscope \
 	dnstcpbench \
 	dnswasher \
+	dumresp \
 	notify \
 	nproxy \
 	nsec3dig \
-	saxfr
+	saxfr \
+	ixplore \
+	sdig
 
-if CXX2011
-bin_PROGRAMS += dnsdist calidns dumresp
+if HAVE_RECVMMSG
+bin_PROGRAMS += calidns
 endif
 
 endif
@@ -104,6 +110,7 @@ EXTRA_PROGRAMS = \
 	dnstcpbench \
 	dnswasher \
 	dumresp \
+	ixplore \
 	notify \
 	nproxy \
 	nsec3dig \
@@ -138,6 +145,7 @@ pdns_server_SOURCES = \
 	dns_random.cc dns_random.hh \
 	dnsbackend.cc dnsbackend.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnspacket.cc dnspacket.hh \
 	dnsparser.cc \
 	dnsproxy.cc dnsproxy.hh \
@@ -150,6 +158,7 @@ pdns_server_SOURCES = \
 	dynlistener.cc dynlistener.hh \
 	dynmessenger.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc iputils.hh \
 	json.cc json.hh \
 	lock.hh \
@@ -157,6 +166,7 @@ pdns_server_SOURCES = \
 	lua-auth.cc lua-auth.hh \
 	lua-pdns.cc lua-iputils.cc \
 	mastercommunicator.cc \
+	mbedtlscompat.hh \
 	md5.hh \
 	misc.cc misc.hh \
 	nameserver.cc nameserver.hh \
@@ -165,13 +175,13 @@ pdns_server_SOURCES = \
 	packetcache.cc packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
-	polarrsakeyinfra.cc \
+	mbedtlssigners.cc \
 	qtype.cc qtype.hh \
 	randomhelper.cc \
 	rcpgenerator.cc \
 	receiver.cc \
 	resolver.cc resolver.hh \
-	responsestats.cc responsestats.hh \
+	responsestats.cc responsestats.hh responsestats-auth.cc \
 	rfc2136handler.cc \
 	secpoll-auth.cc secpoll-auth.hh \
 	serialtweaker.cc \
@@ -181,6 +191,7 @@ pdns_server_SOURCES = \
 	slavecommunicator.cc \
 	statbag.cc statbag.hh \
 	tcpreceiver.cc tcpreceiver.hh \
+	tkey.cc \
 	ueberbackend.cc ueberbackend.hh \
 	unix_semaphore.cc \
 	unix_utility.cc \
@@ -200,7 +211,7 @@ pdns_server_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(YAHTTP_LIBS)
 
@@ -219,9 +230,9 @@ pdns_server_SOURCES += cryptoppsigners.cc
 pdns_server_LDADD += $(CRYPTOPP_LIBS)
 endif
 
-if ED25519
-pdns_server_SOURCES += ed25519signers.cc
-pdns_server_LDADD += $(ED25519_LIBS)
+if LIBSODIUM
+pdns_server_SOURCES += sodiumsigners.cc
+pdns_server_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if SQLITE3
@@ -242,6 +253,10 @@ if LUA
 pdns_server_LDADD += $(LUA_LIBS)
 endif
 
+if GSS_TSIG
+pdns_server_LDADD += $(GSS_LIBS)
+endif
+
 pdnssec_SOURCES = \
 	arguments.cc \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
@@ -255,6 +270,7 @@ pdnssec_SOURCES = \
 	dnsbackend.cc \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnspacket.cc \
 	dnsparser.cc dnsparser.hh \
 	dns_random.cc \
@@ -264,13 +280,15 @@ pdnssec_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dynlistener.cc \
 	ednssubnet.cc \
+	gss_context.cc gss_context.hh \
 	json.cc \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	packetcache.cc \
 	pdnssec.cc \
-	polarrsakeyinfra.cc \
+	mbedtlssigners.cc \
 	qtype.cc \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
@@ -293,7 +311,7 @@ pdnssec_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(YAHTTP_LIBS)
@@ -313,9 +331,9 @@ pdnssec_SOURCES += cryptoppsigners.cc
 pdnssec_LDADD += $(CRYPTOPP_LIBS)
 endif
 
-if ED25519
-pdnssec_SOURCES += ed25519signers.cc
-pdnssec_LDADD += $(ED25519_LIBS)
+if LIBSODIUM
+pdnssec_SOURCES += sodiumsigners.cc
+pdnssec_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if SQLITE3
@@ -332,6 +350,10 @@ pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
 pdnssec_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+pdnssec_LDADD += $(GSS_LIBS)
+endif
+
 zone2sql_SOURCES = \
 	arguments.cc \
 	base32.cc \
@@ -342,6 +364,7 @@ zone2sql_SOURCES = \
 	bindparserclasses.hh \
 	dns.cc \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -358,7 +381,7 @@ zone2sql_SOURCES = \
 	zone2sql.cc \
 	zoneparser-tng.cc
 
-zone2sql_LDADD = $(POLARSSL_LIBS)
+zone2sql_LDADD = $(MBEDTLS_LIBS)
 
 zone2json_SOURCES = \
 	arguments.cc \
@@ -369,6 +392,7 @@ zone2json_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -383,7 +407,7 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDADD = $(POLARSSL_LIBS)
+zone2json_LDADD = $(MBEDTLS_LIBS) -L$(top_srcdir)/ext/json11 -ljson11
 
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc
@@ -402,6 +426,7 @@ zone2ldap_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
@@ -417,7 +442,7 @@ zone2ldap_SOURCES = \
 	zone2ldap.cc \
 	zoneparser-tng.cc
 
-zone2ldap_LDADD = $(POLARSSL_LIBS)
+zone2ldap_LDADD = $(MBEDTLS_LIBS)
 
 if LMDB
 bin_PROGRAMS += zone2lmdb
@@ -433,6 +458,7 @@ zone2lmdb_SOURCES = \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -448,18 +474,22 @@ zone2lmdb_SOURCES = \
 	zoneparser-tng.cc
 
 zone2lmdb_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(LMDB_LIBS)
 endif
 
 sdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	ednssubnet.cc \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -470,18 +500,20 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-sdig_LDADD = $(POLARSSL_LIBS)
+sdig_LDADD = $(MBEDTLS_LIBS)
 
 calidns_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	calidns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	iputils.cc \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -491,10 +523,12 @@ calidns_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-calidns_LDADD = $(POLARSSL_LIBS) 	
+calidns_LDADD = $(MBEDTLS_LIBS)
 calidns_LDFLAGS=$(THREADFLAGS) 
 
 dumresp_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dumresp.cc \
 	logger.cc \
 	misc.cc misc.hh \
@@ -506,12 +540,16 @@ dumresp_SOURCES = \
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+        dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -522,22 +560,68 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD = $(POLARSSL_LIBS)
+saxfr_LDADD = $(MBEDTLS_LIBS)
 
 if PKCS11
 saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
 saxfr_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+saxfr_LDADD += $(GSS_LIBS)
+endif
+
+
+ixplore_SOURCES = \
+	arguments.cc \
+	base32.cc \
+	base64.cc base64.hh \
+	dns.cc \
+        dns_random.cc dns_random.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc \
+	dnssecinfra.cc \
+	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
+	logger.cc \
+	mbedtlscompat.hh \
+	misc.cc misc.hh \
+	nsecrecords.cc \
+	qtype.cc \
+	rcpgenerator.cc rcpgenerator.hh \
+	resolver.cc \
+	ixfr.cc ixfr.hh \
+	ixplore.cc \
+	sillyrecords.cc \
+	sstuff.hh \
+	statbag.cc \
+	unix_utility.cc zoneparser-tng.cc
+
+ixplore_LDADD = $(MBEDTLS_LIBS)
+
+if PKCS11
+ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
+ixplore_LDADD += $(P11KIT1_LIBS)
+endif
+
+if GSS_TSIG
+ixplore_LDADD += $(GSS_LIBS)
+endif
+
+
 dnstcpbench_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnstcpbench.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -552,48 +636,53 @@ dnstcpbench_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnstcpbench_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsdist_SOURCES = \
-	arguments.cc \
 	base32.cc \
-	base64.cc base64.hh \
-	dns.cc \
+	base64.hh \
 	dnsdist.cc \
+	dnsdist-carbon.cc \
+	dnsdist-lua.cc \
+	dnsdist-tcp.cc \
+	dnsdist-web.cc \
 	dnslabeltext.cc \
-	dnsparser.cc dnsparser.hh \
-	dnsrecords.cc \
-	dnswriter.cc dnswriter.hh \
+	dnsname.cc dnsname.hh \
+	dnswriter.cc \
 	dolog.hh \
 	iputils.cc \
-	logger.cc \
+	htmlfiles.h \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
-	nsecrecords.cc \
 	qtype.cc \
-	rcpgenerator.cc rcpgenerator.hh \
-	sillyrecords.cc \
+	sholder.hh \
+	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
-	statbag.cc \
-	unix_utility.cc
+	../ext/json11/json11.cpp
 
 dnsdist_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+	$(AM_LDFLAGS) 
 
 dnsdist_LDADD = \
-	$(POLARSSL_LIBS) \
-	$(BOOST_PROGRAM_OPTIONS_LIBS) $(LUA_LIBS)
+	$(LUA_LIBS) \
+	$(READLINE_LIBS) \
+	$(RT_LIBS) \
+	$(YAHTTP_LIBS) \
+	$(LIBSODIUM_LIBS)
 
 nsec3dig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsec3dig.cc \
 	nsecrecords.cc \
@@ -604,23 +693,29 @@ nsec3dig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-nsec3dig_LDADD = $(POLARSSL_LIBS)
+nsec3dig_LDADD = $(MBEDTLS_LIBS)
 
 if PKCS11
 nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 nsec3dig_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+nsec3dig_LDADD += $(GSS_LIBS)
+endif
+
 toysdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns_random.cc \
+	dnsname.cc dnsname.hh \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -632,7 +727,7 @@ toysdig_SOURCES = \
 	toysdig.cc \
 	unix_utility.cc
 
-toysdig_LDADD = $(POLARSSL_LIBS)
+toysdig_LDADD = $(MBEDTLS_LIBS)
 
 tsig_tests_SOURCES = \
 	arguments.cc \
@@ -641,11 +736,14 @@ tsig_tests_SOURCES = \
 	dns.cc \
 	dns_random.cc dns_random.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -658,21 +756,26 @@ tsig_tests_SOURCES = \
 	tsig-tests.cc \
 	unix_utility.cc
 
-tsig_tests_LDADD = $(POLARSSL_LIBS)
+tsig_tests_LDADD = $(MBEDTLS_LIBS)
 
 if PKCS11
 tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+tsig_tests_LDADD += $(GSS_LIBS)
+endif
 speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -682,12 +785,16 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDADD = $(POLARSSL_LIBS) -lrt
+speedtest_LDADD = $(MBEDTLS_LIBS) \
+	$(RT_LIBS)
 
 dnswasher_SOURCES = \
+	dnslabeltext.cc \
+	dnsname.hh dnsname.cc \
 	dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnswasher.cc \
+	dnswriter.hh \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
@@ -700,6 +807,7 @@ dnsbulktest_SOURCES = \
 	base64.cc \
 	dnsbulktest.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
@@ -717,7 +825,7 @@ dnsbulktest_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsbulktest_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscan_SOURCES = \
@@ -725,12 +833,14 @@ dnsscan_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
 	dnsscan.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -740,19 +850,21 @@ dnsscan_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsscan_LDADD = $(POLARSSL_LIBS)
+dnsscan_LDADD = $(MBEDTLS_LIBS)
 
 dnsreplay_SOURCES = \
 	anadns.hh \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
 	dnsreplay.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -767,17 +879,19 @@ dnsreplay_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsreplay_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	mplexer.hh \
 	nproxy.cc \
@@ -794,7 +908,7 @@ nproxy_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 nproxy_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 notify_SOURCES = \
@@ -803,10 +917,12 @@ notify_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	notify.cc \
 	nsecrecords.cc \
@@ -822,7 +938,7 @@ notify_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 notify_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscope_SOURCES = \
@@ -831,12 +947,14 @@ dnsscope_SOURCES = \
 	base64.cc base64.hh \
 	dns.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
 	dnsscope.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -851,7 +969,7 @@ dnsscope_LDFLAGS = \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsscope_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsgram_SOURCES = \
@@ -859,11 +977,13 @@ dnsgram_SOURCES = \
 	base64.cc base64.hh \
 	dnsgram.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -873,18 +993,20 @@ dnsgram_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsgram_LDADD = $(POLARSSL_LIBS)
+dnsgram_LDADD = $(MBEDTLS_LIBS)
 
 dnsdemog_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dnsdemog.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnspcap.cc dnspcap.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	logger.cc \
+	mbedtlscompat.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
@@ -894,10 +1016,12 @@ dnsdemog_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsdemog_LDADD = $(POLARSSL_LIBS)
+dnsdemog_LDADD = $(MBEDTLS_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	dnsname.hh dnsname.cc \
+	dnslabeltext.cc \
 	logger.cc \
 	misc.cc \
 	qtype.cc \
@@ -917,26 +1041,35 @@ testrunner_SOURCES = \
 	dns_random.cc \
 	dnsbackend.cc \
 	dnslabeltext.cc \
+	dnsname.cc \
+	dnsname.hh \
 	dnspacket.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc \
 	ednssubnet.cc \
+        gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nameserver.cc \
 	nsecrecords.cc \
+	packetcache.cc \
 	qtype.cc \
 	rcpgenerator.cc \
 	responsestats.cc \
+	responsestats-auth.cc \
 	sillyrecords.cc \
 	statbag.cc \
+	test-arguments_cc.cc \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
+	test-delaypipe_hh.cc \
+	test-distributor_hh.cc \
 	test-dns_random_hh.cc \
+	test-dnsname_cc.cc \
 	test-dnsrecords_cc.cc \
 	test-iputils_hh.cc \
 	test-md5_hh.cc \
@@ -944,13 +1077,13 @@ testrunner_SOURCES = \
 	test-nameserver_cc.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
+	test-sha_hh.cc \
+	test-sholder_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
-	test-sha_hh.cc \
-	packetcache.cc \
-	unix_utility.cc \
 	ueberbackend.cc \
+	unix_utility.cc \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 testrunner_LDFLAGS = \
@@ -959,9 +1092,10 @@ testrunner_LDFLAGS = \
 	$(BOOST_SERIALIZATION_LDFLAGS)
 
 testrunner_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
+	$(RT_LIBS) \
 	$(LIBDL)
 
 if PKCS11
@@ -977,15 +1111,21 @@ pdns_recursor_SOURCES = \
 	dns.cc \
 	dns_random.cc \
 	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
 	dnsparser.cc \
 	dnsrecords.cc dnsrecords.hh \
+	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	filterpo.cc filterpo.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
+	ixfr.cc ixfr.hh \
 	json.cc json.hh \
 	logger.cc \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	lua-recursor.cc lua-recursor.hh \
 	lwres.cc lwres.hh \
+	mbedtlscompat.hh \
 	misc.cc \
 	mtasker.hh \
 	nsecrecords.cc \
@@ -1000,8 +1140,10 @@ pdns_recursor_SOURCES = \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	reczones.cc \
+	resolver.cc \
 	resolver.hh \
 	responsestats.cc \
+	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc \
 	secpoll-recursor.hh \
 	selectmplexer.cc \
@@ -1016,8 +1158,14 @@ pdns_recursor_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 pdns_recursor_LDADD = \
-	$(POLARSSL_LIBS) \
+	$(MBEDTLS_LIBS) \
 	$(YAHTTP_LIBS)
+
+if PKCS11
+pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
+pdns_recursor_LDADD += $(P11KIT1_LIBS)
+endif
+
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
@@ -1045,7 +1193,9 @@ pdns_control_SOURCES = \
 	misc.cc \
 	qtype.cc \
 	statbag.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	dnsname.cc \
+	dnslabeltext.cc
 
 
 if UNIT_TESTS
@@ -1060,6 +1210,9 @@ endif
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
+htmlfiles.h: $(srcdir)/dnsdistdist/html/*
+	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
+
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@
 
@@ -1067,42 +1220,5 @@ bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 .hh.h:
 	cp $< $@
 
-build_date := $(shell LC_TIME=C date '+%Y%m%d%H%M%S')
-build_host := $(shell id -u -n)@$(shell hostname -f)
-git_version := $(shell git describe --always --dirty=+ 2>/dev/null)
-# Do the test in shell, so we don't confuse automake with ifeq/ifneq.
-pdns_version := $(shell test -z "$(git_version)" && echo UNKNOWN || echo "git-$(git_version)")
-
-version.o: version_generated.h
-
 pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	./mkpubsuffixcc
-
-.PHONY: version_generated.h
-version_generated.h:
-	@echo "$$create_version_generated_h" > $@
-
-if RELEASE_BUILD
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#define PDNS_VERSION "$(PACKAGE_VERSION)"
-#define DIST_HOST "$(DIST_HOST)"
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-
-else
-define create_version_generated_h
-#ifndef VERSION_GENERATED_H
-#define VERSION_GENERATED_H
-#define PDNS_VERSION "$(pdns_version)"
-#define DIST_HOST "$(build_host)"
-#define BUILD_DATE "$(build_date)"
-#define BUILD_HOST "$(build_host)"
-#endif //!VERSION_GENERATED_H
-endef
-endif
-
-export create_version_generated_h

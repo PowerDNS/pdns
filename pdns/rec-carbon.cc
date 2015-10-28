@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "mtasker.hh"
 #include "syncres.hh"
 #include "rec_channel.hh"

@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <bitset>
 #include "dnsparser.hh"
 #include "iputils.hh"
@@ -35,7 +38,7 @@ struct NotificationInFlight
 {
   ComboAddress source;
   time_t resentTime;
-  string domain;
+  DNSName domain;
   uint16_t origID, resentID;
   int origSocket;
 };
@@ -71,7 +74,7 @@ try
   nif.origID = mdp.d_header.id;
 
 
-  if(mdp.d_header.opcode == Opcode::Query && !mdp.d_header.qr && mdp.d_answers.empty() && mdp.d_qname == "pdns.nproxy." && 
+  if(mdp.d_header.opcode == Opcode::Query && !mdp.d_header.qr && mdp.d_answers.empty() && mdp.d_qname.toString() == "pdns.nproxy." && 
      (mdp.d_qtype == QType::TXT || mdp.d_qtype ==QType::A)) {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
@@ -97,10 +100,10 @@ try
   }
 
   if(mdp.d_header.opcode != Opcode::Notify || mdp.d_qtype != QType::SOA) {
-    syslogFmt(boost::format("Received non-notification packet for domain '%s' from external nameserver %s") % nif.domain % nif.source.toStringWithPort());
+    syslogFmt(boost::format("Received non-notification packet for domain '%s' from external nameserver %s") % nif.domain.toString() % nif.source.toStringWithPort());
     return;
   }
-  syslogFmt(boost::format("External notification received for domain '%s' from %s") % nif.domain % nif.source.toStringWithPort());  
+  syslogFmt(boost::format("External notification received for domain '%s' from %s") % nif.domain.toString() % nif.source.toStringWithPort());  
   vector<uint8_t> outpacket;
   DNSPacketWriter pw(outpacket, mdp.d_qname, mdp.d_qtype, 1, Opcode::Notify);
 
@@ -147,8 +150,8 @@ try
   
   nif=g_nifs[mdp.d_header.id];
 
-  if(!pdns_iequals(nif.domain,mdp.d_qname)) {
-    syslogFmt(boost::format("Response from inner nameserver for different domain '%s' than original notification '%s'") % mdp.d_qname % nif.domain);
+  if(nif.domain != mdp.d_qname) {
+    syslogFmt(boost::format("Response from inner nameserver for different domain '%s' than original notification '%s'") % mdp.d_qname.toString() % nif.domain.toString());
   } else {
     struct dnsheader dh;
     memcpy(&dh, buffer, sizeof(dh));
@@ -158,7 +161,7 @@ try
       syslogFmt(boost::format("Unable to send notification response to external nameserver %s - %s") % nif.source.toStringWithPort() % stringerror());
     }
     else
-      syslogFmt(boost::format("Sent notification response to external nameserver %s for domain '%s'") % nif.source.toStringWithPort() % nif.domain);
+      syslogFmt(boost::format("Sent notification response to external nameserver %s for domain '%s'") % nif.source.toStringWithPort() % nif.domain.toString());
   }
   g_nifs.erase(mdp.d_header.id);
 
@@ -173,7 +176,7 @@ void expireOldNotifications()
   time_t limit = time(0) - 10;
   for(nifs_t::iterator iter = g_nifs.begin(); iter != g_nifs.end(); ) {
     if(iter->second.resentTime < limit) {
-      syslogFmt(boost::format("Notification for domain '%s' was sent to inner nameserver, but no response within 10 seconds") % iter->second.domain);
+      syslogFmt(boost::format("Notification for domain '%s' was sent to inner nameserver, but no response within 10 seconds") % iter->second.domain.toString());
       g_nifs.erase(iter++);
     }
     else

@@ -2,7 +2,7 @@
     Copyright (C) 2011 Fredrik Danerklint
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as published 
+    it under the terms of the GNU General Public License version 2 as published
     by the Free Software Foundation
 
     This program is distributed in the hope that it will be useful,
@@ -17,6 +17,9 @@
 
 #define LUABACKEND_EXTERN_F_HH
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "luabackend.hh"
 
 #include "pdns/logger.hh"
@@ -37,7 +40,7 @@ const luaL_Reg lualibs[] = {
     {LUA_MATHLIBNAME, luaopen_math},
     {LUA_DBLIBNAME, luaopen_debug},
 //    {LUA_COLIBNAME, luaopen_coroutine},
-#ifdef USE_LUAJIT    
+#ifdef USE_LUAJIT
     {"bit",     luaopen_bit},
     {"jit",     luaopen_jit},
 #endif
@@ -45,17 +48,17 @@ const luaL_Reg lualibs[] = {
 };
 
 int my_lua_panic (lua_State *lua) {
-    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND"); 
+    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
     LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
-    
+
     assert(lua == lb->lua);
-    
+
     stringstream e;
-    
+
     e << lb->backend_name << "LUA PANIC! '" << lua_tostring(lua,-1) << "'" << endl;
-    
+
     throw LUAException (e.str());
-    
+
     return 0;
 }
 
@@ -63,15 +66,15 @@ int l_arg_get (lua_State *lua) {
     int i = lua_gettop(lua);
     if (i < 1)
 	return 0;
-	
-    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND"); 
+
+    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
     LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
 
     string a = lua_tostring(lua, 1);
 
     if (::arg().isEmpty(a))
 	lua_pushnil(lua);
-    else 
+    else
         lua_pushstring(lua, lb->my_getArg(a).c_str());
 
     return 1;
@@ -81,43 +84,43 @@ int l_arg_mustdo (lua_State *lua) {
     int i = lua_gettop(lua);
     if (i < 1)
 	return 0;
-	
-    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND"); 
+
+    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
     LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
-    
+
     string a = lua_tostring(lua, 1);
 
     if (::arg().isEmpty(a))
 	lua_pushnil(lua);
-    else 
+    else
         lua_pushboolean(lua, lb->my_mustDo(a));
 
     return 1;
 }
 
 int l_dnspacket (lua_State *lua) {
-    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND"); 
+    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
     LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
 
     if (lb->dnspacket == NULL) {
 	lua_pushnil(lua);
-	
+
 	return 1;
     }
 
     lua_pushstring(lua, lb->dnspacket->getRemote().c_str());
     lua_pushnumber(lua, lb->dnspacket->getRemotePort());
     lua_pushstring(lua, lb->dnspacket->getLocal().c_str());
-    
+
     return 3;
 }
 
 int l_logger (lua_State *lua) {
 //    assert(lua == lb->lua);
-    
-    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND"); 
+
+    lua_getfield(lua, LUA_REGISTRYINDEX, "__LUABACKEND");
     LUABackend* lb = (LUABackend*)lua_touserdata(lua, -1);
-    
+
     int i = lua_gettop(lua);
     if (i < 1)
 	return 0;
@@ -128,22 +131,22 @@ int l_logger (lua_State *lua) {
     const char *ss;
 
     log_level = lua_tointeger(lua, 1);
-    
+
     string space = "";
-    
+
     for(j=2; j<=i; j++) {
 	ss = lua_tostring(lua, j);
 	s << space << ss;
 	space = " ";
     }
-    
+
     L.log(lb->backend_name + s.str(), (Logger::Urgency) log_level);
-    
+
     return 0;
 }
 
 void register_lua_functions(lua_State *lua) {
-    lua_gc(lua, LUA_GCSTOP, 0);  // stop collector during initialization 
+    lua_gc(lua, LUA_GCSTOP, 0);  // stop collector during initialization
 
     const luaL_Reg *lib = lualibs;
     for (; lib->func; lib++) {
@@ -177,16 +180,16 @@ void register_lua_functions(lua_State *lua) {
 
     lua_pushinteger(lua, Logger::Info);
     lua_setglobal(lua, "log_info");
-    
+
     lua_pushinteger(lua, Logger::Debug);
     lua_setglobal(lua, "log_debug");
 
     lua_pushinteger(lua, Logger::None);
     lua_setglobal(lua, "log_none");
-    
+
     lua_pushcfunction(lua, l_dnspacket);
     lua_setglobal(lua, "dnspacket");
-    
+
     lua_pushcfunction(lua, l_logger);
     lua_setglobal(lua, "logger");
 
@@ -195,7 +198,7 @@ void register_lua_functions(lua_State *lua) {
 
     lua_pushcfunction(lua, l_arg_mustdo);
     lua_setglobal(lua, "mustdo");
-    
+
     lua_newtable(lua);
     for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
 	lua_pushnumber(lua, iter->second);
@@ -207,114 +210,129 @@ void register_lua_functions(lua_State *lua) {
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, string& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = lua_tostring(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
+  return ret;
+}
+
+bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, DNSName& value) {
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
+
+  bool ret = false;
+
+  if(!lua_isnil(lua, -1)) {
+    value = DNSName(lua_tostring(lua, -1));
+    ret = true;
+  }
+
+  lua_pop(lua, 1);
+
   return ret;
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, uint32_t key, string& value) {
-  lua_pushnumber(lua, key); 
-  lua_gettable(lua, -2);  
+  lua_pushnumber(lua, key);
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = lua_tostring(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
   return ret;
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, time_t& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = (time_t)lua_tonumber(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
   return ret;
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint32_t& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = (uint32_t)lua_tonumber(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
   return ret;
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint16_t& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = (uint16_t)lua_tonumber(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
   return ret;
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, int& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = (int)lua_tonumber(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
   return ret;
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, bool& value) {
-  lua_pushstring(lua, key.c_str()); 
-  lua_gettable(lua, -2);  
+  lua_pushstring(lua, key.c_str());
+  lua_gettable(lua, -2);
 
   bool ret = false;
-  
+
   if(!lua_isnil(lua, -1)) {
     value = lua_toboolean(lua, -1);
     ret = true;
   }
-  
+
   lua_pop(lua, 1);
-  
+
   return ret;
 }
-

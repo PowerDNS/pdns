@@ -2,6 +2,8 @@
  * LMDBBackend - a high performance LMDB based backend for PowerDNS written by
  * Mark Zealey, 2013
  */
+#ifndef PDNS_LMDBBACKEND_HH
+#define PDNS_LMDBBACKEND_HH
 
 #include <lmdb.h>
 #include <pthread.h>
@@ -45,7 +47,7 @@ private:
     void needReload();
     inline bool get_finished();
     static int s_reloadcount;
-    static pthread_mutex_t s_initlock;
+    static pthread_rwlock_t s_initlock;
 
 public:
     LMDBBackend(const string &suffix="");
@@ -62,3 +64,5 @@ public:
     bool getAuthZone( string &rev_zone );
     bool getAuthData( SOAData &, DNSPacket *);
 };
+
+#endif /* PDNS_LMDBBACKEND_HH */

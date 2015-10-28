@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "secpoll-recursor.hh"
 #include "syncres.hh"
 #include "logger.hh"
@@ -20,21 +23,22 @@ void doSecPoll(time_t* last_secpoll)
   struct timeval now;
   gettimeofday(&now, 0);
   SyncRes sr(now);
-  
-  vector<DNSResourceRecord> ret;
+  sr.d_doDNSSEC=true;
+  vector<DNSRecord> ret;
 
   string version = "recursor-" +string(PACKAGEVERSION);
-  string query = version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"];
+  string qstring(version.substr(0, 63)+ ".security-status."+::arg()["security-poll-suffix"]);
 
-  if(*query.rbegin()!='.')
-    query+='.';
+  if(*qstring.rbegin()!='.')
+    qstring+='.';
 
-  boost::replace_all(query, "+", "_");
-  boost::replace_all(query, "~", "_");
+  boost::replace_all(qstring, "+", "_");
+  boost::replace_all(qstring, "~", "_");
 
+  DNSName query(qstring);
   int res=sr.beginResolve(query, QType(QType::TXT), 1, ret);
   if(!res && !ret.empty()) {
-    string content=ret.begin()->content;
+    string content=ret.begin()->d_content->getZoneRepresentation();
     if(!content.empty() && content[0]=='"' && content[content.size()-1]=='"') {
       content=content.substr(1, content.length()-2);
     }
@@ -47,7 +51,12 @@ void doSecPoll(time_t* last_secpoll)
     *last_secpoll=now.tv_sec;
   }
   else {
-    L<<Logger::Warning<<"Could not retrieve security status update for '" +string(PACKAGEVERSION)+ "' on '"+query+"', RCODE = "<< RCode::to_s(res)<<endl;
+    string pkgv(PACKAGEVERSION);
+    if(pkgv.find("0.0."))
+      L<<Logger::Warning<<"Could not retrieve security status update for '" +pkgv+ "' on '"<<query<<"', RCODE = "<< RCode::to_s(res)<<endl;
+    else
+      L<<Logger::Warning<<"Not validating response for security status update, this a non-release version."<<endl;
+
     if(g_security_status == 1) // it was ok, not it is unknown
       g_security_status = 0;
     if(res == RCode::NXDomain) // if we had servfail, keep on trying more more frequently

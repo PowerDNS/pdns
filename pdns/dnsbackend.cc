@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "utility.hh"
 #include "dnsbackend.hh"
 #include "arguments.hh"
@@ -30,25 +33,25 @@
 #include "dnspacket.hh"
 #include "dns.hh"
 
-bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const string &target, const int best_match_len)
+bool DNSBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target, const int best_match_len)
 {
   bool found=false;
-  string subdomain(target);
+  DNSName subdomain(target);
   do {
-    if( best_match_len >= (int)subdomain.length() )
+    if( best_match_len >= (int)subdomain.toString().length() )
       break;
 
     if( this->getSOA( subdomain, *sd, p ) ) {
       sd->qname = subdomain;
 
-      if(p->qtype.getCode() == QType::DS && pdns_iequals(subdomain, target)) {
+      if(p->qtype.getCode() == QType::DS && subdomain==target) {
         // Found authoritative zone but look for parent zone with 'DS' record.
         found=true;
       } else
         return true;
     }
   }
-  while( chopOff( subdomain ) );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
+  while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
 
   return found;
 }
@@ -96,7 +99,7 @@ void BackendMakerClass::report(BackendFactory *bf)
 }
 
 
-vector<string> BackendMakerClass::getModules() 
+vector<string> BackendMakerClass::getModules()
 {
   load_all();
   vector<string> ret;
@@ -116,7 +119,7 @@ void BackendMakerClass::load_all()
   }
   struct dirent *entry;
   while((entry=readdir(dir))) {
-    if(!strncmp(entry->d_name,"lib",3) && 
+    if(!strncmp(entry->d_name,"lib",3) &&
        strlen(entry->d_name)>13 &&
        !strcmp(entry->d_name+strlen(entry->d_name)-10,"backend.so"))
       load(entry->d_name);
@@ -134,7 +137,7 @@ void BackendMakerClass::load(const string &module)
     res=UeberBackend::loadmodule(module);
   else
     res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
-  
+
   if(res==false) {
     L<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
     exit(1);
@@ -145,20 +148,20 @@ void BackendMakerClass::launch(const string &instr)
 {
   //    if(instr.empty())
   // throw ArgException("Not launching any backends - nameserver won't function");
-  
+
   vector<string> parts;
   stringtok(parts,instr,", ");
-  
+
   for(vector<string>::const_iterator i=parts.begin();i!=parts.end();++i) {
     const string &part=*i;
-    
+
     string module, name;
     vector<string>pparts;
     stringtok(pparts,part,": ");
     module=pparts[0];
     if(pparts.size()>1)
       name="-"+pparts[1];
-      
+
     if(d_repository.find(module)==d_repository.end()) {
       // this is *so* userfriendly
       load(module);
@@ -186,7 +189,7 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
       DNSBackend *made;
       if(metadataOnly)
         made = d_repository[i->first]->makeMetadataOnly(i->second);
-      else 
+      else
         made = d_repository[i->first]->make(i->second);
       if(!made)
         throw PDNSException("Unable to launch backend '"+i->first+"'");
@@ -207,14 +210,14 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
       delete *i;
     throw;
   }
-  
+
   return ret;
 }
 
 /** getSOA() is a function that is called to get the SOA of a domain. Callers should ONLY
     use getSOA() and not perform a lookup() themselves as backends may decide to special case
     the SOA record.
-    
+
     Returns false if there is definitely no SOA for the domain. May throw a DBException
     to indicate that the backend is currently unable to supply an answer.
 
@@ -225,16 +228,17 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     \param domain Domain we want to get the SOA details of
     \param sd SOAData which is filled with the SOA details
 */
-bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
+bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd, DNSPacket *p)
 {
   this->lookup(QType(QType::SOA),domain,p);
-  
+
   DNSResourceRecord rr;
-  rr.auth = true; 
+  rr.auth = true;
 
   int hits=0;
 
   while(this->get(rr)) {
+    if (rr.qtype != QType::SOA) throw PDNSException("Got non-SOA record when asking for SOA");
     hits++;
     fillSOAData(rr.content, sd);
     sd.domain_id=rr.domain_id;
@@ -245,16 +249,16 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   if(!hits)
     return false;
   sd.qname = domain;
-  if(sd.nameserver.empty())
-    sd.nameserver=arg()["default-soa-name"];
-  
-  if(sd.hostmaster.empty()) {
+  if(!sd.nameserver.countLabels())
+    sd.nameserver= DNSName(arg()["default-soa-name"]);
+
+  if(!sd.hostmaster.countLabels()) {
     if (!arg().isEmpty("default-soa-mail")) {
-      sd.hostmaster=arg()["default-soa-mail"];
-      attodot(sd.hostmaster);
+      sd.hostmaster= DNSName(arg()["default-soa-mail"]);
+      // attodot(sd.hostmaster); FIXME400
     }
     else
-      sd.hostmaster="hostmaster."+domain;
+      sd.hostmaster=DNSName("hostmaster")+domain;
   }
 
   if(!sd.serial) { // magic time!
@@ -273,18 +277,25 @@ bool DNSBackend::getSOA(const string &domain, SOAData &sd, DNSPacket *p)
   return true;
 }
 
-bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename, const std::string& qname, std::string& before, std::string& after)
+bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
-  string lcqname=toLower(qname);
-  string lczonename=toLower(zonename);
-  lcqname=makeRelative(lcqname, lczonename);
-  
-  lcqname=labelReverse(lcqname);
-  string dnc;
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, lcqname, dnc, before, after);
-  
-  before=dotConcat(labelReverse(before), lczonename);
-  after=dotConcat(labelReverse(after), lczonename);
+  // FIXME400 FIXME400 FIXME400
+  // string lcqname=toLower(qname); FIXME400 tolower?
+  // string lczonename=toLower(zonename); FIXME400 tolower?
+  // lcqname=makeRelative(lcqname, lczonename);
+  DNSName lczonename = DNSName(toLower(zonename.toString()));
+  // lcqname=labelReverse(lcqname);
+  DNSName dnc;
+  string relqname, sbefore, safter;
+  relqname=labelReverse(makeRelative(qname.toString(), zonename.toString()));
+  //sbefore = before.toString();
+  //safter = after.toString();
+  bool ret = this->getBeforeAndAfterNamesAbsolute(id, relqname, dnc, sbefore, safter);
+  before = DNSName(labelReverse(sbefore)) + lczonename;
+  after = DNSName(labelReverse(safter)) + lczonename;
+
+  // before=dotConcat(labelReverse(before), lczonename); FIXME400
+  // after=dotConcat(labelReverse(after), lczonename); FIXME400
   return ret;
 }
 
@@ -299,7 +310,7 @@ bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const std::string& zonename
  * \param sd Information about the SOA record already available
  * \param serial Output parameter. Only inspected when we return true
  */
-bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, time_t& serial)
+bool DNSBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial)
 {
     // we do this by listing the domain and taking the maximum last modified timestamp
 
@@ -310,7 +321,7 @@ bool DNSBackend::calculateSOASerial(const string& domain, const SOAData& sd, tim
       DLOG(L<<Logger::Warning<<"Backend error trying to determine magic serial number of zone '"<<domain<<"'"<<endl);
       return false;
     }
-  
+
     while(this->get(i)) {
       if(i.last_modified>newest)
         newest=i.last_modified;
@@ -352,16 +363,18 @@ extern PacketCache PC;
 #define DLOG(x) x
 #endif
 
-bool _add_to_negcache( const string &zone ) {
+// XXX DNSName pain, should be DNSName native. 
+static bool add_to_negcache( const string &zone ) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
     // add the zone to the negative query cache and return false
     if(negqueryttl) {
         DLOG(L<<Logger::Error<<"Adding to neg qcache: " << zone<<endl);
-        PC.insert(zone, QType(QType::SOA), PacketCache::QUERYCACHE, "", negqueryttl, 0);
+        PC.insert(DNSName(zone), QType(QType::SOA), PacketCache::QUERYCACHE, "", negqueryttl, 0);
     }
     return false;
 }
 
+// XXX DNSName Pain, this should be DNSName native!                     vvvvvvvvvvvvvv
 inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const string &querykey, const int best_match_len) {
     static int negqueryttl=::arg().asNum("negquery-cache-ttl");
 
@@ -382,7 +395,7 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
      * failed to look up this zone */
     if( negqueryttl ) {
         string content;
-        bool ret = PC.getEntry( inZone, QType(QType::SOA), PacketCache::QUERYCACHE, content, 0 );
+        bool ret = PC.getEntry( DNSName(inZone), QType(QType::SOA), PacketCache::QUERYCACHE, content, 0 );
         if( ret && content.empty() ) {
             DLOG(L<<Logger::Error<<"Found in neg qcache: " << inZone << ":" << content << ":" << ret << ":"<<endl);
             return GET_AUTH_NEG_DONTCACHE;
@@ -407,29 +420,29 @@ inline int DNSReversedBackend::_getAuth(DNSPacket *p, SOAData *soa, const string
     if( getAuthData( *soa, p ) ) {
         /* all the keys are reversed. rather than reversing them again it is
          * presumably quicker to just substring the zone down to size */
-        soa->qname = inZone.substr( inZone.length() - foundkey.length(), string::npos );
+      soa->qname = DNSName(inZone.substr( inZone.length() - foundkey.length(), string::npos ));
 
-        DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
+      DLOG(L<<Logger::Error<<"Successfully got record: " <<foundkey << " : " << querykey.substr( 0, foundkey.length() ) << " : " << soa->qname<<endl);
 
-        return GET_AUTH_SUCCESS;
+      return GET_AUTH_SUCCESS;
     }
 
     return GET_AUTH_NEG_CACHE;
 }
 
-bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const int best_match_len) {
+bool DNSReversedBackend::getAuth(DNSPacket *p, SOAData *soa, const DNSName &inZone, const int best_match_len) {
     // Reverse the lowercased query string
-    string zone = toLower(inZone);
+    string zone = toLower(inZone.toStringNoDot());
     string querykey = labelReverse(zone);
 
-    int ret = _getAuth( p, soa, inZone, querykey, best_match_len );
+    int ret = _getAuth( p, soa, inZone.toStringNoDot(), querykey, best_match_len );
 
     /* If this is disabled then we would just cache the tree structure not the
      * leaves which should give the best performance and a nice small negcache
      * size
      */
     if( ret == GET_AUTH_NEG_CACHE )
-        _add_to_negcache( inZone );
+      add_to_negcache( inZone.toStringNoDot() );
 
     return ret == GET_AUTH_SUCCESS;
 }
@@ -452,10 +465,10 @@ bool DNSReversedBackend::_getSOA(const string &querykey, SOAData &soa, DNSPacket
     return getAuthData( soa, p );
 }
 
-bool DNSReversedBackend::getSOA(const string &inZone, SOAData &soa, DNSPacket *p)
+bool DNSReversedBackend::getSOA(const DNSName &inZone, SOAData &soa, DNSPacket *p)
 {
     // prepare the query string
-    string zone = toLower( inZone );
+    string zone = toLower( inZone.toStringNoDot() );
     string querykey = labelReverse( zone );
 
     if( !_getSOA( querykey, soa, p ) )
@@ -463,4 +476,48 @@ bool DNSReversedBackend::getSOA(const string &inZone, SOAData &soa, DNSPacket *p
 
     soa.qname = inZone;
     return true;
+}
+
+void fillSOAData(const string &content, SOAData &data)
+{
+  // content consists of fields separated by spaces:
+  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
+
+  // fill out data with some plausible defaults:
+  // 10800 3600 604800 3600
+  vector<string>parts;
+  stringtok(parts,content);
+  int pleft=parts.size();
+
+  //  cout<<"'"<<content<<"'"<<endl;
+
+  if(pleft)
+    data.nameserver=DNSName(parts[0]);
+
+  if(pleft>1) 
+    data.hostmaster=DNSName(attodot(parts[1])); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
+
+  data.serial = pleft > 2 ? pdns_strtoui(parts[2].c_str(), NULL, 10) : 0;
+  if (data.serial == UINT_MAX && errno == ERANGE) throw PDNSException("serial number too large in '"+parts[2]+"'");
+
+  data.refresh = pleft > 3 ? atoi(parts[3].c_str())
+        : ::arg().asNum("soa-refresh-default");
+
+  data.retry = pleft > 4 ? atoi(parts[4].c_str())
+        : ::arg().asNum("soa-retry-default");
+
+  data.expire = pleft > 5 ? atoi(parts[5].c_str())
+        : ::arg().asNum("soa-expire-default");
+
+  data.default_ttl = pleft > 6 ?atoi(parts[6].c_str())
+        : ::arg().asNum("soa-minimum-ttl");
+}
+
+string serializeSOAData(const SOAData &d)
+{
+  ostringstream o;
+  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
+  o<<d.nameserver.toString()<<" "<< d.hostmaster.toString() <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
+
+  return o.str();
 }

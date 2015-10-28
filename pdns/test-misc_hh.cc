@@ -1,12 +1,16 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_NO_MAIN
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
 #include "misc.hh"
 #include "dns.hh"
+#include <arpa/inet.h>
 #include <utility>
 
 using std::string;
@@ -110,6 +114,7 @@ BOOST_AUTO_TEST_CASE(test_labelReverse) {
 
 BOOST_AUTO_TEST_CASE(test_makeRelative) {
     BOOST_CHECK_EQUAL(makeRelative("www.powerdns.com", "powerdns.com"), "www");
+    BOOST_CHECK_EQUAL(makeRelative("PoWeRdNs.CoM", "powerdns.com"), "");
 }
 
 BOOST_AUTO_TEST_CASE(test_AtomicCounter) {
@@ -138,6 +143,41 @@ BOOST_AUTO_TEST_CASE(test_parseService) {
     BOOST_CHECK_EQUAL(tp.port, 25);
     parseService("smtp.powerdns.com", tp);    
     BOOST_CHECK_EQUAL(tp.port, 25);
+}
+
+BOOST_AUTO_TEST_CASE(test_ternary) {
+  int maxqps=1024;
+  BOOST_CHECK_EQUAL(defTer(maxqps, 16384), maxqps);
+  BOOST_CHECK_EQUAL(defTer(0, 16384), 16384);
+
+  int* qps=0;
+  BOOST_CHECK_EQUAL(*defTer(qps, &maxqps), 1024);
+}
+
+BOOST_AUTO_TEST_CASE(test_SimpleMatch) {
+  BOOST_CHECK_EQUAL(SimpleMatch("").match(std::string("")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("?").match(std::string("")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("*").match(std::string("")), true);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("abc").match(std::string("abc")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc").match(std::string("ab")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc").match(std::string("bc")), false);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("?").match(std::string("a")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a?c").match(std::string("abc")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a?c").match(std::string("ab")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("a?c").match(std::string("bc")), false);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("*").match(std::string("*")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a*c").match(std::string("abc")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("a*c").match(std::string("ab")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("a*c").match(std::string("bc")), false);
+
+  BOOST_CHECK_EQUAL(SimpleMatch("*").match(std::string("abcdefghj")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("*a").match(std::string("abca")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("*a").match(std::string("abcb")), false);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abcabcabcabacabac")), true);
+  BOOST_CHECK_EQUAL(SimpleMatch("abc*").match(std::string("abc")), true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

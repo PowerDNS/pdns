@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsrecords.hh"
 
 void NSECRecordContent::report(void)
@@ -13,7 +16,7 @@ DNSRecordContent* NSECRecordContent::make(const string& content)
 NSECRecordContent::NSECRecordContent(const string& content, const string& zone) : DNSRecordContent(47)
 {
   RecordTextReader rtr(content, zone);
-  rtr.xfrLabel(d_next);
+  rtr.xfrName(d_next);
 
   while(!rtr.eof()) {
     uint16_t type;
@@ -24,7 +27,7 @@ NSECRecordContent::NSECRecordContent(const string& content, const string& zone) 
 
 void NSECRecordContent::toPacket(DNSPacketWriter& pw) 
 {
-  pw.xfrLabel(d_next);
+  pw.xfrName(d_next);
 
   uint8_t res[34];
   set<uint16_t>::const_iterator i;
@@ -60,7 +63,7 @@ void NSECRecordContent::toPacket(DNSPacketWriter& pw)
 NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr) 
 {
   NSECRecordContent* ret=new NSECRecordContent();
-  pr.xfrLabel(ret->d_next);
+  pr.xfrName(ret->d_next);
   string bitmap;
   pr.xfrBlob(bitmap);
  
@@ -95,7 +98,7 @@ string NSECRecordContent::getZoneRepresentation() const
 {
   string ret;
   RecordTextWriter rtw(ret);
-  rtw.xfrLabel(d_next);
+  rtw.xfrName(d_next);
   
   for(set<uint16_t>::const_iterator i=d_set.begin(); i!=d_set.end(); ++i) {
     ret+=" ";

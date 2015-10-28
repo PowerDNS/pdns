@@ -1,4 +1,8 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "rec_channel.hh"
+#include "utility.hh"
 #include <sys/socket.h>
 #include <cerrno>
 #include "misc.hh"
@@ -30,7 +34,7 @@ RecursorControlChannel::~RecursorControlChannel()
 int RecursorControlChannel::listen(const string& fname)
 {
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
-  Utility::setCloseOnExec(d_fd);
+  setCloseOnExec(d_fd);
 
   if(d_fd < 0) 
     throw PDNSException("Creating UNIX domain socket: "+stringerror());
@@ -57,7 +61,7 @@ void RecursorControlChannel::connect(const string& path, const string& fname)
   struct sockaddr_un remote;
 
   d_fd=socket(AF_UNIX,SOCK_DGRAM,0);
-  Utility::setCloseOnExec(d_fd);
+  setCloseOnExec(d_fd);
 
   if(d_fd < 0) 
     throw PDNSException("Creating UNIX domain socket: "+string(strerror(errno)));

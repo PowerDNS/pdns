@@ -1,10 +1,14 @@
 # Security Policy
 
-If you have a security problem to report, please email us at both `<security@netherlabs.nl>` and `<ahu@ds9a.nl>`. Please do not mail security issues to public lists, nor file a ticket, unless we do not get back to you in a timely manner. We fully credit reporters of security issues, and respond quickly, but please allow us a reasonable timeframe to coordinate a response.
+If you have a security problem to report, please email us at both <a href="mailto:security@netherlabs.nl">security@netherlabs.nl</a> and <a href="mailto:ahu@ds9a.nl">ahu@ds9a.nl</a>. Please do not mail security issues to public lists, nor file a ticket, unless we do not get back to you in a timely manner. We fully credit reporters of security issues, and respond quickly, but please allow us a reasonable timeframe to coordinate a response.
 
 We remind PowerDNS users that under the terms of the GNU General Public License, PowerDNS comes with ABSOLUTELY NO WARRANTY. This license is included in this documentation.
 
-As of the 8th of December 2014, no actual security problems with PowerDNS Authoritative Server 2.9.22.5, 3.0.1, Recursor 3.6.2, or later are known about. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+As of the 2nd of September 2015, no actual security problems with PowerDNS Authoritative Server 3.4.6, Recursor 3.6.3, Recursor 3.7.2, or later are known about. This page will be updated with all bugs which are deemed to be security problems, or could conceivably lead to those. Any such notifications will also be sent to all PowerDNS mailing lists.
+
+PowerDNS Authoritative Server 3.4.0 through 3.4.5 can have their threads crashed with a malformed packet, see [PowerDNS Security Advisory 2015-02](powerdns-advisory-2015-02.md) for more information.
+
+All recent Recursor versions up to and including 3.6.2 and 3.7.1, and all recent Authoritative servers up to and including version 3.4.3, can in specific situations be crashed with a malformed packet. For more detail, see [PowerDNS Security Advisory 2015-01](powerdns-advisory-2015-01.md)
 
 All Recursor versions up to and including 3.6.1 can be made to provide degraded service. For more detail, see [PowerDNS Security Advisory 2014-02](powerdns-advisory-2014-02.md)
 

@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include "dnsparser.hh"
 #include <arpa/inet.h>
 #undef res_mkquery
 
@@ -42,9 +43,9 @@
 #include "namespaces.hh"
 
 int asendto(const char *data, int len, int flags, const ComboAddress& ip, uint16_t id, 
-            const string& domain, uint16_t qtype,  int* fd);
+            const DNSName& domain, uint16_t qtype,  int* fd);
 int arecvfrom(char *data, int len, int flags, const ComboAddress& ip, int *d_len, uint16_t id, 
-              const string& domain, uint16_t, int fd, struct timeval* now);
+              const DNSName& domain, uint16_t, int fd, struct timeval* now);
 
 class LWResException : public PDNSException
 {
@@ -57,16 +58,14 @@ class LWResult
 {
 public:
   LWResult() : d_usec(0) {}
-  typedef vector<DNSResourceRecord> res_t;
 
-  vector<DNSResourceRecord> d_result;
+  vector<DNSRecord> d_records;
   int d_rcode;
   bool d_aabit, d_tcbit;
   uint32_t d_usec;
-  bool d_pingCorrect;
   bool d_haveEDNS;
 };
 
-int asyncresolve(const ComboAddress& ip, const string& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult* res);
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult* res);
 
 #endif // PDNS_LWRES_HH

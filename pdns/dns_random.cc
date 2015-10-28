@@ -1,4 +1,12 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#ifdef HAVE_MBEDTLS2
+#include <mbedtls/aes.h>
+#else
 #include <polarssl/aes.h>
+#include "mbedtlscompat.hh"
+#endif
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -11,7 +19,7 @@
 
 using namespace std;
 
-static aes_context g_ctx;
+static mbedtls_aes_context g_ctx;
 static unsigned char g_counter[16], g_stream[16];
 static uint32_t g_in;
 static size_t g_offset;
@@ -21,7 +29,7 @@ static bool g_initialized;
 void dns_random_init(const char data[16])
 {
   g_offset = 0;
-  aes_setkey_enc(&g_ctx, (const unsigned char*)data, 128);
+  mbedtls_aes_setkey_enc(&g_ctx, (const unsigned char*)data, 128);
 
   struct timeval now;
   gettimeofday(&now, 0);
@@ -39,7 +47,7 @@ unsigned int dns_random(unsigned int n)
   if(!g_initialized)
     abort();
   uint32_t out;
-  aes_crypt_ctr(&g_ctx, sizeof(g_in), &g_offset, g_counter, (unsigned char*) &g_stream, (unsigned char*) &g_in, (unsigned char*) &out);
+  mbedtls_aes_crypt_ctr(&g_ctx, sizeof(g_in), &g_offset, g_counter, (unsigned char*) &g_stream, (unsigned char*) &g_in, (unsigned char*) &out);
   return out % n;
 }
 

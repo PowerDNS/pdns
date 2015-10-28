@@ -1,0 +1,44 @@
+#!/bin/sh
+
+if [ "$0" != "./build-scripts/build-dnsdist-debian" ]; then
+  echo "Please run me from the root checkout dir"
+  exit 1
+fi
+
+if [ -z "$VERSION" ]; then
+  echo 'Please set $VERSION' >&2
+  exit 1
+fi
+
+if [ -z "$DISTDIR" ]; then
+  DISTDIR='pdns/dnsdistdist'
+fi
+
+if [ -z "$RELEASE" ];then
+  echo 'Please set $RELEASE' >&2
+  exit 1
+fi
+
+set -e
+set -x
+
+rm -rf $DISTDIR/debian/
+cp -r build-scripts/debian-dnsdist $DISTDIR/debian
+
+cd $DISTDIR
+
+cat > debian/changelog << EOF
+dnsdist (${VERSION}-${RELEASE}) unstable; urgency=medium
+
+  * Automatic build
+
+ -- PowerDNS.COM AutoBuilder <noreply@powerdns.com>  $(date -R)
+
+EOF
+
+. /etc/os-release
+export ID="${ID}"
+export VERSION_ID="${VERSION_ID}"
+
+fakeroot debian/rules debian/control
+fakeroot debian/rules binary

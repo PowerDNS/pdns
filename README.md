@@ -38,7 +38,7 @@ If you build from git, first build configure:
     $ ./bootstrap
 
 (You may need to do that twice. You also need libtool-1.4, 1.3 won't work.
-Autoconf 2.69 or newer and Automake 1.11 or newer are required, too.)
+Autoconf 2.61 or newer and Automake 1.11 or newer are required, too.)
 
 To compile a very clean version, use:
 

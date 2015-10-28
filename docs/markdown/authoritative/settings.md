@@ -22,8 +22,17 @@ If set, only these IP addresses or netmasks will be able to perform AXFR.
 
 Allow DNS updates from these IP ranges.
 
+## `allow-notify-from`
+* IP ranges, separated by commas
+* Default: 0.0.0.0/0,::/0
+* Available since: 3.5.0
+
+Allow AXFR NOTIFY from these IP ranges.
+Setting this to an empty string will drop all incoming notifies.
+
 ## `allow-recursion`
 * IP ranges, separated by commas
+* Default: 0.0.0.0/0
 
 By specifying `allow-recursion`, recursion can be restricted to netmasks
 specified. The default is to allow recursion from everywhere. Example:
@@ -58,7 +67,7 @@ Seconds to store packets in the PacketCache. See
 * Default: the hostname of the server
 * Available since: 3.3.1
 
-If sending carbon updates, if set, this will override our hostname. See
+If sending carbon updates, if set, this will override our hostname. Be careful not to include any dots in this setting, unless you know what you are doing. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-server`
@@ -66,7 +75,8 @@ If sending carbon updates, if set, this will override our hostname. See
 * Available since: 3.3.1
 
 Send all available metrics to this server via the carbon protocol, which is used
-by graphite and metronome. See
+by graphite and metronome. You may specify an alternate port by appending :port, 
+ex: 127.0.0.1:2004. See 
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
 
 ## `carbon-interval`
@@ -258,6 +268,12 @@ doubles query load. **Do not combine with DNSSEC!**
 
 Enable/Disable DNS update (RFC2136) support.
 
+## `experimental-json-interface`
+* Boolean
+* Default: no
+
+Enable/disable the [JSON API](../httpapi/README.md).
+
 ## `forward-dnsupdates`
 * Boolean
 * Default: no
@@ -382,7 +398,7 @@ stable, and is in fact likely to change.
 * Boolean
 * Default: no
 
-Turn on master support.
+Turn on master support. See ["Modes of operation"](modes-of-operation.md#master-operation).
 
 ## `max-cache-entries`
 * Integer
@@ -491,16 +507,20 @@ or ALSO-NOTIFY metadata always receive AXFR NOTIFY.
 
 ## `out-of-zone-additional-processing`
 * Boolean
-* Default: no
+* Default: yes
 
 Do out of zone additional processing. This means that if a malicious user adds a
 '.com' zone to your server, it is not used for other domains and will not
 contaminate answers. Do not enable this setting if you run a public DNS service
 with untrusted users.
 
+The docs had previously indicated that the default was "no", but the default has
+been "yes" since 2005.
+
 ## `pipebackend-abi-version`
 * Integer
 * Default: 1
+* Removed in: 4.0.0 (is now specific to the backend)
 
 ABI version to use for the pipe backend. See
 ["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).
@@ -602,14 +622,15 @@ If set, change user id to this uid for more security. See
 * Boolean
 * Default: no
 
-Turn on slave support.
+Turn on slave support. See ["Modes of operation"](modes-of-operation.md#slave-operation).
 
 ## `slave-cycle-interval`
 * Integer
 * 60
 
-Number of seconds to schedule slave up-to-date checks of domains whose status is
-unknown.
+On a master, this is the amounts of seconds between the master checking the SOA
+serials in its database to determine to send out NOTIFYs to the slaves. On slaves,
+this is the number of seconds between the slave checking for updates to zones.
 
 ## `slave-renotify`
 * Boolean
@@ -767,3 +788,9 @@ The port where webserver to listen on. See ["Performance Monitoring"](../common/
 * Default: no
 
 If the webserver should print arguments. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
+
+## `write-pid`
+* Boolean
+* Default: yes
+
+If a PID file should be written. Available since 4.0.

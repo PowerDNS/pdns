@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "signingpipe.hh"
 #include "misc.hh"
 #include <poll.h>
@@ -67,9 +70,9 @@ catch(...) {
   return 0;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(const std::string& signerName, bool mustSign, const pdns::string& servers, unsigned int workers) 
-  : d_queued(0), d_outstanding(0), d_signer(signerName), d_maxchunkrecords(100), d_numworkers(workers), d_tids(d_numworkers),
-    d_mustSign(mustSign), d_final(false), d_submitted(0)
+ChunkedSigningPipe::ChunkedSigningPipe(const DNSName& signerName, bool mustSign, const string& servers, unsigned int workers)
+  : d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(signerName),
+    d_maxchunkrecords(100), d_tids(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
   d_rrsetToSign = new rrset_t;
   d_chunks.push_back(vector<DNSResourceRecord>()); // load an empty chunk
@@ -82,10 +85,10 @@ ChunkedSigningPipe::ChunkedSigningPipe(const std::string& signerName, bool mustS
   for(unsigned int n=0; n < d_numworkers; ++n) {
     if(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) < 0) 
       throw runtime_error("Unable to create communication socket in for ChunkedSigningPipe");
-    Utility::setCloseOnExec(fds[0]);
-    Utility::setCloseOnExec(fds[1]);
+    setCloseOnExec(fds[0]);
+    setCloseOnExec(fds[1]);
     pthread_create(&d_tids[n], 0, helperWorker, (void*) new StartHelperStruct(this, n, fds[1]));
-    Utility::setNonBlocking(fds[0]);
+    setNonBlocking(fds[0]);
     d_sockets.push_back(fds[0]);
   }
 }
@@ -130,7 +133,7 @@ bool ChunkedSigningPipe::submit(const DNSResourceRecord& rr)
 {
   ++d_submitted;
   // check if we have a full RRSET to sign
-  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  !pdns_iequals(d_rrsetToSign->begin()->qname, rr.qname))) 
+  if(!d_rrsetToSign->empty() && (d_rrsetToSign->begin()->qtype.getCode() != rr.qtype.getCode()  ||  d_rrsetToSign->begin()->qname != rr.qname)) 
   {
     dedupRRSet();
     sendRRSetToWorker();
@@ -284,7 +287,7 @@ try
       break;
     if(res < 0)
       unixDie("reading object pointer to sign from pdns");
-    set<string, CIStringCompare> authSet;
+    set<DNSName> authSet;
     authSet.insert(d_signer);
     addRRSigs(dk, db, authSet, *chunk);
     ++d_signed;

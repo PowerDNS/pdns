@@ -1,8 +1,11 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "responsestats.hh"
 #include <limits>
 #include "namespaces.hh"
 #include "logger.hh"
-#include "boost/foreach.hpp"
+#include <boost/foreach.hpp>
 #include "dnsparser.hh"
 
 ResponseStats::ResponseStats()
@@ -18,6 +21,8 @@ ResponseStats::ResponseStats()
     d_sizecounters.push_back(make_pair(n,0));
   d_sizecounters.push_back(make_pair(std::numeric_limits<uint16_t>::max(),0));
 }
+
+ResponseStats g_rs = ResponseStats();
 
 static bool pcomp(const pair<uint16_t, uint64_t>&a , const pair<uint16_t, uint64_t>&b)
 {

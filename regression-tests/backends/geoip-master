@@ -43,14 +43,18 @@ domains:
       - a: 127.0.0.1
   services:
     www.geo.example.com: '%cn.service.geo.example.com'
+    indirect.geo.example.com: '%cn.elsewhere.example.com'
 EOF
 		cat > $testsdir/region-a-resolution/expected_result <<EOF
-0	$geoipregion.service.geo.example.com.	IN	A	30	62.236.200.4
-0	www.geo.example.com.	IN	CNAME	30	$geoipregion.service.geo.example.com.
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+0	www.geo.example.com.	IN	A	30	62.236.200.4
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.geo.example.com.', qtype=A
 EOF
-
+                cat > $testsdir/region-cname-resolution/expected_result <<EOF
+0	indirect.geo.example.com.	IN	CNAME	30	$geoipregion.elsewhere.example.com.
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='indirect.geo.example.com.', qtype=A
+EOF
 		# generate pdns.conf for pdnssec
 		cat > pdns-geoip.conf <<EOF
 module-dir=./modules
@@ -61,14 +65,14 @@ EOF
 		if [ "$geoipdosec" = "yes" ]
 		then
 			echo "$geoipkeydir" >> pdns-geoip.conf
-			../pdns/pdnssec --config-dir=. --config-name=geoip secure-zone geo.example.com
+			$PDNSSEC --config-dir=. --config-name=geoip secure-zone geo.example.com
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
-			--send-root-referral --distributor-threads=1 \
+			--distributor-threads=1 \
                         --geoip-zones-file=$testsdir/geo.yaml --module-dir=./modules \
 			$geoipkeydir &
 		;;

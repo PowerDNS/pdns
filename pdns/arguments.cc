@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "arguments.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/compare.hpp>
@@ -378,22 +381,19 @@ void ArgvMap::preParse(int &argc, char **argv, const string &arg)
   }
 }
 
-bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
-{
-  params[arg]=theDefault;
+bool ArgvMap::parseFile(const char *fname, const string& arg, bool lax) {
+  string line;
+  string pline;
+  string::size_type pos;
 
   ifstream f(fname);
   if(!f)
     return false;
 
-  string line;
-  string pline;
-  string::size_type pos;
-
   while(getline(f,pline)) {
     trim_right(pline);
     
-    if(pline[pline.size()-1]=='\\') {
+    if(!pline.empty() && pline[pline.size()-1]=='\\') {
       line+=pline.substr(0,pline.length()-1);
       continue;
     }
@@ -401,8 +401,12 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
       line+=pline;
 
     // strip everything after a #
-    if((pos=line.find("#"))!=string::npos)
-      line=line.substr(0,pos);
+    if((pos=line.find("#"))!=string::npos) {
+      // make sure it's either first char or has whitespace before
+      // fixes issue #354
+      if (pos == 0 || std::isspace(line[pos-1]))
+        line=line.substr(0,pos);
+    }
 
     // strip trailing spaces
     trim_right(line);
@@ -413,11 +417,19 @@ bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& t
 
     // gpgsql-basic-query=sdfsdfs dfsdfsdf sdfsdfsfd
 
-    parseOne( string("--") + line, arg );
+    parseOne( string("--") + line, arg, lax );
     line="";
   }
 
   return true;
+}
+
+
+bool ArgvMap::preParseFile(const char *fname, const string &arg, const string& theDefault)
+{
+  params[arg]=theDefault;
+
+  return parseFile(fname, arg, false);
 }
 
 bool ArgvMap::file(const char *fname, bool lax)
@@ -427,40 +439,12 @@ bool ArgvMap::file(const char *fname, bool lax)
 
 bool ArgvMap::file(const char *fname, bool lax, bool included)
 {
-  ifstream f(fname);
-  if(!f) {
-    return false;
-  }
-
   if (!parmIsset("include-dir"))  // inject include-dir
     set("include-dir","Directory to include configuration files from");
 
-  string line;
-  string pline;
-  string::size_type pos;
-
-  while(getline(f,pline)) {
-    trim_right(pline);
-    if(pline.empty())
-      continue;
-
-    if(pline[pline.size()-1]=='\\') {
-      line+=pline.substr(0,pline.length()-1);
-
-      continue;
-    }
-    else
-      line+=pline;
-
-    // strip everything after a #
-    if((pos=line.find("#"))!=string::npos)
-      line=line.substr(0,pos);
-
-    // strip trailing spaces
-    trim(line);
-
-    parseOne(string("--")+line,"",lax);
-    line="";
+  if(!parseFile(fname, "", lax)) {
+    L << Logger::Warning << "Unable to open " << fname << std::endl;
+    return false;
   }
 
   // handle include here (avoid re-include)

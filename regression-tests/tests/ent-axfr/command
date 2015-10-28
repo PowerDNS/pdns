@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig test.com AXFR showdetails | grep -P 'IN\tNSEC'
+cleandig test.com AXFR showdetails | perl -ne 'print if /IN\tNSEC/'

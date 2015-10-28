@@ -19,8 +19,10 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "logger.hh"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+#include "logger.hh"
 #include "misc.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
@@ -98,6 +100,7 @@ Logger::Logger(const string &n, int facility)
   opened=false;
   flags=LOG_PID|LOG_NDELAY;
   d_facility=facility;
+  d_loglevel=Logger::None;
   consoleUrgency=Error;
   name=n;
 
@@ -137,6 +140,12 @@ Logger& Logger::operator<<(const string &s)
 {
   PerThread* pt =getPerThread();
   pt->d_output.append(s);
+  return *this;
+}
+
+Logger& Logger::operator<<(const char *s)
+{
+  *this<<string(s);
   return *this;
 }
 
@@ -188,7 +197,6 @@ Logger& Logger::operator<<(unsigned long long i)
   return *this;
 }
 
-
 Logger& Logger::operator<<(long i)
 {
   ostringstream tmp;
@@ -206,5 +214,12 @@ Logger& Logger::operator<<(ostream & (&)(ostream &))
   log(pt->d_output, pt->d_urgency);
   pt->d_output.clear();
   pt->d_urgency=Info;
+  return *this;
+}
+
+Logger& Logger::operator<<(const DNSName &d)
+{
+  *this<<d.toString();
+
   return *this;
 }

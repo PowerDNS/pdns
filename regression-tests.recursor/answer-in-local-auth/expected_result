@@ -1,0 +1,5 @@
+0	pfs.global.box.answer-cname-in-local.example.net.	IN	CNAME	3600	vip-reunion.pfsbox.answer-cname-in-local.example.net.
+0	service.box.answer-cname-in-local.example.net.	IN	CNAME	3600	pfs.global.box.answer-cname-in-local.example.net.
+0	vip-reunion.pfsbox.answer-cname-in-local.example.net.	IN	A	3600	10.1.1.1
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Reply to question for qname='service.box.answer-cname-in-local.example.net.', qtype=A

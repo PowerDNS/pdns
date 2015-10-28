@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <iostream>
 #include <boost/foreach.hpp>
 #include "recpacketcache.hh"
@@ -12,10 +15,10 @@ RecursorPacketCache::RecursorPacketCache()
   d_hits = d_misses = 0;
 }
 
-int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
+int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype)
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, toLower(name), 0);
+  DNSPacketWriter pw(packet, name, 0);
   pw.getHeader()->rd=1;
   Entry e;
   e.d_packet.assign((const char*)&*packet.begin(), packet.size());
@@ -28,8 +31,9 @@ int RecursorPacketCache::doWipePacketCache(const string& name, uint16_t qtype)
     if(packet->qdcount==0)
       break;
     uint16_t t;
-    string found=questionExpand(iter->d_packet.c_str(), iter->d_packet.length(), t);
-    if(!pdns_iequals(found, name)) {  
+
+    DNSName found(iter->d_packet.c_str(), iter->d_packet.size(), 12, false, &t);
+    if(found==name) {   // this is case insensitive
       break;
     }
     if(t==qtype || qtype==0xffff) {

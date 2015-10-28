@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
@@ -31,7 +34,7 @@ struct DNSResult
 struct TypedQuery
 {
   TypedQuery(const string& name_, uint16_t type_) : name(name_), type(type_){}
-  string name;
+  DNSName name;
   uint16_t type;
 };
 
@@ -98,6 +101,8 @@ struct SendReceive
     if(::send(d_socket, &*packet.begin(), packet.size(), 0) < 0)
       d_senderrors++;
     
+    if(!g_quiet)
+      cout<<"Sent out query for '"<<domain.name<<"' with id "<<pw.getHeader()->id<<endl;
     return pw.getHeader()->id;
   }
   
@@ -118,7 +123,7 @@ struct SendReceive
       
       MOADNSParser mdp(string(buf, len));
       if(!g_quiet) {
-        cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
+        cout<<"Reply to question for qname='"<<mdp.d_qname.toString()<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
         cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
         cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
       }
@@ -131,7 +136,7 @@ struct SendReceive
         }
         if(!g_quiet)
         {
-          cout<<i->first.d_place-1<<"\t"<<i->first.d_label<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+          cout<<i->first.d_place-1<<"\t"<<i->first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
           cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
         }
       }
@@ -146,6 +151,9 @@ struct SendReceive
   
   void deliverTimeout(const Identifier& id)
   {
+    if(!g_quiet) {
+      cout<<"Timeout for id "<<id<<endl;
+    }
     d_idqueue.push_back(id);
   }
   

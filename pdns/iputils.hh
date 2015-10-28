@@ -95,6 +95,20 @@ union ComboAddress {
     }
   };
 
+  struct addressOnlyEqual: public std::binary_function<ComboAddress, ComboAddress, bool>
+  {
+    bool operator()(const ComboAddress& a, const ComboAddress& b) const
+    {
+      if(a.sin4.sin_family != b.sin4.sin_family)
+        return false;
+      if(a.sin4.sin_family == AF_INET)
+        return a.sin4.sin_addr.s_addr == b.sin4.sin_addr.s_addr;
+      else
+        return !memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, 16);
+    }
+  };
+
+
   socklen_t getSocklen() const
   {
     if(sin4.sin_family == AF_INET)
@@ -190,6 +204,8 @@ union ComboAddress {
     else
       return "["+toString() + "]:" + boost::lexical_cast<string>(ntohs(sin4.sin_port));
   }
+
+  void truncate(unsigned int bits);
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
@@ -203,7 +219,7 @@ inline ComboAddress makeComboAddress(const string& str)
 {
   ComboAddress address;
   address.sin4.sin_family=AF_INET;
-  if(Utility::inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
+  if(inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
     address.sin4.sin_family=AF_INET6;
     if(makeIPv6sockaddr(str, &address.sin6) < 0)
       throw NetmaskException("Unable to convert '"+str+"' to a netmask");        
@@ -219,6 +235,8 @@ public:
   Netmask()
   {
 	d_network.sin4.sin_family=0; // disable this doing anything useful
+	d_mask=0;
+	d_bits=0;
   }
   
   Netmask(const ComboAddress& network, uint8_t bits=0xff)
@@ -329,6 +347,17 @@ public:
   {
     return d_network.sin4.sin_family == AF_INET;
   }
+
+  bool operator<(const Netmask& rhs) const 
+  {
+    return tie(d_network, d_bits) < tie(rhs.d_network, rhs.d_bits);
+  }
+
+  bool operator==(const Netmask& rhs) const 
+  {
+    return tie(d_network, d_bits) == tie(rhs.d_network, rhs.d_bits);
+  }
+
 private:
   ComboAddress d_network;
   uint32_t d_mask;
@@ -343,7 +372,7 @@ class NetmaskGroup
 public:
   //! If this IP address is matched by any of the classes within
 
-  bool match(const ComboAddress *ip)
+  bool match(const ComboAddress *ip) const
   {
     for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
       if(i->match(ip) || (ip->isMappedIPv4() && i->match(ip->mapToIPv4()) ))
@@ -352,7 +381,7 @@ public:
     return false;
   }
 
-  bool match(const ComboAddress& ip)
+  bool match(const ComboAddress& ip) const
   {
     return match(&ip);
   }
@@ -442,4 +471,5 @@ bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
+int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to);
 #endif

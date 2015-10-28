@@ -1,11 +1,13 @@
 #define __FAVOR_BSD
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsrecords.hh"
 #include "dnsparser.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/algorithm/string.hpp>
 #include <map>
 #include <set>
 #include <fstream>
@@ -31,7 +33,7 @@ void makeReport(const struct pdns_timeval& tv)
   int64_t clientdiff = g_clientQuestions - g_clientResponses;
   int64_t serverdiff = g_serverQuestions - g_serverResponses;
 
-  if(clientdiff > 5 && clientdiff > 0.02*g_clientQuestions) {
+  if(clientdiff > 1 && clientdiff > 0.02*g_clientQuestions) {
     char tmp[80];
     struct tm tm=*pdns_localtime_r(&tv.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
@@ -50,7 +52,7 @@ void makeReport(const struct pdns_timeval& tv)
     cout<<"Last question: "<<tmp<<"."<<g_lastquestionTime.tv_usec/1000000.0<<endl;
   }
 
-  if(serverdiff > 5 && serverdiff > 0.02*g_serverQuestions) {
+  if(serverdiff > 1 && serverdiff > 0.02*g_serverQuestions) {
     char tmp[80];
     struct tm tm=*pdns_localtime_r(&tv.tv_sec, &tm);
     strftime(tmp, sizeof(tmp) - 1, "%F %H:%M:%S", &tm);
@@ -99,12 +101,14 @@ try
     
     struct pdns_timeval lastreport={0, 0};
     
-    typedef set<pair<string, uint16_t> > queries_t;
+    typedef set<pair<DNSName, uint16_t> > queries_t;
     queries_t questions, answers;
 
     //    unsigned int count = 50000;
     
-    map<pair<string, uint16_t>, int> counts;
+    map<pair<DNSName, uint16_t>, int> counts;
+
+    map<double, int> rdqcounts, rdacounts;
 
     while(pr.getUDPPacket()) {
       if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
@@ -118,6 +122,7 @@ try
           }
 
           if(mdp.d_header.rd && !mdp.d_header.qr) {
+	    rdqcounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
             g_lastquestionTime=pr.d_pheader.ts;
             g_clientQuestions++;
             totalQueries++;
@@ -125,6 +130,7 @@ try
             questions.insert(make_pair(mdp.d_qname, mdp.d_qtype));
           }
           else if(mdp.d_header.rd && mdp.d_header.qr) {
+	    rdacounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
             g_lastanswerTime=pr.d_pheader.ts;
             g_clientResponses++;
             answers.insert(make_pair(mdp.d_qname, mdp.d_qtype));
@@ -141,7 +147,7 @@ try
             g_serverResponses++;
           }
           
-          if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec >= 5) {
+          if(pr.d_pheader.ts.tv_sec - lastreport.tv_sec >= 1) {
             makeReport(pr.d_pheader.ts);
             lastreport = pr.d_pheader.ts;
           }          
@@ -156,7 +162,22 @@ try
           continue;
         }
       }
+    }
 
+    map<double, pair<int, int>> splot;
+
+    for(auto& a : rdqcounts) {
+      splot[a.first].first = a.second;
+    }
+    for(auto& a : rdacounts) {
+      splot[a.first].second = a.second;
+    }
+
+    cerr<<"Writing out sub-second rd query/response stats to ./rdqaplot"<<endl;
+    ofstream plot("rdqaplot");
+    plot<<std::fixed;
+    for(auto& a : splot) {
+      plot << a.first<<"\t"<<a.second.first<<"\t"<<a.second.second<<endl;
     }
     cerr<<"Parse errors: "<<parseErrors<<", total queries: "<<totalQueries<<endl;
     typedef vector<queries_t::value_type> diff_t;
@@ -169,7 +190,7 @@ try
     ofstream failed("failed");
     failed<<"name\ttype\tnumber\n";
     for(diff_t::const_iterator i = diff.begin(); i != diff.end() ; ++i) {
-      failed << i->first << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
+      failed << i->first.toString() << "\t" << DNSRecordContent::NumberToType(i->second) << "\t"<< counts[make_pair(i->first, i->second)]<<"\n";
     }
 
     diff.clear();
@@ -181,7 +202,7 @@ try
     ofstream succeeded("succeeded");
     succeeded<<"name\ttype\tnumber\n";
     for(queries_t::const_iterator i = answers.begin(); i != answers.end() ; ++i) {
-      succeeded << i->first << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
+      succeeded << i->first.toString() << "\t" <<DNSRecordContent::NumberToType(i->second) << "\t" << counts[make_pair(i->first, i->second)]<<"\n";
     }
   }
 }

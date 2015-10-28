@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "dnsparser.hh"
 #include "sstuff.hh"
 #include "misc.hh"
@@ -29,7 +32,7 @@ try
     else
       qname=boost::lexical_cast<string>(n)+"."+argv[3];
     
-    DNSPacketWriter pw(packet, qname, DNSRecordContent::TypeToNumber(argv[4]));
+    DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(argv[4]));
 
     pw.getHeader()->rd=1;
 

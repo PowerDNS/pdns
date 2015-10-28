@@ -18,13 +18,15 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
 #include "namespaces.hh"
 #include "ws-api.hh"
 #include "json.hh"
-#include "config.h"
 #include "version.hh"
 #include "arguments.hh"
 #include <stdio.h>
@@ -148,7 +150,7 @@ static string logGrep(const string& q, const string& fname, const string& prefix
   if(!ptr) {
     throw ApiException("Opening \"" + fname + "\" failed: " + stringerror());
   }
-  boost::shared_ptr<FILE> fp(ptr, fclose);
+  std::shared_ptr<FILE> fp(ptr, fclose);
 
   string line;
   string needle = q;
@@ -219,7 +221,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-string apiZoneIdToName(const string& id) {
+DNSName apiZoneIdToName(const string& id) {
   string zonename;
   ostringstream ss;
 
@@ -259,14 +261,11 @@ string apiZoneIdToName(const string& id) {
 
   zonename = ss.str();
 
-  // strip trailing dot
-  if (zonename.substr(zonename.size()-1) == ".") {
-    zonename.resize(zonename.size()-1);
-  }
-  return zonename;
+  return DNSName(zonename);
 }
 
-string apiZoneNameToId(const string& name) {
+string apiZoneNameToId(const DNSName& dname) {
+  string name=dname.toString();
   ostringstream ss;
 
   for(string::const_iterator iter = name.begin(); iter != name.end(); ++iter) {
@@ -283,14 +282,14 @@ string apiZoneNameToId(const string& name) {
   string id = ss.str();
 
   // add trailing dot
-  if (id.substr(id.size()-1) != ".") {
+  if (id.size() == 0 || id.substr(id.size()-1) != ".") {
     id += ".";
   }
 
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
   if (id == ".") {
-    id = (boost::format("=%02x") % (int)('.')).str();
+    id = (boost::format("=%02X") % (int)('.')).str();
   }
   return id;
 }

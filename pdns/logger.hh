@@ -19,19 +19,18 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifndef LOGGER_HH
-#define LOGGER_HH
+#pragma once
 /* (C) 2002 POWERDNS.COM BV */
 
 #include <string>
 #include <ctime>
 #include <iostream>
 #include <sstream>
-#include "config.h"
 #include <syslog.h>
 #include <pthread.h>
 
 #include "namespaces.hh"
+#include "dnsname.hh"
 
 //! The Logger class can be used to log messages in various ways.
 class Logger
@@ -40,7 +39,7 @@ public:
   Logger(const string &, int facility=LOG_DAEMON); //!< pass the identification you wish to appear in the log
 
   //! The urgency of a log message
-  enum Urgency {All=99999,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
+  enum Urgency {All=32767,NTLog=12345,Alert=LOG_ALERT, Critical=LOG_CRIT, Error=LOG_ERR, Warning=LOG_WARNING,
         	Notice=LOG_NOTICE,Info=LOG_INFO, Debug=LOG_DEBUG, None=-1};
 
   /** Log a message.
@@ -68,6 +67,7 @@ public:
       L<<"This is an informational message"<<endl; // logged AGAIN at default loglevel (Info)
       \endcode
   */
+  Logger& operator<<(const char *s);
   Logger& operator<<(const string &s);   //!< log a string
   Logger& operator<<(int);   //!< log an int
   Logger& operator<<(double);   //!< log a double
@@ -75,6 +75,8 @@ public:
   Logger& operator<<(long);   //!< log an unsigned int
   Logger& operator<<(unsigned long);   //!< log an unsigned int
   Logger& operator<<(unsigned long long);   //!< log an unsigned 64 bit int
+  Logger& operator<<(const DNSName&); 
+
   Logger& operator<<(Urgency);    //!< set the urgency, << style
 
   Logger& operator<<(std::ostream & (&)(std::ostream &)); //!< this is to recognise the endl, and to commit the log
@@ -93,12 +95,13 @@ private:
   static void perThreadDestructor(void *);
   PerThread* getPerThread();
   void open();
+
   string name;
   int flags;
   int d_facility;
-  bool opened;
   Urgency d_loglevel;
   Urgency consoleUrgency;
+  bool opened;
   static pthread_once_t s_once;
   static pthread_key_t s_loggerKey;
 };
@@ -109,7 +112,4 @@ extern Logger &theL(const string &pname="");
 #define DLOG(x) x
 #else
 #define DLOG(x) ((void)0)
-#endif
-
-
 #endif

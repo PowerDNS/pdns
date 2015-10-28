@@ -19,6 +19,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -31,14 +34,13 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/types.h>
-#include <boost/shared_ptr.hpp>
+
 
 #include <sys/stat.h>
 #include "pdnsexception.hh"
 #include "misc.hh"
 #include "dynmessenger.hh"
 #include "arguments.hh"
-#include "config.h"
 #include "statbag.hh"
 #include "misc.hh"
 #include "namespaces.hh"
@@ -55,7 +57,6 @@ StatBag S;
 int main(int argc, char **argv)
 {
   string s_programname="pdns";
-  string localdir;
 
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
@@ -72,6 +73,7 @@ int main(int argc, char **argv)
   if(::arg().mustDo("help")) {
     cout<<"syntax:"<<endl<<endl;
     cout<<::arg().helpstring(::arg()["help"])<<endl;
+    cout<<"In addition, 'pdns_control help' can be used to retrieve a list\nof available commands from PowerDNS"<<endl;
     exit(0);
   }
 
@@ -96,16 +98,11 @@ int main(int argc, char **argv)
   string socketname=::arg()["socket-dir"]+"/"+s_programname+".controlsocket";
   cleanSlashes(socketname);
   
-  if(::arg()["chroot"].empty())
-    localdir="/tmp";
-  else
-    localdir=dirname(strdup(socketname.c_str()));
-
   try {
     string command=commands[0];
     shared_ptr<DynMessenger> D;
     if(::arg()["remote-address"].empty())
-      D=shared_ptr<DynMessenger>(new DynMessenger(localdir,socketname));
+      D=shared_ptr<DynMessenger>(new DynMessenger(socketname));
     else {
       uint16_t port;
       try {
@@ -154,6 +151,10 @@ int main(int argc, char **argv)
     }
     
     string resp=D->receive();
+    if(resp.compare(0, 7, "Unknown") == 0) {
+      cerr<<resp<<endl;
+      return 1;
+    }
     
     cout<<resp<<endl;
   }

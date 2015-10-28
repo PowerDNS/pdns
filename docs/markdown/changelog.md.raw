@@ -1,4 +1,351 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
+
+# PowerDNS Authoritative Server 3.4.6
+Released 28th of August 2015
+
+This is a security release fixing [Security Advisory
+2015-02](security/powerdns-advisory-2015-02.md)
+
+Bug fixes:
+
+- commits [c849701](https://github.com/PowerDNS/pdns/commit/c849701) and
+[8c91e2c](https://github.com/PowerDNS/pdns/commit/8c91e2c): Avoid
+superfluous backend recycling
+- commits [463fcff](https://github.com/PowerDNS/pdns/commit/463fcff),
+[0fc08e8](https://github.com/PowerDNS/pdns/commit/0fc08e8),
+[0fbe69c](https://github.com/PowerDNS/pdns/commit/0fbe69c),
+[1a6af1c](https://github.com/PowerDNS/pdns/commit/1a6af1c) and
+[07f69d3](https://github.com/PowerDNS/pdns/commit/07f69d3): Removal of
+dnsdist from the authoritative server distribution (Kees Monshouwer among others).
+- commits [5cfea4c](https://github.com/PowerDNS/pdns/commit/5cfea4c) and
+[ef011d9](https://github.com/PowerDNS/pdns/commit/ef011d9): Add EDNS
+unknown version handling and tests EDNS unknown version handling (Aki Tuomi)
+
+Improvements:
+
+- commits [88dd8a7](https://github.com/PowerDNS/pdns/commit/88dd8a7) and
+[dc6c63d](https://github.com/PowerDNS/pdns/commit/dc6c63d): Update
+YaHTTP to v0.1.7 (Aki Tuomi)
+- [commit 0a344bc](https://github.com/PowerDNS/pdns/commit/0a344bc): Make
+trailing/leading spaces stand out in `pdnssec check_zone`
+- commits [2e982ad](https://github.com/PowerDNS/pdns/commit/2e982ad) and
+[09bec1f](https://github.com/PowerDNS/pdns/commit/09bec1f): GCC 5.2 support
+and sync boost.m4 macro with upstream (Kees Monshouwer among others)
+- [commit 1ad4e44](https://github.com/PowerDNS/pdns/commit/1ad4e44): Log
+answer packets only if log-dns-details is enabled (Kees Monshouwer)
+
+# PowerDNS Recursor 3.6.4
+Released 9th of June 2015
+
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
+Bug fixes:
+
+- [commit bccd068](https://github.com/PowerDNS/pdns/commit/bccd068): Limit the
+maximum length of a qname
+
+# PowerDNS Recursor 3.7.3
+Released 9th of June 2015
+
+Bug fixes:
+
+- [commit 92f7b2b](https://github.com/PowerDNS/pdns/commit/92f7b2b): Limit the
+maximum length of a qname
+
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
+Improvements:
+
+- [commit 46366a5](https://github.com/PowerDNS/pdns/commit/46366a5),
+[commit f318a7d](https://github.com/PowerDNS/pdns/commit/f318a7d): pdnssec:
+check for glue and delegations in parent zones (Kees Monshouwer)
+
+# PowerDNS Authoritative Server 3.3.3
+Released 9th of June 2015
+
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
+Bug fixes:
+
+- [commit a0a1482](https://github.com/PowerDNS/pdns/commit/a0a1482): Limit the
+maximum length of a qname
+
+# PowerDNS Authoritative Server 3.4.5
+Released 9th of June 2015
+
+This is a security release fixing [Security Advisory
+2015-01](security/powerdns-advisory-2015-01.md)
+
+Bug fixes:
+
+- [commit ffaae2b](https://github.com/PowerDNS/pdns/commit/ffaae2b): be
+careful reading empty lines in our config parser and prevent integer overflow.
+- [commit 8e30209](https://github.com/PowerDNS/pdns/commit/8e30209): prevent
+crash after --list-modules (Ruben Kerkhof)
+- [commit 6cf71cf](https://github.com/PowerDNS/pdns/commit/6cf71cf): Limit the
+maximum length of a qname
+
+Improvements:
+
+- [commit 28ba3fc](https://github.com/PowerDNS/pdns/commit/28ba3fc),
+[commit 61b316f](https://github.com/PowerDNS/pdns/commit/61b316f): Support
+/etc/default for our debian/ubuntu packages (Aki Tuomi)
+- [commit d80e2b6](https://github.com/PowerDNS/pdns/commit/d80e2b6): Detect
+GCC 5.1 for boost (Ruben Kerkhof)
+- [commit 68b4834](https://github.com/PowerDNS/pdns/commit/68b4834),
+[commit 3b14545](https://github.com/PowerDNS/pdns/commit/3b14545),
+[commit 2356d5c](https://github.com/PowerDNS/pdns/commit/2356d5c),
+[commit 432808b](https://github.com/PowerDNS/pdns/commit/432808b):
+Various PKCS#11 fixes and improvements (Aki Tuomi)
+- [commit bf357ff](https://github.com/PowerDNS/pdns/commit/bf357ff),
+[commit 2433d2e](https://github.com/PowerDNS/pdns/commit/2433d2e),
+[commit 8fabf4d](https://github.com/PowerDNS/pdns/commit/8fabf4d): Fix
+Coverity issues (Aki Tuomi)
+- [commit 5d02d01](https://github.com/PowerDNS/pdns/commit/5d02d01)
+[commit 7798aa3](https://github.com/PowerDNS/pdns/commit/7798aa3),
+[commit 9f6e411](https://github.com/PowerDNS/pdns/commit/9f6e411),
+[commit e25a09c](https://github.com/PowerDNS/pdns/commit/e25a09c): Fix
+building on OpenBSD (Florian Obser and Ruben Kerkhof)
+- [commit 5c8bba2](https://github.com/PowerDNS/pdns/commit/5c8bba2): Look for
+mbedtls before polarssl (Ruben Kerkhof)
+- [commit 5abd150](https://github.com/PowerDNS/pdns/commit/5abd150): Let
+pkg-config determine botan dependency libs (Ruben Kerkhof)
+- [commit ba4d623](https://github.com/PowerDNS/pdns/commit/ba4d623): kill some
+further mallocs and add note to remind us not to add them back
+- [commit 50346d8](https://github.com/PowerDNS/pdns/commit/50346d8): Move
+remotebackend-unix test socket to testsdir (Aki Tuomi)
+- [commit 32e9512](https://github.com/PowerDNS/pdns/commit/32e9512): Defer
+launch of coprocess until first question (Aki Tuomi)
+- [commit d9b3ecb](https://github.com/PowerDNS/pdns/commit/d9b3ecb),
+[commit 561373e](https://github.com/PowerDNS/pdns/commit/561373e): pdnssec:
+check for glue and delegations in parent zones (Kees Monshouwer)
+
+# PowerDNS Authoritative Server 3.3.2
+
+Released 1st of May, 2015
+
+Among other bug fixes and improvements (as listed below), this release
+incorporates a fix for CVE-2015-1868, as detailed in [PowerDNS Security
+Advisory 2015-01](security/powerdns-advisory-2015-01.md)
+
+If you are running DNSSEC with version 3.3.1 or below, and you cannot
+currently upgrade to 3.4.4, please consider upgrading to 3.3.2; it has a lot
+of improvements and bug fixes and tremendously increases compliance.
+
+We want to explicitly thank Kees Monshouwer for digging up all the DNSSEC
+improvements and porting them back to this release.
+
+When upgrading, please run "pdnssec rectify-all-zones" and trigger an AXFR for
+all DNSSEC zones to make sure you benefit from all the compliance improvements
+present in this version.
+
+Security fixes:
+
+- [commit 9df4944](https://github.com/PowerDNS/pdns/commit/9df4944): import CVE-2015-1868 patch (Peter van Dijk)
+- [commit dbedfc5](https://github.com/PowerDNS/pdns/commit/dbedfc5): kill some further mallocs and add note to remind us not to add them back (bert hubert)
+
+Improvements:
+
+- [commit d0af589](https://github.com/PowerDNS/pdns/commit/d0af589)
+, [commit c45b6db](https://github.com/PowerDNS/pdns/commit/c45b6db)
+, [commit 88c1f21](https://github.com/PowerDNS/pdns/commit/88c1f21)
+, [commit 2a4c620](https://github.com/PowerDNS/pdns/commit/2a4c620)
+, [commit 4a4597e](https://github.com/PowerDNS/pdns/commit/4a4597e)
+, [commit 9fa7373](https://github.com/PowerDNS/pdns/commit/9fa7373)
+, [commit 8115a83](https://github.com/PowerDNS/pdns/commit/8115a83):
+implement security polling for auth
+- [commit 5bbd868](https://github.com/PowerDNS/pdns/commit/5bbd868): import suck() from master (Kees Monshouwer)
+- [commit 194f4d2](https://github.com/PowerDNS/pdns/commit/194f4d2): respond REFUSED instead of NOERROR for "unknown zone" situations (Peter van Dijk)
+- [commit 55b0653](https://github.com/PowerDNS/pdns/commit/55b0653): set AA on CNAME into referral, fixes [ticket #589](https://github.com/PowerDNS/pdns/issues/589) (Peter van Dijk)
+- [commit 71232aa](https://github.com/PowerDNS/pdns/commit/71232aa): update l.root ip (Kees Monshouwer)
+
+Bug fixes:
+
+- [commit 88c52fe](https://github.com/PowerDNS/pdns/commit/88c52fe): make makeRelative() case insensitive (Kees Monshouwer)
+
+DNSSEC improvements:
+
+- [commit b3dec9c](https://github.com/PowerDNS/pdns/commit/b3dec9c): change default for add-superfluous-nsec3-for-old-bind config option (Kees Monshouwer)
+- [commit 017a78b](https://github.com/PowerDNS/pdns/commit/017a78b): limit the number of NSEC3 iterations RFC5155 10.3 (Kees Monshouwer)
+- [commit d768d7f](https://github.com/PowerDNS/pdns/commit/d768d7f): NSEC3 and related RRSIGS are not part of the dnstree (Kees Monshouwer)
+- [commit 3a36a1c](https://github.com/PowerDNS/pdns/commit/3a36a1c): import bindbackend rectify code from master (Kees Monshouwer)
+- [commit 1ee7e22](https://github.com/PowerDNS/pdns/commit/1ee7e22): limit mode 0 closest provable encloser to optout (Kees Monshouwer)
+- [commit bbc0bc5](https://github.com/PowerDNS/pdns/commit/bbc0bc5): fix for errata 3441 of RFC5155 (Kees Monshouwer)
+- [commit e8bfa7b](https://github.com/PowerDNS/pdns/commit/e8bfa7b): allow covering NSEC3 record in NODATA response (Kees Monshouwer)
+- [commit f0b3b24](https://github.com/PowerDNS/pdns/commit/f0b3b24): return NOTIMP for direct RRSIG request (Kees Monshouwer)
+- [commit c79addc](https://github.com/PowerDNS/pdns/commit/c79addc): import pdnssec checkZone() from master (Kees Monshouwer)
+- [commit 2f1fec7](https://github.com/PowerDNS/pdns/commit/2f1fec7): import pdnssec rectifyZone() from master (Kees Monshouwer)
+
+# PowerDNS Recursor 3.7.2
+
+Released 23rd of April, 2015
+
+Among other bug fixes and improvements (as listed below), this release incorporates a fix for 
+CVE-2015-1868, as detailed in [PowerDNS Security Advisory 2015-01](security/powerdns-advisory-2015-01.md)
+
+Bug fixes:
+
+- [commit adb10be](https://github.com/PowerDNS/pdns/commit/adb10be) [commit 3ec3e0f](https://github.com/PowerDNS/pdns/commit/3ec3e0f) [commit dc02ebf](https://github.com/PowerDNS/pdns/commit/dc02ebf) Fix handling of forward references in label compressed packets; fixes CVE-2015-1868
+- [commit a7be3f1](https://github.com/PowerDNS/pdns/commit/a7be3f1): make sure
+we never call sendmsg with msg_control!=NULL && msg_controllen>0. Fixes
+[ticket #2227](https://github.com/PowerDNS/pdns/issues/2227)
+- [commit 9d835ed](https://github.com/PowerDNS/pdns/commit/9d835ed): Improve
+robustness of root-nx-trust.
+
+Improvements:
+
+- [commit 99c595b](https://github.com/PowerDNS/pdns/commit/99c595b): Silence
+warnings that always occur on FreeBSD (Ruben Kerkhof)
+
+# PowerDNS Recursor 3.6.3
+
+Released 23rd of April, 2015
+
+The only difference between Recursor 3.6.2 and 3.6.3 is a fix for CVE-2015-1868, as detailed in [PowerDNS Security Advisory 2015-01](security/powerdns-advisory-2015-01.md)
+
+# PowerDNS Authoritative Server 3.4.4
+
+Released 23rd of April, 2015
+
+**Warning**: Version 3.4.4 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
+
+Among other bug fixes and improvements (as listed below), this release incorporates a fix for 
+CVE-2015-1868, as detailed in [PowerDNS Security Advisory 2015-01](security/powerdns-advisory-2015-01.md)
+
+Bug fixes:
+
+- [commit ac3ae09](https://github.com/PowerDNS/pdns/commit/ac3ae09): fix rectify-(all)-zones for mixed case domain names
+- [commit 2dea55e](https://github.com/PowerDNS/pdns/commit/2dea55e), [commit 032d565](https://github.com/PowerDNS/pdns/commit/032d565), [commit 55f2dbf](https://github.com/PowerDNS/pdns/commit/55f2dbf): fix CVE-2015-1868
+- [commit 21cdbe5](https://github.com/PowerDNS/pdns/commit/21cdbe5): Blocking
+IO in busy-wait for remote backend (Wieger Opmeer)
+- [commit cc7b2ac](https://github.com/PowerDNS/pdns/commit/cc7b2ac): fix
+double dot for root MX/SRV in bind slave zone files (Kees Monshouwer)
+- [commit c40307b](https://github.com/PowerDNS/pdns/commit/c40307b): Properly
+lock lmdb database, fixes [ticket #1954](https://github.com/PowerDNS/pdns/issues/1954)
+(Aki Tuomi)
+- [commit 662e76d](https://github.com/PowerDNS/pdns/commit/662e76d): Fix
+segfault in zone2lmdb (Ruben Kerkhof)
+
+New Features:
+
+- [commit 5ae212e](https://github.com/PowerDNS/pdns/commit/5ae212e): pdnssec: warn for insecure wildcards in opt-out zones
+- commits [cd3f21c](https://github.com/PowerDNS/pdns/commit/cd3f21c),
+[8b582f6](https://github.com/PowerDNS/pdns/commit/8b582f6),
+[0b7e766](https://github.com/PowerDNS/pdns/commit/0b7e766),
+[f743af9](https://github.com/PowerDNS/pdns/commit/f743af9),
+[dcde3c8](https://github.com/PowerDNS/pdns/commit/dcde3c8) and
+[f12fcf7](https://github.com/PowerDNS/pdns/commit/f12fcf7):
+TKEY record type (Aki Tuomi)
+- commits [0fda1d9](https://github.com/PowerDNS/pdns/commit/0fda1d9),
+[3dd139d](https://github.com/PowerDNS/pdns/commit/3dd139d),
+[ba146ce](https://github.com/PowerDNS/pdns/commit/ba146ce),
+[25109e2](https://github.com/PowerDNS/pdns/commit/25109e2),
+[c011a01](https://github.com/PowerDNS/pdns/commit/c011a01),
+[0600350](https://github.com/PowerDNS/pdns/commit/0600350),
+[fc96b5e](https://github.com/PowerDNS/pdns/commit/fc96b5e),
+[4414468](https://github.com/PowerDNS/pdns/commit/4414468),
+[c163d41](https://github.com/PowerDNS/pdns/commit/c163d41),
+[f52c7f6](https://github.com/PowerDNS/pdns/commit/f52c7f6),
+[8d56a31](https://github.com/PowerDNS/pdns/commit/8d56a31),
+[7821417](https://github.com/PowerDNS/pdns/commit/7821417),
+[ea62bd9](https://github.com/PowerDNS/pdns/commit/ea62bd9),
+[c5ababd](https://github.com/PowerDNS/pdns/commit/c5ababd),
+[91c8351](https://github.com/PowerDNS/pdns/commit/91c8351) and
+[073ac49](https://github.com/PowerDNS/pdns/commit/073ac49): Many
+PKCS#11 improvements (Aki Tuomi)
+- commits [6f0d4f1](https://github.com/PowerDNS/pdns/commit/6f0d4f1) and
+[5eb33cb](https://github.com/PowerDNS/pdns/commit/5eb33cb): Introduce
+xfrBlobNoSpaces and use them for TSIG (Aki Tuomi)
+
+Improvements:
+
+- [commit e4f48ab](https://github.com/PowerDNS/pdns/commit/e4f48ab): allow "pdnssec set-nsec3 ZONE" for insecure zones; this saves on one rectify when securing a NSEC3 zone
+- commits [cce95b9](https://github.com/PowerDNS/pdns/commit/cce95b9),
+[e2e9243](https://github.com/PowerDNS/pdns/commit/e2e9243) and
+[e82da97](https://github.com/PowerDNS/pdns/commit/e82da97): Improvements
+to the config-file parsing (Aki Tuomi)
+- [commit 2180e21](https://github.com/PowerDNS/pdns/commit/2180e21):
+postgresql check should not touch LDFLAGS (Ruben Kerkhof)
+- [commit 0481021](https://github.com/PowerDNS/pdns/commit/0481021): Log error
+when remote cannot do AXFR (Aki Tuomi)
+- [commit 1ecc3a5](https://github.com/PowerDNS/pdns/commit/1ecc3a5): Speed
+improvements when AXFR is disabled (Christian Hofstaedtler)
+- commits [1f7334e](https://github.com/PowerDNS/pdns/commit/1f7334e) and
+[b17799a](https://github.com/PowerDNS/pdns/commit/b17799a): NSEC3 and
+related RRSIGS are not part of the dnstree (Kees Monshouwer)
+- commits [dd943dd](https://github.com/PowerDNS/pdns/commit/dd943dd) and
+[58c4834](https://github.com/PowerDNS/pdns/commit/58c4834): Change
+ifdef to check for `__GLIBC__` instead of `__linux__` to prevent errors with other
+libc's (James Taylor)
+- [commit c929d50](https://github.com/PowerDNS/pdns/commit/c929d50): Try to
+raise open files before dropping privileges (Aki Tuomi)
+- [commit 69fd3dc](https://github.com/PowerDNS/pdns/commit/69fd3dc): Add
+newline to carbon error message on auth (Aki Tuomi)
+- [commit 3064f80](https://github.com/PowerDNS/pdns/commit/3064f80): Make sure
+we send servfail on error (Aki Tuomi)
+- [commit b004529](https://github.com/PowerDNS/pdns/commit/b004529): Ship
+lmdb-example.pl in tarball (Ruben Kerkhof)
+- [commit 9e6b24f](https://github.com/PowerDNS/pdns/commit/9e6b24f): Allocate
+TCP buffer dynamically, decreasing stack usage
+- [commit 267fdde](https://github.com/PowerDNS/pdns/commit/267fdde): throw if getSOA gets non-SOA record
+
+# PowerDNS Authoritative Server 3.4.3
+
+**Warning**: Version 3.4.3 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
+
+Released March 2nd, 2015
+
+Find the downloads [on our download page](https://www.powerdns.com/downloads.html).
+
+Bug fixes:
+
+- [commit ceb49ce](https://github.com/PowerDNS/pdns/commit/ceb49ce):
+pdns_control: exit 1 on unknown command (Ruben Kerkhof)
+- [commit 1406891](https://github.com/PowerDNS/pdns/commit/1406891): evaluate
+KSK ZSK pairs per algorithm (Kees Monshouwer)
+- [commit 3ca050f](https://github.com/PowerDNS/pdns/commit/3ca050f): always
+set di.notified_serial in getAllDomains (Kees Monshouwer)
+- [commit d9d09e1](https://github.com/PowerDNS/pdns/commit/d9d09e1):
+pdns_control: don't open socket in /tmp (Ruben Kerkhof)
+
+New features:
+
+- [commit 2f67952](https://github.com/PowerDNS/pdns/commit/2f67952): Limit who
+can send us AXFR notify queries (Ruben Kerkhof)
+
+Improvements:
+
+- [commit d7bec64](https://github.com/PowerDNS/pdns/commit/d7bec64): respond
+REFUSED instead of NOERROR for "unknown zone" situations
+- [commit ebeb9d7](https://github.com/PowerDNS/pdns/commit/ebeb9d7): Check for
+Lua 5.3 (Ruben Kerkhof)
+- [commit d09931d](https://github.com/PowerDNS/pdns/commit/d09931d): Check
+compiler for relro support instead of linker (Ruben Kerkhof)
+- [commit c4b0d0c](https://github.com/PowerDNS/pdns/commit/c4b0d0c): Replace
+PacketHandler with UeberBackend where possible (Christian Hofstaedtler)
+- [commit 5a85152](https://github.com/PowerDNS/pdns/commit/5a85152):
+PacketHandler: Share UeberBackend with DNSSECKeeper (Christian Hofstaedtler)
+- [commit 97bd444](https://github.com/PowerDNS/pdns/commit/97bd444): fix
+building with GCC 5
+
+Experimental API changes (Christian Hofstaedtler):
+
+- [commit ca44706](https://github.com/PowerDNS/pdns/commit/ca44706): API: move
+shared DomainInfo reader into it's own function
+- [commit 102602f](https://github.com/PowerDNS/pdns/commit/102602f): API:
+allow writing to domains.account field
+- [commit d82f632](https://github.com/PowerDNS/pdns/commit/d82f632): API: read
+and expose domain account field
+- [commit 2b06977](https://github.com/PowerDNS/pdns/commit/2b06977): API: be
+more strict when parsing record contents
+- [commit 2f72b7c](https://github.com/PowerDNS/pdns/commit/2f72b7c): API:
+Reject unknown types (TYPE0)
+- [commit d82f632](https://github.com/PowerDNS/pdns/commit/d82f632): API: read
+and expose domain account field
+
 # PowerDNS Authoritative Server 3.4.2
 
 **Warning**: Version 3.4.2 of the PowerDNS Authoritative Server is a major upgrade if you are coming from 2.9.x. Additionally, if you are coming from any 3.x version (including 3.3.1), there is a mandatory SQL schema upgrade. Please refer to the [Upgrade documentation](authoritative/upgrading.md) for important information on correct and stable operation, as well as notes on performance and memory use.
@@ -53,7 +400,7 @@ New features:
 
 - [commit 1b97ba0](https://github.com/PowerDNS/pdns/commit/1b97ba0): add signatures metric to auth, so we can plot signatures/second
 - [commit 92cef2d](https://github.com/PowerDNS/pdns/commit/92cef2d): pdns_control: make it posible to notify all zones at once
-- [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-receive
+- [commit f648752](https://github.com/PowerDNS/pdns/commit/f648752): JSON API: provide flush-cache, notify, axfr-retrieve
 - [commit 02653a7](https://github.com/PowerDNS/pdns/commit/02653a7): add 'bench-db' to do very simple database backend performance benchmark
 - [commit a83257a](https://github.com/PowerDNS/pdns/commit/a83257a): enable callback based metrics to statbas, and add 5 such metrics: uptime, sys-msec, user-msec, key-cache-size, meta-cache-size, signature-cache-size
 
@@ -954,9 +1301,13 @@ Tickets closed but not associated with a commit
 -   [ticket 422](https://github.com/PowerDNS/pdns/issues/422): "ecdsa256 keys bug"
 
 # Authoritative Server version 2.9.22.6
+**Warning**: The 2.9.22.x series of releases is end-of-life and unsupported. It contains many issues and potential security problems. We urge you to upgrade to a recent version of PowerDNS!
+
 The improvements to the master/slave engine in 2.9.22.5 contained one serious bug that can cause crashes on busy setups. 2.9.22.6 fixes this crash.
 
 # Authoritative Server version 2.9.22.5
+**Warning**: The 2.9.22.x series of releases is end-of-life and unsupported. It contains many issues and potential security problems. We urge you to upgrade to a recent version of PowerDNS!
+
 2.9.22.5 is an interim release for those not yet ready to make the jump to 3.0, but do need a more recent version of the Authoritative Server. It also contains the patch from [PowerDNS Security Advisory 2012-01](security/powerdns-advisory-2012-01.md "PowerDNS Security Advisory 2012-01: PowerDNS Authoritative Server can be caused to generate a traffic loop").
 
 -   Improved performance of master/slave engine, especially when hosting tens or hundreds of thousands of slave zones. Code in commits [1657](http://wiki.powerdns.com/projects/trac/changeset/1657), [1658](http://wiki.powerdns.com/projects/trac/changeset/1658), [1661](http://wiki.powerdns.com/projects/trac/changeset/1661) (which also brings multi-master support), [1662](http://wiki.powerdns.com/projects/trac/changeset/1662) (non-standard ports for masters), [1664](http://wiki.powerdns.com/projects/trac/changeset/1664), [1665](http://wiki.powerdns.com/projects/trac/changeset/1665), [1666](http://wiki.powerdns.com/projects/trac/changeset/1666), [1667](http://wiki.powerdns.com/projects/trac/changeset/1667), [1672](http://wiki.powerdns.com/projects/trac/changeset/1672), [1673](http://wiki.powerdns.com/projects/trac/changeset/1673), [2063](http://wiki.powerdns.com/projects/trac/changeset/2063)).
@@ -1280,6 +1631,8 @@ FreeBSD users may want to upgrade because of a very remote chance of 3.1.7 and p
 -   No longer exit because of the changed behaviour of the Solaris 'completion ports' in more recent versions of Solaris. Fix in [commit 1372](http://wiki.powerdns.com/projects/trac/changeset/1372), reported by Jan Gyselinck.
 
 # Authoritative Server version 2.9.22
+**Warning**: The 2.9.22.x series of releases is end-of-life and unsupported. It contains many issues and potential security problems. We urge you to upgrade to a recent version of PowerDNS!
+
 Released on the 27th of January 2009.
 
 This is a huge release, spanning almost 20 months of development. Besides fixing a lot of bugs, of note is the addition of the so called 'Notification Proxy', which allows PowerDNS to function as a master server behind a firewall, plus the huge performance improvement of the internal caches.

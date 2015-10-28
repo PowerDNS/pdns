@@ -18,17 +18,18 @@ __EOF__
 		echo "gpgsql-dnssec" >> pdns-gpgsql2.conf
 	fi
 
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | tac)
+	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')
 	do
-		psql --user="$GPGSQL2USER" "$GPGSQL2DB" \
-		-c "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')"
+		psql --user="$GPGSQL2USER" \
+		-c "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port')" \
+		"$GPGSQL2DB"
 	done
 
-	../pdns/pdnssec --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
-	../pdns/pdnssec --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
+	$PDNSSEC --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
+	$PDNSSEC --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
-		../pdns/pdnssec --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSSEC --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 
 	port=$((port+100))
@@ -43,8 +44,9 @@ __EOF__
 	while [ $loopcount -lt 30 ]
 	do
 		sleep 5
-		todo=$(psql --user="$GPGSQL2USER" "$GPGSQL2DB" \
-		  -t -c 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL')
+		todo=$(psql --user="$GPGSQL2USER" \
+		  -t -c 'SELECT COUNT(id) FROM domains WHERE last_check IS NULL' \
+		   "$GPGSQL2DB")
 		if [ $todo = 0 ]
 		then
 			break

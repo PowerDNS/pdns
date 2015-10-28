@@ -76,7 +76,6 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL],[
       ;;
     /*)
       PGSQL_lib="-L$PGSQL_libdir -Wl,-rpath,$PGSQL_libdir -lpq"
-      LDFLAGS="$PGSQL_lib $LDFLAGS"
       ;;
     *)
       AC_MSG_ERROR([The PgSQL library directory ($PGSQL_libdir) must be an absolute path.])

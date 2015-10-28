@@ -1,4 +1,3 @@
-// $Id$
 /*
  * Copyright (c) 2010-2011
  *
@@ -7,6 +6,8 @@
  * Karlsruhe Institute of Technology <http://www.kit.edu/> 
  *
  */
+#ifndef PDNS_ORACLEBACKEND_HH
+#define PDNS_ORACLEBACKEND_HH
 
 #include <string>
 #include <map>
@@ -48,51 +49,52 @@ public:
                 NULL, char *poolname = NULL);
   virtual ~OracleBackend();
 
-  void lookup(const QType &qtype, const string &qname, DNSPacket *p = 0,
+  void lookup(const QType &qtype, const DNSName& qname, DNSPacket *p = 0,
               int zoneId = -1);
-  bool getBeforeAndAfterNames(uint32_t zoneId, const string& zone,
-                              const string& name,
-                              string& before, string& after);
+
+  bool getBeforeAndAfterNames(uint32_t zoneId, const DNSName& zone,
+                              const DNSName& name,
+                              DNSName& before, DNSName& after);
   bool getBeforeAndAfterNamesAbsolute(uint32_t zoneId,
                                       const string& name,
-                                      string& unhashed,
+                                      DNSName& unhashed,
                                       string& before,
                                       string& after);
   bool get(DNSResourceRecord &rr);
-  vector<string> getDomainMasters(const string &domain, int zoneId);
-  bool isMaster(const string &domain, const string &master);
-  bool getDomainInfo(const string &domain, DomainInfo &di);
-  void alsoNotifies(const string &domain, set<string> *addrs);
+  vector<string> getDomainMasters(const DNSName& domain, int zoneId);
+  bool isMaster(const DNSName& domain, const string &master);
+  bool getDomainInfo(const DNSName& domain, DomainInfo &di);
+  void alsoNotifies(const DNSName& domain, set<string> *addrs);
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>* domains);
   void setFresh(uint32_t zoneId);
   void setNotified(uint32_t zoneId, uint32_t serial);
-  bool list(const string &domain, int zoneId, bool include_disabled=false);
-  bool startTransaction(const string &domain, int zoneId);
+  bool list(const DNSName& domain, int zoneId, bool include_disabled=false);
+  bool startTransaction(const DNSName& domain, int zoneId);
   bool feedRecord(const DNSResourceRecord &rr, string* ordername);
   bool commitTransaction();
   bool abortTransaction();
-  bool superMasterBackend(const string &ip, const string &domain,
+  bool superMasterBackend(const string &ip, const DNSName& domain,
                           const vector<DNSResourceRecord> &nsset,
                           string *account, string *nameserver,
                           DNSBackend **backend);
-  bool createSlaveDomain(const string &ip, const string &domain,
+  bool createSlaveDomain(const string &ip, const DNSName& domain,
                          const string &nameserver, const string &account);
 
-  bool getAllDomainMetadata(const string& name, std::map<std::string, std::vector<std::string> >& meta); 
-  bool getDomainMetadata(const string& name, const std::string& kind, std::vector<std::string>& meta);
-  bool setDomainMetadata(const string& name, const std::string& kind, const std::vector<std::string>& meta);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta); 
+  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
+  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
 
-  bool getTSIGKey(const string& name, string* algorithm, string* content);
-  bool delTSIGKey(const string& name);
-  bool setTSIGKey(const string& name, const string& algorithm, const string& content);
+  bool getTSIGKey(const DNSName& name, DNSName* algorithm, string* content);
+  bool delTSIGKey(const DNSName& name);
+  bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
 
-  bool getDomainKeys(const string& name, unsigned int kind, vector<KeyData>& keys);
-  bool removeDomainKey(const string& name, unsigned int id);
-  int addDomainKey(const string& name, const KeyData& key);
-  bool activateDomainKey(const string& name, unsigned int id);
-  bool deactivateDomainKey(const string& name, unsigned int id);
+  bool getDomainKeys(const DNSName& name, unsigned int kind, vector<KeyData>& keys);
+  bool removeDomainKey(const DNSName& name, unsigned int id);
+  int addDomainKey(const DNSName& name, const KeyData& key);
+  bool activateDomainKey(const DNSName& name, unsigned int id);
+  bool deactivateDomainKey(const DNSName& name, unsigned int id);
 
 private:
 
@@ -180,7 +182,7 @@ private:
   void Cleanup();
 
   void openMasterConnection();
-  bool setDomainKeyState(const string& name, unsigned int id, int active);
+  bool setDomainKeyState(const DNSName& name, unsigned int id, int active);
 
   OCIStmt* prepare_query (OCISvcCtx* orasvc, string& code, const char *key);
   void release_query (OCIStmt *stmt, const char *key);
@@ -202,4 +204,4 @@ private:
 
 };
 
-/* vi: set sw=2 et : */
+#endif /* PDNS_ORACLEBACKEND_HH */
