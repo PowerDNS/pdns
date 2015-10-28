@@ -134,50 +134,6 @@ uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init)
   return ret;
 }
 
-void fillSOAData(const string &content, SOAData &data)
-{
-  // content consists of fields separated by spaces:
-  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
-
-  // fill out data with some plausible defaults:
-  // 10800 3600 604800 3600
-  vector<string>parts;
-  stringtok(parts,content);
-  int pleft=parts.size();
-
-  //  cout<<"'"<<content<<"'"<<endl;
-
-  if(pleft)
-    data.nameserver=DNSName(parts[0]);
-
-  if(pleft>1) 
-    data.hostmaster=DNSName(attodot(parts[1])); // ahu@ds9a.nl -> ahu.ds9a.nl, piet.puk@ds9a.nl -> piet\.puk.ds9a.nl
-
-  data.serial = pleft > 2 ? pdns_strtoui(parts[2].c_str(), NULL, 10) : 0;
-  if (data.serial == UINT_MAX && errno == ERANGE) throw PDNSException("serial number too large in '"+parts[2]+"'");
-
-  data.refresh = pleft > 3 ? atoi(parts[3].c_str())
-        : ::arg().asNum("soa-refresh-default");
-
-  data.retry = pleft > 4 ? atoi(parts[4].c_str())
-        : ::arg().asNum("soa-retry-default");
-
-  data.expire = pleft > 5 ? atoi(parts[5].c_str())
-        : ::arg().asNum("soa-expire-default");
-
-  data.default_ttl = pleft > 6 ?atoi(parts[6].c_str())
-        : ::arg().asNum("soa-minimum-ttl");
-}
-
-string serializeSOAData(const SOAData &d)
-{
-  ostringstream o;
-  //  nameservername hostmaster serial-number [refresh [retry [expire [ minimum] ] ] ]
-  o<<d.nameserver.toString()<<" "<< d.hostmaster.toString() <<" "<< d.serial <<" "<< d.refresh << " "<< d.retry << " "<< d.expire << " "<< d.default_ttl;
-
-  return o.str();
-}
-// the functions below update the 'arcount' and 'ancount', plus they serialize themselves to the stringbuffer
 
 string& attodot(string &str)
 {

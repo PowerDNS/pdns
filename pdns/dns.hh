@@ -224,8 +224,6 @@ extern time_t s_starttime;
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init);
 bool dnspacketLessThan(const std::string& a, const std::string& b);
 
-/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string &content, SOAData &data);
 
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);
