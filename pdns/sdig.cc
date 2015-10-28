@@ -38,6 +38,8 @@ try
         showflags=true;
       if (strcmp(argv[i], "hidesoadetails") == 0)
         hidesoadetails=true;
+      if (strcmp(argv[i], "tcp") == 0)
+        tcp=true;
       if (strcmp(argv[i], "ednssubnet") == 0) {
 	ednsnm=Netmask(argv[++i]);
       }
