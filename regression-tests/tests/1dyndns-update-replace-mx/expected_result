@@ -2,7 +2,7 @@
 0	test.dyndns.	IN	MX	3600	20 host-2.test.dyndns.
 2	host-1.test.dyndns.	IN	A	3600	127.0.0.101
 2	host-2.test.dyndns.	IN	A	3600	127.0.0.102
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=MX
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -14,7 +14,7 @@ Answer:
 0	test.dyndns.	IN	MX	3600	20 host-2.test.dyndns.
 2	host-1.test.dyndns.	IN	A	3600	127.0.0.101
 2	host-2.test.dyndns.	IN	A	3600	127.0.0.102
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=MX
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -26,5 +26,5 @@ Answer:
 0	test.dyndns.	IN	MX	3600	20 host-2.test.dyndns.
 2	host-1.test.dyndns.	IN	A	3600	127.0.0.101
 2	host-2.test.dyndns.	IN	A	3600	127.0.0.102
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='test.dyndns.', qtype=MX

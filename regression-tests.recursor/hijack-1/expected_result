@@ -1,6 +1,6 @@
 0	hijacker.example.net.	IN	NS	3600	ns.hijackme.example.net.
-Rcode: 0, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='hijacker.example.net.', qtype=NS
 0	www.hijackme.example.net.	IN	A	3600	192.0.2.20
-Rcode: 0, RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='www.hijackme.example.net.', qtype=A
