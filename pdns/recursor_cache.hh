@@ -16,7 +16,7 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/version.hpp>
-
+#include "iputils.hh"
 #undef max
 
 #define L theL()
@@ -49,7 +49,7 @@ private:
   struct CacheEntry
   {
     CacheEntry(const boost::tuple<DNSName, uint16_t>& key, const vector<shared_ptr<DNSRecordContent>>& records, bool auth) : 
-      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_records(records), d_ttd(0)
+      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_ttd(0), d_records(records)
     {}
 
     typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
@@ -59,11 +59,12 @@ private:
       return d_ttd;
     }
 
-    DNSName d_qname;
+    DNSName d_qname; 
     uint16_t d_qtype;
     bool d_auth;
-    records_t d_records;
     uint32_t d_ttd;
+    records_t d_records;
+    vector<pair<Netmask, records_t> > d_subnetspecific;
   };
 
   typedef multi_index_container<

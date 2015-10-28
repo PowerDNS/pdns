@@ -47,6 +47,7 @@
 #include "dns_random.hh"
 #include <boost/scoped_array.hpp>
 #include <boost/algorithm/string.hpp>
+#include "ednssubnet.hh"
 
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote **transport**, 0 for timeout, 1 for success
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
@@ -68,6 +69,9 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
+    EDNSSubnetOpts eo;
+    eo.source = Netmask("2001:470:1f0b:27e:1850:ae41:cc31:7765");
+    opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
 
     pw.addOpt(1200, 0, EDNSOpts::DNSSECOK, opts); // 1200 bytes answer size
     pw.commit();

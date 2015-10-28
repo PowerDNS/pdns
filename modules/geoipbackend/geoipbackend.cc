@@ -15,6 +15,7 @@ public:
   int ttl;
   map<DNSName, string> services;
   map<DNSName, vector<DNSResourceRecord> > records;
+  uint8_t ipv4EDNSScope{24}, ipv6EDNSScope{64};
 };
 
 static vector<GeoIPDomain> s_domains;
@@ -95,6 +96,9 @@ void GeoIPBackend::initialize() {
     dom.id = s_domains.size();
     dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
+    dom.ipv4EDNSScope = domain["ipv4ednsscope"].as<int>(24);
+    dom.ipv6EDNSScope = domain["ipv6ednsscope"].as<int>(64);
+
 
     for(YAML::const_iterator recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
       DNSName qname = DNSName(recs->first.as<string>());
@@ -247,7 +251,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   if (ri != dom.records.end()) { // return static value
     for(DNSResourceRecord& rr : ri->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
-        rr.scopeMask = (v6 ? 128 : 32);
+	rr.scopeMask = (v6 ? dom.ipv6EDNSScope : dom.ipv4EDNSScope);
         d_result.push_back(rr);
         d_result.back().qname = qdomain;
       }
@@ -264,7 +268,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   rr.content = format;
   rr.auth = 1;
   rr.ttl = dom.ttl;
-  rr.scopeMask = (v6 ? 128 : 32);
+  rr.scopeMask = (v6 ? dom.ipv6EDNSScope : dom.ipv4EDNSScope);
   d_result.push_back(rr);
 }
 
