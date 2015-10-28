@@ -22,6 +22,15 @@ static GeoIP *s_gi = 0; // geoip database
 static GeoIP *s_gi6 = 0; // geoip database
 static int s_rc = 0; // refcount
 
+/* So how does it work - we have static records and services. Static records "win".
+   We also insert empty non terminals for records and services.
+
+   If a service makes an internal reference to a domain also hosted within geoip, we give a direct
+   answers, no CNAMEs involved.
+
+   If the reference is external, we spoof up a CNAME, and good luck with that
+*/
+
 GeoIPBackend::GeoIPBackend(const string& suffix) {
   WriteLock wl(&s_state_lock);
   d_dnssec = false;
@@ -97,8 +106,8 @@ void GeoIPBackend::initialize() {
         rr.domain_id = dom.id;
         rr.ttl = dom.ttl;
         rr.qname = qname;
-        if (rec->first.IsNull()) {
-          rr.qtype = "NULL";
+        if (rec->first.IsNull()) { 
+          rr.qtype = QType(0);
         } else {
           string qtype = boost::to_upper_copy(rec->first.as<string>());
           rr.qtype = qtype;
@@ -126,13 +135,13 @@ void GeoIPBackend::initialize() {
       // ensure we have parent in records
       DNSName name = item.first;
       while(name.chopOff() && name.isPartOf(dom.domain)) {
-        if (dom.records.find(name) == dom.records.end()) {
+        if (dom.records.find(name) == dom.records.end() && !dom.services.count(name)) { // don't ENT out a service!
           DNSResourceRecord rr;
           vector<DNSResourceRecord> rrs;
           rr.domain_id = dom.id;
           rr.ttl = dom.ttl;
           rr.qname = name;
-          rr.qtype = "NULL";
+          rr.qtype = QType(0); // empty non terminal
           rr.content = "";
           rr.auth = 1;
           rr.d_place = DNSResourceRecord::ANSWER;
@@ -153,7 +162,7 @@ void GeoIPBackend::initialize() {
           rr.domain_id = dom.id;
           rr.ttl = dom.ttl;
           rr.qname = name;
-          rr.qtype = "NULL";
+          rr.qtype = QType(0);
           rr.content = "";
           rr.auth = 1;
           rr.d_place = DNSResourceRecord::ANSWER;
@@ -189,8 +198,6 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   GeoIPDomain dom;
   bool found = false;
 
-  //cerr << qtype.getName() << " " << qdomain << " " << zoneId << std::endl;
-
   if (d_result.size()>0) 
     throw PDNSException("Cannot perform lookup while another is running");
 
@@ -201,7 +208,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size())) 
     dom = s_domains[zoneId];
   else {
-    BOOST_FOREACH(GeoIPDomain i, s_domains) {
+    for(const GeoIPDomain& i : s_domains) {   // this is arguably wrong, we should probably find the most specific match
       if (search.isPartOf(i.domain)) {
         dom = i;
         found = true;
@@ -211,15 +218,14 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     if (!found) return; // not found
   }
 
-  if (dom.records.count(search)) { // return static value
-    map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(search);
-    BOOST_FOREACH(DNSResourceRecord rr, i->second) {
+  auto i = dom.records.find(search);
+  if (i != dom.records.end()) { // return static value
+    for(const DNSResourceRecord& rr : i->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
-        d_result.push_back(rr);
-        d_result.back().qname = qdomain;
+	d_result.push_back(rr);
+	d_result.back().qname = qdomain;
       }
     }
-    return;
   }
 
   string ip = "0.0.0.0";
@@ -229,16 +235,17 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     v6 = pkt_p->getRealRemote().isIpv6();
   }
 
-  if (dom.services.count(search) == 0) return; // no hit
-  map<DNSName, string>::const_iterator target = dom.services.find(search);
+
+  auto target = dom.services.find(search);
+  if (target == dom.services.end()) return; // no hit
   string format = target->second;
   
   format = format2str(format, ip, v6);
 
   // see if the record can be found
-  if (dom.records.count(DNSName(format))) { // return static value
-    map<DNSName, vector<DNSResourceRecord> >::iterator i = dom.records.find(DNSName(format));
-    BOOST_FOREACH(DNSResourceRecord rr, i->second) {
+  auto ri = dom.records.find(DNSName(format));
+  if (ri != dom.records.end()) { // return static value
+    for(DNSResourceRecord& rr : ri->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
         rr.scopeMask = (v6 ? 128 : 32);
         d_result.push_back(rr);
@@ -247,7 +254,7 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     }
     return;
   }
-
+  // we need this line since we otherwise claim to have NS records etc
   if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
 
   DNSResourceRecord rr;
@@ -267,8 +274,6 @@ bool GeoIPBackend::get(DNSResourceRecord &r) {
   r = d_result.back();
   d_result.pop_back();
 
-  //cerr << "get " << r.qname << " IN " << r.qtype.getName() << " " << r.content << endl;
-
   return true;
 }
 
@@ -278,7 +283,6 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
   GeoIPRegion *gir = NULL;
   GeoIPRecord *gir2 = NULL;
   int id;
-
 
   if (v6 && s_gi6) {
     if (attribute == Afi) {
