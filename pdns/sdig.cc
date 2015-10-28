@@ -24,7 +24,7 @@ try
   reportAllTypes();
 
   if(argc < 5) {
-    cerr<<"Syntax: sdig IP-address port question question-type [dnssec] [recurse] [showflags] [hidesoadetails] [tcp] [ednssubnet subnet]\n";
+    cerr<<"Syntax: sdig IP-address port question question-type [dnssec] [recurse] [showflags] [hidesoadetails] [tcp] [ednssubnet SUBNET]\n";
     exit(EXIT_FAILURE);
   }
 
