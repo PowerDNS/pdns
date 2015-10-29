@@ -249,7 +249,7 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         S.inc("servfail-packets");
         S.ringAccount("servfail-queries",q->qdomain);
         delete q;
-	must_die = true;
+        must_die = true;
       }
       catch(...) {
         L<<Logger::Error<<Logger::NTLog<<"Caught unknown exception in Distributor thread "<<(unsigned long)pthread_self()<<endl;
@@ -275,11 +275,13 @@ template<class Answer, class Question, class Backend>void *MultiThreadDistributo
         L<<Logger::Error<<"Unknown callback (sending reply) error"<<endl;
         delete AD.A;
       }
+      if (must_die) {
+        delete b;
+        throw PDNSException("Deferred backend error");
+      }
     }
     
     delete b;
-    if (must_die)
-      throw PDNSException("Deferred backend error");
   }
   catch(const PDNSException &AE) {
     L<<Logger::Error<<Logger::NTLog<<"Distributor caught fatal exception: "<<AE.reason<<endl;
