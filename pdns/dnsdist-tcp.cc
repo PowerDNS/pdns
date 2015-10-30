@@ -110,8 +110,6 @@ void* tcpClientThread(int pipefd)
     uint16_t qlen, rlen;
     string pool; 
 
-
-
     shared_ptr<DownstreamState> ds;
     try {
       for(;;) {      
