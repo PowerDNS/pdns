@@ -81,11 +81,11 @@ public:
   }
 
   inline bool canonCompare(const DNSName& rhs) const;
-  
+  bool slowCanonCompare(const DNSName& rhs) const;  
 private:
   //typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
-  bool slowCanonCompare(const DNSName& rhs) const;
+
   string_t d_storage;
   bool d_empty;
 
@@ -117,10 +117,10 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
   uint8_t ourpos[64], rhspos[64];
   uint8_t ourcount=0, rhscount=0;
   //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && ourcount < sizeof(ourpos); p+=*p+1)
-    ourpos[ourcount++]=(p-d_storage.c_str());
-  for(const char* p = rhs.d_storage.c_str(); p < rhs.d_storage.c_str() + rhs.d_storage.size() && rhscount < sizeof(rhspos); p+=*p+1)
-    rhspos[rhscount++]=(p-rhs.d_storage.c_str());
+  for(const unsigned char* p = (const unsigned char*)d_storage.c_str(); p < (const unsigned char*)d_storage.c_str() + d_storage.size() && ourcount < sizeof(ourpos); p+=*p+1)
+    ourpos[ourcount++]=(p-(const unsigned char*)d_storage.c_str());
+  for(const unsigned char* p = (const unsigned char*)rhs.d_storage.c_str(); p < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && rhscount < sizeof(rhspos); p+=*p+1)
+    rhspos[rhscount++]=(p-(const unsigned char*)rhs.d_storage.c_str());
 
   if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
     return slowCanonCompare(rhs);
@@ -136,12 +136,6 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
     ourcount--;
     rhscount--;
 
-    /*
-    cout<<"Going to compare: '"<<string(d_storage.c_str() + ourpos[ourcount] + 1, 
-					d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]))<<"'"<<endl;
-    cout<<"Against: '"<<string(rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
-			      rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]))<<"'"<<endl;
-    */
     bool res=std::lexicographical_compare(
 					  d_storage.c_str() + ourpos[ourcount] + 1, 
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
