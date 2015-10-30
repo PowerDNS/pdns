@@ -252,12 +252,21 @@ void* tcpAcceptorThread(void* p)
   
   g_tcpclientthreads.addTCPClientThread();
 
+  auto acl = g_ACL.getLocal();
   for(;;) {
     try {
-      ConnectionInfo* ci = new ConnectionInfo;      
+      ConnectionInfo* ci = new ConnectionInfo;
       ci->fd = SAccept(cs->tcpFD, remote);
+      
+      if(!acl->match(remote)) {
+	g_stats.aclDrops++;
+	close(ci->fd);
+	delete ci;
+	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
+	continue;
+      }
 
-      vinfolog("Got connection from %s", remote.toStringWithPort());
+      vinfolog("Got TCP connection from %s", remote.toStringWithPort());
       
       ci->remote = remote;
       writen2(g_tcpclientthreads.getThread(), &ci, sizeof(ci));
