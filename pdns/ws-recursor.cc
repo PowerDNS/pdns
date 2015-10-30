@@ -418,8 +418,8 @@ static void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   DNSName canon(req->getvars["domain"]);
-  int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
-  count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
+  int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, false));
+  count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon, false));
   map<string, string> object;
   object["count"] = lexical_cast<string>(count);
   object["result"] = "Flushed cache.";

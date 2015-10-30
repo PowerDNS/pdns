@@ -197,19 +197,33 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   d_cache.replace(stored, ce);
 }
 
-int MemRecursorCache::doWipeCache(const DNSName& name, uint16_t qtype)
+int MemRecursorCache::doWipeCache(const DNSName& name, bool sub, uint16_t qtype)
 {
   int count=0;
   d_cachecachevalid=false;
   pair<cache_t::iterator, cache_t::iterator> range;
-  if(qtype==0xffff)
-    range=d_cache.equal_range(tie(name));
-  else
-    range=d_cache.equal_range(tie(name, qtype));
 
-  for(cache_t::const_iterator i=range.first; i != range.second; ) {
-    count++;
-    d_cache.erase(i++);
+  if(!sub) {
+    if(qtype==0xffff)
+      range=d_cache.equal_range(tie(name));
+    else
+      range=d_cache.equal_range(tie(name, qtype));
+    for(cache_t::const_iterator i=range.first; i != range.second; ) {
+      count++;
+      d_cache.erase(i++);
+    }
+  }
+  else {
+    for(auto iter = d_cache.lower_bound(tie(name)); iter != d_cache.end(); ) {
+      if(!iter->d_qname.isPartOf(name))
+	break;
+      if(iter->d_qtype == qtype || qtype == 0xffff) {
+	count++;
+	d_cache.erase(iter++);
+      }
+      else 
+	iter++;
+    }
   }
   return count;
 }
@@ -277,12 +291,12 @@ uint64_t MemRecursorCache::doDump(int fd)
     return 0;
   }
   fprintf(fp, "; main record cache dump from thread follows\n;\n");
-  typedef cache_t::nth_index<1>::type sequence_t;
-  sequence_t& sidx=d_cache.get<1>();
+
+  auto& sidx=d_cache.get<0>();
 
   uint64_t count=0;
   time_t now=time(0);
-  for(sequence_t::const_iterator i=sidx.begin(); i != sidx.end(); ++i) {
+  for(auto i=sidx.cbegin(); i != sidx.cend(); ++i) {
     for(auto j=i->d_records.cbegin(); j != i->d_records.cend(); ++j) {
       count++;
       try {

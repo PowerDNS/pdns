@@ -227,32 +227,57 @@ string doDumpEDNSStatus(T begin, T end)
   return "done\n";
 }
 
-uint64_t* pleaseWipeCache(const DNSName& canon)
+uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree)
 {
-  // clear packet cache too
-  return new uint64_t(t_RC->doWipeCache(canon) + t_packetCache->doWipePacketCache(canon));
+  return new uint64_t(t_RC->doWipeCache(canon, subtree));
+}
+
+uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree)
+{
+  return new uint64_t(t_packetCache->doWipePacketCache(canon,0xffff, subtree));
 }
 
 
-uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon)
+uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree)
 {
-  uint64_t res = t_sstorage->negcache.count(tie(canon));
-  pair<SyncRes::negcache_t::iterator, SyncRes::negcache_t::iterator> range=t_sstorage->negcache.equal_range(tie(canon));
-  t_sstorage->negcache.erase(range.first, range.second);
-  return new uint64_t(res);
+  if(!subtree) {
+    uint64_t res = t_sstorage->negcache.count(tie(canon));
+    auto range=t_sstorage->negcache.equal_range(tie(canon));
+    t_sstorage->negcache.erase(range.first, range.second);
+    return new uint64_t(res);
+  }
+  else {
+    unsigned int erased=0;
+    for(auto iter = t_sstorage->negcache.lower_bound(tie(canon)); iter != t_sstorage->negcache.end(); ) {
+      if(!iter->d_qname.isPartOf(canon))
+	break;
+      t_sstorage->negcache.erase(iter++);
+      erased++;
+    }
+    return new uint64_t(erased);
+  }
 }
 
 template<typename T>
 string doWipeCache(T begin, T end)
 {
-  int count=0, countNeg=0;
+  int count=0, pcount=0, countNeg=0;
   for(T i=begin; i != end; ++i) {
-    DNSName canon=DNSName(*i);
-    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon));
-    countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon));
+    DNSName canon;
+    bool subtree=false;
+    if(boost::ends_with(*i, "$")) {
+      canon=DNSName(i->substr(0, i->size()-1));
+      subtree=true;
+    }
+    else 
+      canon=DNSName(*i);
+    
+    count+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, subtree));
+    pcount+= broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, subtree));
+    countNeg+=broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon, subtree));
   }
 
-  return "wiped "+lexical_cast<string>(count)+" records, "+lexical_cast<string>(countNeg)+" negative records\n";
+  return "wiped "+std::to_string(count)+" records, "+std::to_string(countNeg)+" negative records, "+std::to_string(pcount)+" packets\n";
 }
 
 template<typename T>
@@ -281,7 +306,7 @@ string setMinimumTTL(T begin, T end)
   if(end-begin != 1) 
     return "Need to supply new minimum TTL number\n";
   SyncRes::s_minimumTTL = atoi(begin->c_str());
-  return "New minimum TTL: " + lexical_cast<string>(SyncRes::s_minimumTTL) + "\n";
+  return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
 }
 
 
