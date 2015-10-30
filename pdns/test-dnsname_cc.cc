@@ -347,6 +347,11 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(DNSName("BeRt.com").canonCompare(DNSName("WWW.berT.com")));
   BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
 
+  CanonDNSNameCompare a;
+  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.com")));
+  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.net")));
+  BOOST_CHECK(!a(DNSName("www.powerdns.net"), DNSName(".")));
+
   vector<DNSName> vec;
   for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",
 	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
