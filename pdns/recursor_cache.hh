@@ -40,7 +40,7 @@ public:
   uint64_t doDump(int fd);
   uint64_t doDumpNSSpeeds(int fd);
 
-  int doWipeCache(const DNSName& name, uint16_t qtype=0xffff);
+  int doWipeCache(const DNSName& name, bool sub, uint16_t qtype=0xffff);
   bool doAgeCache(time_t now, const DNSName& name, uint16_t qtype, int32_t newTTL);
   uint64_t cacheHits, cacheMisses;
 
@@ -75,7 +75,7 @@ private:
                         member<CacheEntry,DNSName,&CacheEntry::d_qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::d_qtype>
                       >,
-                      composite_key_compare<std::less<DNSName>, std::less<uint16_t> >
+                      composite_key_compare<CanonDNSNameCompare, std::less<uint16_t> >
                 >,
                sequenced<>
                >

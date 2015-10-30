@@ -54,6 +54,7 @@ void primeHints(void)
     };
     
     DNSRecord arr, aaaarr, nsrr;
+    nsrr.d_name=DNSName(".");
     arr.d_type=QType::A;
     aaaarr.d_type=QType::AAAA;
     nsrr.d_type=QType::NS;
@@ -254,7 +255,7 @@ string reloadAuthAndForwards()
   
     for(SyncRes::domainmap_t::const_iterator i = t_sstorage->domainmap->begin(); i != t_sstorage->domainmap->end(); ++i) {
       for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->d_name));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->d_name, false));
     }
 
     string configname=::arg()["config-dir"]+"/recursor.conf";
@@ -294,12 +295,11 @@ string reloadAuthAndForwards()
     
     // purge again - new zones need to blank out the cache
     for(SyncRes::domainmap_t::const_iterator i = newDomainMap->begin(); i != newDomainMap->end(); ++i) {
-      for(SyncRes::AuthDomain::records_t::const_iterator j = i->second.d_records.begin(); j != i->second.d_records.end(); ++j) 
-        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, j->d_name));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, i->first, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, i->first, true));
+        broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, i->first, true));
     }
 
-    // this is pretty blunt
-    broadcastFunction(pleaseWipeNegCache);
     broadcastFunction(boost::bind(pleaseUseNewSDomainsMap, newDomainMap)); 
     delete original;
     return "ok\n";
