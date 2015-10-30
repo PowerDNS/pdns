@@ -45,7 +45,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
   Policy pol{PolicyKind::NoAction};
   for(const auto& z : d_zones) {
     if(findNamedPolicy(z.propolName, qname, pol)) {
-      cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
+      //      cerr<<"Had a hit on the nameserver ("<<qname<<") used to process the query"<<endl;
       return pol;
     }
   }
@@ -55,18 +55,18 @@ DNSFilterEngine::Policy DNSFilterEngine::getProcessingPolicy(const DNSName& qnam
 
 DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, const ComboAddress& ca) const
 {
-  cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
+  //  cout<<"Got question for "<<qname<<" from "<<ca.toString()<<endl;
 
   Policy pol{PolicyKind::NoAction};
   for(const auto& z : d_zones) {
     if(findNamedPolicy(z.qpolName, qname, pol)) {
-      cerr<<"Had a hit on the name of the query"<<endl;
+      //      cerr<<"Had a hit on the name of the query"<<endl;
       return pol;
     }
     
     for(const auto& qa : z.qpolAddr) {
       if(qa.first.match(ca)) {
-	cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+	//	cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
 	return qa.second;
       }
     }
@@ -92,7 +92,7 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
     for(const auto& z : d_zones) {
       for(const auto& qa : z.postpolAddr) {
 	if(qa.first.match(ca)) {
-	  cerr<<"Had a hit on IP address in answer"<<endl;
+	  //	  cerr<<"Had a hit on IP address in answer"<<endl;
 	  return qa.second;
 	}
       }
