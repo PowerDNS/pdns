@@ -24,7 +24,7 @@ fi
 set +x
 for prefix in 'www' 'wildcard'; do
   for num in $(seq 0 1000000); do
-    echo "${num},${prefix}.www.powerdnssec.org" >> ${prefix}.csv
+    echo "${num},${prefix}.powerdnssec.org" >> ${prefix}.csv
   done
 done
 set -x
@@ -35,7 +35,7 @@ version=$($PDNSRECURSOR --version 2>&1 | awk '/PowerDNS Recursor/ { print $6 }')
 for IPv6 in 0 1; do
   for CSV in $(ls *.csv); do
     for domains in $numdomains; do
-      export context="${version}.v6:${IPv6}.csv:${CSV%%.*}"
+      export context="${version}_v6:${IPv6}_csv:${CSV%%.*}"
       export IPv6
       export CSV
       RECURSOR=$PDNSRECURSOR THRESHOLD=0 TRACE=no time ./recursor-test 5401 $domains || EXIT=1

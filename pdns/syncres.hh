@@ -324,7 +324,7 @@ public:
                     member<NegCacheEntry, DNSName, &NegCacheEntry::d_name>,
                     member<NegCacheEntry, QType, &NegCacheEntry::d_qtype>
            >,
-           composite_key_compare<std::less<DNSName>, std::less<QType> >
+           composite_key_compare<CanonDNSNameCompare, std::less<QType> >
        >,
        sequenced<>
     >
@@ -651,7 +651,8 @@ uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
 uint64_t* pleaseGetPacketCacheHits();
 uint64_t* pleaseGetPacketCacheSize();
-uint64_t* pleaseWipeCache(const DNSName& canon);
-uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon);
+uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
+uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
+uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
 #endif

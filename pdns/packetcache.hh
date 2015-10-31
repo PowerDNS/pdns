@@ -75,7 +75,7 @@ private:
   string pcReverse(DNSName content);
   struct CacheEntry
   {
-    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false;}
+    CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false; created=0; ttd=0; maxReplyLen=512;}
 
     string qname;
     string value;

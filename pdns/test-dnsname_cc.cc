@@ -347,6 +347,11 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   BOOST_CHECK(DNSName("BeRt.com").canonCompare(DNSName("WWW.berT.com")));
   BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
 
+  CanonDNSNameCompare a;
+  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.com")));
+  BOOST_CHECK(a(DNSName("."), DNSName("www.powerdns.net")));
+  BOOST_CHECK(!a(DNSName("www.powerdns.net"), DNSName(".")));
+
   vector<DNSName> vec;
   for(const std::string& a : {"bert.com.", "alpha.nl.", "articles.xxx.",
 	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
@@ -526,6 +531,19 @@ BOOST_AUTO_TEST_CASE(test_compression_loop2) { // Compression loop (deep recursi
   name.append( 1, ((i << 1) & 0xff) | 0x01);
 
   BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), name.size()-2, true), std::range_error);
+}
+
+BOOST_AUTO_TEST_CASE(test_wirelength) { // Testing if we get the correct value from the wirelength function
+  DNSName name("www.powerdns.com");
+  BOOST_CHECK_EQUAL(name.wirelength(), 18);
+
+  DNSName sname("powerdns.com");
+  sname.prependRawLabel(string("ww\x00""w", 4));
+  BOOST_CHECK_EQUAL(sname.wirelength(), 19);
+
+  sname = DNSName("powerdns.com");
+  sname.prependRawLabel(string("www\x00", 4));
+  BOOST_CHECK_EQUAL(sname.wirelength(), 19);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

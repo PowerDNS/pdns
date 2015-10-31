@@ -3,8 +3,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "delaypipe.hh"
 #include <boost/test/unit_test.hpp>
+#include "delaypipe.hh"
 
 BOOST_AUTO_TEST_SUITE(test_delaypipe_hh);
 

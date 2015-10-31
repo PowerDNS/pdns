@@ -166,7 +166,7 @@ void GssContext::initialize() {
 
 GssContext::GssContext() {
   initialize();
-  generateLabel("pdns.tsig");
+  generateLabel("pdns.tsig.");
 }
 
 GssContext::GssContext(const DNSName& label) {
@@ -177,7 +177,7 @@ GssContext::GssContext(const DNSName& label) {
 void GssContext::generateLabel(const std::string& suffix) {
   std::ostringstream oss;
   oss << std::hex << time((time_t*)NULL) << "." << suffix;
-  setLabel(oss.str());
+  setLabel(DNSName(oss.str()));
 }
 
 void GssContext::setLabel(const DNSName& label) {

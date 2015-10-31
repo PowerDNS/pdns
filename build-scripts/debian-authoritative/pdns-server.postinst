@@ -16,12 +16,7 @@ PKGNAME="pdns-server"
 
 PDNSCONF=/etc/powerdns/pdns.conf
 PDNSDEFAULT=/etc/default/pdns
-if [ -e $PDNSCONF ]; then
-  PDNSDIR=`cat $PDNSCONF | grep include | awk -F '=' '{print $2}'`
-fi
-if [ -z "$PDNSDIR" ]; then
-  PDNSDIR=/etc/powerdns/pdns.d
-fi
+PDNSDIR=/etc/powerdns/pdns.d
 PDNSLOCAL=$PDNSDIR/pdns.local.conf
 
 # Temporary files
@@ -121,7 +116,7 @@ case "$1" in
       [ -d $PDNSDIR ] && chmod 0755 $PDNSDIR
       [ -e $PDNSDEFAULT ] && chmod 0644 $PDNSDEFAULT
     fi
-    
+
     # If we still have the default config, make sure bindbackend.conf exists
     PDNSBIND="/etc/powerdns/pdns.d/pdns.simplebind.conf"
     PDNSBINDBACKENDCONF="/etc/powerdns/bindbackend.conf"

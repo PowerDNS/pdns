@@ -7,5 +7,5 @@
 1	nxd.example.com.	IN	NSEC	86400	outpost.example.com. CNAME RRSIG NSEC
 1	nxd.example.com.	IN	RRSIG	86400	NSEC 8 3 86400 [expiry] [inception] [keytag] example.com. ...
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='nxd.example.com.', qtype=A

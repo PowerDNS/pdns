@@ -1,7 +1,7 @@
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -12,7 +12,7 @@ Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -23,7 +23,7 @@ Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -32,12 +32,12 @@ Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -48,7 +48,7 @@ Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -57,7 +57,7 @@ Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -68,7 +68,7 @@ Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -79,7 +79,7 @@ Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -88,7 +88,7 @@ Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -97,7 +97,7 @@ Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -114,7 +114,7 @@ Check if delegate and glue are added correctly.
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -125,14 +125,14 @@ Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P NS
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -141,12 +141,12 @@ Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -157,7 +157,7 @@ Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -166,7 +166,7 @@ Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -177,14 +177,14 @@ Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P NS
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -193,7 +193,7 @@ Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -202,7 +202,7 @@ Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -219,7 +219,7 @@ Check if delegate is deleted and glue auth=1
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 6OVOD1M5KOSSAIIQPRLAF42PRQRKEAQ7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -230,14 +230,14 @@ Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 6OVOD1M5KOSSAIIQPRLAF42PRQRKEAQ7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -246,12 +246,12 @@ Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 6OVOD1M5KOSSAIIQPRLAF42PRQRKEAQ7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -262,7 +262,7 @@ Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -271,7 +271,7 @@ Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 6OVOD1M5KOSSAIIQPRLAF42PRQRKEAQ7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -282,7 +282,7 @@ Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd FQU365VN7BR5CSV8CG6NE9V8HA6D008P
 1	fgun0ru4oe3g76tr551hg97mpu37b6mi.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -293,7 +293,7 @@ Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 6OVOD1M5KOSSAIIQPRLAF42PRQRKEAQ7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -302,7 +302,7 @@ Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -311,7 +311,7 @@ Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -327,7 +327,7 @@ no difference
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	a.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -338,7 +338,7 @@ Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -349,7 +349,7 @@ Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -358,12 +358,12 @@ Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 0	e.host.test.dyndns.	IN	RRSIG	3600	A 8 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -374,7 +374,7 @@ Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -383,7 +383,7 @@ Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -394,7 +394,7 @@ Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -405,7 +405,7 @@ Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 8PQJV4B3M0LCFMVAE0HP394LC154L1I7 CNAME RRSIG
 1	4i84rosksbmegcqfnkf6n6ci093h7rq4.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -414,7 +414,7 @@ Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	RRSIG	3600	SOA 8 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd DSA3TI9NU3APDSVL3F63QLVAKV555SR6 A RRSIG
 1	8ti9tgh8d81frr5vr4o1o5bvko42v9dq.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
@@ -423,5 +423,5 @@ Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	NSEC3	86400	1 [flags] 1 abcd 2GP5RDNJOQ5OOSPC5O1IH9LALI101DI8 NS SOA MX RRSIG DNSKEY NSEC3PARAM
 1	u36f0tjooqv1kspatto6qns0vap731v2.test.dyndns.	IN	RRSIG	86400	NSEC3 8 3 86400 [expiry] [inception] [keytag] test.dyndns. ...
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY

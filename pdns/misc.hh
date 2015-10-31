@@ -622,6 +622,8 @@ int closesocket(int fd);
 bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);
 
+uint64_t getRealMemoryUsage(const std::string&);
+
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {

@@ -281,6 +281,8 @@ For further details, please see [the `pdnssec`](#pdnssec) documentation.
 
 # PKCS\#11 support
 **Note**: This feature is experimental, and not ready for production. Use at your own risk!
+**Note**: As of version 4.0, slot IDs are deprecated, and you are expected to use slot label instead
+
 To enable it, compile PowerDNS Authoritative Server using --enable-experimental-pkcs11 flag on configure. This requires you to have p11-kit libraries and headers.
 
 You can also log on to the tokens after starting server, in this case you need to edit your PKCS#11 cryptokey record and remove PIN or set it empty. PIN is required
@@ -314,10 +316,10 @@ Instructions on how to setup SoftHSM to work with the feature after compilation 
     sudo pkcs11-tool --module=/home/cmouse/softhsm/lib/softhsm/libsofthsm.so -l -p some-pin -k --key-type RSA:2048 -a zone-ksk|zone-zsk --slot-index slot-number
     ```
 
--   Assign the keys using
+-   Assign the keys using (note that token label is not necessarely same as object label, see p11-kit -l)
 
     ```
-    pdnssec hsm assign zone rsasha256 ksk|zsk softhsm slot-id pin zone-ksk|zsk
+    pdnssec hsm assign zone rsasha256 ksk|zsk softhsm token-label pin zone-ksk|zsk
     ```
 
 -   Verify that everything worked, you should see valid data there
@@ -388,7 +390,7 @@ Instructions on how to use CryptAS [`Athena IDProtect Key USB Token V2J`](http:/
 -   Assign the keys using
 
     ```
-    pdnssec hsm assign zone rsasha256 ksk|zsk softhsm slot-id pin zone-ksk|zsk
+    pdnssec hsm assign zone rsasha256 ksk|zsk athena IDProtect#0A50123456789 pin zone-ksk|zsk
     ```
 
 -   Verify that everything worked, you should see valid data there.

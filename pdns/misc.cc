@@ -1113,3 +1113,23 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
   }
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
 }
+
+uint64_t getRealMemoryUsage(const std::string&)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/"+std::to_string(getpid())+"/smaps");
+  if(!ifs)
+    return 0;
+  string line;
+  uint64_t bytes=0;
+  string header("Private_Dirty:");
+  while(getline(ifs, line)) {
+    if(boost::starts_with(line, header)) {
+      bytes += atoi(line.c_str() + header.length() +1)*1024;
+    }
+  }
+  return bytes;
+#else
+  return 0;
+#endif
+}

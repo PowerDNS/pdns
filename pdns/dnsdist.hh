@@ -11,6 +11,7 @@
 #include <thread>
 #include "sholder.hh"
 void* carbonDumpThread();
+uint64_t uptimeOfProcess(const std::string& str);
 struct DNSDistStats
 {
   using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
@@ -29,7 +30,8 @@ struct DNSDistStats
   stat_t latency0_1{0}, latency1_10{0}, latency10_50{0}, latency50_100{0}, latency100_1000{0}, latencySlow{0};
   
   double latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
-  typedef boost::variant<stat_t*, double*> entry_t;
+  typedef std::function<uint64_t(const std::string&)> statfunction_t;
+  typedef boost::variant<stat_t*, double*, statfunction_t> entry_t;
   std::vector<std::pair<std::string, entry_t>> entries{
     {"responses", &responses}, {"servfail-responses", &servfailResponses},
     {"queries", &queries}, {"acl-drops", &aclDrops},
@@ -41,7 +43,9 @@ struct DNSDistStats
     {"latency10-50", &latency10_50}, {"latency50-100", &latency50_100}, 
     {"latency100-1000", &latency100_1000}, {"latency-slow", &latencySlow},
     {"latency-avg100", &latencyAvg100}, {"latency-avg1000", &latencyAvg1000}, 
-    {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000}
+    {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
+    {"uptime", uptimeOfProcess},
+    {"real-memory-usage", getRealMemoryUsage}
   };
 };
 

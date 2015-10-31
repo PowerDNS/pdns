@@ -482,11 +482,13 @@ endif
 sdig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
+	dns.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
+	ednssubnet.cc \
 	logger.cc \
 	mbedtlscompat.hh \
 	misc.cc misc.hh \

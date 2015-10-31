@@ -63,7 +63,7 @@ Logs on to a PKCS#11 slot. You only need to login once per slot, even if you hav
 Reports the uptime of the daemon in human readable form.
 
 ## `show VARIABLE`
-Show a specific statistic. Use * for all. (You may need to quote as '*' or \\*).
+Show a specific statistic. Use * for all. (You may need to quote as '\*' or \\\*).
 
 ## `version`
 Returns the version of a running pdns daemon.

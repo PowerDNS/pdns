@@ -10,6 +10,11 @@
 #include "dnsdist.hh"
 
 GlobalStateHolder<CarbonConfig> g_carbon;
+static time_t s_start=time(0);
+uint64_t uptimeOfProcess(const std::string& str)
+{
+  return time(0) - s_start;
+}
 
 void* carbonDumpThread()
 try
@@ -45,12 +50,14 @@ try
 	str<<"dnsdist."<<hostname<<".main."<<e.first<<' ';
 	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
 	  str<<(*val)->load();
+	else if (const auto& val = boost::get<double*>(&e.second))
+	  str<<**val;
 	else
-	  str<<*boost::get<double*>(e.second);
+	  str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
 	str<<' '<<now<<"\r\n";
       }
       const string msg = str.str();
-      
+
       int ret = waitForRWData(s.getHandle(), false, 1 , 0); 
       if(ret <= 0 ) {
 	infolog("Unable to write data to carbon server on %s: %s", localCarbon->server.toStringWithPort(), (ret<0 ? strerror(errno) : "Timeout"));

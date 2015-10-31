@@ -470,5 +470,8 @@ public:
   DBException(const string &reason) : PDNSException(reason){}
 };
 
+/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
+void fillSOAData(const string &content, SOAData &data);
+
 
 #endif

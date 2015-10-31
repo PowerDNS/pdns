@@ -27,7 +27,7 @@
 class DNSName
 {
 public:
-  DNSName() : d_empty(true), d_recurse(0) {}                 //!< Don't constructs the root name
+  DNSName() : d_empty(true) {}                 //!< Don't constructs the root name
   explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
@@ -49,6 +49,7 @@ public:
   bool isWildcard() const;
   unsigned int countLabels() const;
   size_t length() const; // FIXME400 remove me?
+  size_t wirelength() const; //!< Number of total bytes in the name
   bool empty() const { return d_empty; }
   bool isRoot() const { return !d_empty && d_storage.empty(); }
   void clear() { d_storage.clear(); d_empty=true; }
@@ -80,16 +81,15 @@ public:
   }
 
   inline bool canonCompare(const DNSName& rhs) const;
-  
+  bool slowCanonCompare(const DNSName& rhs) const;  
 private:
   //typedef __gnu_cxx::__sso_string string_t;
   typedef std::string string_t;
-  bool slowCanonCompare(const DNSName& rhs) const;
+
   string_t d_storage;
   bool d_empty;
-  int d_recurse;
 
-  void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0);
+  void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0, int depth=0);
   static std::string escapeLabel(const std::string& orig);
   static std::string unescapeLabel(const std::string& orig);
 };
@@ -117,10 +117,10 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
   uint8_t ourpos[64], rhspos[64];
   uint8_t ourcount=0, rhscount=0;
   //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && ourcount < sizeof(ourpos); p+=*p+1)
-    ourpos[ourcount++]=(p-d_storage.c_str());
-  for(const char* p = rhs.d_storage.c_str(); p < rhs.d_storage.c_str() + rhs.d_storage.size() && rhscount < sizeof(rhspos); p+=*p+1)
-    rhspos[rhscount++]=(p-rhs.d_storage.c_str());
+  for(const unsigned char* p = (const unsigned char*)d_storage.c_str(); p < (const unsigned char*)d_storage.c_str() + d_storage.size() && ourcount < sizeof(ourpos); p+=*p+1)
+    ourpos[ourcount++]=(p-(const unsigned char*)d_storage.c_str());
+  for(const unsigned char* p = (const unsigned char*)rhs.d_storage.c_str(); p < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && rhscount < sizeof(rhspos); p+=*p+1)
+    rhspos[rhscount++]=(p-(const unsigned char*)rhs.d_storage.c_str());
 
   if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
     return slowCanonCompare(rhs);
@@ -136,12 +136,6 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
     ourcount--;
     rhscount--;
 
-    /*
-    cout<<"Going to compare: '"<<string(d_storage.c_str() + ourpos[ourcount] + 1, 
-					d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]))<<"'"<<endl;
-    cout<<"Against: '"<<string(rhs.d_storage.c_str() + rhspos[rhscount] + 1, 
-			      rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]))<<"'"<<endl;
-    */
     bool res=std::lexicographical_compare(
 					  d_storage.c_str() + ourpos[ourcount] + 1, 
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),

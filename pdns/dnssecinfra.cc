@@ -72,8 +72,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
       pkcs11=true;
       continue;
     } else if (pdns_iequals(key,"slot")) {
-      int slot = atoi(value.c_str());
-      stormap["slot"]=lexical_cast<string>(slot);
+      stormap["slot"]=value;
       continue;
     }  else if (pdns_iequals(key,"label")) {
       stormap["label"]=value;
@@ -592,7 +591,7 @@ void addTSIG(DNSPacketWriter& pw, TSIGRecordContent* trc, const DNSName& tsigkey
     
     toSign.append(tsigprevious);
   }
-  toSign.append(&*pw.getContent().begin(), &*pw.getContent().end());
+  toSign.append(pw.getContent().begin(), pw.getContent().end());
   
   // now add something that looks a lot like a TSIG record, but isn't
   vector<uint8_t> signVect;

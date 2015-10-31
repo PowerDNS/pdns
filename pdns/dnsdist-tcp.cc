@@ -45,13 +45,11 @@ using std::atomic;
 
 static int setupTCPDownstream(const ComboAddress& remote)
 {  
-  
   vinfolog("TCP connecting to downstream %s", remote.toStringWithPort());
   int sock = SSocket(remote.sin4.sin_family, SOCK_STREAM, 0);
   SConnect(sock, remote);
   return sock;
 }
-
 
 struct ConnectionInfo
 {
@@ -61,8 +59,7 @@ struct ConnectionInfo
 
 void* tcpClientThread(int pipefd);
 
-
-  // Should not be called simultaneously!
+// Should not be called simultaneously!
 void TCPClientCollection::addTCPClientThread()
 {  
   vinfolog("Adding TCP Client thread");
@@ -86,7 +83,6 @@ void* tcpClientThread(int pipefd)
      
   typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
-
   
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -109,8 +105,6 @@ void* tcpClientThread(int pipefd)
 
     uint16_t qlen, rlen;
     string pool; 
-
-
 
     shared_ptr<DownstreamState> ds;
     try {
@@ -201,7 +195,7 @@ void* tcpClientThread(int pipefd)
         ds->queries++;
         ds->outstanding++;
 
-	if(qtype == QType::AXFR)  // XXX fixme we really need to do better
+	if(qtype == QType::AXFR || qtype == QType::IXFR)  // XXX fixme we really need to do better
 	  break;
 
       retry:; 
@@ -254,12 +248,21 @@ void* tcpAcceptorThread(void* p)
   
   g_tcpclientthreads.addTCPClientThread();
 
+  auto acl = g_ACL.getLocal();
   for(;;) {
     try {
-      ConnectionInfo* ci = new ConnectionInfo;      
+      ConnectionInfo* ci = new ConnectionInfo;
       ci->fd = SAccept(cs->tcpFD, remote);
+      
+      if(!acl->match(remote)) {
+	g_stats.aclDrops++;
+	close(ci->fd);
+	delete ci;
+	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
+	continue;
+      }
 
-      vinfolog("Got connection from %s", remote.toStringWithPort());
+      vinfolog("Got TCP connection from %s", remote.toStringWithPort());
       
       ci->remote = remote;
       writen2(g_tcpclientthreads.getThread(), &ci, sizeof(ci));

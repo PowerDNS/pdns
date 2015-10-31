@@ -27,6 +27,11 @@ Specifies the full path of the data file for IPv4 to use.
 ### `geoip-database-file6`
 Specifies the full path of the data file for IPv6 to use.
 
+### `geoip-database-cache`
+Specifies the kind of caching that is done on the database. This is one of
+"standard", "memory", "index" or "mmap". These options map to the caching
+options described [here](https://github.com/maxmind/geoip-api-c/blob/master/README.md#memory-caching-and-other-options)
+
 ### `geoip-zones-file`
 Specifies the full path of the zone configuration file to use.
 

@@ -28,3 +28,7 @@ showflags
 
 tcp
 :    Use TCP instead of UDP to send the query.
+
+ednssubnet *SUBNET*
+:    Send *SUBNET* in the edns-client-subnet option. If this option is not set,
+     no edns-client-subnet option is set in the query.

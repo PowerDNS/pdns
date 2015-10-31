@@ -271,6 +271,7 @@ void declareStats(void)
   S.declare("incoming-notifications", "NOTIFY packets received.");
 
   S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess);
+  S.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage);
 #ifdef __linux__
   S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats);
   S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats);

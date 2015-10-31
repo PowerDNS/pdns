@@ -36,6 +36,7 @@ QType::init QType::initializer;
 
 QType::QType()
 {
+  code = 0;
 }
 
 bool QType::isSupportedType() {

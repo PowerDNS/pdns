@@ -222,10 +222,89 @@ struct dnsheader {
 extern time_t s_starttime;
 
 uint32_t hashQuestion(const char* packet, uint16_t len, uint32_t init);
-bool dnspacketLessThan(const std::string& a, const std::string& b);
 
-/** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string &content, SOAData &data);
+//! compares two dns packets in canonical order, skipping the header, but including the question and the qtype
+inline bool dnspacketLessThan(const std::string& a, const std::string& b)
+{
+  /* BEFORE YOU ATTEMPT TO MERGE THIS WITH DNSNAME::CANONICALCOMPARE! 
+     Please note that that code is subtly different, and for example only has
+     to deal with a string of labels, and not a trailing packet. Also, the comparison
+     rules are different since we also have to take into account qname and qtype.
+     So just grin and bear it.
+   */
+
+  if(a.length() <= 12 || b.length() <= 12) 
+    return a.length() < b.length();
+
+  uint8_t ourpos[64], rhspos[64];
+  uint8_t ourcount=0, rhscount=0;
+  //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
+  const unsigned char* p;
+  for(p = (const unsigned char*)a.c_str()+12; p < (const unsigned char*)a.c_str() + a.size() && *p && ourcount < sizeof(ourpos); p+=*p+1)
+    ourpos[ourcount++]=(p-(const unsigned char*)a.c_str());
+  if(p>=(const unsigned char*)a.c_str() + a.size())
+    return true;
+
+  uint16_t aQtype = *(p+1)*256 + *(p+2);
+  uint16_t aQclass =*(p+3)*256 + *(p+4);
+
+  for(p = (const unsigned char*)b.c_str()+12; p < (const unsigned char*)b.c_str() + b.size() && *p && rhscount < sizeof(rhspos); p+=*p+1)
+    rhspos[rhscount++]=(p-(const unsigned char*)b.c_str());
+
+  if(p>=(const unsigned char*)b.c_str() + b.size())
+    return false;
+
+  uint16_t bQtype = *(p+1)*256 + *(p+2);
+  uint16_t bQclass =*(p+3)*256 + *(p+4);
+
+  if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
+    DNSName aname(a.c_str(), a.size(), 12, false, &aQtype, &aQclass);
+    DNSName bname(b.c_str(), b.size(), 12, false, &bQtype, &bQclass);
+
+    if(aname.slowCanonCompare(bname))
+      return true;
+    if(aname!=bname)
+      return false;
+    return boost::tie(aQtype, aQclass) < boost::tie(bQtype, bQclass);
+  }
+  for(;;) {
+    if(ourcount == 0 && rhscount != 0)
+      return true;
+    if(ourcount == 0 && rhscount == 0)
+      break;
+    if(ourcount !=0 && rhscount == 0)
+      return false;
+    ourcount--;
+    rhscount--;
+
+    bool res=std::lexicographical_compare(
+					  a.c_str() + ourpos[ourcount] + 1, 
+					  a.c_str() + ourpos[ourcount] + 1 + *(a.c_str() + ourpos[ourcount]),
+					  b.c_str() + rhspos[rhscount] + 1, 
+					  b.c_str() + rhspos[rhscount] + 1 + *(b.c_str() + rhspos[rhscount]),
+					  [](const char& a, const char& b) {
+					    return dns2_tolower(a) < dns2_tolower(b); 
+					  });
+    
+    //    cout<<"Forward: "<<res<<endl;
+    if(res)
+      return true;
+
+    res=std::lexicographical_compare(	  b.c_str() + rhspos[rhscount] + 1, 
+					  b.c_str() + rhspos[rhscount] + 1 + *(b.c_str() + rhspos[rhscount]),
+					  a.c_str() + ourpos[ourcount] + 1, 
+					  a.c_str() + ourpos[ourcount] + 1 + *(a.c_str() + ourpos[ourcount]),
+					  [](const char& a, const char& b) {
+					    return dns2_tolower(a) < dns2_tolower(b); 
+					  });
+    //    cout<<"Reverse: "<<res<<endl;
+    if(res)
+      return false;
+  }
+  
+  return boost::tie(aQtype, aQclass) < boost::tie(bQtype, bQclass);
+}
+
 
 /** for use by DNSPacket, converts a SOAData class to a ascii line again */
 string serializeSOAData(const SOAData &data);

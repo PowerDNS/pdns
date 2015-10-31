@@ -15,7 +15,7 @@ RecursorPacketCache::RecursorPacketCache()
   d_hits = d_misses = 0;
 }
 
-int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype)
+int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, bool subtree)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, name, 0);
@@ -33,9 +33,17 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype)
     uint16_t t;
 
     DNSName found(iter->d_packet.c_str(), iter->d_packet.size(), 12, false, &t);
-    if(found==name) {   // this is case insensitive
-      break;
+    //    cout<<"At record "<<found<<" while searching for "<<name<<", subtree= "<<subtree<<endl;
+    if(subtree) {
+      if(!found.isPartOf(name)) {   // this is case insensitive
+	break;
+      }
     }
+    else {
+      if(found != name)
+	break;
+    }
+
     if(t==qtype || qtype==0xffff) {
       iter=d_packetCache.erase(iter);
       count++;
@@ -43,6 +51,7 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype)
     else
       ++iter;
   }
+  //  cout<<"Wiped "<<count<<" packets from cache"<<endl;
   return count;
 }
 

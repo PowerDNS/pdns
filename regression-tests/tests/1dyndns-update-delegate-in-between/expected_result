@@ -1,46 +1,46 @@
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -56,49 +56,49 @@ Check if delegate and glue are added correctly.
 
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	c.host.test.dyndns.	IN	NS	3600	ns1.c.host.test.dyndns.
 2	.	IN	OPT	32768	
 2	ns1.c.host.test.dyndns.	IN	A	3600	192.168.0.1
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 0, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -114,47 +114,47 @@ Check if delegate is deleted and glue auth=1
 
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
 Answer:
 ;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
@@ -169,45 +169,45 @@ no difference
 
 0	a.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.host.test.dyndns.', qtype=ANY
 0	e.host.test.dyndns.	IN	A	3600	1.1.1.1
 2	.	IN	OPT	32768	
-Rcode: 0, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='f.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='a.a.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='b.b.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='c.c.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='d.d.host.test.dyndns.', qtype=ANY
 1	test.dyndns.	IN	SOA	3600	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
 2	.	IN	OPT	32768	
-Rcode: 3, RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='e.e.host.test.dyndns.', qtype=ANY
