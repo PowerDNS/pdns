@@ -10,18 +10,18 @@ StatBag S;
 int main(int argc, char** argv)
 try
 {
-  if(argc != 3) {
-    cerr<<"Syntax: dumresp local-address number-of-threads"<<endl;
+  if(argc != 4) {
+    cerr<<"Syntax: dumresp local-address local-port number-of-threads "<<endl;
     exit(EXIT_FAILURE);
   }
 
-  for(int i=1 ; i < atoi(argv[2]); ++i) {
+  for(int i=1 ; i < atoi(argv[3]); ++i) {
     if(!fork())
       break;
   }
-  Socket s(AF_INET, SOCK_DGRAM);
-  ComboAddress local(argv[1], 5300);
-  
+
+  ComboAddress local(argv[1], atoi(argv[2]));
+  Socket s(local.sin4.sin_family, SOCK_DGRAM);  
 #ifdef SO_REUSEPORT
   int one=1;
   if(setsockopt(s.getHandle(), SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one)) < 0)
@@ -29,6 +29,7 @@ try
 #endif
 
   s.bind(local);
+  cout<<"Bound to "<<local.toStringWithPort()<<endl;
   char buffer[1500];
   struct dnsheader* dh = (struct dnsheader*)buffer;
   int len;

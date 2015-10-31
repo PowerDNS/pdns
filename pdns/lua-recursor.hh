@@ -3,7 +3,7 @@
 #include "dns.hh"
 #include "iputils.hh"
 #include "lua-pdns.hh"
-
+string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 class RecursorLua : public PowerDNSLua
 {
 public:

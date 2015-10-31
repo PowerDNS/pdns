@@ -66,7 +66,7 @@ extern "C" {
 #include "namespaces.hh"
 #include "rec_channel.hh"
 #include "dnsrecords.hh"
-
+#undef L
 static int getRegisteredNameLua(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   string regname=getRegisteredName(DNSName(name)).toString(); // hnnggg
@@ -106,6 +106,7 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
   return rcode;
 
 }
+
 
 int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
@@ -227,7 +228,6 @@ bool RecursorLua::ipfilter(const ComboAddress& remote, const ComboAddress& local
   return newres != -1;
 }
 
-
 bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret,
   int& res, bool* variable)
 {
@@ -273,7 +273,7 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     throw runtime_error(error);
     return false;
   }
-
+ loop:;
   if(variable)
     *variable |= d_variable;
 
@@ -281,7 +281,34 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
     string tocall = lua_tostring(d_lua,1);
     lua_remove(d_lua, 1); // the name
     ret.clear();
-    if(tocall == "getFakeAAAARecords") {
+    if(tocall == "udpQueryResponse") {
+      string dest = lua_tostring(d_lua,1);
+      string uquery;
+      getFromTable("query", uquery);
+      string callback;
+      getFromTable("callback", callback);
+
+      auto table = getLuaTable(d_lua, -1);
+      lua_pop(d_lua, 2);
+      string answer = GenUDPQueryResponse(ComboAddress(dest), uquery);
+
+      lua_getglobal(d_lua,  callback.c_str());
+      
+      lua_pushstring(d_lua,  remote.toString().c_str() );
+      lua_pushstring(d_lua,  query.toString().c_str() );
+      lua_pushnumber(d_lua,  qtype.getCode() );
+      table.push_back({"response", answer});
+      pushLuaTable(d_lua, table);
+
+      if(lua_pcall(d_lua,  4, 3, 0)) {   // NOTE! Means we always get 3 stack entries back, no matter what our lua hook returned!
+	string error=string("lua error in '"+func+"' while callback for '"+query.toString()+"|"+qtype.getName()+": ")+lua_tostring(d_lua, -1);
+	lua_pop(d_lua, 1);
+	throw runtime_error(error);
+	return false;
+      }
+      goto loop;
+    }
+    else if(tocall == "getFakeAAAARecords") {
       string luaprefix = lua_tostring(d_lua, 2);
       string luaqname = lua_tostring(d_lua,1);
       lua_pop(d_lua, 2);

@@ -234,6 +234,52 @@ int arecvtcp(string& data, int len, Socket* sock, bool incompleteOkay)
   return ret;
 }
 
+void handleGenUDPQueryResponse(int fd, FDMultiplexer::funcparam_t& var)
+{
+  PacketID pident=*any_cast<PacketID>(&var);
+  char resp[512];
+  int ret=recv(fd, resp, sizeof(resp), 0);
+  t_fdm->removeReadFD(fd);
+  if(ret >= 0) {
+    string data(resp, ret);
+    MT->sendEvent(pident, &data);
+  }
+  else {
+    string empty;
+    MT->sendEvent(pident, &empty);
+    //    cerr<<"Had some kind of error: "<<ret<<", "<<strerror(errno)<<endl;
+  }
+}
+string GenUDPQueryResponse(const ComboAddress& dest, const string& query)
+{
+  Socket s(dest.sin4.sin_family, SOCK_DGRAM);
+  s.setNonBlocking();
+  ComboAddress local = getQueryLocalAddress(dest.sin4.sin_family, 0);
+  
+  s.bind(local);
+  s.connect(dest);
+  s.send(query);
+
+  PacketID pident;
+  pident.sock=&s;
+  pident.type=0;
+  t_fdm->addReadFD(s.getHandle(), handleGenUDPQueryResponse, pident);
+
+  string data;
+ 
+  int ret=MT->waitEvent(pident,&data, g_networkTimeoutMsec);
+ 
+  if(!ret || ret==-1) { // timeout
+    t_fdm->removeReadFD(s.getHandle());
+  }
+  else if(data.empty()) {// error, EOF or other
+    // we could special case this
+    return data;
+  }
+  return data;
+}
+
+
 vector<ComboAddress> g_localQueryAddresses4, g_localQueryAddresses6;
 const ComboAddress g_local4("0.0.0.0"), g_local6("::");
 
