@@ -10,6 +10,11 @@
 #include "dnsdist.hh"
 
 GlobalStateHolder<CarbonConfig> g_carbon;
+static time_t s_start=time(0);
+uint64_t uptimeOfProcess(const std::string& str)
+{
+  return time(0) - s_start;
+}
 
 void* carbonDumpThread()
 try
