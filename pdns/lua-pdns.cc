@@ -88,7 +88,6 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
 void pushLuaTable(lua_State* lua, const vector<pair<string,string>>& table)
 {
   lua_newtable(lua);
-  int pos=0;
   for(const auto& e : table) {
     lua_pushstring(lua, e.second.c_str());
     lua_setfield(lua, -2, e.first.c_str());
