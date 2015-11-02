@@ -348,6 +348,15 @@ private:
   string d_cert;
 };
 
+class OPENPGPKEYRecordContent : public DNSRecordContent
+{
+public:
+  includeboilerplate(OPENPGPKEY)
+
+private:
+  string d_keyring;
+};
+
 
 class RRSIGRecordContent : public DNSRecordContent
 {

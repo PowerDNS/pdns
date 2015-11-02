@@ -108,15 +108,18 @@ bool Bind2Backend::getNSEC3PARAM(const std::string& zname, NSEC3PARAMRecordConte
   getDomainMetadata(zname, "NSEC3PARAM", meta);
   if(!meta.empty())
     value=*meta.begin();
-  
-  if(value.empty()) { // "no NSEC3"
-    return false;
-  }
-     
+  else
+    return false; // "no NSEC3"
+
+  static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
   if(ns3p) {
     NSEC3PARAMRecordContent* tmp=dynamic_cast<NSEC3PARAMRecordContent*>(DNSRecordContent::mastermake(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;
     delete tmp;
+  }
+  if (ns3p->d_iterations > maxNSEC3Iterations) {
+    ns3p->d_iterations = maxNSEC3Iterations;
+    L<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl;
   }
   return true;
 }
