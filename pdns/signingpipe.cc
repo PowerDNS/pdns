@@ -114,12 +114,12 @@ bool dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
     aprio = a.priority;
   if (b.qtype.getCode() == QType::MX || b.qtype.getCode() == QType::SRV)
     bprio = b.priority;
-  return tie(a.content, a.ttl, aprio) < tie(b.content, b.ttl, bprio);
+  return tie(a.content, aprio) < tie(b.content, bprio);
 }
 
 bool dedupEqual(const DNSResourceRecord& a, const DNSResourceRecord &b)
 {
-  if(tie(a.content, a.ttl) != tie(b.content, b.ttl))
+  if(a.content != b.content)
     return false;
   if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
     return a.priority == b.priority;
