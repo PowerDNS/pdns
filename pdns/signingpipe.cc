@@ -109,11 +109,12 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
 namespace {
 bool dedupLessThan(const DNSResourceRecord& a, const DNSResourceRecord &b)
 {
-  if(tie(a.content, a.ttl) < tie(b.content, b.ttl))
-    return true;
-  if(a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
-    return a.priority < b.priority;
-  return false;
+  uint16_t aprio = 0, bprio = 0;
+  if (a.qtype.getCode() == QType::MX || a.qtype.getCode() == QType::SRV)
+    aprio = a.priority;
+  if (b.qtype.getCode() == QType::MX || b.qtype.getCode() == QType::SRV)
+    bprio = b.priority;
+  return tie(a.content, a.ttl, aprio) < tie(b.content, b.ttl, bprio);
 }
 
 bool dedupEqual(const DNSResourceRecord& a, const DNSResourceRecord &b)
