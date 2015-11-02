@@ -955,13 +955,13 @@ void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di
   if (!soaEdit2136Setting.empty()) {
     soaEdit2136 = soaEdit2136Setting[0];
     if (pdns_iequals(soaEdit2136, "SOA-EDIT") || pdns_iequals(soaEdit2136,"SOA-EDIT-INCREASE") ){
-      vector<string> soaEditSetting;
-      B.getDomainMetadata(di->zone, "SOA-EDIT", soaEditSetting);
+      string soaEditSetting;
+      d_dk.getSoaEdit(di->zone, soaEditSetting);
       if (soaEditSetting.empty()) {
         L<<Logger::Error<<msgPrefix<<"Using "<<soaEdit2136<<" for SOA-EDIT-DNSUPDATE increase on DNS update, but SOA-EDIT is not set for domain \""<< di->zone <<"\". Using DEFAULT for SOA-EDIT-DNSUPDATE"<<endl;
         soaEdit2136 = "DEFAULT";
       } else
-        soaEdit = soaEditSetting[0];
+        soaEdit = soaEditSetting;
     }
   }
 
