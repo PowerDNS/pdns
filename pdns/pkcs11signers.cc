@@ -213,6 +213,7 @@ class Pkcs11Slot {
         L<<Logger::Error<< msg << endl;
       }
     }
+
   public:
     Pkcs11Slot(CK_FUNCTION_LIST* functions, const CK_SLOT_ID& slot) {
       CK_TOKEN_INFO tokenInfo;
@@ -260,6 +261,9 @@ class Pkcs11Slot {
     CK_FUNCTION_LIST* f() { return d_functions; }
 
     pthread_mutex_t *m() { return &d_m; }
+
+    static boost::shared_ptr<Pkcs11Slot> GetSlot(const std::string& module, const string& tokenId);
+    static CK_RV HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions);
 };
 
 class Pkcs11Token {
@@ -607,31 +611,72 @@ class Pkcs11Token {
       return d_bits;
     }
 
-    static boost::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label);
+    static boost::shared_ptr<Pkcs11Token> GetToken(const std::string& module, const string& tokenId, const std::string& label);
 };
 
 static std::map<std::string, boost::shared_ptr<Pkcs11Slot> > pkcs11_slots;
 static std::map<std::string, boost::shared_ptr<Pkcs11Token> > pkcs11_tokens;
 
-boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const CK_SLOT_ID& slotId, const std::string& label) {
+CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_INFO* info, CK_FUNCTION_LIST* functions)
+{
+  CK_RV err;
+  unsigned long slots;
+  _CK_TOKEN_INFO tinfo;
+
+  // go thru all slots
+  // this is required by certain tokens, otherwise C_GetSlotInfo will not return a token
+  err = functions->C_GetSlotList(CK_FALSE, NULL_PTR, &slots);
+  if (err) {
+    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
+    return err;
+  }
+
+  // iterate all slots
+  for(slotId=0;slotId<slots;slotId++) {
+    if ((err = functions->C_GetSlotInfo(slotId, info))) {
+      L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
+      return err;
+    }
+    if ((err = functions->C_GetTokenInfo(slotId, &tinfo))) {
+      L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", &tinfo) = " << err << std::endl;
+      return err;
+    }
+    std::string slotName;
+    slotName.assign(reinterpret_cast<char*>(tinfo.label), 32);
+    // trim it
+    boost::trim(slotName);
+    if (boost::iequals(slotName, tokenId)) {
+      return 0;
+    }
+  }
+
+  // see if we can find it with slotId
+  try {
+    slotId = boost::lexical_cast<int>(tokenId);
+    if ((err = functions->C_GetSlotInfo(slotId, info))) {
+      L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
+      return err;
+    }
+    L<<Logger::Warning<<"Specifying PKCS#11 token by SLOT ID is deprecated and should not be used"<<std::endl;
+    return 0;
+  } catch (...) {
+    return CK_UNAVAILABLE_INFORMATION;
+  }
+  return CK_UNAVAILABLE_INFORMATION;
+}
+
+boost::shared_ptr<Pkcs11Slot> Pkcs11Slot::GetSlot(const std::string& module, const string& tokenId) {
   // see if we can find module
-  std::string tidx = module;
-  tidx.append("|");
-  tidx.append(boost::lexical_cast<std::string>(slotId));
-  std::string sidx = tidx;
-  tidx.append("|");
-  tidx.append(label);
-  std::map<std::string, boost::shared_ptr<Pkcs11Token> >::iterator tokenIter;
+  std::string sidx = module;
+  sidx.append("|");
+  sidx.append(tokenId);
   std::map<std::string, boost::shared_ptr<Pkcs11Slot> >::iterator slotIter;
   CK_RV err;
   CK_FUNCTION_LIST* functions;
 
-  if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
-
   // see if we have slot
   if ((slotIter = pkcs11_slots.find(sidx)) != pkcs11_slots.end()) {
-    pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(slotIter->second, label);
-    return pkcs11_tokens[tidx];
+    return slotIter->second;
   }
 
 #ifdef HAVE_P11KIT1_V2
@@ -644,23 +689,30 @@ boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, 
 
   // try to locate a slot
    _CK_SLOT_INFO info;
-  unsigned long slots;
+  CK_SLOT_ID slotId;
 
-  // this is required by certain tokens, otherwise C_GetSlotInfo will not return a token
-  err = functions->C_GetSlotList(CK_FALSE, NULL_PTR, &slots);
-  if (err)
-    L<<Logger::Warning<<"C_GetSlotList(CK_FALSE, NULL_PTR, &slots) = " << err << std::endl;
-
-  if ((err = functions->C_GetSlotInfo(slotId, &info))) {
-    throw PDNSException(std::string("Cannot find PKCS#11 slot ") + boost::lexical_cast<std::string>(slotId) + std::string(" on module ") + module + std::string(": error code ") + boost::lexical_cast<std::string>(err));
+  if ((err = Pkcs11Slot::HuntSlot(tokenId, slotId, &info, functions))) {
+    throw PDNSException(std::string("Cannot find PKCS#11 token ") + tokenId + std::string(" on module ") + module + std::string(": error code ") + boost::lexical_cast<std::string>(err));
   }
 
   // store slot
   pkcs11_slots[sidx] = boost::make_shared<Pkcs11Slot>(functions, slotId);
 
-  // looks ok to me.
-  pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(pkcs11_slots[sidx], label);
+  return pkcs11_slots[sidx];
+}
 
+boost::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, const string& tokenId, const std::string& label) {
+  // see if we can find module
+  std::string tidx = module;
+  tidx.append("|");
+  tidx.append(boost::lexical_cast<std::string>(tokenId));
+  tidx.append("|");
+  tidx.append(label);
+  std::map<std::string, boost::shared_ptr<Pkcs11Token> >::iterator tokenIter;
+  if ((tokenIter = pkcs11_tokens.find(tidx)) != pkcs11_tokens.end()) return tokenIter->second;
+
+  boost::shared_ptr<Pkcs11Slot> slot = Pkcs11Slot::GetSlot(module, tokenId);
+  pkcs11_tokens[tidx] = boost::make_shared<Pkcs11Token>(slot, label);
   return pkcs11_tokens[tidx];
 }
 
@@ -675,6 +727,14 @@ Pkcs11Token::Pkcs11Token(const boost::shared_ptr<Pkcs11Slot>& slot, const std::s
 }
 
 Pkcs11Token::~Pkcs11Token() {
+}
+
+bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin)
+{
+  boost::shared_ptr<Pkcs11Slot> slot;
+  slot = Pkcs11Slot::GetSlot(module, tokenId);
+  if (slot->LoggedIn()) return true; // no point failing
+  return slot->Login(pin);
 }
 
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
@@ -866,7 +926,7 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
   boost::assign::push_back(storvect)
    (make_pair("Algorithm", boost::lexical_cast<std::string>(d_algorithm)))
    (make_pair("Engine", d_module))
-   (make_pair("Slot", boost::lexical_cast<std::string>(d_slot_id)))
+   (make_pair("Slot", d_slot_id))
    (make_pair("PIN", d_pin))
    (make_pair("Label", d_label));
   return storvect;
@@ -875,7 +935,8 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
 void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) {
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   d_module = stormap["engine"];
-  d_slot_id = atoi(stormap["slot"].c_str());
+  d_slot_id = stormap["slot"];
+  boost::trim(d_slot_id);
   d_pin = stormap["pin"];
   d_label = stormap["label"];
   // validate parameters

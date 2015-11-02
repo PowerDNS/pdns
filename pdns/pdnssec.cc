@@ -2034,7 +2034,7 @@ try
       std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
-        std::cout << "Usage: pdnssec hsm assign zone algorithm ksk|zsk module slot pin label" << std::endl;
+        std::cout << "Usage: pdnssec hsm assign zone algorithm ksk|zsk module token pin label" << std::endl;
         return 1;
       }
 

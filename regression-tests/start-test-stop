@@ -75,13 +75,13 @@ securezone ()
                     slot=$((slot+1))
                   fi
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot 
-                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'` 
+                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
 # keep this until #1413 is merged
                   kid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
                   ../pdns/pdnssec --config-dir=. $configname hsm create-key $zone $kid
                   slot=$((slot+1))
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot
-                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm $slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
+                  kid=`../pdns/pdnssec --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
                   kid=`../pdns/pdnssec --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
                   ../pdns/pdnssec --config-dir=. $configname hsm create-key $zone $kid
                 else

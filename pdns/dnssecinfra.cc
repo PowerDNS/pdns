@@ -60,8 +60,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
       pkcs11=true;
       continue;
     } else if (pdns_iequals(key,"slot")) {
-      int slot = atoi(value.c_str());
-      stormap["slot"]=lexical_cast<string>(slot);
+      stormap["slot"]=value;
       continue;
     }  else if (pdns_iequals(key,"label")) {
       stormap["label"]=value;
