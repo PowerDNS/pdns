@@ -303,7 +303,7 @@ public:
 
     void initialize(T* target) {
       chunked = false; chunk_size = 0;
-      bodybuf.str(""); maxbody = 0;
+      bodybuf.str(""); minbody = 0; maxbody = 0;
       pos = 0; state = 0; this->target = target; 
       hasBody = false;
       buffer = "";
