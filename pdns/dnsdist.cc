@@ -561,7 +561,8 @@ try
 {
   vector<uint8_t> packet;
   DNSPacketWriter dpw(packet, DNSName("a.root-servers.net."), QType::A);
-  dpw.getHeader()->rd=true;
+  dnsheader * requestHeader = dpw.getHeader();
+  requestHeader->rd=true;
 
   Socket sock(remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();
@@ -573,6 +574,23 @@ try
   string reply;
   ComboAddress dest=remote;
   sock.recvFrom(reply, dest);
+
+  // dnsparser.cc is not included in dnsdist right now
+  // MOADNSParser mdp(reply);
+  // dnsheader const * responseHeader = &mdp.d_header;
+  struct dnsheader responseHeader;
+
+  if (reply.size() < sizeof(responseHeader))
+    return false;
+
+  memcpy(&responseHeader, reply.c_str(), sizeof(responseHeader));
+
+  if (responseHeader.id != requestHeader->id)
+    return false;
+  if (!responseHeader.qr)
+    return false;
+  if (responseHeader.rcode == RCode::ServFail)
+    return false;
 
   // XXX fixme do bunch of checking here etc 
   return true;
