@@ -157,7 +157,7 @@ this:
 Or we configure a server pool dedicated to receiving the nasty stuff:
 
 ```
-> newServer{address="192.168.1.3", pool="abuse")
+> newServer{address="192.168.1.3", pool="abuse"}
 > addPoolRule({"sh43353.cn.", "ezdns.it."}, "abuse")
 ```
 
