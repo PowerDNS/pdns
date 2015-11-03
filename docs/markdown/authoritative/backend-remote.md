@@ -49,7 +49,7 @@ remote-connection-string=pipe:command=/path/to/executable,timeout=2000
 ```
 
 ### HTTP connector
-parameters: url, url-suffix, post, post\_json, timeout (default 2000)
+parameters: url, url-suffix, post, post\_json, timeout (default 2000ms)
 
 ```
 remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
