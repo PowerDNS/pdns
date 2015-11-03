@@ -1,0 +1,24 @@
+example.org.	1800	IN	MX	1 6qys3.example.org.
+example.org.	1800	IN	MX	40 6wocbxd.example.org.
+example.org.	1800	IN	MX	41 3gyvyh121.example.org.
+example.org.	1800	IN	MX	54 vgo8ks5x.example.org.
+example.org.	1800	IN	MX	55 h90hhp.example.org.
+example.org.	1800	IN	MX	56 hpx58ao7.example.org.
+example.org.	1800	IN	MX	57 hcd16zwm.example.org.
+example.org.	1800	IN	MX	58 47g85qpc.example.org.
+example.org.	1800	IN	MX	59 7totbdrfl.example.org.
+example.org.	1800	IN	MX	60 5rtl4.example.org.
+example.org.	1800	IN	MX	61 l06hv.example.org.
+example.org.	1800	IN	MX	62 k20r61hi1.example.org.
+example.org.	1800	IN	MX	63 cphn494o.example.org.
+example.org.	1800	IN	MX	64 9f4tja.example.org.
+example.org.	1800	IN	MX	65 sgwo0gq.example.org.
+example.org.	1800	IN	MX	66 9vkpekd.example.org.
+example.org.	1800	IN	MX	67 0vec4i2e.example.org.
+example.org.	1800	IN	NS	dns1.exampledns.org.
+example.org.	1800	IN	NS	dns2.exampledns.org.
+example.org.	1800	IN	NS	dns3.exampledns.org.
+example.org.	1800	IN	NS	dns4.exampledns.org.
+example.org.	1800	IN	NS	dns5.exampledns.org.
+example.org.	3601	IN	SOA	dns1.exampledns.org. hostmaster.exampledns.org. 2015102301 43200 3600 604800 3601
+example.org.	3601	IN	SOA	dns1.exampledns.org. hostmaster.exampledns.org. 2015102301 43200 3600 604800 3601

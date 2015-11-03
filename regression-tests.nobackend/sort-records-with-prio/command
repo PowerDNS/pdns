@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+port=5501
+rm -f pdns*.pid sort-records-with-prio/pdns.sqlite3
+
+cat ../modules/gsqlite3backend/schema.sqlite3.sql | \
+  sqlite3 sort-records-with-prio/pdns.sqlite3
+
+../pdns/zone2sql --gsqlite --dnssec=no --named-conf=sort-records-with-prio/named.conf | \
+  sqlite3 sort-records-with-prio/pdns.sqlite3
+
+$RUNWRAPPER ../pdns/pdns_server --daemon=no --local-port=$port --socket-dir=./          \
+        --no-shuffle --launch=gsqlite3 --gsqlite3-database=sort-records-with-prio/pdns.sqlite3   \
+        --send-root-referral --cache-ttl=60 --no-config --module-dir=../regression-tests/modules &
+
+sleep 2
+
+timeout 5 ../pdns/saxfr 127.0.0.1 $port example.org showdetails showflags | LC_ALL=C sort
+
+kill $(cat pdns*.pid)
+rm -f pdns*.pid sort-records-with-prio/pdns.sqlite3
