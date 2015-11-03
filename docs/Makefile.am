@@ -1,6 +1,6 @@
 MANPAGES_TARGET_AUTH = pdns_server.1 \
 	pdns_control.1 \
-	pdnssec.1 \
+	pdnsutil.1 \
 	zone2ldap.1 \
 	zone2sql.1
 

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-$PDNSSEC --config-name=remote --config-dir=. backend-cmd remote HELLO
+$PDNSUTIL --config-name=remote --config-dir=. backend-cmd remote HELLO

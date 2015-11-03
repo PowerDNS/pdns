@@ -8,7 +8,7 @@
 
 	rm -f dnssec-slave.sqlite3
 
-	$PDNSSEC --config-dir=. create-bind-db dnssec-slave.sqlite3
+	$PDNSUTIL --config-dir=. create-bind-db dnssec-slave.sqlite3
 
 	set +e
 	echo $skipreasons | grep -q nodnssec

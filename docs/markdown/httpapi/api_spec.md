@@ -646,7 +646,7 @@ following additional fields MAY be supplied:
 
 Where `<algo>` is one of the supported key algos in lowercase OR the
 numeric id, see
-[http://rtfm.powerdns.com/pdnssec.html](http://rtfm.powerdns.com/pdnssec.html)
+[http://rtfm.powerdns.com/pdnsutil.html](http://rtfm.powerdns.com/pdnsutil.html)
 
 URL: /servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
 ---------------------------------------------------------------------

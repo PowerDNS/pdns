@@ -4,7 +4,7 @@ Before proceeding, it is advised to check the release notes for your PDNS versio
 
 # 3.X.X to 3.3.2
 
-Please run "pdnssec rectify-all-zones" and trigger an AXFR for all DNSSEC
+Please run "pdnsutil rectify-all-zones" and trigger an AXFR for all DNSSEC
 zones to make sure you benefit from all the compliance improvements present in
 this version.
 
@@ -208,7 +208,7 @@ For PostgreSQL:
 alter table supermasters alter column ip type VARCHAR(64);
 ```
 
-`pdnssec secure-zone` now creates one KSK and one ZSK, instead of two ZSKs.
+`pdnsutil secure-zone` now creates one KSK and one ZSK, instead of two ZSKs.
 
 The 'rec\_name\_index' index was dropped from the gmysql schema, as it was superfluous.
 
@@ -225,7 +225,7 @@ drop index orderindex on records;
 create index recordorder on records (domain_id, ordername);
 ```
 
-You can test the BINARY change with the new and experimental 'pdnssec test-schema' command. For PostgreSQL, there are no real schema changes, but our indexes turned out to be inefficient, especially given the changed ordername queries in 3.2. Changes:
+You can test the BINARY change with the new and experimental 'pdnsutil test-schema' command. For PostgreSQL, there are no real schema changes, but our indexes turned out to be inefficient, especially given the changed ordername queries in 3.2. Changes:
 
 ```
 drop index orderindex;
@@ -286,7 +286,7 @@ Q: Can 3.x versions read the 2.9 pre-DNSSEC database schema?
 A: Yes, as long as the relevant '-dnssec' setting is not enabled. These settings are typically called 'gmysql-dnssec', 'gpgsql-dnssec', 'gsqlite3-dnssec'. If this setting IS enabled, 3.x expects the new schema to be in place.
 
 Q: If I run 3.0 with the new schema, and I have set '-dnssec', do I need to rectify my zones?
-A: Yes. If the '-dnssec' setting is enabled, PowerDNS expects the 'auth' field to be filled out correctly. When slaving zones this happens automatically. For other zones, run 'pdnssec rectify-zone zonename'. Even if a zone is not DNSSEC secured, as long as the new schema is in place, the zone must be rectified (or at least have the 'auth' field set correctly).
+A: Yes. If the '-dnssec' setting is enabled, PowerDNS expects the 'auth' field to be filled out correctly. When slaving zones this happens automatically. For other zones, run 'pdnsutil rectify-zone zonename'. Even if a zone is not DNSSEC secured, as long as the new schema is in place, the zone must be rectified (or at least have the 'auth' field set correctly).
 
 Q: I want to fill out the 'auth' and 'ordername' fields directly, how do I do this?
 A: The 'auth' field should be '1' or 'true' for all records that are within your zone. For a zone without delegations, this means 'auth' should always be set. If you have delegations, both the NS records for that delegation and possible glue records for it should not have 'auth' set.

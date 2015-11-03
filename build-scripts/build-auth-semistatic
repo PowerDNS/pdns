@@ -67,11 +67,11 @@ backend'.
 %{_bindir}/pdns_control
 %{_bindir}/zone2sql
 %{_bindir}/zone2json
-%{_bindir}/pdnssec
+%{_bindir}/pdnsutil
 %{_mandir}/man1/pdns_control.1
 %{_mandir}/man1/pdns_server.1
 %{_mandir}/man1/zone2sql.1
-%{_mandir}/man1/pdnssec.1
+%{_mandir}/man1/pdnsutil.1
 %{_datadir}/doc/pdns/*.sql
 
 %dir %{_sysconfdir}/powerdns/

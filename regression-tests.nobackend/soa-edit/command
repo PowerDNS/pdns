@@ -29,8 +29,8 @@ rm -f soa-edit/bind-dnssec.db
 now=$(date +%s)
 delta=$((now-1418860790)) # Wed Dec 17 23:59:50 2014 UTC
  
-$PDNSSEC --config-dir=soa-edit create-bind-db soa-edit/bind-dnssec.db
-$PDNSSEC --config-dir soa-edit/ set-meta minimal.com SOA-EDIT INCREMENT-WEEKS
+$PDNSUTIL --config-dir=soa-edit create-bind-db soa-edit/bind-dnssec.db
+$PDNSUTIL --config-dir soa-edit/ set-meta minimal.com SOA-EDIT INCREMENT-WEEKS
 faketime -m -f -$delta $PDNS --config-dir=soa-edit &
 bindwait
 

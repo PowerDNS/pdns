@@ -21,7 +21,7 @@ export SDIG=/usr/bin/sdig
 export NSEC3DIG=/usr/bin/nsec3dig
 export SAXFR=/usr/bin/saxfr
 export ZONE2SQL=/usr/bin/zone2sql
-export PDNSSEC=/usr/bin/pdnssec
+export PDNSUTIL=/usr/bin/pdnsutil
 export PDNSCONTROL=/usr/bin/pdns_control
 
 export GEM_HOME=${PWD}/gems

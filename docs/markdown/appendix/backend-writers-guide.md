@@ -175,7 +175,7 @@ Please note that a RandomBackend is actually in most PDNS releases. By default i
 |uint32\_t ttl|Time To Live of this record|
 |int domain\_id| ID of the domain this record belongs to|
 |time\_t last\_modified| If unzero, last time\_t this record was changed|
-|bool auth| Used for DNSSEC operations. See [DNSSEC](../authoritative/dnssec.md) and more specifically the [Migration](../authoritative/dnssec.md#migration) section. It is also useful to check out the `rectifyZone()` in pdnssec.cc|
+|bool auth| Used for DNSSEC operations. See [DNSSEC](../authoritative/dnssec.md) and more specifically the [Migration](../authoritative/dnssec.md#migration) section. It is also useful to check out the `rectifyZone()` in pdnsutil.cc|
 |bool disabled|If set, this record is not to be served to DNS clients. Backends should not make these records available to PowerDNS unless indicated otherwise.|
 
 #### SOAData

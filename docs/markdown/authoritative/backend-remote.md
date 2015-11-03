@@ -312,7 +312,7 @@ Content-Type: text/javascript; charset=utf-8
 ```
 
 ### `getDomainKeys`
-Retrieves any keys of kind. The id, flags are unsigned integers, and active is boolean. Content must be valid key record in format that PowerDNS understands. You are encouraged to implement [the section called "addDomainKey"](#adddomainkey), as you can use [`pdnssec`](internals.md#pdnssec) to provision keys.
+Retrieves any keys of kind. The id, flags are unsigned integers, and active is boolean. Content must be valid key record in format that PowerDNS understands. You are encouraged to implement [the section called "addDomainKey"](#adddomainkey), as you can use [`pdnsutil`](internals.md#pdnsutil) to provision keys.
 
 * Mandatory: for DNSSEC
 * Parameters: name, kind
@@ -801,7 +801,7 @@ Content-Type: text/javascript; charset=utf-8
 ```
 
 ### `feedEnts`
-This method is used by pdnssec rectify-zone to populate missing non-terminals. This is used when you have, say, record like \_sip.\_upd.example.com, but no \_udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one. If startTransaction is called, trxid identifies a transaction.
+This method is used by pdnsutil rectify-zone to populate missing non-terminals. This is used when you have, say, record like \_sip.\_upd.example.com, but no \_udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one. If startTransaction is called, trxid identifies a transaction.
 
 * Mandatory: No
 * Parameters: nonterm, trxid
@@ -1013,7 +1013,7 @@ Content-Type: text/javascript; charset=utf-8
 ```
 
 ### `directBackendCmd`
-Can be used to send arbitrary commands to your backend using (backend-cmd)(dnssec.md#pdnssec).
+Can be used to send arbitrary commands to your backend using (backend-cmd)(dnssec.md#pdnsutil).
 
 * Mandatory: no
 * Parameters: query

@@ -202,7 +202,7 @@ fi
 %files
 %doc COPYING README
 %{_bindir}/pdns_control
-%{_bindir}/pdnssec
+%{_bindir}/pdnsutil
 %{_bindir}/zone2ldap
 %{_bindir}/zone2sql
 %{_bindir}/zone2json
@@ -211,7 +211,7 @@ fi
 %{_mandir}/man1/pdns_server.1.gz
 %{_mandir}/man1/zone2sql.1.gz
 %{_mandir}/man1/zone2ldap.1.gz
-%{_mandir}/man1/pdnssec.1.gz
+%{_mandir}/man1/pdnsutil.1.gz
 %{_initrddir}/pdns
 %dir %{_libdir}/%{name}/
 %{_libdir}/%{name}/librandombackend.so
@@ -475,7 +475,7 @@ exit 0
 %files
 %doc COPYING README
 %{_bindir}/pdns_control
-%{_bindir}/pdnssec
+%{_bindir}/pdnsutil
 %{_bindir}/pdns-zone2ldap
 %{_bindir}/zone2sql
 %{_bindir}/zone2json
@@ -485,7 +485,7 @@ exit 0
 %{_mandir}/man1/pdns_server.1.gz
 %{_mandir}/man1/zone2sql.1.gz
 %{_mandir}/man1/pdns-zone2ldap.1.gz
-%{_mandir}/man1/pdnssec.1.gz
+%{_mandir}/man1/pdnsutil.1.gz
 %{_unitdir}/pdns.service
 %dir %{_libdir}/%{name}/
 %{_libdir}/%{name}/librandombackend.so
