@@ -231,6 +231,8 @@ struct DownstreamState
   ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
+  DNSName checkName;
+  QType checkType;
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};

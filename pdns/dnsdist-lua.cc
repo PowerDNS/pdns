@@ -168,6 +168,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->name=boost::get<string>(vars["name"]);
 			}
 
+			if(vars.count("checkName")) {
+			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
+			}
+
+			if(vars.count("checkType")) {
+			  ret->checkType=boost::get<string>(vars["checkType"]);
+			}
+
 			if(g_launchWork) {
 			  g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));

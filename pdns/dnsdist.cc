@@ -214,7 +214,8 @@ bool operator<(const struct timespec&a, const struct timespec& b)
 }
 
 
-DownstreamState::DownstreamState(const ComboAddress& remote_)
+DownstreamState::DownstreamState(const ComboAddress& remote_):
+checkName("a.root-servers.net."), checkType(QType::A)
 {
   remote = remote_;
   
@@ -556,11 +557,11 @@ catch(...)
 }
 
 
-bool upCheck(const ComboAddress& remote)
+bool upCheck(const ComboAddress& remote, const DNSName& checkName, const QType& checkType)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, DNSName("a.root-servers.net."), QType::A);
+  DNSPacketWriter dpw(packet, checkName, checkType.getCode());
   dnsheader * requestHeader = dpw.getHeader();
   requestHeader->rd=true;
 
@@ -612,7 +613,7 @@ void* maintThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-	bool newState=upCheck(dss->remote);
+	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType);
 	if(newState != dss->upStatus) {
 	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
 	}
@@ -1124,8 +1125,8 @@ try
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(dss->remote);
-      warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
+      bool newState=upCheck(dss->remote, dss->checkName, dss->checkType);
+      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
       dss->upStatus = newState;
     }
   }
