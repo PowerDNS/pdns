@@ -36,7 +36,7 @@ options described [here](https://github.com/maxmind/geoip-api-c/blob/master/READ
 Specifies the full path of the zone configuration file to use.
 
 ### `geoip-dnssec-keydir`
-Specifies the full path of a directory that will contain DNSSEC keys.
+Specifies the full path of a directory that will contain DNSSEC keys. This option enables DNSSEC on the backend. Keys can be created/managed with `pdnutil`, and the backend stores these keys in files with key flags and active/disabled state encoded in the key filenames.
 
 ## Zonefile format
 Zone configuration file uses YAML syntax. Here is simple example. Note that the ‐ before certain keys is part of the syntax.
