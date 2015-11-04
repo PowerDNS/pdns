@@ -9,10 +9,10 @@ pdnsutil - PowerDNS dnssec command and control
 pdnsutil [OPTION]... *COMMAND*
 
 # DESCRIPTION
-**pdnsutil** is a powerful command that is the operator-friendly gateway into
-PowerDNSSEC configuration. Behind the scenes, **pdnsutil** manipulates a PowerDNS
-backend database, which also means that for many databases, **pdnsutil** can be
-run remotely, and can configure key material on different servers.
+**pdnsutil** (formerly pdnssec) is a powerful command that is the operator-friendly
+gateway into DNSSEC and zone management for PowerDNS. Behind the scenes, **pdnsutil**
+manipulates a PowerDNS backend database, which also means that for many databases,
+**pdnsutil** can be run remotely, and can configure key material on different servers.
 
 # OPTIONS
 -h | -help

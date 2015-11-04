@@ -202,7 +202,7 @@ Precisely speaking, the time period used is always from the start of the previou
 **Note**: Why Thursday? POSIX-based operating systems count the time since GMT midnight January 1st of 1970, which was a Thursday. PowerDNS inception/expiration times are generated based on an integral number of weeks having passed since the start of the 'epoch'.
 
 # `pdnsutil`
-`pdnsutil` is a powerful command that is the operator-friendly gateway into PowerDNSSEC configuration. Behind the scenes, `pdnsutil` manipulates a PowerDNS backend database, which also means that for many databases, `pdnsutil` can be run remotely, and can configure key material on different servers.
+`pdnsutil` (previously called `pdnssec`) is a powerful command that is the operator-friendly gateway into PowerDNSSEC configuration. Behind the scenes, `pdnsutil` manipulates a PowerDNS backend database, which also means that for many databases, `pdnsutil` can be run remotely, and can configure key material on different servers.
 
 For a list of available commands, see the [manpage](../manpages/pdnsutil.1.md).
 
