@@ -192,9 +192,6 @@ public:
 
   void doRecordCheck(const struct DNSRecord&){}
 
-  DNSName label; // FIXME400 rename
-  struct dnsrecordheader header;
-
   typedef DNSRecordContent* makerfunc_t(const struct DNSRecord& dr, PacketReader& pr);  
   typedef DNSRecordContent* zmakerfunc_t(const string& str);  
 
@@ -239,15 +236,12 @@ public:
 
   explicit DNSRecordContent(uint16_t type) : d_qtype(type)
   {
-     memset(&header,0,sizeof(header));
   }
   
   
   DNSRecordContent& operator=(const DNSRecordContent& orig) 
   {
     const_cast<uint16_t&>(d_qtype) = orig.d_qtype; // **COUGH**
-    label = orig.label;
-    header = orig.header;
     return *this;
   }
 
