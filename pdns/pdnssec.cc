@@ -141,6 +141,8 @@ void loadMainConfig(const std::string& configdir)
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
+  ::arg().set("default-soa-edit","Default SOA-EDIT value")="";
+  ::arg().set("default-soa-edit-signed","Default SOA-EDIT value for signed zones")="";
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
@@ -690,9 +692,14 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     cout<<"No SOA for zone '"<<zone.toString()<<"'"<<endl;
     return -1;
   }
+
+  if (dk.isPresigned(zone)) {
+    cerr<<"Serial increase of presigned zone '"<<zone<<"' is not allowed."<<endl;
+    return -1;
+  }
   
   string soaEditKind;
-  dk.getFromMeta(zone, "SOA-EDIT", soaEditKind);
+  dk.getSoaEdit(zone, soaEditKind);
 
   sd.db->lookup(QType(QType::SOA), zone);
   vector<DNSResourceRecord> rrs;
