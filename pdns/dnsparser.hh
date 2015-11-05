@@ -358,4 +358,11 @@ private:
 string simpleCompress(const string& label, const string& root="");
 void simpleExpandTo(const string& label, unsigned int frompos, string& ret);
 void ageDNSPacket(std::string& packet, uint32_t seconds);
+
+template<typename T>
+std::shared_ptr<T> getRR(const DNSRecord& dr)
+{
+  return std::dynamic_pointer_cast<T>(dr.d_content);
+}
+
 #endif
