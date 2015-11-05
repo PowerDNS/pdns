@@ -302,6 +302,17 @@ class DSRecordContent : public DNSRecordContent
 {
 public:
   DSRecordContent();
+  bool operator==(const DSRecordContent& rhs) const
+  {
+    return tie(d_tag, d_algorithm, d_digesttype, d_digest) ==
+      tie(rhs.d_tag, rhs.d_algorithm, rhs.d_digesttype, rhs.d_digest);
+  }
+  bool operator<(const DSRecordContent& rhs) const
+  {
+    return tie(d_tag, d_algorithm, d_digesttype, d_digest) <
+      tie(rhs.d_tag, rhs.d_algorithm, rhs.d_digesttype, rhs.d_digest);
+  }
+
   includeboilerplate(DS)
 
   uint16_t d_tag;
