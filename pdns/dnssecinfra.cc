@@ -298,7 +298,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& d
 
 bool sharedDNSSECCompare(const shared_ptr<DNSRecordContent>& a, const shared_ptr<DNSRecordContent>& b)
 {
-  return a->serialize(DNSName(), true, true) < b->serialize(DNSName(), true, true);
+  return a->serialize(DNSName("."), true, true) < b->serialize(DNSName("."), true, true);
 }
 
 string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, vector<shared_ptr<DNSRecordContent> >& signRecords) 
@@ -306,18 +306,18 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   sort(signRecords.begin(), signRecords.end(), sharedDNSSECCompare);
 
   string toHash;
-  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(DNSName(), true, true));
+  toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(DNSName("."), true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    toHash.append(qname.toDNSString()); // FIXME400 tolower?
+    toHash.append(qname.toDNSString()); // FIXME400 tolower? 
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
     toHash.append((char*)&tmp, 2);
     uint32_t ttl=htonl(rrc.d_originalttl);
     toHash.append((char*)&ttl, 4);
-    string rdata=add->serialize(DNSName(), true, true); 
+    string rdata=add->serialize(DNSName("."), true, true); 
     tmp=htons(rdata.length());
     toHash.append((char*)&tmp, 2);
     toHash.append(rdata);
