@@ -816,7 +816,7 @@ bool RemoteBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm) {
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    nts.SetArray();
    for(auto t: nonterm) {
-      rapidjson::Value value(t.first.toStringNoDot().c_str(), query.GetAllocator());
+      rapidjson::Value value(t.first.toString().c_str(), query.GetAllocator());
       nts.PushBack(value, query.GetAllocator());
    }
    parameters.AddMember("nonterm", nts, query.GetAllocator());
@@ -843,7 +843,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,
 
    nts.SetArray();
    for(auto t: nonterm) {
-      rapidjson::Value value(t.first.toStringNoDot().c_str(), query.GetAllocator());
+      rapidjson::Value value(t.first.toString().c_str(), query.GetAllocator());
       nts.PushBack(value, query.GetAllocator());
    }
    parameters.AddMember("nonterm", nts, query.GetAllocator());
