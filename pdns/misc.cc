@@ -230,26 +230,6 @@ bool dottedEndsOn(const DNSName &domain, const DNSName &suffix)
 }
 
 
-/** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-bool dottedEndsOn(const string &domain, const string &suffix)
-{
-  if( suffix=="." || ciEqual(domain, suffix) )
-    return true;
-
-  if(domain.size()<=suffix.size())
-    return false;
-
-  string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
-
-  if(domain[dpos++]!='.')
-    return false;
-
-  for(; dpos < domain.size(); ++dpos, ++spos)
-    if(dns_tolower(domain[dpos]) != dns_tolower(suffix[spos]))
-      return false;
-
-  return true;
-}
 
 static void parseService4(const string &descr, ServiceTuple &st)
 {

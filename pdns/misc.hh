@@ -56,7 +56,6 @@ bool chopOffDotted(string &domain);
 
 bool endsOn(const string &domain, const string &suffix);
 bool dottedEndsOn(const DNSName &domain, const DNSName &suffix); // REMOVE ME
-bool dottedEndsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
