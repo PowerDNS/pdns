@@ -1180,8 +1180,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
       for(auto& rec : lwr.d_records) {
         if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
-           lwr.d_rcode==RCode::NXDomain && dottedEndsOn(qname,rec.d_name) && dottedEndsOn(rec.d_name, auth)) {
-          LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<dottedEndsOn(rec.d_name, auth)<<"), newtarget='"<<newtarget.toString()<<"'"<<endl);
+           lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
+          LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget.toString()<<"'"<<endl);
 
           rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
           if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
@@ -1236,11 +1236,11 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	  }
           nsset.insert(DNSName(rec.d_content->getZoneRepresentation()));
         }
-        else if(rec.d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::DS) {
+        else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
 	  sawDS=true;
 	}
-        else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::SOA &&
+        else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::SOA &&
            lwr.d_rcode==RCode::NoError) {
           LOG(prefix<<qname.toString()<<": got negative caching indication for '"<< (qname.toString()+"|"+qtype.getName()+"'") <<endl);
 

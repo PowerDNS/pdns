@@ -223,14 +223,6 @@ bool endsOn(const string &domain, const string &suffix)
   return true;
 }
 
-// REMOVE ME
-bool dottedEndsOn(const DNSName &domain, const DNSName &suffix)
-{
-  return domain.isPartOf(suffix);
-}
-
-
-
 static void parseService4(const string &descr, ServiceTuple &st)
 {
   vector<string>parts;
