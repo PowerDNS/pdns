@@ -108,6 +108,7 @@ This method is used to do the basic query. You can omit auth, but if you are usi
 * Optional parameters: remote, local, real-remote
 * Reply: array of `qtype,qname,content,ttl,domain\_id,scopeMask,auth`
 * Optional values: domain\_id, scopeMask and auth
+* Note: priority field is required before 4.0, after 4.0 priority is added to content. This applies to any resource record which uses priority, for example SRV or MX. 
 
 #### Example JSON/RPC
 Query:
