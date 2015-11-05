@@ -721,10 +721,13 @@ toysdig_SOURCES = \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
+	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
 	mbedtlscompat.hh \
+	mbedtlssigners.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -736,7 +739,12 @@ toysdig_SOURCES = \
 	toysdig.cc \
 	unix_utility.cc
 
+
 toysdig_LDADD = $(MBEDTLS_LIBS)
+if GSS_TSIG
+toysdig_LDADD += $(GSS_LIBS)
+endif
+
 
 tsig_tests_SOURCES = \
 	arguments.cc \
