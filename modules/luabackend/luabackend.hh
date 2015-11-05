@@ -155,7 +155,9 @@ private:
 //  FUNCTIONS TO THIS BACKEND
     bool getValueFromTable(lua_State *lua, const std::string& key, string& value);
     bool getValueFromTable(lua_State *lua, uint32_t key, string& value);
+#if !(defined(__i386__) && defined(__FreeBSD__))
     bool getValueFromTable(lua_State *lua, const std::string& key, time_t& value);
+#endif
     bool getValueFromTable(lua_State *lua, const std::string& key, uint32_t& value);
     bool getValueFromTable(lua_State *lua, const std::string& key, uint16_t& value);
     bool getValueFromTable(lua_State *lua, const std::string& key, int& value);
