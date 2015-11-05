@@ -1184,7 +1184,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<dottedEndsOn(rec.d_name, auth)<<"), newtarget='"<<newtarget.toString()<<"'"<<endl);
 
           rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
-          if(!newtarget.length()) // only add a SOA if we're not going anywhere after this
+          if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
             ret.push_back(rec);
 
           NegCacheEntry ne;

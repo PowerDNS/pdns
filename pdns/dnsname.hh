@@ -27,13 +27,13 @@
 class DNSName
 {
 public:
-  DNSName() : d_empty(true) {}          //!< Constructs an *empty* DNSName, NOT the root!
+  DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
   explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
   
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name?
-  bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive)
+  bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive) - empty compares to empty
   bool operator!=(const DNSName& other) const { return !(*this == other); }
 
   std::string toString(const std::string& separator=".", const bool trailing=true) const;              //!< Our human-friendly, escaped, representation
@@ -49,17 +49,22 @@ public:
   bool isWildcard() const;
   unsigned int countLabels() const;
   size_t wirelength() const; //!< Number of total bytes in the name
-  bool empty() const { return d_empty; }
-  bool isRoot() const { return !d_empty && d_storage.empty(); }
-  void clear() { d_storage.clear(); d_empty=true; }
+  bool empty() const { return d_storage.empty(); }
+  bool isRoot() const { return d_storage.size()==1 && d_storage[0]==0; }
+  void clear() { d_storage.clear(); }
   void trimToLabels(unsigned int);
   DNSName& operator+=(const DNSName& rhs)
   {
-    if(d_storage.size() + rhs.d_storage.size() > 254) // reserve one byte for the root label
+    if(d_storage.size() + rhs.d_storage.size() > 256) // reserve one byte for the root label
       throw std::range_error("name too long");
+    if(rhs.empty())
+      return *this;
 
-    d_storage+=rhs.d_storage;
-    d_empty&=rhs.d_empty;
+    if(d_storage.empty())
+      d_storage+=rhs.d_storage;
+    else
+      d_storage.replace(d_storage.length()-1, rhs.d_storage.length(), rhs.d_storage);
+
     return *this;
   }
 
@@ -76,7 +81,6 @@ public:
   void serialize(Archive &ar, const unsigned int version)
   {
     ar & d_storage;
-    ar & d_empty;
   }
 
   inline bool canonCompare(const DNSName& rhs) const;
@@ -86,7 +90,6 @@ private:
   typedef std::string string_t;
 
   string_t d_storage;
-  bool d_empty;
 
   void packetParser(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0, int depth=0);
   static std::string escapeLabel(const std::string& orig);
@@ -116,9 +119,9 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
   uint8_t ourpos[64], rhspos[64];
   uint8_t ourcount=0, rhscount=0;
   //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
-  for(const unsigned char* p = (const unsigned char*)d_storage.c_str(); p < (const unsigned char*)d_storage.c_str() + d_storage.size() && ourcount < sizeof(ourpos); p+=*p+1)
+  for(const unsigned char* p = (const unsigned char*)d_storage.c_str(); p < (const unsigned char*)d_storage.c_str() + d_storage.size() && *p && ourcount < sizeof(ourpos); p+=*p+1)
     ourpos[ourcount++]=(p-(const unsigned char*)d_storage.c_str());
-  for(const unsigned char* p = (const unsigned char*)rhs.d_storage.c_str(); p < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && rhscount < sizeof(rhspos); p+=*p+1)
+  for(const unsigned char* p = (const unsigned char*)rhs.d_storage.c_str(); p < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && *p && rhscount < sizeof(rhspos); p+=*p+1)
     rhspos[rhscount++]=(p-(const unsigned char*)rhs.d_storage.c_str());
 
   if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {

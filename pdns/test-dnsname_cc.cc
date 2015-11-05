@@ -14,7 +14,6 @@ BOOST_AUTO_TEST_SUITE(dnsname_cc)
 BOOST_AUTO_TEST_CASE(test_basic) {
   string before("www.ds9a.nl.");
   DNSName b(before);
-
   BOOST_CHECK_EQUAL(b.getRawLabels().size(), 3);
   string after(b.toString());
   BOOST_CHECK_EQUAL(before, after);
@@ -44,12 +43,6 @@ BOOST_AUTO_TEST_CASE(test_basic) {
     DNSName name("."); // root
     DNSName parent; // empty
     BOOST_CHECK(name != parent);
-  }
-
-  { // Check root part of root
-    DNSName name;
-    DNSName parent;
-    BOOST_CHECK(!name.isPartOf(parent));
   }
 
   { // Check name part of root
@@ -91,7 +84,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   { // Make relative
     DNSName name("aaaa.bbb.cc.d.");
     DNSName parent("cc.d.");
-    BOOST_CHECK( name.makeRelative(parent) == DNSName("aaaa.bbb."));
+    BOOST_CHECK_EQUAL( name.makeRelative(parent), DNSName("aaaa.bbb."));
   }
 
   { // Labelreverse
@@ -117,14 +110,13 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK( left == DNSName("WwW.Ds9A.Nl.com."));
   
-  DNSName root;
-  BOOST_CHECK(root.toString() != ".");
+  DNSName unset;
 
-  root.appendRawLabel("www");
-  root.appendRawLabel("powerdns.com");
-  root.appendRawLabel("com");
+  unset.appendRawLabel("www");
+  unset.appendRawLabel("powerdns.com");
+  unset.appendRawLabel("com");
 
-  BOOST_CHECK_EQUAL(root.toString(), "www.powerdns\\.com.com.");
+  BOOST_CHECK_EQUAL(unset.toString(), "www.powerdns\\.com.com.");
 
   DNSName rfc4343_2_2(R"(Donald\032E\.\032Eastlake\0323rd.example.)");
   DNSName example("example.");
@@ -149,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
 
   BOOST_CHECK_EQUAL(n.toString(), "powerdns\\.dnsmaster.powerdns.com.");
 
-  BOOST_CHECK(DNSName().toString() != ".");
+  //  BOOST_CHECK(DNSName().toString() != ".");
 
   DNSName p;
   string label("power");
@@ -178,6 +170,35 @@ BOOST_AUTO_TEST_CASE(test_dnsstrings) {
   DNSName w("www.powerdns.com.");
   BOOST_CHECK_EQUAL(w.toDNSString(), string("\003www\010powerdns\003com\000", 18));
 }
+
+BOOST_AUTO_TEST_CASE(test_empty) {
+  DNSName empty;
+  BOOST_CHECK_THROW(empty.toString(), std::out_of_range);
+  BOOST_CHECK_THROW(empty.toStringNoDot(), std::out_of_range);
+  BOOST_CHECK_THROW(empty.toDNSString(), std::out_of_range);
+  BOOST_CHECK(empty.empty());
+  BOOST_CHECK(!empty.isRoot());
+  BOOST_CHECK(!empty.isWildcard());
+  BOOST_CHECK_EQUAL(empty, empty);
+  BOOST_CHECK(!(empty < empty));
+  
+  DNSName root(".");
+  BOOST_CHECK(empty < root);
+
+  BOOST_CHECK_THROW(empty.isPartOf(root), std::out_of_range);
+  BOOST_CHECK_THROW(root.isPartOf(empty), std::out_of_range);
+}
+
+BOOST_AUTO_TEST_CASE(test_specials) {
+  DNSName root(".");
+  
+  BOOST_CHECK(root.isRoot());
+  BOOST_CHECK(root != DNSName());
+
+  DNSName wcard("*.powerdns.com");
+  BOOST_CHECK(wcard.isWildcard());
+}
+
 
 BOOST_AUTO_TEST_CASE(test_chopping) {
   DNSName w("www.powerdns.com.");
@@ -274,7 +295,6 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
 
   DNSName dn3((char*)&packet[0], packet.size(), 12+13+4+2 + 4 + 4 + 2, true);
   BOOST_CHECK_EQUAL(dn3.toString(), "ns1.powerdns.com."); 
-
   try {
     DNSName dn4((char*)&packet[0], packet.size(), 12+13+4, false); // compressed, should fail
     BOOST_CHECK(0); 
@@ -285,6 +305,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
 BOOST_AUTO_TEST_CASE(test_escaping) {
   DNSName n;
   string label;
+
   for(int i = 0; i < 250; ++i) {
     if(!((i+1)%63)) {
       n.appendRawLabel(label);
@@ -322,7 +343,7 @@ BOOST_AUTO_TEST_CASE(test_suffixmatch) {
 
   BOOST_CHECK(!smn.check(DNSName("www.news.gov.uk.")));
 
-  smn.add(DNSName()); // block the root
+  smn.add(DNSName(".")); // block the root
   BOOST_CHECK(smn.check(DNSName("a.root-servers.net.")));
 }
 
@@ -443,6 +464,7 @@ BOOST_AUTO_TEST_CASE(test_name_length_max) { // 255 char name
 
   { // concat
     DNSName dn(name);
+
     dn += DNSName(label + ".");
     BOOST_CHECK_EQUAL(dn.toString().size(), 254);
   }
