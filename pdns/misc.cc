@@ -40,6 +40,8 @@
 #include <errno.h>
 #include <cstring>
 #include <iostream>
+#include <sys/types.h>
+#include <dirent.h>
 #include <algorithm>
 #include <boost/optional.hpp>
 #include <poll.h>
@@ -1112,6 +1114,28 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
   case TSIG_GSS: return DNSName("gss-tsig.");
   }
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
+}
+
+uint64_t getOpenFileDescriptors(const std::string&)
+{
+#ifdef __linux__
+  DIR* dirhdl=opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str());
+  if(!dirhdl) 
+    return 0;
+
+  struct dirent *entry;
+  int ret=0;
+  while((entry = readdir(dirhdl))) {
+    uint32_t num = atoi(entry->d_name);
+    if(std::to_string(num) == entry->d_name)
+      ret++;
+  }
+  closedir(dirhdl);
+  return ret;
+
+#else
+  return 0;
+#endif
 }
 
 uint64_t getRealMemoryUsage(const std::string&)
