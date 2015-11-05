@@ -374,7 +374,7 @@ vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
 
   state = Indeterminate;
 
-  DNSName qname;
+  DNSName qname(".");
   typedef std::multimap<uint16_t, DSRecordContent> dsmap_t;
   dsmap_t dsmap;
   keymap_t keymap;
@@ -564,6 +564,10 @@ int main(int argc, char** argv)
 try
 {
   reportAllTypes();
+  rootDS =  "19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5";
+
+  if(argv[5])
+    rootDS = argv[5];
   g_anchors.insert(DSRecordContent("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5"));
   if(argc < 4) {
     cerr<<"Syntax: sdig IP-address port question question-type\n";
