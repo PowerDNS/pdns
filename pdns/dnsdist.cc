@@ -214,8 +214,7 @@ bool operator<(const struct timespec&a, const struct timespec& b)
 }
 
 
-DownstreamState::DownstreamState(const ComboAddress& remote_):
-checkName("a.root-servers.net."), checkType(QType::A)
+DownstreamState::DownstreamState(const ComboAddress& remote_): checkName("a.root-servers.net."), checkType(QType::A), mustResolve(false)
 {
   remote = remote_;
   
@@ -557,7 +556,7 @@ catch(...)
 }
 
 
-bool upCheck(const ComboAddress& remote, const DNSName& checkName, const QType& checkType)
+bool upCheck(const ComboAddress& remote, const DNSName& checkName, const QType& checkType, bool mustResolve)
 try
 {
   vector<uint8_t> packet;
@@ -592,6 +591,8 @@ try
     return false;
   if (responseHeader.rcode == RCode::ServFail)
     return false;
+  if (mustResolve && (responseHeader.rcode == RCode::NXDomain || responseHeader.rcode == RCode::Refused))
+    return false;
 
   // XXX fixme do bunch of checking here etc 
   return true;
@@ -613,7 +614,7 @@ void* maintThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType);
+	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
 	if(newState != dss->upStatus) {
 	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
 	}
@@ -1125,7 +1126,7 @@ try
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(dss->remote, dss->checkName, dss->checkType);
+      bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
       warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
       dss->upStatus = newState;
     }

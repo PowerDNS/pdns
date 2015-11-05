@@ -255,6 +255,7 @@ struct DownstreamState
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
+  bool mustResolve;
   bool upStatus{false};
   bool isUp() const
   {
