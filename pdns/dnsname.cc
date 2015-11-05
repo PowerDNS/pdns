@@ -66,6 +66,8 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       throw std::range_error("Found an invalid label length in qname");
     pos+=labellen;
   }
+  if(d_storage.empty())
+    d_storage.append(1, (char)0); // we just parsed the root
   if(consumed)
     *consumed = pos - opos - offset;
   if(qtype && pos + labellen + 2 <= end)

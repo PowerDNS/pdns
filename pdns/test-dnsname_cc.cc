@@ -230,6 +230,16 @@ BOOST_AUTO_TEST_CASE(test_Append) {
   BOOST_CHECK(dn == DNSName("www.powerdns.com."));
 }
 
+BOOST_AUTO_TEST_CASE(test_PacketParse) {
+  vector<unsigned char> packet;
+  reportBasicTypes();
+  DNSName root(".");
+  DNSPacketWriter dpw1(packet, DNSName("."), QType::AAAA);
+  DNSName p((char*)&packet[0], packet.size(), 12, false);
+  BOOST_CHECK_EQUAL(p, root);
+}
+
+
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet;
   reportBasicTypes();
