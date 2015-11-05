@@ -80,9 +80,9 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
 
 std::string DNSName::toString(const std::string& separator, const bool trailing) const
 {
-  if (d_empty)
+  if (empty())
     return "";
-  if(d_storage.empty() && trailing)  // I keep wondering if there is some deeper meaning to the need to do this
+  if(empty() && trailing)  // I keep wondering if there is some deeper meaning to the need to do this
     return separator;
   std::string ret;
   for(const auto& s : getRawLabels()) {
@@ -93,16 +93,12 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
 
 std::string DNSName::toDNSString() const
 {
-  if (d_empty)
-    return "";
+  //  if (empty())
+  //  return "";
   string ret(d_storage.c_str(), d_storage.length());
   ret.append(1,(char)0);
   return toLower(ret); // toLower or not toLower, that is the question
   // return ret;
-}
-
-size_t DNSName::length() const {
-  return this->toString().length();
 }
 
 /**
@@ -117,7 +113,7 @@ size_t DNSName::wirelength() const {
 // are WE part of parent
 bool DNSName::isPartOf(const DNSName& parent) const
 {
-  if(parent.d_empty || d_empty)
+  if(parent.empty() || empty())
     return false;
   if(parent.d_storage.empty())
     return true;
@@ -156,7 +152,7 @@ void DNSName::makeUsRelative(const DNSName& zone)
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
-  if (!d_empty) {
+  if (!empty()) {
     vector<string> l=getRawLabels();
     while(!l.empty()) {
       ret.appendRawLabel(l.back());
@@ -244,7 +240,7 @@ void DNSName::trimToLabels(unsigned int to)
 
 bool DNSName::operator==(const DNSName& rhs) const
 {
-  if(rhs.d_empty != d_empty || rhs.d_storage.size() != d_storage.size())
+  if(rhs.empty() != empty() || rhs.d_storage.size() != d_storage.size())
     return false;
 
   auto us = d_storage.crbegin();

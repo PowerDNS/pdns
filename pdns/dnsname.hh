@@ -27,7 +27,7 @@
 class DNSName
 {
 public:
-  DNSName() : d_empty(true) {}                 //!< Don't constructs the root name
+  DNSName() : d_empty(true) {}          //!< Constructs an *empty* DNSName, NOT the root!
   explicit DNSName(const char* p);      //!< Constructs from a human formatted, escaped presentation
   explicit DNSName(const std::string& str) : DNSName(str.c_str()) {}   //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* p, int len, int offset, bool uncompress, uint16_t* qtype=0, uint16_t* qclass=0, unsigned int* consumed=0); //!< Construct from a DNS Packet, taking the first question if offset=12
@@ -48,7 +48,6 @@ public:
   DNSName labelReverse() const;
   bool isWildcard() const;
   unsigned int countLabels() const;
-  size_t length() const; // FIXME400 remove me?
   size_t wirelength() const; //!< Number of total bytes in the name
   bool empty() const { return d_empty; }
   bool isRoot() const { return !d_empty && d_storage.empty(); }
