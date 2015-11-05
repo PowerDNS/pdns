@@ -103,6 +103,9 @@ Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
 
+int g_tcpRecvTimeout{2};
+int g_tcpSendTimeout{2};
+
 bool g_truncateTC{1};
 void truncateTC(const char* packet, unsigned int* len)
 try

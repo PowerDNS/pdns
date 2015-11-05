@@ -87,12 +87,12 @@ int readn2(int fd, void* buffer, unsigned int len)
   for(;;) {
     res = read(fd, (char*)buffer + pos, len - pos);
     if(res == 0)
-      throw runtime_error("EOF while writing message");
+      throw runtime_error("EOF while reading message");
     if(res < 0) {
       if (errno == EAGAIN)
-        throw std::runtime_error("used writen2 on non-blocking socket, got EAGAIN");
+        throw std::runtime_error("used readn2 on non-blocking socket, got EAGAIN");
       else
-        unixDie("failed in writen2");
+        unixDie("failed in readn2");
     }
 
     pos+=res;
@@ -102,6 +102,71 @@ int readn2(int fd, void* buffer, unsigned int len)
   return len;
 }
 
+int readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
+{
+  size_t pos = 0;
+  do {
+    ssize_t got = read(fd, (char *)buffer + pos, len - pos);
+    if (got > 0) {
+      pos += (size_t) got;
+    }
+    else if (got == 0) {
+      throw runtime_error("EOF while reading message");
+    }
+    else {
+      if (errno == EAGAIN) {
+        int res = waitForData(fd, timeout);
+        if (res > 0) {
+          /* there is data available */
+        }
+        else if (res == 0) {
+          throw runtime_error("Timeout while waiting for data to read");
+        } else {
+          throw runtime_error("Error while waiting for data to read");
+        }
+      }
+      else {
+        unixDie("failed in readn2WithTimeout");
+      }
+    }
+  }
+  while (pos < len);
+
+  return len;
+}
+
+int writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
+{
+  size_t pos = 0;
+  do {
+    ssize_t written = write(fd, (char *)buffer + pos, len - pos);
+
+    if (written > 0) {
+      pos += (size_t) written;
+    }
+    else if (written == 0)
+      throw runtime_error("EOF while writing message");
+    else {
+      if (errno == EAGAIN) {
+        int res = waitForRWData(fd, false, timeout, 0);
+        if (res > 0) {
+          /* there is room available */
+        }
+        else if (res == 0) {
+          throw runtime_error("Timeout while waiting to write data");
+        } else {
+          throw runtime_error("Error while waiting for room to write data");
+        }
+      }
+      else {
+        unixDie("failed in write2WithTimeout");
+      }
+    }
+  }
+  while (pos < len);
+
+  return len;
+}
 
 string nowTime()
 {
