@@ -131,8 +131,6 @@ void* tcpClientThread(int pipefd)
             dh->qr=false;
           }
         }
-
-	
 	
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
@@ -173,9 +171,7 @@ void* tcpClientThread(int pipefd)
 	  putMsgLen(ci.fd, qlen);
 	  writen2(ci.fd, query, rlen);
 	  goto drop;
-
 	}
-
 
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
@@ -226,7 +222,7 @@ void* tcpClientThread(int pipefd)
 
   drop:;
     
-    vinfolog("Closing client connection with %s", ci.remote.toStringWithPort());
+    vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
     close(ci.fd); 
     ci.fd=-1;
     if(ds)
@@ -250,14 +246,18 @@ void* tcpAcceptorThread(void* p)
 
   auto acl = g_ACL.getLocal();
   for(;;) {
+    ConnectionInfo* ci;
     try {
-      ConnectionInfo* ci = new ConnectionInfo;
+      ci=0;
+      ci = new ConnectionInfo;
+      ci->fd = -1;
       ci->fd = SAccept(cs->tcpFD, remote);
       
       if(!acl->match(remote)) {
 	g_stats.aclDrops++;
 	close(ci->fd);
 	delete ci;
+	ci=0;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }
@@ -266,6 +266,12 @@ void* tcpAcceptorThread(void* p)
       
       ci->remote = remote;
       writen2(g_tcpclientthreads.getThread(), &ci, sizeof(ci));
+    }
+    catch(std::exception& e) {
+      errlog("While reading a TCP question: %s", e.what());
+      if(ci && ci->fd >= 0) 
+	close(ci->fd);
+      delete ci;
     }
     catch(...){}
   }
