@@ -79,7 +79,7 @@ HTTP connector calls methods based on URL and has parameters in the query string
 ## Replies
 You **must** always reply with JSON hash with at least one key, 'result'. This must be boolean false if the query failed. Otherwise it must conform to the expected result. For HTTP connector, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
 
-You can optionally add 'log' array, each line in this array will be logged in PowerDNS.
+You can optionally add an array of strings to the 'log' array; each line in this array will be logged in PowerDNS at loglevel `info` (6).
 
 ## Methods
 ### `initialize`
