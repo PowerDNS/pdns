@@ -98,7 +98,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   string value;
   bool haveSomething;
   {
-    MapCombo& mc=getMap(pcReverse(p->qdomain));
+    MapCombo& mc=getMap(p->qdomain);
     TryReadLock l(&mc.d_mut); // take a readlock here
     if(!l.gotIt()) {
       S.inc("deferred-cache-lookup");
@@ -175,7 +175,7 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
   CacheEntry val;
   val.created=time(0);
   val.ttd=val.created+ttl;
-  val.qname=pcReverse(qname);
+  val.qname=qname;
   val.qtype=qtype.getCode();
   val.value=value;
   val.ctype=cet;
@@ -216,36 +216,35 @@ int PacketCache::purge()
 int PacketCache::purge(const string &match)
 {
   int delcount=0;
-
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
-    WriteLock l(&mc.d_mut);
-    
-    if(ends_with(match, "$")) {
-      string prefix(match);
-      prefix.resize(prefix.size()-1);
-
-      string zone = pcReverse(DNSName(prefix));
-
-      cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(zone));
-      cmap_t::const_iterator start=iter;
+  if(ends_with(match, "$")) {
+    string prefix(match);
+    prefix.resize(prefix.size()-1);
+    DNSName dprefix(prefix);
+    for(MapCombo& mc : d_maps) {
+      WriteLock l(&mc.d_mut);
+      cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(dprefix));
+      auto start=iter;
 
       for(; iter != mc.d_map.end(); ++iter) {
-	if(iter->qname.compare(0, zone.size(), zone) != 0) {
+	if(!iter->qname.isPartOf(dprefix)) {
 	  break;
 	}
 	delcount++;
       }
       mc.d_map.erase(start, iter);
     }
-  
-    else {
-      string qname = pcReverse(DNSName(match));
-      
-      delcount+=mc.d_map.count(tie(qname));
-      pair<cmap_t::iterator, cmap_t::iterator> range = mc.d_map.equal_range(tie(qname));
+  }
+  else {
+    DNSName dn(match);
+    auto mc = getMap(dn);
+    WriteLock l(&mc.d_mut);
+    auto range = mc.d_map.equal_range(tie(dn));
+    if(range.first != range.second) {
+      delcount+=distance(range.first, range.second) - 1;
       mc.d_map.erase(range.first, range.second);
     }
   }
+
   *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED
   return delcount;
 }
@@ -260,7 +259,7 @@ bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryT
     cleanup();
   }
 
-  MapCombo& mc=getMap(pcReverse(qname));
+  MapCombo& mc=getMap(qname);
 
   TryReadLock l(&mc.d_mut); // take a readlock here
   if(!l.gotIt()) {
@@ -277,9 +276,8 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  string pcqname = pcReverse(qname);
-  MapCombo& mc=getMap(pcqname);
-  cmap_t::const_iterator i=mc.d_map.find(tie(pcqname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
+  MapCombo& mc=getMap(qname);
+  cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
   time_t now=time(0);
   bool ret=(i!=mc.d_map.end() && i->ttd > now);
   if(ret) {
@@ -291,12 +289,6 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
   return ret;
 }
 
-
-string PacketCache::pcReverse(DNSName content)
-{
-  string ret=content.labelReverse().toDNSString();
-  return ret.substr(0, ret.size()-1);
-}
 
 map<char,int> PacketCache::getCounts()
 {

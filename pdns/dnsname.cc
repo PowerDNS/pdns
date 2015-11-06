@@ -265,7 +265,7 @@ bool DNSName::operator==(const DNSName& rhs) const
 size_t hash_value(DNSName const& d)
 {
   boost::hash<string> hasher;
-  return hasher(toLower(d.toString())); // FIXME400 HACK
+  return hasher(toLower(d.toString())); // FIXME400 HACK - we rely on this lowercasing though in packetcache.hh
 }
 
 string DNSName::escapeLabel(const std::string& label)
