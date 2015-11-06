@@ -956,7 +956,7 @@ try
   struct option longopts[]={ 
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
-    {"command", optional_argument, 0, 'c'},
+    {"client", 0, 0, 'c'},
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
     {"pidfile",  required_argument, 0, 'p'},
@@ -966,7 +966,7 @@ try
   };
   int longindex=0;
   for(;;) {
-    int c=getopt_long(argc, argv, "hbcde:C:l:m:vp:", longopts, &longindex);
+    int c=getopt_long(argc, argv, "hcde:C:l:vp:", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
