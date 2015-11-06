@@ -29,14 +29,13 @@
 #include "statbag.hh"
 #include <map>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 
 extern StatBag S;
 
 PacketCache::PacketCache()
 {
   d_maps.resize(1024);
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     pthread_rwlock_init(&mc.d_mut, 0);
   }
 
@@ -57,10 +56,10 @@ PacketCache::~PacketCache()
 {
   //  WriteLock l(&d_mut);
   vector<WriteLock*> locks;
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     locks.push_back(new WriteLock(&mc.d_mut));
   }
-  BOOST_FOREACH(WriteLock* wl, locks) {
+  for(auto wl : locks) {
     delete wl;
   }
 }
@@ -98,7 +97,7 @@ int PacketCache::get(DNSPacket *p, DNSPacket *cached, bool recursive)
   string value;
   bool haveSomething;
   {
-    MapCombo& mc=getMap(p->qdomain);
+    auto& mc=getMap(p->qdomain);
     TryReadLock l(&mc.d_mut); // take a readlock here
     if(!l.gotIt()) {
       S.inc("deferred-cache-lookup");
@@ -185,7 +184,8 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
   val.zoneID = zoneID;
   val.hasEDNS = EDNS;
   
-  MapCombo& mc = getMap(val.qname);
+  auto& mc = getMap(val.qname);
+
   TryWriteLock l(&mc.d_mut);
   if(l.gotIt()) { 
     bool success;
@@ -203,7 +203,7 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
 int PacketCache::purge()
 {
   int delcount=0;
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     WriteLock l(&mc.d_mut);
     delcount+=mc.d_map.size();
     mc.d_map.clear();
@@ -220,7 +220,7 @@ int PacketCache::purge(const string &match)
     string prefix(match);
     prefix.resize(prefix.size()-1);
     DNSName dprefix(prefix);
-    for(MapCombo& mc : d_maps) {
+    for(auto& mc : d_maps) {
       WriteLock l(&mc.d_mut);
       cmap_t::const_iterator iter = mc.d_map.lower_bound(tie(dprefix));
       auto start=iter;
@@ -236,11 +236,12 @@ int PacketCache::purge(const string &match)
   }
   else {
     DNSName dn(match);
-    auto mc = getMap(dn);
+    auto& mc = getMap(dn);
+
     WriteLock l(&mc.d_mut);
     auto range = mc.d_map.equal_range(tie(dn));
     if(range.first != range.second) {
-      delcount+=distance(range.first, range.second) - 1;
+      delcount+=distance(range.first, range.second);
       mc.d_map.erase(range.first, range.second);
     }
   }
@@ -259,7 +260,7 @@ bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryT
     cleanup();
   }
 
-  MapCombo& mc=getMap(qname);
+  auto& mc=getMap(qname);
 
   TryReadLock l(&mc.d_mut); // take a readlock here
   if(!l.gotIt()) {
@@ -276,7 +277,7 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
 {
   uint16_t qt = qtype.getCode();
   //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
-  MapCombo& mc=getMap(qname);
+  auto& mc=getMap(qname);
   cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID, meritsRecursion, maxReplyLen, dnssecOK, hasEDNS, *age));
   time_t now=time(0);
   bool ret=(i!=mc.d_map.end() && i->ttd > now);
@@ -294,7 +295,7 @@ map<char,int> PacketCache::getCounts()
 {
   int recursivePackets=0, nonRecursivePackets=0, queryCacheEntries=0, negQueryCacheEntries=0;
 
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
     
     for(cmap_t::const_iterator iter = mc.d_map.begin() ; iter != mc.d_map.end(); ++iter) {
@@ -323,7 +324,7 @@ map<char,int> PacketCache::getCounts()
 int PacketCache::size()
 {
   uint64_t ret=0;
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
     ret+=mc.d_map.size();
   }
@@ -334,7 +335,7 @@ int PacketCache::size()
 void PacketCache::cleanup()
 {
   *d_statnumentries=AtomicCounter(0);
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
 
     *d_statnumentries+=mc.d_map.size();
@@ -360,7 +361,7 @@ void PacketCache::cleanup()
   time_t now=time(0);
   DLOG(L<<"Starting cache clean"<<endl);
   //unsigned int totErased=0;
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     WriteLock wl(&mc.d_mut);
     typedef cmap_t::nth_index<1>::type sequence_t;
     sequence_t& sidx=mc.d_map.get<1>();
@@ -386,7 +387,7 @@ void PacketCache::cleanup()
   //  cerr<<"erased: "<<totErased<<endl;
   
   *d_statnumentries=AtomicCounter(0);
-  BOOST_FOREACH(MapCombo& mc, d_maps) {
+  for(auto& mc : d_maps) {
     ReadLock l(&mc.d_mut);
     *d_statnumentries+=mc.d_map.size();
   }
