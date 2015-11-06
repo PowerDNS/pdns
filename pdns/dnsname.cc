@@ -82,8 +82,9 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
 
 std::string DNSName::toString(const std::string& separator, const bool trailing) const
 {
-  if (empty())
+  if (empty()) {
     throw std::out_of_range("Attempt to print an unset dnsname");
+  }
 
   std::string ret;
   for(const auto& s : getRawLabels()) {
@@ -156,6 +157,8 @@ void DNSName::makeUsRelative(const DNSName& zone)
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
+  if(isRoot())
+    return *this; // we don't create the root automatically below
   if (!empty()) {
     vector<string> l=getRawLabels();
     while(!l.empty()) {
