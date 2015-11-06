@@ -36,12 +36,13 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
 }
 
 // this should be the __only__ dns name parser in PowerDNS.
-void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth)
+void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth)
 {
+  const unsigned char* pos=(const unsigned char*)qpos;
   unsigned char labellen;
-  const char *opos = pos;
+  const unsigned char *opos = pos;
   pos += offset;
-  const char* end = pos + len;
+  const unsigned char* end = pos + len;
   while((labellen=*pos++) && pos < end) { // "scan and copy"
     if(labellen & 0xc0) {
       if(!uncompress)
@@ -53,14 +54,14 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       if(newpos < offset) {
         if (++depth > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
-        packetParser(opos, len, newpos, true, 0, 0, 0, depth);
+        packetParser((const char*)opos, len, newpos, true, 0, 0, 0, depth);
       } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;
       break;
     }
     if (pos + labellen < end) {
-      appendRawLabel(string(pos, labellen));
+      appendRawLabel(string((const char*)pos, labellen));
     }
     else
       throw std::range_error("Found an invalid label length in qname");
