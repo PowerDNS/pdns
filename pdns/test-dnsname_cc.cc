@@ -240,6 +240,31 @@ BOOST_AUTO_TEST_CASE(test_PacketParse) {
 }
 
 
+BOOST_AUTO_TEST_CASE(test_hash) {
+  DNSName a("wwW.Ds9A.Nl"), b("www.ds9a.nl");
+  BOOST_CHECK_EQUAL(a.hash(), b.hash());
+  
+  vector<uint32_t> counts(1500);
+ 
+  for(unsigned int n=0; n < 100000; ++n) {
+    DNSName dn(std::to_string(n)+"."+std::to_string(n*2)+"ds9a.nl");
+    DNSName dn2(std::to_string(n)+"."+std::to_string(n*2)+"Ds9a.nL");
+    BOOST_CHECK_EQUAL(dn.hash(), dn2.hash());
+    counts[dn.hash() % counts.size()]++;
+  }
+  
+  double sum = std::accumulate(std::begin(counts), std::end(counts), 0.0);
+  double m =  sum / counts.size();
+  
+  double accum = 0.0;
+  std::for_each (std::begin(counts), std::end(counts), [&](const double d) {
+      accum += (d - m) * (d - m);
+  });
+      
+  double stdev = sqrt(accum / (counts.size()-1));
+  BOOST_CHECK(stdev < 10);      
+}
+
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet;
   reportBasicTypes();

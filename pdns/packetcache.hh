@@ -126,7 +126,7 @@ private:
   vector<MapCombo> d_maps;
   MapCombo& getMap(const DNSName& qname) 
   {
-    return d_maps[hash_value(qname) % d_maps.size()];
+    return d_maps[qname.hash() % d_maps.size()];
   }
 
   AtomicCounter d_ops;

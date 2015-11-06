@@ -6,6 +6,8 @@
 #include <strings.h>
 #include <stdexcept>
 
+uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
+
 // #include "dns.hh"
 // #include "logger.hh"
 
@@ -53,6 +55,10 @@ public:
   bool isRoot() const { return d_storage.size()==1 && d_storage[0]==0; }
   void clear() { d_storage.clear(); }
   void trimToLabels(unsigned int);
+  size_t hash() const
+  {
+    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), 0);
+  }
   DNSName& operator+=(const DNSName& rhs)
   {
     if(d_storage.size() + rhs.d_storage.size() > 256) // reserve one byte for the root label
