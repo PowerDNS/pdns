@@ -750,6 +750,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	}
       }
 
+      if (size == 0) {
+        g_outputBuffer = "No traffic yet.\n";
+        return;
+      }
+
       g_outputBuffer = (boost::format("Average response latency: %.02f msec\n") % (0.001*totlat/size)).str();
       double highest=0;
       
