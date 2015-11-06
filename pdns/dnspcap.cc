@@ -97,6 +97,10 @@ try
       d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + d_skipMediaHeader + 4 * d_ip->ip_hl);
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->uh_ulen) - sizeof(struct udphdr);
+      if((const char*)d_payload + d_len > d_buffer + d_pheader.caplen) {
+	d_runts++;
+	continue;
+      }
       d_correctpackets++;
       return true;
     }
@@ -104,6 +108,11 @@ try
       d_udp=reinterpret_cast<const struct udphdr*>(d_buffer + d_skipMediaHeader + sizeof(struct ip6_hdr));
       d_payload = (unsigned char*)d_udp + sizeof(struct udphdr);
       d_len = ntohs(d_udp->uh_ulen) - sizeof(struct udphdr);
+      if((const char*)d_payload + d_len > d_buffer + d_pheader.caplen) {
+	d_runts++;
+	continue;
+      }
+
       d_correctpackets++;
       return true;
     }
