@@ -152,6 +152,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->weight=boost::lexical_cast<int>(boost::get<string>(vars["weight"]));
 			}
 
+			if(vars.count("retries")) {
+			  ret->retries=boost::lexical_cast<int>(boost::get<string>(vars["retries"]));
+			}
+
+			if(vars.count("tcpSendTimeout")) {
+			  ret->tcpSendTimeout=boost::lexical_cast<int>(boost::get<string>(vars["tcpSendTimeout"]));
+			}
+
+			if(vars.count("tcpRecvTimeout")) {
+			  ret->tcpRecvTimeout=boost::lexical_cast<int>(boost::get<string>(vars["tcpRecvTimeout"]));
+			}
+
 			if(g_launchWork) {
 			  g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
@@ -814,6 +826,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
        g_outputBuffer="Crypto failed..\n";
      }});
 
+  g_lua.writeFunction("setTCPRecvTimeout", [](int timeout) { g_tcpRecvTimeout=timeout; });
+
+  g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
   
   std::ifstream ifs(config);
   if(!ifs) 

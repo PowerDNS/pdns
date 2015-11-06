@@ -246,6 +246,9 @@ struct DownstreamState
   double latencyUsec{0.0};
   int order{1};
   int weight{1};
+  int tcpRecvTimeout{30};
+  int tcpSendTimeout{30};
+  uint16_t retries{5};
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
@@ -323,6 +326,8 @@ extern ComboAddress g_serverControl; // not changed during runtime
 extern std::vector<std::pair<ComboAddress, bool>> g_locals; // not changed at runtime (we hope XXX)
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
+extern int g_tcpRecvTimeout;
+extern int g_tcpSendTimeout;
 struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);
