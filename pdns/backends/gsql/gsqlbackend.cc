@@ -1588,6 +1588,8 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
     r.qname=d_qname;
   else
     r.qname=DNSName(row[6]);
+  if (r.qname.empty()) r.qname = DNSName(".");
+
   r.qtype=row[3];
 
   if (r.qtype==QType::MX || r.qtype==QType::SRV)
