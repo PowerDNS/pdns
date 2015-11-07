@@ -20,7 +20,7 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
 
 DNSName::DNSName(const char* p)
 {
-  if(p[0]=='.' && p[1]==0) {
+  if(p[0]==0 || (p[0]=='.' && p[1]==0)) {
     d_storage.assign(1, (char)0);
   } else {
     d_storage.reserve(strlen(p)+1);

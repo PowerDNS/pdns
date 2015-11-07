@@ -100,6 +100,13 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   { // empty() root
     DNSName name(".");
     BOOST_CHECK(!name.empty());
+    
+    DNSName rootnodot("");
+    BOOST_CHECK_EQUAL(name, rootnodot);
+    
+    string empty;
+    DNSName rootnodot2(empty);
+    BOOST_CHECK_EQUAL(rootnodot2, name);
   }
 
   DNSName left("ds9a.nl.");
