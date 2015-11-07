@@ -847,7 +847,7 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(set<DNSName> &tnameservers, 
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG(i->toString()<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((i->empty() ? string("<empty>") : i->toString())<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
@@ -1181,7 +1181,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       for(auto& rec : lwr.d_records) {
         if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
            lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
-          LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<newtarget.toString()<<"'"<<endl);
+          LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<(newtarget.empty()?string("<empty>"):newtarget.toString())<<"'"<<endl);
 
           rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
           if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
