@@ -86,12 +86,13 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
     throw std::out_of_range("Attempt to print an unset dnsname");
   }
 
+ if(isRoot())
+    return trailing ? separator : "";
+
   std::string ret;
   for(const auto& s : getRawLabels()) {
     ret+= escapeLabel(s) + separator;
   }
-  if(ret.empty())
-    return trailing ? separator : "";
 
   return ret.substr(0, ret.size()-!trailing);
 }
@@ -142,7 +143,7 @@ DNSName DNSName::makeRelative(const DNSName& zone) const
 {
   DNSName ret(*this);
   ret.makeUsRelative(zone);
-  return ret;
+  return ret.empty() ? zone : ret; // HACK FIXME400
 }
 void DNSName::makeUsRelative(const DNSName& zone) 
 {
@@ -232,7 +233,7 @@ bool DNSName::chopOff()
 
 bool DNSName::isWildcard() const
 {
-  if(d_storage.empty())
+  if(d_storage.size() < 2)
     return false;
   auto p = d_storage.begin();
   return (*p == 0x01 && *++p == '*');
