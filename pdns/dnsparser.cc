@@ -429,7 +429,7 @@ DNSName PacketReader::getName()
     {
       throw std::out_of_range("dnsname issue");
     }
-  return DNSName(); // if this ever happens..
+  throw PDNSException("PacketReader::getName(): name is empty");
 }
 
 static string txtEscape(const string &name)
