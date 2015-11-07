@@ -160,6 +160,9 @@ BOOST_AUTO_TEST_CASE(test_trim) {
   BOOST_CHECK_EQUAL(w.toString(), "powerdns.com.");
   DNSName w2("powerdns.com.");
   BOOST_CHECK(w==w2);
+
+  DNSName root(".");
+  BOOST_CHECK_EQUAL(root.countLabels(), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_toolong) {
@@ -197,6 +200,9 @@ BOOST_AUTO_TEST_CASE(test_specials) {
 
   DNSName wcard("*.powerdns.com");
   BOOST_CHECK(wcard.isWildcard());
+
+  DNSName notwcard("www.powerdns.com");
+  BOOST_CHECK(!notwcard.isWildcard());
 }
 
 
