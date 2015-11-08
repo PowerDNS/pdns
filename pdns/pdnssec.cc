@@ -240,7 +240,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr<<"Non DNSSEC zone, only adding empty non-terminals"<<endl;
 
   if(doTransaction)
-    sd.db->startTransaction(DNSName(""), -1);
+    sd.db->startTransaction(zone, -1);
 
   bool realrr=true;
   uint32_t maxent = ::arg().asNum("max-ent-entries");
@@ -738,7 +738,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
   }
   rrs[0].content = serializeSOAData(sd);
 
-  sd.db->startTransaction(DNSName(), -1);
+  sd.db->startTransaction(zone, -1);
 
   if (! sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
    sd.db->abortTransaction();
@@ -1763,18 +1763,18 @@ try
       return 0;
     }
     vector<DNSName> mustRectify;
-    dk.startTransaction();    
     unsigned int zoneErrors=0;
     for(unsigned int n = 1; n < cmds.size(); ++n) {
       DNSName zone(cmds[n]);
+      dk.startTransaction(zone, -1);
       if(secureZone(dk, zone)) {
         mustRectify.push_back(zone);
       } else {
         zoneErrors++;
       }
+      dk.commitTransaction();
     }
     
-    dk.commitTransaction();
     for(const auto& zone : mustRectify)
       rectifyZone(dk, zone);
 

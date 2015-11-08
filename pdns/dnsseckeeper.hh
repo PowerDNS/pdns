@@ -98,9 +98,9 @@ public:
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
   bool getTSIGForAccess(const DNSName& zone, const string& master, DNSName* keyname);
   
-  void startTransaction()
+  void startTransaction(const DNSName& zone, int zone_id)
   {
-    (*d_keymetadb->backends.begin())->startTransaction(DNSName(), -1);
+    (*d_keymetadb->backends.begin())->startTransaction(zone, zone_id);
   }
   
   void commitTransaction()
