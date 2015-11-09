@@ -1006,13 +1006,13 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       if(dc->d_mdp.d_header.qr) {
         delete dc;
         g_stats.ignoredCount++;
-        L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+        L<<Logger::Error<<"Ignoring answer from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         delete dc;
         g_stats.ignoredCount++;
-        L<<Logger::Error<<"Ignoring non-query opcode on server socket!"<<endl;
+        L<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
         return;
       }
       else {
