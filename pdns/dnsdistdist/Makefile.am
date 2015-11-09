@@ -59,6 +59,7 @@ dnsdist_SOURCES = \
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(PROGRAM_LDFLAGS) \
 	-pthread 
 
 dnsdist_LDADD = \

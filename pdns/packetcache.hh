@@ -72,12 +72,12 @@ public:
 private:
   bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
-  string pcReverse(DNSName content);
+
   struct CacheEntry
   {
     CacheEntry() { qtype = ctype = 0; zoneID = -1; meritsRecursion=false; dnssecOk=false; hasEDNS=false; created=0; ttd=0; maxReplyLen=512;}
 
-    string qname;
+    DNSName qname;
     string value;
     time_t created;
     time_t ttd;
@@ -100,7 +100,7 @@ private:
                 ordered_unique<
                       composite_key< 
                         CacheEntry,
-                        member<CacheEntry,string,&CacheEntry::qname>,
+                        member<CacheEntry,DNSName,&CacheEntry::qname>,
                         member<CacheEntry,uint16_t,&CacheEntry::qtype>,
                         member<CacheEntry,uint16_t, &CacheEntry::ctype>,
                         member<CacheEntry,int, &CacheEntry::zoneID>,
@@ -109,7 +109,7 @@ private:
                         member<CacheEntry,bool, &CacheEntry::dnssecOk>,
                         member<CacheEntry,bool, &CacheEntry::hasEDNS>
                         >,
-                        composite_key_compare<std::less<string>, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
+		       composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<uint16_t>, std::less<int>, std::less<bool>, 
                           std::less<unsigned int>, std::less<bool>, std::less<bool> >
                             >,
                            sequenced<>
@@ -124,9 +124,9 @@ private:
   };
 
   vector<MapCombo> d_maps;
-  MapCombo& getMap(const std::string& qname) 
+  MapCombo& getMap(const DNSName& qname) 
   {
-    return d_maps[burtle((const unsigned char*)qname.c_str(), qname.length(), 0) % d_maps.size()];
+    return d_maps[qname.hash() % d_maps.size()];
   }
 
   AtomicCounter d_ops;

@@ -133,6 +133,24 @@ To change the QPS for a server:
 > getServer(0):setQPS(1000)
 ```
 
+TCP timeouts
+------------
+
+By default, a 2 seconds timeout is enforced on the TCP connection from the client,
+meaning that a connection will be closed if the query can't be read in less than 2s
+or if the answer can't be sent in less than 2s. This can be configured with:
+```
+> setTCPRecvTimeout(5)
+> setTCPSendTimeout(5)
+```
+
+The same kind of timeouts is enforced on the TCP connections to the downstream servers.
+The default value of 30s can be modified by passing the `tcpRecvTimeout` and `tcpSendTimeout`
+parameters to `newServer`:
+```
+newServer {address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10}
+```
+
 Webserver
 ---------
 To visually interact with dnsdist, try adding:
@@ -157,7 +175,7 @@ this:
 Or we configure a server pool dedicated to receiving the nasty stuff:
 
 ```
-> newServer{address="192.168.1.3", pool="abuse")
+> newServer{address="192.168.1.3", pool="abuse"}
 > addPoolRule({"sh43353.cn.", "ezdns.it."}, "abuse")
 ```
 
@@ -544,7 +562,7 @@ Here are all functions:
    * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse"})`: instantiate
+   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30})`: instantiate
      a server with additional parameters
    * `showServers()`: output all servers
    * `getServer(n)`: returns server with index n 
