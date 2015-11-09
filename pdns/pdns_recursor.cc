@@ -1471,7 +1471,7 @@ static void houseKeeping(void *)
       sr.setNoCache();
       int res=-1;
       try {
-	res=sr.beginResolve(DNSName(), QType(QType::NS), 1, ret);
+	res=sr.beginResolve(DNSName("."), QType(QType::NS), 1, ret);
       }
       catch(PDNSException& e)
 	{

@@ -55,8 +55,6 @@ bool chopOff(string &domain);
 bool chopOffDotted(string &domain);
 
 bool endsOn(const string &domain, const string &suffix);
-bool dottedEndsOn(const DNSName &domain, const DNSName &suffix); // REMOVE ME
-bool dottedEndsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
@@ -612,7 +610,6 @@ unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
-uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
 bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.

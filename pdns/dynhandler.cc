@@ -129,7 +129,10 @@ string DLPurgeHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(parts.size()>1) {
     for (vector<string>::const_iterator i=++parts.begin();i<parts.end();++i) {
       ret+=PC.purge(*i);
-      dk.clearCaches(DNSName(*i));
+      if(!boost::ends_with(*i, "$"))
+	dk.clearCaches(DNSName(*i));
+      else
+	dk.clearAllCaches(); // at least we do what we promise.. and a bit more!
     }
   }
   else {

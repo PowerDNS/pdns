@@ -104,6 +104,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
 
   // add . NS records
   DNSResourceRecord rr;
+  rr.qname = DNSName(".");
   rr.qtype=QType::NS;
   rr.ttl=518400;
   rr.d_place=DNSResourceRecord::AUTHORITY;
