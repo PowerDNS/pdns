@@ -2,7 +2,7 @@
 
 * CVE: CVE-2015-5311
 * Date: November 9th 2015
-* Credit: Christian Hofstaedtler
+* Credit: Christian Hofstaedtler of Deduktiva GmbH
 * Affects: PowerDNS Authoritative Server 3.4.4 through 3.4.6
 * Not affected: PowerDNS Authoritative Server 3.3.x and 3.4.7 and up
 * Severity: High
