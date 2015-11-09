@@ -264,7 +264,7 @@ void DNSName::appendRawLabel(const char* start, unsigned int length)
     throw std::range_error("no such thing as an empty label to append");
   if(length > 63)
     throw std::range_error("label too long to append");
-  if(d_storage.size() + length > 254) // reserve two bytes, one for length and one for the root label
+  if(d_storage.size() + length > 254) // reserve one byte for the label length
     throw std::range_error("name too long to append");
 
   if(d_storage.empty()) {
@@ -283,7 +283,7 @@ void DNSName::prependRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label to prepend");
   if(label.size() > 63)
     throw std::range_error("label too long to prepend");
-  if(d_storage.size() + label.size() > 254) // reserve two bytes, one for length and one for the root label
+  if(d_storage.size() + label.size() > 254) // reserve one byte for the label length
     throw std::range_error("name too long to prepend");
 
   if(d_storage.empty())

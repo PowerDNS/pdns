@@ -12,6 +12,8 @@
 #include "dnssecinfra.hh"
 
 
+/* pthread locking */
+
 static pthread_mutex_t *openssllocks;
 
 extern "C" {
