@@ -609,6 +609,7 @@ Here are all functions:
  * Server selection policy related:
    * `setServerPolicy(policy)`: set server selection policy to that policy
    * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
+   * `showServerPolicy()`: show name of currently operational server selection policy
    * `newServerPolicy(name, function)`: create a policy object from a Lua function
  * Available policies:
    * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
