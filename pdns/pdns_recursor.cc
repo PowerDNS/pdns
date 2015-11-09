@@ -1005,11 +1005,13 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->setRemote(&conn->d_remote);
       if(dc->d_mdp.d_header.qr) {
         delete dc;
+        g_stats.ignoredCount++;
         L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         delete dc;
+        g_stats.ignoredCount++;
         L<<Logger::Error<<"Ignoring non-query opcode on server socket!"<<endl;
         return;
       }
@@ -1180,10 +1182,12 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dnsheader* dh=(dnsheader*)data;
 
       if(dh->qr) {
+        g_stats.ignoredCount++;
         if(g_logCommonErrors)
           L<<Logger::Error<<"Ignoring answer from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
       else if(dh->opcode) {
+        g_stats.ignoredCount++;
         if(g_logCommonErrors)
           L<<Logger::Error<<"Ignoring non-query opcode "<<dh->opcode<<" from "<<fromaddr.toString()<<" on server socket!"<<endl;
       }
