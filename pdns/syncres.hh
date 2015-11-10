@@ -655,4 +655,7 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+void  parseEDNSSubnetWhitelist(const std::string& wlist);
+
 #endif
