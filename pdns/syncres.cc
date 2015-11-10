@@ -107,6 +107,7 @@ void accountAuthLatency(int usec, int family)
 
 }
 
+
 SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0),
 					       d_totUsec(0), d_doDNSSEC(false), d_now(now),
 					       d_cacheonly(false), d_nocache(false), d_doEDNS0(false), d_lm(s_lm)
@@ -846,7 +847,7 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(set<DNSName> &tnameservers, 
           LOG(endl<<prefix<<"             ");
         }
       }
-      LOG(i->toString()<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
+      LOG((i->empty() ? string("<empty>") : i->toString())<<"(" << (boost::format("%0.2f") % (speeds[*i]/1000.0)).str() <<"ms)");
     }
     LOG(endl);
   }
@@ -1179,11 +1180,11 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
       for(auto& rec : lwr.d_records) {
         if(rec.d_place==DNSResourceRecord::AUTHORITY && rec.d_type==QType::SOA &&
-           lwr.d_rcode==RCode::NXDomain && dottedEndsOn(qname,rec.d_name) && dottedEndsOn(rec.d_name, auth)) {
-          LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<dottedEndsOn(rec.d_name, auth)<<"), newtarget='"<<newtarget.toString()<<"'"<<endl);
+           lwr.d_rcode==RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth)) {
+          LOG(prefix<<qname.toString()<<": got negative caching indication for name '"<<qname.toString()+"' (accept="<<rec.d_name.isPartOf(auth)<<"), newtarget='"<<(newtarget.empty()?string("<empty>"):newtarget.toString())<<"'"<<endl);
 
           rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
-          if(!newtarget.length()) // only add a SOA if we're not going anywhere after this
+          if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
             ret.push_back(rec);
 
           NegCacheEntry ne;
@@ -1235,11 +1236,11 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	  }
           nsset.insert(DNSName(rec.d_content->getZoneRepresentation()));
         }
-        else if(rec.d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::DS) {
+        else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
 	  sawDS=true;
 	}
-        else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && dottedEndsOn(qname,rec.d_name) && rec.d_type==QType::SOA &&
+        else if(!done && rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::SOA &&
            lwr.d_rcode==RCode::NoError) {
           LOG(prefix<<qname.toString()<<": got negative caching indication for '"<< (qname.toString()+"|"+qtype.getName()+"'") <<endl);
 

@@ -103,6 +103,9 @@ Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
 
+int g_tcpRecvTimeout{2};
+int g_tcpSendTimeout{2};
+
 bool g_truncateTC{1};
 void truncateTC(const char* packet, unsigned int* len)
 try
@@ -419,9 +422,7 @@ try
       if(dh->qr)    // don't respond to responses
 	continue;
       
-      
       DNSName qname(packet, len, 12, false, &qtype);
-
       g_rings.queryRing.push_back(qname);
             
       if(blockFilter) {
@@ -432,7 +433,6 @@ try
 	  continue;
 	}
       }
-      
 
       DNSAction::Action action=DNSAction::Action::None;
       string ruleresult;
@@ -1021,7 +1021,6 @@ try
     g_cmdLine.remotes.push_back(*p);
   }
 
-
   g_maxOutstanding = 1024;
 
   ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding};
@@ -1032,6 +1031,11 @@ try
     doClient(g_serverControl, g_cmdLine.command);
     _exit(EXIT_SUCCESS);
   }
+
+  auto acl = g_ACL.getCopy();
+  for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+    acl.addMask(addr);
+  g_ACL.setState(acl);
 
   auto todo=setupLua(false, g_cmdLine.config);
 
@@ -1084,10 +1088,6 @@ try
   for(auto& t : todo)
     t();
 
-  auto acl = g_ACL.getCopy();
-  for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
-    acl.addMask(addr);
-  g_ACL.setState(acl);
 
   if(g_cmdLine.remotes.size()) {
     for(const auto& address : g_cmdLine.remotes) {

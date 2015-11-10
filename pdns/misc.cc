@@ -40,6 +40,8 @@
 #include <errno.h>
 #include <cstring>
 #include <iostream>
+#include <sys/types.h>
+#include <dirent.h>
 #include <algorithm>
 #include <boost/optional.hpp>
 #include <poll.h>
@@ -85,12 +87,12 @@ int readn2(int fd, void* buffer, unsigned int len)
   for(;;) {
     res = read(fd, (char*)buffer + pos, len - pos);
     if(res == 0)
-      throw runtime_error("EOF while writing message");
+      throw runtime_error("EOF while reading message");
     if(res < 0) {
       if (errno == EAGAIN)
-        throw std::runtime_error("used writen2 on non-blocking socket, got EAGAIN");
+        throw std::runtime_error("used readn2 on non-blocking socket, got EAGAIN");
       else
-        unixDie("failed in writen2");
+        unixDie("failed in readn2");
     }
 
     pos+=res;
@@ -100,6 +102,71 @@ int readn2(int fd, void* buffer, unsigned int len)
   return len;
 }
 
+int readn2WithTimeout(int fd, void* buffer, size_t len, int timeout)
+{
+  size_t pos = 0;
+  do {
+    ssize_t got = read(fd, (char *)buffer + pos, len - pos);
+    if (got > 0) {
+      pos += (size_t) got;
+    }
+    else if (got == 0) {
+      throw runtime_error("EOF while reading message");
+    }
+    else {
+      if (errno == EAGAIN) {
+        int res = waitForData(fd, timeout);
+        if (res > 0) {
+          /* there is data available */
+        }
+        else if (res == 0) {
+          throw runtime_error("Timeout while waiting for data to read");
+        } else {
+          throw runtime_error("Error while waiting for data to read");
+        }
+      }
+      else {
+        unixDie("failed in readn2WithTimeout");
+      }
+    }
+  }
+  while (pos < len);
+
+  return len;
+}
+
+int writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout)
+{
+  size_t pos = 0;
+  do {
+    ssize_t written = write(fd, (char *)buffer + pos, len - pos);
+
+    if (written > 0) {
+      pos += (size_t) written;
+    }
+    else if (written == 0)
+      throw runtime_error("EOF while writing message");
+    else {
+      if (errno == EAGAIN) {
+        int res = waitForRWData(fd, false, timeout, 0);
+        if (res > 0) {
+          /* there is room available */
+        }
+        else if (res == 0) {
+          throw runtime_error("Timeout while waiting to write data");
+        } else {
+          throw runtime_error("Error while waiting for room to write data");
+        }
+      }
+      else {
+        unixDie("failed in write2WithTimeout");
+      }
+    }
+  }
+  while (pos < len);
+
+  return len;
+}
 
 string nowTime()
 {
@@ -206,34 +273,6 @@ bool ciEqual(const string& a, const string& b)
 bool endsOn(const string &domain, const string &suffix)
 {
   if( suffix.empty() || ciEqual(domain, suffix) )
-    return true;
-
-  if(domain.size()<=suffix.size())
-    return false;
-
-  string::size_type dpos=domain.size()-suffix.size()-1, spos=0;
-
-  if(domain[dpos++]!='.')
-    return false;
-
-  for(; dpos < domain.size(); ++dpos, ++spos)
-    if(dns_tolower(domain[dpos]) != dns_tolower(suffix[spos]))
-      return false;
-
-  return true;
-}
-
-// REMOVE ME
-bool dottedEndsOn(const DNSName &domain, const DNSName &suffix)
-{
-  return domain.isPartOf(suffix);
-}
-
-
-/** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-bool dottedEndsOn(const string &domain, const string &suffix)
-{
-  if( suffix=="." || ciEqual(domain, suffix) )
     return true;
 
   if(domain.size()<=suffix.size())
@@ -1112,4 +1151,46 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
   case TSIG_GSS: return DNSName("gss-tsig.");
   }
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
+}
+
+uint64_t getOpenFileDescriptors(const std::string&)
+{
+#ifdef __linux__
+  DIR* dirhdl=opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str());
+  if(!dirhdl) 
+    return 0;
+
+  struct dirent *entry;
+  int ret=0;
+  while((entry = readdir(dirhdl))) {
+    uint32_t num = atoi(entry->d_name);
+    if(std::to_string(num) == entry->d_name)
+      ret++;
+  }
+  closedir(dirhdl);
+  return ret;
+
+#else
+  return 0;
+#endif
+}
+
+uint64_t getRealMemoryUsage(const std::string&)
+{
+#ifdef __linux__
+  ifstream ifs("/proc/"+std::to_string(getpid())+"/smaps");
+  if(!ifs)
+    return 0;
+  string line;
+  uint64_t bytes=0;
+  string header("Private_Dirty:");
+  while(getline(ifs, line)) {
+    if(boost::starts_with(line, header)) {
+      bytes += atoi(line.c_str() + header.length() +1)*1024;
+    }
+  }
+  return bytes;
+#else
+  return 0;
+#endif
 }

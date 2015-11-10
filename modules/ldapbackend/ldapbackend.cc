@@ -93,7 +93,7 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
         try
         {
         	m_qname = target;
-        	m_axfrqlen = target.length();
+        	m_axfrqlen = target.toStringNoDot().length();
         	m_adomain = m_adomains.end();   // skip loops in get() first time
 
         	return (this->*m_list_fcnt)( target, domain_id );

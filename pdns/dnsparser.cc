@@ -134,9 +134,6 @@ shared_ptr<DNSRecordContent> DNSRecordContent::unserialize(const DNSName& qname,
 
   MOADNSParser mdp((char*)&*packet.begin(), (unsigned int)packet.size());
   shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
-  ret->header.d_type=ret->d_qtype;
-  ret->label=mdp.d_answers.begin()->first.d_name;
-  ret->header.d_ttl=mdp.d_answers.begin()->first.d_ttl;
   return ret;
 }
 
@@ -432,7 +429,7 @@ DNSName PacketReader::getName()
     {
       throw std::out_of_range("dnsname issue");
     }
-  return DNSName(); // if this ever happens..
+  throw PDNSException("PacketReader::getName(): name is empty");
 }
 
 static string txtEscape(const string &name)

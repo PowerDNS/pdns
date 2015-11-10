@@ -85,6 +85,16 @@
 # default-ksk-size=0
 
 #################################
+# default-soa-edit	Default SOA-EDIT value
+#
+# default-soa-edit=
+
+#################################
+# default-soa-edit-signed	Default SOA-EDIT value for signed zones
+#
+# default-soa-edit-signed=
+
+#################################
 # default-soa-mail	mail address to insert in the SOA record if none set in the backend
 #
 # default-soa-mail=

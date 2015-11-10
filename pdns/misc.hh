@@ -55,8 +55,6 @@ bool chopOff(string &domain);
 bool chopOffDotted(string &domain);
 
 bool endsOn(const string &domain, const string &suffix);
-bool dottedEndsOn(const DNSName &domain, const DNSName &suffix); // REMOVE ME
-bool dottedEndsOn(const string &domain, const string &suffix);
 string nowTime();
 const string unquotify(const string &item);
 string humanDuration(time_t passed);
@@ -151,6 +149,8 @@ vstringtok (Container &container, string const &in,
 int writen2(int fd, const void *buf, size_t count);
 inline int writen2(int fd, const std::string &s) { return writen2(fd, s.data(), s.size()); }
 int readn2(int fd, void* buffer, unsigned int len);
+int readn2WithTimeout(int fd, void* buffer, size_t len, int timeout);
+int writen2WithTimeout(int fd, const void * buffer, size_t len, int timeout);
 
 const string toLower(const string &upper);
 const string toLowerCanonic(const string &upper);
@@ -610,7 +610,6 @@ unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 uint32_t burtle(const unsigned char* k, uint32_t lengh, uint32_t init);
-uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
 bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.
@@ -621,6 +620,9 @@ bool setNonBlocking( int sock );
 int closesocket(int fd);
 bool setCloseOnExec(int sock);
 uint64_t udpErrorStats(const std::string& str);
+
+uint64_t getRealMemoryUsage(const std::string&);
+uint64_t getOpenFileDescriptors(const std::string&);
 
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)

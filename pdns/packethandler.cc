@@ -104,6 +104,7 @@ void PacketHandler::addRootReferral(DNSPacket* r)
 
   // add . NS records
   DNSResourceRecord rr;
+  rr.qname = DNSName(".");
   rr.qtype=QType::NS;
   rr.ttl=518400;
   rr.d_place=DNSResourceRecord::AUTHORITY;
@@ -1125,6 +1126,14 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
   if(p->d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
       L<<Logger::Error<<"Received an answer (non-query) packet from "<<p->getRemote()<<", dropping"<<endl;
+    S.inc("corrupt-packets");
+    S.ringAccount("remotes-corrupt", p->d_remote);
+    return 0;
+  }
+
+  if(p->d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
+    if(d_logDNSDetails)
+      L<<Logger::Error<<"Received truncated query packet from "<<p->getRemote()<<", dropping"<<endl;
     S.inc("corrupt-packets");
     S.ringAccount("remotes-corrupt", p->d_remote);
     return 0;

@@ -17,6 +17,31 @@ DNSDIST_LUA
 AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
 AC_DEFINE([HAVE_MBEDTLS2], [1], [Defined if mbed TLS version 2.x.x is used])
 
+AC_MSG_CHECKING([whether we will enable compiler security checks])
+AC_ARG_ENABLE([hardening],
+  [AS_HELP_STRING([--disable-hardening],[disable compiler security checks @<:@default=no@:>@])],
+  [enable_hardening=$enableval],
+  [enable_hardening=yes]
+)
+AC_MSG_RESULT([$enable_hardening])
+
+AS_IF([test "x$enable_hardening" != "xno"], [
+  AC_CC_PIE
+  AC_CC_STACK_PROTECTOR
+  AC_CC_PARAM_SSP_BUFFER_SIZE([4])
+  AC_CC_D_FORTIFY_SOURCE
+  AC_LD_RELRO
+])
+
+LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
+
+AS_IF([test "x$static" != "xyes"], [
+  CFLAGS="$PIE_CFLAGS $CFLAGS"
+  CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+  PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
+])
+AC_SUBST([PROGRAM_LDFLAGS])
+
 AC_CONFIG_FILES([Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile])

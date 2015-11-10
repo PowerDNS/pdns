@@ -610,6 +610,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("noedns-outqueries", &g_stats.noEdnsOutQueries);
 
   addGetStat("uptime", calculateUptime);
+  addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
 
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);

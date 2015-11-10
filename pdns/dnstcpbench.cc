@@ -269,7 +269,7 @@ try
   
   using namespace boost::accumulators;
   typedef accumulator_set<
-    unsigned int
+    double
     , stats<boost::accumulators::tag::median(with_p_square_quantile),
       boost::accumulators::tag::mean(immediate)
     >

@@ -38,6 +38,7 @@ extern "C" {
 #include "logger.hh"
 #include "namespaces.hh"
 #include "dnsparser.hh"
+#undef L
 
 bool netmaskMatchTable(lua_State* lua, const std::string& ip)
 {
@@ -82,6 +83,47 @@ static bool getFromTable(lua_State *lua, const std::string &key, uint32_t& value
   lua_pop(lua, 1);
   return ret;
 }
+
+
+void pushLuaTable(lua_State* lua, const vector<pair<string,string>>& table)
+{
+  lua_newtable(lua);
+  for(const auto& e : table) {
+    lua_pushstring(lua, e.second.c_str());
+    lua_setfield(lua, -2, e.first.c_str());
+  }
+}
+
+vector<pair<string,string>> getLuaTable(lua_State* lua, int index)
+{
+  vector<pair<string,string>> ret;
+  // Push another reference to the table on top of the stack (so we know
+  // where it is, and this function can work for negative, positive and
+  // pseudo indices
+  lua_pushvalue(lua, index);
+  // stack now contains: -1 => table
+  lua_pushnil(lua);
+  // stack now contains: -1 => nil; -2 => table
+  while (lua_next(lua, -2)) {
+    // stack now contains: -1 => value; -2 => key; -3 => table
+    // copy the key so that lua_tostring does not modify the original
+    lua_pushvalue(lua, -2);
+    // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
+    const char *key = lua_tostring(lua, -1);
+    const char *value = lua_tostring(lua, -2);
+    ret.push_back({key,value});
+    // pop value + copy of key, leaving original key
+    lua_pop(lua, 2);
+    // stack now contains: -1 => key; -2 => table
+  }
+  // stack now contains: -1 => table (when lua_next returns 0 it pops the key
+  // but does not push anything.)
+  // Pop table
+  lua_pop(lua, 1);
+  // Stack is now the same as it was on entry to this function
+  return ret;
+}
+
 
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSRecord>& records)
 {
@@ -363,34 +405,33 @@ bool PowerDNSLua::getFromTable(const std::string& key, uint32_t& value)
   return ::getFromTable(d_lua, key, value);
 }
 
-
 PowerDNSLua::~PowerDNSLua()
 {
   lua_close(d_lua);
 }
 
 #if 0
-void luaStackDump (lua_State *L) {
+void luaStackDump (lua_State *Lua) {
   int i;
-  int top = lua_gettop(L);
+  int top = lua_gettop(Lua);
   for (i = 1; i <= top; i++) {  /* repeat for each level */
-    int t = lua_type(L, i);
+    int t = lua_type(Lua, i);
     switch (t) {
 
     case LUA_TSTRING:  /* strings */
-      printf("`%s'", lua_tostring(L, i));
+      printf("`%s'", lua_tostring(Lua, i));
       break;
 
     case LUA_TBOOLEAN:  /* booleans */
-      printf(lua_toboolean(L, i) ? "true" : "false");
+      printf(lua_toboolean(Lua, i) ? "true" : "false");
       break;
 
     case LUA_TNUMBER:  /* numbers */
-      printf("%g", lua_tonumber(L, i));
+      printf("%g", lua_tonumber(Lua, i));
       break;
 
     default:  /* other values */
-      printf("%s", lua_typename(L, t));
+      printf("%s", lua_typename(Lua, t));
       break;
 
     }

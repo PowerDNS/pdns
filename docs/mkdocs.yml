@@ -67,6 +67,7 @@ pages:
     - List of Settings: recursor/settings.md
   - Security:
     - Security Policy: security/index.md
+    - Advisory 2015-03: security/powerdns-advisory-2015-03.md
     - Advisory 2015-02: security/powerdns-advisory-2015-02.md
     - Advisory 2015-01: security/powerdns-advisory-2015-01.md
     - Advisory 2014-02: security/powerdns-advisory-2014-02.md
@@ -94,3 +95,4 @@ pages:
     - 'Manpage: dnswasher.1': manpages/dnswasher.1.md
     - 'Manpage: nsec3dig.1': manpages/nsec3dig.1.md
     - 'Manpage: saxfr.1': manpages/saxfr.1.md
+    - 'Manpage: sdig.1': manpages/sdig.1.md

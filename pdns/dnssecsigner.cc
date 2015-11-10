@@ -223,7 +223,10 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     }
     signedRecords.push_back(*pos);
     signQName= DNSName(toLower(pos->qname.toString()));
-    wildcardQName = DNSName(toLower(pos->wildcardname.toString()));
+    if(!pos->wildcardname.empty())
+      wildcardQName = DNSName(toLower(pos->wildcardname.toString()));
+    else
+      wildcardQName.clear();
     signQType = pos ->qtype.getCode();
     if(pos->signttl)
       signTTL = pos->signttl;

@@ -481,10 +481,15 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, string*
   bool gotit=false;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
     if(i->first.d_type == QType::TSIG) {
-      *trc = *std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
-      
-      gotit=true;
+      // cast can fail, f.e. if d_content is an UnknownRecordContent.
+      shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(i->first.d_content);
+      if (!content) {
+        L<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
+        return false;
+      }
+      *trc = *content;
       *keyname = i->first.d_name;
+      gotit=true;
     }
   }
   if(!gotit)
@@ -507,7 +512,13 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
     }
 
     if(i->first.d_type == QType::TKEY) {
-      *tr = *std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      // cast can fail, f.e. if d_content is an UnknownRecordContent.
+      shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(i->first.d_content);
+      if (!content) {
+        L<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
+        return false;
+      }
+      *tr = *content;
       *keyname = i->first.d_name;
       gotit=true;
     }

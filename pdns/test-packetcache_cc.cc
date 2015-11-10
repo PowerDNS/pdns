@@ -39,14 +39,21 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   int counter=0;
   try {
     for(counter = 0; counter < 100000; ++counter) {
-      PC.insert(DNSName("hello ")+DNSName(boost::lexical_cast<string>(counter)), QType(QType::A), PacketCache::QUERYCACHE, "something", 3600, 1);
+      DNSName a=DNSName("hello ")+DNSName(boost::lexical_cast<string>(counter));
+      BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+      PC.insert(a, QType(QType::A), PacketCache::QUERYCACHE, "something", 3600, 1);
+      if(!PC.purge(a.toString()))
+	BOOST_FAIL("Could not remove entry we just added to packet cache!");
+      PC.insert(a, QType(QType::A), PacketCache::QUERYCACHE, "something", 3600, 1);
     }
 
     BOOST_CHECK_EQUAL(PC.size(), counter);
     
     int delcounter=0;
     for(delcounter=0; delcounter < counter/100; ++delcounter) {
-      PC.purge((DNSName("hello ")+DNSName(boost::lexical_cast<string>(delcounter))).toString());
+      DNSName a=DNSName("hello ")+DNSName(boost::lexical_cast<string>(delcounter));
+      PC.purge(a.toString());
     }
     
     BOOST_CHECK_EQUAL(PC.size(), counter-delcounter);
