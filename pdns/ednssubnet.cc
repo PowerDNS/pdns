@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2011  Netherlabs Computer Consulting BV
+    Copyright (C) 2015  Netherlabs Computer Consulting BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -92,3 +92,30 @@ string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
   return ret;
 }
 
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
+{
+  if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
+    if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
+      int bits =local.sin4.sin_family == AF_INET ? 24 : 64;
+      ComboAddress trunc(local);
+      trunc.truncate(bits);
+      return boost::optional<Netmask>(Netmask(trunc, bits));
+    }
+  }
+  return boost::optional<Netmask>();
+}
+
+void  parseEDNSSubnetWhitelist(const std::string& wlist)
+{
+  vector<string> parts;
+  stringtok(parts, wlist, ",;");
+  for(const auto& a : parts) {
+    try {
+      Netmask nm(a);
+      g_ednssubnets.addMask(nm);
+    }
+    catch(...) {
+      g_ednsdomains.add(DNSName(a));
+    }
+  }
+}

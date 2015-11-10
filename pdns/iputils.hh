@@ -386,10 +386,16 @@ public:
     return match(&ip);
   }
 
-  //! Add this Netmask to the list of possible matches
+  //! Add this string to the list of possible matches
   void addMask(const string &ip)
   {
     d_masks.push_back(Netmask(ip));
+  }
+
+  //! Add this Netmask to the list of possible matches
+  void addMask(const Netmask& nm)
+  {
+    d_masks.push_back(nm);
   }
 
   void clear()

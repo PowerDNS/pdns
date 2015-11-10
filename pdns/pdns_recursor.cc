@@ -93,6 +93,9 @@ __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
 __thread boost::circular_buffer<pair<DNSName, uint16_t> >* t_queryring, *t_servfailqueryring;
 __thread shared_ptr<Regex>* t_traceRegex;
 
+NetmaskGroup g_ednssubnets;
+SuffixMatchNode g_ednsdomains;
+
 DNSFilterEngine g_dfe;
 
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -2172,6 +2175,8 @@ int serviceMain(int argc, char*argv[])
   makeUDPServerSockets();
   makeTCPServerSockets();
 
+  parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
+
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
     if(!fork()) // we are child
@@ -2483,6 +2488,7 @@ int main(int argc, char **argv)
 //    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no";
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= "";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
+    ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="powerdns.com,82.94.213.34,2001:888:2000:1d::2";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";

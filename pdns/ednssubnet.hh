@@ -24,6 +24,11 @@
 
 #include "namespaces.hh"
 #include "iputils.hh"
+#include "dnsname.hh"
+
+extern NetmaskGroup g_ednssubnets;
+extern SuffixMatchNode g_ednsdomains;
+
 
 struct EDNSSubnetOpts
 {
@@ -33,5 +38,6 @@ struct EDNSSubnetOpts
 
 bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso);
 string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
-
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+void  parseEDNSSubnetWhitelist(const std::string& wlist);
 #endif

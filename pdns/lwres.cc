@@ -53,7 +53,7 @@
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws! 
  */
-int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, LWResult *lwr)
+int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult *lwr)
 {
   int len; 
   int bufsize=1500;
@@ -69,9 +69,13 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 
   if(EDNS0Level && !doTCP) {
     DNSPacketWriter::optvect_t opts;
-    EDNSSubnetOpts eo;
-    eo.source = Netmask("2001:470:1f0b:27e:1850:ae41:cc31:7765");
-    opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
+    if(srcmask) {
+      EDNSSubnetOpts eo;
+      eo.source = *srcmask;
+      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
+      opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
+      srcmask=boost::optional<Netmask>(); // this is also our return value
+    }
 
     pw.addOpt(1200, 0, EDNSOpts::DNSSECOK, opts); // 1200 bytes answer size
     pw.commit();
@@ -180,6 +184,18 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     EDNSOpts edo;
     if(EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
+
+      for(const auto& opt : edo.d_options) {
+	if(opt.first==8) {
+	  EDNSSubnetOpts reso;
+	  if(getEDNSSubnetOptsFromString(opt.second, &reso)) {
+	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
+	    if(srcmask)
+	      srcmask = reso.scope;
+	  }
+	}
+
+      }
     }
         
     return 1;
