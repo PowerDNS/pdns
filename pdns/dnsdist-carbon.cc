@@ -56,6 +56,15 @@ try
 	  str<<(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first);
 	str<<' '<<now<<"\r\n";
       }
+      const auto states = g_dstates.getCopy();
+      for(const auto& s : states) {
+        string serverName = s->remote.toString();
+        boost::replace_all(serverName, ".", "_");
+        const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
+        str<<base<<"queries" << ' ' << s->queries.load() << " " << now << "\r\n";
+        str<<base<<"drops" << ' ' << s->reuseds.load() << " " << now << "\r\n";
+        str<<base<<"latency" << ' ' << s->latencyUsec/1000.0 << " " << now << "\r\n";
+      }
       const string msg = str.str();
 
       int ret = waitForRWData(s.getHandle(), false, 1 , 0); 
