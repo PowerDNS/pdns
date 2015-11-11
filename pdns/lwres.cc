@@ -190,7 +190,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 	  EDNSSubnetOpts reso;
 	  if(getEDNSSubnetOptsFromString(opt.second, &reso)) {
 	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
-	    if(srcmask)
+	    if(reso.scope.getBits())
 	      srcmask = reso.scope;
 	  }
 	}
