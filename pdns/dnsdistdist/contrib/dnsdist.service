@@ -1,6 +1,6 @@
 [Unit]
 Description=dnsdist
-After=syslog.target
+After=network.target
 
 [Service]
 EnvironmentFile=-/etc/sysconfig/dnsdist
