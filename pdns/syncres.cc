@@ -856,14 +856,6 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(set<DNSName> &tnameservers, 
   return rnameservers;
 }
 
-struct TCacheComp
-{
-  bool operator()(const pair<DNSName, QType>& a, const pair<DNSName, QType>& b) const
-  {
-    return tie(a.first, a.second) < tie(b.first, b.second);
-  }
-};
-
 static bool magicAddrMatch(const QType& query, const QType& answer)
 {
   if(query.getCode() != QType::ADDR)
@@ -1096,7 +1088,16 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	vector<DNSRecord> records;
 	vector<shared_ptr<RRSIGRecordContent>> signatures;
       };
-      typedef map<pair<DNSName, QType>, CachePair, TCacheComp > tcache_t;
+      struct CacheKey
+      {
+	DNSName name;
+	uint16_t type;
+	DNSResourceRecord::Place place;
+	bool operator<(const CacheKey& rhs) const {
+	  return tie(name, type) < tie(rhs.name, rhs.type);
+	}
+      };
+      typedef map<CacheKey, CachePair> tcache_t;
       tcache_t tcache;
 
       if(d_doDNSSEC) {
@@ -1104,7 +1105,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	  if(rec.d_type == QType::RRSIG) {
 	    auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.d_content);
 	    //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
-	    tcache[make_pair(rec.d_name, QType(rrsig->d_type))].signatures.push_back(rrsig);
+	    tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
 	  }
 	}
       }
@@ -1155,8 +1156,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
             dr.d_place=DNSResourceRecord::ANSWER;
 
             dr.d_ttl += d_now.tv_sec;
-
-            tcache[make_pair(rec.d_name,QType(rec.d_type))].records.push_back(dr);
+	    // we should note the PLACE and not store ECS subnet details for non-answer records
+            tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
           }
         }
         else
@@ -1176,7 +1177,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 	//	cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.first.toString();
 	//	cout<<'|'<<DNSRecordContent::NumberToType(i->first.second.getCode())<<endl;
-        t_RC->replace(d_now.tv_sec, i->first.first, i->first.second, i->second.records, i->second.signatures, lwr.d_aabit, ednsmask);
+        t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
       }
       set<DNSName> nsset;
       LOG(prefix<<qname.toString()<<": determining status after receiving this packet"<<endl);

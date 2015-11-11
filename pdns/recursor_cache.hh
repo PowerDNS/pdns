@@ -48,8 +48,8 @@ private:
 
   struct CacheEntry
   {
-    CacheEntry(const boost::tuple<DNSName, uint16_t>& key, const vector<shared_ptr<DNSRecordContent>>& records, bool auth) : 
-      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_ttd(0), d_records(records)
+    CacheEntry(const boost::tuple<DNSName, uint16_t, Netmask>& key, const vector<shared_ptr<DNSRecordContent>>& records, bool auth) : 
+      d_qname(key.get<0>()), d_qtype(key.get<1>()), d_auth(auth), d_ttd(0), d_records(records), d_netmask(key.get<2>())
     {}
 
     typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
@@ -64,7 +64,7 @@ private:
     bool d_auth;
     uint32_t d_ttd;
     records_t d_records;
-    vector<pair<Netmask, records_t> > d_subnetspecific;
+    Netmask d_netmask;
   };
 
   typedef multi_index_container<
@@ -74,9 +74,10 @@ private:
                       composite_key< 
                         CacheEntry,
                         member<CacheEntry,DNSName,&CacheEntry::d_qname>,
-                        member<CacheEntry,uint16_t,&CacheEntry::d_qtype>
+                        member<CacheEntry,uint16_t,&CacheEntry::d_qtype>,
+                        member<CacheEntry,Netmask,&CacheEntry::d_netmask>
                       >,
-                      composite_key_compare<CanonDNSNameCompare, std::less<uint16_t> >
+		  composite_key_compare<CanonDNSNameCompare, std::less<uint16_t>, std::less<Netmask> >
                 >,
                sequenced<>
                >

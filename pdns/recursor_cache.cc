@@ -46,22 +46,22 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
   if(res)
     res->clear();
 
+  bool haveSubnetSpecific=false;
   if(d_cachecache.first!=d_cachecache.second) {
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
+      if(!i->d_netmask.empty()) {
+	cout<<"Had a subnet specific hit: "<<i->d_netmask.toString()<<", query was for "<<who.toString()<<": match "<<i->d_netmask.match(who)<<endl;
+	haveSubnetSpecific=true;
+      }
+    }
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
-      if(i->d_ttd > now && (i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
-			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) ) )
+      if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
+			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
+			    && (!haveSubnetSpecific || i->d_netmask.match(who)))
          ) {
 
 	ttd = i->d_ttd;	
 	auto records = &i->d_records;
-	if(!i->d_subnetspecific.empty()) {
-	  for(const auto& p : i->d_subnetspecific) {
-	    if(p.first.match(who)) {
-	      records = &p.second;
-	      break;
-	    }
-	  }
-	}
 	for(auto k=records->begin(); k != records->end(); ++k) {
 	  if(res) {
 	    DNSRecord dr;
@@ -129,45 +129,36 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
     cerr<<"This data is actually subnet mask specific!!"<<endl;
   }
   d_cachecachevalid=false;
-  boost::tuple<DNSName, uint16_t> key=boost::make_tuple(qname, qt.getCode());
-  cache_t::iterator stored=d_cache.find(key);
-  uint32_t maxTTD=UINT_MAX;
 
-  if(stored == d_cache.end()) {
-    stored=d_cache.insert(CacheEntry(key,CacheEntry::records_t(), auth)).first;
+  cache_t::iterator stored;
+  if(ednsmask) {
+    auto key=boost::make_tuple(qname, qt.getCode(), *ednsmask);
+    stored=d_cache.find(key);
+    if(stored == d_cache.end()) {
+      stored=d_cache.insert(CacheEntry(key,CacheEntry::records_t(), auth)).first;
+    }
   }
-  
+  else {
+    auto key=boost::make_tuple(qname, qt.getCode(),Netmask());
+    stored=d_cache.find(key);
+    if(stored == d_cache.end()) {
+      stored=d_cache.insert(CacheEntry(key,CacheEntry::records_t(), auth)).first;
+    }
+  }
+
+
+  uint32_t maxTTD=UINT_MAX;
   CacheEntry ce=*stored;
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
 
-  //  cerr<<"asked to store "<< qname<<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<"\n";
+  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<", "<< (ednsmask ? ednsmask->toString() : "")<<endl;
 
-  auto records = &ce.d_records;
-  if(ednsmask) {
-    records=nullptr; // there, we use nullptr!
-
-    /* so the logic here is.. if you update a specific mask, we'll update too. 
-       If you supply anything more generic, we'll store that next to your more
-       specific answers. 
-       If you supply more specific answers, we'll store those too. */
-    for(auto &p : ce.d_subnetspecific) {
-      if(p.first == *ednsmask) {
-	records = &p.second;
-	break;
-      }
-    }
-    if(records==nullptr) {
-      ce.d_subnetspecific.push_back({*ednsmask, CacheEntry::records_t()});
-      records = &ce.d_subnetspecific.rbegin()->second;
-    }
-      
-  }
-  records->clear();
+  ce.d_records.clear();
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
-      //      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
+      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
       return;
     }
     else {
@@ -182,22 +173,22 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   // make sure that we CAN refresh the root
-  if(auth && ((qname == DNSName()) || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
+  if(auth && (qname.isRoot() || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
     // cerr<<"\tGot auth data, and it was not refresh attempt of an unchanged NS set, nuking storage"<<endl;
-    records->clear(); // clear non-auth data
+    ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
   }
 //  else cerr<<"\tNot nuking"<<endl;
 
 
-  // cerr<<"\tHave "<<content.size()<<" records to store\n";
+  cerr<<"\tHave "<<content.size()<<" records to store\n";
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
     // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
     ce.d_ttd=min(maxTTD, i->d_ttl);   // XXX this does weird things if TTLs differ in the set
-    records->push_back(i->d_content);
+    ce.d_records.push_back(i->d_content);
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
-
+  cerr<<"Calling replace"<<endl;
   d_cache.replace(stored, ce);
 }
 
@@ -304,7 +295,7 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(auto j=i->d_records.cbegin(); j != i->d_records.cend(); ++j) {
       count++;
       try {
-        fprintf(fp, "%s %d IN %s %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str());
+        fprintf(fp, "%s %d IN %s %s ; %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_netmask.toString().c_str());
       }
       catch(...) {
         fprintf(fp, "; error printing '%s'\n", i->d_qname.toString().c_str());
