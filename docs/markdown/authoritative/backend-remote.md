@@ -18,6 +18,8 @@ This backend provides unix socket / pipe / http remoting for powerdns. You shoul
 ## Important notices
 Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.
 
+There is a breaking change on v4.0 and later. Before version 4.0, the DNS names passed in queries were without trailing dot, after version 4.0 the DNS names are sent with trailing dot. F.ex. example.org is now sent as example.org.
+
 ## Compiling
 To compile this backend, you need to configure `--with-modules="remote"`.
 

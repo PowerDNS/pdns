@@ -93,7 +93,10 @@ EOF
 			$PDNSSEC --config-dir=. --config-name=remote secure-zone example.com
 			$PDNSSEC --config-dir=. --config-name=remote secure-zone up.example.com
 
-			./gsql_feed_ds.pl up.example.com example.com "$PDNSSEC --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
+			./gsql_feed_ds.pl up.example.com. example.com. "$PDNSSEC --config-dir=. --config-name=remote" "sqlite3 $testsdir/remote.sqlite3"
+
+			# fix dot
+			sqlite3 $testsdir/remote.sqlite3 "UPDATE records SET name = 'up.example.com.' WHERE name = 'up.example.com'"
 
 			if [ "$remotesec" = "nsec3" ]
 			then
