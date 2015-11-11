@@ -993,9 +993,6 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
 	      resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(),
 					     doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
-	      if(ednsmask && ednsmask->getBits()) {
-		cerr<<"Actually got something back.. "<<ednsmask->toString()<<endl;
-	      }
 	    }
             if(resolveret==-3)
 	      throw ImmediateServFailException("Query killed by policy");

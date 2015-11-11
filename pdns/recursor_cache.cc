@@ -50,7 +50,7 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
   if(d_cachecache.first!=d_cachecache.second) {
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
       if(!i->d_netmask.empty()) {
-	cout<<"Had a subnet specific hit: "<<i->d_netmask.toString()<<", query was for "<<who.toString()<<": match "<<i->d_netmask.match(who)<<endl;
+	//	cout<<"Had a subnet specific hit: "<<i->d_netmask.toString()<<", query was for "<<who.toString()<<": match "<<i->d_netmask.match(who)<<endl;
 	haveSubnetSpecific=true;
       }
     }
@@ -125,9 +125,6 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
 
 void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask)
 {
-  if(ednsmask) {
-    cerr<<"This data is actually subnet mask specific!!"<<endl;
-  }
   d_cachecachevalid=false;
 
   cache_t::iterator stored;
@@ -152,13 +149,13 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
 
-  cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<", "<< (ednsmask ? ednsmask->toString() : "")<<endl;
+  // cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<", "<< (ednsmask ? ednsmask->toString() : "")<<endl;
 
   ce.d_records.clear();
 
   if(!auth && ce.d_auth) {  // unauth data came in, we have some auth data, but is it fresh?
     if(ce.d_ttd > now) { // we still have valid data, ignore unauth data
-      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
+      //      cerr<<"\tStill hold valid auth data, and the new data is unauth, return\n";
       return;
     }
     else {
@@ -181,14 +178,13 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 //  else cerr<<"\tNot nuking"<<endl;
 
 
-  cerr<<"\tHave "<<content.size()<<" records to store\n";
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
     // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
     ce.d_ttd=min(maxTTD, i->d_ttl);   // XXX this does weird things if TTLs differ in the set
     ce.d_records.push_back(i->d_content);
     // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
-  cerr<<"Calling replace"<<endl;
+
   d_cache.replace(stored, ce);
 }
 

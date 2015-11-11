@@ -72,7 +72,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
     if(srcmask) {
       EDNSSubnetOpts eo;
       eo.source = *srcmask;
-      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
+      //      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
       opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));
       srcmask=boost::optional<Netmask>(); // this is also our return value
     }
@@ -189,7 +189,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
 	if(opt.first==8) {
 	  EDNSSubnetOpts reso;
 	  if(getEDNSSubnetOptsFromString(opt.second, &reso)) {
-	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
+	    //	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
 	    if(reso.scope.getBits())
 	      srcmask = reso.scope;
 	  }
