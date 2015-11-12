@@ -828,7 +828,7 @@ void startDoResolve(void *p)
       else
         msgh.msg_control=NULL;
       sendmsg(dc->d_socket, &msgh, 0);
-      if(!SyncRes::s_nopacketcache && !variableAnswer ) {
+      if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
                                             min(minTTL,
@@ -836,6 +836,7 @@ void startDoResolve(void *p)
                                             )
         );
       }
+      //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }
     else {
       char buf[2];

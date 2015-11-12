@@ -287,6 +287,10 @@ public:
     d_pdl = pdl;
   }
 
+  bool wasVariable() const
+  {
+    return d_wasVariable;
+  }
 
   int asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
 
@@ -314,7 +318,9 @@ public:
   unsigned int d_totUsec;
   ComboAddress d_requestor;
   bool d_doDNSSEC;
-
+  
+  bool d_wasVariable{false};
+  
   typedef multi_index_container <
     NegCacheEntry,
     indexed_by <
@@ -430,7 +436,6 @@ public:
   static unsigned int s_serverdownthrottletime;
   static bool s_nopacketcache;
   static string s_serverID;
-
 
   struct StaticStorage {
     negcache_t negcache;

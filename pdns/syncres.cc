@@ -123,6 +123,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(
 int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)
 {
   s_queries++;
+  d_wasVariable=false;
 
   if( (qtype.getCode() == QType::AXFR))
     return -1;
@@ -1175,6 +1176,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	//	cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.first.toString();
 	//	cout<<'|'<<DNSRecordContent::NumberToType(i->first.second.getCode())<<endl;
         t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
+	if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
+	  d_wasVariable=true;
       }
       set<DNSName> nsset;
       LOG(prefix<<qname.toString()<<": determining status after receiving this packet"<<endl);
