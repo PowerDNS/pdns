@@ -19,7 +19,7 @@ To setup DNS64, create the following Lua script and save it to a file called dns
         end
 ```
 
-Where fe80::21b::77ff:0:0 is your "Pref64" translation prefix. Next, make sure your script gets loaded by specifying it with `lua-pdns-script=dns64.lua`.
+Where fe80::21b::77ff:0:0 is your "Pref64" translation prefix. Next, make sure your script gets loaded by specifying it with `lua-dns-script=dns64.lua`.
 
 In addition, since PowerDNS Recursor 3.6, it is also possible to also generate the associated PTR records. This makes sure that reverse lookup of DNS64-generated IPv6 addresses generate the right name. The procedure is similar, a request for an IPv6 PTR is converted into one for the corresponding IPv4 address.
 
