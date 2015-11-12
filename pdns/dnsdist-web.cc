@@ -126,6 +126,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	  pools+=p+" ";
 	Json::object server{ 
 	  {"id", num++}, 
+	  {"name", a->name},
 	    {"address", a->remote.toStringWithPort()}, 
 	      {"state", status}, 
 		{"qps", (int)a->queryLoad}, 
