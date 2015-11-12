@@ -22,6 +22,9 @@ static GeoIP *s_gi = 0; // geoip database
 static GeoIP *s_gi6 = 0; // geoip database
 static int s_rc = 0; // refcount
 
+static string GeoIP_WEEKDAYS[] = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
+static string GeoIP_MONTHS[] = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
+
 /* So how does it work - we have static records and services. Static records "win".
    We also insert empty non terminals for records and services.
 
@@ -410,30 +413,59 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
 
 string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPLookup* gl) {
   string::size_type cur,last;
-  GeoIPQueryAttribute attr;
+  time_t t = time((time_t*)NULL);
+  GeoIPLookup tmp_gl; // largest wins
+  struct tm gtm;
+  gmtime_r(&t, &gtm);
+  gl->netmask = 0;
   last=0;
+
   while((cur = format.find("%", last)) != string::npos) {
+    string rep;
+    int nrep=3;
+    tmp_gl.netmask = 0;
     if (!format.compare(cur,3,"%co")) {
-      attr = Country;
+      rep = queryGeoIP(ip, v6, Continent, &tmp_gl);
     } else if (!format.compare(cur,3,"%cn")) {
-      attr = Continent;
+      rep = queryGeoIP(ip, v6, Country, &tmp_gl);
     } else if (!format.compare(cur,3,"%af")) {
-      attr = Afi;
+      rep = queryGeoIP(ip, v6, Afi, &tmp_gl);
     } else if (!format.compare(cur,3,"%re")) {
-      attr = Region;
+      rep = queryGeoIP(ip, v6, Region, &tmp_gl);
     } else if (!format.compare(cur,3,"%na")) {
-      attr = Name;
+      rep = queryGeoIP(ip, v6, Name, &tmp_gl);
     } else if (!format.compare(cur,3,"%ci")) {
-      attr = City;
+      rep = queryGeoIP(ip, v6, City, &tmp_gl);
+    } else if (!format.compare(cur,3,"%hh")) {
+      rep = boost::str(boost::format("%02d") % gtm.tm_hour);
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,3,"%yy")) {
+      rep = boost::str(boost::format("%02d") % (gtm.tm_year + 1900));
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,3,"%dd")) {
+      rep = boost::str(boost::format("%02d") % (gtm.tm_yday + 1));
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,4,"%wds")) {
+      nrep=4;
+      rep = GeoIP_WEEKDAYS[gtm.tm_wday];
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,4,"%mos")) {
+      nrep=4;
+      rep = GeoIP_MONTHS[gtm.tm_mon];
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,3,"%wd")) {
+      rep = boost::str(boost::format("%02d") % (gtm.tm_wday + 1));
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,3,"%mo")) {
+      rep = boost::str(boost::format("%02d") % (gtm.tm_mon + 1));
+      tmp_gl.netmask = (v6?128:32);
     } else if (!format.compare(cur,2,"%%")) {
-      last = cur + 2; continue; 
-    } else { 
+      last = cur + 2; continue;
+    } else {
       last = cur + 1; continue; 
     }
-
-    string rep = queryGeoIP(ip, v6, attr, gl);
-
-    format.replace(cur, 3, rep);
+    if (tmp_gl.netmask > gl->netmask) gl->netmask = tmp_gl.netmask;
+    format.replace(cur, nrep, rep);
     last = cur + rep.size(); // move to next attribute
   }
   return format;
