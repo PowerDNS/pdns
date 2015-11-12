@@ -164,7 +164,7 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   // limit TTL of auth->auth NSset update if needed, except for root
-  if(ce.d_auth && auth && qt.getCode()==QType::NS && !(qname == DNSName())) {
+  if(ce.d_auth && auth && qt.getCode()==QType::NS && !qname.isRoot()) {
     // cerr<<"\tLimiting TTL of auth->auth NS set replace"<<endl;
     maxTTD = ce.d_ttd;
   }
