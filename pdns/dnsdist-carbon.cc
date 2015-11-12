@@ -58,7 +58,7 @@ try
       }
       const auto states = g_dstates.getCopy();
       for(const auto& s : states) {
-        string serverName = s->remote.toString();
+        string serverName = s->getName();
         boost::replace_all(serverName, ".", "_");
         const string base = "dnsdist." + hostname + ".main.servers." + serverName + ".";
         str<<base<<"queries" << ' ' << s->queries.load() << " " << now << "\r\n";
