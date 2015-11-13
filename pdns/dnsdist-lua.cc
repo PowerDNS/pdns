@@ -667,7 +667,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
     });
   
-  g_lua.executeCode(R"(function topQueries(top, labels) for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
+  g_lua.executeCode(R"(function topQueries(top, labels) top = top or 10; for k,v in ipairs(getTopQueries(top,labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
 
 
 
@@ -739,7 +739,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
     });
 
-  g_lua.executeCode(R"(function topResponses(top, kind, labels) for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2], v[3])) end end)");
+  g_lua.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
 
   g_lua.writeFunction("showResponseLatency", []() {
@@ -764,6 +764,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	    histo.rbegin()++;
 	  totlat+=r.usec;
 	}
+      }
+
+      if (size == 0) {
+        g_outputBuffer = "No traffic yet.\n";
+        return;
       }
 
       g_outputBuffer = (boost::format("Average response latency: %.02f msec\n") % (0.001*totlat/size)).str();
