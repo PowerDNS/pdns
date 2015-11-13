@@ -13,7 +13,7 @@ DNSRecordContent* NSECRecordContent::make(const string& content)
   return new NSECRecordContent(content);
 }
 
-NSECRecordContent::NSECRecordContent(const string& content, const string& zone) : DNSRecordContent(47)
+NSECRecordContent::NSECRecordContent(const string& content, const string& zone) 
 {
   RecordTextReader rtr(content, zone);
   rtr.xfrName(d_next);
@@ -120,7 +120,7 @@ DNSRecordContent* NSEC3RecordContent::make(const string& content)
   return new NSEC3RecordContent(content);
 }
 
-NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone) : DNSRecordContent(50)
+NSEC3RecordContent::NSEC3RecordContent(const string& content, const string& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm);
@@ -257,7 +257,7 @@ DNSRecordContent* NSEC3PARAMRecordContent::make(const string& content)
   return new NSEC3PARAMRecordContent(content);
 }
 
-NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const string& zone) : DNSRecordContent(51)
+NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const string& zone) 
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm); 

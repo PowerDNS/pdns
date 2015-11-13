@@ -32,12 +32,12 @@ class UnknownRecordContent : public DNSRecordContent
 {
 public:
   UnknownRecordContent(const DNSRecord& dr, PacketReader& pr) 
-    : DNSRecordContent(dr.d_type), d_dr(dr)
+    : d_dr(dr)
   {
     pr.copyRecord(d_record, dr.d_clen);
   }
 
-  UnknownRecordContent(const string& zone) : DNSRecordContent(0)
+  UnknownRecordContent(const string& zone) 
   {
     // parse the input
     vector<string> parts;
@@ -74,6 +74,11 @@ public:
   void toPacket(DNSPacketWriter& pw)
   {
     pw.xfrBlob(string(d_record.begin(),d_record.end()));
+  }
+
+  uint16_t getType() const override 
+  {
+    return d_dr.d_type;
   }
 private:
   DNSRecord d_dr;
