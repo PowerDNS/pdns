@@ -30,7 +30,7 @@ unsigned int MemRecursorCache::bytes()
   return ret;
 }
 
-int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
+int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vector<DNSRecord>* res, const ComboAddress& who, vector<std::shared_ptr<RRSIGRecordContent>>* signatures)
 {
   unsigned int ttd=0;
   //  cerr<<"looking up "<< qname<<"|"+qt.getName()<<"\n";
@@ -46,10 +46,18 @@ int MemRecursorCache::get(time_t now, const DNSName &qname, const QType& qt, vec
   if(res)
     res->clear();
 
+  bool haveSubnetSpecific=false;
   if(d_cachecache.first!=d_cachecache.second) {
+    for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i) {
+      if(!i->d_netmask.empty()) {
+	//	cout<<"Had a subnet specific hit: "<<i->d_netmask.toString()<<", query was for "<<who.toString()<<": match "<<i->d_netmask.match(who)<<endl;
+	haveSubnetSpecific=true;
+      }
+    }
     for(cache_t::const_iterator i=d_cachecache.first; i != d_cachecache.second; ++i)
-      if(i->d_ttd > now && (i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
-			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) ) )
+      if(i->d_ttd > now && ((i->d_qtype == qt.getCode() || qt.getCode()==QType::ANY ||
+			    (qt.getCode()==QType::ADDR && (i->d_qtype == QType::A || i->d_qtype == QType::AAAA) )) 
+			    && (!haveSubnetSpecific || i->d_netmask.match(who)))
          ) {
 
 	ttd = i->d_ttd;	
@@ -114,22 +122,23 @@ bool MemRecursorCache::attemptToRefreshNSTTL(const QType& qt, const vector<DNSRe
   return true;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth)
+void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt,  const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, bool auth, boost::optional<Netmask> ednsmask)
 {
   d_cachecachevalid=false;
-  boost::tuple<DNSName, uint16_t> key=boost::make_tuple(qname, qt.getCode());
-  cache_t::iterator stored=d_cache.find(key);
-  uint32_t maxTTD=UINT_MAX;
 
+  cache_t::iterator stored;
+  auto key=boost::make_tuple(qname, qt.getCode(), ednsmask ? *ednsmask : Netmask());
+  stored=d_cache.find(key);
   if(stored == d_cache.end()) {
     stored=d_cache.insert(CacheEntry(key,CacheEntry::records_t(), auth)).first;
   }
-  
+
+  uint32_t maxTTD=UINT_MAX;
   CacheEntry ce=*stored;
   ce.d_qtype=qt.getCode();
   ce.d_signatures=signatures;
 
-  //  cerr<<"asked to store "<< qname<<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<"\n";
+  // cerr<<"asked to store "<< (qname.empty() ? "EMPTY" : qname.toString()) <<"|"+qt.getName()<<" -> '"<<content.begin()->d_content->getZoneRepresentation()<<"', auth="<<auth<<", ce.auth="<<ce.d_auth<<", "<< (ednsmask ? ednsmask->toString() : "")<<endl;
 
   ce.d_records.clear();
 
@@ -144,13 +153,13 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
   }
 
   // limit TTL of auth->auth NSset update if needed, except for root
-  if(ce.d_auth && auth && qt.getCode()==QType::NS && !(qname == DNSName())) {
+  if(ce.d_auth && auth && qt.getCode()==QType::NS && !qname.isRoot()) {
     // cerr<<"\tLimiting TTL of auth->auth NS set replace"<<endl;
     maxTTD = ce.d_ttd;
   }
 
   // make sure that we CAN refresh the root
-  if(auth && ((qname == DNSName()) || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
+  if(auth && (qname.isRoot() || !attemptToRefreshNSTTL(qt, content, ce) ) ) {
     // cerr<<"\tGot auth data, and it was not refresh attempt of an unchanged NS set, nuking storage"<<endl;
     ce.d_records.clear(); // clear non-auth data
     ce.d_auth = true;
@@ -158,40 +167,11 @@ void MemRecursorCache::replace(time_t now, const DNSName &qname, const QType& qt
 //  else cerr<<"\tNot nuking"<<endl;
 
 
-  // cerr<<"\tHave "<<content.size()<<" records to store\n";
   for(auto i=content.cbegin(); i != content.cend(); ++i) {
-    // cerr<<"To store: "<<i->content<<" with ttl/ttd "<<i->ttl<<endl;
+    //    cerr<<"To store: "<<i->d_content->getZoneRepresentation()<<" with ttl/ttd "<<i->d_ttl<<endl;
     ce.d_ttd=min(maxTTD, i->d_ttl);   // XXX this does weird things if TTLs differ in the set
     ce.d_records.push_back(i->d_content);
-
-    /*
-    else {
-      range=equal_range(ce.d_records.begin(), ce.d_records.end(), dr);
-
-      if(range.first != range.second) {
-       // cerr<<"\t\tMay need to modify TTL of stored record\n";
-        for(vector<StoredRecord>::iterator j=range.first ; j!=range.second; ++j) {
-          // see http://mailman.powerdns.com/pipermail/pdns-users/2006-May/003413.html
-          if(j->d_ttd > (unsigned int) now && i->ttl > j->d_ttd && qt.getCode()==QType::NS && auth) { // don't allow auth servers to *raise* TTL of an NS record
-            //~ cerr<<"\t\tNot doing so, trying to raise TTL NS\n";
-            continue;
-          }
-          if(i->ttl > j->d_ttd || (auth) ) { // authoritative packets can override the TTL to be lower
-            //~ cerr<<"\t\tUpdating the ttl, diff="<<j->d_ttd - i->ttl<<endl;;
-            j->d_ttd=i->ttl;
-          }
-          else {
-            //~ cerr<<"\t\tNOT updating the ttl, old= " <<j->d_ttd - now <<", new: "<<i->ttl - now <<endl;
-          }
-        }
-      }
-      else {
-        //~ cerr<<"\t\tThere was no exact copy of this record, so adding & sorting\n";
-        ce.d_records.push_back(dr);
-        sort(ce.d_records.begin(), ce.d_records.end());
-	}
-    }
-    */
+    // there was code here that did things with TTL and auth. Unsure if it was good. XXX
   }
 
   d_cache.replace(stored, ce);
@@ -291,7 +271,6 @@ uint64_t MemRecursorCache::doDump(int fd)
     return 0;
   }
   fprintf(fp, "; main record cache dump from thread follows\n;\n");
-
   auto& sidx=d_cache.get<0>();
 
   uint64_t count=0;
@@ -300,10 +279,10 @@ uint64_t MemRecursorCache::doDump(int fd)
     for(auto j=i->d_records.cbegin(); j != i->d_records.cend(); ++j) {
       count++;
       try {
-        fprintf(fp, "%s %d IN %s %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str());
+        fprintf(fp, "%s %d IN %s %s ; %s\n", i->d_qname.toString().c_str(), (int32_t)(i->d_ttd - now), DNSRecordContent::NumberToType(i->d_qtype).c_str(), (*j)->getZoneRepresentation().c_str(), i->d_netmask.empty() ? "" : i->d_netmask.toString().c_str());
       }
       catch(...) {
-        fprintf(fp, "; error printing '%s'\n", i->d_qname.toString().c_str());
+        fprintf(fp, "; error printing '%s'\n", i->d_qname.empty() ? "EMPTY" : i->d_qname.toString().c_str());
       }
     }
   }

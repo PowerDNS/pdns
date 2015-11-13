@@ -358,6 +358,11 @@ public:
     return tie(d_network, d_bits) == tie(rhs.d_network, rhs.d_bits);
   }
 
+  bool empty() const 
+  {
+    return d_network.sin4.sin_family==0;
+  }
+
 private:
   ComboAddress d_network;
   uint32_t d_mask;
@@ -386,10 +391,16 @@ public:
     return match(&ip);
   }
 
-  //! Add this Netmask to the list of possible matches
+  //! Add this string to the list of possible matches
   void addMask(const string &ip)
   {
     d_masks.push_back(Netmask(ip));
+  }
+
+  //! Add this Netmask to the list of possible matches
+  void addMask(const Netmask& nm)
+  {
+    d_masks.push_back(nm);
   }
 
   void clear()

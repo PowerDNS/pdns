@@ -1,6 +1,6 @@
 /*
     PowerDNS Versatile Database Driven Nameserver
-    Copyright (C) 2011  Netherlabs Computer Consulting BV
+    Copyright (C) 2015  Netherlabs Computer Consulting BV
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2 as 
@@ -32,7 +32,7 @@ namespace {
                 uint16_t family;
                 uint8_t sourceMask;
                 uint8_t scopeMask;
-        } GCCPACKATTRIBUTE;
+        } GCCPACKATTRIBUTE;  // BRRRRR
 
 }
 
