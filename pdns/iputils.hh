@@ -389,7 +389,7 @@ public:
   //! Add this Netmask to the list of possible matches
   void addMask(const string &ip)
   {
-    d_masks.push_back(Netmask(ip));
+    d_masks.insert(Netmask(ip));
   }
 
   void clear()
@@ -435,7 +435,13 @@ public:
   }
 
 private:
-  typedef vector<Netmask> container_t;
+  struct netmask_compare {
+     bool operator()(const Netmask& lhs, const Netmask& rhs) {
+       return lhs<rhs;
+     }
+  };
+
+  typedef set<Netmask, netmask_compare> container_t;
   container_t d_masks;
 };
 
