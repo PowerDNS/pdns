@@ -571,6 +571,7 @@ RecursorControlParser::RecursorControlParser()
   addGetStat("policy-drops", &g_stats.policyDrops);
   addGetStat("no-packet-error", &g_stats.noPacketError);
   addGetStat("dlg-only-drops", &SyncRes::s_nodelegated);
+  addGetStat("ignored-packets", &g_stats.ignoredCount);
   addGetStat("max-mthread-stack", &g_stats.maxMThreadStackUsage);
   
   addGetStat("negcache-entries", boost::bind(getNegCacheSize));

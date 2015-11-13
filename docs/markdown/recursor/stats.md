@@ -30,6 +30,7 @@ The `rec_control get` command can be used to query the following statistics, eit
 * `edns-ping-matches`: number of servers that sent a valid EDNS PING response
 * `edns-ping-mismatches`: number of servers that sent an invalid EDNS PING response
 * `failed-host-entries`: number of servers that failed to resolve
+* `ignored-packets`: counts the number of non-query packets received on server sockets that should only get query packets
 * `ipv6-outqueries`: number of outgoing queries over IPv6
 * `ipv6-questions`: counts all end-user initiated queries with the RD bit set, received over IPv6 UDP
 * `malloc-bytes`: returns the number of bytes allocated by the process (broken, always returns 0)
