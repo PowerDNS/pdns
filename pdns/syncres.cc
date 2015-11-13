@@ -46,6 +46,7 @@
 #include "dnsparser.hh"
 #include "dns_random.hh"
 #include "lock.hh"
+#include "ednssubnet.hh"
 #include "cachecleaner.hh"
 
 __thread SyncRes::StaticStorage* t_sstorage;
@@ -122,6 +123,7 @@ SyncRes::SyncRes(const struct timeval& now) :  d_outqueries(0), d_tcpoutqueries(
 int SyncRes::beginResolve(const DNSName &qname, const QType &qtype, uint16_t qclass, vector<DNSRecord>&ret)
 {
   s_queries++;
+  d_wasVariable=false;
 
   if( (qtype.getCode() == QType::AXFR))
     return -1;
@@ -288,7 +290,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   fclose(fp);
 }
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res)
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -335,7 +337,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, 
       EDNSLevel = 0;
     }
     
-    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, res);
+    ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, res);
 
     if(ret == 0 || ret < 0) {
       //      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret="<<ret<<"), no change in mode"<<endl;
@@ -393,7 +395,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
           const ComboAddress remoteIP = servers.front();
           LOG(prefix<<qname.toString()<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname.toString()<<"'"<<endl);
 
-          res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, &lwr);
+	  boost::optional<Netmask> nm;
+          res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, nm, &lwr);
           // filter out the good stuff from lwr.result()
 
 	  for(const auto& rec : lwr.d_records) {
@@ -485,7 +488,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName &qname, int depth, set<GetB
     if(done) {
       if(j==1 && s_doIPv6) { // we got an A record, see if we have some AAAA lying around
 	vector<DNSRecord> cset;
-	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset) > 0) {
+	if(t_RC->get(d_now.tv_sec, qname, QType(QType::AAAA), &cset, d_requestor) > 0) {
 	  for(auto k=cset.cbegin();k!=cset.cend();++k) {
 	    if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
 	      ComboAddress ca=std::dynamic_pointer_cast<AAAARecordContent>(k->d_content)->getCA(53);
@@ -534,7 +537,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
     LOG(prefix<<qname.toString()<<": Checking if we have NS in cache for '"<<subdomain.toString()<<"'"<<endl);
     vector<DNSRecord> ns;
     *flawedNSSet = false;
-    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), &ns) > 0) {
+    if(t_RC->get(d_now.tv_sec, subdomain, QType(QType::NS), &ns, d_requestor) > 0) {
       for(auto k=ns.cbegin();k!=ns.cend(); ++k) {
         if(k->d_ttl > (unsigned int)d_now.tv_sec ) {
           vector<DNSRecord> aset;
@@ -542,7 +545,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
           const DNSRecord& dr=*k;
 	  auto nrr = std::dynamic_pointer_cast<NSRecordContent>(dr.d_content);
           if(!nrr->getNS().isPartOf(subdomain) || t_RC->get(d_now.tv_sec, nrr->getNS(), s_doIPv6 ? QType(QType::ADDR) : QType(QType::A),
-                                                            doLog() ? &aset : 0) > 5) {
+                                                            doLog() ? &aset : 0, d_requestor) > 5) {
             bestns.push_back(dr);
             LOG(prefix<<qname.toString()<<": NS (with ip, or non-glue) in cache for '"<<subdomain.toString()<<"' -> '"<<nrr->getNS()<<"'"<<endl);
             LOG(prefix<<qname.toString()<<": within bailiwick: "<< nrr->getNS().isPartOf(subdomain));
@@ -653,7 +656,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName &qname, const QType &qtype, vector
   LOG(prefix<<qname.toString()<<": Looking for CNAME cache hit of '"<<(qname.toString()+"|CNAME")<<"'"<<endl);
   vector<DNSRecord> cset;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
-  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, &signatures) > 0) {
+  if(t_RC->get(d_now.tv_sec, qname,QType(QType::CNAME), &cset, d_requestor, &signatures) > 0) {
 
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       if(j->d_ttl>(unsigned int) d_now.tv_sec) {
@@ -760,7 +763,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
   bool found=false, expired=false;
   vector<std::shared_ptr<RRSIGRecordContent>> signatures;
   uint32_t ttl=0;
-  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_doDNSSEC ? &signatures : 0) > 0) {
+  if(t_RC->get(d_now.tv_sec, sqname, sqt, &cset, d_requestor, d_doDNSSEC ? &signatures : 0) > 0) {
     LOG(prefix<<sqname.toString()<<": Found cache hit for "<<sqt.getName()<<": ");
     for(auto j=cset.cbegin() ; j != cset.cend() ; ++j) {
       LOG(j->d_content->getZoneRepresentation());
@@ -854,14 +857,6 @@ inline vector<DNSName> SyncRes::shuffleInSpeedOrder(set<DNSName> &tnameservers, 
   return rnameservers;
 }
 
-struct TCacheComp
-{
-  bool operator()(const pair<DNSName, QType>& a, const pair<DNSName, QType>& b) const
-  {
-    return tie(a.first, a.second) < tie(b.first, b.second);
-  }
-};
-
 static bool magicAddrMatch(const QType& query, const QType& answer)
 {
   if(query.getCode() != QType::ADDR)
@@ -909,6 +904,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       int resolveret;
       bool pierceDontQuery=false;
       bool sendRDQuery=false;
+      boost::optional<Netmask> ednsmask;
       LWResult lwr;
       if(tns->empty()) {
         LOG(prefix<<qname.toString()<<": Domain is out-of-band"<<endl);
@@ -994,10 +990,11 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	    if(d_pdl && d_pdl->preoutquery(*remoteIP, d_requestor, qname, qtype, lwr.d_records, resolveret)) {
 	      LOG(prefix<<qname.toString()<<": query handled by Lua"<<endl);
 	    }
-	    else
+	    else {
+	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
 	      resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(),
-                                           doTCP, sendRDQuery, &d_now, &lwr);    // <- we go out on the wire!
-
+					     doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
+	    }
             if(resolveret==-3)
 	      throw ImmediateServFailException("Query killed by policy");
 
@@ -1089,7 +1086,16 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	vector<DNSRecord> records;
 	vector<shared_ptr<RRSIGRecordContent>> signatures;
       };
-      typedef map<pair<DNSName, QType>, CachePair, TCacheComp > tcache_t;
+      struct CacheKey
+      {
+	DNSName name;
+	uint16_t type;
+	DNSResourceRecord::Place place;
+	bool operator<(const CacheKey& rhs) const {
+	  return tie(name, type) < tie(rhs.name, rhs.type);
+	}
+      };
+      typedef map<CacheKey, CachePair> tcache_t;
       tcache_t tcache;
 
       if(d_doDNSSEC) {
@@ -1097,7 +1103,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	  if(rec.d_type == QType::RRSIG) {
 	    auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.d_content);
 	    //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
-	    tcache[make_pair(rec.d_name, QType(rrsig->d_type))].signatures.push_back(rrsig);
+	    tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
 	  }
 	}
       }
@@ -1148,8 +1154,8 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
             dr.d_place=DNSResourceRecord::ANSWER;
 
             dr.d_ttl += d_now.tv_sec;
-
-            tcache[make_pair(rec.d_name,QType(rec.d_type))].records.push_back(dr);
+	    // we should note the PLACE and not store ECS subnet details for non-answer records
+            tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
           }
         }
         else
@@ -1169,7 +1175,9 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 	//	cout<<"Have "<<i->second.records.size()<<" records and "<<i->second.signatures.size()<<" signatures for "<<i->first.first.toString();
 	//	cout<<'|'<<DNSRecordContent::NumberToType(i->first.second.getCode())<<endl;
-        t_RC->replace(d_now.tv_sec, i->first.first, i->first.second, i->second.records, i->second.signatures, lwr.d_aabit);
+        t_RC->replace(d_now.tv_sec, i->first.name, QType(i->first.type), i->second.records, i->second.signatures, lwr.d_aabit, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::optional<Netmask>());
+	if(i->first.place == DNSResourceRecord::ANSWER && ednsmask)
+	  d_wasVariable=true;
       }
       set<DNSName> nsset;
       LOG(prefix<<qname.toString()<<": determining status after receiving this packet"<<endl);
