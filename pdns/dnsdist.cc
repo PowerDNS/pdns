@@ -682,6 +682,9 @@ try
         response += string(e.reason);
       }
     }
+    catch(const LuaContext::SyntaxErrorException& e) {
+      response = "Error: " + string(e.what()) + ": ";
+    }
     response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
     writen2(fd, response.c_str(), (uint16_t)response.length());
@@ -780,9 +783,13 @@ void doClient(ComboAddress server, const std::string& command)
     uint16_t len;
     getMsgLen(fd, &len);
 
+    if(len == 0) {
+      cout << "Connection closed by the server." << endl;
+      break;
+    }
+
     char resp[len];
-    if(len)
-      readn2(fd, resp, len);
+    readn2(fd, resp, len);
     msg.assign(resp, len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
