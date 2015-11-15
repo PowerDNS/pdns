@@ -57,6 +57,11 @@ domains:
       - aaaa: 2001:DB8::12:34DE:3
   services:
     service.geo.example.com: '%co.%cn.service.geo.example.com'
+# alternative syntax
+  services:
+    service.geo.example.com: '%co.%cn.service.geo.example.com'
+      default: '%co.%cn.service.geo.example.com'
+      127.0.0.0/8: 'localhost.service.geo.example.com'   
 ```
 
 ### Keys explained
@@ -64,4 +69,6 @@ domains:
 * **domain**: Defines a domain. You need ttl, records, services under this.
 * **ttl**: TTL value for all records
 * **records**: Put fully qualified name as subkey, under which you must define at least soa: key. Note that this is an array of records, so ‐ is needed for the values.
-* **services**: Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City.
+* **services**: Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City. 
+
+You can add per-network overrides for format, they will be formatted with the same placeholders as default. Default is short-hand for adding 0.0.0.0/0 and ::/0. Default is default when only string is given for service name.
