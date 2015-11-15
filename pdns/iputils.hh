@@ -699,11 +699,7 @@ public:
 
   bool match(const ComboAddress *ip) const
   {
-    for(container_t::const_iterator i=d_masks.begin();i!=d_masks.end();++i)
-      if(i->match(ip) || (ip->isMappedIPv4() && i->match(ip->mapToIPv4()) ))
-        return true;
-
-    return false;
+    return tree.match(*ip);
   }
 
   bool match(const ComboAddress& ip) const
@@ -714,46 +710,45 @@ public:
   //! Add this string to the list of possible matches
   void addMask(const string &ip)
   {
-    d_masks.push_back(Netmask(ip));
+    addMask(Netmask(ip));
   }
 
   //! Add this Netmask to the list of possible matches
   void addMask(const Netmask& nm)
   {
-    d_masks.push_back(nm);
+    tree.insert(nm);
   }
 
   void clear()
   {
-    d_masks.clear();
+    tree.clear();
   }
 
-  bool empty()
+  bool empty() const
   {
-    return d_masks.empty();
+    return tree.empty();
   }
 
-  unsigned int size()
+  size_t size() const
   {
-    return (unsigned int)d_masks.size();
+    return tree.size();
   }
 
   string toString() const
   {
     ostringstream str;
-    for(container_t::const_iterator iter = d_masks.begin(); iter != d_masks.end(); ++iter) {
-      if(iter != d_masks.begin())
+    for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
+      if(iter != tree.begin())
         str <<", ";
-      str<<iter->toString();
+      str<<(*iter)->first.toString();
     }
     return str.str();
   }
 
   void toStringVector(vector<string>* vec) const
   {
-    for(container_t::const_iterator iter = d_masks.begin(); iter != d_masks.end(); ++iter) {
-      vec->push_back(iter->toString());
-    }
+    for(auto iter = tree.begin(); iter != tree.end(); ++iter)
+      vec->push_back((*iter)->first.toString());
   }
 
   void toMasks(const string &ips)
@@ -766,8 +761,7 @@ public:
   }
 
 private:
-  typedef vector<Netmask> container_t;
-  container_t d_masks;
+  NetmaskTree<bool> tree;
 };
 
 
