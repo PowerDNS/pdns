@@ -1049,6 +1049,7 @@ testrunner_SOURCES = \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
+	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-sha_hh.cc \
