@@ -13,7 +13,7 @@ public:
   int id;
   DNSName domain;
   int ttl;
-  map<DNSName, string> services;
+  map<DNSName, NetmaskTree<string> > services;
   map<DNSName, vector<DNSResourceRecord> > records;
 };
 
@@ -127,7 +127,24 @@ void GeoIPBackend::initialize() {
     }
 
     for(YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
-      dom.services[DNSName(service->first.as<string>())] = service->second.as<string>();
+      NetmaskTree<string> nmt;
+
+      // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
+      if (service->second.IsMap()) {
+        for(YAML::const_iterator net = service->second.begin(); net != service->second.end(); net++) {
+          if (net->first.as<string>() == "default") {
+            nmt[Netmask("0.0.0.0/0")] = net->second.as<string>();
+            nmt[Netmask("::/0")] = net->second.as<string>();
+          } else {
+            nmt[Netmask(net->first.as<string>())] = net->second.as<string>();
+          }
+        }
+      } else {
+        nmt[Netmask("0.0.0.0/0")] = service->second.as<string>();
+        nmt[Netmask("::/0")] = service->second.as<string>();
+      }
+
+      dom.services[DNSName(service->first.as<string>())].swap(nmt);
     }
 
     // rectify the zone, first static records
@@ -236,11 +253,15 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     v6 = pkt_p->getRealRemote().isIpv6();
   }
 
-
   auto target = dom.services.find(search);
   if (target == dom.services.end()) return; // no hit
-  string format = target->second;
-  
+
+  const NetmaskTree<string>::node_type* node = target->second.lookup(ComboAddress(ip));
+  if (node == NULL) return; // no hit, again.
+
+  string format = node->second;
+  gl.netmask = node->first.getBits();
+
   format = format2str(format, ip, v6, &gl);
 
   // see if the record can be found
@@ -284,7 +305,6 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
   GeoIPRegion *gir = NULL;
   GeoIPRecord *gir2 = NULL;
   int id;
-  gl->netmask = 0;
 
   if (v6 && s_gi6) {
     if (attribute == Afi) {
