@@ -281,6 +281,7 @@ pdnssec_SOURCES = \
 	dynlistener.cc \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
+        iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
 	mbedtlscompat.hh \
