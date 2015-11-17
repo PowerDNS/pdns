@@ -239,13 +239,16 @@ shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, 
   return leastOutstanding(servers, remote, qname, qtype, dh);
 }
 
+// get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  vector<pair<pair<int,int>, shared_ptr<DownstreamState>>> poss;
+  vector<pair<tuple<int,int,double>, shared_ptr<DownstreamState>>> poss;
+  /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
+     which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
   poss.reserve(servers.size());
   for(auto& d : servers) {    
     if(d.second->isUp()) {
-      poss.push_back({make_pair(d.second->outstanding.load(), d.second->order), d.second});
+      poss.push_back({make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), d.second});
     }
   }
   if(poss.empty())
