@@ -575,23 +575,18 @@ try
   ComboAddress dest=remote;
   sock.recvFrom(reply, dest);
 
-  // dnsparser.cc is not included in dnsdist right now
-  // MOADNSParser mdp(reply);
-  // dnsheader const * responseHeader = &mdp.d_header;
-  struct dnsheader responseHeader;
+  const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
 
-  if (reply.size() < sizeof(responseHeader))
+  if (reply.size() < sizeof(*responseHeader))
     return false;
 
-  memcpy(&responseHeader, reply.c_str(), sizeof(responseHeader));
-
-  if (responseHeader.id != requestHeader->id)
+  if (responseHeader->id != requestHeader->id)
     return false;
-  if (!responseHeader.qr)
+  if (!responseHeader->qr)
     return false;
-  if (responseHeader.rcode == RCode::ServFail)
+  if (responseHeader->rcode == RCode::ServFail)
     return false;
-  if (mustResolve && (responseHeader.rcode == RCode::NXDomain || responseHeader.rcode == RCode::Refused))
+  if (mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused))
     return false;
 
   // XXX fixme do bunch of checking here etc 
