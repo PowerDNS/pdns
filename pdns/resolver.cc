@@ -58,7 +58,7 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
   if(sock < 0) {
     if(errno == EAFNOSUPPORT && local.sin4.sin_family == AF_INET6) {
-        return sock;
+        return -1;
     }
     unixDie("Creating local resolver socket for "+ourLocal.toString());
   }
