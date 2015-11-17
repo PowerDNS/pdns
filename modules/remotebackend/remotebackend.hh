@@ -29,7 +29,7 @@
 #endif
 #define JSON_GET(obj,val,def) (obj.HasMember(val)?obj["" val ""]:def)
 #define JSON_ADD_MEMBER(obj, name, val, alloc) { rapidjson::Value __xval; __xval = val; obj.AddMember(name, __xval, alloc); }
-#define JSON_ADD_MEMBER_DNSNAME(obj, name, val, alloc) { rapidjson::Value __xval(val.toStringNoDot().c_str(), alloc); obj.AddMember(name, __xval, alloc); }
+#define JSON_ADD_MEMBER_DNSNAME(obj, name, val, alloc) { rapidjson::Value __xval(val.toString().c_str(), alloc); obj.AddMember(name, __xval, alloc); }
 
 class Connector {
    public:

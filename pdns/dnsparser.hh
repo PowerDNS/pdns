@@ -179,7 +179,7 @@ public:
     if(lowerCase)
       pw.setLowercase(true);
 
-    pw.startRecord(qname, d_qtype);
+    pw.startRecord(qname, this->getType());
     this->toPacket(pw);
     pw.commit();
     
@@ -234,19 +234,7 @@ public:
     return iter->second;
   }
 
-  explicit DNSRecordContent(uint16_t type) : d_qtype(type)
-  {
-  }
-  
-  
-  DNSRecordContent& operator=(const DNSRecordContent& orig) 
-  {
-    const_cast<uint16_t&>(d_qtype) = orig.d_qtype; // **COUGH**
-    return *this;
-  }
-
-  
-  const uint16_t d_qtype;
+  virtual uint16_t getType() const = 0;
 
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;

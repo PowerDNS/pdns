@@ -393,37 +393,6 @@ private:
   string d_prefix;
 };
 
-class DNSReversedBackend : public DNSBackend {
-    public:
-        /* Given rev_zone (the reversed name of the zone we are looking for the
-         * SOA record for), return the equivalent of
-         *     SELECT name
-         *     FROM soa_records
-         *     WHERE name <= rev_zone
-         *     ORDER BY name DESC
-         *
-         * ie we want either an exact hit on the record, or the immediately
-         * preceding record when sorted lexographically.
-         *
-         * Return true if something has been found, false if not
-         */
-        virtual bool getAuthZone( string &rev_zone ) { return false; };  // Must be overridden
-
-        /* Once the record has been found, this will be called to get the data
-         * associated with the record so the backend can set up soa.
-         * soa->qname does not need to be set. Return false if
-         * there is a problem getting the data.
-         * */
-        virtual bool getAuthData( SOAData &soa, DNSPacket *p=0) { return false; };  // Must be overridden
-
-        virtual bool getAuth(DNSPacket *p, SOAData *soa, const DNSName &inZone, const int best_match_len) override;
-        inline int _getAuth(DNSPacket *p, SOAData *soa, const string &inZone, const string &querykey, const int best_match_len);
-
-        /* Only called for stuff like signing or AXFR transfers */
-        bool _getSOA(const string &rev_zone, SOAData &soa, DNSPacket *p);
-        virtual bool getSOA(const DNSName &inZone, SOAData &soa, DNSPacket *p) override;
-};
-
 class BackendFactory
 {
 public:

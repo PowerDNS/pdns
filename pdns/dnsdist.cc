@@ -531,7 +531,7 @@ try
 	g_stats.downstreamSendErrors++;
       }
       
-      vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->remote.toStringWithPort());
+      vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->getName());
     }
     catch(std::exception& e){
       errlog("Got an error in UDP question thread: %s", e.what());
@@ -596,7 +596,7 @@ void* maintThread()
       if(dss->availability==DownstreamState::Availability::Auto) {
 	bool newState=upCheck(dss->remote);
 	if(newState != dss->upStatus) {
-	  warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
 	}
 	dss->upStatus = newState;
       }
@@ -658,7 +658,7 @@ try
 
       if(ret) {
 	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*strValue)->remote.toStringWithPort();
+	  response=(*strValue)->getName();
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
 	  response=*strValue;
@@ -681,6 +681,9 @@ try
         // e is the exception that was thrown from inside the lambda
         response += string(e.reason);
       }
+    }
+    catch(const LuaContext::SyntaxErrorException& e) {
+      response = "Error: " + string(e.what()) + ": ";
     }
     response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
@@ -780,9 +783,13 @@ void doClient(ComboAddress server, const std::string& command)
     uint16_t len;
     getMsgLen(fd, &len);
 
+    if(len == 0) {
+      cout << "Connection closed by the server." << endl;
+      break;
+    }
+
     char resp[len];
-    if(len)
-      readn2(fd, resp, len);
+    readn2(fd, resp, len);
     msg.assign(resp, len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
@@ -833,7 +840,7 @@ void doConsole()
 
       if(ret) {
 	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  cout<<(*strValue)->remote.toStringWithPort()<<endl;
+	  cout<<(*strValue)->getName()<<endl;
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
 	  cout<<*strValue<<endl;
@@ -959,7 +966,7 @@ try
   struct option longopts[]={ 
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
-    {"command", optional_argument, 0, 'c'},
+    {"client", 0, 0, 'c'},
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
     {"pidfile",  required_argument, 0, 'p'},
@@ -969,7 +976,7 @@ try
   };
   int longindex=0;
   for(;;) {
-    int c=getopt_long(argc, argv, "hbcde:C:l:m:vp:", longopts, &longindex);
+    int c=getopt_long(argc, argv, "hcde:C:l:vp:", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -1100,7 +1107,7 @@ try
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
       bool newState=upCheck(dss->remote);
-      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+      warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
       dss->upStatus = newState;
     }
   }

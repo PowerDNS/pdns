@@ -91,17 +91,17 @@ DNSResourceRecord::DNSResourceRecord(const DNSRecord &p) {
 
 boilerplate_conv(A, QType::A, conv.xfrIP(d_ip));
 
-ARecordContent::ARecordContent(uint32_t ip) : DNSRecordContent(QType::A)
+ARecordContent::ARecordContent(uint32_t ip) 
 {
   d_ip = ip;
 }
 
-ARecordContent::ARecordContent(const ComboAddress& ca) : DNSRecordContent(QType::A)
+ARecordContent::ARecordContent(const ComboAddress& ca) 
 {
   d_ip = ca.sin4.sin_addr.s_addr;
 }
 
-AAAARecordContent::AAAARecordContent(const ComboAddress& ca) : DNSRecordContent(QType::AAAA)
+AAAARecordContent::AAAARecordContent(const ComboAddress& ca) 
 {
   d_ip6.assign((const char*)ca.sin6.sin6_addr.s6_addr, 16);
 }
@@ -189,7 +189,7 @@ boilerplate_conv(TSIG, QType::TSIG,
                  if (size>0) conv.xfrBlobNoSpaces(d_otherData, size);
                  );
 
-MXRecordContent::MXRecordContent(uint16_t preference, const DNSName& mxname) : DNSRecordContent(QType::MX), d_preference(preference), d_mxname(mxname)
+MXRecordContent::MXRecordContent(uint16_t preference, const DNSName& mxname):  d_preference(preference), d_mxname(mxname)
 {
 }
 
@@ -256,7 +256,7 @@ boilerplate_conv(NAPTR, QType::NAPTR,
 
 
 SRVRecordContent::SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, const DNSName& target) 
-: DNSRecordContent(QType::SRV), d_weight(weight), d_port(port), d_target(target), d_preference(preference)
+: d_weight(weight), d_port(port), d_target(target), d_preference(preference)
 {}
 
 boilerplate_conv(SRV, QType::SRV, 
@@ -265,7 +265,7 @@ boilerplate_conv(SRV, QType::SRV,
                  )
 
 SOARecordContent::SOARecordContent(const DNSName& mname, const DNSName& rname, const struct soatimes& st) 
-: DNSRecordContent(QType::SOA), d_mname(mname), d_rname(rname)
+: d_mname(mname), d_rname(rname)
 {
   d_st=st;
 }
@@ -308,7 +308,7 @@ boilerplate_conv(OPENPGPKEY, 61,
                  )
 
 #undef DS
-DSRecordContent::DSRecordContent() : DNSRecordContent(43) {}
+DSRecordContent::DSRecordContent() {}
 boilerplate_conv(DS, 43, 
                  conv.xfr16BitInt(d_tag); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -316,7 +316,7 @@ boilerplate_conv(DS, 43,
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
-CDSRecordContent::CDSRecordContent() : DNSRecordContent(59) {}
+CDSRecordContent::CDSRecordContent() {}
 boilerplate_conv(CDS, 59, 
                  conv.xfr16BitInt(d_tag); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -324,7 +324,7 @@ boilerplate_conv(CDS, 59,
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
-DLVRecordContent::DLVRecordContent() : DNSRecordContent(32769) {}
+DLVRecordContent::DLVRecordContent() {}
 boilerplate_conv(DLV,32769 , 
                  conv.xfr16BitInt(d_tag); 
                  conv.xfr8BitInt(d_algorithm); 
@@ -351,7 +351,7 @@ boilerplate_conv(RRSIG, 46,
                  conv.xfrBlob(d_signature);
                  )
                  
-RRSIGRecordContent::RRSIGRecordContent() : DNSRecordContent(46) {}
+RRSIGRecordContent::RRSIGRecordContent() {}
 
 boilerplate_conv(DNSKEY, 48, 
                  conv.xfr16BitInt(d_flags); 
@@ -359,7 +359,7 @@ boilerplate_conv(DNSKEY, 48,
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_key);
                  )
-DNSKEYRecordContent::DNSKEYRecordContent() : DNSRecordContent(48) {}
+DNSKEYRecordContent::DNSKEYRecordContent() {}
 
 boilerplate_conv(CDNSKEY, 60, 
                  conv.xfr16BitInt(d_flags); 
@@ -367,14 +367,14 @@ boilerplate_conv(CDNSKEY, 60,
                  conv.xfr8BitInt(d_algorithm); 
                  conv.xfrBlob(d_key);
                  )
-CDNSKEYRecordContent::CDNSKEYRecordContent() : DNSRecordContent(60) {}
+CDNSKEYRecordContent::CDNSKEYRecordContent() {}
 
 boilerplate_conv(RKEY, 57, 
                  conv.xfr16BitInt(d_flags); 
                  conv.xfr8BitInt(d_protocol); 
                  conv.xfrBlob(d_key);
                  )
-RKEYRecordContent::RKEYRecordContent() : DNSRecordContent(57) {}
+RKEYRecordContent::RKEYRecordContent() {}
 
 /* EUI48 start */
 void EUI48RecordContent::report(void) 
@@ -474,7 +474,7 @@ boilerplate_conv(TKEY, QType::TKEY,
                  conv.xfr16BitInt(d_othersize);
                  if (d_othersize>0) conv.xfrBlobNoSpaces(d_other, d_othersize);
                  )
-TKEYRecordContent::TKEYRecordContent() : DNSRecordContent(QType::TKEY) { d_othersize = 0; } // fix CID#1288932
+TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
 uint16_t DNSKEYRecordContent::getTag()
 {

@@ -60,8 +60,6 @@ try
       bufsize=2800;
     DNSPacketWriter::optvect_t opts;
     if(ednsnm) {
-
-    
       EDNSSubnetOpts eo;
       eo.source = *ednsnm;
       opts.push_back(make_pair(8, makeEDNSSubnetOptsString(eo)));

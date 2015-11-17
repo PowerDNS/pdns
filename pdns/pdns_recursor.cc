@@ -93,6 +93,9 @@ __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
 __thread boost::circular_buffer<pair<DNSName, uint16_t> >* t_queryring, *t_servfailqueryring;
 __thread shared_ptr<Regex>* t_traceRegex;
 
+NetmaskGroup g_ednssubnets;
+SuffixMatchNode g_ednsdomains;
+
 DNSFilterEngine g_dfe;
 
 RecursorControlChannel s_rcc; // only active in thread 0
@@ -680,7 +683,7 @@ void startDoResolve(void *p)
     case DNSFilterEngine::PolicyKind::Custom:
       res=RCode::NoError;
       spoofed.d_name=dc->d_mdp.d_qname;
-      spoofed.d_type=dfepol.d_custom->d_qtype;
+      spoofed.d_type=dfepol.d_custom->getType();
       spoofed.d_ttl = 1234;
       spoofed.d_class = 1;
       spoofed.d_content = dfepol.d_custom;
@@ -739,7 +742,7 @@ void startDoResolve(void *p)
       case DNSFilterEngine::PolicyKind::Custom:
 	res=RCode::NoError;
 	spoofed.d_name=dc->d_mdp.d_qname;
-	spoofed.d_type=dfepol.d_custom->d_qtype;
+	spoofed.d_type=dfepol.d_custom->getType();
 	spoofed.d_ttl = 1234;
 	spoofed.d_class = 1;
 	spoofed.d_content = dfepol.d_custom;
@@ -825,7 +828,7 @@ void startDoResolve(void *p)
       else
         msgh.msg_control=NULL;
       sendmsg(dc->d_socket, &msgh, 0);
-      if(!SyncRes::s_nopacketcache && !variableAnswer ) {
+      if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
                                             g_now.tv_sec,
                                             min(minTTL,
@@ -833,6 +836,7 @@ void startDoResolve(void *p)
                                             )
         );
       }
+      //      else cerr<<"Not putting in packet cache: "<<sr.wasVariable()<<endl;
     }
     else {
       char buf[2];
@@ -2058,9 +2062,37 @@ void parseACLs()
   l_initialized = true;
 }
 
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem)
+{
+  if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
+    if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
+      int bits =local.sin4.sin_family == AF_INET ? 24 : 64;
+      ComboAddress trunc(local);
+      trunc.truncate(bits);
+      return boost::optional<Netmask>(Netmask(trunc, bits));
+    }
+  }
+  return boost::optional<Netmask>();
+}
+
+void  parseEDNSSubnetWhitelist(const std::string& wlist)
+{
+  vector<string> parts;
+  stringtok(parts, wlist, ",;");
+  for(const auto& a : parts) {
+    try {
+      Netmask nm(a);
+      g_ednssubnets.addMask(nm);
+    }
+    catch(...) {
+      g_ednsdomains.add(DNSName(a));
+    }
+  }
+}
+
+
 int serviceMain(int argc, char*argv[])
 {
-
   L.setName(s_programname);
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 
@@ -2171,6 +2203,8 @@ int serviceMain(int argc, char*argv[])
 
   makeUDPServerSockets();
   makeTCPServerSockets();
+
+  parseEDNSSubnetWhitelist(::arg()["edns-subnet-whitelist"]);
 
   int forks;
   for(forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
@@ -2483,6 +2517,7 @@ int main(int argc, char **argv)
 //    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no";
     ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= "";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
+    ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="powerdns.com,82.94.213.34,2001:888:2000:1d::2";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";

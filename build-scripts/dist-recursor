@@ -37,7 +37,8 @@ recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
 ws-recursor.hh ws-api.hh secpoll-recursor.hh \
 responsestats.hh webserver.hh dnsname.hh dnspacket.hh ednssubnet.hh \
 filterpo.hh rpzloader.hh ixfr.hh gss_context.hh resolver.hh dnssecinfra.hh \
-dnsseckeeper.hh statbag.hh ueberbackend.hh sha.hh dnsbackend.hh comment.hh"
+dnsseckeeper.hh statbag.hh ueberbackend.hh sha.hh dnsbackend.hh comment.hh \
+ednssubnet.hh"
 
 CFILES="syncres.cc iputils.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc lua-iputils.cc \
@@ -48,7 +49,8 @@ sillyrecords.cc pubsuffix.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
 dnslabeltext.cc json.cc ws-recursor.cc ws-api.cc version.cc dns_random.cc \
 responsestats.cc webserver.cc rec-carbon.cc secpoll-recursor.cc dnsname.cc \
-filterpo.cc rpzloader.cc ixfr.cc dnssecinfra.cc gss_context.cc resolver.cc"
+filterpo.cc rpzloader.cc ixfr.cc dnssecinfra.cc gss_context.cc resolver.cc \
+ednssubnet.cc"
 
 ./mkpubsuffixcc
 

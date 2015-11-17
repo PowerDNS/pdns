@@ -24,6 +24,11 @@
 
 #include "namespaces.hh"
 #include "iputils.hh"
+#include "dnsname.hh"
+
+extern NetmaskGroup g_ednssubnets;
+extern SuffixMatchNode g_ednsdomains;
+
 
 struct EDNSSubnetOpts
 {
@@ -33,5 +38,4 @@ struct EDNSSubnetOpts
 
 bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso);
 string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
-
 #endif

@@ -3,6 +3,9 @@
 # PowerDNS Authoritative Server 3.4.7
 Released 3rd of November 2015
 
+This is a security release fixing [Security Advisory
+2015-03](security/powerdns-advisory-2015-03.md)
+
 Bug fixes:
 
 - [commit b0c04ba](https://github.com/PowerDNS/pdns/commit/b0c04ba): Ignore invalid/empty TKEY and TSIG records (Christian Hofstaedtler)

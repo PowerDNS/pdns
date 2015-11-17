@@ -241,6 +241,7 @@ struct DownstreamState
     std::atomic<uint64_t> reuseds{0};
     std::atomic<uint64_t> queries{0};
   } prev;
+  string name;
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};
@@ -264,6 +265,12 @@ struct DownstreamState
   void setUp() { availability = Availability::Up; }
   void setDown() { availability = Availability::Down; }
   void setAuto() { availability = Availability::Auto; }
+  string getName() const {
+    if (name.empty()) {
+      return remote.toStringWithPort();
+    }
+    return name;
+  }
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 

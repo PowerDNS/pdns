@@ -894,7 +894,7 @@ int loadZone(DNSName zone, const string& fname) {
     B.createDomain(zone);
     
     if(!B.getDomainInfo(zone, di)) {
-      cerr<<"Domain '"<<zone.toString()<<"' was not created!"<<endl;
+      cerr<<"Domain '"<<zone.toString()<<"' was not created - perhaps backend ("<<::arg()["launch"]<<") does not support storing new zones."<<endl;
       return 1;
     }
   }

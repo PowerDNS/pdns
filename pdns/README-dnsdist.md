@@ -58,7 +58,7 @@ $ cat /etc/dnsdist.conf
 newServer {address="2001:4860:4860::8888", qps=1}
 newServer {address="2001:4860:4860::8844", qps=1} 
 newServer {address="2620:0:ccc::2", qps=10}
-newServer {address="2620:0:ccd::2", qps=10}
+newServer {address="2620:0:ccd::2", name="dns1", qps=10}
 newServer("192.168.1.2")
 setServerPolicy(firstAvailable) -- first server within its QPS limit
 
@@ -562,7 +562,7 @@ Here are all functions:
    * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30})`: instantiate
+   * `newServer({address="ip:port", name="dns1", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30})`: instantiate
      a server with additional parameters
    * `showServers()`: output all servers
    * `getServer(n)`: returns server with index n 
@@ -609,6 +609,7 @@ Here are all functions:
  * Server selection policy related:
    * `setServerPolicy(policy)`: set server selection policy to that policy
    * `setServerPolicyLua(name, function)`: set server selection policy to one named 'name' and provided by 'function'
+   * `showServerPolicy()`: show name of currently operational server selection policy
    * `newServerPolicy(name, function)`: create a policy object from a Lua function
  * Available policies:
    * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter

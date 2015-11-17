@@ -234,14 +234,14 @@ void* tcpClientThread(int pipefd)
         }
 
         if (ds->retries > 0 && downstream_failures > ds->retries) {
-          vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->remote.toStringWithPort(), downstream_failures);
+          vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), downstream_failures);
           close(dsock);
           sockets.erase(ds->remote);
           break;
         }
 
         if(!putNonBlockingMsgLen(dsock, qlen, ds->tcpSendTimeout)) {
-	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
+	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
           downstream_failures++;
@@ -251,7 +251,7 @@ void* tcpClientThread(int pipefd)
         writen2WithTimeout(dsock, query, qlen, ds->tcpSendTimeout);
       
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
-	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
+	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->getName());
           close(dsock);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
           downstream_failures++;
