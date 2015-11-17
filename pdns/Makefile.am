@@ -123,8 +123,7 @@ EXTRA_PROGRAMS = \
 	testrunner \
 	toysdig \
 	tsig-tests \
-	zone2ldap \
-	zone2lmdb
+	zone2ldap
 
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
@@ -444,40 +443,6 @@ zone2ldap_SOURCES = \
 	zoneparser-tng.cc
 
 zone2ldap_LDADD = $(MBEDTLS_LIBS)
-
-if LMDB
-bin_PROGRAMS += zone2lmdb
-
-zone2lmdb_SOURCES = \
-	arguments.cc \
-	base32.cc \
-	base64.cc \
-	bind-dnssec.schema.sqlite3.sql.h \
-	bindlexer.l \
-	bindparser.yy \
-	bindparserclasses.hh \
-	dns.cc \
-	dns_random.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc \
-	dnsrecords.cc \
-	dnswriter.cc \
-	logger.cc \
-	misc.cc \
-	nsecrecords.cc \
-	qtype.cc \
-	rcpgenerator.cc \
-	sillyrecords.cc \
-	statbag.cc \
-	unix_utility.cc \
-	zone2lmdb.cc \
-	zoneparser-tng.cc
-
-zone2lmdb_LDADD = \
-	$(MBEDTLS_LIBS) \
-	$(LMDB_LIBS)
-endif
 
 sdig_SOURCES = \
 	base32.cc \
