@@ -71,9 +71,6 @@ export geoipregion=oc geoipregionip=1.2.3.4
 ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXITCODE=1
 ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow || EXITCODE=1
 
-# LMDB is broken pending DNSName
-# ./timestamp ./start-test-stop 5300 lmdb-nodnssec || EXITCODE=1
-
 ./timestamp ./start-test-stop 5300 mydns || EXITCODE=1
 
 ./timestamp ./start-test-stop 5300 opendbx-sqlite3 || EXITCODE=1

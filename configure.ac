@@ -242,10 +242,6 @@ for a in $modules $dynmodules; do
       PDNS_WITH_ORACLE
       needoracle=yes
       ;;
-    lmdb)
-      PDNS_WITH_LMDB
-      needlmdb=yes
-      ;;
     mydns|gmysql|pdns)
       PDNS_WITH_MYSQL
       ;;
@@ -291,8 +287,6 @@ PDNS_ENABLE_REMOTEBACKEND_ZEROMQ
 AM_CONDITIONAL([ORACLE],[test "x$needoracle" = "xyes"])
 
 AM_CONDITIONAL([LDAP],[test "x$needldap" = "xyes"])
-
-AM_CONDITIONAL([LMDB],[test "x$needlmdb" = "xyes"])
 
 PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
@@ -369,7 +363,6 @@ AC_CONFIG_FILES([
   modules/randombackend/Makefile
   modules/remotebackend/Makefile
   modules/tinydnsbackend/Makefile
-  modules/lmdbbackend/Makefile
 ])
 AC_OUTPUT
 
