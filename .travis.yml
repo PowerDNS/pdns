@@ -144,7 +144,7 @@ script:
  - touch tests/verify-dnssec-zone/allow-missing
  - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
  - touch tests/verify-dnssec-zone/skip.optout
- - export geoipregion=oc geoipregionip=1.2.3.4
+ - export geoipregion=aus geoipregionip=1.2.3.4
  - ./timestamp ./start-test-stop 5300 bind-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
