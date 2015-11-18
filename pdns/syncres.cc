@@ -1024,7 +1024,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 		// code below makes sure we don't filter COM or the root
                 if (s_serverdownmaxfails > 0 && (auth != DNSName(".")) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
-                  LOG(prefix<<qname.toString()<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for 1 minute" <<endl);
+                  LOG(prefix<<qname.toString()<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
                   t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
                 } else if(resolveret==-1)
                   t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
