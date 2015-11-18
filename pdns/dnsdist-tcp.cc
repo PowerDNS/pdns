@@ -134,6 +134,9 @@ void* tcpClientThread(int pipefd)
 
     uint16_t qlen, rlen;
     string pool; 
+    const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
+    const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
+    const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
 
     shared_ptr<DownstreamState> ds;
     if (!setNonBlocking(ci.fd))
@@ -150,6 +153,8 @@ void* tcpClientThread(int pipefd)
 	DNSName qname(query, qlen, 12, false, &qtype);
 	string ruleresult;
 	struct dnsheader* dh =(dnsheader*)query;
+	const uint16_t * flags = getFlagsFromDNSHeader(dh);
+	uint16_t origFlags = *flags;
 	
         if(blockFilter) {
 	  std::lock_guard<std::mutex> lock(g_luamutex);
@@ -260,7 +265,15 @@ void* tcpClientThread(int pipefd)
 
         char answerbuffer[rlen];
         readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
-      
+        struct dnsheader* responseHeaders = (struct dnsheader*)answerbuffer;
+        uint16_t * responseFlags = getFlagsFromDNSHeader(responseHeaders);
+        /* clear the flags we are about to restore */
+        *responseFlags &= restoreFlagsMask;
+        /* only keep the flags we want to restore */
+        origFlags &= ~restoreFlagsMask;
+        /* set the saved flags as they were */
+        *responseFlags |= origFlags;
+
         if (putNonBlockingMsgLen(ci.fd, rlen, ds->tcpSendTimeout))
           writen2WithTimeout(ci.fd, answerbuffer, rlen, ds->tcpSendTimeout);
       }

@@ -513,6 +513,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return (bool)dh.rd;
     });
 
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setCD", [](dnsheader& dh, bool v) {
+      dh.cd=v;
+    });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) {
+      return (bool)dh.cd;
+    });
+
 
   g_lua.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {
       dh.tc=v;

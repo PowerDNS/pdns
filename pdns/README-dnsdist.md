@@ -640,6 +640,8 @@ Here are all functions:
      * member `setRD(bool)`: set recursion desired flag
      * member `setTC(bool)`: set truncation flag (TC)
      * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
+     * member `getCD()`: get checking disabled flag
+     * member `setCD(bool)`: set checking disabled flag
    * NetmaskGroup related
      * nothing yet
    * QPSLimiter related:
