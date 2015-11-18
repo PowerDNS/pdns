@@ -64,6 +64,8 @@ try
         str<<base<<"queries" << ' ' << s->queries.load() << " " << now << "\r\n";
         str<<base<<"drops" << ' ' << s->reuseds.load() << " " << now << "\r\n";
         str<<base<<"latency" << ' ' << s->latencyUsec/1000.0 << " " << now << "\r\n";
+        str<<base<<"senderrors" << ' ' << s->sendErrors.load() << " " << now << "\r\n";
+        str<<base<<"outstanding" << ' ' << s->outstanding.load() << " " << now << "\r\n";
       }
       const string msg = str.str();
 

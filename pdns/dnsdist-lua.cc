@@ -311,8 +311,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("showServers", []() {  
       try {
       ostringstream ret;
-      
-      boost::format fmt("%1$-3d %2$-20s %3% %|40t|%4$5s %|36t|%5$7.1f %|41t|%6$7d %|44t|%7$3d %|53t|%8$2d %|55t|%9$10d %|61t|%10$7d %|76t|%11$5.1f %|84t|%12$5.1f %13%" );
+      boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %13%" );
       //             1        2          3       4        5       6       7       8           9        10        11       12
       ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Pools") << endl;
 
