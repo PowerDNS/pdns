@@ -8,11 +8,8 @@
 #include <boost/functional/hash.hpp>
 
 /* raw storage
-   in DNS label format, without trailing 0. So the root is of length 0.
-
-   www.powerdns.com = 3www8powerdns3com
-
-   a primitive is nextLabel()
+   in DNS label format, with trailing 0. W/o trailing 0, we are 'empty'
+   www.powerdns.com = 3www8powerdns3com0
 */
 
 std::ostream & operator<<(std::ostream &os, const DNSName& d)
@@ -23,26 +20,29 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
 
 DNSName::DNSName(const char* p)
 {
-  d_empty=false;
-  d_storage.reserve(strlen(p)+1);
-  auto labels = segmentDNSName(p);
-  for(const auto& e : labels)
-    appendRawLabel(e);
+  if(p[0]==0 || (p[0]=='.' && p[1]==0)) {
+    d_storage.assign(1, (char)0);
+  } else {
+    d_storage.reserve(strlen(p)+1);
+    auto labels = segmentDNSName(p);
+    for(const auto& e : labels)
+      appendRawLabel(e);
+  }
 }
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
-  d_empty=false;
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
 }
 
 // this should be the __only__ dns name parser in PowerDNS.
-void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth)
+void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth)
 {
+  const unsigned char* pos=(const unsigned char*)qpos;
   unsigned char labellen;
-  const char *opos = pos;
+  const unsigned char *opos = pos;
   pos += offset;
-  const char* end = pos + len;
+  const unsigned char* end = pos + len;
   while((labellen=*pos++) && pos < end) { // "scan and copy"
     if(labellen & 0xc0) {
       if(!uncompress)
@@ -54,19 +54,21 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
       if(newpos < offset) {
         if (++depth > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
-        packetParser(opos, len, newpos, true, 0, 0, 0, depth);
+        packetParser((const char*)opos, len, newpos, true, 0, 0, 0, depth);
       } else
         throw std::range_error("Found a forward reference during label decompression");
       pos++;
       break;
     }
     if (pos + labellen < end) {
-      appendRawLabel(string(pos, labellen));
+      appendRawLabel(string((const char*)pos, labellen));
     }
     else
       throw std::range_error("Found an invalid label length in qname");
     pos+=labellen;
   }
+  if(d_storage.empty())
+    d_storage.append(1, (char)0); // we just parsed the root
   if(consumed)
     *consumed = pos - opos - offset;
   if(qtype && pos + labellen + 2 <= end)
@@ -80,23 +82,27 @@ void DNSName::packetParser(const char* pos, int len, int offset, bool uncompress
 
 std::string DNSName::toString(const std::string& separator, const bool trailing) const
 {
-  if (empty())
-    return "";
-  if(empty() && trailing)  // I keep wondering if there is some deeper meaning to the need to do this
-    return separator;
+  if (empty()) {
+    throw std::out_of_range("Attempt to print an unset dnsname");
+  }
+
+ if(isRoot())
+    return trailing ? separator : "";
+
   std::string ret;
   for(const auto& s : getRawLabels()) {
     ret+= escapeLabel(s) + separator;
   }
+
   return ret.substr(0, ret.size()-!trailing);
 }
 
 std::string DNSName::toDNSString() const
 {
-  //  if (empty())
-  //  return "";
+  if (empty())
+    throw std::out_of_range("Attempt to DNSString an unset dnsname");
+
   string ret(d_storage.c_str(), d_storage.length());
-  ret.append(1,(char)0);
   return toLower(ret); // toLower or not toLower, that is the question
   // return ret;
 }
@@ -107,16 +113,15 @@ std::string DNSName::toDNSString() const
  * @return the total wirelength of the DNSName
  */
 size_t DNSName::wirelength() const {
-  return d_storage.length() + 1;
+  return d_storage.length();
 }
 
-// are WE part of parent
+// Are WE part of parent
 bool DNSName::isPartOf(const DNSName& parent) const
 {
   if(parent.empty() || empty())
-    return false;
-  if(parent.d_storage.empty())
-    return true;
+    throw std::out_of_range("empty dnsnames aren't part of anything");
+
   if(parent.d_storage.size() > d_storage.size())
     return false;
 
@@ -138,12 +143,13 @@ DNSName DNSName::makeRelative(const DNSName& zone) const
 {
   DNSName ret(*this);
   ret.makeUsRelative(zone);
-  return ret;
+  return ret.empty() ? zone : ret; // HACK FIXME400
 }
 void DNSName::makeUsRelative(const DNSName& zone) 
 {
   if (isPartOf(zone)) {
     d_storage.erase(d_storage.size()-zone.d_storage.size());
+    d_storage.append(1, (char)0); // put back the trailing 0
   } 
   else
     clear();
@@ -152,6 +158,8 @@ void DNSName::makeUsRelative(const DNSName& zone)
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
+  if(isRoot())
+    return *this; // we don't create the root automatically below
   if (!empty()) {
     vector<string> l=getRawLabels();
     while(!l.empty()) {
@@ -168,12 +176,17 @@ void DNSName::appendRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label to append");
   if(label.size() > 63)
     throw std::range_error("label too long to append");
-  if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
+  if(d_storage.size() + label.size() > 254) // reserve two bytes, one for length and one for the root label
     throw std::range_error("name too long to append");
 
-  d_empty=false;
-  d_storage.append(1, (char)label.size());
+  if(d_storage.empty()) {
+    d_storage.append(1, (char)label.size());
+  }
+  else {
+    *d_storage.rbegin()=(char)label.size();
+  }
   d_storage.append(label.c_str(), label.length());
+  d_storage.append(1, (char)0);
 }
 
 void DNSName::prependRawLabel(const std::string& label)
@@ -182,10 +195,12 @@ void DNSName::prependRawLabel(const std::string& label)
     throw std::range_error("no such thing as an empty label to prepend");
   if(label.size() > 63)
     throw std::range_error("label too long to prepend");
-  if(d_storage.size() + label.size() > 253) // reserve two bytes, one for length and one for the root label
+  if(d_storage.size() + label.size() > 254) // reserve two bytes, one for length and one for the root label
     throw std::range_error("name too long to prepend");
 
-  d_empty=false;
+  if(d_storage.empty())
+    d_storage.append(1, (char)0);
+
   string_t prep(1, (char)label.size());
   prep.append(label.c_str(), label.size());
   d_storage = prep+d_storage;
@@ -201,8 +216,8 @@ vector<string> DNSName::getRawLabels() const
 {
   vector<string> ret;
 
-  // 3www4ds9a2nl
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1)
+  // 3www4ds9a2nl0
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && *p; p+=*p+1)
     ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
   return ret;
 }
@@ -210,7 +225,7 @@ vector<string> DNSName::getRawLabels() const
 
 bool DNSName::chopOff()
 {
-  if(d_storage.empty())
+  if(d_storage.empty() || d_storage[0]==0)
     return false;
   d_storage = d_storage.substr((unsigned int)d_storage[0]+1);
   return true;
@@ -218,7 +233,7 @@ bool DNSName::chopOff()
 
 bool DNSName::isWildcard() const
 {
-  if(d_storage.empty())
+  if(d_storage.size() < 2)
     return false;
   auto p = d_storage.begin();
   return (*p == 0x01 && *++p == '*');
@@ -227,7 +242,7 @@ bool DNSName::isWildcard() const
 unsigned int DNSName::countLabels() const
 {
   unsigned int count=0;
-  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size(); p+=*p+1)
+  for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && *p; p+=*p+1)
     ++count;
   return count;
 }
@@ -245,7 +260,7 @@ bool DNSName::operator==(const DNSName& rhs) const
 
   auto us = d_storage.crbegin();
   auto p = rhs.d_storage.crbegin();
-  for(; us != d_storage.crend() && p != rhs.d_storage.crend(); ++us, ++p) {
+  for(; us != d_storage.crend() && p != rhs.d_storage.crend(); ++us, ++p) {   // why does this go backward? 
     if(tolower(*p) != tolower(*us))
       return false;
   }
@@ -254,8 +269,7 @@ bool DNSName::operator==(const DNSName& rhs) const
 
 size_t hash_value(DNSName const& d)
 {
-  boost::hash<string> hasher;
-  return hasher(toLower(d.toString())); // FIXME400 HACK
+  return d.hash();
 }
 
 string DNSName::escapeLabel(const std::string& label)

@@ -45,7 +45,8 @@ struct DNSDistStats
     {"latency-avg100", &latencyAvg100}, {"latency-avg1000", &latencyAvg1000}, 
     {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
-    {"real-memory-usage", getRealMemoryUsage}
+    {"real-memory-usage", getRealMemoryUsage},
+    {"fd-usage", getOpenFileDescriptors}
   };
 };
 
@@ -240,11 +241,15 @@ struct DownstreamState
     std::atomic<uint64_t> reuseds{0};
     std::atomic<uint64_t> queries{0};
   } prev;
+  string name;
   double queryLoad{0.0};
   double dropRate{0.0};
   double latencyUsec{0.0};
   int order{1};
   int weight{1};
+  int tcpRecvTimeout{30};
+  int tcpSendTimeout{30};
+  uint16_t retries{5};
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
@@ -260,6 +265,12 @@ struct DownstreamState
   void setUp() { availability = Availability::Up; }
   void setDown() { availability = Availability::Down; }
   void setAuto() { availability = Availability::Auto; }
+  string getName() const {
+    if (name.empty()) {
+      return remote.toStringWithPort();
+    }
+    return name;
+  }
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
@@ -322,6 +333,8 @@ extern ComboAddress g_serverControl; // not changed during runtime
 extern std::vector<std::pair<ComboAddress, bool>> g_locals; // not changed at runtime (we hope XXX)
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
+extern int g_tcpRecvTimeout;
+extern int g_tcpSendTimeout;
 struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);

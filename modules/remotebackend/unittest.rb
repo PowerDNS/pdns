@@ -8,26 +8,26 @@ $ttl = 300
 $notified_serial = 1
 
 $domain = {
-  "unit.test" => { 
-      "SOA" => ["ns.unit.test hostmaster.unit.test 1 2 3 4 5 6"],
-      "NS" => ["ns1.unit.test", "ns2.unit.test"],
+  "unit.test." => { 
+      "SOA" => ["ns.unit.test. hostmaster.unit.test. 1 2 3 4 5 6"],
+      "NS" => ["ns1.unit.test.", "ns2.unit.test."],
   },
-  "ns1.unit.test" => {
+  "ns1.unit.test." => {
        "A" => ["10.0.0.1"]
   },
-  "ns2.unit.test" => {
+  "ns2.unit.test." => {
        "A" => ["10.0.0.2"]
   }, 
-  "empty.unit.test" => {}
+  "empty.unit.test." => {}
 }
 
 $meta = {}
 
 $keys = {}
 
-$tsigkeys = { "test" => {:name => "test", :algorithm => "NULL", :content => "NULL"} }
+$tsigkeys = { "test." => {:name => "test.", :algorithm => "NULL.", :content => "NULL"} }
 
-$masters = { :name => "ns1.unit.test", :ip => "10.0.0.1" }
+$masters = { :name => "ns1.unit.test.", :ip => "10.0.0.1" }
 
 class Handler
    def initialize
@@ -62,7 +62,7 @@ class Handler
 
    def do_list(args)
      ret = []
-     if args["zonename"] == "unit.test"
+     if args["zonename"] == "unit.test."
        $domain.each do |qname,rdata| 
          rdata.each do |rtype,rc|
           rc.each do |rd|
@@ -140,7 +140,7 @@ class Handler
    end 
 
    def do_getbeforeandafternamesabsolute(args)
-     return [ { :unhashed => "middle", :before => "begin", :after => "stop" } ] if args["qname"] == 'middle.unit.test'
+     return [ { :unhashed => "middle.", :before => "begin.", :after => "stop." } ] if args["qname"] == 'middle.unit.test.'
      [false]
    end
 
@@ -160,10 +160,10 @@ class Handler
    end
 
    def do_getdomaininfo(args) 
-     if args["name"] == "unit.test"
+     if args["name"] == "unit.test."
        return [{ 
                :id => 1,
-               :zone => "unit.test",
+               :zone => "unit.test.",
                :masters => ["10.0.0.1"],
                :notified_serial => $notified_serial,
                :serial => $notified_serial, 
@@ -246,7 +246,7 @@ class Handler
    end
   
    def do_calculatesoaserial(args)
-     return [2013060300] if args["sd"]["qname"] == "unit.test"
+     return [2013060300] if args["sd"]["qname"] == "unit.test."
      [false]
    end
 

@@ -889,10 +889,17 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(BB2DomainInfo& bbd, const DNSName&
     while(iter == records->end() || (qname.canonCompare(iter->qname)) || (!(iter->auth) && (!(iter->qtype == QType::NS))) || (!(iter->qtype)))
       iter--;
 
-    before=iter->qname.labelReverse().toString(" ",false);
+    if(iter->qname.empty())
+      before.clear();
+    else {
+      before=iter->qname.labelReverse().toString(" ",false);
+    }
   }
   else {
-    before=qname.labelReverse().toString(" ",false);
+    if(qname.empty())
+      before.clear();
+    else
+      before=qname.labelReverse().toString(" ",false);
   }
 
   //cerr<<"Now after"<<endl;

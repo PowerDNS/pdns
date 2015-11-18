@@ -18,6 +18,8 @@ This backend provides unix socket / pipe / http remoting for powerdns. You shoul
 ## Important notices
 Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.
 
+There is a breaking change on v4.0 and later. Before version 4.0, the DNS names passed in queries were without trailing dot, after version 4.0 the DNS names are sent with trailing dot. F.ex. example.org is now sent as example.org.
+
 ## Compiling
 To compile this backend, you need to configure `--with-modules="remote"`.
 
@@ -49,7 +51,7 @@ remote-connection-string=pipe:command=/path/to/executable,timeout=2000
 ```
 
 ### HTTP connector
-parameters: url, url-suffix, post, post\_json, timeout (default 2000)
+parameters: url, url-suffix, post, post\_json, timeout (default 2000ms)
 
 ```
 remote-connection-string=http:url=http://localhost:63636/dns,url-suffix=.php
@@ -79,7 +81,7 @@ HTTP connector calls methods based on URL and has parameters in the query string
 ## Replies
 You **must** always reply with JSON hash with at least one key, 'result'. This must be boolean false if the query failed. Otherwise it must conform to the expected result. For HTTP connector, to signal bare success, you can just reply with HTTP 200 OK, and omit any output. This will result in same outcome as sending {"result":true}.
 
-You can optionally add 'log' array, each line in this array will be logged in PowerDNS.
+You can optionally add an array of strings to the 'log' array; each line in this array will be logged in PowerDNS at loglevel `info` (6).
 
 ## Methods
 ### `initialize`
@@ -108,6 +110,7 @@ This method is used to do the basic query. You can omit auth, but if you are usi
 * Optional parameters: remote, local, real-remote
 * Reply: array of `qtype,qname,content,ttl,domain\_id,scopeMask,auth`
 * Optional values: domain\_id, scopeMask and auth
+* Note: priority field is required before 4.0, after 4.0 priority is added to content. This applies to any resource record which uses priority, for example SRV or MX. 
 
 #### Example JSON/RPC
 Query:

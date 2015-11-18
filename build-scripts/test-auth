@@ -10,6 +10,14 @@ export ZONE2SQL=/usr/bin/zone2sql
 export PDNSSEC=/usr/bin/pdnssec
 export PDNSCONTROL=/usr/bin/pdns_control
 
+export GEM_HOME=${PWD}/gems
+mkdir -p $GEM_HOME
+export PATH="${GEM_HOME}/bin:$PATH"
+
+cd modules/remotebackend
+ruby -S bundle install
+cd ../../
+
 MODULES=""
 
 for dir in /usr/lib/x86_64-linux-gnu/pdns /usr/lib64/pdns; do
@@ -28,59 +36,67 @@ done
 
 cd ..
 
-EXIT=0
+EXITCODE=0
+
 export geoipregion=oc geoipregionip=1.2.3.4
-./timestamp ./start-test-stop 5300 bind-both || EXIT=1
-./timestamp ./start-test-stop 5300 bind-dnssec-both || EXIT=1
-./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11 || EXIT=1
-./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both || EXIT=1
-./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both || EXIT=1
-./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow || EXIT=1
-./timestamp ./start-test-stop 5300 bind-hybrid-nsec3 || EXIT=1
+./timestamp ./start-test-stop 5300 bind-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 bind-dnssec-both || EXITCODE=1
 
-./timestamp ./start-test-stop 5300 geoipbackend || EXIT=1
-./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow || EXIT=1
+# No PKCS#11 in packages
+#SETUP_SOFTHSM=y ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11 || EXITCODE=1
+./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow || EXITCODE=1
+./timestamp ./start-test-stop 5300 bind-hybrid-nsec3 || EXITCODE=1
 
-./timestamp ./start-test-stop 5300 gmysql-nodnssec-both || EXIT=1
-./timestamp ./start-test-stop 5300 gmysql-both || EXIT=1
-./timestamp ./start-test-stop 5300 gmysql-nsec3-both || EXIT=1
-./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both || EXIT=1
-./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow || EXIT=1
+# Adding extra IPs to docker containers in not supported :(
+#./timestamp ./start-test-stop 5300 geoipbackend || EXITCODE=1
+#./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow || EXITCODE=1
 
-./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both || EXIT=1
-./timestamp ./start-test-stop 5300 gpgsql-both || EXIT=1
-./timestamp ./start-test-stop 5300 gpgsql-nsec3-both || EXIT=1
-./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both || EXIT=1
-./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow || EXIT=1
+./timestamp ./start-test-stop 5300 gmysql-nodnssec-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gmysql-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gmysql-nsec3-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow || EXITCODE=1
 
-./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both || EXIT=1
-./timestamp ./start-test-stop 5300 gsqlite3-both || EXIT=1
-./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both || EXIT=1
-./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXIT=1
-./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow || EXIT=1
+./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gpgsql-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gpgsql-nsec3-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow || EXITCODE=1
 
-#DNSName - ./timestamp ./start-test-stop 5300 lmdb-nodnssec || EXIT=1
+./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gsqlite3-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXITCODE=1
+./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow || EXITCODE=1
 
-./timestamp ./start-test-stop 5300 mydns || EXIT=1
-./timestamp ./start-test-stop 5300 opendbx-sqlite3 || EXIT=1
+# LMDB is broken pending DNSName
+# ./timestamp ./start-test-stop 5300 lmdb-nodnssec || EXITCODE=1
 
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe || EXIT=1
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec || EXIT=1
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix || EXIT=1
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec || EXIT=1
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http || EXIT=1
-./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || EXIT=1
-#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq || EXIT=1
-#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec || EXIT=1
+./timestamp ./start-test-stop 5300 mydns || EXITCODE=1
 
-./timestamp ./start-test-stop 5300 tinydns || EXIT=1
+./timestamp ./start-test-stop 5300 opendbx-sqlite3 || EXITCODE=1
+
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe || EXITCODE=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec || EXITCODE=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix || EXITCODE=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec || EXITCODE=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http || EXITCODE=1
+./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || EXITCODE=1
+
+
+# No 0MQ in the PowerDNS packages
+#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq || EXITCODE=1
+#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec || EXITCODE=1
+
+./timestamp ./start-test-stop 5300 tinydns || EXITCODE=1
 
 cd ../regression-tests.nobackend/
 
 # The package builds define other dirs, so the distconf test fails, so skip it
 touch pdnsconfdist/skip
 
-./runtests
-test ! -s ./failed_tests
+./runtests || EXITCODE=1
 
-exit $EXIT
+exit $EXITCODE

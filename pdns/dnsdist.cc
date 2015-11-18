@@ -103,6 +103,9 @@ Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
 
+int g_tcpRecvTimeout{2};
+int g_tcpSendTimeout{2};
+
 bool g_truncateTC{1};
 void truncateTC(const char* packet, unsigned int* len)
 try
@@ -528,7 +531,7 @@ try
 	g_stats.downstreamSendErrors++;
       }
       
-      vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->remote.toStringWithPort());
+      vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->getName());
     }
     catch(std::exception& e){
       errlog("Got an error in UDP question thread: %s", e.what());
@@ -593,7 +596,7 @@ void* maintThread()
       if(dss->availability==DownstreamState::Availability::Auto) {
 	bool newState=upCheck(dss->remote);
 	if(newState != dss->upStatus) {
-	  warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
 	}
 	dss->upStatus = newState;
       }
@@ -655,7 +658,7 @@ try
 
       if(ret) {
 	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  response=(*strValue)->remote.toStringWithPort();
+	  response=(*strValue)->getName();
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
 	  response=*strValue;
@@ -830,7 +833,7 @@ void doConsole()
 
       if(ret) {
 	if (const auto strValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
-	  cout<<(*strValue)->remote.toStringWithPort()<<endl;
+	  cout<<(*strValue)->getName()<<endl;
 	}
 	else if (const auto strValue = boost::get<string>(&*ret)) {
 	  cout<<*strValue<<endl;
@@ -1097,7 +1100,7 @@ try
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
       bool newState=upCheck(dss->remote);
-      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+      warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
       dss->upStatus = newState;
     }
   }

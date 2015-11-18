@@ -48,6 +48,7 @@ static int setupTCPDownstream(const ComboAddress& remote)
   vinfolog("TCP connecting to downstream %s", remote.toStringWithPort());
   int sock = SSocket(remote.sin4.sin_family, SOCK_STREAM, 0);
   SConnect(sock, remote);
+  setNonBlocking(sock);
   return sock;
 }
 
@@ -68,10 +69,38 @@ void TCPClientCollection::addTCPClientThread()
   if(pipe(pipefds) < 0)
     unixDie("Creating pipe");
 
+  if (!setNonBlocking(pipefds[1]))
+    unixDie("Setting pipe non-blocking");
+
   d_tcpclientthreads.push_back(pipefds[1]);    
   thread t1(tcpClientThread, pipefds[0]);
   t1.detach();
   ++d_numthreads;
+}
+
+static bool getNonBlockingMsgLen(int fd, uint16_t* len, int timeout)
+try
+{
+  uint16_t raw;
+  int ret = readn2WithTimeout(fd, &raw, sizeof raw, timeout);
+  if(ret != sizeof raw)
+    return false;
+  *len = ntohs(raw);
+  return true;
+}
+catch(...) {
+  return false;
+}
+
+static bool putNonBlockingMsgLen(int fd, uint16_t len, int timeout)
+try
+{
+  uint16_t raw = htons(len);
+  int ret = writen2WithTimeout(fd, &raw, sizeof raw, timeout);
+  return ret == sizeof raw;
+}
+catch(...) {
+  return false;
 }
 
 TCPClientCollection g_tcpclientthreads;
@@ -107,13 +136,16 @@ void* tcpClientThread(int pipefd)
     string pool; 
 
     shared_ptr<DownstreamState> ds;
+    if (!setNonBlocking(ci.fd))
+      goto drop;
+
     try {
       for(;;) {      
-        if(!getMsgLen(ci.fd, &qlen))
+        if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
           break;
         
         char query[qlen];
-        readn2(ci.fd, query, qlen);
+        readn2WithTimeout(ci.fd, query, qlen, g_tcpRecvTimeout);
 	uint16_t qtype;
 	DNSName qname(query, qlen, 12, false, &qtype);
 	string ruleresult;
@@ -131,8 +163,6 @@ void* tcpClientThread(int pipefd)
             dh->qr=false;
           }
         }
-
-	
 	
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
@@ -170,12 +200,10 @@ void* tcpClientThread(int pipefd)
 	}
 	
 	if(dh->qr) { // something turned it into a response
-	  putMsgLen(ci.fd, qlen);
-	  writen2(ci.fd, query, rlen);
+	  if (putNonBlockingMsgLen(ci.fd, qlen, g_tcpSendTimeout))
+	    writen2WithTimeout(ci.fd, query, rlen, g_tcpSendTimeout);
 	  goto drop;
-
 	}
-
 
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
@@ -198,35 +226,50 @@ void* tcpClientThread(int pipefd)
 	if(qtype == QType::AXFR || qtype == QType::IXFR)  // XXX fixme we really need to do better
 	  break;
 
+        uint16_t downstream_failures=0;
       retry:; 
-        if(!putMsgLen(dsock, qlen)) {
-	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->remote.toStringWithPort());
+        if (dsock < 0) {
+          sockets.erase(ds->remote);
+          break;
+        }
+
+        if (ds->retries > 0 && downstream_failures > ds->retries) {
+          vinfolog("Downstream connection to %s failed %d times in a row, giving up.", ds->getName(), downstream_failures);
+          close(dsock);
+          sockets.erase(ds->remote);
+          break;
+        }
+
+        if(!putNonBlockingMsgLen(dsock, qlen, ds->tcpSendTimeout)) {
+	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
+          downstream_failures++;
           goto retry;
         }
       
-        writen2(dsock, query, qlen);
+        writen2WithTimeout(dsock, query, qlen, ds->tcpSendTimeout);
       
-        if(!getMsgLen(dsock, &rlen)) {
-	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->remote.toStringWithPort());
+        if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
+	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->getName());
           close(dsock);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
+          downstream_failures++;
           goto retry;
         }
 
         char answerbuffer[rlen];
-        readn2(dsock, answerbuffer, rlen);
+        readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
       
-        putMsgLen(ci.fd, rlen);
-        writen2(ci.fd, answerbuffer, rlen);
+        if (putNonBlockingMsgLen(ci.fd, rlen, ds->tcpSendTimeout))
+          writen2WithTimeout(ci.fd, answerbuffer, rlen, ds->tcpSendTimeout);
       }
     }
     catch(...){}
 
   drop:;
     
-    vinfolog("Closing client connection with %s", ci.remote.toStringWithPort());
+    vinfolog("Closing TCP client connection with %s", ci.remote.toStringWithPort());
     close(ci.fd); 
     ci.fd=-1;
     if(ds)
@@ -250,14 +293,18 @@ void* tcpAcceptorThread(void* p)
 
   auto acl = g_ACL.getLocal();
   for(;;) {
+    ConnectionInfo* ci;
     try {
-      ConnectionInfo* ci = new ConnectionInfo;
+      ci=0;
+      ci = new ConnectionInfo;
+      ci->fd = -1;
       ci->fd = SAccept(cs->tcpFD, remote);
       
       if(!acl->match(remote)) {
 	g_stats.aclDrops++;
 	close(ci->fd);
 	delete ci;
+	ci=0;
 	vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
 	continue;
       }
@@ -265,7 +312,14 @@ void* tcpAcceptorThread(void* p)
       vinfolog("Got TCP connection from %s", remote.toStringWithPort());
       
       ci->remote = remote;
-      writen2(g_tcpclientthreads.getThread(), &ci, sizeof(ci));
+      int pipe = g_tcpclientthreads.getThread();
+      writen2WithTimeout(pipe, &ci, sizeof(ci), 0);
+    }
+    catch(std::exception& e) {
+      errlog("While reading a TCP question: %s", e.what());
+      if(ci && ci->fd >= 0) 
+	close(ci->fd);
+      delete ci;
     }
     catch(...){}
   }

@@ -1133,6 +1133,7 @@ pdns_recursor_SOURCES = \
 	dnsrecords.cc dnsrecords.hh \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	ednssubnet.cc ednssubnet.hh \
 	filterpo.cc filterpo.hh \
 	gss_context.cc gss_context.hh \
 	iputils.cc \

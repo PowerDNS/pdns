@@ -295,7 +295,6 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     d_minimum = atol(rrow[1].c_str());
   }
 
-
   if (found) {
 
     while (d_result.size()>1) {
@@ -305,10 +304,8 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
     string host;
 
     // The host part of the query is the name less the origin
-    if (qname.length() == d_origin.length())
-      host = "";
-    else
-      host = qname.toString().substr(0, (qname.length() - d_origin.length())-1);
+    DNSName origin(d_origin);
+    host = qname.makeRelative(origin).toStringNoDot();    
 
     try {
 

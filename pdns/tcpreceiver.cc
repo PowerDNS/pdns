@@ -753,7 +753,8 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       }
       rrs.push_back(rr);
     } else {
-      L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"'|"<<rr.qtype.getName()<<"', ignoring"<<endl;
+      if (rr.qtype.getCode())
+        L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"|"<<rr.qtype.getName()<<"', ignoring"<<endl;
       continue;
     }
   }
@@ -1065,7 +1066,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
   }
 
   string soaedit;
-  dk.getFromMeta(target, "SOA-EDIT", soaedit);
+  dk.getSoaEdit(target, soaedit);
   if (!rfc1982LessThan(serial, calculateEditSOA(sd, soaedit))) {
     TSIGRecordContent trc;
     DNSName tsigkeyname;

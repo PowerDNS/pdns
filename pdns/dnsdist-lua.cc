@@ -152,6 +152,22 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->weight=boost::lexical_cast<int>(boost::get<string>(vars["weight"]));
 			}
 
+			if(vars.count("retries")) {
+			  ret->retries=boost::lexical_cast<int>(boost::get<string>(vars["retries"]));
+			}
+
+			if(vars.count("tcpSendTimeout")) {
+			  ret->tcpSendTimeout=boost::lexical_cast<int>(boost::get<string>(vars["tcpSendTimeout"]));
+			}
+
+			if(vars.count("tcpRecvTimeout")) {
+			  ret->tcpRecvTimeout=boost::lexical_cast<int>(boost::get<string>(vars["tcpRecvTimeout"]));
+			}
+
+			if(vars.count("name")) {
+			  ret->name=boost::get<string>(vars["name"]);
+			}
+
 			if(g_launchWork) {
 			  g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
@@ -296,9 +312,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       try {
       ostringstream ret;
       
-      boost::format fmt("%1$-3d %2% %|30t|%3$5s %|36t|%4$7.1f %|41t|%5$7d %|44t|%6$3d %|53t|%7$2d %|55t|%8$10d %|61t|%9$7d %|76t|%10$5.1f %|84t|%11$5.1f %12%" );
-      //             1        2          3       4        5       6       7       8           9        10        11
-      ret << (fmt % "#" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Pools") << endl;
+      boost::format fmt("%1$-3d %2$-20s %3% %|40t|%4$5s %|36t|%5$7.1f %|41t|%6$7d %|44t|%7$3d %|53t|%8$2d %|55t|%9$10d %|61t|%10$7d %|76t|%11$5.1f %|84t|%12$5.1f %13%" );
+      //             1        2          3       4        5       6       7       8           9        10        11       12
+      ret << (fmt % "#" % "Name" % "Address" % "State" % "Qps" % "Qlim" % "Ord" % "Wt" % "Queries" % "Drops" % "Drate" % "Lat" % "Pools") << endl;
 
       uint64_t totQPS{0}, totQueries{0}, totDrops{0};
       int counter=0;
@@ -319,7 +335,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	  pools+=p;
 	}
 
-	ret << (fmt % counter % s->remote.toStringWithPort() % 
+	ret << (fmt % counter % s->name % s->remote.toStringWithPort() %
 		status % 
 		s->queryLoad % s->qps.getRate() % s->order % s->weight % s->queries.load() % s->reuseds.load() % (s->dropRate) % (s->latencyUsec/1000.0) % pools) << endl;
 
@@ -328,7 +344,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	totDrops += s->reuseds.load();
 	++counter;
       }
-      ret<< (fmt % "All" % "" % "" 
+      ret<< (fmt % "All" % "" % "" % ""
 		% 
 	     (double)totQPS % "" % "" % "" % totQueries % totDrops % "" % "" % "" ) << endl;
 
@@ -814,6 +830,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
        g_outputBuffer="Crypto failed..\n";
      }});
 
+  g_lua.writeFunction("setTCPRecvTimeout", [](int timeout) { g_tcpRecvTimeout=timeout; });
+
+  g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
   
   std::ifstream ifs(config);
   if(!ifs) 

@@ -58,8 +58,8 @@ private:
 
   void initialize();
   void ip2geo(const GeoIPDomain& dom, const string& qname, const string& ip);
-  string queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute);
-  string format2str(string format, const string& ip, bool v6);  
+  string queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl);
+  string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
   int d_dbmode;
   bool d_dnssec; 
   bool hasDNSSECkey(const DNSName& name);

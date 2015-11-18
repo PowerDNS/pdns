@@ -1,5 +1,54 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Authoritative Server 3.4.7
+Released 3rd of November 2015
+
+This is a security release fixing [Security Advisory
+2015-03](security/powerdns-advisory-2015-03.md)
+
+Bug fixes:
+
+- [commit b0c04ba](https://github.com/PowerDNS/pdns/commit/b0c04ba): Ignore invalid/empty TKEY and TSIG records (Christian Hofstaedtler)
+- [commit 8044a5d](https://github.com/PowerDNS/pdns/commit/8044a5d): Don't reply to truncated queries (Christian Hofstaedtler)
+- [commit 6a65ae9](https://github.com/PowerDNS/pdns/commit/6a65ae9): don't log out-of-zone ents during AXFR in (Kees Monshouwer)
+- [commit 416d252](https://github.com/PowerDNS/pdns/commit/416d252): Prevent XSS by escaping user input. Thanks to Pierre Jaury and Damien Cauquil at Sysdream for pointing this out.
+- [commit df76bda](https://github.com/PowerDNS/pdns/commit/df76bda): Handle NULL and boolean properly in gPGSql (Aki Tuomi)
+- commits [b998fc0](https://github.com/PowerDNS/pdns/commit/b998fc0),
+  [88516fd](https://github.com/PowerDNS/pdns/commit/88516fd),
+  [ef80925](https://github.com/PowerDNS/pdns/commit/ef80925),
+  [4549a72](https://github.com/PowerDNS/pdns/commit/4549a72): Improve negative caching (Kees Monshouwer)
+- [commit be27a9c](https://github.com/PowerDNS/pdns/commit/be27a9c): Do not divide timeout twice (Aki Tuomi)
+- commits [ca1d29c](https://github.com/PowerDNS/pdns/commit/ca1d29c),
+  [df2d20a](https://github.com/PowerDNS/pdns/commit/df2d20a),
+  [2358eea](https://github.com/PowerDNS/pdns/commit/2358eea): Correctly sort records with a priority.
+
+
+Improvements:
+
+- commits [791bc37](https://github.com/PowerDNS/pdns/commit/791bc37),
+  [e3301ca](https://github.com/PowerDNS/pdns/commit/e3301ca),
+  [9862779](https://github.com/PowerDNS/pdns/commit/9862779),
+  [b59a7e3](https://github.com/PowerDNS/pdns/commit/b59a7e3),
+  [4ca7a06](https://github.com/PowerDNS/pdns/commit/4ca7a06),
+  [7736530](https://github.com/PowerDNS/pdns/commit/7736530),
+  [69ea1a6](https://github.com/PowerDNS/pdns/commit/69ea1a6): Direct query answers and correct zone-rectification in the GeoIP backend (Aki Tuomi)
+- commits [83e0e53](https://github.com/PowerDNS/pdns/commit/83e0e53),
+  [0ff3037](https://github.com/PowerDNS/pdns/commit/0ff3037),
+  [9910908](https://github.com/PowerDNS/pdns/commit/9910908) Use token names to identify PKCS#11 keys (Aki Tuomi)
+- [commit a3801b2](https://github.com/PowerDNS/pdns/commit/a3801b2): Fix typo in an error message (Arjen Zonneveld)
+- [commit d33ba8e](https://github.com/PowerDNS/pdns/commit/d33ba8e): limit NSEC3 iterations in bindbackend (Kees Monshouwer)
+- [commit 0acca87](https://github.com/PowerDNS/pdns/commit/0acca87): Initialize minbody (Aki Tuomi)
+
+
+New features:
+
+- commits [4d51e96](https://github.com/PowerDNS/pdns/commit/4d51e96),
+  [6873a07](https://github.com/PowerDNS/pdns/commit/6873a07),
+  [b972356](https://github.com/PowerDNS/pdns/commit/b972356),
+  [46294b5](https://github.com/PowerDNS/pdns/commit/46294b5),
+  [6277b14](https://github.com/PowerDNS/pdns/commit/6277b14): OPENPGPKEY record-type (James Cloos and Kees Monshouwer)
+- [commit ec0ded7](https://github.com/PowerDNS/pdns/commit/ec0ded7): add global soa-edit settings (Kees Monshouwer)
+
 # PowerDNS Authoritative Server 3.4.6
 Released 28th of August 2015
 

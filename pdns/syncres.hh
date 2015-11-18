@@ -287,8 +287,12 @@ public:
     d_pdl = pdl;
   }
 
+  bool wasVariable() const
+  {
+    return d_wasVariable;
+  }
 
-  int asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
 
   static void doEDNSDumpAndClose(int fd);
 
@@ -314,7 +318,9 @@ public:
   unsigned int d_totUsec;
   ComboAddress d_requestor;
   bool d_doDNSSEC;
-
+  
+  bool d_wasVariable{false};
+  
   typedef multi_index_container <
     NegCacheEntry,
     indexed_by <
@@ -430,7 +436,6 @@ public:
   static unsigned int s_serverdownthrottletime;
   static bool s_nopacketcache;
   static string s_serverID;
-
 
   struct StaticStorage {
     negcache_t negcache;
@@ -655,4 +660,7 @@ uint64_t* pleaseWipeCache(const DNSName& canon, bool subtree=false);
 uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree);
 uint64_t* pleaseWipeAndCountNegCache(const DNSName& canon, bool subtree=false);
 void doCarbonDump(void*);
+boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
+void  parseEDNSSubnetWhitelist(const std::string& wlist);
+
 #endif
