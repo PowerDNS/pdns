@@ -716,6 +716,11 @@ toysdig_SOURCES += botan110signers.cc botansigners.cc
 toysdig_LDADD += $(BOTAN110_LIBS)
 endif
 
+if PKCS11
+toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
+toysdig_LDADD += $(P11KIT1_LIBS)
+endif
+
 
 tsig_tests_SOURCES = \
 	arguments.cc \
