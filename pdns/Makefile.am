@@ -123,8 +123,7 @@ EXTRA_PROGRAMS = \
 	testrunner \
 	toysdig \
 	tsig-tests \
-	zone2ldap \
-	zone2lmdb
+	zone2ldap
 
 pdns_server_SOURCES = \
 	arguments.cc arguments.hh \
@@ -282,6 +281,7 @@ pdnssec_SOURCES = \
 	dynlistener.cc \
 	ednssubnet.cc \
 	gss_context.cc gss_context.hh \
+        iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
 	mbedtlscompat.hh \
@@ -444,40 +444,6 @@ zone2ldap_SOURCES = \
 	zoneparser-tng.cc
 
 zone2ldap_LDADD = $(MBEDTLS_LIBS)
-
-if LMDB
-bin_PROGRAMS += zone2lmdb
-
-zone2lmdb_SOURCES = \
-	arguments.cc \
-	base32.cc \
-	base64.cc \
-	bind-dnssec.schema.sqlite3.sql.h \
-	bindlexer.l \
-	bindparser.yy \
-	bindparserclasses.hh \
-	dns.cc \
-	dns_random.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc \
-	dnsrecords.cc \
-	dnswriter.cc \
-	logger.cc \
-	misc.cc \
-	nsecrecords.cc \
-	qtype.cc \
-	rcpgenerator.cc \
-	sillyrecords.cc \
-	statbag.cc \
-	unix_utility.cc \
-	zone2lmdb.cc \
-	zoneparser-tng.cc
-
-zone2lmdb_LDADD = \
-	$(MBEDTLS_LIBS) \
-	$(LMDB_LIBS)
-endif
 
 sdig_SOURCES = \
 	base32.cc \
@@ -743,6 +709,11 @@ toysdig_SOURCES = \
 toysdig_LDADD = $(MBEDTLS_LIBS)
 if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
+endif
+
+if BOTAN110
+toysdig_SOURCES += botan110signers.cc botansigners.cc
+toysdig_LDADD += $(BOTAN110_LIBS)
 endif
 
 
@@ -1092,6 +1063,7 @@ testrunner_SOURCES = \
 	test-md5_hh.cc \
 	test-misc_hh.cc \
 	test-nameserver_cc.cc \
+	test-nmtree.cc \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-sha_hh.cc \

@@ -410,7 +410,7 @@ inspected or edited using showRule(), rmRule(), topRule(), mvRule() etc.
 Dynamic load balancing
 ----------------------
 The default load balancing policy is called 'leastOutstanding', which means 
-we pick the server with the least queries 'in the air'. 
+we pick the server with the least queries 'in the air' (and within those, the one with the lowest 'order', and within those, the one with the lowest latency). 
 
 Another policy, 'firstAvailable', picks the first server that has not
 exceeded its QPS limit gets the traffic.  
@@ -615,7 +615,7 @@ Here are all functions:
    * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
    * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
    * `roundrobin`: Simple round robin over available servers
-   * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order'
+   * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency
  * Shaping related:
    * `addQPSLimit(domain, n)`: limit queries within that domain to n per second
    * `addQPSLimit({domain, domain}, n)`: limit queries within those domains (together) to n per second

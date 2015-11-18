@@ -683,7 +683,7 @@ void startDoResolve(void *p)
     case DNSFilterEngine::PolicyKind::Custom:
       res=RCode::NoError;
       spoofed.d_name=dc->d_mdp.d_qname;
-      spoofed.d_type=dfepol.d_custom->d_qtype;
+      spoofed.d_type=dfepol.d_custom->getType();
       spoofed.d_ttl = 1234;
       spoofed.d_class = 1;
       spoofed.d_content = dfepol.d_custom;
@@ -742,7 +742,7 @@ void startDoResolve(void *p)
       case DNSFilterEngine::PolicyKind::Custom:
 	res=RCode::NoError;
 	spoofed.d_name=dc->d_mdp.d_qname;
-	spoofed.d_type=dfepol.d_custom->d_qtype;
+	spoofed.d_type=dfepol.d_custom->getType();
 	spoofed.d_ttl = 1234;
 	spoofed.d_class = 1;
 	spoofed.d_content = dfepol.d_custom;
@@ -1009,12 +1009,12 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->setRemote(&conn->d_remote);
       if(dc->d_mdp.d_header.qr) {
         delete dc;
-        L<<Logger::Error<<"Ignoring answer on server socket!"<<endl;
+        L<<Logger::Error<<"Ignoring answer from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
         return;
       }
       if(dc->d_mdp.d_header.opcode) {
         delete dc;
-        L<<Logger::Error<<"Ignoring non-query opcode on server socket!"<<endl;
+        L<<Logger::Error<<"Ignoring non-query opcode from TCP client "<< conn->d_remote.toString() <<" on server socket!"<<endl;
         return;
       }
       else {
@@ -2093,7 +2093,6 @@ void  parseEDNSSubnetWhitelist(const std::string& wlist)
 
 int serviceMain(int argc, char*argv[])
 {
-
   L.setName(s_programname);
   L.setLoglevel((Logger::Urgency)(6)); // info and up
 

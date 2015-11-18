@@ -189,3 +189,5 @@ void ComboAddress::truncate(unsigned int bits)
   uint8_t* place = start + len - 1 - tozero/8; 
   *place &= (~((1<<bitsleft)-1));
 }
+
+template class NetmaskTree<bool>;

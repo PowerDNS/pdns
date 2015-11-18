@@ -36,7 +36,8 @@
 #include <unistd.h>
 #include "sodcrypto.hh"
 #include "dnsrulactions.hh"
-
+#include <grp.h>
+#include <pwd.h>
 #include <getopt.h>
 
 /* Known sins:
@@ -136,7 +137,7 @@ struct DelayedPacket
   }
 };
 
-DelayPipe<DelayedPacket> g_delay;
+DelayPipe<DelayedPacket> * g_delay = 0;
 
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
@@ -166,9 +167,9 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     dh->id = ids->origID;
     g_stats.responses++;
 
-    if(ids->delayMsec) {
+    if(ids->delayMsec && g_delay) {
       DelayedPacket dp{ids->origFD, string(packet,len), ids->origRemote, ids->origDest};
-      g_delay.submit(dp, ids->delayMsec);
+      g_delay->submit(dp, ids->delayMsec);
     }
     else {
       if(ids->origDest.sin4.sin_family == 0)
@@ -239,13 +240,16 @@ shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, 
   return leastOutstanding(servers, remote, qname, qtype, dh);
 }
 
+// get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  vector<pair<pair<int,int>, shared_ptr<DownstreamState>>> poss;
+  vector<pair<tuple<int,int,double>, shared_ptr<DownstreamState>>> poss;
+  /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
+     which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
   poss.reserve(servers.size());
   for(auto& d : servers) {    
     if(d.second->isUp()) {
-      poss.push_back({make_pair(d.second->outstanding.load(), d.second->order), d.second});
+      poss.push_back({make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), d.second});
     }
   }
   if(poss.empty())
@@ -682,6 +686,9 @@ try
         response += string(e.reason);
       }
     }
+    catch(const LuaContext::SyntaxErrorException& e) {
+      response = "Error: " + string(e.what()) + ": ";
+    }
     response = sodEncryptSym(response, g_key, ours);
     putMsgLen(fd, response.length());
     writen2(fd, response.c_str(), (uint16_t)response.length());
@@ -780,9 +787,13 @@ void doClient(ComboAddress server, const std::string& command)
     uint16_t len;
     getMsgLen(fd, &len);
 
+    if(len == 0) {
+      cout << "Connection closed by the server." << endl;
+      break;
+    }
+
     char resp[len];
-    if(len)
-      readn2(fd, resp, len);
+    readn2(fd, resp, len);
     msg.assign(resp, len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
@@ -888,6 +899,77 @@ static void bindAny(int af, int sock)
 #endif
 }
 
+static void dropGroupPrivs(gid_t gid)
+{
+  if (gid) {
+    if (setgid(gid) == 0) {
+      if (setgroups(0, NULL) < 0) {
+        warnlog("Warning: Unable to drop supplementary gids: %s", strerror(errno));
+      }
+    }
+    else {
+      warnlog("Warning: Unable to set group ID to %d: %s", gid, strerror(errno));
+    }
+  }
+}
+
+static void dropUserPrivs(uid_t uid)
+{
+  if(uid) {
+    if(setuid(uid) < 0) {
+      warnlog("Warning: Unable to set user ID to %d: %s", uid, strerror(errno));
+    }
+  }
+}
+
+static uid_t strToUID(const string &str)
+{
+  uid_t result = 0;
+  const char * cstr = str.c_str();
+  struct passwd * pwd = getpwnam(cstr);
+
+  if (pwd == NULL) {
+    char * endptr = 0;
+    long int val = strtol(cstr, &endptr, 10);
+
+    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
+      warnlog("Warning: Unable to parse user ID %s", cstr);
+    }
+    else {
+      result = val;
+    }
+  }
+  else {
+    result = pwd->pw_uid;
+  }
+
+  return result;
+}
+
+static gid_t strToGID(const string &str)
+{
+  gid_t result = 0;
+  const char * cstr = str.c_str();
+  struct group * grp = getgrnam(cstr);
+
+  if (grp == NULL) {
+    char * endptr = 0;
+    long int val = strtol(cstr, &endptr, 10);
+
+    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
+      warnlog("Warning: Unable to parse group ID %s", cstr);
+    }
+    else {
+      result = val;
+    }
+  }
+  else {
+    result = grp->gr_gid;
+  }
+
+  return result;
+}
+
 /**** CARGO CULT CODE AHEAD ****/
 extern "C" {
 char* my_generator(const char* text, int state)
@@ -935,6 +1017,8 @@ struct
   string pidfile;
   string command;
   string config;
+  string uid;
+  string gid;
 } g_cmdLine;
 
 
@@ -959,17 +1043,19 @@ try
   struct option longopts[]={ 
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
-    {"command", optional_argument, 0, 'c'},
+    {"client", 0, 0, 'c'},
+    {"gid",  required_argument, 0, 'g'},
     {"local",  required_argument, 0, 'l'},
     {"daemon", 0, 0, 'd'},
     {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
+    {"uid",  required_argument, 0, 'u'},
     {"help", 0, 0, 'h'},
     {0,0,0,0} 
   };
   int longindex=0;
   for(;;) {
-    int c=getopt_long(argc, argv, "hbcde:C:l:m:vp:", longopts, &longindex);
+    int c=getopt_long(argc, argv, "hcde:C:l:vp:g:u:", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -985,6 +1071,9 @@ try
     case 'e':
       g_cmdLine.command=optarg;
       break;
+    case 'g':
+      g_cmdLine.gid=optarg;
+      break;
     case 'h':
       cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
@@ -993,11 +1082,13 @@ try
       cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
       cout<<"-d,--daemon           Operate as a daemon\n";
       cout<<"-e,--execute cmd      Connect to dnsdist and execute 'cmd'\n";
+      cout<<"-g,--gid gid          Change the process group ID after binding sockets\n";
       cout<<"-h,--help             Display this helpful message\n";
       cout<<"-l,--local address    Listen on this local address\n";
       cout<<"--supervised          Don't open a console, I'm supervised\n";
       cout<<"                        (use with e.g. systemd and daemontools)\n";
       cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
+      cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
       cout<<"\n";
       exit(EXIT_SUCCESS);
       break;
@@ -1009,6 +1100,9 @@ try
       break;
     case 's':
       g_cmdLine.beSupervised=true;
+      break;
+    case 'u':
+      g_cmdLine.uid=optarg;
       break;
     case 'v':
       g_verbose=true;
@@ -1076,6 +1170,44 @@ try
     toLaunch.push_back(cs);
   }
 
+  for(const auto& local : g_locals) {
+    ClientState* cs = new ClientState;
+    if(!local.second) { // no TCP/IP
+      warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
+      continue;
+    }
+    cs->local= local.first;
+
+    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
+
+    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef TCP_DEFER_ACCEPT
+    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+#endif
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+    //    if(g_vm.count("bind-non-local"))
+      bindAny(cs->local.sin4.sin_family, cs->tcpFD);
+    SBind(cs->tcpFD, cs->local);
+    SListen(cs->tcpFD, 64);
+    warnlog("Listening on %s",cs->local.toStringWithPort());
+
+    toLaunch.push_back(cs);
+  }
+
+  uid_t newgid=0;
+  gid_t newuid=0;
+
+  if(!g_cmdLine.gid.empty())
+    newgid = strToGID(g_cmdLine.gid.c_str());
+
+  if(!g_cmdLine.uid.empty())
+    newuid = strToUID(g_cmdLine.uid.c_str());
+
+  dropGroupPrivs(newgid);
+  dropUserPrivs(newuid);
+
   if(g_cmdLine.beDaemon) {
     g_console=false;
     daemonize();
@@ -1084,6 +1216,9 @@ try
   else {
     vinfolog("Running in the foreground");
   }
+
+  /* this need to be done _after_ dropping privileges */
+  g_delay = new DelayPipe<DelayedPacket>();
 
   for(auto& t : todo)
     t();
@@ -1107,36 +1242,16 @@ try
 
 
   for(auto& cs : toLaunch) {
-    thread t1(udpClientThread, cs);
-    t1.detach();
+    if (cs->udpFD >= 0) {
+      thread t1(udpClientThread, cs);
+      t1.detach();
+    }
+    else if (cs->tcpFD >= 0) {
+      thread t1(tcpAcceptorThread, cs);
+      t1.detach();
+    }
   }
 
-  for(const auto& local : g_locals) {
-    ClientState* cs = new ClientState;
-    if(!local.second) { // no TCP/IP
-      warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
-      continue;
-    }
-    cs->local= local.first;
-
-    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
-
-    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
-#ifdef TCP_DEFER_ACCEPT
-    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
-#endif
-    if(cs->local.sin4.sin_family == AF_INET6) {
-      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
-    //    if(g_vm.count("bind-non-local"))
-      bindAny(cs->local.sin4.sin_family, cs->tcpFD);
-    SBind(cs->tcpFD, cs->local);
-    SListen(cs->tcpFD, 64);
-    warnlog("Listening on %s",cs->local.toStringWithPort());
-    
-    thread t1(tcpAcceptorThread, cs);
-    t1.detach();
-  }
 
   thread carbonthread(carbonDumpThread);
   carbonthread.detach();

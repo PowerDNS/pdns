@@ -189,7 +189,7 @@ LOCRecordContent::DNSRecordContent* LOCRecordContent::make(const DNSRecord &dr, 
   return ret;
 }
 
-LOCRecordContent::LOCRecordContent(const string& content, const string& zone) : DNSRecordContent(QType::LOC)
+LOCRecordContent::LOCRecordContent(const string& content, const string& zone) 
 {
   // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
   // convert this to d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude

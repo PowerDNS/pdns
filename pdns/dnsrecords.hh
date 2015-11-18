@@ -37,9 +37,10 @@
   static void unreport(void);                                                                    \
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);                          \
   static DNSRecordContent* make(const string& zonedata);                                         \
-  string getZoneRepresentation() const;                                                          \
-  void toPacket(DNSPacketWriter& pw);                                                            \
-  template<class Convertor> void xfrPacket(Convertor& conv);                             
+  string getZoneRepresentation() const override;                                                 \
+  void toPacket(DNSPacketWriter& pw) override;                                                   \
+  uint16_t getType() const override { return QType::RNAME; }                                   \
+  template<class Convertor> void xfrPacket(Convertor& conv);
 
 class NAPTRRecordContent : public DNSRecordContent
 {
@@ -142,7 +143,7 @@ class TSIGRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(TSIG)
-  TSIGRecordContent() : DNSRecordContent(QType::TSIG) {}
+  TSIGRecordContent() {}
 
   uint16_t d_origID;
   uint16_t d_fudge;
@@ -180,7 +181,7 @@ class NSRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(NS)
-  explicit NSRecordContent(const DNSName& content) : DNSRecordContent(QType::NS), d_content(content){}
+  explicit NSRecordContent(const DNSName& content) : d_content(content){}
   DNSName getNS() const { return d_content; } 
 private:
   DNSName d_content;
@@ -456,14 +457,18 @@ class NSECRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  NSECRecordContent() : DNSRecordContent(47)
+  NSECRecordContent()
   {}
   NSECRecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const;
-  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
+  uint16_t getType() const override
+  {
+    return QType::NSEC;
+  }
   DNSName d_next;
   std::set<uint16_t> d_set;
 private:
@@ -473,14 +478,14 @@ class NSEC3RecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  NSEC3RecordContent() : DNSRecordContent(50)
+  NSEC3RecordContent()
   {}
   NSEC3RecordContent(const string& content, const string& zone=""); //FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const;
-  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
 
   uint8_t d_algorithm, d_flags;
   uint16_t d_iterations;
@@ -490,6 +495,12 @@ public:
   uint8_t d_saltlength;
   uint8_t d_nexthashlength;
 
+  uint16_t getType() const override
+  {
+    return QType::NSEC3;
+  }
+
+
 private:
 };
 
@@ -498,14 +509,19 @@ class NSEC3PARAMRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  NSEC3PARAMRecordContent() : DNSRecordContent(51)
+  NSEC3PARAMRecordContent()
   {}
   NSEC3PARAMRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const;
-  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
+
+  uint16_t getType() const override
+  {
+    return QType::NSEC3PARAM;
+  }
 
 
   uint8_t d_algorithm, d_flags;
@@ -519,18 +535,22 @@ class LOCRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  LOCRecordContent() : DNSRecordContent(QType::LOC)
+  LOCRecordContent()
   {}
   LOCRecordContent(const string& content, const string& zone="");
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const;
-  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
 
   uint8_t d_version, d_size, d_horizpre, d_vertpre;
   uint32_t d_latitude, d_longitude, d_altitude;
-  
+  uint16_t getType() const override
+  {
+    return QType::LOC;
+  }
+
 private:
 };
 
@@ -539,14 +559,14 @@ class WKSRecordContent : public DNSRecordContent
 {
 public:
   static void report(void);
-  WKSRecordContent() : DNSRecordContent(QType::WKS)
+  WKSRecordContent() 
   {}
   WKSRecordContent(const string& content, const string& zone=""); // FIXME400: DNSName& zone?
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const;
-  void toPacket(DNSPacketWriter& pw);
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
 
   uint32_t d_ip;
   std::bitset<65535> d_services;
@@ -556,12 +576,13 @@ private:
 class EUI48RecordContent : public DNSRecordContent 
 {
 public:
-  EUI48RecordContent() : DNSRecordContent(QType::EUI48) {};
+  EUI48RecordContent() {};
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
-  void toPacket(DNSPacketWriter& pw);
-  string getZoneRepresentation() const;
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
+  uint16_t getType() const override { return QType::EUI48; }
 private:
  // storage for the bytes
  uint8_t d_eui48[6]; 
@@ -570,12 +591,13 @@ private:
 class EUI64RecordContent : public DNSRecordContent
 {
 public:
-  EUI64RecordContent() : DNSRecordContent(QType::EUI64) {};
+  EUI64RecordContent() {};
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
-  void toPacket(DNSPacketWriter& pw);
-  string getZoneRepresentation() const;
+  string getZoneRepresentation() const override;
+  void toPacket(DNSPacketWriter& pw) override;
+  uint16_t getType() const override { return QType::EUI64; }
 private:
  // storage for the bytes
  uint8_t d_eui64[8];
@@ -608,7 +630,7 @@ RNAME##RecordContent::DNSRecordContent* RNAME##RecordContent::make(const DNSReco
   return new RNAME##RecordContent(dr, pr);                                                         \
 }                                                                                                  \
                                                                                                    \
-RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr) : DNSRecordContent(RTYPE) \
+RNAME##RecordContent::RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr)                  \
 {                                                                                                  \
   doRecordCheck(dr);                                                                               \
   xfrPacket(pr);                                                                                   \
@@ -635,7 +657,7 @@ void RNAME##RecordContent::unreport(void)                                       
   unregist(254, RTYPE);                                                                            \
 }                                                                                                  \
                                                                                                    \
-RNAME##RecordContent::RNAME##RecordContent(const string& zoneData) : DNSRecordContent(RTYPE)       \
+RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
 {                                                                                                  \
   try {                                                                                            \
     RecordTextReader rtr(zoneData);                                                                \
