@@ -60,6 +60,7 @@ EOF
 module-dir=./modules
 launch=geoip
 geoip-zones-file=$testsdir/geo.yaml
+geoip-database-files=/usr/share/GeoIP/GeoIP.dat
 EOF
 
 		if [ "$geoipdosec" = "yes" ]
@@ -73,7 +74,8 @@ EOF
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--distributor-threads=1 \
-                        --geoip-zones-file=$testsdir/geo.yaml --module-dir=./modules \
+                        --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files=/usr/share/GeoIP/GeoIP.dat \
+                        --module-dir=./modules \
 			$geoipkeydir &
 		;;
 
