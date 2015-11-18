@@ -88,7 +88,16 @@ enum dState { NODATA, NXDOMAIN, ENT, INSECURE };
 const char *dStates[]={"nodata", "nxdomain", "empty non-terminal", "insecure (no-DS proof)"};
 
 
-typedef std::multimap<uint16_t, DNSKEYRecordContent> keymap_t;
+typedef std::set<DNSKEYRecordContent> keyset_t;
+vector<DNSKEYRecordContent> getByTag(const keyset_t& keys, uint16_t tag)
+{
+  vector<DNSKEYRecordContent> ret;
+  for(const auto& key : keys)
+    if(key.getTag() == tag)
+      ret.push_back(key);
+  return ret;
+}
+
 
 static string nsec3Hash(const DNSName &qname, const NSEC3RecordContent& nrc)
 {
@@ -102,11 +111,10 @@ struct ContentSigPair
 {
   vector<shared_ptr<DNSRecordContent>> records;
   vector<shared_ptr<RRSIGRecordContent>> signatures;
+  // ponder adding a validate method that accepts a key
 };
 typedef map<pair<DNSName,uint16_t>, ContentSigPair> cspmap_t;
 
-
-typedef map<pair<DNSName, uint16_t>, set<shared_ptr<DNSRecordContent> > > rrsetmap_t;
 typedef pair<DNSName, uint16_t> NT; // Name/Type pair
 typedef std::multimap<NT, shared_ptr<DNSRecordContent> > recmap_t;
 typedef std::multimap<NT, RRSIGRecordContent> sigmap_t;
@@ -118,16 +126,16 @@ typedef pair<DNSName, uint16_t> ZT; //Zonename/keyTag pair
 // keymap_t g_vkeys; // validated keys
 
 // FIXME: needs a zone argument, to avoid things like 6840 4.1
-static dState getDenial(rrsetmap_t &validrrsets, DNSName qname, uint16_t qtype)
+static dState getDenial(cspmap_t &validrrsets, DNSName qname, uint16_t qtype)
 {
   std::multimap<DNSName, NSEC3RecordContent> nsec3s;
 
-  for(rrsetmap_t::const_iterator i=validrrsets.begin(); i!=validrrsets.end(); ++i)
+  for(auto i=validrrsets.begin(); i!=validrrsets.end(); ++i)
   {
     // FIXME also support NSEC
     if(i->first.second != QType::NSEC3) continue;
     
-    for(set<shared_ptr<DNSRecordContent> >::const_iterator j=i->second.begin(); j!=i->second.end(); ++j) {
+    for(auto j=i->second.records.begin(); j!=i->second.records.end(); ++j) {
       NSEC3RecordContent ns3r = dynamic_cast<NSEC3RecordContent&> (**j);
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
@@ -190,50 +198,56 @@ void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type
   cout<<endl;
 }
 
-static void validateWithKeySet(const cspmap& rrsets, cspmap_t& validated, keymap_t& keys)
+static void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, keyset_t& keys)
 {
-  for(auto i=rrsets.begin(); i!=rrsets.end(); i++)
-  {
+  validated.clear();
+  cerr<<"Validating an rrset with following keys: "<<endl;
+  for(auto& key : keys) {
+    cerr<<"\tTag: "<<key.getTag()<<" -> "<<key.getZoneRepresentation()<<endl;
+  }
+  for(auto i=rrsets.begin(); i!=rrsets.end(); i++) {
     cerr<<"validating "<<(i->first.first)<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<" with "<<i->second.signatures.size()<<" sigs: ";
     for(const auto& signature : i->second.signatures) {
-      for(auto k=i->second.records.begin(); k!=j->second.records.end(); k++) {
-        vector<shared_ptr<DNSRecordContent> > toSign = j->records;
-	auto rrc = *signature->d_content;
-
-        if(!keys.count(rrc.d_tag)) {
-	  cerr<<"No key provided for "<<rrc.d_tag<<endl;
-	  continue;
+      vector<shared_ptr<DNSRecordContent> > toSign = i->second.records;
+      
+      if(getByTag(keys,signature->d_tag).empty()) {
+	cerr<<"No key provided for "<<signature->d_tag<<endl;
+	continue;
+      }
+      
+      string msg=getMessageForRRSET(i->first.first, *signature, toSign);
+      auto r = getByTag(keys,signature->d_tag); // FIXME: also take algorithm into account? right now we wrongly validate unknownalgorithm.bad-dnssec.wb.sidnlabs.nl
+      for(const auto& l : r) {
+	bool isValid = false;
+	try {
+	  unsigned int now=time(0);
+	  if(signature->d_siginception < now && signature->d_sigexpire > now)
+	    isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(l.d_algorithm, l.d_key)->verify(msg, signature->d_signature);
+	  else
+	    cerr<<"signature is expired/not yet valid ";
 	}
-
-        string msg=getMessageForRRSET(j->first.first, rrc, toSign);
-        auto r = keys.equal_range(rrc.d_tag); // FIXME: also take algorithm into account? right now we wrongly validate unknownalgorithm.bad-dnssec.wb.sidnlabs.nl
-        for(keymap_t::const_iterator l=r.first; l!=r.second; l++) {
-          bool isValid = false;
-	  try {
-	    unsigned int now=time(0);
-	    if(rrc.d_siginception < now && rrc.d_sigexpire > now)
-	      isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(l->second.d_algorithm, l->second.d_key)->verify(msg, rrc.d_signature);
-	  }
-	  catch(std::exception& e) {
-	    cerr<<"Error validating with engine: "<<e.what()<<endl;
-	  }
-          if(isValid) {
-            validated[make_pair(j->first.first, j->first.second)] = rrs;
-            cerr<<"valid"<<endl;
-            cerr<<"! validated "<<j->first.first<<"/"<<DNSRecordContent::NumberToType(rrc.d_type)<<endl;
-          }
-          if(rrc.d_type != QType::DNSKEY) {
-	                  dotEdge(rrc.d_signer,
-                    "DNSKEY", rrc.d_signer, lexical_cast<string>(rrc.d_tag),
-                    DNSRecordContent::NumberToType(rrc.d_type), j->first.first, "", isValid ? "green" : "red");
-	    
-          }
-          // FIXME: break out enough levels
-        }
+	catch(std::exception& e) {
+	  cerr<<"Error validating with engine: "<<e.what()<<endl;
+	}
+	if(isValid) {
+	  validated[i->first] = i->second;
+	  cerr<<"valid"<<endl;
+	  cerr<<"! validated "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl;
+	}
+	else 
+	  cerr<<"signature invalid"<<endl;
+	if(signature->d_type != QType::DNSKEY) {
+	  dotEdge(signature->d_signer,
+		  "DNSKEY", signature->d_signer, lexical_cast<string>(signature->d_tag),
+		  DNSRecordContent::NumberToType(signature->d_type), i->first.first, "", isValid ? "green" : "red");
+	  
+	}
+	// FIXME: break out enough levels
       }
     }
   }
 }
+
 
 // returns vState
 // should return vState, zone cut and validated keyset
@@ -243,7 +257,25 @@ static void validateWithKeySet(const cspmap& rrsets, cspmap_t& validated, keymap
 
 const char *rootDS;
 
-static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
+cspmap_t harvestCSPFromMDP(const MOADNSParser& mdp)
+{
+  cspmap_t cspmap;
+  for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+    //        cerr<<"res "<<i->first.d_name<<"/"<<i->first.d_type<<endl;
+    if(i->first.d_type == QType::OPT) continue;
+    
+    if(i->first.d_type == QType::RRSIG) {
+      auto rrc = getRR<RRSIGRecordContent>(i->first);
+      cspmap[{i->first.d_name,rrc->d_type}].signatures.push_back(getRR<RRSIGRecordContent>(i->first));
+    }
+    else {
+      cspmap[{i->first.d_name, i->first.d_type}].records.push_back(i->first.d_content);
+    }
+  }
+  return cspmap;
+}
+
+static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keyset_t &keyset)
 {
   vector<string> labels = zone.getRawLabels();
   vState state;
@@ -253,10 +285,9 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
   DNSName qname(".");
   typedef std::multimap<uint16_t, DSRecordContent> dsmap_t;
   dsmap_t dsmap;
-  keymap_t keymap;
-  recmap_t recs;
+  keyset_t validkeys;
 
-  state = Secure;
+  state = Secure; // nice
   while(zone.isPartOf(qname))
   {
     if(qname.isRoot())
@@ -266,20 +297,19 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
       dsmap.insert(make_pair(rootanchor.d_tag, rootanchor));
     }
   
-    recs.clear();
     vector<RRSIGRecordContent> sigs;
     vector<shared_ptr<DNSRecordContent> > toSign;
     vector<uint16_t> toSignTags;
 
-    keymap_t tkeymap; // tentative keys
-    keymap.clear();
+    keyset_t tkeys; // tentative keys
+    validkeys.clear();
     
     // start of this iteration
     // we can trust that dsmap has valid DS records for qname
 
     cerr<<"got DS for ["<<qname<<"], grabbing DNSKEYs"<<endl;
     MOADNSParser mdp(tr.query(qname, (uint16_t)QType::DNSKEY));
-
+    // this should use harvest perhaps
     for(auto i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       if(i->first.d_name != qname)
         continue;
@@ -294,24 +324,24 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
       else if(i->first.d_type == QType::DNSKEY)
       {
         auto drc=getRR<DNSKEYRecordContent> (i->first);
-        tkeymap.insert(make_pair(drc->getTag(), *drc));
-	  
+        tkeys.insert(*drc);
+	cerr<<"Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl;
 	dotNode("DNSKEY", qname, lexical_cast<string>(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
 
         toSign.push_back(i->first.d_content);
         toSignTags.push_back(drc->getTag());
       }
     }
-    cerr<<"got "<<tkeymap.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl;
+    cerr<<"got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl;
 
     for(dsmap_t::const_iterator i=dsmap.begin(); i!=dsmap.end(); i++)
     {
       DSRecordContent dsrc=i->second;
-      cerr<<"looking at DS with tag "<<dsrc.d_tag<<"/"<<i->first<<", got "<<tkeymap.count(i->first)<<" DNSKEYs for tag"<<endl;
-      auto r = tkeymap.equal_range(i->first);
-      for(keymap_t::const_iterator j=r.first; j!=r.second; j++)
+      auto r = getByTag(tkeys, i->first);
+      cerr<<"looking at DS with tag "<<dsrc.d_tag<<"/"<<i->first<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
+
+      for(const auto& drc : r) 
       {
-        DNSKEYRecordContent drc=j->second;
 	bool isValid = false;
 	DSRecordContent dsrc2;
 	try {
@@ -324,22 +354,23 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
 
         if(isValid) {
           cerr<<"got valid DNSKEY (it matches the DS) for "<<qname<<endl;
-          keymap.insert(make_pair(drc.getTag(), drc));
-	           dotNode("DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
+	  
+          validkeys.insert(drc);
+	  dotNode("DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
         }
 	else {
 	  cerr<<"DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl;
 	}
         // cout<<"    subgraph "<<dotEscape("cluster "+qname)<<" { "<<dotEscape("DS "+qname)<<" -> "<<dotEscape("DNSKEY "+qname)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<qname<<"\"; }"<<endl;
-	       dotEdge(DNSName("."), "DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, "DNSKEY", qname, lexical_cast<string>(drc.getTag()), isValid ? "green" : "red");
+	dotEdge(DNSName("."), "DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, "DNSKEY", qname, lexical_cast<string>(drc.getTag()), isValid ? "green" : "red");
         // dotNode("DNSKEY", qname, (boost::format("tag=%d, algo=%d") % drc.getTag() % static_cast<int>(drc.d_algorithm)).str());
       }
     }
 
-    cerr<<"got "<<keymap.size()<<"/"<<tkeymap.size()<<" valid/tentative keys"<<endl;
+    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
     // these counts could be off if we somehow ended up with 
     // duplicate keys. Should switch to a type that prevents that.
-    if(keymap.size() < tkeymap.size())
+    if(validkeys.size() < tkeys.size())
     {
       // this should mean that we have one or more DS-validated DNSKEYs
       // but not a fully validated DNSKEY set, yet
@@ -347,16 +378,16 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
       // whole set
       for(auto i=sigs.begin(); i!=sigs.end(); i++)
       {
-        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<tkeymap.count(i->d_tag)<<" keys of which "<<keymap.count(i->d_tag)<<" valid"<<endl;
+        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
         string msg=getMessageForRRSET(qname, *i, toSign);
-        pair<keymap_t::const_iterator, keymap_t::const_iterator> r = keymap.equal_range(i->d_tag);
-        for(keymap_t::const_iterator j=r.first; j!=r.second; j++) {
+        auto bytag = getByTag(validkeys, i->d_tag);
+        for(const auto& j : bytag) {
           cerr<<"validating : ";
           bool isValid = false;
 	  try {
 	    unsigned int now = time(0);
 	    if(i->d_siginception < now && i->d_sigexpire > now)
-	      isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(j->second.d_algorithm, j->second.d_key)->verify(msg, i->d_signature);
+	      isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(j.d_algorithm, j.d_key)->verify(msg, i->d_signature);
 	  }
 	  catch(std::exception& e) {
 	    cerr<<"Could not make a validator for signature: "<<e.what()<<endl;
@@ -371,17 +402,17 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
           {
             cerr<<"validation succeeded - whole DNSKEY set is valid"<<endl;
             // cout<<"    "<<dotEscape("DNSKEY "+stripDot(i->d_signer))<<" -> "<<dotEscape("DNSKEY "+qname)<<";"<<endl;
-            keymap=tkeymap;
+            validkeys=tkeys;
             break;
           }
 	  else
 	    cerr<<"Validation did not succeed!"<<endl;
         }
-        if(keymap.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
+        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
       }
     }
 
-    if(keymap.empty())
+    if(validkeys.empty())
     {
       cerr<<"ended up with zero valid DNSKEYs, going Bogus"<<endl;
       state=Bogus;
@@ -389,8 +420,8 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
     }
     cerr<<"situation: we have one or more valid DNSKEYs for ["<<qname<<"] (want ["<<zone<<"])"<<endl;
     if(qname == zone) {
-      cerr<<"requested keyset found! returning Secure"<<endl;
-      keyset.insert(keymap.begin(), keymap.end());
+      cerr<<"requested keyset found! returning Secure for the keyset"<<endl;
+      keyset.insert(validkeys.begin(), validkeys.end());
       return Secure;
     }
     cerr<<"walking downwards to find DS"<<endl;
@@ -400,8 +431,6 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
       labels.pop_back();
       cerr<<"next name ["<<qname<<"], trying to get DS"<<endl;
 
-      recs.clear();
-      sigs.clear();
       dsmap_t tdsmap; // tentative DSes
       dsmap.clear();
       toSign.clear();
@@ -409,30 +438,18 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keymap_t &keyset)
 
       MOADNSParser mdp(tr.query(qname, QType::DS));
 
-      cspmap_t cspmap;
-      for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-	//        cerr<<"res "<<i->first.d_name<<"/"<<i->first.d_type<<endl;
-        if(i->first.d_type == QType::OPT) continue;
-
-        if(i->first.d_type == QType::RRSIG) {
-          auto rrc = getRR<RRSIGRecordContent>(i->first);
-	  cspmap[{i->first.d_name,rrc->d_type}].signatures.push_back(getRR<RRSIGRecordContent>(i->first));
-        }
-        else {
-	  cspmap[{i->first.d_name, i->first.d_type}].push_back(i->first.d_content);
-        }
-      }
+      cspmap_t cspmap=harvestCSPFromMDP(mdp);
 
       cspmap_t validrrsets;
-      validateWithKeySet(cspmap, validrrsets, keymap);
+      validateWithKeySet(cspmap, validrrsets, validkeys);
 
       cerr<<"got "<<cspmap.count(make_pair(qname,QType::DS))<<" DS of which "<<validrrsets.count(make_pair(qname,QType::DS))<<" valid "<<endl;
 
       auto r = validrrsets.equal_range(make_pair(qname, QType::DS));
-      for(auto cspiter =r.first; i!=r.second; i++) {
+      for(auto cspiter =r.first;  cspiter!=r.second; cspiter++) {
         for(auto j=cspiter->second.records.cbegin(); j!=cspiter->second.records.cend(); j++)
         {
-          const auto dsrc=getRR<DSRecordContent>(*j);
+          const auto dsrc=std::dynamic_pointer_cast<DSRecordContent>(*j);
           dsmap.insert(make_pair(dsrc->d_tag, *dsrc));
           // dotEdge(keyqname,
           //         "DNSKEY", keyqname, ,
@@ -475,56 +492,40 @@ try
 
   auto mdp=getMDP(dest, qname, qtype);
 
-  rrsetmap_t rrsets;
-  rrsetmap_t rrsigs;
-
-  for(auto i = mdp->d_answers.begin(); i != mdp->d_answers.end(); ++i) {
-    //    cerr<<"res "<<i->first.d_name<<"/"<<i->first.d_type<<endl;
-    if(i->first.d_type == QType::OPT) continue;
-
-    if(i->first.d_type == QType::RRSIG) {
-      RRSIGRecordContent rrc = dynamic_cast<RRSIGRecordContent&> (*(i->first.d_content));
-      rrsigs[make_pair(i->first.d_name,rrc.d_type)].insert(i->first.d_content);
-    }
-    else {
-      rrsets[make_pair(i->first.d_name,i->first.d_type)].insert(i->first.d_content);
-    }
+  cspmap_t cspmap=harvestCSPFromMDP(*mdp);
+  cerr<<"Got "<<cspmap.size()<<" RRSETs: ";
+  int numsigs=0;
+  for(const auto& csp : cspmap) {
+    cerr<<" "<<csp.first.first<<'/'<<DNSRecordContent::NumberToType(csp.first.second)<<": "<<csp.second.signatures.size()<<" sigs for "<<csp.second.records.size()<<" records"<<endl;
+    numsigs+= csp.second.signatures.size();
   }
+   
+  keyset_t keys;
+  cspmap_t validrrsets;
 
-  cerr<<"got "<<rrsigs.size()<<" sigs for "<<rrsets.size()<<" sets"<<endl;
-
-  auto r = rrsigs.equal_range(make_pair(qname, qtype));
-  cerr<<"got "<<std::distance(r.second, r.first)<<" applicable sigs"<<endl;
-
-  keymap_t keys;
-  rrsetmap_t validrrsets;
-
-  if(rrsigs.size()) {
-    for(rrsetmap_t::const_iterator i=rrsigs.begin(); i!=rrsigs.end(); i++) {
-      cerr<<"A"<<endl;
-      for(auto j=i->second.begin(); j!=i->second.end(); j++)
-      {
-        cerr<<"B"<<endl;
-        const RRSIGRecordContent rrc=dynamic_cast<const RRSIGRecordContent&> (*(*j));
-        cerr<<"got rrsig "<<rrc.d_signer<<"/"<<rrc.d_tag<<endl;
-        vState state = getKeysFor(tr, rrc.d_signer, keys);
-        cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
+  if(numsigs) {
+    for(const auto& csp : cspmap) {
+      for(const auto& sig : csp.second.signatures) {
+	cerr<<"got rrsig "<<sig->d_signer<<"/"<<sig->d_tag<<endl;
+	vState state = getKeysFor(tr, sig->d_signer, keys);
+	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
         // dsmap.insert(make_pair(dsrc.d_tag, dsrc));
       }
     }
-    validateWithKeySet(rrsets, rrsigs, validrrsets, keys);
+
+    validateWithKeySet(cspmap, validrrsets, keys);
   }
   else {
     cerr<<"no sigs, hoping for Insecure"<<endl;
     vState state = getKeysFor(tr, qname, keys);
     cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
   }
-  cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<rrsets.size()<<endl;
+  cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<cspmap.size()<<endl;
 
   cerr<<"% validated RRs:"<<endl;
-  for(rrsetmap_t::const_iterator i=validrrsets.begin(); i!=validrrsets.end(); i++) {
+  for(auto i=validrrsets.begin(); i!=validrrsets.end(); i++) {
     cerr<<"% "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<endl;
-    for(set<shared_ptr<DNSRecordContent> >::const_iterator j=i->second.begin(); j!=i->second.end(); j++) {
+    for(auto j=i->second.records.begin(); j!=i->second.records.end(); j++) {
       cerr<<"\t% > "<<(*j)->getZoneRepresentation()<<endl;
     }
   }
