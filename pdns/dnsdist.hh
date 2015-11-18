@@ -196,8 +196,8 @@ extern Rings g_rings; // XXX locking for this is still substandard, queryRing an
 struct ClientState
 {
   ComboAddress local;
-  int udpFD;
-  int tcpFD;
+  int udpFD{-1};
+  int tcpFD{-1};
 };
 
 class TCPClientCollection {
