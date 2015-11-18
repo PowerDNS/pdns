@@ -711,6 +711,11 @@ if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
 endif
 
+if BOTAN110
+toysdig_SOURCES += botan110signers.cc botansigners.cc
+toysdig_LDADD += $(BOTAN110_LIBS)
+endif
+
 
 tsig_tests_SOURCES = \
 	arguments.cc \
