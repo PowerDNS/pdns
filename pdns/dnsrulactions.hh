@@ -279,3 +279,17 @@ public:
     return "set rd=0";
   }
 };
+
+class DisableValidationAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const override
+  {
+    dh->cd = true;
+    return Action::HeaderModify;
+  }
+  string toString() const override
+  {
+    return "set cd=1";
+  }
+};

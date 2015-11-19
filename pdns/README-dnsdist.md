@@ -592,6 +592,7 @@ Here are all functions:
    * `DropAction()`: drop these packets
    * `NoRecurseAction()`: strip RD bit from the question, let it go through
    * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
+   * `DisableValidationAction()`: set the CD bit in the question, let it go through
  * Specialist rule generators
    * addAnyTCRule(): generate TC=1 answers to ANY queries, moving them to TCP
    * setDNSSECPool(): move queries requesting DNSSEC processing to this pool
