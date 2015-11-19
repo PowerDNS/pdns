@@ -636,3 +636,9 @@ const T& defTer(const T& a, const T& b)
 {
   return a ? a : b;
 }
+
+template<typename P, typename T>
+T valueOrEmpty(const P val) {
+  if (!val) return T{};
+  return T(val);
+}
