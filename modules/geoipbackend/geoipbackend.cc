@@ -308,6 +308,7 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
   GeoIPRegion *gir = NULL;
   GeoIPRecord *gir2 = NULL;
   int id;
+  vector<string> asnr;
 
   if (v6 && s_gi6) {
     if (attribute == Afi) {
@@ -315,6 +316,16 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
     } else if (d_dbmode == GEOIP_ISP_EDITION_V6 || d_dbmode == GEOIP_ORG_EDITION_V6) {
       if (attribute == Name) {
         val = GeoIP_name_by_addr_v6_gl(s_gi6, ip.c_str(), gl);
+      }
+    } else if (d_dbmode == GEOIP_ASNUM_EDITION_V6) {
+      if (attribute == ASn) {
+        val = GeoIP_name_by_addr_v6_gl(s_gi6, ip.c_str(), gl);
+        if (val) {
+          stringtok(asnr, val);
+          if(asnr.size()>0) {
+            val = asnr[0].c_str();
+          }
+        }
       }
     } else if (d_dbmode == GEOIP_COUNTRY_EDITION_V6 ||
         d_dbmode == GEOIP_LARGE_COUNTRY_EDITION_V6 ||
@@ -362,6 +373,16 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
     } else if (d_dbmode == GEOIP_ISP_EDITION || d_dbmode == GEOIP_ORG_EDITION) {
       if (attribute == Name) {
         val = GeoIP_name_by_addr_v6_gl(s_gi, ip.c_str(), gl);
+      }
+    } else if (d_dbmode == GEOIP_ASNUM_EDITION) {
+      if (attribute == ASn) {
+        val = GeoIP_name_by_addr_gl(s_gi, ip.c_str(), gl);
+        if (val) {
+          stringtok(asnr, val);
+          if(asnr.size()>0) {
+            val = asnr[0].c_str();
+          }
+        }
       }
     } else if (d_dbmode == GEOIP_COUNTRY_EDITION ||
         d_dbmode == GEOIP_LARGE_COUNTRY_EDITION) {
@@ -430,6 +451,8 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
       rep = queryGeoIP(ip, v6, Country, &tmp_gl);
     } else if (!format.compare(cur,3,"%af")) {
       rep = queryGeoIP(ip, v6, Afi, &tmp_gl);
+    } else if (!format.compare(cur,3,"%as")) {
+      rep = queryGeoIP(ip, v6, ASn, &tmp_gl);
     } else if (!format.compare(cur,3,"%re")) {
       rep = queryGeoIP(ip, v6, Region, &tmp_gl);
     } else if (!format.compare(cur,3,"%na")) {
