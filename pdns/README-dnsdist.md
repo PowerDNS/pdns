@@ -543,6 +543,9 @@ Here are all functions:
    * `addACL(netmask)`: add to the ACL set who can use this server
    * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
    * `showACL()`: show our ACL set
+ * Network related:
+   * `addLocal(netmask, [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not.
+   * `setLocal(netmask, [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not.
  * Blocking related:
    * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:

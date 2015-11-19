@@ -268,6 +268,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
+  g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
+      if(client)
+	return;
+      try {
+	ComboAddress loc(addr, 53);
+	g_locals.clear();
+	g_locals.push_back({loc, doTCP ? *doTCP : true}); /// only works pre-startup, so no sync necessary
+      }
+      catch(std::exception& e) {
+	g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
+    });
+
   g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
       if(client)
 	return;
