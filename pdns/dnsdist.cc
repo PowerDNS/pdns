@@ -143,6 +143,9 @@ DelayPipe<DelayedPacket> * g_delay = 0;
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
   char packet[4096];
+  const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
+  const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
+  const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
   
   struct dnsheader* dh = (struct dnsheader*)packet;
   int len;
@@ -163,6 +166,15 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     if(dh->tc && g_truncateTC) {
       truncateTC(packet, (unsigned int*)&len);
     }
+
+    uint16_t * flags = getFlagsFromDNSHeader(dh);
+    uint16_t origFlags = ids->origFlags;
+    /* clear the flags we are about to restore */
+    *flags &= restoreFlagsMask;
+    /* only keep the flags we want to restore */
+    origFlags &= ~restoreFlagsMask;
+    /* set the saved flags as they were */
+    *flags |= origFlags;
 
     dh->id = ids->origID;
     g_stats.responses++;
@@ -426,6 +438,8 @@ try
       if(dh->qr)    // don't respond to responses
 	continue;
       
+      const uint16_t * flags = getFlagsFromDNSHeader(dh);
+      const uint16_t origFlags = *flags;
       DNSName qname(packet, len, 12, false, &qtype);
       g_rings.queryRing.push_back(qname);
             
@@ -525,6 +539,7 @@ try
       ids->qtype = qtype;
       ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
+      ids->origFlags = origFlags;
       HarvestDestinationAddress(&msgh, &ids->origDest);
       
       dh->id = idOffset;

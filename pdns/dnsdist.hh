@@ -168,6 +168,7 @@ struct IDState
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
   uint16_t origID;                                            // 2
+  uint16_t origFlags;                                         // 2
   int delayMsec;
 };
 

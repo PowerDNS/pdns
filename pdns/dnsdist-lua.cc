@@ -373,6 +373,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new TCAction);
     });
 
+  g_lua.writeFunction("DisableValidationAction", []() {
+      return std::shared_ptr<DNSAction>(new DisableValidationAction);
+    });
+
 
   g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
@@ -411,6 +415,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	    rulactions.push_back({
 		rule,
 		  std::make_shared<NoRecurseAction>()  });
+	  });
+    });
+
+  g_lua.writeFunction("addDisableValidationRule", [](luadnsrule_t var) {
+      auto rule=makeRule(var);
+	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+		rule,
+		  std::make_shared<DisableValidationAction>()  });
 	  });
     });
 
@@ -511,6 +524,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) {
       return (bool)dh.rd;
+    });
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setCD", [](dnsheader& dh, bool v) {
+      dh.cd=v;
+    });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) {
+      return (bool)dh.cd;
     });
 
 
