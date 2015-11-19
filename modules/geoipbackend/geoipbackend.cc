@@ -14,7 +14,7 @@ public:
   int id;
   DNSName domain;
   int ttl;
-  map<DNSName, NetmaskTree<string> > services;
+  map<DNSName, NetmaskTree<vector<string> > > services;
   map<DNSName, vector<DNSResourceRecord> > records;
 };
 
@@ -127,7 +127,6 @@ void GeoIPBackend::initialize() {
           string content=rec->second.as<string>();
           rr.content = content;
         } 
-                
         rr.auth = 1;
         rr.d_place = DNSResourceRecord::ANSWER;
         rrs.push_back(rr);
@@ -136,23 +135,34 @@ void GeoIPBackend::initialize() {
     }
 
     for(YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
-      NetmaskTree<string> nmt;
+      NetmaskTree<vector<string> > nmt;
 
       // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
       if (service->second.IsMap()) {
         for(YAML::const_iterator net = service->second.begin(); net != service->second.end(); net++) {
-          if (net->first.as<string>() == "default") {
-            nmt[Netmask("0.0.0.0/0")] = net->second.as<string>();
-            nmt[Netmask("::/0")] = net->second.as<string>();
+          vector<string> value;
+          if (net->second.IsSequence()) {
+            value = net->second.as<vector<string> >();
           } else {
-            nmt[Netmask(net->first.as<string>())] = net->second.as<string>();
+            value.push_back(net->second.as<string>());
+          }
+          if (net->first.as<string>() == "default") {
+            nmt[Netmask("0.0.0.0/0")].assign(value.begin(),value.end());
+            nmt[Netmask("::/0")].swap(value);
+          } else {
+            nmt[Netmask(net->first.as<string>())].swap(value);
           }
         }
       } else {
-        nmt[Netmask("0.0.0.0/0")] = service->second.as<string>();
-        nmt[Netmask("::/0")] = service->second.as<string>();
+        vector<string> value;
+        if (service->second.IsSequence()) {
+          value = service->second.as<vector<string> >();
+        } else {
+          value.push_back(service->second.as<string>());
+        }
+        nmt[Netmask("0.0.0.0/0")].assign(value.begin(),value.end());
+        nmt[Netmask("::/0")].swap(value);
       }
-
       dom.services[DNSName(service->first.as<string>())].swap(nmt);
     }
 
@@ -260,26 +270,30 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
   auto target = dom.services.find(search);
   if (target == dom.services.end()) return; // no hit
 
-  const NetmaskTree<string>::node_type* node = target->second.lookup(ComboAddress(ip));
+  const NetmaskTree<vector<string> >::node_type* node = target->second.lookup(ComboAddress(ip));
   if (node == NULL) return; // no hit, again.
 
-  string format = node->second;
+  string format;
   gl.netmask = node->first.getBits();
 
-  format = format2str(format, ip, v6, &gl);
+  // note that this means the array format won't work with indirect
+  for(auto it = node->second.begin(); it != node->second.end(); it++) {
+    format = format2str(*it, ip, v6, &gl);
 
-  // see if the record can be found
-  auto ri = dom.records.find(DNSName(format));
-  if (ri != dom.records.end()) { // return static value
-    for(DNSResourceRecord& rr : ri->second) {
-      if (qtype == QType::ANY || rr.qtype == qtype) {
-        rr.scopeMask = gl.netmask;
-        d_result.push_back(rr);
-        d_result.back().qname = qdomain;
+    // see if the record can be found
+    auto ri = dom.records.find(DNSName(format));
+    if (ri != dom.records.end()) { // return static value
+      for(DNSResourceRecord& rr : ri->second) {
+        if (qtype == QType::ANY || rr.qtype == qtype) {
+          rr.scopeMask = gl.netmask;
+          d_result.push_back(rr);
+          d_result.back().qname = qdomain;
+        }
       }
+      return;
     }
-    return;
   }
+
   // we need this line since we otherwise claim to have NS records etc
   if (!(qtype == QType::ANY || qtype == QType::CNAME)) return;
 
