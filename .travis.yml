@@ -1,202 +1,306 @@
+sudo: required
+dist: trusty
 language: cpp
 compiler:
   - gcc
   - clang
-sudo: required
-dist: trusty
+
 before_script:
- - export POSIXLY_CORRECT=1
- - git describe --always --dirty=+
- - for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done
- - sudo sysctl net.ipv6.conf.all.disable_ipv6=0
- - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
- - sudo apt-get update -qq
- - sudo apt-get install --quiet --quiet --no-install-recommends
-     alien
-     authbind
-     bc
-     bind9utils
-     daemontools
-     dnsutils
-     faketime
-     geoip-database
-     mysql-server
-     ldnsutils
-     libboost-all-dev
-     libbotan1.10-dev
-     libcdb-dev
-     libcurl4-openssl-dev
-     libgeoip-dev
-     libldap2-dev
-     libnet-dns-perl
-     libopendbx1-dev
-     libopendbx1-sqlite3
-     libp11-kit-dev
-     libsqliteodbc
-     libtolua-dev
-     libtool
-     libyaml-cpp-dev
-     libzmq3-dev
-     links
-     lua-posix
-     moreutils
-     p11-kit
-     pandoc
-     pkg-config
-     python-virtualenv
-     rpm
-     ruby-json
-     ruby-sqlite3
-     ruby1.9.1
-     socat
-     softhsm
-     time
-     unbound-host
-     unixodbc-dev
-     xmlto
- - virtualenv $HOME/.venv
- - source $HOME/.venv/bin/activate
- - pip install pyopenssl ndg-httpsclient pyasn1
- - pip install pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1
- - deactivate
- - sudo touch /etc/authbind/byport/53
- - sudo chmod 755 /etc/authbind/byport/53
- - cd ..
- - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
- - sudo dpkg -i libsodium_1.0.2-1_amd64.deb
- - sudo mv /usr/local/lib/libsodium.* /usr/lib
- - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
- - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
- - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
- - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
- - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
- - unzip top-1m.csv.zip -d ./pdns/regression-tests
- - cd pdns
- - travis_retry gem install bundler --no-rdoc --no-ri
- - cd modules/remotebackend
- - travis_retry ruby -S bundle install
- - cd ../..
- - sudo mkdir -p /etc/pkcs11/modules/
- - sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm
- - sudo cp -f regression-tests/softhsm.conf /etc/softhsm/softhsm.conf
- - sudo chmod 0755 /etc/softhsm/
- - sudo chmod 0644 /etc/softhsm/softhsm.conf
- - sudo chmod 0777 /var/lib/softhsm
- - p11-kit -l # ensure it's ok
- - echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini
+  - git describe --always --dirty=+
+
+  ### setup travis environment ###
+  - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
+  - export POSIXLY_CORRECT=1
+  - sudo apt-get -qq update
+
+
+  ### build requirements ###
+
+  # global build requirements
+  - sudo apt-get -qq --no-install-recommends install
+    libboost-all-dev
+    liblua5.1-dev
+  - cd ..
+  - wget https://xs.powerdns.com/tmp/libsodium_1.0.2-1_amd64.deb
+  - sudo dpkg -i libsodium_1.0.2-1_amd64.deb
+  - sudo mv /usr/local/lib/libsodium.* /usr/lib
+  - cd pdns
+
+  # pkcs11 build requirements
+  - sudo apt-get -qq --no-install-recommends install
+    libp11-kit-dev
+
+  # geoip-backend
+  - sudo apt-get -qq --no-install-recommends install
+    libgeoip-dev
+    libyaml-cpp-dev
+
+  # ldap-backend
+  - sudo apt-get -qq --no-install-recommends install
+    libldap-dev
+
+  # opendbx-backend
+  - sudo apt-get -qq --no-install-recommends install
+    libopendbx1-dev
+    libopendbx1-sqlite3
+
+  # remote-backend build requirements
+  - sudo apt-get -qq --no-install-recommends install
+    libzmq3-dev
+
+
+  ### documentation requirements
+  - sudo apt-get -qq --no-install-recommends install
+    pandoc
+    xmlto
+
+
+  ### test requirements ###
+
+  # authoritative test requirements / setup
+  - sudo apt-get -qq --no-install-recommends install
+    bind9utils
+    ldnsutils
+    libnet-dns-perl
+    moreutils
+    unbound-host
+    validns
+    default-jre
+  - cd ..
+  - wget http://www.verisignlabs.com/dnssec-tools/packages/jdnssec-tools-0.12.tar.gz
+  - sudo tar xfz jdnssec-tools-0.12.tar.gz --strip-components=1 -C /
+  - cd pdns
+
+  # pkcs11 test requirements / setup
+  - sudo apt-get -qq --no-install-recommends install
+    p11-kit
+    softhsm
+  - sudo mkdir -p /etc/pkcs11/modules/
+  - sudo cp -f regression-tests/softhsm.mod /etc/pkcs11/modules/softhsm.module
+  - sudo cp -f regression-tests/softhsm.conf /etc/softhsm/softhsm.conf
+  - sudo chmod 0755 /etc/softhsm/
+  - sudo chmod 0644 /etc/softhsm/softhsm.conf
+  - sudo chmod 0777 /var/lib/softhsm
+  - p11-kit -l # ensure it's ok
+
+  # bind-backend tests requirements
+  - sudo apt-get -qq --no-install-recommends install
+    alien
+  - cd ..
+  - wget ftp://ftp.nominum.com/pub/nominum/dnsperf/2.0.0.0/dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
+  - tar xzvf dnsperf-2.0.0.0-1-rhel-6-x86_64.tar.gz
+  - fakeroot alien --to-deb dnsperf-2.0.0.0-1/dnsperf-2.0.0.0-1.el6.x86_64.rpm
+  - sudo dpkg -i dnsperf_2.0.0.0-2_amd64.deb
+  - cd pdns
+
+  # geoip-backend test requirements / setup
+  - sudo apt-get -qq --no-install-recommends install
+    geoip-database
+  - export geoipregion=oc geoipregionip=1.2.3.4
+
+  # gmysql-backend test requirements
+  - sudo apt-get -qq --no-install-recommends install
+    mysql-server
+
+  # godbc-backend test setup
+  - echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini
+  - export GODBC_SQLITE3_DSN=pdns-sqlite3-1
+
+  # remote-backend tests requirements
+  - sudo apt-get -qq --no-install-recommends install
+    ruby-json
+    rubygems-integration
+    socat
+  - gem install bundler --no-rdoc --no-ri
+  - cd modules/remotebackend
+  - ruby -S bundle install
+  - cd ../..
+
+  # tinydns
+  - sudo apt-get -qq --no-install-recommends install
+    libcdb-dev
+
+  # documentation test requirements
+  - virtualenv $HOME/.venv
+  - source $HOME/.venv/bin/activate
+  - pip install -q pandocfilters==1.2.3 mkdocs==0.14 linkchecker==9.3 click==5.1
+
+  # recursor test requirements / setup
+  - sudo apt-get -qq --no-install-recommends install
+    authbind
+    daemontools
+  - cd ..
+  - wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+  - unzip top-1m.csv.zip -d ./pdns/regression-tests
+  - cd pdns
+  - 'for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done'
+  - sudo touch /etc/authbind/byport/53
+  - sudo chmod 755 /etc/authbind/byport/53
+
+  # no-backend tests
+  - sudo apt-get -qq --no-install-recommends install
+    faketime
+
+
 script:
- - ./bootstrap
-#Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
- - source $HOME/.venv/bin/activate
- - ./configure
-     --with-dynmodules='bind gmysql geoip godbc gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
-     --with-modules=''
-     --with-sqlite3
-     --enable-unit-tests
-     --enable-remotebackend-zeromq
-     --enable-libsodium
-     --enable-experimental-pkcs11
-     --enable-tools
-     --disable-dependency-tracking
- - make -k dist
- - make -k -j 4 V=1
- - cd docs
- - make check-links
- - deactivate
- - cd ..
- - make -k install DESTDIR=/tmp/pdns-install-dir
- - find /tmp/pdns-install-dir -ls
- - make -j 4 check V=1
- - test -f pdns/test-suite.log && cat pdns/test-suite.log || true
- - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
-# DNSName: - make -k -j 2 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
- - make -k -j 2 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|speedtest')
- - cd pdns
- - make -k -j 4 pdns_recursor
- - rm -f pdns_recursor
- - ./pdnsutil test-algorithms
- - cd ..
- - ./build-scripts/dist-recursor
- - cd pdns/pdns-recursor-*/
- - ./configure
- - make -k -j 4
- - cd ..
- - ln -s pdns-recursor*/pdns_recursor .
- - cd ..
- - ./build-scripts/dist-dnsdist
- - cd pdns/dnsdistdist
- - tar xf dnsdist*.tar.bz2
- - cd dnsdist-*
- - ./configure
- - make -k -j 4
- - cd ..
- - rm -rf dnsdist-*/
- - cd ../../
- - cd regression-tests.recursor
- - cp vars.sample vars
- - ./config.sh
- - ./start.sh
- - sleep 3
- - svstat configs/*
- - ./runtests
-#DNSName - test ! -s ./failed_tests
- - ./stop.sh
- - sleep 3
- - ./clean.sh
-#DNSName - cd ../regression-tests.api
-#DNSName - ./runtests authoritative
-#DNSName - ./runtests recursor
- - cd ../regression-tests
- - touch tests/verify-dnssec-zone/allow-missing
- - touch tests/verify-dnssec-zone/skip.nsec3 # some (travis) tools in this test are unable to handle nsec3 zones
- - touch tests/verify-dnssec-zone/skip.optout
- - export geoipregion=oc geoipregionip=1.2.3.4
- - ./timestamp ./start-test-stop 5300 bind-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
- - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
- - ./timestamp ./start-test-stop 5300 geoip
- - ./timestamp ./start-test-stop 5300 geoip-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gmysql-both
- - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
- - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gpgsql-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
- - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
- - ./timestamp ./start-test-stop 5300 mydns
- - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
- # - GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq
- - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec
- - ./timestamp ./start-test-stop 5300 tinydns
- - rm -f tests/verify-dnssec-zone/allow-missing
- - rm -f tests/verify-dnssec-zone/skip.nsec3
- - rm -f tests/verify-dnssec-zone/skip.optout
- - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300 25000
- - cd ../regression-tests.nobackend/
- - ./runtests
- - test ! -s ./failed_tests
- - cd ..
- - git status
- - git status | grep -q clean
+  - ./bootstrap
+  # Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
+  - source $HOME/.venv/bin/activate
+  - ./configure
+    --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns'
+    --with-modules=''
+    --with-sqlite3
+    --enable-libsodium
+    --enable-experimental-pkcs11
+    --enable-remotebackend-zeromq
+    --enable-tools
+    --enable-unit-tests
+    --enable-backend-unit-tests
+    --disable-dependency-tracking
+  - deactivate
+
+  - make -k dist
+
+  - make -k -j3
+
+  - cd docs
+  - source $HOME/.venv/bin/activate
+  - make check-links
+  - deactivate
+  - cd ..
+
+  - make -k install DESTDIR=/tmp/pdns-install-dir
+  - find /tmp/pdns-install-dir -ls
+
+  - make -j3 check
+  - test -f pdns/test-suite.log && cat pdns/test-suite.log || true
+  - test -f modules/remotebackend/test-suite.log && cat modules/remotebackend/test-suite.log || true
+
+  #DNSName - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns')
+  - make -k -j3 -C pdns $(grep '(EXEEXT):' pdns/Makefile | cut -f1 -d\$ | grep -E -v 'dnsdist|calidns|speedtest')
+
+  - cd pdns
+  - ./pdnsutil test-algorithms
+  - cd ..
+
+  - cd regression-tests
+  - ./timestamp ./start-test-stop 5300 bind-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
+  - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
+  - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
+
+  - ./timestamp ./start-test-stop 5300 geoip
+  - ./timestamp ./start-test-stop 5300 geoip-nsec3-narrow
+
+  - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
+  - ./timestamp ./start-test-stop 5300 gmysql-both
+  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both
+  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both
+  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow
+
+  # - ./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3
+
+  - ./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both
+  - ./timestamp ./start-test-stop 5300 gpgsql-both
+  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-both
+  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both
+  - ./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow
+
+  - ./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both
+  - ./timestamp ./start-test-stop 5300 gsqlite3-both
+  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both
+  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both
+  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
+
+  - ./timestamp ./start-test-stop 5300 mydns
+
+  - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
+
+  - ./timestamp ./start-test-stop 5300 remotebackend-pipe
+  - ./timestamp ./start-test-stop 5300 remotebackend-pipe-dnssec
+  - ./timestamp ./start-test-stop 5300 remotebackend-unix
+  - ./timestamp ./start-test-stop 5300 remotebackend-unix-dnssec
+  - ./timestamp ./start-test-stop 5300 remotebackend-http
+  - ./timestamp ./start-test-stop 5300 remotebackend-http-dnssec
+  - ./timestamp ./start-test-stop 5300 remotebackend-zeromq
+  - ./timestamp ./start-test-stop 5300 remotebackend-zeromq-dnssec
+
+  - ./timestamp ./start-test-stop 5300 tinydns
+  - cd ..
+
+
+  ### recursor ###
+
+  # in-tree build
+  - cd pdns
+  - make -k -j3 pdns_recursor
+  - rm -f pdns_recursor
+  - cd ..
+
+  # distribution build
+  - ./build-scripts/dist-recursor
+  - cd pdns/pdns-recursor-*/
+  - ./configure
+  - make -k -j3
+  - cd ..
+  - ln -s pdns-recursor*/pdns_recursor .
+  - cd ..
+
+  # regression-tests
+  - cd regression-tests.recursor
+  - cp vars.sample vars
+  - ./config.sh
+  - ./start.sh
+  - sleep 3
+  - svstat configs/*
+  - ./runtests
+  #DNSName: - test ! -s ./failed_tests
+  - ./stop.sh
+  - sleep 3
+  - ./clean.sh
+  - cd ..
+
+  # bulktest
+  - cd regression-tests
+  - THRESHOLD=90 TRACE=no ./timestamp ./recursor-test 5300 25000
+  - cd ..
+
+
+  ### dnsdist ###
+
+  # distribution build
+  - ./build-scripts/dist-dnsdist
+  - cd pdns/dnsdistdist
+  - tar xf dnsdist*.tar.bz2
+  - cd dnsdist-*
+  - ./configure
+  - make -k -j3
+  - cd ..
+  - rm -rf dnsdist-*/
+  - cd ../../
+
+
+  ### api ###
+  - cd regression-tests.api
+  #DNSName: - ./runtests authoritative
+  #DNSName: - ./runtests recursor
+  - cd ..
+
+
+  ### no backend tests ###
+  - cd regression-tests.nobackend/
+  - ./runtests
+  - test ! -s ./failed_tests
+  - cd ..
+
+
+  - git status
+  - git status | grep -q clean
+
+
 notifications:
   irc:
     channels:
