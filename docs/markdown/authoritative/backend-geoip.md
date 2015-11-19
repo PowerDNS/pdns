@@ -70,6 +70,7 @@ domains:
 * **ttl**: TTL value for all records
 * **records**: Put fully qualified name as subkey, under which you must define at least soa: key. Note that this is an array of records, so ‐ is needed for the values.
 * **services**: Defines one or more services for querying. The format supports following placeholders, %% = %, %co = 3-letter country, %cn = continent, %af = v4 or v6. There are also other specifiers that will only work with suitable database and currently are untested. These are %re = region, %na = Name (such as, organisation), %ci = City. 
+* As of 4.0, you can also use %as = ASn
 * Since of 4.0, you can also use additional specifiers. These are %hh = hour, %dd = day, %mo = month, %mos = month as short string, %wd = weekday (as number), %wds weekday as short string. 
 * Since of 4.0, scopeMask is set to most specific value, in case of date/time modifiers it will be 32 or 128, but with the others it is set to what geoip says it used for matching.
 You can add per-network overrides for format, they will be formatted with the same placeholders as default. Default is short-hand for adding 0.0.0.0/0 and ::/0. Default is default when only string is given for service name.

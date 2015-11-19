@@ -46,6 +46,7 @@ public:
 
   enum GeoIPQueryAttribute {
     Afi,
+    ASn,
     City,
     Continent,
     Country,
