@@ -355,17 +355,6 @@ public:
     return false;
   }
 
-  //! called to get a NSECx record from backend
-  virtual bool getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, DNSName &before, DNSResourceRecord &rr)
-  {
-    return false;
-  }
-  //! called to get RRSIG record(s) from backend
-  virtual bool getDirectRRSIGs(const DNSName &signer, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
-  {
-    return false;
-  }
-
   virtual string directBackendCmd(const string &query)
   {
     return "directBackendCmd not supported for this backend\n";
