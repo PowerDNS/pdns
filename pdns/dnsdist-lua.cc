@@ -66,7 +66,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
 {
   g_launchWork= new vector<std::function<void(void)>>();
-  typedef std::unordered_map<std::string, boost::variant<std::string, vector<pair<int, std::string> > > > newserver_t;
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> > > > newserver_t;
 
   g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
       {"Drop", (int)DNSAction::Action::Drop}, 
@@ -166,6 +166,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 			if(vars.count("name")) {
 			  ret->name=boost::get<string>(vars["name"]);
+			}
+
+			if(vars.count("checkName")) {
+			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
+			}
+
+			if(vars.count("checkType")) {
+			  ret->checkType=boost::get<string>(vars["checkType"]);
+			}
+
+			if(vars.count("mustResolve")) {
+			  ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
 			}
 
 			if(g_launchWork) {

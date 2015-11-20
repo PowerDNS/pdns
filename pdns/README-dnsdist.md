@@ -133,6 +133,18 @@ To change the QPS for a server:
 > getServer(0):setQPS(1000)
 ```
 
+By default, the availability of a downstream server is checked by regularly
+sending an A query for "a.root-servers.net.". A different query type and target
+can be specified by passing, respectively, the 'checkType' and 'checkName'
+parameters to `newServer`. The default behavior is to consider any valid response
+with a RCODE different from ServFail as valid. If the 'mustResolve' parameter
+of `newServer` is set to true, a response will only be considered valid if
+its RCODE differs from NXDomain, ServFail and Refused.
+
+```
+newServer {address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true}
+```
+
 TCP timeouts
 ------------
 
@@ -565,8 +577,8 @@ Here are all functions:
    * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", name="dns1", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30})`: instantiate
-     a server with additional parameters
+   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false})`: 
+instantiate a server with additional parameters
    * `showServers()`: output all servers
    * `getServer(n)`: returns server with index n 
    * `getServers()`: returns a table with all defined servers
