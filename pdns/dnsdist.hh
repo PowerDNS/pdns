@@ -46,6 +46,8 @@ struct DNSDistStats
     {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
+    {"cpu-user-msec", getCPUTimeUser},
+    {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors}
   };
 };
