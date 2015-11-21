@@ -1059,6 +1059,7 @@ try
 #endif
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 
+    {"acl", required_argument, 0, 'a'},
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
     {"client", 0, 0, 'c'},
@@ -1072,8 +1073,9 @@ try
     {0,0,0,0} 
   };
   int longindex=0;
+  string optstring;
   for(;;) {
-    int c=getopt_long(argc, argv, "hcde:C:l:vp:g:u:", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -1096,6 +1098,7 @@ try
       cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
       cout<<"\n";
+      cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
       cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
       cout<<"-d,--daemon           Operate as a daemon\n";
@@ -1109,6 +1112,10 @@ try
       cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
       cout<<"\n";
       exit(EXIT_SUCCESS);
+      break;
+    case 'a':
+      optstring=optarg;
+      g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
@@ -1145,9 +1152,11 @@ try
   }
 
   auto acl = g_ACL.getCopy();
-  for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
-    acl.addMask(addr);
-  g_ACL.setState(acl);
+  if(acl.empty()) {
+    for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+      acl.addMask(addr);
+    g_ACL.setState(acl);
+  }
 
   auto todo=setupLua(false, g_cmdLine.config);
 
