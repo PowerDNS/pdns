@@ -227,7 +227,7 @@ bool operator<(const struct timespec&a, const struct timespec& b)
 }
 
 
-DownstreamState::DownstreamState(const ComboAddress& remote_)
+DownstreamState::DownstreamState(const ComboAddress& remote_): checkName("a.root-servers.net."), checkType(QType::A), mustResolve(false)
 {
   remote = remote_;
   
@@ -578,12 +578,13 @@ catch(...)
 }
 
 
-bool upCheck(const ComboAddress& remote)
+bool upCheck(const ComboAddress& remote, const DNSName& checkName, const QType& checkType, bool mustResolve)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, DNSName("a.root-servers.net."), QType::A);
-  dpw.getHeader()->rd=true;
+  DNSPacketWriter dpw(packet, checkName, checkType.getCode());
+  dnsheader * requestHeader = dpw.getHeader();
+  requestHeader->rd=true;
 
   Socket sock(remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();
@@ -595,6 +596,20 @@ try
   string reply;
   ComboAddress dest=remote;
   sock.recvFrom(reply, dest);
+
+  const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
+
+  if (reply.size() < sizeof(*responseHeader))
+    return false;
+
+  if (responseHeader->id != requestHeader->id)
+    return false;
+  if (!responseHeader->qr)
+    return false;
+  if (responseHeader->rcode == RCode::ServFail)
+    return false;
+  if (mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused))
+    return false;
 
   // XXX fixme do bunch of checking here etc 
   return true;
@@ -616,7 +631,7 @@ void* maintThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-	bool newState=upCheck(dss->remote);
+	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
 	if(newState != dss->upStatus) {
 	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
 	}
@@ -1266,8 +1281,8 @@ try
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(dss->remote);
-      warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
+      bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
+      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
       dss->upStatus = newState;
     }
   }

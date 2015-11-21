@@ -47,8 +47,10 @@ struct DNSDistStats
     {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
-    {"fd-usage", getOpenFileDescriptors},
-    {"noncompliant-queries", &nonCompliantQueries}
+    {"noncompliant-queries", &nonCompliantQueries},
+    {"cpu-user-msec", getCPUTimeUser},
+    {"cpu-sys-msec", getCPUTimeSystem},
+    {"fd-usage", getOpenFileDescriptors}
   };
 };
 
@@ -234,6 +236,8 @@ struct DownstreamState
   ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
+  DNSName checkName;
+  QType checkType;
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};
@@ -256,6 +260,7 @@ struct DownstreamState
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
+  bool mustResolve;
   bool upStatus{false};
   bool isUp() const
   {

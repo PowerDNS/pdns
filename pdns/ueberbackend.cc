@@ -210,24 +210,6 @@ bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
-bool UeberBackend::getDirectNSECx(uint32_t id, const string &hashed, const QType &qtype, DNSName &before, DNSResourceRecord &rr)
-{
-  BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->getDirectNSECx(id, hashed, qtype, before, rr))
-      return true;
-  }
-  return false;
-}
-
-bool UeberBackend::getDirectRRSIGs(const DNSName &signer, const DNSName &qname, const QType &qtype, vector<DNSResourceRecord> &rrsigs)
-{
-  BOOST_FOREACH(DNSBackend* db, backends) {
-    if(db->getDirectRRSIGs(signer, qname, qtype, rrsigs))
-      return true;
-  }
-  return false;
-}
-
 void UeberBackend::reload()
 {
   for ( vector< DNSBackend * >::iterator i = backends.begin(); i != backends.end(); ++i )

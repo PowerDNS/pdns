@@ -45,7 +45,6 @@ pages:
     - MyDNS: authoritative/backend-mydns.md
     - LDAP: authoritative/backend-ldap.md
     - Lua: authoritative/backend-lua.md
-    - LMDB: authoritative/backend-lmdb.md
     - OpenDBX: authoritative/backend-opendbx.md
     - Oracle: authoritative/backend-oracle.md
     - Pipe: authoritative/backend-pipe.md
