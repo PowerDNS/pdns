@@ -1167,7 +1167,7 @@ try
   }
   
   if(g_locals.empty())
-    g_locals.push_back({ComboAddress("0.0.0.0", 53), true});
+    g_locals.push_back({ComboAddress("127.0.0.1", 53), true});
   
 
   vector<ClientState*> toLaunch;
