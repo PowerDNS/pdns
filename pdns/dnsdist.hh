@@ -18,6 +18,7 @@ struct DNSDistStats
   stat_t responses{0};
   stat_t servfailResponses{0};
   stat_t queries{0};
+  stat_t nonCompliantQueries{0};
   stat_t aclDrops{0};
   stat_t blockFilter{0};
   stat_t ruleDrop{0};
@@ -46,7 +47,8 @@ struct DNSDistStats
     {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
-    {"fd-usage", getOpenFileDescriptors}
+    {"fd-usage", getOpenFileDescriptors},
+    {"noncompliant-queries", &nonCompliantQueries}
   };
 };
 

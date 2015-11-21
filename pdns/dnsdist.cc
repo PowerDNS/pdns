@@ -425,17 +425,22 @@ try
     try {
       len = recvmsg(cs->udpFD, &msgh, 0);
       g_rings.clientRing.push_back(remote);
-      if(len < (int)sizeof(struct dnsheader)) 
+      if(len < (int)sizeof(struct dnsheader)) {
+	g_stats.nonCompliantQueries++;
 	continue;
+      }
 
       g_stats.queries++;
       if(!acl->match(remote)) {
+	vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
 	g_stats.aclDrops++;
 	continue;
       }
       
-      if(dh->qr)    // don't respond to responses
+      if(dh->qr) {   // don't respond to responses
+	g_stats.nonCompliantQueries++;
 	continue;
+      }
       
       const uint16_t * flags = getFlagsFromDNSHeader(dh);
       const uint16_t origFlags = *flags;
@@ -513,8 +518,7 @@ try
 
       if(!ss) {
 	g_stats.noPolicy++;
-	continue;
-	
+	continue;	
       }
       
       ss->queries++;
@@ -1244,6 +1248,11 @@ try
       ret->tid = move(thread(responderThread, ret));
       g_dstates.modify([ret](servers_t& servers) { servers.push_back(ret); });
     }
+  }
+
+  if(g_dstates.getCopy().empty()) {
+    errlog("No downstream servers defined: all packets will get dropped");
+    // you might define them later, but you need to know
   }
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
