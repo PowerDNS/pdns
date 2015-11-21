@@ -412,7 +412,6 @@ try
   }
   auto acl = g_ACL.getLocal();
   auto localPolicy = g_policy.getLocal();
-
   auto localRulactions = g_rulactions.getLocal();
   auto localServers = g_dstates.getLocal();
   struct msghdr msgh;

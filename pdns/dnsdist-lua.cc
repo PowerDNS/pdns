@@ -292,9 +292,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
-  g_lua.writeFunction("setACL", [](const vector<pair<int, string>>& parts) {
+  g_lua.writeFunction("setACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
       NetmaskGroup nmg;
-      for(const auto& p : parts) {
+      if(auto str = boost::get<string>(&inp)) {
+	nmg.addMask(*str);
+      }
+      else for(const auto& p : boost::get<vector<pair<int,string>>>(inp)) {
 	nmg.addMask(p.second);
       }
       g_ACL.setState(nmg);
