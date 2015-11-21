@@ -871,6 +871,49 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("setTCPRecvTimeout", [](int timeout) { g_tcpRecvTimeout=timeout; });
 
   g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
+
+  g_lua.writeFunction("dumpStats", [] {
+      vector<string> leftcolumn, rightcolumn;
+
+      boost::format fmt("%-23s\t%+11s");
+      g_outputBuffer.clear();
+      auto entries = g_stats.entries;
+      sort(entries.begin(), entries.end(), 
+	   [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
+	     return a.first < b.first;
+	   });
+      boost::format flt("    %9.1f");
+      for(const auto& e : entries) {
+	string second;
+	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+	  second=std::to_string((*val)->load());
+	else if (const auto& val = boost::get<double*>(&e.second))
+	  second=(flt % (**val)).str();
+	else
+	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
+
+	if(leftcolumn.size() < g_stats.entries.size()/2)
+	  leftcolumn.push_back((fmt % e.first % second).str());
+	else
+	  rightcolumn.push_back((fmt % e.first % second).str());
+      }
+
+      auto leftiter=leftcolumn.begin(), rightiter=rightcolumn.begin();
+      boost::format clmn("%|0t|%1% %|39t|%2%\n");
+
+      for(;leftiter != leftcolumn.end() || rightiter != rightcolumn.end();) {
+	string lentry, rentry;
+	if(leftiter!= leftcolumn.end()) {
+	  lentry = *leftiter;
+	  leftiter++;
+	}
+	if(rightiter!= rightcolumn.end()) {
+	  rentry = *rightiter;
+	  rightiter++;
+	}
+	g_outputBuffer += (clmn % lentry % rentry).str();
+      }
+    });
   
   std::ifstream ifs(config);
   if(!ifs) 

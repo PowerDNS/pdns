@@ -556,6 +556,7 @@ Here are all functions:
    * `testCrypto()`: test of the crypto all works
    * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
+   * `dumpStats()`: print all statistics we gather
    * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
    * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
    * `showResponseLatency()`: show a plot of the response time latency distribution
