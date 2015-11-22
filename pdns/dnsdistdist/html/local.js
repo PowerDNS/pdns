@@ -152,7 +152,7 @@ $(document).ready(function() {
 		$("#over-capacity-drops").text(data["over-capacity-drops"]);
 		$("#too-old").text(data["too-old-drops"]);
 		$("#uptime").text(moment.duration(data["uptime"]*1000.0).humanize());
-		$("#latency").text(data["latency-avg100"]/1000.0);
+		$("#latency").text((data["latency-avg100"]/1000.0).toFixed(2));
 		if(!gdata["cpu-sys-msec"]) 
 		    gdata=data;
 
@@ -161,6 +161,7 @@ $(document).ready(function() {
 		$("#cpu").text(cpu.toFixed(2));
 		var qps=1.0*data["queries"]-1.0*gdata["queries"];
 		$("#qps").text(qps);
+		$("#server-policy").text(data["server-policy"]);
 
 		var servfailps=1.0*data["servfail-responses"]-1.0*gdata["servfail-responses"];
 

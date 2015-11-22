@@ -83,7 +83,8 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	{ "packetcache-hits", 0},
 	{ "packetcache-misses", 0},
 	{ "over-capacity-drops", 0 },
-	{ "too-old-drops", 0 }
+	{ "too-old-drops", 0 },
+	{ "server-policy", g_policy.getLocal()->name}
       };
 
       for(const auto& e : g_stats.entries) {
