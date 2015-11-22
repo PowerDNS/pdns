@@ -148,21 +148,21 @@ $(document).ready(function() {
             type: 'GET',
             dataType: 'jsonp',
             success: function(data, x, y) {
-		$("#questions").text(data["questions"]);
+		$("#questions").text(data["queries"]);
 		$("#over-capacity-drops").text(data["over-capacity-drops"]);
 		$("#too-old").text(data["too-old-drops"]);
 		$("#uptime").text(moment.duration(data["uptime"]*1000.0).humanize());
-		$("#latency").text(data["qa-latency"]/1000.0);
-		if(!gdata["sys-msec"]) 
+		$("#latency").text(data["latency-avg100"]/1000.0);
+		if(!gdata["cpu-sys-msec"]) 
 		    gdata=data;
 
-		var cpu=((1.0*data["sys-msec"]+1.0*data["user-msec"] - 1.0*gdata["sys-msec"]-1.0*gdata["user-msec"])/10.0);
+		var cpu=((1.0*data["cpu-sys-msec"]+1.0*data["cpu-user-msec"] - 1.0*gdata["cpu-sys-msec"]-1.0*gdata["cpu-user-msec"])/10.0);
 
 		$("#cpu").text(cpu.toFixed(2));
-		var qps=1.0*data["questions"]-1.0*gdata["questions"];
+		var qps=1.0*data["queries"]-1.0*gdata["queries"];
 		$("#qps").text(qps);
 
-		var servfailps=1.0*data["servfail-answers"]-1.0*gdata["servfail-answers"];
+		var servfailps=1.0*data["servfail-responses"]-1.0*gdata["servfail-responses"];
 
 		var totpcache=1.0*data["packetcache-hits"]-1.0*gdata["packetcache-hits"]+1.0*data["packetcache-misses"]-1.0*gdata["packetcache-misses"];
 		if(totpcache > 0)
