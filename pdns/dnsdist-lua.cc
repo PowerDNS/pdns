@@ -275,6 +275,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
+  g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });

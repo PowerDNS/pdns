@@ -270,7 +270,7 @@ shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers
   return poss.begin()->second;
 }
 
-shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<int, shared_ptr<DownstreamState>>> poss;
   int sum=0;
@@ -278,7 +278,6 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const C
     if(d.second->isUp()) {
       sum+=d.second->weight;
       poss.push_back({sum, d.second});
-
     }
   }
 
@@ -286,12 +285,23 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const C
   if(poss.empty())
     return shared_ptr<DownstreamState>();
 
-  int r = random() % sum;
+  int r = val % sum;
   auto p = upper_bound(poss.begin(), poss.end(),r, [](int r, const decltype(poss)::value_type& a) { return  r < a.first;});
   if(p==poss.end())
     return shared_ptr<DownstreamState>();
   return p->second;
 }
+
+shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  return valrandom(random(), servers, remote, qname, qtype, dh);
+}
+
+shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  return valrandom(qname.hash(), servers, remote, qname, qtype, dh);
+}
+
 
 shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {

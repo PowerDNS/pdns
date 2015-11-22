@@ -428,7 +428,9 @@ Another policy, 'firstAvailable', picks the first server that has not
 exceeded its QPS limit gets the traffic.  
 
 A further policy, 'wrandom' assigns queries randomly, but based on the
-'weight' parameter passed to `newServer` 
+'weight' parameter passed to `newServer`. `whashed` is a similar weighted policy,
+but assigns questions with identical hash to identical servers, allowing for
+better cache concentration ('sticky queries').
 
 If you don't like the default policies you can create your own, like this
 for example:
@@ -630,6 +632,7 @@ instantiate a server with additional parameters
    * `newServerPolicy(name, function)`: create a policy object from a Lua function
  * Available policies:
    * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
+   * `whashed`: Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter
    * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
    * `roundrobin`: Simple round robin over available servers
    * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency
