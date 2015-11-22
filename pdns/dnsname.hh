@@ -42,6 +42,7 @@ public:
   std::string toStringNoDot() const { return toString(".", false); }
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
+  void appendRawLabel(const char* start, unsigned int length); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
