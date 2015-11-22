@@ -42,10 +42,8 @@
 
 /* Known sins:
 
-   Receiver is currently singlethreaded
+   Receiver is currently single threaded
       not *that* bad actually, but now that we are thread safe, might want to scale
-   TCP is a bit wonky and may pick the wrong downstream
-   ringbuffers are on a wing & a prayer because partially unlocked
 */
 
 /* the Rulaction plan
@@ -1077,7 +1075,6 @@ try
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
 
-
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize crypto library"<<endl;
@@ -1279,6 +1276,7 @@ try
   }
   else {
     vinfolog("Running in the foreground");
+    warnlog("dnsdist comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2");
   }
 
   /* this need to be done _after_ dropping privileges */
