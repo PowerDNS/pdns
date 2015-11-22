@@ -297,9 +297,10 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const C
   return valrandom(random(), servers, remote, qname, qtype, dh);
 }
 
+static uint32_t g_hashperturb;
 shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
-  return valrandom(qname.hash(), servers, remote, qname, qtype, dh);
+  return valrandom(qname.hash(g_hashperturb), servers, remote, qname, qtype, dh);
 }
 
 
@@ -1076,11 +1077,22 @@ try
   openlog("dnsdist", LOG_PID, LOG_DAEMON);
   g_console=true;
 
+
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize crypto library"<<endl;
     exit(EXIT_FAILURE);
   }
+  g_hashperturb=randombytes_uniform(0xffffffff);
+  srandom(randombytes_uniform(0xffffffff));
+#else
+  {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
+    g_hashperturb=random();
+  }
+  
 #endif
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 

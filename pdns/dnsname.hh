@@ -55,9 +55,9 @@ public:
   bool isRoot() const { return d_storage.size()==1 && d_storage[0]==0; }
   void clear() { d_storage.clear(); }
   void trimToLabels(unsigned int);
-  size_t hash() const
+  size_t hash(size_t init=0) const
   {
-    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), 0);
+    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), init);
   }
   DNSName& operator+=(const DNSName& rhs)
   {
