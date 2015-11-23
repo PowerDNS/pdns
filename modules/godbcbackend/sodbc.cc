@@ -111,7 +111,7 @@ public:
 
   SSqlStatement* bind(const string& name, uint32_t value) {
     ODBCParam p;
-    p.ParameterValuePtr = new UDWORD[1] {value};
+    p.ParameterValuePtr = new UDWORD {value};
     p.LenPtr = new SQLLEN {sizeof(UDWORD)};
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
@@ -120,7 +120,7 @@ public:
 
   SSqlStatement* bind(const string& name, unsigned long value) {
     ODBCParam p;
-    p.ParameterValuePtr = new ULONG[1] {value};
+    p.ParameterValuePtr = new ULONG {value};
     p.LenPtr = new SQLLEN {sizeof(ULONG)};
     p.ParameterType = SQL_INTEGER;
     p.ValueType = SQL_INTEGER;
@@ -129,7 +129,7 @@ public:
 
   SSqlStatement* bind(const string& name, unsigned long long value) {
     ODBCParam p;
-    p.ParameterValuePtr = new unsigned long long[1] {value};
+    p.ParameterValuePtr = new unsigned long long {value};
     p.LenPtr = new SQLLEN {sizeof(unsigned long long)};
     p.ParameterType = SQL_BIGINT;
     p.ValueType = SQL_C_UBIGINT;
@@ -218,8 +218,8 @@ public:
 
     for(auto &i: d_req_bind) {
       if (i.ParameterType == SQL_VARCHAR) delete [] (char*)i.ParameterValuePtr;
-      else if (i.ParameterType == SQL_INTEGER) delete [] (ULONG*)i.ParameterValuePtr;
-      else if (i.ParameterType == SQL_C_UBIGINT) delete [] (unsigned long long*)i.ParameterValuePtr;
+      else if (i.ParameterType == SQL_INTEGER) delete (ULONG*)i.ParameterValuePtr;
+      else if (i.ParameterType == SQL_C_UBIGINT) delete (unsigned long long*)i.ParameterValuePtr;
       delete i.LenPtr;
     }
     d_req_bind.clear();
