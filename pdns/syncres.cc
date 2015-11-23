@@ -1194,20 +1194,19 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
           if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
             ret.push_back(rec);
-
-          NegCacheEntry ne;
-
-          ne.d_qname=rec.d_name;
-
-          ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-
-          ne.d_name=qname;
-          ne.d_qtype=QType(0); // this encodes 'whole record'
-
-          replacing_insert(t_sstorage->negcache, ne);
-	  if(s_rootNXTrust && auth.isRoot()) {
-	    ne.d_name = getLastLabel(ne.d_name);
+	  if(!wasVariable()) {
+	    NegCacheEntry ne;
+	    
+	    ne.d_qname=rec.d_name;
+	    ne.d_ttd=d_now.tv_sec + rec.d_ttl;
+	    ne.d_name=qname;
+	    ne.d_qtype=QType(0); // this encodes 'whole record'
+	    
 	    replacing_insert(t_sstorage->negcache, ne);
+	    if(s_rootNXTrust && auth.isRoot()) {
+	      ne.d_name = getLastLabel(ne.d_name);
+	      replacing_insert(t_sstorage->negcache, ne);
+	    }
 	  }
 
           negindic=true;
@@ -1258,14 +1257,16 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           else {
             rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
             ret.push_back(rec);
-            NegCacheEntry ne;
-            ne.d_qname=rec.d_name;
-            ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-            ne.d_name=qname;
-            ne.d_qtype=qtype;
-            if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-              replacing_insert(t_sstorage->negcache, ne);
-            }
+	    if(!wasVariable()) {
+	      NegCacheEntry ne;
+	      ne.d_qname=rec.d_name;
+	      ne.d_ttd=d_now.tv_sec + rec.d_ttl;
+	      ne.d_name=qname;
+	      ne.d_qtype=qtype;
+	      if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+		replacing_insert(t_sstorage->negcache, ne);
+	      }
+	    }
             negindic=true;
           }
         }
