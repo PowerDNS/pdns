@@ -72,37 +72,23 @@ public:
     // cerr<<"prepared ("<<query<<")"<<endl;
   }
 
-  typedef struct {
+  struct ODBCParam {
     SQLPOINTER      ParameterValuePtr;
     SQLLEN*         LenPtr;
-  } ODBCParam;
+    SQLSMALLINT     ParameterType;
+    SQLSMALLINT     ValueType;
+  };
 
   vector<ODBCParam> d_req_bind;
 
-  SSqlStatement* bind(const string& name, bool value) { return bind(name, (long)value); }
-  SSqlStatement* bind(const string& name, long value) {
-
-    // cerr<<"asked to bind long "<<value<<endl;
-    // cerr<<"d_req_bind.size()="<<d_req_bind.size()<<endl;
-    // cerr<<"d_parnum="<<d_parnum<<endl;
-
-    if(d_req_bind.size() > (d_parnum+1)) throw SSqlException("Trying to bind too many parameters.");
-
-    ODBCParam p;
-
-    p.ParameterValuePtr = new long[1];
-    *((long*)p.ParameterValuePtr) = value;
-    p.LenPtr = new SQLLEN;
-    *(p.LenPtr) = sizeof(long);
-
+  SSqlStatement* bind(const string& name, ODBCParam& p) {
     d_req_bind.push_back(p);
-
     SQLRETURN result = SQLBindParameter(
       d_statement,           // StatementHandle,
       d_paridx+1,            // ParameterNumber,
       SQL_PARAM_INPUT,       // InputOutputType,
-      SQL_C_SLONG,           // ValueType,
-      SQL_BIGINT,            // ParameterType,
+      p.ValueType,           // ValueType,
+      p.ParameterType,       // ParameterType,
       0,                     // ColumnSize,
       0,                     // DecimalDigits,
       p.ParameterValuePtr,   // ParameterValuePtr,
@@ -114,11 +100,42 @@ public:
 
     return this;
   }
-  SSqlStatement* bind(const string& name, uint32_t value) { return bind(name, (long)value); }
-  SSqlStatement* bind(const string& name, int value) { return bind(name, (long)value); }
-  SSqlStatement* bind(const string& name, unsigned long value) { return bind(name, (long)value);}
-  SSqlStatement* bind(const string& name, long long value) { return bind(name, (long)value); };
-  SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, (long)value); }
+
+  SSqlStatement* bind(const string& name, bool value) { return bind(name, (uint32_t)value); }
+
+  SSqlStatement* bind(const string& name, long value) { return bind(name, (unsigned long)value); }
+
+  SSqlStatement* bind(const string& name, int value) { return bind(name, (uint32_t)value); }
+
+  SSqlStatement* bind(const string& name, long long value) { return bind(name, (unsigned long long)value); }
+
+  SSqlStatement* bind(const string& name, uint32_t value) {
+    ODBCParam p;
+    p.ParameterValuePtr = new UDWORD[1] {value};
+    p.LenPtr = new SQLLEN {sizeof(UDWORD)};
+    p.ParameterType = SQL_INTEGER;
+    p.ValueType = SQL_INTEGER;
+    return bind(name, p);
+  }
+
+  SSqlStatement* bind(const string& name, unsigned long value) {
+    ODBCParam p;
+    p.ParameterValuePtr = new ULONG[1] {value};
+    p.LenPtr = new SQLLEN {sizeof(ULONG)};
+    p.ParameterType = SQL_INTEGER;
+    p.ValueType = SQL_INTEGER;
+    return bind(name, p);
+  }
+
+  SSqlStatement* bind(const string& name, unsigned long long value) {
+    ODBCParam p;
+    p.ParameterValuePtr = new unsigned long long[1] {value};
+    p.LenPtr = new SQLLEN {sizeof(unsigned long long)};
+    p.ParameterType = SQL_BIGINT;
+    p.ValueType = SQL_C_UBIGINT;
+    return bind(name, p);
+  }
+
   SSqlStatement* bind(const string& name, const std::string& value) {
 
     // cerr<<"asked to bind string "<<value<<endl;
@@ -132,25 +149,10 @@ public:
     ((char*)p.ParameterValuePtr)[value.size()]=0;
     p.LenPtr=new SQLLEN;
     *(p.LenPtr)=value.size();
+    p.ParameterType = SQL_VARCHAR;
+    p.ValueType = SQL_C_CHAR;
 
-    d_req_bind.push_back(p);
-
-    SQLRETURN result = SQLBindParameter(
-      d_statement,           // StatementHandle,
-      d_paridx+1,            // ParameterNumber,
-      SQL_PARAM_INPUT,       // InputOutputType,
-      SQL_C_CHAR,            // ValueType,
-      SQL_VARCHAR,           // ParameterType,
-      value.size(),          // ColumnSize,
-      0,                     // DecimalDigits,
-      p.ParameterValuePtr,   // ParameterValuePtr,
-      value.size()+1,        // BufferLength,
-      p.LenPtr               // StrLen_or_IndPtr
-    );
-    testResult( result, SQL_HANDLE_STMT, d_statement, "Binding parameter.");
-    d_paridx++;
-
-    return this;
+    return bind(name, p);
   }
 
   SSqlStatement* bindNull(const string& name) {
@@ -161,25 +163,10 @@ public:
     p.ParameterValuePtr = NULL;
     p.LenPtr=new SQLLEN;
     *(p.LenPtr)=SQL_NULL_DATA;
+    p.ParameterType = SQL_VARCHAR;
+    p.ValueType = SQL_C_CHAR;
 
-    d_req_bind.push_back(p);
-
-    SQLRETURN result = SQLBindParameter(
-      d_statement,           // StatementHandle,
-      d_paridx+1,            // ParameterNumber,
-      SQL_PARAM_INPUT,       // InputOutputType,
-      SQL_C_CHAR,            // ValueType,
-      SQL_VARCHAR,           // ParameterType,
-      0,                     // ColumnSize,
-      0,                     // DecimalDigits,
-      p.ParameterValuePtr,   // ParameterValuePtr,
-      0,                     // BufferLength,
-      p.LenPtr               // StrLen_or_IndPtr
-    );
-    testResult( result, SQL_HANDLE_STMT, d_statement, "Binding parameter.");
-    d_paridx++;
-
-    return this;
+    return bind(name, p);
   }
 
   SSqlStatement* execute()
@@ -229,7 +216,12 @@ public:
   SSqlStatement* reset() {
     SQLCloseCursor(d_statement); // hack, this probably violates some state transitions
 
-    for(auto &i: d_req_bind) { delete [] (char*) i.ParameterValuePtr; delete i.LenPtr; }
+    for(auto &i: d_req_bind) {
+      if (i.ParameterType == SQL_VARCHAR) delete [] (char*)i.ParameterValuePtr;
+      else if (i.ParameterType == SQL_INTEGER) delete [] (ULONG*)i.ParameterValuePtr;
+      else if (i.ParameterType == SQL_C_UBIGINT) delete [] (unsigned long long*)i.ParameterValuePtr;
+      delete i.LenPtr;
+    }
     d_req_bind.clear();
     d_residx = 0;
     d_paridx = 0;
