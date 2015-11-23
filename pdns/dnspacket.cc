@@ -656,9 +656,9 @@ bool checkForCorrectTSIG(const DNSPacket* q, UeberBackend* B, DNSName* keyname, 
   string message;
 
   q->getTSIGDetails(trc, keyname, &message);
-  int64_t now = time(0);
-  if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
-    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
+  uint64_t delta = std::abs((int64_t)trc->d_time - (int64_t)time(0));
+  if(delta > trc->d_fudge) {
+    L<<Logger::Error<<"Packet for '"<<q->qdomain<<"' denied: TSIG (key '"<<*keyname<<"') time delta "<< delta <<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
 

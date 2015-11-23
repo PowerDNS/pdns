@@ -58,8 +58,8 @@ public:
 
     d_record.insert(d_record.end(), out.begin(), out.end());
   }
-  
-  string getZoneRepresentation() const
+
+  string getZoneRepresentation() const override
   {
     ostringstream str;
     str<<"\\# "<<(unsigned int)d_record.size()<<" ";
@@ -70,13 +70,13 @@ public:
     }
     return str.str();
   }
-  
-  void toPacket(DNSPacketWriter& pw)
+
+  void toPacket(DNSPacketWriter& pw) override
   {
     pw.xfrBlob(string(d_record.begin(),d_record.end()));
   }
 
-  uint16_t getType() const override 
+  uint16_t getType() const override
   {
     return d_dr.d_type;
   }
