@@ -38,7 +38,7 @@ pdns (${VERSION}-${RELEASE}) unstable; urgency=medium
 
   * Automatic build
 
- -- PowerDNS.COM AutoBuilder <noreply@powerdns.com>  $(date -R)
+ -- ${DEBFULLNAME} <${DEBEMAIL}>  $(date -R)
 
 EOF
 DH_OPTIONS=--parallel fakeroot debian/rules binary
