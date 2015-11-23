@@ -20,7 +20,7 @@
 class CoWrapper
 {
 public:
-  CoWrapper(const string &command, int timeout=0);
+  CoWrapper(const string &command, int timeout, int abiVersion);
   ~CoWrapper();
   void send(const string &line);
   void receive(string &line);
