@@ -387,7 +387,6 @@ SODBC::~SODBC( void )
 // Executes a command.
 void SODBC::execute( const std::string & command )
 {
-  SQLRETURN   result;
   SODBCStatement stmt(command, false, 0, m_connection);
 
   stmt.execute()->reset();
