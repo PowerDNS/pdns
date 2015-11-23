@@ -1576,7 +1576,7 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
   }
 }
 
-uint32_t g_disthashseed;
+static uint32_t g_disthashseed;
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);

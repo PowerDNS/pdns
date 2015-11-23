@@ -13,12 +13,6 @@
 #include "htmlfiles.h"
 #include "base64.hh"
 
-static time_t s_start=time(0);
-static int uptimeOfProcess()
-{
-  return time(0) - s_start;
-}
-
 
 bool compareAuthorization(YaHTTP::Request& req, const string &expected_password)
 {
@@ -83,26 +77,25 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 
     }
     else if(command=="stats") {
-      struct rusage ru;
-      getrusage(RUSAGE_SELF, &ru);
-
       resp.status=200;
-      Json my_json = Json::object {
-	{ "questions", (int)g_stats.queries },
-	{ "servfail-answers", (int)g_stats.servfailResponses },
+
+      auto obj=Json::object {
 	{ "packetcache-hits", 0},
 	{ "packetcache-misses", 0},
-	{ "user-msec", (int)(ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000) },
-	{ "sys-msec", (int)(ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000) },
 	{ "over-capacity-drops", 0 },
 	{ "too-old-drops", 0 },
-	{ "uptime", uptimeOfProcess()},
-	{ "qa-latency", (int)g_stats.latencyAvg1000},
-	{ "qa-latency1000", (int)g_stats.latencyAvg1000},
-	{ "qa-latency10000", (int)g_stats.latencyAvg10000},
-	{ "qa-latency1000000", (int)g_stats.latencyAvg1000000},
-	{ "something", Json::array { 1, 2, 3 } },
+	{ "server-policy", g_policy.getLocal()->name}
       };
+
+      for(const auto& e : g_stats.entries) {
+	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+	  obj.insert({e.first, (int)(*val)->load()});
+	else if (const auto& val = boost::get<double*>(&e.second))
+	  obj.insert({e.first, (**val)});
+	else
+	  obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+      }
+      Json my_json = obj;
 
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
@@ -201,7 +194,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 }
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const std::string& password)
 {
-  infolog("Webserver launched on %s", local.toStringWithPort());
+  warnlog("Webserver launched on %s", local.toStringWithPort());
   for(;;) {
     try {
       ComboAddress remote(local);

@@ -217,6 +217,18 @@ struct dnsheader {
         unsigned        arcount :16;    /* number of resource entries */
 };
 
+inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
+{
+  return (uint16_t*) (((char *) dh) + sizeof(uint16_t));
+}
+
+#if BYTE_ORDER == BIG_ENDIAN
+#define FLAGS_RD_OFFSET (8)
+#define FLAGS_CD_OFFSET (12)
+#elif BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == PDP_ENDIAN
+#define FLAGS_RD_OFFSET (0)
+#define FLAGS_CD_OFFSET (12)
+#endif
 
 #define L theL()
 extern time_t s_starttime;

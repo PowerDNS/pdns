@@ -441,16 +441,6 @@ bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const D
         const DNSName& wildcardname, const QType& qtype,
         DNSResourceRecord::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
 {
-  vector<DNSResourceRecord> sigs;
-  if(db.getDirectRRSIGs(signer, wildcardname.countLabels() ? wildcardname : qname, qtype, sigs)) {
-    BOOST_FOREACH(DNSResourceRecord &rr, sigs) {
-      rr.d_place = signPlace;
-      rr.ttl = signTTL;
-      rrsigs.push_back(rr);
-    }
-    return true;
-  }
-
   // cerr<<"Doing DB lookup for precomputed RRSIGs for '"<<(wildcardname.empty() ? qname : wildcardname)<<"'"<<endl;
         SOAData sd;
         if(!db.getSOAUncached(signer, sd)) {

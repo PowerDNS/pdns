@@ -133,6 +133,18 @@ To change the QPS for a server:
 > getServer(0):setQPS(1000)
 ```
 
+By default, the availability of a downstream server is checked by regularly
+sending an A query for "a.root-servers.net.". A different query type and target
+can be specified by passing, respectively, the 'checkType' and 'checkName'
+parameters to `newServer`. The default behavior is to consider any valid response
+with a RCODE different from ServFail as valid. If the 'mustResolve' parameter
+of `newServer` is set to true, a response will only be considered valid if
+its RCODE differs from NXDomain, ServFail and Refused.
+
+```
+newServer {address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true}
+```
+
 TCP timeouts
 ------------
 
@@ -416,7 +428,9 @@ Another policy, 'firstAvailable', picks the first server that has not
 exceeded its QPS limit gets the traffic.  
 
 A further policy, 'wrandom' assigns queries randomly, but based on the
-'weight' parameter passed to `newServer` 
+'weight' parameter passed to `newServer`. `whashed` is a similar weighted policy,
+but assigns questions with identical hash to identical servers, allowing for
+better cache concentration ('sticky queries').
 
 If you don't like the default policies you can create your own, like this
 for example:
@@ -543,6 +557,9 @@ Here are all functions:
    * `addACL(netmask)`: add to the ACL set who can use this server
    * `setACL({netmask, netmask})`: replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us
    * `showACL()`: show our ACL set
+ * Network related:
+   * `addLocal(netmask, [false])`: add to addresses we listen on. Second optional parameter sets TCP/IP or not.
+   * `setLocal(netmask, [false])`: reset list of addresses we listen on to this address. Second optional parameter sets TCP/IP or not.
  * Blocking related:
    * `addDomainBlock(domain)`: block queries within this domain
  * Carbon/Graphite/Metronome statistics related:
@@ -553,6 +570,7 @@ Here are all functions:
    * `testCrypto()`: test of the crypto all works
    * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
+   * `dumpStats()`: print all statistics we gather
    * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
    * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
    * `showResponseLatency()`: show a plot of the response time latency distribution
@@ -562,8 +580,8 @@ Here are all functions:
    * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", name="dns1", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30})`: instantiate
-     a server with additional parameters
+   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false})`: 
+instantiate a server with additional parameters
    * `showServers()`: output all servers
    * `getServer(n)`: returns server with index n 
    * `getServers()`: returns a table with all defined servers
@@ -592,6 +610,7 @@ Here are all functions:
    * `DropAction()`: drop these packets
    * `NoRecurseAction()`: strip RD bit from the question, let it go through
    * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
+   * `DisableValidationAction()`: set the CD bit in the question, let it go through
  * Specialist rule generators
    * addAnyTCRule(): generate TC=1 answers to ANY queries, moving them to TCP
    * setDNSSECPool(): move queries requesting DNSSEC processing to this pool
@@ -613,6 +632,7 @@ Here are all functions:
    * `newServerPolicy(name, function)`: create a policy object from a Lua function
  * Available policies:
    * `firstAvailable`: Pick first server that has not exceeded its QPS limit, ordered by the server 'order' parameter
+   * `whashed`: Weighted hashed ('sticky') distribution over available servers, based on the server 'weight' parameter
    * `wrandom`: Weighted random over available servers, based on the server 'weight' parameter
    * `roundrobin`: Simple round robin over available servers
    * `leastOutstanding`: Send traffic to downstream server with least outstanding queries, with the lowest 'order', and within that the lowest recent latency
@@ -640,6 +660,8 @@ Here are all functions:
      * member `setRD(bool)`: set recursion desired flag
      * member `setTC(bool)`: set truncation flag (TC)
      * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
+     * member `getCD()`: get checking disabled flag
+     * member `setCD(bool)`: set checking disabled flag
    * NetmaskGroup related
      * nothing yet
    * QPSLimiter related:

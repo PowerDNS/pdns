@@ -42,6 +42,7 @@ public:
   std::string toStringNoDot() const { return toString(".", false); }
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
+  void appendRawLabel(const char* start, unsigned int length); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
   std::vector<std::string> getRawLabels() const; //!< Individual raw unescaped labels
   bool chopOff();                               //!< Turn www.powerdns.com. into powerdns.com., returns false for .
@@ -55,9 +56,9 @@ public:
   bool isRoot() const { return d_storage.size()==1 && d_storage[0]==0; }
   void clear() { d_storage.clear(); }
   void trimToLabels(unsigned int);
-  size_t hash() const
+  size_t hash(size_t init=0) const
   {
-    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), 0);
+    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), init);
   }
   DNSName& operator+=(const DNSName& rhs)
   {

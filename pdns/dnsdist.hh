@@ -18,6 +18,7 @@ struct DNSDistStats
   stat_t responses{0};
   stat_t servfailResponses{0};
   stat_t queries{0};
+  stat_t nonCompliantQueries{0};
   stat_t aclDrops{0};
   stat_t blockFilter{0};
   stat_t ruleDrop{0};
@@ -46,6 +47,9 @@ struct DNSDistStats
     {"latency-avg10000", &latencyAvg10000}, {"latency-avg1000000", &latencyAvg1000000},
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
+    {"noncompliant-queries", &nonCompliantQueries},
+    {"cpu-user-msec", getCPUTimeUser},
+    {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors}
   };
 };
@@ -168,6 +172,7 @@ struct IDState
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
   uint16_t origID;                                            // 2
+  uint16_t origFlags;                                         // 2
   int delayMsec;
 };
 
@@ -231,6 +236,8 @@ struct DownstreamState
   ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
+  DNSName checkName;
+  QType checkType;
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};
@@ -253,6 +260,7 @@ struct DownstreamState
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
+  bool mustResolve;
   bool upStatus{false};
   bool isUp() const
   {
@@ -345,6 +353,7 @@ std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& serv
 
 std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 int getEDNSZ(const char* packet, unsigned int len);
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password);

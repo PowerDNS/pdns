@@ -18,7 +18,6 @@ The following table describes the capabilities of the backends.
 | [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No | `bind` |
 | [GeoIP](backend-geoip.md) | Supported | Yes | No | No | No | No | Yes | No | No | `geoip` |
 | [LDAP](backend-ldap.md) | Unmaintained | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | Unknown |
-| [LMDB](backend-lmdb.md) | Supported | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | `lmdb`|
 | [MySQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
 | [MyDNS](backend-mydns.md) | Supported | Yes | No | No | No | No | No | No | No | `mydns` |
 | [OpenDBX](backend-opendbx.md) | Supported | Yes | Yes | Yes | Yes | Unknown (No) | No | Unknown (No) | Unknown (No) | `opendbx` |

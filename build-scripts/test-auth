@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -x
+[ -n "$1" ] && exit 0 # avoid running the whole suite on specifically targeted builders
 export PDNS=/usr/sbin/pdns_server
 export PDNS2=$PDNS
 export SDIG=/usr/bin/sdig

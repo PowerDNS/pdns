@@ -1194,3 +1194,17 @@ uint64_t getRealMemoryUsage(const std::string&)
   return 0;
 #endif
 }
+
+uint64_t getCPUTimeUser(const std::string&)
+{
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+}
+
+uint64_t getCPUTimeSystem(const std::string&)
+{
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+}
