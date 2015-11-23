@@ -35,7 +35,7 @@ CoWrapper::CoWrapper(const string &command, int timeout)
    d_cp=0;
    d_command=command;
    d_timeout=timeout;
-   d_abiVersion = ::arg().asNum("pipebackend-abi-version");
+   d_abiVersion = ::arg().asNum("pipe-abi-version");
    launch(); // let exceptions fall through - if initial launch fails, we want to die
    // I think
 }
@@ -128,11 +128,11 @@ void PipeBackend::lookup(const QType& qtype,const DNSName& qname, DNSPacket *pkt
             realRemote = pkt_p->getRealRemote();
             remoteIP = pkt_p->getRemote();
          }
-         // pipebackend-abi-version = 1
+         // pipe-abi-version = 1
          // type    qname           qclass  qtype   id      remote-ip-address
          query<<"Q\t"<<qname.toStringNoDot()<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
 
-         // add the local-ip-address if pipebackend-abi-version is set to 2
+         // add the local-ip-address if pipe-abi-version is set to 2
          if (d_abiVersion >= 2)
             query<<"\t"<<localIP;
          if(d_abiVersion >= 3)
