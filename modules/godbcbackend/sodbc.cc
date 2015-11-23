@@ -241,7 +241,8 @@ private:
   string d_query;
   bool d_dolog;
   bool d_havenextrow;
-  int d_residx, d_paridx, d_parnum;
+  int d_residx;
+  size_t d_paridx,d_parnum;
   SQLRETURN d_result;
 
   SQLHDBC d_conn;
