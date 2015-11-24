@@ -33,11 +33,23 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
+AC_MSG_CHECKING([whether we will enable compiler LTO])
+AC_ARG_ENABLE([lto],
+  [AS_HELP_STRING([--disable-lto],[disable compiler link-time optimizations @<:@default=no@:>@])],
+  [enable_lto=$enableval],
+  [enable_lto=yes]
+)
+AC_MSG_RESULT([$enable_lto])
+
+AS_IF([test "x$enable_lto" != "xno"], [
+  AC_CC_LTO
+])
+
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 AS_IF([test "x$static" != "xyes"], [
-  CFLAGS="$PIE_CFLAGS $CFLAGS"
-  CXXFLAGS="$PIE_CFLAGS $CXXFLAGS"
+  CFLAGS="$PIE_CFLAGS $LTO_CFLAGS $CFLAGS"
+  CXXFLAGS="$PIE_CFLAGS $LTO_CFLAGS $CXXFLAGS"
   PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 ])
 AC_SUBST([PROGRAM_LDFLAGS])
