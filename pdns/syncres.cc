@@ -567,8 +567,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
         answer.qname=qname;
 	answer.qtype=qtype.getCode();
 	for(const auto& dr : bestns)
-	  answer.bestns.insert(make_pair(dr.d_name, dr.d_content->getZoneRepresentation()));
-	// XXX we are passing a DNSName through a string here!
+	  answer.bestns.insert(make_pair(dr.d_name, std::dynamic_pointer_cast<NSRecordContent>(dr.d_content)->getNS()));
 
         if(beenthere.count(answer)) {
 	  brokeloop=true;
@@ -1213,7 +1212,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
         }
         else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(rec);
-          newtarget=DNSName(rec.d_content->getZoneRepresentation());
+          newtarget=std::dynamic_pointer_cast<CNAMERecordContent>(rec.d_content)->getTarget();
         }
 	else if(d_doDNSSEC && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
 	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
@@ -1241,7 +1240,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           else {
             LOG(prefix<<qname.toString()<<": got upwards/level NS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth.toString()<<"'"<<endl);
 	  }
-          nsset.insert(DNSName(rec.d_content->getZoneRepresentation()));
+          nsset.insert(std::dynamic_pointer_cast<NSRecordContent>(rec.d_content)->getNS());
         }
         else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);

@@ -476,7 +476,7 @@ private:
   struct GetBestNSAnswer
   {
     DNSName qname;
-    set<pair<DNSName,string> > bestns; // FIXME400 right side really should be DNSName too
+    set<pair<DNSName,DNSName> > bestns; 
     uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
