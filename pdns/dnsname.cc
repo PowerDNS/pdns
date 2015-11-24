@@ -230,7 +230,7 @@ bool DNSName::slowCanonCompare(const DNSName& rhs) const
 vector<string> DNSName::getRawLabels() const
 {
   vector<string> ret;
-
+  ret.reserve(countLabels());
   // 3www4ds9a2nl0
   for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && *p; p+=*p+1)
     ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
@@ -242,7 +242,7 @@ bool DNSName::chopOff()
 {
   if(d_storage.empty() || d_storage[0]==0)
     return false;
-  d_storage = d_storage.substr((unsigned int)d_storage[0]+1);
+  d_storage.erase(0, (unsigned int)d_storage[0]+1);
   return true;
 }
 
