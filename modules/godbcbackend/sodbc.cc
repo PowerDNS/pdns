@@ -267,24 +267,25 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
   {
     // cerr<<"got row"<<endl;
     // We've got a data row, now lets get the results.
-    SQLLEN len;
     for ( int i = 0; i < m_columncount; i++ )
     {
-      // Clear buffer.
-      // cerr<<"clearing m_pData of size "<<m_columnInfo[ i ].m_size<<endl;
-      SQLCHAR         coldata[128*1024];
-
-      // FIXME: because we cap m_size to 128kbyte, this can truncate silently. see Retrieving Variable-Length Data in Parts at https://msdn.microsoft.com/en-us/library/ms715441(v=vs.85).aspx
-      result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 128*1024-1, &len );
-      // cerr<<"len="<<len<<endl;
-      testResult( result, SQL_HANDLE_STMT, d_statement, "Could not get data." );
+      SQLLEN len;
+      result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER)0, 0, &len );
       if ( len == SQL_NULL_DATA ) {
         // Column is NULL, so we can skip the converting part.
         row.push_back( "" );
-      }
-      else
-      {
-        row.push_back(std::string(reinterpret_cast<const char*>(coldata), len));
+      } else {
+        SQLCHAR coldata[4096];
+        result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 4096, &len );
+        std::string strres = std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(4095,len));
+        while(result == SQL_SUCCESS_WITH_INFO && len > 0) { // all data is consumed if len < 1
+           result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 4096, &len );
+           strres = strres + std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(4095,len));
+           cerr<<"len="<<len<<endl;
+        }
+        // cerr<<"len="<<len<<endl;
+        testResult( result, SQL_HANDLE_STMT, d_statement, "Could not get data." );
+        row.push_back(strres);
       }
     }
 
