@@ -275,12 +275,12 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
         // Column is NULL, so we can skip the converting part.
         row.push_back( "" );
       } else {
-        SQLCHAR coldata[4096];
-        result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 4096, &len );
-        std::string strres = std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(4095,len));
+        SQLCHAR coldata[128*1024];
+        result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 131702, &len );
+        std::string strres = std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(131701,len)); // do not use nil byte
         while(result == SQL_SUCCESS_WITH_INFO && len > 0) { // all data is consumed if len < 1
-           result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 4096, &len );
-           strres = strres + std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(4095,len));
+           result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, 131702, &len );
+           strres = strres + std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(131701,len));
            cerr<<"len="<<len<<endl;
         }
         // cerr<<"len="<<len<<endl;
