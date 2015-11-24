@@ -284,7 +284,7 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
       }
       else
       {
-        row.push_back(reinterpret_cast<char*>(coldata)); // FIXME: not NUL-safe, use len
+        row.push_back(std::string(reinterpret_cast<const char*>(coldata), len));
       }
     }
 
