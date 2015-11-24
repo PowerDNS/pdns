@@ -33,6 +33,7 @@ before_script:
      libopendbx1-dev
      libopendbx1-sqlite3
      libp11-kit-dev
+     libsqliteodbc
      libtolua-dev
      libtool
      libyaml-cpp-dev
@@ -52,6 +53,7 @@ before_script:
      softhsm
      time
      unbound-host
+     unixodbc-dev
      xmlto
  - virtualenv $HOME/.venv
  - source $HOME/.venv/bin/activate
@@ -82,12 +84,13 @@ before_script:
  - sudo chmod 0644 /etc/softhsm/softhsm.conf
  - sudo chmod 0777 /var/lib/softhsm
  - p11-kit -l # ensure it's ok
+ - echo -e "[pdns-sqlite3-1]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite3\n\n[pdns-sqlite3-2]\nDriver = SQLite3\nDatabase = ${PWD}/regression-tests/pdns.sqlite32\n" > ${HOME}/.odbc.ini
 script:
  - ./bootstrap
 #Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
  - source $HOME/.venv/bin/activate
  - ./configure
-     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
+     --with-dynmodules='bind gmysql geoip godbc gpgsql gsqlite3 mydns tinydns pipe remote random opendbx ldap lua'
      --with-modules=''
      --with-sqlite3
      --enable-unit-tests
@@ -175,6 +178,7 @@ script:
  - ./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 mydns
  - ./timestamp ./start-test-stop 5300 opendbx-sqlite3
+ - GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./timestamp ./start-test-stop 5300 godbc_sqlite3-nsec3
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec
  - travis_retry ./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix

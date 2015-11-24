@@ -4,6 +4,7 @@ DIST_SUBDIRS = \
 	bindbackend \
 	geoipbackend \
 	gmysqlbackend \
+	godbcbackend \
 	goraclebackend \
 	gpgsqlbackend \
 	gsqlite3backend \

@@ -4,7 +4,7 @@ Priority: extra
 Standards-Version: 3.9.6
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
 Origin: PowerDNS
-Build-Depends: debhelper (>= 9~), dh-autoreconf, dh-systemd, po-debconf, libtool, flex, bison, libmysqlclient-dev, libpq-dev, libssl-dev, libpolarssl-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libboost-program-options-dev, libboost-test-dev, autotools-dev, automake, autoconf, liblua5.2-dev, pkg-config, libcrypto++-dev, ragel, libgmp-dev, libbotan1.10-dev, libcurl4-openssl-dev, libzmq-dev, libyaml-cpp-dev (>= 0.5), libgeoip-dev, libopendbx1-dev, libcdb-dev
+Build-Depends: debhelper (>= 9~), dh-autoreconf, dh-systemd, po-debconf, libtool, flex, bison, libmysqlclient-dev, libpq-dev, libssl-dev, libpolarssl-dev, libgdbm-dev, libldap2-dev, libsqlite3-dev, dpkg-dev (>= 1.17.0~), libboost-dev, libboost-serialization-dev, libboost-program-options-dev, libboost-test-dev, autotools-dev, automake, autoconf, liblua5.2-dev, pkg-config, libcrypto++-dev, ragel, libgmp-dev, libbotan1.10-dev, libcurl4-openssl-dev, libzmq-dev, libyaml-cpp-dev (>= 0.5), libgeoip-dev, libopendbx1-dev, libcdb-dev, unixodbc-dev (>= 2.3.1)
 Homepage: http://www.powerdns.com/
 
 Package: pdns-server
@@ -116,6 +116,19 @@ Description: generic MySQL backend for PowerDNS
  PowerDNS tries to emphasize speed and security.
  .
  This package contains a generic MySQL backend for the PowerDNS
+ nameserver. It has configurable SQL statements.
+
+Package: pdns-backend-odbc
+Architecture: any
+Depends: pdns-server (>= ${source:Version}), ucf (>= 0.28), ${shlibs:Depends}, ${misc:Depends}
+Provides: pdns-backend
+Description: generic UnixODBC backend for PowerDNS
+ PowerDNS is a versatile nameserver which supports a large number
+ of different backends ranging from simple zonefiles to relational
+ databases and load balancing/failover algorithms.
+ PowerDNS tries to emphasize speed and security.
+ .
+ This package contains a generic UnixODBC backend for the PowerDNS
  nameserver. It has configurable SQL statements.
 
 Package: pdns-backend-pgsql

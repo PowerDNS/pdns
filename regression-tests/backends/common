@@ -11,6 +11,18 @@ start_master ()
 				source ./backends/gmysql-master
 				;;
 
+			godbc_mssql*)
+				[ -z $GODBC_MSSQL_DSN ] && echo '$GODBC_MSSQL_DSN must be set' >&2 && exit 1
+				[ -z $GODBC_MSSQL_USERNAME ] && echo '$GODBC_MSSQL_USERNAME must be set' >&2 && exit 1
+				[ -z $GODBC_MSSQL_PASSWORD ] && echo '$GODBC_MSSQL_PASSWORD must be set' >&2 && exit 1
+				source ./backends/godbc_mssql-master
+				;;
+
+			godbc_sqlite3*)
+				[ -z $GODBC_SQLITE3_DSN ] && echo '$GODBC_SQLITE3_DSN must be set' >&2 && exit 1
+				source ./backends/godbc_sqlite3-master
+				;;
+
 			goracle*)
 				source ./backends/goracle-master
 				;;
@@ -76,6 +88,13 @@ start_slave ()
 
 		gmysql*)
 			source ./backends/gmysql-slave
+			;;
+
+		godbc_mssql*)
+			[ -z $GODBC_MSSQL2_DSN ] && echo '$GODBC_MSSQL2_DSN must be set' >&2 && exit 1
+			[ -z $GODBC_MSSQL2_USERNAME ] && echo '$GODBC_MSSQL2_USERNAME must be set' >&2 && exit 1
+			[ -z $GODBC_MSSQL2_PASSWORD ] && echo '$GODBC_MSSQL2_PASSWORD must be set' >&2 && exit 1
+			source ./backends/godbc_mssql-slave
 			;;
 
 		goracle*)
