@@ -199,6 +199,45 @@ void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryTyp
     S.inc("deferred-cache-inserts"); 
 }
 
+void PacketCache::insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSResourceRecord>& value, unsigned int ttl, int zoneID)
+{
+  if(!((++d_ops) % 300000)) {
+    cleanup();
+  }
+
+  if(!ttl)
+    return;
+  
+  //cerr<<"Inserting qname '"<<qname<<"', cet: "<<(int)cet<<", qtype: "<<qtype.getName()<<", ttl: "<<ttl<<", maxreplylen: "<<maxReplyLen<<", hasEDNS: "<<EDNS<<endl;
+  CacheEntry val;
+  val.created=time(0);
+  val.ttd=val.created+ttl;
+  val.qname=qname;
+  val.qtype=qtype.getCode();
+  val.drs=value;
+  val.ctype=cet;
+  val.meritsRecursion=false;
+  val.maxReplyLen = 0;
+  val.dnssecOk = false;
+  val.zoneID = zoneID;
+  val.hasEDNS = false;
+  
+  auto& mc = getMap(val.qname);
+
+  TryWriteLock l(&mc.d_mut);
+  if(l.gotIt()) { 
+    bool success;
+    cmap_t::iterator place;
+    tie(place, success)=mc.d_map.insert(val);
+
+    if(!success)
+      mc.d_map.replace(place, val);
+  }
+  else 
+    S.inc("deferred-cache-inserts"); 
+}
+
+
 /* clears the entire packetcache. */
 int PacketCache::purge()
 {
@@ -250,8 +289,7 @@ int PacketCache::purge(const string &match)
   return delcount;
 }
 // called from ueberbackend
-bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& value, int zoneID, bool meritsRecursion, 
-  unsigned int maxReplyLen, bool dnssecOk, bool hasEDNS, unsigned int *age)
+bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& value, int zoneID)
 {
   if(d_ttl<0) 
     getTTLS();
@@ -268,7 +306,7 @@ bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryT
     return false;
   }
 
-  return getEntryLocked(qname, qtype, cet, value, zoneID, meritsRecursion, maxReplyLen, dnssecOk, hasEDNS, age);
+  return getEntryLocked(qname, qtype, cet, value, zoneID);
 }
 
 
@@ -286,7 +324,21 @@ bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, Cache
       *age = now - i->created;
     value = i->value;
   }
-
+  
+  return ret;
+}
+			   
+bool PacketCache::getEntryLocked(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& value, int zoneID)
+{
+  uint16_t qt = qtype.getCode();
+  //cerr<<"Lookup for maxReplyLen: "<<maxReplyLen<<endl;
+  auto& mc=getMap(qname);
+  cmap_t::const_iterator i=mc.d_map.find(tie(qname, qt, cet, zoneID));
+  time_t now=time(0);
+  bool ret=(i!=mc.d_map.end() && i->ttd > now);
+  if(ret) {
+    value = i->drs;
+  }
   return ret;
 }
 
