@@ -1103,13 +1103,14 @@ try
     {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
     {"uid",  required_argument, 0, 'u'},
+    {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
     {0,0,0,0} 
   };
   int longindex=0;
   string optstring;
   for(;;) {
-    int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:V", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -1129,6 +1130,8 @@ try
       g_cmdLine.gid=optarg;
       break;
     case 'h':
+      cout<<"dnsdist "<<VERSION<<endl;
+      cout<<endl;
       cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
       cout<<"\n";
@@ -1165,6 +1168,10 @@ try
       break;
     case 'v':
       g_verbose=true;
+      break;
+    case 'V':
+      cout<<"dnsdist "<<VERSION<<endl;
+      exit(EXIT_SUCCESS);
       break;
     }
   }
