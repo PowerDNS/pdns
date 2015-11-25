@@ -56,6 +56,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
+#ifdef MALLOC_TRACE
+#include "malloctrace.hh"
+#endif
 #include <netinet/tcp.h>
 #include "dnsparser.hh"
 #include "dnswriter.hh"
@@ -641,6 +644,7 @@ void startDoResolve(void *p)
       tracedQuery=true;
     }
 
+
     if(!g_quiet || tracedQuery)
       L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
@@ -1086,10 +1090,24 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   string response;
   try {
     uint32_t age;
+#ifdef MALLOC_TRACE
+    /*
+    static uint64_t last=0;
+    if(!last)
+      g_mtracer->clearAllocators();
+    cout<<g_mtracer->getAllocs()-last<<" "<<g_mtracer->getNumOut()<<" -- BEGIN TRACE"<<endl;
+    last=g_mtracer->getAllocs();
+    cout<<g_mtracer->topAllocatorsString()<<endl;
+    g_mtracer->clearAllocators();
+    */
+#endif
+
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
         L<<Logger::Notice<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
       // t_queryring->push_back("packetcached");
+
+      
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;

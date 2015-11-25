@@ -118,13 +118,11 @@ std::string MallocTracer::topAllocatorsString(int num)
   return str;
 }
 
-/*
-char **strings;
-  size_t i;
-  strings = backtrace_symbols (array, size); //Need -rdynamic gcc (linker) flag for this to work
-
-  for (i = 0; i < size; i++) //skip useless functions
-    ret+=strings[i]+string("\n");
-  return ret;
-*/
+void MallocTracer::clearAllocators()
+{
+  l_active=true;
+  std::lock_guard<std::mutex> lock(d_mut); 
+  d_stats.clear(); 
+  l_active=false;
+}
 
