@@ -1283,7 +1283,7 @@ try
   }
   else {
     vinfolog("Running in the foreground");
-    warnlog("dnsdist comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2");
+    warnlog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
   }
 
   /* this need to be done _after_ dropping privileges */
