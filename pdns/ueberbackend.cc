@@ -432,22 +432,18 @@ int UeberBackend::cacheHas(const Question &q, vector<DNSResourceRecord> &rrs)
     return -1;
   }
 
-  string content;
+  rrs.clear();
   //  L<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
-  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, content, q.zoneId);   // think about lowercasing here
+  bool ret=PC.getEntry(q.qname, q.qtype, PacketCache::QUERYCACHE, rrs, q.zoneId);   // think about lowercasing here
   if(!ret) {
     (*qcachemiss)++;
     return -1;
   }
   (*qcachehit)++;
-  if(content.empty()) // negatively cached
+  if(rrs.empty()) // negatively cached
     return 0;
   
-  std::istringstream istr(content);
-  boost::archive::binary_iarchive boa(istr, boost::archive::no_header);
-  rrs.clear();
-  boa >> rrs;
   return 1;
 }
 
@@ -457,7 +453,7 @@ void UeberBackend::addNegCache(const Question &q)
   if(!d_negcache_ttl)
     return;
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, "", d_negcache_ttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, vector<DNSResourceRecord>(), d_negcache_ttl, q.zoneId);
 }
 
 void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &rrs)
@@ -468,20 +464,7 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
     return;
 
   unsigned int store_ttl = d_cache_ttl;
-
-  //  L<<Logger::Warning<<"inserting: "<<q.qname+"|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
-  std::ostringstream ostr;
-  boost::archive::binary_oarchive boa(ostr, boost::archive::no_header);
-
-  BOOST_FOREACH(DNSResourceRecord rr, rrs) {
-    if (rr.ttl < d_cache_ttl)
-      store_ttl = rr.ttl;
-    if (rr.scopeMask)
-      return;
-  }
-
-  boa << rrs;
-  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, ostr.str(), store_ttl, q.zoneId);
+  PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rrs, store_ttl, q.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
