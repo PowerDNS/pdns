@@ -1136,7 +1136,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 
         if(rec.d_name.isPartOf(auth)) {
-          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth.toString() /* ugh */)) {
+          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && g_delegationOnly.check(auth)) {
             LOG("NO! Is from delegation-only zone"<<endl);
             s_nodelegated++;
             return RCode::NXDomain;
@@ -1153,7 +1153,6 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
             dr.d_place=DNSResourceRecord::ANSWER;
 
             dr.d_ttl += d_now.tv_sec;
-	    // we should note the PLACE and not store ECS subnet details for non-answer records
             tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
           }
         }

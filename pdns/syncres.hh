@@ -632,7 +632,7 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 void parseACLs();
 extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
-
+extern SuffixMatchNode g_delegationOnly;
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);

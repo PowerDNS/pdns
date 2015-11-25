@@ -268,6 +268,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     struct dnsrecordheader ah;
     vector<unsigned char> record;
     validPacket=true;
+    d_answers.reserve((unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount));
     for(n=0;n < (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount); ++n) {
       DNSRecord dr;
       

@@ -2090,6 +2090,15 @@ void  parseEDNSSubnetWhitelist(const std::string& wlist)
   }
 }
 
+SuffixMatchNode g_delegationOnly;
+static void setupDelegationOnly()
+{
+  vector<string> parts;
+  stringtok(parts, ::arg()["delegation-only"], ", \t");
+  for(const auto& p : parts) {
+    g_delegationOnly.add(DNSName(p));
+  }
+}
 
 int serviceMain(int argc, char*argv[])
 {
@@ -2134,6 +2143,9 @@ int serviceMain(int argc, char*argv[])
   if(g_weDistributeQueries) {
       L<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
   }
+
+  setupDelegationOnly();
+
 
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
