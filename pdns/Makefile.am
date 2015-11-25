@@ -1143,9 +1143,11 @@ pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
 pdns_recursor_LDADD += $(P11KIT1_LIBS)
 endif
 
+pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
+
 if MALLOC_TRACE
 pdns_recursor_SOURCES += malloctrace.cc malloctrace.hh 
-pdns_recursor_LDFLAGS = $(AM_LDFLAGS) -rdynamic
+pdns_recursor_LDFLAGS += -rdynamic
 endif
 
 if LUA
