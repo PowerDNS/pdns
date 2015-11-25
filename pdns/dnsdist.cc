@@ -797,12 +797,12 @@ void doClient(ComboAddress server, const std::string& command)
 
   set<string> dupper;
   {
-    ifstream history(".history");
+    ifstream history(".dnsdist_history");
     string line;
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".history", std::ios_base::app);
+  ofstream history(".dnsdist_history", std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
@@ -846,12 +846,12 @@ void doConsole()
 {
   set<string> dupper;
   {
-    ifstream history(".history");
+    ifstream history(".dnsdist_history");
     string line;
     while(getline(history, line))
       add_history(line.c_str());
   }
-  ofstream history(".history", std::ios_base::app);
+  ofstream history(".dnsdist_history", std::ios_base::app);
   string lastline;
   for(;;) {
     char* sline = readline("> ");
