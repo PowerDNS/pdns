@@ -206,8 +206,13 @@ void UDPNameserver::bindIPv6()
 
     s=socket(AF_INET6,SOCK_DGRAM,0);
     if(s<0) {
-      L<<Logger::Error<<"Unable to acquire UDPv6 socket: "+string(strerror(errno)) << endl;
-      throw PDNSException("Unable to acquire UDPv6 socket: "+string(strerror(errno)));
+      if( errno == EAFNOSUPPORT ) {
+        L<<Logger::Error<<"IPv6 Address Family is not supported - skipping UDPv6 bind" << endl;
+        return;
+      } else {
+        L<<Logger::Error<<"Unable to acquire a UDPv6 socket: "+string(strerror(errno)) << endl;
+        throw PDNSException("Unable to acquire a UDPv6 socket: "+string(strerror(errno)));
+      }
     }
 
     setCloseOnExec(s);
