@@ -359,7 +359,7 @@ static void loadModules()
   if(!::arg()["load-modules"].empty()) { 
     vector<string>modules;
     
-    stringtok(modules,::arg()["load-modules"],",");
+    stringtok(modules,::arg()["load-modules"],", ");
     
     for(vector<string>::const_iterator i=modules.begin();i!=modules.end();++i) {
       bool res;
