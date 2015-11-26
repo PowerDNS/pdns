@@ -59,9 +59,13 @@ public:
   void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const string& value, unsigned int ttl, int zoneID=-1, bool meritsRecursion=false,
     unsigned int maxReplyLen=512, bool dnssecOk=false, bool EDNS=false);
 
+  void insert(const DNSName &qname, const QType& qtype, CacheEntryType cet, const vector<DNSResourceRecord>& content, unsigned int ttl, int zoneID=-1);
+
   int get(DNSPacket *p, DNSPacket *q, bool recursive); //!< We return a dynamically allocated copy out of our cache. You need to delete it. You also need to spoof in the right ID with the DNSPacket.spoofID() method.
   bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
+  bool getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& entry, int zoneID=-1);
+  
 
   int size(); //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired packets
@@ -72,6 +76,8 @@ public:
 private:
   bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, string& entry, int zoneID=-1,
     bool meritsRecursion=false, unsigned int maxReplyLen=512, bool dnssecOk=false, bool hasEDNS=false, unsigned int *age=0);
+  bool getEntryLocked(const DNSName &content, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& entry, int zoneID=-1);
+
 
   struct CacheEntry
   {
@@ -79,6 +85,7 @@ private:
 
     DNSName qname;
     string value;
+    vector<DNSResourceRecord> drs;
     time_t created;
     time_t ttd;
 
