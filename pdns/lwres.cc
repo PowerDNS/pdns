@@ -56,7 +56,7 @@
 int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult *lwr)
 {
   int len; 
-  int bufsize=1500;
+  int bufsize=g_outgoingEDNSBufsize;
   scoped_array<unsigned char> buf(new unsigned char[bufsize]);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
@@ -77,7 +77,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       srcmask=boost::optional<Netmask>(); // this is also our return value
     }
 
-    pw.addOpt(1200, 0, EDNSOpts::DNSSECOK, opts); // 1200 bytes answer size
+    pw.addOpt(g_outgoingEDNSBufsize, 0, EDNSOpts::DNSSECOK, opts); 
     pw.commit();
   }
   lwr->d_rcode = 0;

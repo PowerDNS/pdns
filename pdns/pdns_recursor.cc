@@ -88,7 +88,7 @@ unsigned int g_networkTimeoutMsec;
 uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
 bool g_anyToTcp;
-uint16_t g_udpTruncationThreshold;
+uint16_t g_udpTruncationThreshold, g_outgoingEDNSBufsize;
 __thread shared_ptr<RecursorLua>* t_pdl;
 
 __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
@@ -2163,7 +2163,7 @@ int serviceMain(int argc, char*argv[])
   }
 
   setupDelegationOnly();
-
+  g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
@@ -2552,6 +2552,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
+    ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";

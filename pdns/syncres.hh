@@ -633,6 +633,7 @@ void parseACLs();
 extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
 extern SuffixMatchNode g_delegationOnly;
+extern uint16_t g_outgoingEDNSBufsize;
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);
