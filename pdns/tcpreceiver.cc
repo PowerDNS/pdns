@@ -796,8 +796,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         }
       }
 
-      pair<DNSName,bool> nt;
-      BOOST_FOREACH(nt, nonterm) {
+      for(const auto& nt :  nonterm) {
         DNSResourceRecord rr;
         rr.qname=nt.first;
         rr.qtype="TYPE0";
