@@ -270,23 +270,13 @@ SSqlStatement* SODBCStatement::nextRow(row_t& row)
     for ( int i = 0; i < m_columncount; i++ )
     {
       SQLLEN len;
-      result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER)0, 0, &len );
-      if ( len == SQL_NULL_DATA ) {
-        // Column is NULL, so we can skip the converting part.
-        row.push_back( "" );
-      } else {
-        SQLCHAR coldata[128*1024];
-        result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, sizeof(coldata), &len);
-        std::string strres = std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(sizeof(coldata)-1,len)); // do not use nil byte
-        while(result == SQL_SUCCESS_WITH_INFO && len > 0) { // all data is consumed if len < 1
-           result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, sizeof(coldata), &len );
-           strres = strres + std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(sizeof(coldata)-1,len));
-           cerr<<"len="<<len<<endl;
-        }
-        // cerr<<"len="<<len<<endl;
-        testResult( result, SQL_HANDLE_STMT, d_statement, "Could not get data." );
-        row.push_back(strres);
-      }
+      SQLCHAR coldata[128*1024];
+      std::string strres = "";
+      result = SQLGetData( d_statement, i + 1, SQL_C_CHAR, (SQLPOINTER) coldata, sizeof(coldata), &len);
+      testResult( result, SQL_HANDLE_STMT, d_statement, "Could not get data." );
+      if (len > SQL_NULL_DATA)
+        strres = std::string(reinterpret_cast<const char*>(coldata), std::min<SQLLEN>(sizeof(coldata)-1,len)); // do not use nil byte
+      row.push_back(strres);
     }
 
     // Done!
