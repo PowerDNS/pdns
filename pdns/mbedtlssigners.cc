@@ -235,7 +235,7 @@ DNSCryptoKeyEngine::storvector_t RSADNSCryptoKeyEngine::convertToISCVector() con
   }
   storvect.push_back(make_pair("Algorithm", algorithm));
 
-  BOOST_FOREACH(outputs_t::value_type value, outputs) {
+  for(outputs_t::value_type value :  outputs) {
     unsigned char tmp[mbedtls_mpi_size(value.second)];
     mbedtls_mpi_write_binary(value.second, tmp, sizeof(tmp));
     storvect.push_back(make_pair(value.first, string((char*)tmp, sizeof(tmp))));
@@ -265,7 +265,7 @@ void RSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
   
   string raw;
-  BOOST_FOREACH(const places_t::value_type& val, places) {
+  for(const places_t::value_type& val :  places) {
     raw=stormap[toLower(val.first)];
     mbedtls_mpi_read_binary(val.second, (unsigned char*) raw.c_str(), raw.length());
   }

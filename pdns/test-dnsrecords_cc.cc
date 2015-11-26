@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 
   int n=0;
   int lq=-1;
-  BOOST_FOREACH(const cases_t::value_type& val, cases) {
+  for(const cases_t::value_type& val :  cases) {
    QType q(val.get<0>());
    if (lq != q.getCode()) n = 0;
    lq = q.getCode();
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
   int n=0;
   int lq=-1;
 
-  BOOST_FOREACH(const cases_t::value_type& val, cases) {
+  for(const cases_t::value_type& val :  cases) {
     QType q(val.get<0>());
     if (lq != q.getCode()) n = 0;
     lq = q.getCode();

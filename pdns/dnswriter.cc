@@ -160,7 +160,7 @@ void DNSPacketWriter::xfrText(const string& text, bool)
     return;
   }
   vector<string> segments = segmentDNSText(text);
-  BOOST_FOREACH(const string& str, segments) {
+  for(const string& str :  segments) {
     d_record.push_back(str.length());
     d_record.insert(d_record.end(), str.c_str(), str.c_str() + str.length());
   }

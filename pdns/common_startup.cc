@@ -201,7 +201,7 @@ static uint64_t getQCount(const std::string& str)
 try
 {
   int totcount=0;
-  BOOST_FOREACH(DNSDistributor* d, g_distributors) {
+  for(DNSDistributor* d :  g_distributors) {
     if(!d)
       continue;
     totcount += d->getQueueSize();  // this does locking and other things, so don't get smart

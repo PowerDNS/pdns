@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test_pdns_ilexicographical_compare) {
     (case_t(std::string("Abc"), std::string("abc"), false))
   ;
 
-  BOOST_FOREACH(const case_t& val, cases) {
+  for(const case_t& val :  cases) {
     bool res;
     res = pdns_ilexicographical_compare(val.get<0>(), val.get<1>());
     BOOST_CHECK_EQUAL(res, val.get<2>());
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(test_pdns_iequals) {
     (case_t(std::string("Abc"), std::string("abc"), true))
   ;
 
-  BOOST_FOREACH(const case_t& val, cases) {
+  for(const case_t& val :  cases) {
     bool res;
     res = pdns_iequals(val.get<0>(), val.get<1>());
     BOOST_CHECK_EQUAL(res, val.get<2>());

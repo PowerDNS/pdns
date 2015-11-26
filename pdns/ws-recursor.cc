@@ -120,7 +120,7 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
   vector<string> entries;
   t_allowFrom->toStringVector(&entries);
 
-  BOOST_FOREACH(const string& entry, entries) {
+  for(const string& entry :  entries) {
     Value jentry(entry.c_str(), document.GetAllocator()); // copy
     jlist.PushBack(jentry, document.GetAllocator());
   }
@@ -154,7 +154,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   doc.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
   Value servers;
   servers.SetArray();
-  BOOST_FOREACH(const ComboAddress& server, zone.d_servers) {
+  for(const ComboAddress& server :  zone.d_servers) {
     Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
     servers.PushBack(value, doc.GetAllocator());
   }
@@ -164,7 +164,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
   Value records;
   records.SetArray();
-  BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& dr, zone.d_records) {
+  for(const SyncRes::AuthDomain::records_t::value_type& dr :  zone.d_records) {
     Value object;
     object.SetObject();
     Value jname(dr.d_name.toString().c_str(), doc.GetAllocator()); // copy
@@ -300,7 +300,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
   Document doc;
   doc.SetArray();
 
-  BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
+  for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
     Value jdi;
     jdi.SetObject();
@@ -315,7 +315,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     jdi.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
     Value servers;
     servers.SetArray();
-    BOOST_FOREACH(const ComboAddress& server, zone.d_servers) {
+    for(const ComboAddress& server :  zone.d_servers) {
       Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
       servers.PushBack(value, doc.GetAllocator());
     }
@@ -371,7 +371,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   Document doc;
   doc.SetArray();
 
-  BOOST_FOREACH(const SyncRes::domainmap_t::value_type& val, *t_sstorage->domainmap) {
+  for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
     string zoneId = apiZoneNameToId(val.first);
     if (pdns_ci_find(val.first.toString(), q) != string::npos) {
       Value object;
@@ -391,7 +391,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
     const SyncRes::AuthDomain& zone = val.second;
 
-    BOOST_FOREACH(const SyncRes::AuthDomain::records_t::value_type& rr, zone.d_records) {
+    for(const SyncRes::AuthDomain::records_t::value_type& rr :  zone.d_records) {
       if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.d_content->getZoneRepresentation(), q) == string::npos)
         continue;
 
@@ -472,7 +472,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     typedef map<query_t,unsigned int> counts_t;
     counts_t counts;
     unsigned int total=0;
-    BOOST_FOREACH(const query_t& q, queries) {
+    for(const query_t& q :  queries) {
       total++;
       if(filter)
 	counts[make_pair(getRegisteredName(q.first), q.second)]++;
@@ -491,7 +491,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     Value entries;
     entries.SetArray();
     unsigned int tot=0, totIncluded=0;
-    BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
+    for(const rcounts_t::value_type& q :  rcounts) {
       Value arr;
 
       arr.SetArray();
@@ -527,7 +527,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     typedef map<ComboAddress,unsigned int,ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;
     unsigned int total=0;
-    BOOST_FOREACH(const ComboAddress& q, queries) {
+    for(const ComboAddress& q :  queries) {
       total++;
       counts[q]++;
     }
@@ -544,7 +544,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     Value entries;
     entries.SetArray();
     unsigned int tot=0, totIncluded=0;
-    BOOST_FOREACH(const rcounts_t::value_type& q, rcounts) {
+    for(const rcounts_t::value_type& q :  rcounts) {
       totIncluded-=q.first;
       Value arr;
 

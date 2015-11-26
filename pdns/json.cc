@@ -129,7 +129,7 @@ string returnJsonObject(const map<string, string>& items)
   Document doc;
   doc.SetObject();
   typedef map<string, string> items_t;
-  BOOST_FOREACH(const items_t::value_type& val, items) {
+  for(const items_t::value_type& val :  items) {
     doc.AddMember(val.first.c_str(), val.second.c_str(), doc.GetAllocator());
   }
   return makeStringFromDocument(doc);

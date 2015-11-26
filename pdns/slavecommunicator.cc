@@ -174,7 +174,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
           out.push_back(*i);
         }
 
-        BOOST_FOREACH(DNSResourceRecord& rr, out) {
+        for(DNSResourceRecord& rr :  out) {
           switch(rr.qtype.getCode()) {
             case QType::NSEC3PARAM: {
               ns3pr = NSEC3PARAMRecordContent(rr.content);
@@ -297,7 +297,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     map<DNSName,bool> nonterm;
 
 
-    BOOST_FOREACH(DNSResourceRecord& rr, rrs) {
+    for(DNSResourceRecord& rr :  rrs) {
 
       if(!isPresigned) {
         if (rr.qtype.getCode() == QType::RRSIG)
@@ -540,7 +540,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     d_potentialsupermasters.clear();
   }
 
-  BOOST_FOREACH(DNSPacket& dp, trysuperdomains) {
+  for(DNSPacket& dp :  trysuperdomains) {
     int res;
     res=P->trySuperMasterSynchronous(&dp);
     if(res>=0) {
@@ -560,7 +560,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     Lock l(&d_lock);
     domains_by_name_t& nameindex=boost::multi_index::get<IDTag>(d_suckdomains);
 
-    BOOST_FOREACH(DomainInfo& di, rdomains) {
+    for(DomainInfo& di :  rdomains) {
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
@@ -637,7 +637,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   L<<Logger::Warning<<"Received serial number updates for "<<ssr.d_freshness.size()<<" zones, had "<<ifl.getTimeouts()<<" timeouts"<<endl;
 
   typedef DomainNotificationInfo val_t;
-  BOOST_FOREACH(val_t& val, sdomains) {
+  for(val_t& val :  sdomains) {
     DomainInfo& di(val.di);
     // might've come from the packethandler
     if(!di.backend && !B->getDomainInfo(di.zone, di)) {

@@ -494,7 +494,7 @@ uint16_t DNSKEYRecordContent::getTag()
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
-    BOOST_FOREACH(const MOADNSParser::answers_t::value_type& val, mdp.d_answers) {
+    for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
       if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
         eo->d_packetsize=val.first.d_class;
        

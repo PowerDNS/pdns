@@ -121,7 +121,7 @@ uint64_t RecursorPacketCache::size()
 uint64_t RecursorPacketCache::bytes()
 {
   uint64_t sum=0;
-  BOOST_FOREACH(const struct Entry& e, d_packetCache) {
+  for(const struct Entry& e :  d_packetCache) {
     sum += sizeof(e) + e.d_packet.length() + 4;
   }
   return sum;

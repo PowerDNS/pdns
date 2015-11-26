@@ -160,7 +160,7 @@ void UDPNameserver::bindIPv4()
 
 bool AddressIsUs(const ComboAddress& remote)
 {
-  BOOST_FOREACH(const ComboAddress& us, g_localaddresses) {
+  for(const ComboAddress& us :  g_localaddresses) {
     if(remote == us)
       return true;
     if(IsAnyAddress(us)) {
@@ -323,7 +323,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
   int err;
   vector<struct pollfd> rfds= d_rfds;
 
-  BOOST_FOREACH(struct pollfd &pfd, rfds) {
+  for(struct pollfd &pfd :  rfds) {
     pfd.events = POLLIN;
     pfd.revents = 0;
   }
@@ -337,7 +337,7 @@ DNSPacket *UDPNameserver::receive(DNSPacket *prefilled)
     unixDie("Unable to poll for new UDP events");
   }
     
-  BOOST_FOREACH(struct pollfd &pfd, rfds) {
+  for(struct pollfd &pfd :  rfds) {
     if(pfd.revents & POLLIN) {
       sock=pfd.fd;        
       if((len=recvmsg(sock, &msgh, 0)) < 0 ) {

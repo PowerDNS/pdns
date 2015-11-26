@@ -98,12 +98,12 @@ ChunkedSigningPipe::~ChunkedSigningPipe()
   delete d_rrsetToSign;
   if(!d_mustSign)
     return;
-  BOOST_FOREACH(int fd, d_sockets) {
+  for(int fd :  d_sockets) {
     close(fd); // this will trigger all threads to exit
   }
     
   void* res;
-  BOOST_FOREACH(pthread_t& tid, d_tids) {
+  for(pthread_t& tid :  d_tids) {
     pthread_join(tid, &res);
   }
   //cout<<"Did: "<<d_signed<<", records (!= chunks) submitted: "<<d_submitted<<endl;
@@ -224,7 +224,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
     while(d_outstanding) {
       chunk_t* chunk;
       
-      BOOST_FOREACH(int fd, rwVect.first) {
+      for(int fd :  rwVect.first) {
         if(d_eof.count(fd))
           continue;
         
@@ -268,7 +268,7 @@ void ChunkedSigningPipe::sendRRSetToWorker() // it sounds so socialist!
 unsigned int ChunkedSigningPipe::getReady()
 {
    unsigned int sum=0; 
-   BOOST_FOREACH(const std::vector<DNSResourceRecord>& v, d_chunks) {
+   for(const std::vector<DNSResourceRecord>& v :  d_chunks) {
      sum += v.size(); 
    }
    return sum;
@@ -320,7 +320,7 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
     d_final = true;
     flushToSign();
     
-    BOOST_FOREACH(int fd, d_sockets) {
+    for(int fd :  d_sockets) {
       shutdown(fd, SHUT_WR); // perhaps this transmits EOF the other side
       //cerr<<"shutdown of "<<fd<<endl;
     }

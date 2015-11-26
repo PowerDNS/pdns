@@ -164,7 +164,7 @@ struct SendReceive
   //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
     if(!g_quiet) {
       cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
-      BOOST_FOREACH(const ComboAddress& ca, dr.ips) {
+      for(const ComboAddress& ca :  dr.ips) {
         cout<<", "<<ca.toString();
       }
       cout<<endl;

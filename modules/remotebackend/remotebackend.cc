@@ -118,7 +118,7 @@ int RemoteBackend::build() {
       stringtok(parts, opts, ",");
 
       // find out some options and parse them while we're at it
-      BOOST_FOREACH(std::string opt, parts) {
+      for(std::string opt :  parts) {
           std::string key,val;
           // make sure there is something else than air in the option...
           if (opt.find_first_not_of(" ") == std::string::npos) continue;
@@ -363,7 +363,7 @@ bool RemoteBackend::setDomainMetadata(const DNSName& name, const std::string& ki
    JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "kind", kind.c_str(), query.GetAllocator());
    val.SetArray();
-   BOOST_FOREACH(std::string value, meta) {
+   for(std::string value :  meta) {
      val.PushBack(value.c_str(), query.GetAllocator());
    }
    parameters.AddMember("value", val, query.GetAllocator());

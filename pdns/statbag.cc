@@ -62,7 +62,7 @@ string StatBag::directory()
     }
 
 
-  BOOST_FOREACH(const funcstats_t::value_type& val, d_funcstats) {
+  for(const funcstats_t::value_type& val :  d_funcstats) {
     o << val.first<<"="<<val.second(val.first)<<",";
   }
   dir=o.str();
@@ -79,7 +79,7 @@ vector<string>StatBag::getEntries()
       i++)
       ret.push_back(i->first);
 
-  BOOST_FOREACH(const funcstats_t::value_type& val, d_funcstats) {
+  for(const funcstats_t::value_type& val :  d_funcstats) {
     ret.push_back(val.first);
   }
 
@@ -245,7 +245,7 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
     typedef pair<SComboAddress, unsigned int> stor_t;
     vector<stor_t> raw =d_comborings[name].get();
     vector<pair<string, unsigned int> > ret;
-    BOOST_FOREACH(const stor_t& stor, raw) {
+    for(const stor_t& stor :  raw) {
       ret.push_back(make_pair(stor.first.ca.toString(), stor.second));
     }
     return ret;

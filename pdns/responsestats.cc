@@ -68,7 +68,7 @@ string ResponseStats::getQTypeReport()
   qtypenums_t qtypenums = getQTypeResponseCounts();
   ostringstream os;
   boost::format fmt("%s\t%d\n");
-  BOOST_FOREACH(const qtypenums_t::value_type& val, qtypenums) {
+  for(const qtypenums_t::value_type& val :  qtypenums) {
     os << (fmt %DNSRecordContent::NumberToType( val.first) % val.second).str();
   }
   return os.str();

@@ -451,7 +451,7 @@ bool ArgvMap::file(const char *fname, bool lax, bool included)
   if (!included && !params["include-dir"].empty()) {
     std::vector<std::string> extraConfigs;
     gatherIncludes(extraConfigs); 
-    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+    for(const std::string& fn :  extraConfigs) {
       if (!file(fn.c_str(), lax, true)) {
         L << Logger::Error << fn << " could not be parsed" << std::endl;
         throw ArgException(fn + " could not be parsed");

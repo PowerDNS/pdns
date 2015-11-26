@@ -117,7 +117,7 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain)
 void NotificationQueue::dump()
 {
   cerr<<"Waiting for notification responses: "<<endl;
-  BOOST_FOREACH(NotificationRequest& nr, d_nqueue) {
+  for(NotificationRequest& nr :  d_nqueue) {
     cerr<<nr.domain.toString()<<", "<<nr.ip<<endl;
   }
 }

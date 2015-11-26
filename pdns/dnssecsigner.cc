@@ -57,7 +57,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
   set<int> algoHasKSK, algoHasZSK;
   vector<DNSSECPrivateKey> signingKeys;
 
-  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type& keymeta, keys) {
+  for(DNSSECKeeper::keyset_t::value_type& keymeta :  keys) {
     if(keymeta.second.active) {
       if(keymeta.second.keyOrZone)
         algoHasKSK.insert(keymeta.first.d_algorithm);
@@ -66,7 +66,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
     }
   }
 
-  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type& keymeta, keys) {
+  for(DNSSECKeeper::keyset_t::value_type& keymeta :  keys) {
     if(!keymeta.second.active)
       continue;
 
@@ -83,7 +83,7 @@ int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName sig
     signingKeys.push_back(keymeta.first);
   }
 
-  BOOST_FOREACH(DNSSECPrivateKey& dpk, signingKeys) {
+  for(DNSSECPrivateKey& dpk :  signingKeys) {
     fillOutRRSIG(dpk, signQName, rrc, toSign);
     rrcs.push_back(rrc);
   }
@@ -118,7 +118,7 @@ void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, con
       rr.ttl=signTTL;
     rr.auth=false;
     rr.d_place = signPlace;
-    BOOST_FOREACH(RRSIGRecordContent& rrc, rrcs) {
+    for(RRSIGRecordContent& rrc :  rrcs) {
       rr.content = rrc.getZoneRepresentation();
       outsigned.push_back(rr);
     }

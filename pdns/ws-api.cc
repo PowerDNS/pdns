@@ -123,7 +123,7 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   string value;
   Document doc;
   doc.SetArray();
-  BOOST_FOREACH(const string& item, items) {
+  for(const string& item :  items) {
     Value jitem;
     jitem.SetObject();
     jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
@@ -179,7 +179,7 @@ static string logGrep(const string& q, const string& fname, const string& prefix
   Document doc;
   doc.SetArray();
   if(!lines.empty()) {
-    BOOST_FOREACH(const string& line, lines) {
+    for(const string& line :  lines) {
       doc.PushBack(line.c_str(), doc.GetAllocator());
     }
   }
@@ -204,7 +204,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   Document doc;
   doc.SetArray();
   typedef map<string, string> items_t;
-  BOOST_FOREACH(const items_t::value_type& item, items) {
+  for(const items_t::value_type& item :  items) {
     Value jitem;
     jitem.SetObject();
     jitem.AddMember("type", "StatisticItem", doc.GetAllocator());

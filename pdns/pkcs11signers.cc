@@ -385,13 +385,13 @@ class Pkcs11Token {
       privAttr = new CK_ATTRIBUTE[privAttributes.size()];
 
       k = 0;
-      BOOST_FOREACH(P11KitAttribute& attribute, pubAttributes) {
+      for(P11KitAttribute& attribute :  pubAttributes) {
         attribute.rattr(pubAttr+k);
         k++;
       }
 
       k = 0;
-      BOOST_FOREACH(P11KitAttribute& attribute, privAttributes) {
+      for(P11KitAttribute& attribute :  privAttributes) {
         attribute.rattr(privAttr+k);
         k++;
       }
@@ -508,7 +508,7 @@ class Pkcs11Token {
       attr = new CK_ATTRIBUTE[attributes.size()];
 
       k = 0;
-      BOOST_FOREACH(const P11KitAttribute& attribute, attributes) {
+      for(const P11KitAttribute& attribute :  attributes) {
         attribute.rattr(attr+k);
         k++;
       }
@@ -557,7 +557,7 @@ class Pkcs11Token {
       attr = new CK_ATTRIBUTE[attributes.size()];
 
       k = 0;
-      BOOST_FOREACH(P11KitAttribute &attribute, attributes) {
+      for(P11KitAttribute &attribute :  attributes) {
         attribute.wattr(attr+k);
         k++;
       }

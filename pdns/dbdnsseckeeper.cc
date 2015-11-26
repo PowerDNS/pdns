@@ -59,7 +59,7 @@ bool DNSSECKeeper::isSecuredZone(const DNSName& zone)
 
   keyset_t keys = getKeys(zone); // does the cache
 
-  BOOST_FOREACH(keyset_t::value_type& val, keys) {
+  for(keyset_t::value_type& val :  keys) {
     if(val.second.active) {
       return true;
     }
@@ -142,7 +142,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
 {  
   vector<DNSBackend::KeyData> keys;
   d_keymetadb->getDomainKeys(zname, 0, keys);
-  BOOST_FOREACH(const DNSBackend::KeyData& kd, keys) {
+  for(const DNSBackend::KeyData& kd :  keys) {
     if(kd.id != id) 
       continue;
     
@@ -381,7 +381,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool
       
     if(iter != s_keycache.end() && iter->d_ttd > now) { 
       keyset_t ret;
-      BOOST_FOREACH(const keyset_t::value_type& value, iter->d_keys) {
+      for(const keyset_t::value_type& value :  iter->d_keys) {
         if(boost::indeterminate(allOrKeyOrZone) || allOrKeyOrZone == value.second.keyOrZone)
           ret.push_back(value);
       }
@@ -393,7 +393,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool
   
   d_keymetadb->getDomainKeys(zone, 0, dbkeyset);
   
-  BOOST_FOREACH(DNSBackend::KeyData& kd, dbkeyset)
+  for(DNSBackend::KeyData& kd :  dbkeyset)
   {
     DNSSECPrivateKey dpk;
 
@@ -472,7 +472,7 @@ bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
   
   d_keymetadb->getDomainMetadata(zone, "TSIG-ALLOW-AXFR", allowed);
   
-  BOOST_FOREACH(const string& dbkey, allowed) {
+  for(const string& dbkey :  allowed) {
     if(DNSName(dbkey)==keyname)
       return true;
   }
@@ -486,7 +486,7 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const string& master, D
   keyname->trimToLabels(0);
   
   // XXX FIXME this should check for a specific master!
-  BOOST_FOREACH(const string& dbkey, keynames) {
+  for(const string& dbkey :  keynames) {
     *keyname=DNSName(dbkey);
     return true;
   }
