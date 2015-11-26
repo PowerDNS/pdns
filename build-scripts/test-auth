@@ -28,7 +28,7 @@ export GEM_HOME=${PWD}/gems
 mkdir -p $GEM_HOME
 export PATH="${GEM_HOME}/bin:$PATH"
 
-if [ -z "$context"]; then
+if [ -z "$context" ]; then
 	cd modules/remotebackend
 	ruby -S bundle install
 	cd ../../
