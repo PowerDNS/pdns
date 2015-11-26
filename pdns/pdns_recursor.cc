@@ -293,12 +293,12 @@ public:
   typedef set<int> socks_t;
   socks_t d_socks;
 
-  // returning -1 means: temporary OS error (ie, out of files), -2 means OS error
+  // returning -2 means: temporary OS error (ie, out of files), -1 means error related to remote
   int getSocket(const ComboAddress& toaddr, int* fd)
   {
     *fd=makeClientSocket(toaddr.sin4.sin_family);
     if(*fd < 0) // temporary error - receive exception otherwise
-      return -1;
+      return -2;
 
     if(connect(*fd, (struct sockaddr*)(&toaddr), toaddr.getSocklen()) < 0) {
       int err = errno;
