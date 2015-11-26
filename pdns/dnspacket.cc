@@ -252,7 +252,7 @@ bool DNSPacket::couldBeCached()
 unsigned int DNSPacket::getMinTTL()
 {
   unsigned int minttl = UINT_MAX;
-  BOOST_FOREACH(DNSResourceRecord rr, d_rrs) {
+  for(const DNSResourceRecord& rr :  d_rrs) {
   if (rr.ttl < minttl)
       minttl = rr.ttl;
   }
