@@ -56,11 +56,14 @@ int makeQuerySocket(const ComboAddress& local, bool udpOrTCP)
   ComboAddress ourLocal(local);
   
   int sock=socket(ourLocal.sin4.sin_family, udpOrTCP ? SOCK_DGRAM : SOCK_STREAM, 0);
-  setCloseOnExec(sock);
   if(sock < 0) {
-    unixDie("Creating local resolver socket for "+ourLocal.toString() + ((local.sin4.sin_family == AF_INET6) ? ", does your OS miss IPv6?" : ""));
+    if(errno == EAFNOSUPPORT && local.sin4.sin_family == AF_INET6) {
+        return -1;
+    }
+    unixDie("Creating local resolver socket for "+ourLocal.toString());
   }
 
+  setCloseOnExec(sock);
   if(udpOrTCP) {
     // udp, try hard to bind an unpredictable port
     int tries=10;
