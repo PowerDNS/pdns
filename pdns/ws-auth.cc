@@ -654,9 +654,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     gatherComments(document, new_comments, false);
 
-    DNSResourceRecord rr;
-
-    BOOST_FOREACH(rr, new_records) {
+    for(auto& rr :  new_records) {
       if (!rr.qname.isPartOf(dzonename) && rr.qname != dzonename)
         throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
 
@@ -665,7 +663,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
     }
-
+    DNSResourceRecord rr=*new_records.rbegin();
     rr.qname = dzonename;
     rr.auth = 1;
     rr.ttl = ::arg().asNum("default-ttl");
@@ -715,11 +713,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->startTransaction(dzonename, di.id);
 
-    BOOST_FOREACH(rr, new_records) {
+    for(auto rr : new_records) {
       rr.domain_id = di.id;
       di.backend->feedRecord(rr);
     }
-    BOOST_FOREACH(Comment& c, new_comments) {
+    for(Comment& c :  new_comments) {
       c.domain_id = di.id;
       di.backend->feedComment(c);
     }
