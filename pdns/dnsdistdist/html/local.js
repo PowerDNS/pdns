@@ -49,7 +49,7 @@ $(document).ready(function() {
     function updateRingBuffers()
     {
 	var filtered=$("#filter1").is(':checked')
-	var qstring='/jsonstat?command=get-query-ring&name=queries';
+	var qstring='jsonstat?command=get-query-ring&name=queries';
 	if(filtered)
 	    qstring=qstring+"&public-filtered=1";
 
@@ -77,7 +77,7 @@ $(document).ready(function() {
 		  });
 
 	filtered=$("#filter2").is(':checked')
-	qstring='/jsonstat?command=get-query-ring&name=servfail-queries';
+	qstring='jsonstat?command=get-query-ring&name=servfail-queries';
 	if(filtered)
 	    qstring=qstring+"&public-filtered=1";
 
@@ -101,7 +101,7 @@ $(document).ready(function() {
 
 		  });
 
-	$.getJSON('/jsonstat?command=get-remote-ring&name=remotes', 
+	$.getJSON('jsonstat?command=get-remote-ring&name=remotes', 
 		  function(data) {
 		      var bouw="<table><tr><th>Number</th><th>Remote</th></tr>";
 		      var num=0, total=0, rest=0;
@@ -119,7 +119,7 @@ $(document).ready(function() {
 
 		  });
 
-	$.getJSON('/jsonstat?command=get-remote-ring&name=servfail-remotes', 
+	$.getJSON('jsonstat?command=get-remote-ring&name=servfail-remotes', 
 		  function(data) {
 		      var bouw="<table><tr><th>Number</th><th>Servfail Remote</th></tr>";
 		      var num=0, total=0, rest=0;
@@ -144,7 +144,7 @@ $(document).ready(function() {
     {
 
 	$.ajax({
-            url: '/jsonstat?command=stats',
+            url: 'jsonstat?command=stats',
             type: 'GET',
             dataType: 'jsonp',
             success: function(data, x, y) {
@@ -184,7 +184,7 @@ $(document).ready(function() {
             },
         });
 	
-	$.ajax({ url: '/servers/localhost', type: 'GET', dataType: 'json',
+	$.ajax({ url: 'servers/localhost', type: 'GET', dataType: 'json',
 		 success: function(data) {
 		     $("#version").text("PowerDNS "+data["daemon_type"]+" "+data["version"]);
 		     var bouw="<table><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>";
