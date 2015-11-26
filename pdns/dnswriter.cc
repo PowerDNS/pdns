@@ -4,7 +4,7 @@
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
-#include <boost/foreach.hpp>
+
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)

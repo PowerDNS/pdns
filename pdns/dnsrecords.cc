@@ -26,7 +26,7 @@
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
-#include <boost/foreach.hpp>
+
 
 void DNSResourceRecord::setContent(const string &cont) {
   content = cont;

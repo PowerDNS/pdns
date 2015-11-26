@@ -35,7 +35,7 @@
 #include "comment.hh"
 #include "ueberbackend.hh"
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
+
 #include "namespaces.hh"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"

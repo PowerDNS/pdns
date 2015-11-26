@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 #include <iostream>
-#include <boost/foreach.hpp>
+
 #include "recpacketcache.hh"
 #include "cachecleaner.hh"
 #include "dns.hh"

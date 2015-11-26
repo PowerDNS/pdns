@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <boost/foreach.hpp>
+
 #include <sstream>
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"

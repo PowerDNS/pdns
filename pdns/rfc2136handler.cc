@@ -8,7 +8,7 @@
 #include "dnsseckeeper.hh"
 #include "base64.hh"
 #include "base32.hh"
-#include <boost/foreach.hpp>
+
 #include "misc.hh"
 #include "arguments.hh"
 #include "resolver.hh"

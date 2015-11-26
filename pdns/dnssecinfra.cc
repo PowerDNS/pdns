@@ -8,7 +8,7 @@
 #include "dnsrecords.hh"
 #include "statbag.hh"
 #include "iputils.hh"
-#include <boost/foreach.hpp>
+
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"

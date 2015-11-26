@@ -14,7 +14,7 @@
 #include <algorithm>
 #include "anadns.hh"
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/logic/tribool.hpp>
 #include "arguments.hh"
 #include "namespaces.hh"

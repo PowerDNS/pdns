@@ -28,7 +28,7 @@
 #include "communicator.hh"
 #include <set>
 #include <boost/utility.hpp>
-#include <boost/foreach.hpp>
+
 #include "dnsbackend.hh"
 #include "ueberbackend.hh"
 #include "packethandler.hh"

@@ -37,7 +37,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
-#include <boost/foreach.hpp>
+
 #include "dns.hh"
 #include "arguments.hh"
 #include "dnsbackend.hh"

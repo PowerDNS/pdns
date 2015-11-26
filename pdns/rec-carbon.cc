@@ -8,7 +8,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 #include "lock.hh"
-#include <boost/foreach.hpp>
+
 
 void doCarbonDump(void*)
 try

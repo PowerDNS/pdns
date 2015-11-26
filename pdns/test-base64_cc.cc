@@ -5,7 +5,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/std/map.hpp>
-#include <boost/foreach.hpp>
+
 #include "base64.hh"
 
 using namespace boost;

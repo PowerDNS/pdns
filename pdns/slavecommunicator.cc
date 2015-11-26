@@ -39,7 +39,7 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
-#include <boost/foreach.hpp>
+
 #include <boost/lexical_cast.hpp>
 #include "base64.hh"
 #include "inflighter.cc"

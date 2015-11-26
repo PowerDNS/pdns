@@ -6,7 +6,7 @@
 #include "statbag.hh"
 #include "base32.hh"
 #include "base64.hh"
-#include <boost/foreach.hpp>
+
 #include <boost/program_options.hpp>
 #include <boost/assign/std/vector.hpp>
 #include <boost/assign/list_of.hpp>

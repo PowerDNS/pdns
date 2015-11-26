@@ -8,7 +8,7 @@
 #include "version.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
-#include <boost/foreach.hpp>
+
 #include "sstuff.hh"
 #include "dnswriter.hh"
 #include "dns_random.hh"

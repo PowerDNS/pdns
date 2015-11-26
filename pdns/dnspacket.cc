@@ -33,7 +33,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
-#include <boost/foreach.hpp>
+
 #include "dnsseckeeper.hh"
 #include "dns.hh"
 #include "dnsbackend.hh"

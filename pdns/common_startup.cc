@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include "dynhandler.hh"
-#include <boost/foreach.hpp>
+
 
 bool g_anyToTcp;
 typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;

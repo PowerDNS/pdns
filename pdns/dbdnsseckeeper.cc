@@ -28,7 +28,7 @@
 #include "ueberbackend.hh"
 #include "statbag.hh"
 #include <iostream>
-#include <boost/foreach.hpp>
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fstream>

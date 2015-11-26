@@ -28,7 +28,7 @@
 #include "zoneparser-tng.hh"
 #include "logger.hh"
 #include "dnsrecords.hh"
-#include <boost/foreach.hpp>
+
 #include <thread>
 #include "ixfr.hh"
 #include "rpzloader.hh"

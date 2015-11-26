@@ -14,7 +14,7 @@
 #include "mbedtlscompat.hh"
 #endif
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
-#include <boost/foreach.hpp>
+
 #include "sha.hh"
 #include "dnssecinfra.hh"
 using namespace boost::assign;

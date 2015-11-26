@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 #include "remotebackend.hh"
-#include <boost/foreach.hpp>
+
 
 static const char *kBackendId = "[RemoteBackend]";
 

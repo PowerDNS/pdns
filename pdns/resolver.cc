@@ -45,7 +45,7 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 
-#include <boost/foreach.hpp>
+
 #include "dns_random.hh"
 #include <sys/poll.h>
 #include "gss_context.hh"

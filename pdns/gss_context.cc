@@ -11,7 +11,7 @@
 #include "logger.hh"
 #include "lock.hh"
 #include "arguments.hh"
-#include <boost/foreach.hpp>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include "gss_context.hh"

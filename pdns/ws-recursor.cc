@@ -24,7 +24,7 @@
 #endif
 #include "ws-recursor.hh"
 #include "json.hh"
-#include <boost/foreach.hpp>
+
 #include <string>
 #include "namespaces.hh"
 #include <iostream>

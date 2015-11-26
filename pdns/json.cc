@@ -25,7 +25,7 @@
 #include "json.hh"
 #include "namespaces.hh"
 #include "misc.hh"
-#include <boost/foreach.hpp>
+
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"

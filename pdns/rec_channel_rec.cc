@@ -17,7 +17,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
+
 #include "version.hh"
 #include <sys/types.h>
 #include <sys/stat.h>

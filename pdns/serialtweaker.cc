@@ -26,7 +26,7 @@
 #include "dnsseckeeper.hh"
 #include "dnspacket.hh"
 #include "namespaces.hh"
-#include <boost/foreach.hpp>
+
 
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 {

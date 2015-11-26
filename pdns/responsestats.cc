@@ -5,7 +5,7 @@
 #include <limits>
 #include "namespaces.hh"
 #include "logger.hh"
-#include <boost/foreach.hpp>
+
 #include "dnsparser.hh"
 
 ResponseStats::ResponseStats()

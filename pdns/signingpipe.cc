@@ -4,7 +4,7 @@
 #include "signingpipe.hh"
 #include "misc.hh"
 #include <poll.h>
-#include <boost/foreach.hpp>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>

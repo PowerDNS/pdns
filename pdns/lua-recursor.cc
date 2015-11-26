@@ -60,7 +60,7 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <stdexcept>
-#include <boost/foreach.hpp>
+
 #include "logger.hh"
 #include "dnsparser.hh"
 #include "namespaces.hh"

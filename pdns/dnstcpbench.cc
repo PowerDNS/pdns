@@ -37,7 +37,7 @@
 #include <netinet/tcp.h>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+
 
 StatBag S;
 namespace po = boost::program_options;

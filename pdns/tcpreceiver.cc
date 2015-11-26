@@ -35,7 +35,7 @@
 #include <string>
 #include "tcpreceiver.hh"
 #include "sstuff.hh"
-#include <boost/foreach.hpp>
+
 #include <errno.h>
 #include <signal.h>
 #include "base64.hh"

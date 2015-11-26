@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
+
 #include "pdns/dnsseckeeper.hh"
 #include "pdns/dnssecinfra.hh"
 #include "pdns/base32.hh"

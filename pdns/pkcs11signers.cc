@@ -4,7 +4,7 @@
 #include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assign/list_of.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/format.hpp>
 #include <p11-kit/p11-kit.h>
 

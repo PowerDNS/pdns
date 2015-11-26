@@ -26,7 +26,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/foreach.hpp>
+
 #include "namespaces.hh"
 #include "logger.hh"
 #include <sys/types.h>

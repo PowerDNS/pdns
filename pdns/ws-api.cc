@@ -21,7 +21,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <boost/foreach.hpp>
+
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
 #include "namespaces.hh"

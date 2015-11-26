@@ -6,7 +6,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/tuple/tuple.hpp>
 #include "pdns/namespaces.hh"
 #include "pdns/dns.hh"

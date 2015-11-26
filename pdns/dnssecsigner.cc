@@ -24,7 +24,7 @@
 #endif
 #include "dnssecinfra.hh"
 #include "namespaces.hh"
-#include <boost/foreach.hpp>
+
 #include "md5.hh"
 #include "dnsseckeeper.hh"
 #include "dns_random.hh"

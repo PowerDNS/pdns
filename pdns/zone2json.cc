@@ -44,7 +44,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <boost/foreach.hpp>
+
 #include "json11.hpp"
 
 using namespace json11;

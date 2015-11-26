@@ -9,7 +9,7 @@
 #include "pdns/dnspacket.hh"
 #include "pdns/dnsrecords.hh"
 #include <utility>
-#include <boost/foreach.hpp>
+
 
 static string backendname="[TinyDNSBackend] ";
 uint32_t TinyDNSBackend::s_lastId;

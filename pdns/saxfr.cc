@@ -10,7 +10,7 @@
 #include "statbag.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
-#include <boost/foreach.hpp>
+
 #include "dns_random.hh"
 #include "gss_context.hh"
 

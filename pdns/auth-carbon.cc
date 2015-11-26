@@ -7,7 +7,7 @@
 #include "sstuff.hh"
 #include "arguments.hh"
 #include "common_startup.hh"
-#include <boost/foreach.hpp>
+
 #include "namespaces.hh"
 
 void* carbonDumpThread(void*)
