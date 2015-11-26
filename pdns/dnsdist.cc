@@ -439,6 +439,13 @@ try
 	continue;
       }
 
+      if (msgh.msg_flags & MSG_TRUNC) {
+        /* message was too large for our buffer */
+        vinfolog("Dropping message too large for our buffer");
+        g_stats.nonCompliantQueries++;
+        continue;
+      }
+
       g_stats.queries++;
       if(!acl->match(remote)) {
 	vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
