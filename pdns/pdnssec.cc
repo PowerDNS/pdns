@@ -329,8 +329,7 @@ bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone)
     {
       realrr=false;
       qnames.clear();
-      pair<DNSName,bool> nt;
-      BOOST_FOREACH(nt, nonterm){
+      for(const auto& nt :  nonterm){
         qnames.insert(nt.first);
       }
       goto dononterm;
