@@ -613,6 +613,7 @@ RecursorControlParser::RecursorControlParser()
 
   addGetStat("uptime", calculateUptime);
   addGetStat("real-memory-usage", boost::bind(getRealMemoryUsage, string()));
+  addGetStat("fd-usage", boost::bind(getOpenFileDescriptors, string()));  
 
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
