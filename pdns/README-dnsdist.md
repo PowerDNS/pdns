@@ -459,9 +459,9 @@ authServer=newServer{address="2001:888:2000:1d::2", pool="auth"}
 function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
 	 then
-		return leastOutstanding(getPoolServers("auth"), remote, qname, qtype, dh)
+		return leastOutstanding.policy(getPoolServers("auth"), remote, qname, qtype, dh)
 	 else
-		return leastOutstanding(servers, remote, qname, qtype, dh)
+		return leastOutstanding.policy(servers, remote, qname, qtype, dh)
 	 end
 end
 
