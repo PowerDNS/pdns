@@ -2096,7 +2096,7 @@ boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSN
 void  parseEDNSSubnetWhitelist(const std::string& wlist)
 {
   vector<string> parts;
-  stringtok(parts, wlist, ",;");
+  stringtok(parts, wlist, ",; ");
   for(const auto& a : parts) {
     try {
       Netmask nm(a);
