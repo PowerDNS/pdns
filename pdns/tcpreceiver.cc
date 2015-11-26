@@ -816,7 +816,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   DTime dt;
   dt.set();
   int records=0;
-  BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
+  for(DNSResourceRecord &rr :  rrs) {
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       if(presignedZone && rrc.d_type == QType::NSEC3)
