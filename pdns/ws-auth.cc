@@ -306,7 +306,7 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());
   Value masters;
   masters.SetArray();
-  BOOST_FOREACH(const string& master, di.masters) {
+  for(const string& master :  di.masters) {
     Value value(master.c_str(), doc.GetAllocator());
     masters.PushBack(value, doc.GetAllocator());
   }
@@ -382,7 +382,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
 void productServerStatisticsFetch(map<string,string>& out)
 {
   vector<string> items = S.getEntries();
-  BOOST_FOREACH(const string& item, items) {
+  for(const string& item :  items) {
     out[item] = lexical_cast<string>(S.read(item));
   }
 
@@ -518,7 +518,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   Document doc;
   doc.SetArray();
 
-  BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+  for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
     if (req->parameters.count("key_id")) {
       int keyid = lexical_cast<int>(req->parameters["key_id"]);
       int curid = lexical_cast<int>(value.second.id);
@@ -742,7 +742,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   Document doc;
   doc.SetArray();
 
-  BOOST_FOREACH(const DomainInfo& di, domains) {
+  for(const DomainInfo& di :  domains) {
     Value jdi;
     fillZoneInfo(di, jdi, doc);
     doc.PushBack(jdi, doc.GetAllocator());
@@ -988,7 +988,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
         gatherRecords(rrset, new_records, new_ptrs);
         gatherComments(rrset, new_comments, true);
 
-        BOOST_FOREACH(DNSResourceRecord& rr, new_records) {
+        for(DNSResourceRecord& rr :  new_records) {
           rr.domain_id = di.id;
 
           if (rr.qname != qname || rr.qtype != qtype)
@@ -999,7 +999,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           }
         }
 
-        BOOST_FOREACH(Comment& c, new_comments) {
+        for(Comment& c :  new_comments) {
           c.domain_id = di.id;
         }
 
@@ -1055,7 +1055,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   PC.purge(zonename.toString()); // XXX DNSName pain - this seems the wrong way round!
 
   // now the PTRs
-  BOOST_FOREACH(const DNSResourceRecord& rr, new_ptrs) {
+  for(const DNSResourceRecord& rr :  new_ptrs) {
     DNSPacket fakePacket;
     SOAData sd;
     sd.db = (DNSBackend *)-1;  // getAuth() cache bypass

@@ -93,7 +93,7 @@ string getAllStats()
   typedef map<string, string> varmap_t;
   varmap_t varmap = getAllStatsMap();
   string ret;
-  BOOST_FOREACH(varmap_t::value_type& tup, varmap) {
+  for(varmap_t::value_type& tup :  varmap) {
     ret += tup.first + "\t" + tup.second +"\n";
   }
   return ret;
@@ -148,7 +148,7 @@ static uint64_t dumpNegCache(SyncRes::negcache_t& negcache, int fd)
   sequence_t& sidx=negcache.get<1>();
 
   uint64_t count=0;
-  BOOST_FOREACH(const NegCacheEntry& neg, sidx)
+  for(const NegCacheEntry& neg :  sidx)
   {
     ++count;
     fprintf(fp, "%s IN %s %d VIA %s\n", neg.d_name.toString().c_str(), neg.d_qtype.getName().c_str(), (unsigned int) (neg.d_ttd - now), neg.d_qname.toString().c_str());
@@ -659,7 +659,7 @@ vector<pair<DNSName, uint16_t> >* pleaseGetQueryRing()
     return ret;
   ret->reserve(t_queryring->size());
 
-  BOOST_FOREACH(const query_t& q, *t_queryring) {
+  for(const query_t& q :  *t_queryring) {
     ret->push_back(q);
   }
   return ret;
@@ -671,7 +671,7 @@ vector<pair<DNSName,uint16_t> >* pleaseGetServfailQueryRing()
   if(!t_servfailqueryring)
     return ret;
   ret->reserve(t_queryring->size());
-  BOOST_FOREACH(const query_t& q, *t_servfailqueryring) {
+  for(const query_t& q :  *t_servfailqueryring) {
     ret->push_back(q);
   }
   return ret;
@@ -689,7 +689,7 @@ vector<ComboAddress>* pleaseGetRemotes()
     return ret;
 
   ret->reserve(t_remotes->size());
-  BOOST_FOREACH(const ComboAddress& ca, *t_remotes) {
+  for(const ComboAddress& ca :  *t_remotes) {
     ret->push_back(ca);
   }
   return ret;
@@ -701,7 +701,7 @@ vector<ComboAddress>* pleaseGetServfailRemotes()
   if(!t_servfailremotes)
     return ret;
   ret->reserve(t_servfailremotes->size());
-  BOOST_FOREACH(const ComboAddress& ca, *t_servfailremotes) {
+  for(const ComboAddress& ca :  *t_servfailremotes) {
     ret->push_back(ca);
   }
   return ret;
@@ -713,7 +713,7 @@ vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
   if(!t_largeanswerremotes)
     return ret;
   ret->reserve(t_largeanswerremotes->size());
-  BOOST_FOREACH(const ComboAddress& ca, *t_largeanswerremotes) {
+  for(const ComboAddress& ca :  *t_largeanswerremotes) {
     ret->push_back(ca);
   }
   return ret;
@@ -727,7 +727,7 @@ string doGenericTopRemotes(pleaseremotefunc_t func)
   vector<ComboAddress> remotes=broadcastAccFunction<vector<ComboAddress> >(func);
     
   unsigned int total=0;
-  BOOST_FOREACH(const ComboAddress& ca, remotes) {
+  for(const ComboAddress& ca :  remotes) {
     total++;
     counts[ca]++;
   }
@@ -777,7 +777,7 @@ DNSName getRegisteredName(const DNSName& dom)
   if(parts.size()<=2)
     return dom;
   reverse(parts.begin(), parts.end());
-  BOOST_FOREACH(string& str, parts) { str=toLower(str); };
+  for(string& str :  parts) { str=toLower(str); };
 
   // uk co migweb 
   string last;
@@ -813,7 +813,7 @@ string doGenericTopQueries(pleasequeryfunc_t func, boost::function<DNSName(const
   vector<query_t> queries=broadcastAccFunction<vector<query_t> >(func);
     
   unsigned int total=0;
-  BOOST_FOREACH(const query_t& q, queries) {
+  for(const query_t& q :  queries) {
     total++;
     counts[make_pair(filter(q.first),q.second)]++;
   }

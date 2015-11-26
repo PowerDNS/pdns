@@ -392,7 +392,7 @@ void rectifyAllZones(DNSSECKeeper &dk)
   vector<DomainInfo> domainInfo;
 
   B.getAllDomains(&domainInfo);
-  BOOST_FOREACH(DomainInfo di, domainInfo) {
+  for(DomainInfo di :  domainInfo) {
     cerr<<"Rectifying "<<di.zone.toString()<<": ";
     rectifyZone(dk, di.zone);
   }
@@ -1093,7 +1093,7 @@ bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr << "No keys for zone '"<<zone.toString()<<"'."<<endl;
   }
   else {  
-    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+    for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
       dk.deactivateKey(zone, value.second.id);
       dk.removeKey(zone, value.second.id);
     }
@@ -1142,7 +1142,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
       cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
   
     cout << "keys: "<<endl;
-    BOOST_FOREACH(DNSSECKeeper::keyset_t::value_type value, keyset) {
+    for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
       string algname;
       algorithm2name(value.first.d_algorithm, algname);
       if (value.first.getKey()->getBits() < 1) {
@@ -1257,7 +1257,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
     dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
 
-  BOOST_FOREACH(string z_algo, z_algos)
+  for(string z_algo :  z_algos)
   {
     int algo = shorthand2algorithm(z_algo);
     dk.addKey(zone, false, algo, z_size);
@@ -1503,7 +1503,7 @@ try
       SSQLite3 db(cmds[1], true); // create=ok
       vector<string> statements;
       stringtok(statements, sqlCreate, ";");
-      BOOST_FOREACH(const string& statement, statements) {
+      for(const string& statement :  statements) {
         db.execute(statement);
       }
     }
@@ -1794,7 +1794,7 @@ try
     B.getAllDomains(&domainInfo);
 
     unsigned int zonesSecured=0, zoneErrors=0;
-    BOOST_FOREACH(DomainInfo di, domainInfo) {
+    for(DomainInfo di :  domainInfo) {
       if(!dk.isSecuredZone(di.zone)) {
         cout<<"Securing "<<di.zone.toString()<<": ";
         if (secureZone(dk, di.zone)) {
@@ -2197,7 +2197,7 @@ try
      std::vector<struct TSIGKey> keys;
      UeberBackend B("default");
      if (B.getTSIGKeys(keys)) {
-        BOOST_FOREACH(const struct TSIGKey &key, keys) {
+        for(const struct TSIGKey &key :  keys) {
            cout << key.name.toString() << " " << key.algorithm.toString() << " " << key.key << endl;
         }
      }
@@ -2225,7 +2225,7 @@ try
        return 1;
      }
      bool found = false;
-     BOOST_FOREACH(std::string tmpname, meta) {
+     for(std::string tmpname :  meta) {
           if (tmpname == name) { found = true; break; }
      }
      if (!found) meta.push_back(name);
@@ -2287,7 +2287,7 @@ try
     if (cmds.size() > 2) {
       keys.assign(cmds.begin() + 2, cmds.end());
       std::cout << "Metadata for '" << zone << "'" << endl;
-      BOOST_FOREACH(const string kind, keys) {
+      for(const string kind :  keys) {
         vector<string> meta;
         meta.clear();
         if (B.getDomainMetadata(zone, kind, meta)) {
@@ -2371,7 +2371,7 @@ try
      B.getDomainKeys(zone, 0, keys);
      id = -1;
 
-     BOOST_FOREACH(DNSBackend::KeyData& kd, keys) {
+     for(DNSBackend::KeyData& kd :  keys) {
        if (kd.content == iscString.str()) {
          // it's this one, I guess...
          id = kd.id;
@@ -2394,7 +2394,7 @@ try
      B.getDomainKeys(zone, 0, keys);
 
      // validate which one got the key...
-     BOOST_FOREACH(DNSBackend::KeyData& kd, keys) {
+     for(DNSBackend::KeyData& kd :  keys) {
        if (kd.content == iscString.str()) {
          // it's this one, I guess...
          id = kd.id;
@@ -2430,7 +2430,7 @@ try
 
       DNSCryptoKeyEngine *dke = NULL;
       // lookup correct key      
-      BOOST_FOREACH(DNSBackend::KeyData &kd, keys) {
+      for(DNSBackend::KeyData &kd :  keys) {
         if (kd.id == id) {
           // found our key. 
           DNSKEYRecordContent dkrc;
