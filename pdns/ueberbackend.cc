@@ -464,6 +464,13 @@ void UeberBackend::addCache(const Question &q, const vector<DNSResourceRecord> &
     return;
 
   unsigned int store_ttl = d_cache_ttl;
+  for(const DNSResourceRecord& rr : rrs) {
+   if (rr.ttl < d_cache_ttl)
+     store_ttl = rr.ttl;
+   if (rr.scopeMask)
+     return;
+  }
+
   PC.insert(q.qname, q.qtype, PacketCache::QUERYCACHE, rrs, store_ttl, q.zoneId);
 }
 
