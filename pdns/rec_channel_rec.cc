@@ -70,17 +70,13 @@ map<string,string> getAllStatsMap()
 {
   map<string,string> ret;
   
-  pair<string, const uint32_t*> the32bits;
-  pair<string, const uint64_t*> the64bits;
-  pair<string, function< uint32_t() > >  the32bitmembers;
-  
-  BOOST_FOREACH(the32bits, d_get32bitpointers) {
+  for(const auto& the32bits :  d_get32bitpointers) {
     ret.insert(make_pair(the32bits.first, lexical_cast<string>(*the32bits.second)));
   }
-  BOOST_FOREACH(the64bits, d_get64bitpointers) {
+  for(const auto& the64bits :  d_get64bitpointers) {
     ret.insert(make_pair(the64bits.first, lexical_cast<string>(*the64bits.second)));
   }
-  BOOST_FOREACH(the32bitmembers, d_get32bitmembers) { 
+  for(const auto& the32bitmembers :  d_get32bitmembers) { 
     if(the32bitmembers.first == "cache-bytes" || the32bitmembers.first=="packetcache-bytes")
       continue; // too slow for 'get-all'
     ret.insert(make_pair(the32bitmembers.first, lexical_cast<string>(the32bitmembers.second())));
