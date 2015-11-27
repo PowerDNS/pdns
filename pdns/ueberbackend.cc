@@ -45,8 +45,6 @@
 #include "dnspacket.hh"
 #include "logger.hh"
 #include "statbag.hh"
-#include <boost/serialization/vector.hpp>
-
 
 extern StatBag S;
 

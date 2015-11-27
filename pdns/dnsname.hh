@@ -85,12 +85,6 @@ public:
 					}); // note that this is case insensitive, including on the label lengths
   }
 
-  template<class Archive>
-  void serialize(Archive &ar, const unsigned int version)
-  {
-    ar & d_storage;
-  }
-
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;  
 private:
