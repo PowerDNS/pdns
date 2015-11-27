@@ -261,11 +261,10 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
 
   auto i = dom.records.find(search);
   if (i != dom.records.end()) { // return static value
-    // we want MUTABLE rr here.
-    for(DNSResourceRecord rr : i->second) {
+    for(const auto& rr : i->second) {
       if (qtype == QType::ANY || rr.qtype == qtype) {
-        rr.content = format2str(rr.content, ip, v6, &gl);
 	d_result.push_back(rr);
+        d_result.back().content = format2str(rr.content, ip, v6, &gl);
 	d_result.back().qname = qdomain;
       }
     }
@@ -292,11 +291,10 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     // see if the record can be found
     auto ri = dom.records.find(DNSName(format));
     if (ri != dom.records.end()) { // return static value
-      // we want MUTABLE rr here.
-      for(DNSResourceRecord rr : ri->second) {
+      for(const auto& rr: ri->second) {
         if (qtype == QType::ANY || rr.qtype == qtype) {
-          rr.content = format2str(rr.content, ip, v6, &gl);
           d_result.push_back(rr);
+          d_result.back().content = format2str(rr.content, ip, v6, &gl);
           d_result.back().qname = qdomain;
         }
       }
