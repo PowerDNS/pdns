@@ -478,7 +478,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
     try {
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
       string tmp=drc->serialize(rr.qname);
-      tmp = drc->getZoneRepresentation();
+      tmp = drc->getZoneRepresentation(true);
       if (rr.qtype.getCode() != QType::AAAA) {
         if (!pdns_iequals(tmp, rr.content)) {
           cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname.toString()<<" IN " <<rr.qtype.getName()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;

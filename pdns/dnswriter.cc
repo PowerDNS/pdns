@@ -203,7 +203,7 @@ DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& nmap, const DNSN
 // }
 
 // this is the absolute hottest function in the pdns recursor
-void DNSPacketWriter::xfrName(const DNSName& name, bool compress)
+void DNSPacketWriter::xfrName(const DNSName& name, bool compress, bool)
 {
   //cerr<<"xfrName: name=["<<name.toString()<<"] compress="<<compress<<endl;
   // string label = d_lowerCase ? toLower(Label) : Label;

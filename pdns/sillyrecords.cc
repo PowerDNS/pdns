@@ -290,7 +290,7 @@ LOCRecordContent::LOCRecordContent(const string& content, const string& zone)
 }
 
 
-string LOCRecordContent::getZoneRepresentation() const
+string LOCRecordContent::getZoneRepresentation(bool noDot) const
 {
   // convert d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude to:
   // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
