@@ -149,7 +149,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
  
       Json my_json = Json::object {
 	{ "daemon_type", "dnsdist" },
-	{ "version", "0.1"},
+	{ "version", VERSION},
 	{ "servers", servers},
 	{ "rules", rules},
       };
