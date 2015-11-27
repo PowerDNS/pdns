@@ -703,7 +703,8 @@ toysdig_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	toysdig.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	validate.cc validate.hh
 
 
 toysdig_LDADD = $(MBEDTLS_LIBS)
