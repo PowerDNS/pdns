@@ -47,7 +47,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   val.SetObject();
   init.AddMember("parameters", val, init.GetAllocator());
 
-  for(std::map<std::string,std::string>::iterator i = options.begin(); i != options.end(); i++) {
+  for(auto i = options.begin(); i != options.end(); i++) {
     val = i->second.c_str();
     init["parameters"].AddMember(i->first.c_str(), val, init.GetAllocator());
   }
