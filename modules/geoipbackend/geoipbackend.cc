@@ -625,6 +625,9 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
     } else if (!format.compare(cur,3,"%mo")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_mon + 1));
       tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,3,"%ip")) {
+      rep = ip;
+      tmp_gl.netmask = (v6?128:32);
     } else if (!format.compare(cur,2,"%%")) {
       last = cur + 2; continue;
     } else {
