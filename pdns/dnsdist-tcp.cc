@@ -146,7 +146,12 @@ void* tcpClientThread(int pipefd)
       for(;;) {      
         if(!getNonBlockingMsgLen(ci.fd, &qlen, g_tcpRecvTimeout))
           break;
-        
+
+        if (qlen < sizeof(dnsheader)) {
+          g_stats.nonCompliantQueries++;
+          break;
+        }
+
         char query[qlen];
         readn2WithTimeout(ci.fd, query, qlen, g_tcpRecvTimeout);
 	uint16_t qtype;
