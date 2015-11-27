@@ -5,7 +5,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/tuple/tuple.hpp>
 #include "base32.hh"
 
@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
     (case_t(std::string("foobar"), std::string("cpnmuoj1e8======")))
   ;
 
-  BOOST_FOREACH(const case_t& val, cases) {
+  for(const case_t& val :  cases) {
      std::string res;
      res = toBase32Hex(val.get<0>());
      BOOST_CHECK_EQUAL(res, val.get<1>());

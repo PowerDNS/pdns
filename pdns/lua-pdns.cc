@@ -3,7 +3,7 @@
 #endif
 #include "lua-pdns.hh"
 // #include "syncres.hh"
-#include <boost/foreach.hpp>
+
 
 #if !defined(HAVE_LUA)
 

@@ -8,7 +8,7 @@
 #include "dnsrecords.hh"
 #include "statbag.hh"
 #include "iputils.hh"
-#include <boost/foreach.hpp>
+
 #include <boost/algorithm/string.hpp>
 #include "dnssecinfra.hh" 
 #include "dnsseckeeper.hh"
@@ -109,7 +109,7 @@ std::string DNSCryptoKeyEngine::convertToISC() const
   storvector_t stormap = this->convertToISCVector();
   ostringstream ret;
   ret<<"Private-key-format: v1.2\n";
-  BOOST_FOREACH(const stormap_t::value_type& value, stormap) {
+  for(const stormap_t::value_type& value :  stormap) {
     if(value.first != "Algorithm" && value.first != "PIN" && 
        value.first != "Slot" && value.first != "Engine" &&
        value.first != "Label") 
@@ -144,14 +144,14 @@ bool DNSCryptoKeyEngine::testAll()
 {
   bool ret=true;
 
-  BOOST_FOREACH(const allmakers_t::value_type& value, getAllMakers())
+  for(const allmakers_t::value_type& value :  getAllMakers())
   {
-    BOOST_FOREACH(maker_t* creator, value.second) {
+    for(maker_t* creator :  value.second) {
 
-      BOOST_FOREACH(maker_t* signer, value.second) {
+      for(maker_t* signer :  value.second) {
         // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
         
-        BOOST_FOREACH(maker_t* verifier, value.second) {
+        for(maker_t* verifier :  value.second) {
           try {
             /* pair<unsigned int, unsigned int> res=*/ testMakers(value.first, creator, signer, verifier);
           }
@@ -171,12 +171,12 @@ bool DNSCryptoKeyEngine::testOne(int algo)
 {
   bool ret=true;
 
-  BOOST_FOREACH(maker_t* creator, getAllMakers()[algo]) {
+  for(maker_t* creator :  getAllMakers()[algo]) {
 
-    BOOST_FOREACH(maker_t* signer, getAllMakers()[algo]) {
+    for(maker_t* signer :  getAllMakers()[algo]) {
       // multi_map<unsigned int, maker_t*> bestSigner, bestVerifier;
 
-      BOOST_FOREACH(maker_t* verifier, getAllMakers()[algo]) {
+      for(maker_t* verifier :  getAllMakers()[algo]) {
         try {
           /* pair<unsigned int, unsigned int> res=*/testMakers(algo, creator, signer, verifier);
         }
@@ -279,7 +279,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPublicKeyString(unsigned int alg
 DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromPEMString(DNSKEYRecordContent& drc, const std::string& raw)
 {
   
-  BOOST_FOREACH(makers_t::value_type& val, getMakers())
+  for(makers_t::value_type& val :  getMakers())
   {
     DNSCryptoKeyEngine* ret=0;
     try {
@@ -309,8 +309,8 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(DNSName("."), true, true));
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
-  BOOST_FOREACH(shared_ptr<DNSRecordContent>& add, signRecords) {
-    toHash.append(qname.toDNSString()); // FIXME400 tolower? 
+  for(shared_ptr<DNSRecordContent>& add :  signRecords) {
+    toHash.append(qname.toDNSString()); // FIXME400 tolower?
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class

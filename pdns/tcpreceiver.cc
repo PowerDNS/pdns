@@ -35,7 +35,7 @@
 #include <string>
 #include "tcpreceiver.hh"
 #include "sstuff.hh"
-#include <boost/foreach.hpp>
+
 #include <errno.h>
 #include <signal.h>
 #include "base64.hh"
@@ -423,7 +423,7 @@ bool TCPNameserver::canDoAXFR(shared_ptr<DNSPacket> q)
     if (q->d_tsig_algo == TSIG_GSS) {
       vector<string> princs;
       s_P->getBackend()->getDomainMetadata(q->qdomain, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
-      BOOST_FOREACH(const std::string& princ, princs) {
+      for(const std::string& princ :  princs) {
         if (q->d_peer_principal == princ) {
           L<<Logger::Warning<<"AXFR of domain '"<<q->qdomain<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
           return true;
@@ -666,7 +666,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   dk.getFromMeta(q->qdomain, "PUBLISH_CDS", publishCDS);
   vector<DNSResourceRecord> cds, cdnskey;
 
-  BOOST_FOREACH(const DNSSECKeeper::keyset_t::value_type& value, keys) {
+  for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
     rr.qtype = QType(QType::DNSKEY);
     rr.content = value.first.getDNSKEY().getZoneRepresentation();
     string keyname = NSEC3Zone ? hashQNameWithSalt(ns3pr, rr.qname) : labelReverse(rr.qname.toString());
@@ -761,7 +761,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
 
   if(rectify) {
     // set auth
-    BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
+    for(DNSResourceRecord &rr :  rrs) {
       rr.auth=true;
       if (rr.qtype.getCode() != QType::NS || rr.qname!=target) {
         DNSName shorter(rr.qname);
@@ -779,7 +779,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
       // ents are only required for NSEC3 zones
       uint32_t maxent = ::arg().asNum("max-ent-entries");
       map<DNSName,bool> nonterm;
-      BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
+      for(DNSResourceRecord &rr :  rrs) {
         DNSName shorter(rr.qname);
         while(shorter != target && shorter.chopOff()) {
           if(!qnames.count(shorter)) {
@@ -796,8 +796,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         }
       }
 
-      pair<DNSName,bool> nt;
-      BOOST_FOREACH(nt, nonterm) {
+      for(const auto& nt :  nonterm) {
         DNSResourceRecord rr;
         rr.qname=nt.first;
         rr.qtype="TYPE0";
@@ -816,7 +815,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   DTime dt;
   dt.set();
   int records=0;
-  BOOST_FOREACH(DNSResourceRecord &rr, rrs) {
+  for(DNSResourceRecord &rr :  rrs) {
     if (rr.qtype.getCode() == QType::RRSIG) {
       RRSIGRecordContent rrc(rr.content);
       if(presignedZone && rrc.d_type == QType::NSEC3)
@@ -1235,7 +1234,7 @@ void TCPNameserver::thread()
         continue;
 
       int sock=-1;
-      BOOST_FOREACH(const struct pollfd& pfd, d_prfds) {
+      for(const struct pollfd& pfd :  d_prfds) {
         if(pfd.revents == POLLIN) {
           sock = pfd.fd;
           addrlen=sizeof(remote);

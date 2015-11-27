@@ -11,7 +11,7 @@
 #include "pdns/dns.hh"
 #include "pdns/namespaces.hh"
 #include <algorithm>
-#include <boost/foreach.hpp>
+
 
 class SPgSQLStatement: public SSqlStatement
 {

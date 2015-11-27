@@ -183,7 +183,7 @@ string DLRSizesHandler(const vector<string>&parts, Utility::pid_t ppid)
   respsizes_t respsizes = g_rs.getSizeResponseCounts();
   ostringstream os;
   boost::format fmt("%d\t%d\n");
-  BOOST_FOREACH(const respsizes_t::value_type& val, respsizes) {
+  for(const respsizes_t::value_type& val :  respsizes) {
     os << (fmt % val.first % val.second).str();
   }
   return os.str();
@@ -196,7 +196,7 @@ string DLRemotesHandler(const vector<string>&parts, Utility::pid_t ppid)
   totals_t totals = S.getRing("remotes");
   string ret;
   boost::format fmt("%s\t%d\n");
-  BOOST_FOREACH(totals_t::value_type& val, totals) {
+  for(totals_t::value_type& val :  totals) {
     ret += (fmt % val.first % val.second).str();
   }
   return ret;

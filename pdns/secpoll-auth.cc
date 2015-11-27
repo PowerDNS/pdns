@@ -8,7 +8,7 @@
 #include "version.hh"
 #include "dnsparser.hh"
 #include "misc.hh"
-#include <boost/foreach.hpp>
+
 #include "sstuff.hh"
 #include "dnswriter.hh"
 #include "dns_random.hh"
@@ -82,7 +82,7 @@ int doResolve(const string& qname, uint16_t qtype, vector<DNSResourceRecord>& re
   }
   L<<Logger::Debug<<msg.substr(0, msg.length() - 2)<<endl;
 
-  BOOST_FOREACH(ComboAddress& dest, s_secpollresolvers) {
+  for(ComboAddress& dest :  s_secpollresolvers) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.sendTo(string(packet.begin(), packet.end()), dest);

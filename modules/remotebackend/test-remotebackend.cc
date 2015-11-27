@@ -6,7 +6,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/tuple/tuple.hpp>
 #include "pdns/namespaces.hh"
 #include "pdns/dns.hh"
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainKeys) {
    // but not fatal
    if (keys.size() > 1) {
       // check that we have two keys
-      BOOST_FOREACH(DNSBackend::KeyData &kd, keys) {
+      for(DNSBackend::KeyData &kd :  keys) {
         BOOST_CHECK(kd.id > 0);
         BOOST_CHECK(kd.flags == 256 || kd.flags == 257);
         BOOST_CHECK(kd.active == true);

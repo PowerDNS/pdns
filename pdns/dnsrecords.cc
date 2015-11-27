@@ -26,7 +26,7 @@
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include "iputils.hh"
-#include <boost/foreach.hpp>
+
 
 void DNSResourceRecord::setContent(const string &cont) {
   content = cont;
@@ -476,10 +476,8 @@ boilerplate_conv(TKEY, QType::TKEY,
                  )
 TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
-uint16_t DNSKEYRecordContent::getTag() const
+static uint16_t makeTag(const std::string& data)
 {
-  DNSKEYRecordContent tmp(*this);
-  string data=tmp.serialize(DNSName());  // this can't be const for some reason
   const unsigned char* key=(const unsigned char*)data.c_str();
   unsigned int keysize=data.length();
 
@@ -492,10 +490,22 @@ uint16_t DNSKEYRecordContent::getTag() const
   return ac & 0xFFFF;
 }
 
+uint16_t DNSKEYRecordContent::getTag() const
+{
+  DNSKEYRecordContent tmp(*this);
+  return makeTag(tmp.serialize(DNSName()));  // this can't be const for some reason
+}
+
+uint16_t DNSKEYRecordContent::getTag() 
+{
+  return makeTag(this->serialize(DNSName()));
+}
+
+
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
-    BOOST_FOREACH(const MOADNSParser::answers_t::value_type& val, mdp.d_answers) {
+    for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
       if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
         eo->d_packetsize=val.first.d_class;
        

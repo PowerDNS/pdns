@@ -31,7 +31,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <vector>
-#include <boost/foreach.hpp>
+
 #include "statbag.hh"
 #include "namespaces.hh"
 #include "dnspacket.hh"

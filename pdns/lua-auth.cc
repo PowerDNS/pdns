@@ -46,7 +46,7 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <stdexcept>
-#include <boost/foreach.hpp>
+
 #include "logger.hh"
 #include "namespaces.hh"
 
@@ -177,7 +177,7 @@ static int ldp_addRecords(lua_State *L) {
   DNSPacket *p=ldp_checkDNSPacket(L);
   vector<DNSRecord> rrs;
   popResourceRecordsTable(L, DNSName("BOGUS"), rrs);
-  BOOST_FOREACH(const DNSRecord& dr, rrs) {
+  for(const DNSRecord& dr :  rrs) {
     p->addRecord(DNSResourceRecord(dr));
   }
   return 0;

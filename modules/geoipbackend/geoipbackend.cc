@@ -99,7 +99,7 @@ void GeoIPBackend::initialize() {
 
   config = YAML::LoadFile(getArg("zones-file"));
 
-  BOOST_FOREACH(YAML::Node domain, config["domains"]) {
+  for(YAML::Node domain :  config["domains"]) {
     GeoIPDomain dom;
     dom.id = s_domains.size();
     dom.domain = DNSName(domain["domain"].as<string>());
@@ -109,7 +109,7 @@ void GeoIPBackend::initialize() {
       DNSName qname = DNSName(recs->first.as<string>());
       vector<DNSResourceRecord> rrs;
 
-      BOOST_FOREACH(YAML::Node item, recs->second) {
+      for(YAML::Node item :  recs->second) {
         YAML::const_iterator rec = item.begin();
         DNSResourceRecord rr;
         rr.domain_id = dom.id;
@@ -645,7 +645,7 @@ void GeoIPBackend::rediscover(string* status) {
 bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo &di) {
   ReadLock rl(&s_state_lock);
 
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == domain) {
       SOAData sd;
       this->getSOA(domain, sd);
@@ -664,7 +664,7 @@ bool GeoIPBackend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
   if (!d_dnssec) return false;
 
   ReadLock rl(&s_state_lock);
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         meta[string("NSEC3NARROW")].push_back("1");
@@ -680,7 +680,7 @@ bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   if (!d_dnssec) return false;
 
   ReadLock rl(&s_state_lock);
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         if (kind == "NSEC3NARROW")
@@ -697,7 +697,7 @@ bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kin
 bool GeoIPBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys) {
   if (!d_dnssec) return false;
   ReadLock rl(&s_state_lock);
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -740,7 +740,7 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id) {
   WriteLock rl(&s_state_lock);
   ostringstream path;
 
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -774,7 +774,7 @@ int GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key) {
   WriteLock rl(&s_state_lock);
   int nextid=1;
 
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -807,7 +807,7 @@ int GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key) {
 bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id) {
   if (!d_dnssec) return false;
   WriteLock rl(&s_state_lock);
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -840,7 +840,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id) {
 bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id) {
   if (!d_dnssec) return false;
   WriteLock rl(&s_state_lock);
-  BOOST_FOREACH(GeoIPDomain dom, s_domains) {
+  for(GeoIPDomain dom :  s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];

@@ -26,7 +26,7 @@
 #include <netdb.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <boost/foreach.hpp>
+
 #include "ws-recursor.hh"
 #include <pthread.h>
 #include "recpacketcache.hh"

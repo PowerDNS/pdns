@@ -37,7 +37,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
-#include <boost/foreach.hpp>
+
 #include "dns.hh"
 #include "arguments.hh"
 #include "dnsbackend.hh"
@@ -91,7 +91,7 @@ bool UeberBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
 
 bool UeberBackend::createDomain(const DNSName &domain)
 {
-  BOOST_FOREACH(DNSBackend* mydb, backends) {
+  for(DNSBackend* mydb :  backends) {
     if(mydb->createDomain(domain)) {
       return true;
     }
@@ -102,7 +102,7 @@ bool UeberBackend::createDomain(const DNSName &domain)
 int UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key)
 {
   int ret;
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if((ret = db->addDomainKey(name, key)) >= 0)
       return ret;
   }
@@ -110,7 +110,7 @@ int UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& k
 }
 bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vector<DNSBackend::KeyData>& keys)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->getDomainKeys(name, kind, keys))
       return true;
   }
@@ -119,7 +119,7 @@ bool UeberBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::ve
 
 bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->getAllDomainMetadata(name, meta))
       return true;
   }
@@ -128,7 +128,7 @@ bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->getDomainMetadata(name, kind, meta))
       return true;
   }
@@ -137,7 +137,7 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
 
 bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->setDomainMetadata(name, kind, meta))
       return true;
   }
@@ -146,7 +146,7 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
 
 bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int id)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->activateDomainKey(name, id))
       return true;
   }
@@ -155,7 +155,7 @@ bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int id)
 
 bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->deactivateDomainKey(name, id))
       return true;
   }
@@ -164,7 +164,7 @@ bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
 
 bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int id)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->removeDomainKey(name, id))
       return true;
   }
@@ -174,7 +174,7 @@ bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int id)
 
 bool UeberBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* content)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->getTSIGKey(name, algorithm, content))
       return true;
   }
@@ -184,7 +184,7 @@ bool UeberBackend::getTSIGKey(const DNSName& name, DNSName* algorithm, string* c
 
 bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->setTSIGKey(name, algorithm, content))
       return true;
   }
@@ -193,7 +193,7 @@ bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, con
 
 bool UeberBackend::deleteTSIGKey(const DNSName& name)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     if(db->deleteTSIGKey(name))
       return true;
   }
@@ -202,7 +202,7 @@ bool UeberBackend::deleteTSIGKey(const DNSName& name)
 
 bool UeberBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
 {
-  BOOST_FOREACH(DNSBackend* db, backends) {
+  for(DNSBackend* db :  backends) {
     db->getTSIGKeys(keys);
   }
   return true;

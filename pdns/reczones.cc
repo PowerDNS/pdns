@@ -28,7 +28,7 @@
 #include "zoneparser-tng.hh"
 #include "logger.hh"
 #include "dnsrecords.hh"
-#include <boost/foreach.hpp>
+
 #include <thread>
 #include "ixfr.hh"
 #include "rpzloader.hh"
@@ -275,7 +275,7 @@ string reloadAuthAndForwards()
     std::vector<std::string> extraConfigs;
     ::arg().gatherIncludes(extraConfigs);
 
-    BOOST_FOREACH(const std::string& fn, extraConfigs) {
+    for(const std::string& fn :  extraConfigs) {
       ::arg().preParseFile(fn.c_str(), "forward-zones", ::arg()["forward-zones"]);
       ::arg().preParseFile(fn.c_str(), "forward-zones-file", ::arg()["forward-zones-file"]);
       ::arg().preParseFile(fn.c_str(), "forward-zones-recurse", ::arg()["forward-zones-recurse"]);

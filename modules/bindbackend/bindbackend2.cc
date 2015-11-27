@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
+
 #include "pdns/dnsseckeeper.hh"
 #include "pdns/dnssecinfra.hh"
 #include "pdns/base32.hh"
@@ -302,7 +302,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo> *changedDomains)
   }
 
   SOAData soadata;
-  BOOST_FOREACH(DomainInfo& di, consider) {
+  for(DomainInfo& di :  consider) {
     soadata.serial=0;
     try {
       this->getSOA(di.zone, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
@@ -343,7 +343,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo> *domains, bool include_disab
     };
   }
  
-  BOOST_FOREACH(DomainInfo &di, *domains) {
+  for(DomainInfo &di :  *domains) {
     this->getSOA(di.zone, soadata);
     di.serial=soadata.serial;
   }
@@ -368,7 +368,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
   }
 
-  BOOST_FOREACH(DomainInfo &sd, domains) {
+  for(DomainInfo &sd :  domains) {
     SOAData soadata;
     soadata.refresh=0;
     soadata.serial=0;
@@ -649,12 +649,12 @@ void Bind2Backend::fixupAuth(shared_ptr<recordstorage_t> records)
   DNSName sqname;
   
   recordstorage_t nssets;
-  BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
+  for(const Bind2DNSRecord& bdr :  *records) {
     if(bdr.qtype==QType::NS) 
       nssets.insert(bdr);
   }
   
-  BOOST_FOREACH(const Bind2DNSRecord& bdr, *records) {
+  for(const Bind2DNSRecord& bdr :  *records) {
     bdr.auth=true;
     
     if(bdr.qtype == QType::DS) // as are delegation signer records
@@ -754,7 +754,7 @@ void Bind2Backend::loadConfig(string* status)
     set<DNSName> oldnames, newnames;
     {
       ReadLock rl(&s_state_lock);
-      BOOST_FOREACH(const BB2DomainInfo& bbd, s_state) {
+      for(const BB2DomainInfo& bbd :  s_state) {
         oldnames.insert(bbd.d_name);
       }
     }
@@ -954,7 +954,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const std::string
     typedef recordstorage_t::index<HashedTag>::type records_by_hashindex_t;
     records_by_hashindex_t& hashindex=boost::multi_index::get<HashedTag>(*bbd.d_records.getWRITABLE()); // needlessly dangerous
     
-//    BOOST_FOREACH(const Bind2DNSRecord& bdr, hashindex) {
+//    for(const Bind2DNSRecord& bdr :  hashindex) {
 //      cerr<<"Hash: "<<bdr.nsec3hash<<"\t"<< (lqname < bdr.nsec3hash) <<endl;
 //    }
 

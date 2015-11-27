@@ -4,7 +4,7 @@
 #include "dnswriter.hh"
 #include "misc.hh"
 #include "dnsparser.hh"
-#include <boost/foreach.hpp>
+
 #include <limits.h>
 
 DNSPacketWriter::DNSPacketWriter(vector<uint8_t>& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
@@ -160,7 +160,7 @@ void DNSPacketWriter::xfrText(const string& text, bool)
     return;
   }
   vector<string> segments = segmentDNSText(text);
-  BOOST_FOREACH(const string& str, segments) {
+  for(const string& str :  segments) {
     d_record.push_back(str.length());
     d_record.insert(d_record.end(), str.c_str(), str.c_str() + str.length());
   }

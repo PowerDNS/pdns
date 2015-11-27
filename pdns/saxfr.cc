@@ -10,7 +10,7 @@
 #include "statbag.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
-#include <boost/foreach.hpp>
+
 #include "dns_random.hh"
 #include "gss_context.hh"
 
@@ -140,7 +140,7 @@ try
       pwtkey.startRecord(gssctx.getLabel(), QType::TKEY, 3600, QClass::ANY, DNSResourceRecord::ADDITIONAL, false);
       tkrc.toPacket(pwtkey);
       pwtkey.commit();
-      BOOST_FOREACH(const string& msg, gssctx.getErrorStrings()) {
+      for(const string& msg :  gssctx.getErrorStrings()) {
         cerr<<msg<<endl;
       }
 

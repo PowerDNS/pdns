@@ -11,7 +11,7 @@
 #include "logger.hh"
 #include "lock.hh"
 #include "arguments.hh"
-#include <boost/foreach.hpp>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include "gss_context.hh"
@@ -436,7 +436,7 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
   GssContext gssctx(context);
   if (!gssctx.valid()) {
     L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
-    BOOST_FOREACH(const string& error, gssctx.getErrorStrings()) {
+    for(const string& error :  gssctx.getErrorStrings()) {
        L<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
@@ -444,7 +444,7 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
 
   if (!gssctx.sign(message, tmp_mac)) {
     L<<Logger::Error<<"Could not sign message using GSS context '"<<context<<"'"<<endl;
-    BOOST_FOREACH(const string& error, gssctx.getErrorStrings()) {
+    for(const string& error :  gssctx.getErrorStrings()) {
        L<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
@@ -457,7 +457,7 @@ bool gss_verify_signature(const DNSName& context, const std::string& message, co
   GssContext gssctx(context);
   if (!gssctx.valid()) {
     L<<Logger::Error<<"GSS context '"<<context<<"' is not valid"<<endl;
-    BOOST_FOREACH(const string& error, gssctx.getErrorStrings()) {
+    for(const string& error :  gssctx.getErrorStrings()) {
        L<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;
@@ -465,7 +465,7 @@ bool gss_verify_signature(const DNSName& context, const std::string& message, co
 
   if (!gssctx.verify(message, mac)) {
     L<<Logger::Error<<"Could not verify message using GSS context '"<<context<<"'"<<endl;
-    BOOST_FOREACH(const string& error, gssctx.getErrorStrings()) {
+    for(const string& error :  gssctx.getErrorStrings()) {
        L<<Logger::Error<<"GSS error: "<<error<<endl;;
     }
     return false;

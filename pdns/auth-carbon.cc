@@ -7,7 +7,7 @@
 #include "sstuff.hh"
 #include "arguments.hh"
 #include "common_startup.hh"
-#include <boost/foreach.hpp>
+
 #include "namespaces.hh"
 
 void* carbonDumpThread(void*)
@@ -44,7 +44,7 @@ try
 	hostname=tmp;
 	boost::replace_all(hostname, ".", "_");
       }
-      BOOST_FOREACH(const string& entry, entries) {
+      for(const string& entry :  entries) {
 	str<<"pdns."<<hostname<<".auth."<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
       }
       const string msg = str.str();

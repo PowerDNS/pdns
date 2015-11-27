@@ -31,7 +31,7 @@
 #include "dns.hh"
 #include "logger.hh"
 #include "statbag.hh"
-#include <boost/foreach.hpp>
+
 
 extern StatBag S;
 extern PacketCache PC;

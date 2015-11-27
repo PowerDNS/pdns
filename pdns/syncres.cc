@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
+
 #include "lua-recursor.hh"
 #include "utility.hh"
 #include "syncres.hh"

@@ -8,7 +8,7 @@
 #include "dnsseckeeper.hh"
 #include "base64.hh"
 #include "base32.hh"
-#include <boost/foreach.hpp>
+
 #include "misc.hh"
 #include "arguments.hh"
 #include "resolver.hh"
@@ -411,7 +411,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
       DNSName shorter;
       string hashed;
-      BOOST_FOREACH(const DNSName& qname, qnames) {
+      for(const DNSName& qname :  qnames) {
         shorter = qname;
         int ddepth = 0;
         do {

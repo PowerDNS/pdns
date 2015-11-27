@@ -60,7 +60,7 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <stdexcept>
-#include <boost/foreach.hpp>
+
 #include "logger.hh"
 #include "dnsparser.hh"
 #include "namespaces.hh"
@@ -85,7 +85,7 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
   vector<DNSRecord> resolved;
   string target; // XXX DNSNAME PAIN
-  BOOST_FOREACH(DNSRecord& rr, ret) {
+  for(DNSRecord& rr :  ret) {
     if(rr.d_type == QType::CNAME) {
       target=std::dynamic_pointer_cast<CNAMERecordContent>(rr.d_content)->getTarget().toString();
       break;
@@ -99,7 +99,7 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 
   int rcode=directResolve(target, qtype, 1, resolved); // 1 == class
 
-  BOOST_FOREACH(const DNSRecord& rr, resolved)
+  for(const DNSRecord& rr :  resolved)
   {
     ret.push_back(rr);
   }
@@ -114,7 +114,7 @@ int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vect
 
   ComboAddress prefixAddress(prefix);
 
-  BOOST_FOREACH(DNSRecord& rr, ret)
+  for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::A && rr.d_place==DNSResourceRecord::ANSWER) {
       ComboAddress ipv4(std::dynamic_pointer_cast<ARecordContent>(rr.d_content)->getCA());
@@ -149,7 +149,7 @@ int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DN
 
 
   int rcode = directResolve(newquery, QType(QType::PTR), 1, ret);
-  BOOST_FOREACH(DNSRecord& rr, ret)
+  for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::PTR && rr.d_place==DNSResourceRecord::ANSWER) {
       rr.d_name = qname;

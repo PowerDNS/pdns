@@ -9,7 +9,7 @@
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 #include <pthread.h>
-#include <boost/foreach.hpp>
+
 #include <GeoIP.h>
 #include <GeoIPCity.h>
 #include <sys/types.h>

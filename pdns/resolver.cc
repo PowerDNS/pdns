@@ -45,7 +45,7 @@
 #include "dnswriter.hh"
 #include "dnsparser.hh"
 
-#include <boost/foreach.hpp>
+
 #include "dns_random.hh"
 #include <sys/poll.h>
 #include "gss_context.hh"
@@ -272,7 +272,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, uint32_t *theirSerial, uint32_t 
 
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
-  BOOST_FOREACH(const MOADNSParser::answers_t::value_type& drc, mdp.d_answers) {
+  for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
     if(drc.first.d_type == QType::SOA) {
       shared_ptr<SOARecordContent> src=std::dynamic_pointer_cast<SOARecordContent>(drc.first.d_content);
       *theirSerial=src->d_st.serial;
@@ -466,7 +466,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
   if(err) 
     throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
 
-  BOOST_FOREACH(const MOADNSParser::answers_t::value_type& answer, mdp.d_answers)
+  for(const MOADNSParser::answers_t::value_type& answer :  mdp.d_answers)
     if (answer.first.d_type == QType::SOA)
       d_soacount++;
  
@@ -482,7 +482,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
     string theirMac;
     bool checkTSIG = false;
     
-    BOOST_FOREACH(const MOADNSParser::answers_t::value_type& answer, mdp.d_answers) {
+    for(const MOADNSParser::answers_t::value_type& answer :  mdp.d_answers) {
       if (answer.first.d_type == QType::SOA)  // A SOA is either the first or the last record. We need to check TSIG if that's the case.
         checkTSIG = true;
       

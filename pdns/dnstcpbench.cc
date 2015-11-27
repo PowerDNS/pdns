@@ -37,7 +37,7 @@
 #include <netinet/tcp.h>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+
 
 StatBag S;
 namespace po = boost::program_options;
@@ -280,13 +280,13 @@ try
   typedef map<time_t, uint32_t> counts_t;
   counts_t counts;
 
-  BOOST_FOREACH(const BenchQuery& bq, g_queries) {
+  for(const BenchQuery& bq :  g_queries) {
     counts[bq.answerSecond]++;
     udpspeeds(bq.udpUsec);
     tcpspeeds(bq.tcpUsec);
   }
 
-  BOOST_FOREACH(const counts_t::value_type& val, counts) {
+  for(const counts_t::value_type& val :  counts) {
     qps(val.second);
   }
 

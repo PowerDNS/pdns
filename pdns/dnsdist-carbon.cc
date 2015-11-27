@@ -4,7 +4,7 @@
 #include "iputils.hh"
 #include "dolog.hh"
 #include "sstuff.hh"
-#include <boost/foreach.hpp>
+
 #include "namespaces.hh"
 #undef L
 #include "dnsdist.hh"

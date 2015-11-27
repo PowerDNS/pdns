@@ -8,7 +8,7 @@
 #include "logger.hh"
 #include "arguments.hh"
 #include "lock.hh"
-#include <boost/foreach.hpp>
+
 
 void doCarbonDump(void*)
 try
@@ -47,7 +47,7 @@ try
     hostname=tmp;
     boost::replace_all(hostname, ".", "_");    
   }
-  BOOST_FOREACH(const all_t::value_type& val, all) {
+  for(const all_t::value_type& val :  all) {
     str<<"pdns."<<hostname<<".recursor."<<val.first<<' '<<val.second<<' '<<now<<"\r\n";
   }
   const string msg = str.str();

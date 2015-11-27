@@ -44,7 +44,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <boost/foreach.hpp>
+
 
 
 StatBag S;
@@ -129,7 +129,7 @@ static void emitDomain(const string& domain, const vector<string> *masters = 0) 
     if(g_mode==POSTGRES || g_mode==MYSQL || g_mode==SQLITE) {
       string mstrs;
       if (masters != 0 && ! masters->empty()) {
-        BOOST_FOREACH(const string& mstr, *masters) {
+        for(const string& mstr :  *masters) {
           mstrs.append(mstr);
           mstrs.append(1, ' ');
         }                  

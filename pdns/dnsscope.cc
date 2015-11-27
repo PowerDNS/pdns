@@ -14,7 +14,7 @@
 #include <algorithm>
 #include "anadns.hh"
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+
 #include <boost/logic/tribool.hpp>
 #include "arguments.hh"
 #include "namespaces.hh"
@@ -60,7 +60,7 @@ public:
       servfails+=rhs.servfails;
       drops+=rhs.drops;
 
-      BOOST_FOREACH(const remotes_t::value_type& rem, rhs.remotes) {
+      for(const remotes_t::value_type& rem :  rhs.remotes) {
 	remotes[rem.first]+=rem.second;
       }
       return *this;
@@ -93,7 +93,7 @@ StatNode::Stat StatNode::print(int depth, Stat newstat, bool silent) const
   if(children.size()>1024 && !silent) {
     cout<<string(depth, ' ')<<name<<": too many to print"<<endl;
   }
-  BOOST_FOREACH(const children_t::value_type& child, children) {
+  for(const children_t::value_type& child :  children) {
     childstat=child.second.print(depth+8, childstat, silent || children.size()>1024);
   }
   if(!silent || children.size()>1)
@@ -122,7 +122,7 @@ void  StatNode::visit(visitor_t visitor, Stat &newstat, int depth) const
   Stat selfstat(childstat);
 
 
-  BOOST_FOREACH(const children_t::value_type& child, children) {
+  for(const children_t::value_type& child :  children) {
     child.second.visit(visitor, childstat, depth+8);
   }
 
@@ -158,7 +158,7 @@ void StatNode::submit(deque<string>& labels, const std::string& domain, int rcod
   if(labels.empty())
     return;
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
-  //  BOOST_FOREACH(const std::string& n, labels) 
+  //  for(const std::string& n :  labels) 
   //    cerr<<n<<".";
   //  cerr<<endl;
   if(name.empty()) {
@@ -195,7 +195,7 @@ void visitor(const StatNode* node, const StatNode::Stat& selfstat, const StatNod
 {
   if(1.0*childstat.servfails / (childstat.servfails+childstat.noerrors) > 0.8 && node->children.size()>100) {
     cout<<node->fullname<<", servfails: "<<childstat.servfails<<", remotes: "<<childstat.remotes.size()<<", children: "<<node->children.size()<<endl;
-    BOOST_FOREACH(const StatNode::Stat::remotes_t::value_type& rem, childstat.remotes) {
+    for(const StatNode::Stat::remotes_t::value_type& rem :  childstat.remotes) {
       cout<<"source: "<<node->fullname<<"\t"<<rem.first.toString()<<"\t"<<rem.second<<endl;
     }
   }
@@ -220,7 +220,7 @@ statmap_t statmap;
 unsigned int liveQuestions()
 {
   unsigned int ret=0;
-  BOOST_FOREACH(statmap_t::value_type& val, statmap) {
+  for(statmap_t::value_type& val :  statmap) {
     if(!val.second.d_answercount)
       ret++;
     //    if(val.second.d_qcount > val.second.d_answercount)
@@ -558,7 +558,7 @@ try
     ofstream load(g_vm["load-stats"].as<string>().c_str());
     if(!load) 
       throw runtime_error("Error writing load statistics to "+g_vm["load-stats"].as<string>());
-    BOOST_FOREACH(pcounts_t::value_type& val, pcounts) {
+    for(pcounts_t::value_type& val :  pcounts) {
       load<<val.first<<'\t'<<val.second.questions<<'\t'<<val.second.answers<<'\t'<<val.second.outstanding<<'\n';  
     }
   }
@@ -566,7 +566,7 @@ try
 
   cout<<"Saw questions from "<<requestors.size()<<" distinct remotes, answers to "<<recipients.size()<<endl;
   ofstream remotes("remotes");
-  BOOST_FOREACH(const ComboAddress& rem, requestors) {
+  for(const ComboAddress& rem :  requestors) {
     remotes<<rem.toString()<<'\n';
   }
 
@@ -575,11 +575,11 @@ try
   cout<<"Saw "<<diff.size()<<" unique remotes asking questions, but not getting RA answers"<<endl;
   
   ofstream ignored("ignored");
-  BOOST_FOREACH(const ComboAddress& rem, diff) {
+  for(const ComboAddress& rem :  diff) {
     ignored<<rem.toString()<<'\n';
   }
   ofstream rdnonrafs("rdnonra");
-  BOOST_FOREACH(const ComboAddress& rem, rdnonra) {
+  for(const ComboAddress& rem :  rdnonra) {
     rdnonrafs<<rem.toString()<<'\n';
   }
 

@@ -26,7 +26,7 @@
 #include "dnsseckeeper.hh"
 #include "dnspacket.hh"
 #include "namespaces.hh"
-#include <boost/foreach.hpp>
+
 
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 {
@@ -42,7 +42,7 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
 bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp)
 {
   vector<DNSResourceRecord>& rrs = dp->getRRS();
-  BOOST_FOREACH(DNSResourceRecord& rr, rrs) {
+  for(DNSResourceRecord& rr :  rrs) {
     if(rr.qtype.getCode() == QType::SOA && rr.qname == qname) {
       string kind;
       dk.getSoaEdit(qname, kind);

@@ -8,7 +8,7 @@
 #include "misc.hh"
 #include "pdnsexception.hh"
 #include <utility>
-#include <boost/foreach.hpp>
+
 #include <sstream>
 #include <cstdlib>
 #include "dnsname.hh"
