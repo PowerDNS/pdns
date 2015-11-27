@@ -1,0 +1,2 @@
+#!/bin/sh
+nameserver=$geoipregionip cleandig country.geo.example.com TXT
