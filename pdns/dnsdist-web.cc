@@ -159,10 +159,19 @@ static void connectionThread(int sock, ComboAddress remote, string password)
     }
     else if(!resp.url.path.empty() && g_urlmap.count(resp.url.path.c_str()+1)) {
       resp.body.assign(g_urlmap[resp.url.path.c_str()+1]);
+      vector<string> parts;
+      stringtok(parts, resp.url.path, ".");
+      if(parts.back() == "html")
+        resp.headers["Content-Type"] = "text/html";
+      else if(parts.back() == "css")
+        resp.headers["Content-Type"] = "text/css";
+      else if(parts.back() == "js")
+        resp.headers["Content-Type"] = "application/javascript";
       resp.status=200;
     }
     else if(resp.url.path=="/") {
       resp.body.assign(g_urlmap["index.html"]);
+      resp.headers["Content-Type"] = "text/html";
       resp.status=200;
     }
     else {
