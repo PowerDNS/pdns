@@ -9,11 +9,6 @@ case $context in
                         echo "This test suite requires that you have IP address bound to localhost interface and exported as variable geoipregionip"
                         exit 1
                 fi
-	 	ping -q -c1 -W1 -t1 -Ilo $geoipregionip 2>&1 >/dev/null 
-		if test $? -ne 0; then
-			echo "This test suite requires that you have $geoipregionip bound to localhost interface"
-			exit 1
-		fi
 		set -e
                 testsdir=../modules/geoipbackend/regression-tests/
 		if test "$context" = "geoipbackend-nsec3-narrow"; then
