@@ -37,6 +37,8 @@ domains:
       - ns: ns1.example.com
       - ns: ns2.example.com
       - mx: 10 mx.example.com
+    continent.geo.example.com:
+      - txt: Your continent is %cn
     $geoipregion.service.geo.example.com:
       - a: 62.236.200.4
     unknown.service.geo.example.com:
