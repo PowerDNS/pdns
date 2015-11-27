@@ -275,7 +275,7 @@ cspmap_t harvestCSPFromMDP(const MOADNSParser& mdp)
   return cspmap;
 }
 
-static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keyset_t &keyset)
+static vState getKeysFor(const ComboAddress& dest, const DNSName& zone, keyset_t &keyset)
 {
   vector<string> labels = zone.getRawLabels();
   vState state;
@@ -308,9 +308,9 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keyset_t &keyset)
     // we can trust that dsmap has valid DS records for qname
 
     cerr<<"got DS for ["<<qname<<"], grabbing DNSKEYs"<<endl;
-    MOADNSParser mdp(tr.query(qname, (uint16_t)QType::DNSKEY));
+    auto mdp=getMDP(dest, qname, (uint16_t)QType::DNSKEY);
     // this should use harvest perhaps
-    for(auto i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
+    for(auto i=mdp->d_answers.begin(); i!=mdp->d_answers.end(); ++i) {
       if(i->first.d_name != qname)
         continue;
 
@@ -436,9 +436,9 @@ static vState getKeysFor(TCPResolver& tr, const DNSName& zone, keyset_t &keyset)
       toSign.clear();
       toSignTags.clear();
 
-      MOADNSParser mdp(tr.query(qname, QType::DS));
+      auto mdp=getMDP(dest, qname, QType::DS);
 
-      cspmap_t cspmap=harvestCSPFromMDP(mdp);
+      cspmap_t cspmap=harvestCSPFromMDP(*mdp);
 
       cspmap_t validrrsets;
       validateWithKeySet(cspmap, validrrsets, validkeys);
@@ -486,8 +486,6 @@ try
   ComboAddress dest(argv[1] + (*argv[1]=='@'), atoi(argv[2]));
   DNSName qname(argv[3]);
   uint16_t qtype=DNSRecordContent::TypeToNumber(argv[4]);
-  TCPResolver tr(dest);
-
   cout<<"digraph oneshot {"<<endl;
 
   auto mdp=getMDP(dest, qname, qtype);
@@ -507,7 +505,7 @@ try
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
 	cerr<<"got rrsig "<<sig->d_signer<<"/"<<sig->d_tag<<endl;
-	vState state = getKeysFor(tr, sig->d_signer, keys);
+	vState state = getKeysFor(dest, sig->d_signer, keys);
 	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
         // dsmap.insert(make_pair(dsrc.d_tag, dsrc));
       }
@@ -517,7 +515,7 @@ try
   }
   else {
     cerr<<"no sigs, hoping for Insecure"<<endl;
-    vState state = getKeysFor(tr, qname, keys);
+    vState state = getKeysFor(dest, qname, keys);
     cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys at "<<qname<<endl;
   }
   cerr<<"! validated "<<validrrsets.size()<<" RRsets out of "<<cspmap.size()<<endl;
@@ -542,84 +540,3 @@ catch(PDNSException &pe)
   cerr<<"Fatal: "<<pe.reason<<endl;
 }
 
-
-#if 0
-static void lookup(const ComboAddress& dest, const DNSName& qname, uint16_t qtype)
-{
-  if(qname==DNSName(".") && qtype == QType::DS) {
-    cerr<<"Hit root, should stop somehow ;-)"<<endl;
-    exit(0);
-  }
-  Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
-  sock.connect(dest);
-  vector<uint8_t> packet;
-
-  DNSPacketWriter pw(packet, qname, qtype);
-  pw.getHeader()->rd=1;
-  pw.getHeader()->cd=1;
-  pw.getHeader()->id=getpid();
-  pw.addOpt(1800, 0, EDNSOpts::DNSSECOK);
-  pw.commit();
-
-  sock.send(string((char*)&*packet.begin(), (char*)&*packet.end()));
-  string resp;
-  sock.read(resp);
-  MOADNSParser mdp(resp);
-
-  struct ContentPair {
-    vector<DNSRecord> content;
-    vector<shared_ptr<RRSIGRecordContent>> signatures;
-  };
-
-  map<pair<DNSName,uint16_t>, ContentPair > records;
-
-  for(const auto& r : mdp.d_answers) {
-    cout<<r.first.d_place-1<<"\t"<<r.first.d_name.toString()<<"\tIN\t"<<DNSRecordContent::NumberToType(r.first.d_type);
-    cout<<"\t"<<r.first.d_content->getZoneRepresentation()<<endl;
-
-    if(auto rrsig = getRR<RRSIGRecordContent>(r.first)) {
-      records[make_pair(r.first.d_name, rrsig->d_type)].signatures.push_back(rrsig);
-    }
-    else if(auto opt = getRR<OPTRecordContent>(r.first)) {
-      continue;
-    }
-
-    else
-      records[make_pair(r.first.d_name, r.first.d_type)].content.push_back(r.first);
-
-  }
-  cout<<"Had "<<records.size()<<" RRSETs"<<endl;
-  for(auto& rrset : records) {
-    vector<shared_ptr<DNSRecordContent> > toSign;
-    for(const auto& c : rrset.second.content) 
-      toSign.push_back(c.d_content);
-
-    for(auto& sign : rrset.second.signatures) {
-      cout<<"Seeing if we can retrieve DNSKEY for "<<sign->d_signer<<" with tag "<<sign->d_tag<<endl;
-      bool trusted=false;
-      auto keys=getKeys(sock, sign->d_signer, sign->d_tag, &trusted);
-      cout<<"Got "<<keys.size()<<" keys"<<endl;
-      for(const auto& key : keys) {
-	try {
-	  auto engine = DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key);
-	  string msg = getMessageForRRSET(rrset.first.first, *sign, toSign);        
-	  cout<<"Result for signature on "<<rrset.first.first<<" "<<DNSRecordContent::NumberToType(rrset.first.second)<<": "<<engine->verify(msg, sign->d_signature)<<endl;
-	}
-	catch(std::exception& e) {
-	  cerr<<"Could not verify: "<<e.what()<<endl;
-	  return;
-	}
-
-	if(trusted) {
-	  cerr<<"This key is trusted ultimately"<<endl;
-	  return;
-	}
-	else {
-	  cerr<<"Should go looking for DS on DNSKEY "<<sign->d_signer<<endl;
-	  lookup(dest, sign->d_signer, QType::DS);
-	}
-      }
-    }
-  }
-}
-#endif
