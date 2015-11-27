@@ -6,7 +6,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <vector>
-
+#ifdef MALLOC_TRACE
+#include "malloctrace.hh"
+#endif
 #include "misc.hh"
 #include "recursor_cache.hh"
 #include "syncres.hh"
@@ -615,6 +617,12 @@ RecursorControlParser::RecursorControlParser()
   //  addGetStat("query-rate", getQueryRate);
   addGetStat("user-msec", getUserTimeMsec);
   addGetStat("sys-msec", getSysTimeMsec);
+
+#ifdef MALLOC_TRACE
+  addGetStat("memory-allocs", boost::bind(&MallocTracer::getAllocs, g_mtracer, string()));
+  addGetStat("memory-alloc-flux", boost::bind(&MallocTracer::getAllocFlux, g_mtracer, string()));
+  addGetStat("memory-allocated", boost::bind(&MallocTracer::getTotAllocated, g_mtracer, string()));
+#endif
 }
 
 static void doExitGeneric(bool nicely)

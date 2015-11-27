@@ -3,9 +3,14 @@ gsql_master()
 	backend=$1
 	skipreasons=$2
 
+	real_backend=$backend
+	if `echo $backend | grep -q '_'`; then
+		real_backend=$(echo $backend | awk -F '_' '{print $1}')
+	fi
+
 	if [ $context != ${backend}-nodnssec ]
 	then
-		echo "${backend}-dnssec" >> pdns-${backend}.conf
+		echo "${real_backend}-dnssec" >> pdns-${backend}.conf
 	fi
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")

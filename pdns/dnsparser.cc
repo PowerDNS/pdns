@@ -58,8 +58,8 @@ public:
 
     d_record.insert(d_record.end(), out.begin(), out.end());
   }
-  
-  string getZoneRepresentation() const
+
+  string getZoneRepresentation() const override
   {
     ostringstream str;
     str<<"\\# "<<(unsigned int)d_record.size()<<" ";
@@ -70,13 +70,13 @@ public:
     }
     return str.str();
   }
-  
-  void toPacket(DNSPacketWriter& pw)
+
+  void toPacket(DNSPacketWriter& pw) override
   {
     pw.xfrBlob(string(d_record.begin(),d_record.end()));
   }
 
-  uint16_t getType() const override 
+  uint16_t getType() const override
   {
     return d_dr.d_type;
   }
@@ -268,6 +268,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
     struct dnsrecordheader ah;
     vector<unsigned char> record;
     validPacket=true;
+    d_answers.reserve((unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount));
     for(n=0;n < (unsigned int)(d_header.ancount + d_header.nscount + d_header.arcount); ++n) {
       DNSRecord dr;
       

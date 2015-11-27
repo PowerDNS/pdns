@@ -567,8 +567,7 @@ void SyncRes::getBestNSFromCache(const DNSName &qname, const QType& qtype, vecto
         answer.qname=qname;
 	answer.qtype=qtype.getCode();
 	for(const auto& dr : bestns)
-	  answer.bestns.insert(make_pair(dr.d_name, dr.d_content->getZoneRepresentation()));
-	// XXX we are passing a DNSName through a string here!
+	  answer.bestns.insert(make_pair(dr.d_name, std::dynamic_pointer_cast<NSRecordContent>(dr.d_content)->getNS()));
 
         if(beenthere.count(answer)) {
 	  brokeloop=true;
@@ -1024,7 +1023,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 		// code below makes sure we don't filter COM or the root
                 if (s_serverdownmaxfails > 0 && (auth != DNSName(".")) && t_sstorage->fails.incr(*remoteIP) >= s_serverdownmaxfails) {
-                  LOG(prefix<<qname.toString()<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for 1 minute" <<endl);
+                  LOG(prefix<<qname.toString()<<": Max fails reached resolving on "<< remoteIP->toString() <<". Going full throttle for "<< s_serverdownthrottletime <<" seconds" <<endl);
                   t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, "", 0), s_serverdownthrottletime, 10000); // mark server as down
                 } else if(resolveret==-1)
                   t_sstorage->throttle.throttle(d_now.tv_sec, boost::make_tuple(*remoteIP, qname, qtype.getCode()), 60, 100); // unreachable, 1 minute or 100 queries
@@ -1137,7 +1136,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 
         if(rec.d_name.isPartOf(auth)) {
-          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && ::arg().contains("delegation-only",auth.toString() /* ugh */)) {
+          if(lwr.d_aabit && lwr.d_rcode==RCode::NoError && rec.d_place==DNSResourceRecord::ANSWER && g_delegationOnly.check(auth)) {
             LOG("NO! Is from delegation-only zone"<<endl);
             s_nodelegated++;
             return RCode::NXDomain;
@@ -1154,7 +1153,6 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
             dr.d_place=DNSResourceRecord::ANSWER;
 
             dr.d_ttl += d_now.tv_sec;
-	    // we should note the PLACE and not store ECS subnet details for non-answer records
             tcache[{rec.d_name,rec.d_type,rec.d_place}].records.push_back(dr);
           }
         }
@@ -1194,27 +1192,26 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
           if(newtarget.empty()) // only add a SOA if we're not going anywhere after this
             ret.push_back(rec);
-
-          NegCacheEntry ne;
-
-          ne.d_qname=rec.d_name;
-
-          ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-
-          ne.d_name=qname;
-          ne.d_qtype=QType(0); // this encodes 'whole record'
-
-          replacing_insert(t_sstorage->negcache, ne);
-	  if(s_rootNXTrust && auth.isRoot()) {
-	    ne.d_name = getLastLabel(ne.d_name);
+	  if(!wasVariable()) {
+	    NegCacheEntry ne;
+	    
+	    ne.d_qname=rec.d_name;
+	    ne.d_ttd=d_now.tv_sec + rec.d_ttl;
+	    ne.d_name=qname;
+	    ne.d_qtype=QType(0); // this encodes 'whole record'
+	    
 	    replacing_insert(t_sstorage->negcache, ne);
+	    if(s_rootNXTrust && auth.isRoot()) {
+	      ne.d_name = getLastLabel(ne.d_name);
+	      replacing_insert(t_sstorage->negcache, ne);
+	    }
 	  }
 
           negindic=true;
         }
         else if(rec.d_place==DNSResourceRecord::ANSWER && rec.d_name == qname && rec.d_type==QType::CNAME && (!(qtype==QType(QType::CNAME)))) {
           ret.push_back(rec);
-          newtarget=DNSName(rec.d_content->getZoneRepresentation());
+          newtarget=std::dynamic_pointer_cast<CNAMERecordContent>(rec.d_content)->getTarget();
         }
 	else if(d_doDNSSEC && (rec.d_type==QType::RRSIG || rec.d_type==QType::NSEC || rec.d_type==QType::NSEC3) && rec.d_place==DNSResourceRecord::ANSWER){
 	  if(rec.d_type != QType::RRSIG || rec.d_name == qname)
@@ -1242,7 +1239,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           else {
             LOG(prefix<<qname.toString()<<": got upwards/level NS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"', had '"<<auth.toString()<<"'"<<endl);
 	  }
-          nsset.insert(DNSName(rec.d_content->getZoneRepresentation()));
+          nsset.insert(std::dynamic_pointer_cast<NSRecordContent>(rec.d_content)->getNS());
         }
         else if(rec.d_place==DNSResourceRecord::AUTHORITY && qname.isPartOf(rec.d_name) && rec.d_type==QType::DS) {
 	  LOG(prefix<<qname.toString()<<": got DS record '"<<rec.d_name.toString()<<"' -> '"<<rec.d_content->getZoneRepresentation()<<"'"<<endl);
@@ -1258,14 +1255,16 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
           else {
             rec.d_ttl = min(s_maxnegttl, rec.d_ttl);
             ret.push_back(rec);
-            NegCacheEntry ne;
-            ne.d_qname=rec.d_name;
-            ne.d_ttd=d_now.tv_sec + rec.d_ttl;
-            ne.d_name=qname;
-            ne.d_qtype=qtype;
-            if(qtype.getCode()) {  // prevents us from blacking out a whole domain
-              replacing_insert(t_sstorage->negcache, ne);
-            }
+	    if(!wasVariable()) {
+	      NegCacheEntry ne;
+	      ne.d_qname=rec.d_name;
+	      ne.d_ttd=d_now.tv_sec + rec.d_ttl;
+	      ne.d_name=qname;
+	      ne.d_qtype=qtype;
+	      if(qtype.getCode()) {  // prevents us from blacking out a whole domain
+		replacing_insert(t_sstorage->negcache, ne);
+	      }
+	    }
             negindic=true;
           }
         }

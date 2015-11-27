@@ -32,6 +32,9 @@ How often to check for zone changes. See 'Operation' section.
 
 ### `bind-dnssec-db`
 Filename to store and access our DNSSEC metadatabase, empty for none.
+To slave DNSSEC-enabled domains (where the RRSIGS are in the AXFR), a
+`bind-dnssec-db` is required. This is because the [PRESIGNED](domainmetadata.md#presigned)
+domain metadata is set during the zonetransfer.
 
 ### `bind-hybrid`
 Store DNSSEC keys and metadata storage in an other backend. See the

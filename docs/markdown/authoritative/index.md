@@ -18,9 +18,9 @@ The following table describes the capabilities of the backends.
 | [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No | `bind` |
 | [GeoIP](backend-geoip.md) | Supported | Yes | No | No | No | No | Yes | No | No | `geoip` |
 | [LDAP](backend-ldap.md) | Unmaintained | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | Unknown |
-| [LMDB](backend-lmdb.md) | Supported | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | `lmdb`|
 | [MySQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
 | [MyDNS](backend-mydns.md) | Supported | Yes | No | No | No | No | No | No | No | `mydns` |
+| [ODBC](backend-godbc.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes| `godbc` |
 | [OpenDBX](backend-opendbx.md) | Supported | Yes | Yes | Yes | Yes | Unknown (No) | No | Unknown (No) | Unknown (No) | `opendbx` |
 | [Oracle](backend-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Unknown (No) | No | `oracle` |
 | [Pipe](backend-pipe.md) | Supported | Yes | No | No | No | No | Partial (no delegation, no key storage) | No | No | `pipe` |

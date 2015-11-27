@@ -42,10 +42,8 @@
 
 /* Known sins:
 
-   Receiver is currently singlethreaded
+   Receiver is currently single threaded
       not *that* bad actually, but now that we are thread safe, might want to scale
-   TCP is a bit wonky and may pick the wrong downstream
-   ringbuffers are on a wing & a prayer because partially unlocked
 */
 
 /* the Rulaction plan
@@ -143,6 +141,9 @@ DelayPipe<DelayedPacket> * g_delay = 0;
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
   char packet[4096];
+  const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
+  const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
+  const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
   
   struct dnsheader* dh = (struct dnsheader*)packet;
   int len;
@@ -163,6 +164,15 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     if(dh->tc && g_truncateTC) {
       truncateTC(packet, (unsigned int*)&len);
     }
+
+    uint16_t * flags = getFlagsFromDNSHeader(dh);
+    uint16_t origFlags = ids->origFlags;
+    /* clear the flags we are about to restore */
+    *flags &= restoreFlagsMask;
+    /* only keep the flags we want to restore */
+    origFlags &= ~restoreFlagsMask;
+    /* set the saved flags as they were */
+    *flags |= origFlags;
 
     dh->id = ids->origID;
     g_stats.responses++;
@@ -215,7 +225,7 @@ bool operator<(const struct timespec&a, const struct timespec& b)
 }
 
 
-DownstreamState::DownstreamState(const ComboAddress& remote_)
+DownstreamState::DownstreamState(const ComboAddress& remote_): checkName("a.root-servers.net."), checkType(QType::A), mustResolve(false)
 {
   remote = remote_;
   
@@ -258,7 +268,7 @@ shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers
   return poss.begin()->second;
 }
 
-shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
   vector<pair<int, shared_ptr<DownstreamState>>> poss;
   int sum=0;
@@ -266,7 +276,6 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const C
     if(d.second->isUp()) {
       sum+=d.second->weight;
       poss.push_back({sum, d.second});
-
     }
   }
 
@@ -274,12 +283,24 @@ shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const C
   if(poss.empty())
     return shared_ptr<DownstreamState>();
 
-  int r = random() % sum;
+  int r = val % sum;
   auto p = upper_bound(poss.begin(), poss.end(),r, [](int r, const decltype(poss)::value_type& a) { return  r < a.first;});
   if(p==poss.end())
     return shared_ptr<DownstreamState>();
   return p->second;
 }
+
+shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  return valrandom(random(), servers, remote, qname, qtype, dh);
+}
+
+static uint32_t g_hashperturb;
+shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+{
+  return valrandom(qname.hash(g_hashperturb), servers, remote, qname, qtype, dh);
+}
+
 
 shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
 {
@@ -400,7 +421,6 @@ try
   }
   auto acl = g_ACL.getLocal();
   auto localPolicy = g_policy.getLocal();
-
   auto localRulactions = g_rulactions.getLocal();
   auto localServers = g_dstates.getLocal();
   struct msghdr msgh;
@@ -414,18 +434,25 @@ try
     try {
       len = recvmsg(cs->udpFD, &msgh, 0);
       g_rings.clientRing.push_back(remote);
-      if(len < (int)sizeof(struct dnsheader)) 
+      if(len < (int)sizeof(struct dnsheader)) {
+	g_stats.nonCompliantQueries++;
 	continue;
+      }
 
       g_stats.queries++;
       if(!acl->match(remote)) {
+	vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
 	g_stats.aclDrops++;
 	continue;
       }
       
-      if(dh->qr)    // don't respond to responses
+      if(dh->qr) {   // don't respond to responses
+	g_stats.nonCompliantQueries++;
 	continue;
+      }
       
+      const uint16_t * flags = getFlagsFromDNSHeader(dh);
+      const uint16_t origFlags = *flags;
       DNSName qname(packet, len, 12, false, &qtype);
       g_rings.queryRing.push_back(qname);
             
@@ -500,8 +527,7 @@ try
 
       if(!ss) {
 	g_stats.noPolicy++;
-	continue;
-	
+	continue;	
       }
       
       ss->queries++;
@@ -525,6 +551,7 @@ try
       ids->qtype = qtype;
       ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
+      ids->origFlags = origFlags;
       HarvestDestinationAddress(&msgh, &ids->origDest);
       
       dh->id = idOffset;
@@ -560,12 +587,13 @@ catch(...)
 }
 
 
-bool upCheck(const ComboAddress& remote)
+bool upCheck(const ComboAddress& remote, const DNSName& checkName, const QType& checkType, bool mustResolve)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, DNSName("a.root-servers.net."), QType::A);
-  dpw.getHeader()->rd=true;
+  DNSPacketWriter dpw(packet, checkName, checkType.getCode());
+  dnsheader * requestHeader = dpw.getHeader();
+  requestHeader->rd=true;
 
   Socket sock(remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();
@@ -577,6 +605,20 @@ try
   string reply;
   ComboAddress dest=remote;
   sock.recvFrom(reply, dest);
+
+  const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
+
+  if (reply.size() < sizeof(*responseHeader))
+    return false;
+
+  if (responseHeader->id != requestHeader->id)
+    return false;
+  if (!responseHeader->qr)
+    return false;
+  if (responseHeader->rcode == RCode::ServFail)
+    return false;
+  if (mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused))
+    return false;
 
   // XXX fixme do bunch of checking here etc 
   return true;
@@ -598,7 +640,7 @@ void* maintThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-	bool newState=upCheck(dss->remote);
+	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
 	if(newState != dss->upStatus) {
 	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
 	}
@@ -1038,9 +1080,20 @@ try
     cerr<<"Unable to initialize crypto library"<<endl;
     exit(EXIT_FAILURE);
   }
+  g_hashperturb=randombytes_uniform(0xffffffff);
+  srandom(randombytes_uniform(0xffffffff));
+#else
+  {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
+    g_hashperturb=random();
+  }
+  
 #endif
   g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
   struct option longopts[]={ 
+    {"acl", required_argument, 0, 'a'},
     {"config", required_argument, 0, 'C'},
     {"execute", required_argument, 0, 'e'},
     {"client", 0, 0, 'c'},
@@ -1054,8 +1107,9 @@ try
     {0,0,0,0} 
   };
   int longindex=0;
+  string optstring;
   for(;;) {
-    int c=getopt_long(argc, argv, "hcde:C:l:vp:g:u:", longopts, &longindex);
+    int c=getopt_long(argc, argv, "a:hcde:C:l:vp:g:u:", longopts, &longindex);
     if(c==-1)
       break;
     switch(c) {
@@ -1078,6 +1132,7 @@ try
       cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
       cout<<"\n";
+      cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
       cout<<"-c,--client           Operate as a client, connect to dnsdist\n";
       cout<<"-d,--daemon           Operate as a daemon\n";
@@ -1091,6 +1146,10 @@ try
       cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
       cout<<"\n";
       exit(EXIT_SUCCESS);
+      break;
+    case 'a':
+      optstring=optarg;
+      g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
     case 'l':
       g_cmdLine.locals.push_back(trim_copy(string(optarg)));
@@ -1127,9 +1186,11 @@ try
   }
 
   auto acl = g_ACL.getCopy();
-  for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
-    acl.addMask(addr);
-  g_ACL.setState(acl);
+  if(acl.empty()) {
+    for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+      acl.addMask(addr);
+    g_ACL.setState(acl);
+  }
 
   auto todo=setupLua(false, g_cmdLine.config);
 
@@ -1140,7 +1201,7 @@ try
   }
   
   if(g_locals.empty())
-    g_locals.push_back({ComboAddress("0.0.0.0", 53), true});
+    g_locals.push_back({ComboAddress("127.0.0.1", 53), true});
   
 
   vector<ClientState*> toLaunch;
@@ -1215,6 +1276,7 @@ try
   }
   else {
     vinfolog("Running in the foreground");
+    warnlog("dnsdist comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2");
   }
 
   /* this need to be done _after_ dropping privileges */
@@ -1232,10 +1294,15 @@ try
     }
   }
 
+  if(g_dstates.getCopy().empty()) {
+    errlog("No downstream servers defined: all packets will get dropped");
+    // you might define them later, but you need to know
+  }
+
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(dss->remote);
-      warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
+      bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
+      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
       dss->upStatus = newState;
     }
   }

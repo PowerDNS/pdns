@@ -20,10 +20,13 @@
 #include "pdns/dnsbackend.hh"
 #include "pdns/lock.hh"
 
+struct geoip_deleter;
+
 class GeoIPDomain;
 
 class GeoIPBackend: public DNSBackend {
 public:
+  typedef pair<int,unique_ptr<GeoIP,geoip_deleter> > geoip_file_t;
   GeoIPBackend(const std::string& suffix="");
   ~GeoIPBackend();
 
@@ -45,7 +48,7 @@ public:
   virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
 
   enum GeoIPQueryAttribute {
-    Afi,
+    ASn,
     City,
     Continent,
     Country,
@@ -59,8 +62,19 @@ private:
   void initialize();
   void ip2geo(const GeoIPDomain& dom, const string& qname, const string& ip);
   string queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute attribute, GeoIPLookup* gl);
+  bool queryCountry(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryCountryV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryContinent(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryContinentV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryName(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryNameV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryASnum(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryASnumV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryRegion(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryRegionV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryCity(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
+  bool queryCityV6(string &ret, GeoIPLookup* gl, const string &ip, const geoip_file_t& gi);
   string format2str(string format, const string& ip, bool v6, GeoIPLookup* gl);
-  int d_dbmode;
   bool d_dnssec; 
   bool hasDNSSECkey(const DNSName& name);
 

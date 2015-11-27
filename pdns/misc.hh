@@ -623,6 +623,8 @@ uint64_t udpErrorStats(const std::string& str);
 
 uint64_t getRealMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);
+uint64_t getCPUTimeUser(const std::string&);
+uint64_t getCPUTimeSystem(const std::string&);
 
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
@@ -635,4 +637,10 @@ template<typename T>
 const T& defTer(const T& a, const T& b)
 {
   return a ? a : b;
+}
+
+template<typename P, typename T>
+T valueOrEmpty(const P val) {
+  if (!val) return T{};
+  return T(val);
 }

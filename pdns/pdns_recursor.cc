@@ -56,6 +56,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
+#ifdef MALLOC_TRACE
+#include "malloctrace.hh"
+#endif
 #include <netinet/tcp.h>
 #include "dnsparser.hh"
 #include "dnswriter.hh"
@@ -85,7 +88,7 @@ unsigned int g_networkTimeoutMsec;
 uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
 bool g_anyToTcp;
-uint16_t g_udpTruncationThreshold;
+uint16_t g_udpTruncationThreshold, g_outgoingEDNSBufsize;
 __thread shared_ptr<RecursorLua>* t_pdl;
 
 __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
@@ -641,6 +644,7 @@ void startDoResolve(void *p)
       tracedQuery=true;
     }
 
+
     if(!g_quiet || tracedQuery)
       L<<Logger::Warning<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] " << (dc->d_tcp ? "TCP " : "") << "question for '"<<dc->d_mdp.d_qname<<"|"
        <<DNSRecordContent::NumberToType(dc->d_mdp.d_qtype)<<"' from "<<dc->getRemote()<<endl;
@@ -1086,10 +1090,24 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   string response;
   try {
     uint32_t age;
+#ifdef MALLOC_TRACE
+    /*
+    static uint64_t last=0;
+    if(!last)
+      g_mtracer->clearAllocators();
+    cout<<g_mtracer->getAllocs()-last<<" "<<g_mtracer->getNumOut()<<" -- BEGIN TRACE"<<endl;
+    last=g_mtracer->getAllocs();
+    cout<<g_mtracer->topAllocatorsString()<<endl;
+    g_mtracer->clearAllocators();
+    */
+#endif
+
     if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
         L<<Logger::Notice<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
       // t_queryring->push_back("packetcached");
+
+      
 
       g_stats.packetCacheHits++;
       SyncRes::s_queries++;
@@ -1576,7 +1594,7 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
   }
 }
 
-uint32_t g_disthashseed;
+static uint32_t g_disthashseed;
 void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   unsigned int hash = hashQuestion(packet.c_str(), packet.length(), g_disthashseed);
@@ -2078,7 +2096,7 @@ boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSN
 void  parseEDNSSubnetWhitelist(const std::string& wlist)
 {
   vector<string> parts;
-  stringtok(parts, wlist, ",;");
+  stringtok(parts, wlist, ",; ");
   for(const auto& a : parts) {
     try {
       Netmask nm(a);
@@ -2090,6 +2108,15 @@ void  parseEDNSSubnetWhitelist(const std::string& wlist)
   }
 }
 
+SuffixMatchNode g_delegationOnly;
+static void setupDelegationOnly()
+{
+  vector<string> parts;
+  stringtok(parts, ::arg()["delegation-only"], ", \t");
+  for(const auto& p : parts) {
+    g_delegationOnly.add(DNSName(p));
+  }
+}
 
 int serviceMain(int argc, char*argv[])
 {
@@ -2134,6 +2161,9 @@ int serviceMain(int argc, char*argv[])
   if(g_weDistributeQueries) {
       L<<Logger::Warning<<"PowerDNS Recursor itself will distribute queries over threads"<<endl;
   }
+
+  setupDelegationOnly();
+  g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
@@ -2522,6 +2552,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch( "root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist")="no";
     ::arg().setSwitch( "any-to-tcp","Answer ANY queries with tc=1, shunting to TCP" )="no";
     ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate")="1680";
+    ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size")="1680";
     ::arg().set("minimum-ttl-override", "Set under adverse conditions, a minimum TTL")="0";
     ::arg().set("max-qperq", "Maximum outgoing queries per query")="50";
     ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited")="7000";

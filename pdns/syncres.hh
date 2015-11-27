@@ -476,7 +476,7 @@ private:
   struct GetBestNSAnswer
   {
     DNSName qname;
-    set<pair<DNSName,string> > bestns; // FIXME400 right side really should be DNSName too
+    set<pair<DNSName,DNSName> > bestns; 
     uint8_t qtype; // only A and AAAA anyhow
     bool operator<(const GetBestNSAnswer &b) const
     {
@@ -632,7 +632,8 @@ string doTraceRegex(vector<string>::const_iterator begin, vector<string>::const_
 void parseACLs();
 extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
-
+extern SuffixMatchNode g_delegationOnly;
+extern uint16_t g_outgoingEDNSBufsize;
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);

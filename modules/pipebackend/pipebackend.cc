@@ -30,12 +30,12 @@
 
 static const char *kBackendId = "[PIPEBackend]";
 
-CoWrapper::CoWrapper(const string &command, int timeout)
+CoWrapper::CoWrapper(const string &command, int timeout, int abiVersion)
 {
    d_cp=0;
    d_command=command;
    d_timeout=timeout;
-   d_abiVersion = ::arg().asNum("pipebackend-abi-version");
+   d_abiVersion = abiVersion;
    launch(); // let exceptions fall through - if initial launch fails, we want to die
    // I think
 }
@@ -96,7 +96,7 @@ PipeBackend::PipeBackend(const string &suffix)
    signal(SIGCHLD, SIG_IGN);
    setArgPrefix("pipe"+suffix);
    try {
-     d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout")));
+     d_coproc=shared_ptr<CoWrapper>(new CoWrapper(getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version")));
      d_regex=getArg("regex").empty() ? 0 : new Regex(getArg("regex"));
      d_regexstr=getArg("regex");
      d_abiVersion = getArgAsNum("abi-version");
@@ -128,11 +128,11 @@ void PipeBackend::lookup(const QType& qtype,const DNSName& qname, DNSPacket *pkt
             realRemote = pkt_p->getRealRemote();
             remoteIP = pkt_p->getRemote();
          }
-         // pipebackend-abi-version = 1
+         // abi-version = 1
          // type    qname           qclass  qtype   id      remote-ip-address
          query<<"Q\t"<<qname.toStringNoDot()<<"\tIN\t"<<qtype.getName()<<"\t"<<zoneId<<"\t"<<remoteIP;
 
-         // add the local-ip-address if pipebackend-abi-version is set to 2
+         // add the local-ip-address if abi-version is set to 2
          if (d_abiVersion >= 2)
             query<<"\t"<<localIP;
          if(d_abiVersion >= 3)

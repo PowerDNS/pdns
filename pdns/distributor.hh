@@ -65,11 +65,11 @@ public:
   SingleThreadDistributor();
   typedef std::function<void(Answer*)> callback_t;
   int question(Question *, callback_t callback) override; //!< Submit a question to the Distributor
-  int getQueueSize() {
+  int getQueueSize() override {
     return 0;
   }
 
-  bool isOverloaded()
+  bool isOverloaded() override
   {
     return false;
   }

@@ -374,14 +374,14 @@ void ixfrTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOA
 void loadRPZFiles()
 {
   vector<string> fnames;
-  stringtok(fnames, ::arg()["rpz-files"],",");
+  stringtok(fnames, ::arg()["rpz-files"]," ,");
   int count=0;
   for(const auto& f : fnames) {
     loadRPZFromFile(f, g_dfe, count++);
   }
 
   fnames.clear();
-  stringtok(fnames, ::arg()["rpz-masters"],",");
+  stringtok(fnames, ::arg()["rpz-masters"]," ,");
 
   for(const auto& f : fnames) {
     auto s = splitField(f, ':');
@@ -406,7 +406,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
   const char *option_names[3]={"auth-zones", "forward-zones", "forward-zones-recurse"};
   for(int n=0; n < 3 ; ++n ) {
     parts.clear();
-    stringtok(parts, ::arg()[option_names[n]], ",\t\n\r");
+    stringtok(parts, ::arg()[option_names[n]], " ,\t\n\r");
     for(parts_t::const_iterator iter = parts.begin(); iter != parts.end(); ++iter) {
       SyncRes::AuthDomain ad;
       pair<string,string> headers=splitField(*iter, '=');

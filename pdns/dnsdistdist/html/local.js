@@ -49,7 +49,7 @@ $(document).ready(function() {
     function updateRingBuffers()
     {
 	var filtered=$("#filter1").is(':checked')
-	var qstring='/jsonstat?command=get-query-ring&name=queries';
+	var qstring='jsonstat?command=get-query-ring&name=queries';
 	if(filtered)
 	    qstring=qstring+"&public-filtered=1";
 
@@ -77,7 +77,7 @@ $(document).ready(function() {
 		  });
 
 	filtered=$("#filter2").is(':checked')
-	qstring='/jsonstat?command=get-query-ring&name=servfail-queries';
+	qstring='jsonstat?command=get-query-ring&name=servfail-queries';
 	if(filtered)
 	    qstring=qstring+"&public-filtered=1";
 
@@ -101,7 +101,7 @@ $(document).ready(function() {
 
 		  });
 
-	$.getJSON('/jsonstat?command=get-remote-ring&name=remotes', 
+	$.getJSON('jsonstat?command=get-remote-ring&name=remotes', 
 		  function(data) {
 		      var bouw="<table><tr><th>Number</th><th>Remote</th></tr>";
 		      var num=0, total=0, rest=0;
@@ -119,7 +119,7 @@ $(document).ready(function() {
 
 		  });
 
-	$.getJSON('/jsonstat?command=get-remote-ring&name=servfail-remotes', 
+	$.getJSON('jsonstat?command=get-remote-ring&name=servfail-remotes', 
 		  function(data) {
 		      var bouw="<table><tr><th>Number</th><th>Servfail Remote</th></tr>";
 		      var num=0, total=0, rest=0;
@@ -144,25 +144,26 @@ $(document).ready(function() {
     {
 
 	$.ajax({
-            url: '/jsonstat?command=stats',
+            url: 'jsonstat?command=stats',
             type: 'GET',
             dataType: 'jsonp',
             success: function(data, x, y) {
-		$("#questions").text(data["questions"]);
+		$("#questions").text(data["queries"]);
 		$("#over-capacity-drops").text(data["over-capacity-drops"]);
 		$("#too-old").text(data["too-old-drops"]);
 		$("#uptime").text(moment.duration(data["uptime"]*1000.0).humanize());
-		$("#latency").text(data["qa-latency"]/1000.0);
-		if(!gdata["sys-msec"]) 
+		$("#latency").text((data["latency-avg100"]/1000.0).toFixed(2));
+		if(!gdata["cpu-sys-msec"]) 
 		    gdata=data;
 
-		var cpu=((1.0*data["sys-msec"]+1.0*data["user-msec"] - 1.0*gdata["sys-msec"]-1.0*gdata["user-msec"])/10.0);
+		var cpu=((1.0*data["cpu-sys-msec"]+1.0*data["cpu-user-msec"] - 1.0*gdata["cpu-sys-msec"]-1.0*gdata["cpu-user-msec"])/10.0);
 
 		$("#cpu").text(cpu.toFixed(2));
-		var qps=1.0*data["questions"]-1.0*gdata["questions"];
+		var qps=1.0*data["queries"]-1.0*gdata["queries"];
 		$("#qps").text(qps);
+		$("#server-policy").text(data["server-policy"]);
 
-		var servfailps=1.0*data["servfail-answers"]-1.0*gdata["servfail-answers"];
+		var servfailps=1.0*data["servfail-responses"]-1.0*gdata["servfail-responses"];
 
 		var totpcache=1.0*data["packetcache-hits"]-1.0*gdata["packetcache-hits"]+1.0*data["packetcache-misses"]-1.0*gdata["packetcache-misses"];
 		if(totpcache > 0)
@@ -183,7 +184,7 @@ $(document).ready(function() {
             },
         });
 	
-	$.ajax({ url: '/servers/localhost', type: 'GET', dataType: 'json',
+	$.ajax({ url: 'servers/localhost', type: 'GET', dataType: 'json',
 		 success: function(data) {
 		     $("#version").text("PowerDNS "+data["daemon_type"]+" "+data["version"]);
 		     var bouw="<table><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>";

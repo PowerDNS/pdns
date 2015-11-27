@@ -32,6 +32,12 @@ DNSName::DNSName(const char* p)
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
+  if(!uncompress) {
+    if(const void * fnd=memchr(pos+offset, 0, len-offset)) {
+      d_storage.reserve(2+(const char*)fnd-(pos+offset));
+    }
+  }
+
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed);
 }
 
@@ -41,6 +47,10 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
   const unsigned char* pos=(const unsigned char*)qpos;
   unsigned char labellen;
   const unsigned char *opos = pos;
+
+  if (offset >= len)
+    throw std::range_error("Trying to read past the end of the buffer");
+
   pos += offset;
   const unsigned char* end = pos + len;
   while((labellen=*pos++) && pos < end) { // "scan and copy"
@@ -61,7 +71,7 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
       break;
     }
     if (pos + labellen < end) {
-      appendRawLabel(string((const char*)pos, labellen));
+      appendRawLabel((const char*)pos, labellen);
     }
     else
       throw std::range_error("Found an invalid label length in qname");
@@ -174,20 +184,25 @@ DNSName DNSName::labelReverse() const
 
 void DNSName::appendRawLabel(const std::string& label)
 {
-  if(label.empty())
+  appendRawLabel(label.c_str(), label.length());
+}
+
+void DNSName::appendRawLabel(const char* start, unsigned int length)
+{
+  if(length==0)
     throw std::range_error("no such thing as an empty label to append");
-  if(label.size() > 63)
+  if(length > 63)
     throw std::range_error("label too long to append");
-  if(d_storage.size() + label.size() > 254) // reserve two bytes, one for length and one for the root label
+  if(d_storage.size() + length > 254) // reserve two bytes, one for length and one for the root label
     throw std::range_error("name too long to append");
 
   if(d_storage.empty()) {
-    d_storage.append(1, (char)label.size());
+    d_storage.append(1, (char)length);
   }
   else {
-    *d_storage.rbegin()=(char)label.size();
+    *d_storage.rbegin()=(char)length;
   }
-  d_storage.append(label.c_str(), label.length());
+  d_storage.append(start, length);
   d_storage.append(1, (char)0);
 }
 
@@ -217,7 +232,7 @@ bool DNSName::slowCanonCompare(const DNSName& rhs) const
 vector<string> DNSName::getRawLabels() const
 {
   vector<string> ret;
-
+  ret.reserve(countLabels());
   // 3www4ds9a2nl0
   for(const char* p = d_storage.c_str(); p < d_storage.c_str() + d_storage.size() && *p; p+=*p+1)
     ret.push_back({p+1, (unsigned int)*p}); // XXX FIXME
@@ -229,7 +244,7 @@ bool DNSName::chopOff()
 {
   if(d_storage.empty() || d_storage[0]==0)
     return false;
-  d_storage = d_storage.substr((unsigned int)d_storage[0]+1);
+  d_storage.erase(0, (unsigned int)d_storage[0]+1);
   return true;
 }
 

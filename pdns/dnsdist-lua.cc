@@ -66,7 +66,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
 {
   g_launchWork= new vector<std::function<void(void)>>();
-  typedef std::unordered_map<std::string, boost::variant<std::string, vector<pair<int, std::string> > > > newserver_t;
+  typedef std::unordered_map<std::string, boost::variant<bool, std::string, vector<pair<int, std::string> > > > newserver_t;
 
   g_lua.writeVariable("DNSAction", std::unordered_map<string,int>{
       {"Drop", (int)DNSAction::Action::Drop}, 
@@ -168,6 +168,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->name=boost::get<string>(vars["name"]);
 			}
 
+			if(vars.count("checkName")) {
+			  ret->checkName=DNSName(boost::get<string>(vars["checkName"]));
+			}
+
+			if(vars.count("checkType")) {
+			  ret->checkType=boost::get<string>(vars["checkType"]);
+			}
+
+			if(vars.count("mustResolve")) {
+			  ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
+			}
+
 			if(g_launchWork) {
 			  g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
@@ -263,9 +275,23 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
+  g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
+    });
+
+  g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
+      if(client)
+	return;
+      try {
+	ComboAddress loc(addr, 53);
+	g_locals.clear();
+	g_locals.push_back({loc, doTCP ? *doTCP : true}); /// only works pre-startup, so no sync necessary
+      }
+      catch(std::exception& e) {
+	g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
     });
 
   g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
@@ -279,9 +305,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	g_outputBuffer="Error: "+string(e.what())+"\n";
       }
     });
-  g_lua.writeFunction("setACL", [](const vector<pair<int, string>>& parts) {
+  g_lua.writeFunction("setACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
       NetmaskGroup nmg;
-      for(const auto& p : parts) {
+      if(auto str = boost::get<string>(&inp)) {
+	nmg.addMask(*str);
+      }
+      else for(const auto& p : boost::get<vector<pair<int,string>>>(inp)) {
 	nmg.addMask(p.second);
       }
       g_ACL.setState(nmg);
@@ -373,6 +402,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new TCAction);
     });
 
+  g_lua.writeFunction("DisableValidationAction", []() {
+      return std::shared_ptr<DNSAction>(new DisableValidationAction);
+    });
+
 
   g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
@@ -411,6 +444,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	    rulactions.push_back({
 		rule,
 		  std::make_shared<NoRecurseAction>()  });
+	  });
+    });
+
+  g_lua.writeFunction("addDisableValidationRule", [](luadnsrule_t var) {
+      auto rule=makeRule(var);
+	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
+	    rulactions.push_back({
+		rule,
+		  std::make_shared<DisableValidationAction>()  });
 	  });
     });
 
@@ -511,6 +553,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) {
       return (bool)dh.rd;
+    });
+
+  g_lua.registerFunction<void(dnsheader::*)(bool)>("setCD", [](dnsheader& dh, bool v) {
+      dh.cd=v;
+    });
+
+  g_lua.registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) {
+      return (bool)dh.cd;
     });
 
 
@@ -837,6 +887,49 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("setTCPRecvTimeout", [](int timeout) { g_tcpRecvTimeout=timeout; });
 
   g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
+
+  g_lua.writeFunction("dumpStats", [] {
+      vector<string> leftcolumn, rightcolumn;
+
+      boost::format fmt("%-23s\t%+11s");
+      g_outputBuffer.clear();
+      auto entries = g_stats.entries;
+      sort(entries.begin(), entries.end(), 
+	   [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
+	     return a.first < b.first;
+	   });
+      boost::format flt("    %9.1f");
+      for(const auto& e : entries) {
+	string second;
+	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+	  second=std::to_string((*val)->load());
+	else if (const auto& val = boost::get<double*>(&e.second))
+	  second=(flt % (**val)).str();
+	else
+	  second=std::to_string((*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first));
+
+	if(leftcolumn.size() < g_stats.entries.size()/2)
+	  leftcolumn.push_back((fmt % e.first % second).str());
+	else
+	  rightcolumn.push_back((fmt % e.first % second).str());
+      }
+
+      auto leftiter=leftcolumn.begin(), rightiter=rightcolumn.begin();
+      boost::format clmn("%|0t|%1% %|39t|%2%\n");
+
+      for(;leftiter != leftcolumn.end() || rightiter != rightcolumn.end();) {
+	string lentry, rentry;
+	if(leftiter!= leftcolumn.end()) {
+	  lentry = *leftiter;
+	  leftiter++;
+	}
+	if(rightiter!= rightcolumn.end()) {
+	  rentry = *rightiter;
+	  rightiter++;
+	}
+	g_outputBuffer += (clmn % lentry % rentry).str();
+      }
+    });
   
   std::ifstream ifs(config);
   if(!ifs) 
