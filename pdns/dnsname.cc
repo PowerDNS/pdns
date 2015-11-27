@@ -32,6 +32,9 @@ DNSName::DNSName(const char* p)
 
 DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed)
 {
+  if (offset >= len)
+    throw std::range_error("Trying to read past the end of the buffer");
+
   if(!uncompress) {
     if(const void * fnd=memchr(pos+offset, 0, len-offset)) {
       d_storage.reserve(2+(const char*)fnd-(pos+offset));
