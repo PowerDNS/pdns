@@ -120,9 +120,9 @@ public:
   }
 
 
-  void xfrName(DNSName &label, bool compress=false)
+  void xfrName(DNSName &name, bool compress=false)
   {
-    label=getName();
+    name=getName();
   }
 
   void xfrText(string &text, bool multi=false)
