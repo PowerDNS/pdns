@@ -279,6 +279,7 @@ public:
   DNSKEYRecordContent();
   includeboilerplate(DNSKEY)
   uint16_t getTag() const;
+  uint16_t getTag();
 
   uint16_t d_flags;
   uint8_t d_protocol;
