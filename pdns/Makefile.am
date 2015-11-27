@@ -687,10 +687,13 @@ toysdig_SOURCES = \
 	dnslabeltext.cc \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
+	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gss_context.cc gss_context.hh \
 	logger.cc \
 	mbedtlscompat.hh \
+	mbedtlssigners.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -700,9 +703,25 @@ toysdig_SOURCES = \
 	sstuff.hh \
 	statbag.cc \
 	toysdig.cc \
-	unix_utility.cc
+	unix_utility.cc \
+	validate.cc validate.hh
+
 
 toysdig_LDADD = $(MBEDTLS_LIBS)
+if GSS_TSIG
+toysdig_LDADD += $(GSS_LIBS)
+endif
+
+if BOTAN110
+toysdig_SOURCES += botan110signers.cc botansigners.cc
+toysdig_LDADD += $(BOTAN110_LIBS)
+endif
+
+if PKCS11
+toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
+toysdig_LDADD += $(P11KIT1_LIBS)
+endif
+
 
 tsig_tests_SOURCES = \
 	arguments.cc \
@@ -1103,6 +1122,7 @@ pdns_recursor_SOURCES = \
 	lua-recursor.cc lua-recursor.hh \
 	lwres.cc lwres.hh \
 	mbedtlscompat.hh \
+	mbedtlssigners.cc \
 	misc.cc \
 	mtasker.hh \
 	nsecrecords.cc \
@@ -1128,6 +1148,7 @@ pdns_recursor_SOURCES = \
 	statbag.cc \
 	syncres.cc syncres.hh \
 	unix_utility.cc \
+	validate.cc validate.hh validate-recursor.cc validate-recursor.hh \
 	version.cc version.hh \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \

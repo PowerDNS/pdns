@@ -168,8 +168,10 @@ void DNSName::makeUsRelative(const DNSName& zone)
 DNSName DNSName::labelReverse() const
 {
   DNSName ret;
+
   if(isRoot())
     return *this; // we don't create the root automatically below
+
   if (!empty()) {
     vector<string> l=getRawLabels();
     while(!l.empty()) {

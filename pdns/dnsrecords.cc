@@ -476,9 +476,8 @@ boilerplate_conv(TKEY, QType::TKEY,
                  )
 TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
-uint16_t DNSKEYRecordContent::getTag()
+static uint16_t makeTag(const std::string& data)
 {
-  string data=this->serialize(DNSName()); 
   const unsigned char* key=(const unsigned char*)data.c_str();
   unsigned int keysize=data.length();
 
@@ -490,6 +489,18 @@ uint16_t DNSKEYRecordContent::getTag()
   ac += (ac >> 16) & 0xFFFF;
   return ac & 0xFFFF;
 }
+
+uint16_t DNSKEYRecordContent::getTag() const
+{
+  DNSKEYRecordContent tmp(*this);
+  return makeTag(tmp.serialize(DNSName()));  // this can't be const for some reason
+}
+
+uint16_t DNSKEYRecordContent::getTag() 
+{
+  return makeTag(this->serialize(DNSName()));
+}
+
 
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
