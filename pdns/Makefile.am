@@ -1122,6 +1122,7 @@ pdns_recursor_SOURCES = \
 	lua-recursor.cc lua-recursor.hh \
 	lwres.cc lwres.hh \
 	mbedtlscompat.hh \
+	mbedtlssigners.cc \
 	misc.cc \
 	mtasker.hh \
 	nsecrecords.cc \
@@ -1147,6 +1148,7 @@ pdns_recursor_SOURCES = \
 	statbag.cc \
 	syncres.cc syncres.hh \
 	unix_utility.cc \
+	validate.cc validate.hh validate-recursor.cc validate-recursor.hh \
 	version.cc version.hh \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \

@@ -48,23 +48,23 @@ static dState getDenial(cspmap_t &validrrsets, DNSName qname, uint16_t qtype)
       nsec3s.insert(make_pair(i->first.first, ns3r));
     }
   }
-  cerr<<"got "<<nsec3s.size()<<" NSEC3s"<<endl;
+  //  cerr<<"got "<<nsec3s.size()<<" NSEC3s"<<endl;
   for(auto i=nsec3s.begin(); i != nsec3s.end(); ++i) {
     vector<string> parts = i->first.getRawLabels();
 
       string base=toLower(parts[0]);
       string next=toLower(toBase32Hex(i->second.d_nexthash));
       string hashed = nsec3Hash(qname, i->second);
-      cerr<<base<<" .. ? "<<hashed<<" ("<<qname<<") ? .. "<<next<<endl;
+      //      cerr<<base<<" .. ? "<<hashed<<" ("<<qname<<") ? .. "<<next<<endl;
       if(base==hashed) {
         // positive name proof, need to check type
-        cerr<<"positive name proof, checking type bitmap"<<endl;
-        cerr<<"d_set.count("<<qtype<<"): "<<i->second.d_set.count(qtype)<<endl;
+	//        cerr<<"positive name proof, checking type bitmap"<<endl;
+	//        cerr<<"d_set.count("<<qtype<<"): "<<i->second.d_set.count(qtype)<<endl;
         if(qtype == QType::DS && i->second.d_set.count(qtype) == 0) return INSECURE; // FIXME need to require 'NS in bitmap' here, otherwise no delegation! (but first, make sure this is reliable - does not work that way for direct auth queries)
       } else if ((hashed > base && hashed < next) ||
                 (next < base && (hashed < next || hashed > base))) {
         bool optout=(1 & i->second.d_flags);
-        cerr<<"negative name proof, optout = "<<optout<<endl;
+	//        cerr<<"negative name proof, optout = "<<optout<<endl;
         if(qtype == QType::DS && optout) return INSECURE;
       }
   }
@@ -75,17 +75,18 @@ static dState getDenial(cspmap_t &validrrsets, DNSName qname, uint16_t qtype)
 void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyset_t& keys)
 {
   validated.clear();
-  cerr<<"Validating an rrset with following keys: "<<endl;
+  /*  cerr<<"Validating an rrset with following keys: "<<endl;
   for(auto& key : keys) {
     cerr<<"\tTag: "<<key.getTag()<<" -> "<<key.getZoneRepresentation()<<endl;
   }
+  */
   for(auto i=rrsets.begin(); i!=rrsets.end(); i++) {
-    cerr<<"validating "<<(i->first.first)<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<" with "<<i->second.signatures.size()<<" sigs: ";
+    //    cerr<<"validating "<<(i->first.first)<<"/"<<DNSRecordContent::NumberToType(i->first.second)<<" with "<<i->second.signatures.size()<<" sigs: ";
     for(const auto& signature : i->second.signatures) {
       vector<shared_ptr<DNSRecordContent> > toSign = i->second.records;
       
       if(getByTag(keys,signature->d_tag).empty()) {
-	cerr<<"No key provided for "<<signature->d_tag<<endl;
+	//	cerr<<"No key provided for "<<signature->d_tag<<endl;
 	continue;
       }
       
@@ -98,18 +99,18 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  if(signature->d_siginception < now && signature->d_sigexpire > now)
 	    isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(l.d_algorithm, l.d_key)->verify(msg, signature->d_signature);
 	  else
-	    cerr<<"signature is expired/not yet valid ";
+	    ; // cerr<<"signature is expired/not yet valid ";
 	}
 	catch(std::exception& e) {
-	  cerr<<"Error validating with engine: "<<e.what()<<endl;
+	  // cerr<<"Error validating with engine: "<<e.what()<<endl;
 	}
 	if(isValid) {
 	  validated[i->first] = i->second;
-	  cerr<<"valid"<<endl;
-	  cerr<<"! validated "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl;
+	  //	  cerr<<"valid"<<endl;
+	  //	  cerr<<"! validated "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl;
 	}
 	else 
-	  cerr<<"signature invalid"<<endl;
+	  ; // cerr<<"signature invalid"<<endl;
 	if(signature->d_type != QType::DNSKEY) {
 	  dotEdge(signature->d_signer,
 		  "DNSKEY", signature->d_signer, lexical_cast<string>(signature->d_tag),
@@ -181,7 +182,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
     // start of this iteration
     // we can trust that dsmap has valid DS records for qname
 
-    cerr<<"got DS for ["<<qname<<"], grabbing DNSKEYs"<<endl;
+    //    cerr<<"got DS for ["<<qname<<"], grabbing DNSKEYs"<<endl;
     auto recs=dro.get(qname, (uint16_t)QType::DNSKEY);
     // this should use harvest perhaps
     for(const auto& rec : recs) {
@@ -199,20 +200,20 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       {
         auto drc=getRR<DNSKEYRecordContent> (rec);
         tkeys.insert(*drc);
-	cerr<<"Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl;
+	//	cerr<<"Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl;
 	dotNode("DNSKEY", qname, lexical_cast<string>(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
 
         toSign.push_back(rec.d_content);
         toSignTags.push_back(drc->getTag());
       }
     }
-    cerr<<"got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl;
+    //    cerr<<"got "<<tkeys.size()<<" keys and "<<sigs.size()<<" sigs from server"<<endl;
 
     for(dsmap_t::const_iterator i=dsmap.begin(); i!=dsmap.end(); i++)
     {
       DSRecordContent dsrc=i->second;
       auto r = getByTag(tkeys, i->first);
-      cerr<<"looking at DS with tag "<<dsrc.d_tag<<"/"<<i->first<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
+      //      cerr<<"looking at DS with tag "<<dsrc.d_tag<<"/"<<i->first<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
       for(const auto& drc : r) 
       {
@@ -223,17 +224,17 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	  isValid = dsrc == dsrc2;
 	} 
 	catch(std::exception &e) {
-	  cerr<<"Unable to make DS from DNSKey: "<<e.what()<<endl;
+	  //	  cerr<<"Unable to make DS from DNSKey: "<<e.what()<<endl;
 	}
 
         if(isValid) {
-          cerr<<"got valid DNSKEY (it matches the DS) for "<<qname<<endl;
+	  //          cerr<<"got valid DNSKEY (it matches the DS) for "<<qname<<endl;
 	  
           validkeys.insert(drc);
 	  dotNode("DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
         }
 	else {
-	  cerr<<"DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl;
+	  //	  cerr<<"DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl;
 	}
         // cout<<"    subgraph "<<dotEscape("cluster "+qname)<<" { "<<dotEscape("DS "+qname)<<" -> "<<dotEscape("DNSKEY "+qname)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<qname<<"\"; }"<<endl;
 	dotEdge(DNSName("."), "DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, "DNSKEY", qname, lexical_cast<string>(drc.getTag()), isValid ? "green" : "red");
@@ -241,7 +242,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       }
     }
 
-    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
+    //    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
     // these counts could be off if we somehow ended up with 
     // duplicate keys. Should switch to a type that prevents that.
     if(validkeys.size() < tkeys.size())
@@ -252,11 +253,11 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       // whole set
       for(auto i=sigs.begin(); i!=sigs.end(); i++)
       {
-        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
+	//        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
         string msg=getMessageForRRSET(qname, *i, toSign);
         auto bytag = getByTag(validkeys, i->d_tag);
         for(const auto& j : bytag) {
-          cerr<<"validating : ";
+	  //          cerr<<"validating : ";
           bool isValid = false;
 	  try {
 	    unsigned int now = time(0);
@@ -264,7 +265,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	      isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(j.d_algorithm, j.d_key)->verify(msg, i->d_signature);
 	  }
 	  catch(std::exception& e) {
-	    cerr<<"Could not make a validator for signature: "<<e.what()<<endl;
+	    //	    cerr<<"Could not make a validator for signature: "<<e.what()<<endl;
 	  }
 	  for(uint16_t tag : toSignTags) {
 	    dotEdge(qname,
@@ -274,36 +275,36 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	  
           if(isValid)
           {
-            cerr<<"validation succeeded - whole DNSKEY set is valid"<<endl;
+	    //            cerr<<"validation succeeded - whole DNSKEY set is valid"<<endl;
             // cout<<"    "<<dotEscape("DNSKEY "+stripDot(i->d_signer))<<" -> "<<dotEscape("DNSKEY "+qname)<<";"<<endl;
             validkeys=tkeys;
             break;
           }
 	  else
-	    cerr<<"Validation did not succeed!"<<endl;
+	    ; // cerr<<"Validation did not succeed!"<<endl;
         }
-        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
+	//        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
       }
     }
 
     if(validkeys.empty())
     {
-      cerr<<"ended up with zero valid DNSKEYs, going Bogus"<<endl;
+      //      cerr<<"ended up with zero valid DNSKEYs, going Bogus"<<endl;
       state=Bogus;
       break;
     }
-    cerr<<"situation: we have one or more valid DNSKEYs for ["<<qname<<"] (want ["<<zone<<"])"<<endl;
+    //    cerr<<"situation: we have one or more valid DNSKEYs for ["<<qname<<"] (want ["<<zone<<"])"<<endl;
     if(qname == zone) {
-      cerr<<"requested keyset found! returning Secure for the keyset"<<endl;
+      //      cerr<<"requested keyset found! returning Secure for the keyset"<<endl;
       keyset.insert(validkeys.begin(), validkeys.end());
       return Secure;
     }
-    cerr<<"walking downwards to find DS"<<endl;
+    //    cerr<<"walking downwards to find DS"<<endl;
     DNSName keyqname=qname;
     do {
       qname=DNSName(labels.back())+qname;
       labels.pop_back();
-      cerr<<"next name ["<<qname<<"], trying to get DS"<<endl;
+      //      cerr<<"next name ["<<qname<<"], trying to get DS"<<endl;
 
       dsmap_t tdsmap; // tentative DSes
       dsmap.clear();
@@ -317,7 +318,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
       cspmap_t validrrsets;
       validateWithKeySet(cspmap, validrrsets, validkeys);
 
-      cerr<<"got "<<cspmap.count(make_pair(qname,QType::DS))<<" DS of which "<<validrrsets.count(make_pair(qname,QType::DS))<<" valid "<<endl;
+      //      cerr<<"got "<<cspmap.count(make_pair(qname,QType::DS))<<" DS of which "<<validrrsets.count(make_pair(qname,QType::DS))<<" valid "<<endl;
 
       auto r = validrrsets.equal_range(make_pair(qname, QType::DS));
       for(auto cspiter =r.first;  cspiter!=r.second; cspiter++) {
@@ -332,7 +333,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         }
       }
       if(!dsmap.size()) {
-        cerr<<"no DS at this level, checking for denials"<<endl;
+	//        cerr<<"no DS at this level, checking for denials"<<endl;
         dState dres = getDenial(validrrsets, qname, QType::DS);
         if(dres == INSECURE) return Insecure;
       }
@@ -361,13 +362,16 @@ string dotName(string type, DNSName name, string tag)
 }
 void dotNode(string type, DNSName name, string tag, string content)
 {
+#ifdef GRAPHVIZ
   cout<<"    "
       <<dotEscape(dotName(type, name, tag))
       <<" [ label="<<dotEscape(dotName(type, name, tag)+"\\n"+content)<<" ];"<<endl;
+#endif
 }
 
 void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color)
 {
+#ifdef GRAPHVIZ
   cout<<"    ";
   if(zone != DNSName(".")) cout<<"subgraph "<<dotEscape("cluster "+zone.toString())<<" { ";
   cout<<dotEscape(dotName(type1, name1, tag1))
@@ -377,5 +381,6 @@ void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type
   else cout<<"; ";
   if(zone != DNSName(".")) cout<<"label = "<<dotEscape("zone: "+zone.toString())<<";"<<"}";
   cout<<endl;
+#endif
 }
 

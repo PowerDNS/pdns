@@ -76,6 +76,7 @@
 #include "dnsname.hh"
 #include "filterpo.hh"
 #include "rpzloader.hh"
+#include "validate-recursor.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
@@ -791,13 +792,22 @@ void startDoResolve(void *p)
       }
     }
 
-    if(res == PolicyDecision::PASS) {
+    if(res == PolicyDecision::PASS) {  // XXX what does this MEAN? Why servfail on PASS?
       pw.getHeader()->rcode=RCode::ServFail;
       // no commit here, because no record
       g_stats.servFails++;
     }
     else {
       pw.getHeader()->rcode=res;
+
+      if(edo.d_Z & EDNSOpts::DNSSECOK) {
+	if(validateRecords(ret))
+	  pw.getHeader()->ad=1;
+	else {
+	  pw.getHeader()->rcode=RCode::ServFail;
+	  goto sendit;
+	}
+      }
 
       if(ret.size()) {
         orderAndShuffle(ret);
@@ -816,10 +826,12 @@ void startDoResolve(void *p)
           }
         }
 
-      pw.commit();
+	pw.commit();
       }
     }
   sendit:;
+
+
     g_rs.submitResponse(dc->d_mdp.d_qtype, packet.size(), !dc->d_tcp);
     updateResponseStats(res, dc->d_remote, packet.size(), &dc->d_mdp.d_qname, dc->d_mdp.d_qtype);
     if(!dc->d_tcp) {
