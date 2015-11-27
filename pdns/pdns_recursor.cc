@@ -1797,7 +1797,7 @@ void handleUDPServerResponse(int fd, FDMultiplexer::funcparam_t& var)
 {
   PacketID pid=any_cast<PacketID>(var);
   int len;
-  char data[1500];
+  char data[g_outgoingEDNSBufsize];
   ComboAddress fromaddr;
   socklen_t addrlen=sizeof(fromaddr);
 
