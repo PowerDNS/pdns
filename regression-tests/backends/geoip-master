@@ -77,7 +77,7 @@ EOF
 			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
 			--distributor-threads=1 \
                         --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files=/usr/share/GeoIP/GeoIP.dat \
-                        --module-dir=./modules \
+                        --module-dir=./modules --edns-subnet-processing=yes \
 			$geoipkeydir &
 		;;
 
