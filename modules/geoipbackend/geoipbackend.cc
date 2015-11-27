@@ -582,7 +582,6 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
   GeoIPLookup tmp_gl; // largest wins
   struct tm gtm;
   gmtime_r(&t, &gtm);
-  gl->netmask = 0;
   last=0;
 
   while((cur = format.find("%", last)) != string::npos) {
