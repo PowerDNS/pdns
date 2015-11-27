@@ -250,21 +250,30 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     if (!found) return; // not found
   }
 
-  auto i = dom.records.find(search);
-  if (i != dom.records.end()) { // return static value
-    for(const DNSResourceRecord& rr : i->second) {
-      if (qtype == QType::ANY || rr.qtype == qtype) {
-	d_result.push_back(rr);
-	d_result.back().qname = qdomain;
-      }
-    }
-  }
-
   string ip = "0.0.0.0";
   bool v6 = false;
   if (pkt_p != NULL) {
     ip = pkt_p->getRealRemote().toStringNoMask();
     v6 = pkt_p->getRealRemote().isIpv6();
+  }
+
+  gl.netmask = 0;
+
+  auto i = dom.records.find(search);
+  if (i != dom.records.end()) { // return static value
+    // we want MUTABLE rr here.
+    for(DNSResourceRecord rr : i->second) {
+      if (qtype == QType::ANY || rr.qtype == qtype) {
+        rr.content = format2str(rr.content, ip, v6, &gl);
+	d_result.push_back(rr);
+	d_result.back().qname = qdomain;
+      }
+    }
+    // ensure we get most strict netmask
+    for(DNSResourceRecord& rr: d_result) { 
+      rr.scopeMask = gl.netmask;
+    }
+    return; // no need to go further
   }
 
   auto target = dom.services.find(search);
@@ -283,14 +292,19 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     // see if the record can be found
     auto ri = dom.records.find(DNSName(format));
     if (ri != dom.records.end()) { // return static value
-      for(DNSResourceRecord& rr : ri->second) {
+      // we want MUTABLE rr here.
+      for(DNSResourceRecord rr : ri->second) {
         if (qtype == QType::ANY || rr.qtype == qtype) {
-          rr.scopeMask = gl.netmask;
+          rr.content = format2str(rr.content, ip, v6, &gl);
           d_result.push_back(rr);
           d_result.back().qname = qdomain;
         }
       }
-      return;
+      // ensure we get most strict netmask
+      for(DNSResourceRecord& rr: d_result) {
+        rr.scopeMask = gl.netmask;
+      }
+      return; // no need to go further
     }
   }
 
