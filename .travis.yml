@@ -8,7 +8,6 @@ before_script:
  - export POSIXLY_CORRECT=1
  - git describe --always --dirty=+
  - for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done
- - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo sysctl net.ipv6.conf.all.disable_ipv6=0
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update -qq
