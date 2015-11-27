@@ -1,2 +1,2 @@
 #!/bin/sh
-nameserver=$geoipregionip cleandig country.geo.example.com TXT
+cleandig continent.geo.example.com TXT ednssubnet 1.2.3.4/32

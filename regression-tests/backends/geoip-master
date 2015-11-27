@@ -49,13 +49,21 @@ domains:
 EOF
 		cat > $testsdir/region-a-resolution/expected_result <<EOF
 0	www.geo.example.com.	IN	A	30	62.236.200.4
+2	.	IN	OPT	0	AAgACAABIBgBAgME
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='www.geo.example.com.', qtype=A
 EOF
                 cat > $testsdir/region-cname-resolution/expected_result <<EOF
 0	indirect.geo.example.com.	IN	CNAME	30	$geoipregion.elsewhere.example.com.
+2	.	IN	OPT	0	AAgACAABIBgBAgME
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='indirect.geo.example.com.', qtype=A
+EOF
+                cat > $testsdir/text-interpolation/expected_result <<EOF
+0	continent.geo.example.com.	IN	TXT	30	"Your continent is $geoipregion"
+2	.	IN	OPT	0	AAgACAABIBgBAgME
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='continent.geo.example.com.', qtype=TXT
 EOF
 		# generate pdns.conf for pdnssec
 		cat > pdns-geoip.conf <<EOF
