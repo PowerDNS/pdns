@@ -571,6 +571,8 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
     std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
     break;
   }
+
+  if (ret == "unknown") gl->netmask = (v6?128:32); // prevent caching
   return ret;
 }
 
