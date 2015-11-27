@@ -4,4 +4,5 @@ real_result
 geosec
 region-a-resolution/expected_result
 region-cname-resolution/expected_result
+text-interpolation/expected_result
 geo.yaml
