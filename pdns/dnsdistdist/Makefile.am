@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) -I$(CURDIR)/ext/mbedtls/include -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(SANITIZER_FLAGS) -I$(CURDIR)/ext/mbedtls/include -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -67,5 +67,6 @@ dnsdist_LDADD = \
 	$(READLINE_LIBS) \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
-	$(LIBSODIUM_LIBS)
+	$(LIBSODIUM_LIBS) \
+	$(SANITIZER_FLAGS)
 
