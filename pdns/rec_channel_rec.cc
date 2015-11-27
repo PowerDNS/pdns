@@ -784,8 +784,8 @@ DNSName getRegisteredName(const DNSName& dom)
       if(!ret.empty())
 	ret+=".";
       
-      BOOST_REVERSE_FOREACH(const std::string& p, parts) {
-	ret+=p+".";
+      for(auto p = parts.crbegin(); p != parts.crend(); ++p) {
+	ret+=(*p)+".";
       }
       return DNSName(ret);
     }
