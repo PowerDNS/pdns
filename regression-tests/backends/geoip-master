@@ -1,5 +1,5 @@
 case $context in
-	geoipbackend|geoipbackend-nsec3-narrow)
+	geoip|geoip-nsec3-narrow)
 		set +e
                 if test "x$geoipregion" = "x"; then
                         echo "This test suite requires that you provide geoipregion which defines the region name produced by MaxMind database with geoipregionip address."
