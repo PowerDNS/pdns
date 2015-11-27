@@ -278,12 +278,17 @@ class DNSKEYRecordContent : public DNSRecordContent
 public:
   DNSKEYRecordContent();
   includeboilerplate(DNSKEY)
-  uint16_t getTag();
+  uint16_t getTag() const;
 
   uint16_t d_flags;
   uint8_t d_protocol;
   uint8_t d_algorithm;
   string d_key;
+  bool operator<(const DNSKEYRecordContent& rhs) const
+  {
+    return tie(d_flags, d_protocol, d_algorithm, d_key) < 
+      tie(rhs.d_flags, rhs.d_protocol, rhs.d_algorithm, rhs.d_key);
+  }
 };
 
 class CDNSKEYRecordContent : public DNSRecordContent
@@ -303,6 +308,17 @@ class DSRecordContent : public DNSRecordContent
 {
 public:
   DSRecordContent();
+  bool operator==(const DSRecordContent& rhs) const
+  {
+    return tie(d_tag, d_algorithm, d_digesttype, d_digest) ==
+      tie(rhs.d_tag, rhs.d_algorithm, rhs.d_digesttype, rhs.d_digest);
+  }
+  bool operator<(const DSRecordContent& rhs) const
+  {
+    return tie(d_tag, d_algorithm, d_digesttype, d_digest) <
+      tie(rhs.d_tag, rhs.d_algorithm, rhs.d_digesttype, rhs.d_digest);
+  }
+
   includeboilerplate(DS)
 
   uint16_t d_tag;

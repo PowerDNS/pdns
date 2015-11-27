@@ -476,9 +476,10 @@ boilerplate_conv(TKEY, QType::TKEY,
                  )
 TKEYRecordContent::TKEYRecordContent() { d_othersize = 0; } // fix CID#1288932
 
-uint16_t DNSKEYRecordContent::getTag()
+uint16_t DNSKEYRecordContent::getTag() const
 {
-  string data=this->serialize(DNSName()); 
+  DNSKEYRecordContent tmp(*this);
+  string data=tmp.serialize(DNSName());  // this can't be const for some reason
   const unsigned char* key=(const unsigned char*)data.c_str();
   unsigned int keysize=data.length();
 
