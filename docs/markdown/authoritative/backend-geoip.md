@@ -101,3 +101,4 @@ domains:
 * From 4.0.0, scopeMask is set to most specific value, in case of date/time modifiers it will be 32 or 128, but with the others it is set to what geoip says it used for matching.
 * From 4.0.0, You can add per-network overrides for format, they will be formatted with the same placeholders as default. Default is short-hand for adding 0.0.0.0/0 and ::/0. Default is default when only string is given for service name.
 * From 4.0.0, You can use array to specify return values, works only if you have those records specified. It matches the format results to your records, and if it finds match that is used. Otherwise the last is returned.
+* From 4.0.0, You can apply all the attributes for the content of static records too.
