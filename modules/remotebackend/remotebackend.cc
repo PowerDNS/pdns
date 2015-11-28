@@ -118,7 +118,7 @@ int RemoteBackend::build() {
       stringtok(parts, opts, ",");
 
       // find out some options and parse them while we're at it
-      for(std::string opt :  parts) {
+      for(const auto& opt: parts) {
           std::string key,val;
           // make sure there is something else than air in the option...
           if (opt.find_first_not_of(" ") == std::string::npos) continue;
@@ -363,7 +363,7 @@ bool RemoteBackend::setDomainMetadata(const DNSName& name, const std::string& ki
    JSON_ADD_MEMBER_DNSNAME(parameters, "name", name, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "kind", kind.c_str(), query.GetAllocator());
    val.SetArray();
-   for(std::string value :  meta) {
+   for(const auto& value: meta) {
      val.PushBack(value.c_str(), query.GetAllocator());
    }
    parameters.AddMember("value", val, query.GetAllocator());
@@ -815,7 +815,7 @@ bool RemoteBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm) {
    JSON_ADD_MEMBER(parameters, "domain_id", domain_id, query.GetAllocator());
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
    nts.SetArray();
-   for(auto t: nonterm) {
+   for(const auto& t: nonterm) {
       rapidjson::Value value(t.first.toString().c_str(), query.GetAllocator());
       nts.PushBack(value, query.GetAllocator());
    }
@@ -842,7 +842,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,
    JSON_ADD_MEMBER(parameters, "trxid", d_trxid, query.GetAllocator());
 
    nts.SetArray();
-   for(auto t: nonterm) {
+   for(const auto& t: nonterm) {
       rapidjson::Value value(t.first.toString().c_str(), query.GetAllocator());
       nts.PushBack(value, query.GetAllocator());
    }
