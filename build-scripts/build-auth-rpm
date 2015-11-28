@@ -341,7 +341,7 @@ This package contains the gpgsql backend for %{name}
 Summary: UnixODBC backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
-BuildRequires: unixodbc-devel
+BuildRequires: unixODBC-devel
 %global backends %{backends} godbc
 
 %description backend-odbc
