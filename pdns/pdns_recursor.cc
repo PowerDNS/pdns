@@ -801,9 +801,14 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
 
       if(edo.d_Z & EDNSOpts::DNSSECOK) {
-	if(validateRecords(ret))
+	auto state=validateRecords(ret);
+	if(state == Secure) {
 	  pw.getHeader()->ad=1;
-	else {
+	}
+	else if(state == Insecure) {
+	  pw.getHeader()->ad=0;
+	}
+	else if(state == Bogus && !pw.getHeader()->cd) {
 	  pw.getHeader()->rcode=RCode::ServFail;
 	  goto sendit;
 	}

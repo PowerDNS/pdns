@@ -1,5 +1,6 @@
 #pragma once
 #include "dnsparser.hh"
 #include "namespaces.hh"
+#include "validate.hh"
 
-bool validateRecords(const vector<DNSRecord>& recs);
+vState validateRecords(const vector<DNSRecord>& recs);

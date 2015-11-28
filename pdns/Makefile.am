@@ -1158,6 +1158,12 @@ pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
 pdns_recursor_LDADD += $(P11KIT1_LIBS)
 endif
 
+if BOTAN110
+pdns_recursor_SOURCES += botan110signers.cc botansigners.cc
+pdns_recursor_LDADD += $(BOTAN110_LIBS)
+endif
+
+
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
 
 if MALLOC_TRACE
