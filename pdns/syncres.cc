@@ -39,6 +39,7 @@
 #include <utility>
 #include <deque>
 #include "logger.hh"
+#include "validate.hh"
 #include "misc.hh"
 #include "arguments.hh"
 #include "lwres.hh"
@@ -748,6 +749,14 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
 	  giveNegative=true;
 	  sqname=ni->d_qname;
 	  sqt=QType::SOA;
+	  if(d_doDNSSEC) {
+	    for(const auto& p : ni->d_dnssecProof) {
+	      for(const auto& rec: p.second.records) 
+		ret.push_back(rec);
+	      for(const auto& rec: p.second.signatures) 
+		ret.push_back(rec);
+	    }
+	  }
 	  moveCacheItemToBack(t_sstorage->negcache, ni);
 	  break;
 	}
@@ -789,7 +798,7 @@ bool SyncRes::doCacheCheck(const DNSName &qname, const QType &qtype, vector<DNSR
       dr.d_name=sqname;
       dr.d_ttl=ttl; 
       dr.d_content=signature;
-      dr.d_place=DNSResourceRecord::ANSWER;
+      dr.d_place= giveNegative ? DNSResourceRecord::AUTHORITY : DNSResourceRecord::ANSWER;
       dr.d_class=1;
       ret.push_back(dr);
     }
@@ -861,6 +870,37 @@ static bool magicAddrMatch(const QType& query, const QType& answer)
   if(query.getCode() != QType::ADDR)
     return false;
   return answer.getCode() == QType::A || answer.getCode() == QType::AAAA;
+}
+
+
+recsig_t harvestRecords(const vector<DNSRecord>& records, const set<uint16_t>& types)
+{
+  recsig_t ret;
+  for(const auto& rec : records) {
+    if(rec.d_type == QType::RRSIG) {
+      auto rrs=getRR<RRSIGRecordContent>(rec);
+      if(types.count(rrs->d_type))
+	ret[make_pair(rec.d_name, rrs->d_type)].signatures.push_back(rec);
+    }
+    else if(types.count(rec.d_type))
+      ret[make_pair(rec.d_name, rec.d_type)].records.push_back(rec);
+  }
+  return ret;
+}
+
+static void addNXNSECS(vector<DNSRecord>&ret, const vector<DNSRecord>& records)
+{
+  auto csp = harvestRecords(records, {QType::NSEC, QType::NSEC3, QType::SOA});
+  for(const auto& c : csp) {
+    if(c.first.second == QType::NSEC || c.first.second == QType::NSEC3 || c.first.second == QType::SOA) {
+      if(c.first.second !=QType::SOA) {
+	for(const auto& rec : c.second.records)
+	  ret.push_back(rec);
+      }
+      for(const auto& rec : c.second.signatures)
+	ret.push_back(rec);
+    }
+  }
 }
 
 /** returns -1 in case of no results, rcode otherwise */
@@ -1199,7 +1239,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	    ne.d_ttd=d_now.tv_sec + rec.d_ttl;
 	    ne.d_name=qname;
 	    ne.d_qtype=QType(0); // this encodes 'whole record'
-	    
+	    ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
 	    replacing_insert(t_sstorage->negcache, ne);
 	    if(s_rootNXTrust && auth.isRoot()) {
 	      ne.d_name = getLastLabel(ne.d_name);
@@ -1261,6 +1301,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	      ne.d_ttd=d_now.tv_sec + rec.d_ttl;
 	      ne.d_name=qname;
 	      ne.d_qtype=qtype;
+	      ne.d_dnssecProof = harvestRecords(lwr.d_records, {QType::NSEC, QType::NSEC3});
 	      if(qtype.getCode()) {  // prevents us from blacking out a whole domain
 		replacing_insert(t_sstorage->negcache, ne);
 	      }
@@ -1290,10 +1331,14 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       }
       if(lwr.d_rcode==RCode::NXDomain) {
         LOG(prefix<<qname.toString()<<": status=NXDOMAIN, we are done "<<(negindic ? "(have negative SOA)" : "")<<endl);
+
+	addNXNSECS(ret, lwr.d_records);
+
         return RCode::NXDomain;
       }
       if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit)) {
         LOG(prefix<<qname.toString()<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
+	addNXNSECS(ret, lwr.d_records);
         return 0;
       }
       else if(realreferral) {

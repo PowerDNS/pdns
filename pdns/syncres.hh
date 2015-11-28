@@ -28,6 +28,17 @@ extern DNSFilterEngine g_dfe;
 
 void primeHints(void);
 class RecursorLua;
+
+struct BothRecordsAndSignatures
+{
+  vector<DNSRecord> records;
+  vector<DNSRecord> signatures;
+};
+typedef map<pair<DNSName,uint16_t>, BothRecordsAndSignatures> recsig_t;
+
+recsig_t harvestRecords(const std::vector<DNSRecord>& records, const std::set<uint16_t>& types);
+
+
 struct NegCacheEntry
 {
   DNSName d_name;
@@ -38,6 +49,7 @@ struct NegCacheEntry
   {
     return d_ttd;
   }
+  recsig_t d_dnssecProof;
 };
 
 
