@@ -119,8 +119,8 @@ script:
  - cd ..
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/
- - ./configure
- - make -k -j 4
+ - LUA=1 ./configure
+ - LUA=1 make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
  - cd ..
@@ -128,8 +128,8 @@ script:
  - cd pdns/dnsdistdist
  - tar xf dnsdist*.tar.bz2
  - cd dnsdist-*
- - LUA=1 ./configure
- - LUA=1 make -k -j 4
+ - ./configure
+ - make -k -j 4
  - cd ..
  - rm -rf dnsdist-*/
  - cd ../../
