@@ -12,6 +12,8 @@
 #include "sholder.hh"
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
+
+extern GlobalStateHolder<NetmaskGroup> g_dynblockNMG;
 struct DNSDistStats
 {
   using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
@@ -21,6 +23,7 @@ struct DNSDistStats
   stat_t nonCompliantQueries{0};
   stat_t aclDrops{0};
   stat_t blockFilter{0};
+  stat_t dynBlocked{0};
   stat_t ruleDrop{0};
   stat_t ruleNXDomain{0};
   stat_t selfAnswered{0};
@@ -50,7 +53,8 @@ struct DNSDistStats
     {"noncompliant-queries", &nonCompliantQueries},
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
-    {"fd-usage", getOpenFileDescriptors}
+    {"fd-usage", getOpenFileDescriptors}, {"dyn-blocked", &dynBlocked}, 
+    {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }}
   };
 };
 

@@ -122,6 +122,7 @@ void* tcpClientThread(int pipefd)
      
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
+  auto localDynBlockNMG = g_dynblockNMG.getLocal();
 
   map<ComboAddress,int> sockets;
   for(;;) {
@@ -160,7 +161,17 @@ void* tcpClientThread(int pipefd)
 	struct dnsheader* dh =(dnsheader*)query;
 	const uint16_t * flags = getFlagsFromDNSHeader(dh);
 	uint16_t origFlags = *flags;
-	
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	g_rings.queryRing.push_back({now,ci.remote,qname,qtype}); // XXX LOCK?!
+
+	if(localDynBlockNMG->match(ci.remote)) {
+	  vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
+	  g_stats.dynBlocked++;
+	  goto drop;
+	}
+
         if(blockFilter) {
 	  std::lock_guard<std::mutex> lock(g_luamutex);
 	

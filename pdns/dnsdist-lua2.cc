@@ -103,9 +103,13 @@ map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
 void moreLua()
 {
   g_lua.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
-  g_lua.writeFunction("newNMG", []() { return std::make_shared<NetmaskGroup>(); });
+  g_lua.writeFunction("newNMG", []() { return NetmaskGroup(); });
   g_lua.registerFunction<void(NetmaskGroup::*)(const ComboAddress&)>("add", 
 								     [](NetmaskGroup& s, const ComboAddress& ca) { s.addMask(Netmask(ca)); });
+
+  g_lua.writeFunction("setDynBlockNMG", [](const NetmaskGroup& nmg) {
+      g_dynblockNMG.setState(nmg);
+    });
 
   g_lua.registerFunction<void(NetmaskGroup::*)(const map<ComboAddress,int>&)>("add", 
 									      [](NetmaskGroup& s, const map<ComboAddress,int>& m) { 

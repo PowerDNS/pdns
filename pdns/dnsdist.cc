@@ -101,7 +101,7 @@ GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSActio
 Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
-
+GlobalStateHolder<NetmaskGroup> g_dynblockNMG;
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
@@ -419,6 +419,7 @@ try
   auto localPolicy = g_policy.getLocal();
   auto localRulactions = g_rulactions.getLocal();
   auto localServers = g_dstates.getLocal();
+  auto localDynBlock = g_dynblockNMG.getLocal();
   struct msghdr msgh;
   struct iovec iov;
   char cbuf[256];
@@ -460,7 +461,13 @@ try
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
       g_rings.queryRing.push_back({now,remote,qname,qtype}); // XXX LOCK?!
-            
+      
+      if(localDynBlock->match(remote)) {
+	vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
+	g_stats.dynBlocked++;
+	continue;
+      }
+
       if(blockFilter) {
 	std::lock_guard<std::mutex> lock(g_luamutex);
 	
