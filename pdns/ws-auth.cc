@@ -663,10 +663,12 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
       }
     }
-    DNSResourceRecord rr=*new_records.rbegin();
-    rr.qname = dzonename;
-    rr.auth = 1;
-    rr.ttl = ::arg().asNum("default-ttl");
+
+    // synthesize RRs as needed
+    DNSResourceRecord autorr;
+    autorr.qname = dzonename;
+    autorr.auth = 1;
+    autorr.ttl = ::arg().asNum("default-ttl");
 
     if (!have_soa && zonekind != DomainInfo::Slave) {
       // synthesize a SOA record so the zone "really" exists
@@ -681,16 +683,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         sd.hostmaster = DNSName("hostmaster.") + dzonename;
       }
       sd.serial = intFromJson(document, "serial", 0);
-      sd.ttl = rr.ttl;
+      sd.ttl = autorr.ttl;
       sd.refresh = ::arg().asNum("soa-refresh-default");
       sd.retry = ::arg().asNum("soa-retry-default");
       sd.expire = ::arg().asNum("soa-expire-default");
       sd.default_ttl = ::arg().asNum("soa-minimum-ttl");
 
-      rr.content = serializeSOAData(sd);
-      rr.qtype = "SOA";
-      increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
-      new_records.push_back(rr);
+      autorr.content = serializeSOAData(sd);
+      autorr.qtype = "SOA";
+      increaseSOARecord(autorr, soa_edit_api_kind, soa_edit_kind);
+      new_records.push_back(autorr);
     }
 
     // create NS records if nameservers are given
@@ -698,9 +700,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       for (SizeType i = 0; i < nameservers.Size(); ++i) {
         if (!nameservers[i].IsString())
           throw ApiException("Nameservers must be strings");
-        rr.content = nameservers[i].GetString();
-        rr.qtype = "NS";
-        new_records.push_back(rr);
+        autorr.content = nameservers[i].GetString();
+        autorr.qtype = "NS";
+        new_records.push_back(autorr);
       }
     }
 
