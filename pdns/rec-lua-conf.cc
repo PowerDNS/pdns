@@ -1,4 +1,8 @@
+#include "config.h"
+#ifdef HAVE_LUA
 #include "ext/luawrapper/include/LuaContext.hpp"
+#endif
+
 #include <fstream>
 #include "namespaces.hh"
 #include "logger.hh"
@@ -23,6 +27,14 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 LuaConfigItems::LuaConfigItems()
 {
 }
+
+#ifndef HAVE_LUA
+void loadRecursorLuaConfig(const std::string& fname)
+{
+  throw PDNSException("Asked to load a Lua configuration file '"+fname+"' in binary without Lua support");
+}
+#else
+
 
 void loadRecursorLuaConfig(const std::string& fname)
 {
@@ -77,3 +89,5 @@ void loadRecursorLuaConfig(const std::string& fname)
   Lua.executeCode(ifs);
   g_luaconfs.setState(lci);
 }
+
+#endif

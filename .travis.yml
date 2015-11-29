@@ -119,8 +119,8 @@ script:
  - cd ..
  - ./build-scripts/dist-recursor
  - cd pdns/pdns-recursor-*/
- - LUA=1 ./configure
- - LUA=1 make -k -j 4
+ - ./configure
+ - make -k -j 4
  - cd ..
  - ln -s pdns-recursor*/pdns_recursor .
  - cd ..
