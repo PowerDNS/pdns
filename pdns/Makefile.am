@@ -1128,6 +1128,7 @@ pdns_recursor_SOURCES = \
 	rec-carbon.cc \
 	rec_channel.cc rec_channel.hh \
 	rec_channel_rec.cc \
+	rec-lua-conf.cc \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
 	reczones.cc \
@@ -1139,6 +1140,7 @@ pdns_recursor_SOURCES = \
 	secpoll-recursor.hh \
 	selectmplexer.cc \
 	sillyrecords.cc \
+	sortlist.cc sortlist.hh \
 	statbag.cc \
 	syncres.cc syncres.hh \
 	unix_utility.cc \

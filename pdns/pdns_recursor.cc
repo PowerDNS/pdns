@@ -23,6 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include <netdb.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -49,6 +50,8 @@
 #include "syncres.hh"
 #include <fcntl.h>
 #include <fstream>
+#include "sortlist.hh"
+extern SortList g_sortlist;
 #include "sstuff.hh"
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -81,7 +84,7 @@
 #include "statbag.hh"
 StatBag S;
 #endif
-
+void loadRecursorLuaConfig(const std::string& fname);
 __thread FDMultiplexer* t_fdm;
 __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
@@ -816,6 +819,10 @@ void startDoResolve(void *p)
 
       if(ret.size()) {
         orderAndShuffle(ret);
+	if(auto sl = g_sortlist.getOrderCmp(dc->d_remote)) {
+	  sort(ret.begin(), ret.end(), *sl);
+	  variableAnswer=true;
+	}
         for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
           pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
           minTTL = min(minTTL, i->d_ttl);
@@ -2551,6 +2558,7 @@ int main(int argc, char **argv)
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
     ::arg().set("rpz-files", "RPZ files to load in order, domain or domain=policy pairs separated by commas")="";
     ::arg().set("rpz-masters", "RPZ master servers, address:name pairs separated by commas")="";
+    ::arg().set("lua-config-file", "More powerful configuration options")="";
 
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
     ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs")="";
@@ -2599,6 +2607,8 @@ int main(int argc, char **argv)
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
     ::arg().parse(argc,argv);
+
+    loadRecursorLuaConfig(::arg()["lua-config-file"]);
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 
