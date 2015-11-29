@@ -46,6 +46,12 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("fe80::1"))->second, 2);
 }
 
+BOOST_AUTO_TEST_CASE(test_single) {
+  NetmaskTree<bool> nmt;
+  nmt.insert(Netmask("127.0.0.0/8")).second=1;
+  BOOST_CHECK_EQUAL(nmt.lookup(ComboAddress("127.0.0.1"))->second, 1);
+}
+
 BOOST_AUTO_TEST_CASE(test_scale) {
   string start="192.168.";
   NetmaskTree<int> works;
