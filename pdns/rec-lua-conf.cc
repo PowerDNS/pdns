@@ -31,7 +31,8 @@ LuaConfigItems::LuaConfigItems()
 #ifndef HAVE_LUA
 void loadRecursorLuaConfig(const std::string& fname)
 {
-  throw PDNSException("Asked to load a Lua configuration file '"+fname+"' in binary without Lua support");
+  if(!fname.empty())
+    throw PDNSException("Asked to load a Lua configuration file '"+fname+"' in binary without Lua support");
 }
 #else
 
