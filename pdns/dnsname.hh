@@ -5,7 +5,7 @@
 #include <deque>
 #include <strings.h>
 #include <stdexcept>
-#include <boost/container/string.hpp>
+// #include <boost/container/string.hpp>
 
 uint32_t burtleCI(const unsigned char* k, uint32_t lengh, uint32_t init);
 
@@ -88,8 +88,8 @@ public:
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;  
 private:
-  typedef boost::container::string string_t;
-  //typedef std::string string_t;
+  // typedef boost::container::string string_t;
+  typedef std::string string_t;
 
   string_t d_storage;
 
