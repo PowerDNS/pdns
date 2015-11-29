@@ -101,7 +101,7 @@ GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSActio
 Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
-GlobalStateHolder<NetmaskGroup> g_dynblockNMG;
+GlobalStateHolder<NetmaskTree<string>> g_dynblockNMG;
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
