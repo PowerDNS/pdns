@@ -472,18 +472,6 @@ public:
     return *this;
   }
 
-  //<! Index operator for value-pair, throws if not found
-  const value_type& operator[](const key_type& rhs) const {
-    const node_type *value = lookup(rhs.getNetwork(), rhs.getBits());
-    if (value == nullptr) throw std::range_error(rhs.toString() + string(" not found"));
-    return value->second;
-  }
-
-  //<! Index operator for value-pair, creates new if not found
-  T& operator[](const key_type& rhs) {
-    return insert(rhs).second;
-  }
-
   const typename std::vector<node_type*>::const_iterator begin() const { return _nodes.begin(); }
   const typename std::vector<node_type*>::const_iterator end() const { return _nodes.end(); }
 
@@ -554,10 +542,8 @@ public:
     insert(mask).second = value;
   }
 
-  const node_type& at(const key_type& value) const {
-    const node_type* node = lookup(value);
-    if (node == nullptr) throw std::range_error(value.toString() + string(" not found"));
-    return *node;
+  void insert_or_assign(const string& mask, const value_type& value) {
+    insert(key_type(mask)).second = value;
   }
 
   const node_type* lookup(const key_type& value) const {
