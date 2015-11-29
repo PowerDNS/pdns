@@ -538,6 +538,7 @@ public:
     return *value;
   }
 
+  //<! Creates or updates value
   void insert_or_assign(const key_type& mask, const value_type& value) {
     insert(mask).second = value;
   }
@@ -546,10 +547,12 @@ public:
     insert(key_type(mask)).second = value;
   }
 
+  //<! Returns "best match" for key_type, which might not be value
   const node_type* lookup(const key_type& value) const {
     return lookup(value.getNetwork(), value.getBits());
   }
 
+  //<! Perform best match lookup for value, using at most max_bits
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
     if (!root) return nullptr;
 
@@ -606,6 +609,7 @@ public:
     return ret;
   }
 
+  //<! Removes key from TreeMap. This does not clean up the tree.
   void erase(const key_type& key) {
     TreeNode *node = root.get();
 
