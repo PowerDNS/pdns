@@ -80,11 +80,13 @@ extern SortList g_sortlist;
 #include "filterpo.hh"
 #include "rpzloader.hh"
 #include "validate-recursor.hh"
+#include "rec-lua-conf.hh"
+
 #ifndef RECURSOR
 #include "statbag.hh"
 StatBag S;
 #endif
-void loadRecursorLuaConfig(const std::string& fname);
+
 __thread FDMultiplexer* t_fdm;
 __thread unsigned int t_id;
 unsigned int g_maxTCPPerClient;
@@ -819,7 +821,7 @@ void startDoResolve(void *p)
 
       if(ret.size()) {
         orderAndShuffle(ret);
-	if(auto sl = g_sortlist.getOrderCmp(dc->d_remote)) {
+	if(auto sl = g_luaconfs.getCopy().sortlist.getOrderCmp(dc->d_remote)) {
 	  sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
 	}

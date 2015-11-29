@@ -38,7 +38,7 @@ ws-recursor.hh ws-api.hh secpoll-recursor.hh \
 responsestats.hh webserver.hh dnsname.hh dnspacket.hh ednssubnet.hh \
 filterpo.hh rpzloader.hh ixfr.hh gss_context.hh resolver.hh dnssecinfra.hh \
 dnsseckeeper.hh statbag.hh ueberbackend.hh sha.hh dnsbackend.hh comment.hh \
-validate.hh validate-recursor.hh sortlist.hh"
+validate.hh validate-recursor.hh sortlist.hh rec-lua-conf.hh sholder.hh"
 
 CFILES="syncres.cc iputils.cc  misc.cc unix_utility.cc qtype.cc \
 logger.cc arguments.cc  lwres.cc pdns_recursor.cc lua-iputils.cc \
