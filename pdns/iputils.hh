@@ -472,18 +472,6 @@ public:
     return *this;
   }
 
-  //<! Index operator for value-pair, throws if not found
-  const value_type& operator[](const key_type& rhs) const {
-    const node_type *value = lookup(rhs.getNetwork(), rhs.getBits());
-    if (value == nullptr) throw std::range_error(rhs.toString() + string(" not found"));
-    return value->second;
-  }
-
-  //<! Index operator for value-pair, creates new if not found
-  T& operator[](const key_type& rhs) {
-    return insert(rhs).second;
-  }
-
   const typename std::vector<node_type*>::const_iterator begin() const { return _nodes.begin(); }
   const typename std::vector<node_type*>::const_iterator end() const { return _nodes.end(); }
 
@@ -550,20 +538,27 @@ public:
     return *value;
   }
 
+  //<! Creates or updates value
   void insert_or_assign(const key_type& mask, const value_type& value) {
     insert(mask).second = value;
   }
 
-  const node_type& at(const key_type& value) const {
-    const node_type* node = lookup(value);
-    if (node == nullptr) throw std::range_error(value.toString() + string(" not found"));
-    return *node;
+  void insert_or_assign(const string& mask, const value_type& value) {
+    insert(key_type(mask)).second = value;
   }
 
+  //<! check if given key is present in TreeMap
+  bool has_key(const key_type& key) const {
+    const node_type *ptr = lookup(key);
+    return ptr && ptr->first == key;
+  }
+
+  //<! Returns "best match" for key_type, which might not be value
   const node_type* lookup(const key_type& value) const {
     return lookup(value.getNetwork(), value.getBits());
   }
 
+  //<! Perform best match lookup for value, using at most max_bits
   const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
     if (!root) return nullptr;
 
@@ -620,6 +615,7 @@ public:
     return ret;
   }
 
+  //<! Removes key from TreeMap. This does not clean up the tree.
   void erase(const key_type& key) {
     TreeNode *node = root.get();
 

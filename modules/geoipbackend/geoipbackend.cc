@@ -147,10 +147,10 @@ void GeoIPBackend::initialize() {
             value.push_back(net->second.as<string>());
           }
           if (net->first.as<string>() == "default") {
-            nmt[Netmask("0.0.0.0/0")].assign(value.begin(),value.end());
-            nmt[Netmask("::/0")].swap(value);
+            nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
+            nmt.insert(Netmask("::/0")).second.swap(value);
           } else {
-            nmt[Netmask(net->first.as<string>())].swap(value);
+            nmt.insert(Netmask(net->first.as<string>())).second.swap(value);
           }
         }
       } else {
@@ -160,8 +160,8 @@ void GeoIPBackend::initialize() {
         } else {
           value.push_back(service->second.as<string>());
         }
-        nmt[Netmask("0.0.0.0/0")].assign(value.begin(),value.end());
-        nmt[Netmask("::/0")].swap(value);
+        nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(),value.end());
+        nmt.insert(Netmask("::/0")).second.swap(value);
       }
       dom.services[DNSName(service->first.as<string>())].swap(nmt);
     }
