@@ -429,7 +429,7 @@ try
   for(;;) {
     try {
       len = recvmsg(cs->udpFD, &msgh, 0);
-      g_rings.clientRing.push_back(remote);
+
       if(len < (int)sizeof(struct dnsheader)) {
 	g_stats.nonCompliantQueries++;
 	continue;
@@ -457,7 +457,9 @@ try
       const uint16_t * flags = getFlagsFromDNSHeader(dh);
       const uint16_t origFlags = *flags;
       DNSName qname(packet, len, 12, false, &qtype);
-      g_rings.queryRing.push_back(qname);
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      g_rings.queryRing.push_back({now,remote,qname,qtype}); // XXX LOCK?!
             
       if(blockFilter) {
 	std::lock_guard<std::mutex> lock(g_luamutex);

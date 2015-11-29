@@ -179,12 +179,17 @@ struct IDState
 struct Rings {
   Rings()
   {
-    clientRing.set_capacity(10000);
     queryRing.set_capacity(10000);
     respRing.set_capacity(10000);
   }
-  boost::circular_buffer<ComboAddress> clientRing;
-  boost::circular_buffer<DNSName> queryRing;
+  struct Query
+  {
+    struct timespec when;
+    ComboAddress requestor;
+    DNSName name;
+    uint16_t qtype;
+  };
+  boost::circular_buffer<Query> queryRing;
   struct Response
   {
     struct timespec when;

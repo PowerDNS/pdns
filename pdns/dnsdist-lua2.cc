@@ -61,6 +61,26 @@ map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(co
   return filterScore(counts, mintime, maxtime, rate);
 }
 
+map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
+{
+  counts_t counts;
+  struct timespec mintime, maxtime, cutoff;
+  clock_gettime(CLOCK_MONOTONIC, &maxtime);
+  mintime=cutoff=maxtime;
+  cutoff.tv_sec -= seconds;
+  
+  for(const auto& c : g_rings.queryRing) {
+    if(seconds && c.when < cutoff)
+      continue;
+
+    T(counts, c);
+    if(c.when < mintime)
+      mintime = c.when;
+  }
+  
+  return filterScore(counts, mintime, maxtime, rate);
+}
+
 
 map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode) 
 {
@@ -97,7 +117,6 @@ void moreLua()
   g_lua.registerFunction<bool(NetmaskGroup::*)(const ComboAddress&)>("match", 
 								     [](NetmaskGroup& s, const ComboAddress& ca) { return s.match(ca); });
 
-
   g_lua.writeFunction("exceedServfails", [](unsigned int rate, int seconds) {
       return exceedRCode(rate, seconds, RCode::ServFail);
     });
@@ -105,8 +124,19 @@ void moreLua()
       return exceedRCode(rate, seconds, RCode::NXDomain);
     });
 
+
+
   g_lua.writeFunction("exceedRespByterate", [](unsigned int rate, int seconds) {
       return exceedRespByterate(rate, seconds);
+    });
+
+  g_lua.writeFunction("exceedQTypeRate", [](uint16_t type, unsigned int rate, int seconds) {
+      return exceedQueryGen(rate, seconds, [type](counts_t& counts, const Rings::Query& q) {
+	  if(q.qtype==type)
+	    counts[q.requestor]++;
+	});
+
+
     });
 
 
