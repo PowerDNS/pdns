@@ -203,7 +203,7 @@ unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
 
-double DiffTime(const struct timeval& first, const struct timeval& second)
+static double DiffTime(const struct timeval& first, const struct timeval& second)
 {
   int seconds=second.tv_sec - first.tv_sec;
   int useconds=second.tv_usec - first.tv_usec;

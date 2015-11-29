@@ -108,7 +108,11 @@ try
   {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.sendTo(string((char*)&*packet.begin(), (char*)&*packet.end()), dest);
-    
+    int result=waitForData(sock.getHandle(), 10);
+    if(result < 0) 
+      throw std::runtime_error("Error waiting for data: "+string(strerror(errno)));
+    if(!result)
+      throw std::runtime_error("Timeout waiting for data");
     sock.recvFrom(reply, dest);
   }
   MOADNSParser mdp(reply);

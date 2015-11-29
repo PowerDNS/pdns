@@ -652,8 +652,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("topClients", [](unsigned int top) {
       map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
-      for(const auto& c : g_rings.clientRing) {
-	counts[c]++;
+      for(const auto& c : g_rings.queryRing) {
+	counts[c.requestor]++;
 	total++;
       }
       vector<pair<int, ComboAddress>> rcounts;
@@ -680,15 +680,15 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       unsigned int total=0;
       if(!labels) {
 	for(const auto& a : g_rings.queryRing) {
-	  counts[a]++;
+	  counts[a.name]++;
 	  total++;
 	}
       }
       else {
 	unsigned int lab = *labels;
 	for(auto a : g_rings.queryRing) {
-	  a.trimToLabels(lab);
-	  counts[a]++;
+	  a.name.trimToLabels(lab);
+	  counts[a.name]++;
 	  total++;
 	}
 
@@ -930,6 +930,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	g_outputBuffer += (clmn % lentry % rentry).str();
       }
     });
+
+  moreLua();
   
   std::ifstream ifs(config);
   if(!ifs) 

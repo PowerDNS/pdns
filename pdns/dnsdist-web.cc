@@ -100,6 +100,19 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
     }
+    else if(command=="dynblocklist") {
+      resp.status=200;
+ 
+      Json::object obj;
+      auto slow = g_dynblockNMG.getCopy();
+      for(const auto& e: slow) {
+	obj.insert({e->first.toString(), e->second});
+      }
+      Json my_json=obj;
+
+      resp.headers["Content-Type"] = "application/json";
+      resp.body=my_json.dump();
+    }
     else if(req.url.path=="/servers/localhost") {
       resp.status=200;
 
@@ -182,8 +195,6 @@ static void connectionThread(int sock, ComboAddress remote, string password)
     if(!callback.empty()) {
       resp.body = callback + "(" + resp.body + ");";
     }
-
-
 
     std::ostringstream ofs;
     ofs << resp;
