@@ -213,6 +213,17 @@ $(document).ready(function() {
 	    return;
 //	updateRingBuffers();
 
+	$.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json',
+		 success: function(data) {
+		     var bouw="<table><tr align=left><th>Netmask</th><th align=left>Reason</th></tr>";
+		     $.each(data, function(a,b) {
+			 bouw=bouw+("<tr><td>"+a+"</td><td>"+b+"</td></tr>");
+		     });
+		     bouw=bouw+"</table>";
+		     $("#dynblock").html(bouw);
+
+		 }});
+
 
     };
 		 
