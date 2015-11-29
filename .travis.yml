@@ -128,8 +128,8 @@ script:
  - cd pdns/dnsdistdist
  - tar xf dnsdist*.tar.bz2
  - cd dnsdist-*
- - ./configure
- - make -k -j 4
+ - LUA=1 ./configure
+ - LUA=1 make -k -j 4
  - cd ..
  - rm -rf dnsdist-*/
  - cd ../../
