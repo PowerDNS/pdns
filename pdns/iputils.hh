@@ -547,6 +547,12 @@ public:
     insert(key_type(mask)).second = value;
   }
 
+  //<! check if given key is present in TreeMap
+  bool has_key(const key_type& key) const {
+    const node_type *ptr = lookup(key);
+    return ptr && ptr->first == key;
+  }
+
   //<! Returns "best match" for key_type, which might not be value
   const node_type* lookup(const key_type& value) const {
     return lookup(value.getNetwork(), value.getBits());
