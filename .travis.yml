@@ -8,7 +8,6 @@ before_script:
  - export POSIXLY_CORRECT=1
  - git describe --always --dirty=+
  - for suffix in {1..40}; do sudo /sbin/ip addr add 10.0.3.$suffix/32 dev lo; done
- - sudo /sbin/ip addr add 1.2.3.4/32 dev lo
  - sudo sysctl net.ipv6.conf.all.disable_ipv6=0
  - sudo rm -f /etc/apt/sources.list.d/travis_ci_zeromq3-source.list
  - sudo apt-get update -qq
@@ -159,8 +158,8 @@ script:
  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
  - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
- - ./timestamp ./start-test-stop 5300 geoipbackend
- - ./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow
+ - ./timestamp ./start-test-stop 5300 geoip
+ - ./timestamp ./start-test-stop 5300 geoip-nsec3-narrow
  - ./timestamp ./start-test-stop 5300 gmysql-nodnssec-both
  - ./timestamp ./start-test-stop 5300 gmysql-both
  - ./timestamp ./start-test-stop 5300 gmysql-nsec3-both

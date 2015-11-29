@@ -250,21 +250,29 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     if (!found) return; // not found
   }
 
-  auto i = dom.records.find(search);
-  if (i != dom.records.end()) { // return static value
-    for(const DNSResourceRecord& rr : i->second) {
-      if (qtype == QType::ANY || rr.qtype == qtype) {
-	d_result.push_back(rr);
-	d_result.back().qname = qdomain;
-      }
-    }
-  }
-
   string ip = "0.0.0.0";
   bool v6 = false;
   if (pkt_p != NULL) {
     ip = pkt_p->getRealRemote().toStringNoMask();
     v6 = pkt_p->getRealRemote().isIpv6();
+  }
+
+  gl.netmask = 0;
+
+  auto i = dom.records.find(search);
+  if (i != dom.records.end()) { // return static value
+    for(const auto& rr : i->second) {
+      if (qtype == QType::ANY || rr.qtype == qtype) {
+	d_result.push_back(rr);
+        d_result.back().content = format2str(rr.content, ip, v6, &gl);
+	d_result.back().qname = qdomain;
+      }
+    }
+    // ensure we get most strict netmask
+    for(DNSResourceRecord& rr: d_result) { 
+      rr.scopeMask = gl.netmask;
+    }
+    return; // no need to go further
   }
 
   auto target = dom.services.find(search);
@@ -283,14 +291,18 @@ void GeoIPBackend::lookup(const QType &qtype, const DNSName& qdomain, DNSPacket 
     // see if the record can be found
     auto ri = dom.records.find(DNSName(format));
     if (ri != dom.records.end()) { // return static value
-      for(DNSResourceRecord& rr : ri->second) {
+      for(const auto& rr: ri->second) {
         if (qtype == QType::ANY || rr.qtype == qtype) {
-          rr.scopeMask = gl.netmask;
           d_result.push_back(rr);
+          d_result.back().content = format2str(rr.content, ip, v6, &gl);
           d_result.back().qname = qdomain;
         }
       }
-      return;
+      // ensure we get most strict netmask
+      for(DNSResourceRecord& rr: d_result) {
+        rr.scopeMask = gl.netmask;
+      }
+      return; // no need to go further
     }
   }
 
@@ -559,6 +571,8 @@ string GeoIPBackend::queryGeoIP(const string &ip, bool v6, GeoIPQueryAttribute a
     std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
     break;
   }
+
+  if (ret == "unknown") gl->netmask = (v6?128:32); // prevent caching
   return ret;
 }
 
@@ -568,7 +582,6 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
   GeoIPLookup tmp_gl; // largest wins
   struct tm gtm;
   gmtime_r(&t, &gtm);
-  gl->netmask = 0;
   last=0;
 
   while((cur = format.find("%", last)) != string::npos) {
@@ -611,6 +624,9 @@ string GeoIPBackend::format2str(string format, const string& ip, bool v6, GeoIPL
       tmp_gl.netmask = (v6?128:32);
     } else if (!format.compare(cur,3,"%mo")) {
       rep = boost::str(boost::format("%02d") % (gtm.tm_mon + 1));
+      tmp_gl.netmask = (v6?128:32);
+    } else if (!format.compare(cur,3,"%ip")) {
+      rep = ip;
       tmp_gl.netmask = (v6?128:32);
     } else if (!format.compare(cur,2,"%%")) {
       last = cur + 2; continue;

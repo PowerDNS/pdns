@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig continent.geo.example.com TXT ednssubnet 1.2.3.4/32
