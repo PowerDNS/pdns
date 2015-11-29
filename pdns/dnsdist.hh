@@ -187,10 +187,13 @@ struct Rings {
   boost::circular_buffer<DNSName> queryRing;
   struct Response
   {
+    struct timespec when;
+    ComboAddress requestor;
     DNSName name;
     uint16_t qtype;
     uint8_t rcode;
     unsigned int usec;
+    unsigned int size;
   };
   boost::circular_buffer<Response> respRing;
   std::mutex respMutex;
@@ -360,3 +363,5 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& p
 bool getMsgLen(int fd, uint16_t* len);
 bool putMsgLen(int fd, uint16_t len);
 void* tcpAcceptorThread(void* p);
+
+void moreLua();

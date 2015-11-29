@@ -317,6 +317,12 @@ inline bool operator<(const struct timeval& lhs, const struct timeval& rhs)
   return make_pair(lhs.tv_sec, lhs.tv_usec) < make_pair(rhs.tv_sec, rhs.tv_usec);
 }
 
+inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
+{
+  return tie(lhs.tv_sec, lhs.tv_nsec) < tie(rhs.tv_sec, rhs.tv_nsec);
+}
+
+
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
 inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
 {

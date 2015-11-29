@@ -191,8 +191,10 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
     {
+      struct timespec ts;
+      clock_gettime(CLOCK_MONOTONIC, &ts);
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      g_rings.respRing.push_back({ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff});
+      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff, (unsigned int)len});
     }
     if(dh->rcode == 2)
       g_stats.servfailResponses++;
@@ -218,12 +220,6 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   }
   return 0;
 }
-
-bool operator<(const struct timespec&a, const struct timespec& b) 
-{ 
-  return std::tie(a.tv_sec, a.tv_nsec) < std::tie(b.tv_sec, b.tv_nsec); 
-}
-
 
 DownstreamState::DownstreamState(const ComboAddress& remote_): checkName("a.root-servers.net."), checkType(QType::A), mustResolve(false)
 {
@@ -666,11 +662,18 @@ void* maintThread()
           ids.origFD = -1;
           dss->reuseds++;
           --dss->outstanding;
+	  struct timespec ts;
+	  clock_gettime(CLOCK_MONOTONIC, &ts);
 	  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	  g_rings.respRing.push_back({ids.qname, ids.qtype, 0, 2000000});
+	  g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, 0, 2000000, 0});
         }          
       }
     }
+
+    std::lock_guard<std::mutex> lock(g_luamutex);
+    auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
+    if(f)
+      (*f)();
   }
   return 0;
 }

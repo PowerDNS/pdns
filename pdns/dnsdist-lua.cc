@@ -930,6 +930,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	g_outputBuffer += (clmn % lentry % rentry).str();
       }
     });
+
+  moreLua();
   
   std::ifstream ifs(config);
   if(!ifs) 
