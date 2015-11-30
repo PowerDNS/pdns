@@ -1,0 +1,5 @@
+This test the correct workings of DNSName in combination with negative caching.
+In the pre-DNSName era, it was possible for a pipe-backend to return a CNAME
+with a dot on the end. When trying to look up the target of the CNAME, PowerDNS
+would negatively cache _all_ names down to that name (i.e. ., com., powerdns.
+for www.powerdns.com) and send out wrong answers for all domains after that.
