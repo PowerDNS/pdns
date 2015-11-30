@@ -328,17 +328,6 @@ recommended to bind to explicit addresses.
 
 Local port to bind to.
 
-## `non-local-bind`
-* Boolean
-* Default: no
-* Available since: 4.0.0
-
-Bind to addresses even if one or more of the [`local-address`'s](#local-address)
-do not exist on this server. Setting this option will enable the needed socket
-options to allow binding to non-local addresses.
-This feature is intended to facilitate ip-failover setups, but it may also
-mask configuration issues and for this reason it is disabled by default.
-
 ## `loglevel`
 * Integer between 0 and 
 * Default: 4
@@ -617,9 +606,3 @@ recursor is installed on a system. Available since version 3.1.5.
 
 By default, PowerDNS replies to the 'version.bind' query with its version number.
 Security conscious users may wish to override the reply PowerDNS issues.
-
-## `write-pid`
-* Boolean
-* Default: yes
-
-If a PID file should be written. Available since 4.0.

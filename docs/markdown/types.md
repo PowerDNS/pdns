@@ -17,12 +17,6 @@ Since 2.9.21. Specialised record type for the 'Andrew Filesystem'. Stored as: '\
 ## CERT
 Since 2.9.21. Specialised record type for storing certificates, defined in [RFC 2538](http://tools.ietf.org/html/rfc2538).
 
-## CDNSKEY
-Since 4.0.0. The CDNSKEY ([Child DNSKEY](https://tools.ietf.org/html/rfc7344#section-3.2)) type is supported.
-
-## CDS
-Since 4.0.0. The CDS ([Child DS](https://tools.ietf.org/html/rfc7344#section-3.1)) type is supported.
-
 ## CNAME
 The CNAME record specifies the canonical name of a record. It is stored plainly. Like all other records, it is not terminated by a dot. A sample might be 'webserver-01.yourcompany.com'.
 

@@ -534,7 +534,6 @@ been "yes" since 2005.
 ## `pipebackend-abi-version`
 * Integer
 * Default: 1
-* Removed in: 4.0.0 (is now specific to the backend)
 
 ABI version to use for the pipe backend. See
 ["PipeBackend protocol"](backend-pipe.md#pipebackend-protocol).
@@ -802,9 +801,3 @@ The port where webserver to listen on. See ["Performance Monitoring"](../common/
 * Default: no
 
 If the webserver should print arguments. See ["Performance Monitoring"](../common/logging.md#performance-monitoring).
-
-## `write-pid`
-* Boolean
-* Default: yes
-
-If a PID file should be written. Available since 4.0.
