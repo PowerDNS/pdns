@@ -372,7 +372,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   trim(rr.content);
 
   if(equals(rr.content, "@"))
-    rr.content=d_zonename.toStringNoDot();
+    rr.content=d_zonename.toStringRootDot();
 
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
@@ -395,7 +395,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
       if (recparts[1]!=".")
-        recparts[1] = toCanonic(d_zonename, recparts[1]).toStringNoDot();
+        recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;
@@ -403,8 +403,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::RP:
     stringtok(recparts, rr.content);
     if(recparts.size()==2) {
-      recparts[0] = toCanonic(d_zonename, recparts[0]).toStringNoDot();
-      recparts[1] = toCanonic(d_zonename, recparts[1]).toStringNoDot();
+      recparts[0] = toCanonic(d_zonename, recparts[0]).toStringRootDot();
+      recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
       rr.content=recparts[0]+" "+recparts[1];
     }
     break;
@@ -413,7 +413,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     stringtok(recparts, rr.content);
     if(recparts.size()==4) {
       if(recparts[3]!=".")
-        recparts[3] = toCanonic(d_zonename, recparts[3]).toStringNoDot();
+        recparts[3] = toCanonic(d_zonename, recparts[3]).toStringRootDot();
       rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
     }
     break;
@@ -424,14 +424,14 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::DNAME:
   case QType::PTR:
   case QType::AFSDB:
-    rr.content=toCanonic(d_zonename, rr.content).toStringNoDot();
+    rr.content=toCanonic(d_zonename, rr.content).toStringRootDot();
     break;
 
   case QType::SOA:
     stringtok(recparts, rr.content);
     if(recparts.size() > 1) {
-      recparts[0]=toCanonic(d_zonename, recparts[0]).toStringNoDot();
-      recparts[1]=toCanonic(d_zonename, recparts[1]).toStringNoDot();
+      recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
+      recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
     }
     rr.content.clear();
     for(string::size_type n = 0; n < recparts.size(); ++n) {
