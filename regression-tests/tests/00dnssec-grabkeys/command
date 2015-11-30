@@ -17,3 +17,8 @@ done
 echo "server:" >> unbound-host.conf
 echo "  do-not-query-address: 192.168.0.0/16" >> unbound-host.conf
 echo '  trust-anchor-file: "trustedkeys"' >> unbound-host.conf
+
+if [ -e trustedkeys ]
+then
+  cat trustedkeys | wc -l
+fi
