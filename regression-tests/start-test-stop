@@ -312,6 +312,8 @@ dotests () {
 	./toxml
 	./totar
 
+	cat ./trustedkeys
+
 	if [ -s "./failed_tests" ]
 	then
 		for t in `cat failed_tests`
