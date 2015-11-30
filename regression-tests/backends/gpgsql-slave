@@ -25,11 +25,11 @@ __EOF__
 		"$GPGSQL2DB"
 	done
 
-	$PDNSSEC --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
-	$PDNSSEC --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
+	$PDNSUTIL --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
+	$PDNSUTIL --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
 	if [[ $skipreasons != *nolua* ]]
 	then
-		$PDNSSEC --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSUTIL --config-dir=. --config-name=gpgsql2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 
 	port=$((port+100))

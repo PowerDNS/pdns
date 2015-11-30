@@ -119,7 +119,7 @@ Operate as a daemon.
 * Default: rsasha256
 
 The algorithm that should be used for the KSK when running
-[`pdnssec secure-zone`](internals.md#pdnssec).
+[`pdnsutil secure-zone`](internals.md#pdnsutil).
 Must be one of:
 * rsamd5
 * dh
@@ -138,7 +138,7 @@ Must be one of:
 * Default: whichever is default for `default-ksk-algorithms`
 
 The default keysize for the KSK generated with
-[`pdnssec secure-zone`](internals.md#pdnssec).
+[`pdnsutil secure-zone`](internals.md#pdnsutil).
 
 ## `default-soa-name`
 * String
@@ -176,7 +176,7 @@ TTL to use when none is provided.
 * Default: rsasha256
 
 The algorithm that should be used for the ZSK when running
-[`pdnssec secure-zone`](internals.md#pdnssec).
+[`pdnsutil secure-zone`](internals.md#pdnsutil).
 Must be one of:
 * rsamd5
 * dh
@@ -195,7 +195,7 @@ Must be one of:
 * Default: whichever is default for `default-zsk-algorithms`
 
 The default keysize for the ZSK generated with
-[`pdnssec secure-zone`](internals.md#pdnssec).
+[`pdnsutil secure-zone`](internals.md#pdnsutil).
 
 ## `direct-dnskey`
 * Boolean

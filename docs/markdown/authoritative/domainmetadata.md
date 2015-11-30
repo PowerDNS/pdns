@@ -48,20 +48,20 @@ Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a sc
 
 ## NSEC3NARROW
 Set to "1" to tell PowerDNS this zone operates in NSEC3 'narrow' mode. See
-`set-nsec3` for [`pdnssec`](dnssec.md#pdnssec).
+`set-nsec3` for [`pdnsutil`](dnssec.md#pdnsutil).
 
 ## NSEC3PARAM
 NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the NSEC3PARAM
 record. If present, NSEC3 is used, if not present, zones default to NSEC. See
-`set-nsec3` in [`pdnssec`](dnssec.md#pdnssec). Example content: "1 0 1 ab".
+`set-nsec3` in [`pdnsutil`](dnssec.md#pdnsutil). Example content: "1 0 1 ab".
 
 ## PRESIGNED
 This zone carries DNSSEC RRSIGs (signatures), and is presigned. PowerDNS sets
 this flag automatically upon incoming zone transfers (AXFR) if it detects DNSSEC
 records in the zone. However, if you import a presigned zone using `zone2sql` or
-`pdnssec load-zone` you must explicitly set the zone to be `PRESIGNED`. Note that
+`pdnsutil load-zone` you must explicitly set the zone to be `PRESIGNED`. Note that
 PowerDNS will not be able to correctly serve the zone if the imported data is
-bogus or incomplete. Also see `set-presigned` in [`pdnssec`](dnssec.md#pdnssec).
+bogus or incomplete. Also see `set-presigned` in [`pdnsutil`](dnssec.md#pdnsutil).
 
 ## PUBLISH_CDNSKEY, PUBLISH_CDS
 Whether to publish CDNSKEY and/or CDS recording defined in [RFC 7344](https://tools.ietf.org/html/rfc7344).
@@ -71,7 +71,7 @@ To publish CDNSKEY records of the KSKs for the zone, set `PUBLISH_CDNSKEY` to `1
 To publish CDS records for the KSKs in the zone, set `PUBLISH_CDS` to a comma-
 separated list of [signature algorithm numbers](http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1).
 
-This metadata can also be set using the [`pdnssec`](dnssec.md#pdnssec) options
+This metadata can also be set using the [`pdnsutil`](dnssec.md#pdnsutil) options
 `set-publish-cdnskey` and `set-publish-cds`. For an example for an RFC 7344
 key rollover, see the [CDS and CDNSKEY howto](howtos.md#cds-dnskey-key-rollover).
 

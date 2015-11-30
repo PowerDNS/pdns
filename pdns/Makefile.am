@@ -71,7 +71,7 @@ sysconf_DATA = pdns.conf-dist
 sbin_PROGRAMS = pdns_server
 bin_PROGRAMS = \
 	pdns_control \
-	pdnssec \
+	pdnsutil \
 	zone2sql \
 	zone2json
 
@@ -255,7 +255,7 @@ if GSS_TSIG
 pdns_server_LDADD += $(GSS_LIBS)
 endif
 
-pdnssec_SOURCES = \
+pdnsutil_SOURCES = \
 	arguments.cc \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
 	backends/gsql/ssql.hh \
@@ -286,7 +286,7 @@ pdnssec_SOURCES = \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	packetcache.cc \
-	pdnssec.cc \
+	pdnsutil.cc \
 	mbedtlssigners.cc \
 	qtype.cc \
 	randomhelper.cc \
@@ -300,12 +300,12 @@ pdnssec_SOURCES = \
 	unix_utility.cc \
 	zoneparser-tng.cc
 
-pdnssec_LDFLAGS = \
+pdnsutil_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(DYNLINKFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
 
-pdnssec_LDADD = \
+pdnsutil_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
@@ -314,41 +314,41 @@ pdnssec_LDADD = \
 	$(YAHTTP_LIBS)
 
 if BOTAN110
-pdnssec_SOURCES += botan110signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN110_LIBS)
+pdnsutil_SOURCES += botan110signers.cc botansigners.cc
+pdnsutil_LDADD += $(BOTAN110_LIBS)
 endif
 
 if BOTAN18
-pdnssec_SOURCES += botan18signers.cc botansigners.cc
-pdnssec_LDADD += $(BOTAN18_LIBS)
+pdnsutil_SOURCES += botan18signers.cc botansigners.cc
+pdnsutil_LDADD += $(BOTAN18_LIBS)
 endif
 
 if CRYPTOPP
-pdnssec_SOURCES += cryptoppsigners.cc
-pdnssec_LDADD += $(CRYPTOPP_LIBS)
+pdnsutil_SOURCES += cryptoppsigners.cc
+pdnsutil_LDADD += $(CRYPTOPP_LIBS)
 endif
 
 if LIBSODIUM
-pdnssec_SOURCES += sodiumsigners.cc
-pdnssec_LDADD += $(LIBSODIUM_LIBS)
+pdnsutil_SOURCES += sodiumsigners.cc
+pdnsutil_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if SQLITE3
-pdnssec_SOURCES += ssqlite3.cc ssqlite3.hh
-pdnssec_LDADD += $(SQLITE3_LIBS)
+pdnsutil_SOURCES += ssqlite3.cc ssqlite3.hh
+pdnsutil_LDADD += $(SQLITE3_LIBS)
 endif
 
 if ORACLE
-pdnssec_LDADD += $(ORACLE_LIBS)
+pdnsutil_LDADD += $(ORACLE_LIBS)
 endif
 
 if PKCS11
-pdnssec_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
-pdnssec_LDADD += $(P11KIT1_LIBS)
+pdnsutil_SOURCES +=  pkcs11signers.cc pkcs11signers.hh
+pdnsutil_LDADD += $(P11KIT1_LIBS)
 endif
 
 if GSS_TSIG
-pdnssec_LDADD += $(GSS_LIBS)
+pdnsutil_LDADD += $(GSS_LIBS)
 endif
 
 zone2sql_SOURCES = \

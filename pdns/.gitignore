@@ -9,7 +9,7 @@
 /pdns_control
 /pdns_server
 /pdns_recursor
-/pdnssec
+/pdnsutil
 /sdig
 /saxfr
 /dnslabeltext.cc

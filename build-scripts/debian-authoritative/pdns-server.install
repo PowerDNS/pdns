@@ -1,6 +1,6 @@
 usr/bin/pdns_control
 usr/bin/zone2sql
-usr/bin/pdnssec
+usr/bin/pdnsutil
 usr/lib/*/pdns/libbindbackend.so*
 usr/lib/*/pdns/librandombackend.so*
 usr/sbin/pdns_server

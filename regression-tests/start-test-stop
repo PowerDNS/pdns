@@ -9,7 +9,7 @@ export SDIG=${SDIG:-${PWD}/../pdns/sdig}
 export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
 export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
 export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
-export PDNSSEC=${PDNSSEC:-${PWD}/../pdns/pdnssec}
+export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
 
 
@@ -71,13 +71,13 @@ securezone ()
 	fi
 	if [ "${zone: 0:16}" = "secure-delegated" ]
 	then
-		$PDNSSEC --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
-		$PDNSSEC --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
-		keyid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
-		$PDNSSEC --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
-		$PDNSSEC --config-dir=. $configname rectify-zone $zone 2>&1
-		$PDNSSEC --config-dir=. $configname set-publish-cds $zone 2>&1
-		$PDNSSEC --config-dir=. $configname set-publish-cdnskey $zone 2>&1
+		$PDNSUTIL --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
+		$PDNSUTIL --config-dir=. $configname add-zone-key $zone 1024 zsk 2>&1
+		keyid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep ZSK | cut -d' ' -f3`
+		$PDNSUTIL --config-dir=. $configname activate-zone-key $zone $keyid 2>&1
+		$PDNSUTIL --config-dir=. $configname rectify-zone $zone 2>&1
+		$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
+		$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
 	else
 		# check if PKCS#11 should be used
 		if [ "$pkcs11" -eq 1 ]; then
@@ -87,17 +87,17 @@ securezone ()
                     slot=$((slot+1))
                   fi
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot 
-                  kid=`$PDNSSEC --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
+                  kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
 # keep this until #1413 is merged
-                  kid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
-                  $PDNSSEC --config-dir=. $configname hsm create-key $zone $kid
+                  kid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
+                  $PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
                   slot=$((slot+1))
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot
-                  kid=`$PDNSSEC --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
-                  kid=`$PDNSSEC --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
-                  $PDNSSEC --config-dir=. $configname hsm create-key $zone $kid
+                  kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
+                  kid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
+                  $PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
                 else
-                  $PDNSSEC --config-dir=. $configname secure-zone $zone 2>&1
+                  $PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
                 fi
 	fi
 }

@@ -4,7 +4,7 @@ Before migrating to PowerDNS a few things should be considered.
 PowerDNS does not operate as a 'slave' or 'master' server with all backends.
 Only the [Generic SQL](backend-generic-mypgsql.md), [BIND](backend-bind.md) backends have the ability to act as master or slave.
 
-To migrate, the `zone2sql` tool is provided. There are also scripts from external contributors for migrating from `MyDNS` server. See https://github.com/PowerDNS/pdns/wiki/Migrating-DBs-FROM-MyDNS for details. There is also tool in pdnssec to migrate using various backends, most notably bind and mydns. See below for more information.
+To migrate, the `zone2sql` tool is provided. There are also scripts from external contributors for migrating from `MyDNS` server. See https://github.com/PowerDNS/pdns/wiki/Migrating-DBs-FROM-MyDNS for details. There is also tool in pdnsutil to migrate using various backends, most notably bind and mydns. See below for more information.
 
 Additionally, the PowerDNS source comes with a number of diagnostic tools, which can be helpful in verifying proper PowerDNS operation, versus incumbent nameservers. See [Tools to analyse DNS traffic](../tools/analysis.md) for more details.
 
@@ -60,7 +60,7 @@ When parsing a single zone without $ORIGIN statement, set this as the zone name.
 
 NB! This is experimental feature.
 
-Syntax: `pdnssec b2b-migrate old new`
+Syntax: `pdnsutil b2b-migrate old new`
 
 This tool lets you migrate data from one backend to another, it moves all data, including zones, metadata and crypto keys (if present). Some example use cases are moving from Bind style zonefiles to SQL based, or other way around, or moving from MyDNS to gMySQL.
 
@@ -77,8 +77,8 @@ Take backups of everything.
 
 Configure both backends to pdns.conf, if you have source configured, you can just add target backend. **DO NOT RESTART AUTH SERVER BEFORE YOU HAVE FINISHED**
 
-Then run `pdnssec b2b-migrate old new`, the old and new being configuration prefixes in pdns.conf. If something goes wrong, make sure you properly clear **ALL** data from target backend before retrying.
+Then run `pdnsutil b2b-migrate old new`, the old and new being configuration prefixes in pdns.conf. If something goes wrong, make sure you properly clear **ALL** data from target backend before retrying.
 
-Remove (or comment out) old backend from pdns.conf, and run `pdnssec rectify-all-zones` and `pdnssec check-all-zones` to make sure everything is OK.
+Remove (or comment out) old backend from pdns.conf, and run `pdnsutil rectify-all-zones` and `pdnsutil check-all-zones` to make sure everything is OK.
 
 If everything is OK, then go ahead to restart your pdns auth process. Check logs to make sure everything went ok.

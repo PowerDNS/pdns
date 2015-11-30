@@ -60,7 +60,7 @@ EOF
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='continent.geo.example.com.', qtype=TXT
 EOF
-		# generate pdns.conf for pdnssec
+		# generate pdns.conf for pdnsutil
 		cat > pdns-geoip.conf <<EOF
 module-dir=./modules
 launch=geoip
@@ -71,7 +71,7 @@ EOF
 		if [ "$geoipdosec" = "yes" ]
 		then
 			echo "$geoipkeydir" >> pdns-geoip.conf
-			$PDNSSEC --config-dir=. --config-name=geoip secure-zone geo.example.com
+			$PDNSUTIL --config-dir=. --config-name=geoip secure-zone geo.example.com
 			geoipkeydir="--geoip-dnssec-keydir=$testsdir/geosec"
 		fi
 

@@ -26,14 +26,14 @@ __EOF__
 		echo "INSERT ALL INTO zones (id, name, type) VALUES (zones_id_seq.nextval, name, 'SLAVE') INTO zonemasters (zone_id, master) VALUES (zones_id_seq.nextval, master) SELECT '$zone' AS name, '127.0.0.1:$port' AS master FROM dual;" | sqlplus -S $ORACLE2USER/$ORACLE2PASSWD@xe >> oracle2.log
 	done
 
-	$PDNSSEC --config-dir=. --config-name=oracle2 import-tsig-key test $ALGORITHM $KEY
-	$PDNSSEC --config-dir=. --config-name=oracle2 activate-tsig-key tsig.com test slave
+	$PDNSUTIL --config-dir=. --config-name=oracle2 import-tsig-key test $ALGORITHM $KEY
+	$PDNSUTIL --config-dir=. --config-name=oracle2 activate-tsig-key tsig.com test slave
 
 	set +e
 	echo $skipreasons | grep -q nolua
 	if [ $? -ne 0 ]
 	then
-		$PDNSSEC --config-dir=. --config-name=oracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+		$PDNSUTIL --config-dir=. --config-name=oracle2 set-meta stest.com AXFR-SOURCE 127.0.0.2
 	fi
 	set -e
 

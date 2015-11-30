@@ -37,4 +37,4 @@ See the online documentation for all options
 To view more options that are available use this program.
 
 # SEE ALSO
-pdns_control(1), pdnssec(1), http://doc.powerdns.com/md/authoritative/
+pdns_control(1), pdnsutil(1), http://doc.powerdns.com/md/authoritative/

@@ -222,7 +222,7 @@ ORDER BY md.meta_ind
 ```
 
 ##### oracle-del-zone-metadata-query
-Delete all metadata entries of type ':kind' for the zone called ':name'. You can skip this if you do not plan to manage zones with the `pdnssec` tool. Default:
+Delete all metadata entries of type ':kind' for the zone called ':name'. You can skip this if you do not plan to manage zones with the `pdnsutil` tool. Default:
 
 ```
 DELETE FROM ZoneMetadata md
@@ -231,7 +231,7 @@ AND md.meta_type = :kind
 ```
 
 ##### oracle-set-zone-metadata-query
-Create a metadata entry. You can skip this if you do not plan to manage zones with the `pdnssec` tool. Default:
+Create a metadata entry. You can skip this if you do not plan to manage zones with the `pdnsutil` tool. Default:
 
 ```
 INSERT INTO ZoneMetadata (zone_id, meta_type, meta_ind, meta_content)
@@ -261,14 +261,14 @@ WHERE z.name = lower(:name)
 ```
 
 ##### oracle-del-zone-key-query
-Delete a DNSSEC signing key. You can skip this if you do not plan to manage zones with the `pdnssec` tool. Default:
+Delete a DNSSEC signing key. You can skip this if you do not plan to manage zones with the `pdnsutil` tool. Default:
 
 ```
 DELETE FROM ZoneDNSKeys WHERE id = :keyid
 ```
 
 ##### oracle-add-zone-key-query
-Add a DNSSEC signing key. You can skip this if you do not plan to manage zones with the `pdnssec` tool. Default:
+Add a DNSSEC signing key. You can skip this if you do not plan to manage zones with the `pdnsutil` tool. Default:
 
 ```
 INSERT INTO ZoneDNSKeys (id, zone_id, flags, active, keydata) "
@@ -282,7 +282,7 @@ VALUES (
 ```
 
 ##### oracle-set-zone-key-state-query
-Enable or disable a DNSSEC signing key. You can skip this if you do not plan to manage zones with the **pdnssec** tool. Default:
+Enable or disable a DNSSEC signing key. You can skip this if you do not plan to manage zones with the **pdnsutil** tool. Default:
 
 ```
 UPDATE ZoneDNSKeys SET active = :active WHERE id = :keyid

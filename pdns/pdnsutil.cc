@@ -530,7 +530,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
     if (isSecure && isOptOut && (rr.qname.countLabels() && rr.qname.getRawLabels()[0] == "*")) {
       cout<<"[Warning] wildcard record '"<<rr.qname.toString()<<" IN " <<rr.qtype.getName()<<" "<<rr.content<<"' is insecure"<<endl;
-      cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnssec set-nsec3 "<<zone.toString()<<endl;
+      cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnsutil set-nsec3 "<<zone.toString()<<endl;
       numwarnings++;
     }
 
@@ -612,7 +612,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
     if(rr.auth == 0 && rr.qtype.getCode()!=QType::NS && rr.qtype.getCode()!=QType::A && rr.qtype.getCode()!=QType::AAAA)
     {
-      cout<<"[Error] Following record is auth=0, run pdnssec rectify-zone?: "<<rr.qname.toString()<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
+      cout<<"[Error] Following record is auth=0, run pdnsutil rectify-zone?: "<<rr.qname.toString()<<" IN " <<rr.qtype.getName()<< " " << rr.content<<endl;
       numerrors++;
     }
   }
@@ -945,7 +945,7 @@ int listAllZones(const string &type="") {
     else if (toUpper(type) == "NATIVE")
       kindFilter = 2;
     else {
-      cerr<<"Syntax: pdnssec list-all-zones [master|slave|native]"<<endl;
+      cerr<<"Syntax: pdnsutil list-all-zones [master|slave|native]"<<endl;
       return 1;
     }
   }
@@ -1206,7 +1206,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   if(dk.isSecuredZone(zone)) {
-    cerr << "Zone '"<<zone.toString()<<"' already secure, remove keys with pdnssec remove-zone-key if needed"<<endl;
+    cerr << "Zone '"<<zone.toString()<<"' already secure, remove keys with pdnsutil remove-zone-key if needed"<<endl;
     return false;
   }
 
@@ -1220,7 +1220,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   if(di.kind == DomainInfo::Slave)
   {
     cout<<"Warning! This is a slave domain! If this was a mistake, please run"<<endl;
-    cout<<"pdnssec disable-dnssec "<<zone.toString()<<" right now!"<<endl;
+    cout<<"pdnsutil disable-dnssec "<<zone.toString()<<" right now!"<<endl;
   }
 
   if (k_size)
@@ -1242,7 +1242,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first."<<endl;
     cerr<<"If you run with the BIND backend, make sure you have configured"<<endl;
     cerr<<"it to use DNSSEC with 'bind-dnssec-db=/path/fname' and"<<endl;
-    cerr<<"'pdnssec create-bind-db /path/fname'!"<<endl;
+    cerr<<"'pdnsutil create-bind-db /path/fname'!"<<endl;
     return false;
   }
 
@@ -1394,7 +1394,7 @@ try
   g_verbose = g_vm.count("verbose");
 
   if(cmds.empty() || g_vm.count("help")) {
-    cerr<<"Usage: \npdnssec [options] <command> [params ..]\n"<<endl;
+    cerr<<"Usage: \npdnsutil [options] <command> [params ..]\n"<<endl;
     cerr<<"Commands:"<<endl;
     cerr<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
@@ -1475,7 +1475,7 @@ try
 
   if (cmds[0] == "test-algorithm") {
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec test-algorithm algonum"<<endl;
+      cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;
       return 0;
     }
     if (testAlgorithm(lexical_cast<int>(cmds[1])))
@@ -1495,7 +1495,7 @@ try
   if(cmds[0] == "create-bind-db") {
 #ifdef HAVE_SQLITE3
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec create-bind-db FNAME"<<endl;
+      cerr << "Syntax: pdnsutil create-bind-db FNAME"<<endl;
       return 0;
     }
     try {
@@ -1520,7 +1520,7 @@ try
 
   if (cmds[0] == "test-schema") {
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec test-schema ZONE"<<endl;
+      cerr << "Syntax: pdnsutil test-schema ZONE"<<endl;
       return 0;
     }
     testSchema(dk, DNSName(cmds[1]));
@@ -1528,7 +1528,7 @@ try
   }
   if(cmds[0] == "rectify-zone") {
     if(cmds.size() < 2) {
-      cerr << "Syntax: pdnssec rectify-zone ZONE [ZONE..]"<<endl;
+      cerr << "Syntax: pdnsutil rectify-zone ZONE [ZONE..]"<<endl;
       return 0;
     }
     unsigned int exitCode = 0;
@@ -1542,7 +1542,7 @@ try
   }
   else if(cmds[0] == "check-zone") {
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec check-zone ZONE"<<endl;
+      cerr << "Syntax: pdnsutil check-zone ZONE"<<endl;
       return 0;
     }
     UeberBackend B("default");
@@ -1557,7 +1557,7 @@ try
   }
   else if (cmds[0] == "list-all-zones") {
     if (cmds.size() > 2) {
-      cerr << "Syntax: pdnssec list-all-zones [master|slave|native]"<<endl;
+      cerr << "Syntax: pdnsutil list-all-zones [master|slave|native]"<<endl;
       return 0;
     }
     if (cmds.size() == 2)
@@ -1584,14 +1584,14 @@ try
 #endif
   else if(cmds[0] == "test-speed") {
     if(cmds.size() < 2) {
-      cerr << "Syntax: pdnssec test-speed numcores [signing-server]"<<endl;
+      cerr << "Syntax: pdnsutil test-speed numcores [signing-server]"<<endl;
       return 0;
     }
     testSpeed(dk, DNSName(cmds[1]),  (cmds.size() > 3) ? cmds[3] : "", atoi(cmds[2].c_str()));
   }
   else if(cmds[0] == "verify-crypto") {
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec verify-crypto FILE"<<endl;
+      cerr << "Syntax: pdnsutil verify-crypto FILE"<<endl;
       return 0;
     }
     verifyCrypto(cmds[1]);
@@ -1599,14 +1599,14 @@ try
 
   else if(cmds[0] == "show-zone") {
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec show-zone ZONE"<<endl;
+      cerr << "Syntax: pdnsutil show-zone ZONE"<<endl;
       return 0;
     }
     if (!showZone(dk, DNSName(cmds[1]))) return 1;
   }
   else if(cmds[0] == "disable-dnssec") {
     if(cmds.size() != 2) {
-      cerr << "Syntax: pdnssec disable-dnssec ZONE"<<endl;
+      cerr << "Syntax: pdnsutil disable-dnssec ZONE"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
@@ -1617,7 +1617,7 @@ try
   }
   else if(cmds[0] == "activate-zone-key") {
     if(cmds.size() != 3) {
-      cerr << "Syntax: pdnssec activate-zone-key ZONE KEY-ID"<<endl;
+      cerr << "Syntax: pdnsutil activate-zone-key ZONE KEY-ID"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
@@ -1635,7 +1635,7 @@ try
   }
   else if(cmds[0] == "deactivate-zone-key") {
     if(cmds.size() != 3) {
-      cerr << "Syntax: pdnssec deactivate-zone-key ZONE KEY-ID"<<endl;
+      cerr << "Syntax: pdnsutil deactivate-zone-key ZONE KEY-ID"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
@@ -1653,7 +1653,7 @@ try
   }
   else if(cmds[0] == "add-zone-key") {
     if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnssec add-zone-key ZONE zsk|ksk [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
+      cerr << "Syntax: pdnsutil add-zone-key ZONE zsk|ksk [bits] [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384]"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
@@ -1702,7 +1702,7 @@ try
   }
   else if(cmds[0] == "remove-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec remove-zone-key ZONE KEY-ID"<<endl;
+      cerr<<"Syntax: pdnsutil remove-zone-key ZONE KEY-ID"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
@@ -1715,21 +1715,21 @@ try
   }
   else if(cmds[0] == "delete-zone") {
     if(cmds.size() != 2) {
-      cerr<<"Syntax: pdnssec delete-zone ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil delete-zone ZONE"<<endl;
       return 0;
     }
     exit(deleteZone(DNSName(cmds[1])));
   }
   else if(cmds[0] == "create-zone") {
     if(cmds.size() != 2) {
-      cerr<<"Syntax: pdnssec create-zone ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil create-zone ZONE"<<endl;
       return 0;
     }
     exit(createZone(DNSName(cmds[1])));
   }
   else if(cmds[0] == "list-zone") {
     if(cmds.size() != 2) {
-      cerr<<"Syntax: pdnssec list-zone ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil list-zone ZONE"<<endl;
       return 0;
     }
     if(cmds[1]==".")
@@ -1739,7 +1739,7 @@ try
   }
   else if(cmds[0] == "list-keys") {
     if(cmds.size() > 2) {
-      cerr<<"Syntax: pdnssec list-keys [ZONE]"<<endl;
+      cerr<<"Syntax: pdnsutil list-keys [ZONE]"<<endl;
       return 0;
     }
     string zname = (cmds.size() == 2) ? cmds[1] : "all";
@@ -1747,7 +1747,7 @@ try
   }
   else if(cmds[0] == "load-zone") {
     if(cmds.size() != 3) {
-      cerr<<"Syntax: pdnssec load-zone ZONE FILENAME"<<endl;
+      cerr<<"Syntax: pdnsutil load-zone ZONE FILENAME"<<endl;
       return 0;
     }
     if(cmds[1]==".")
@@ -1757,7 +1757,7 @@ try
   }
   else if(cmds[0] == "secure-zone") {
     if(cmds.size() < 2) {
-      cerr << "Syntax: pdnssec secure-zone ZONE"<<endl;
+      cerr << "Syntax: pdnsutil secure-zone ZONE"<<endl;
       return 0;
     }
     vector<DNSName> mustRectify;
@@ -1783,7 +1783,7 @@ try
   }
   else if (cmds[0] == "secure-all-zones") {
     if (cmds.size() >= 2 && !pdns_iequals(cmds[1], "increase-serial")) {
-      cerr << "Syntax: pdnssec secure-all-zones [increase-serial]"<<endl;
+      cerr << "Syntax: pdnsutil secure-all-zones [increase-serial]"<<endl;
       return 0;
     }
 
@@ -1817,7 +1817,7 @@ try
   }
   else if(cmds[0]=="set-nsec3") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec set-nsec3 ZONE 'params' [narrow]"<<endl;
+      cerr<<"Syntax: pdnsutil set-nsec3 ZONE 'params' [narrow]"<<endl;
       return 0;
     }
     string nsec3params =  cmds.size() > 2 ? cmds[2] : "1 0 1 ab";
@@ -1848,7 +1848,7 @@ try
   }
   else if(cmds[0]=="set-presigned") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec set-presigned ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil set-presigned ZONE"<<endl;
       return 0; 
     }
     if (! dk.setPresigned(DNSName(cmds[1]))) {
@@ -1859,7 +1859,7 @@ try
   }
   else if(cmds[0]=="set-publish-cdnskey") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec set-publish-cdnskey ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil set-publish-cdnskey ZONE"<<endl;
       return 0;
     }
     if (! dk.setPublishCDNSKEY(DNSName(cmds[1]))) {
@@ -1870,7 +1870,7 @@ try
   }
   else if(cmds[0]=="set-publish-cds") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec set-publish-cds ZONE [DIGESTALGOS]"<<endl;
+      cerr<<"Syntax: pdnsutil set-publish-cds ZONE [DIGESTALGOS]"<<endl;
       return 0;
     }
 
@@ -1886,7 +1886,7 @@ try
   }
   else if(cmds[0]=="unset-presigned") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec unset-presigned ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil unset-presigned ZONE"<<endl;
       return 0;  
     }
     if (! dk.unsetPresigned(DNSName(cmds[1]))) {
@@ -1897,7 +1897,7 @@ try
   }
   else if(cmds[0]=="unset-publish-cdnskey") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec unset-publish-cdnskey ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil unset-publish-cdnskey ZONE"<<endl;
       return 0;
     }
     if (! dk.unsetPublishCDNSKEY(DNSName(cmds[1]))) {
@@ -1908,7 +1908,7 @@ try
   }
   else if(cmds[0]=="unset-publish-cds") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec unset-publish-cds ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil unset-publish-cds ZONE"<<endl;
       return 0;
     }
     if (! dk.unsetPublishCDS(DNSName(cmds[1]))) {
@@ -1919,7 +1919,7 @@ try
   }
   else if(cmds[0]=="hash-zone-record") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec hash-zone-record ZONE RNAME"<<endl;
+      cerr<<"Syntax: pdnsutil hash-zone-record ZONE RNAME"<<endl;
       return 0;
     }
     DNSName zone(cmds[1]);
@@ -1938,7 +1938,7 @@ try
   }
   else if(cmds[0]=="unset-nsec3") {
     if(cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec unset-nsec3 ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil unset-nsec3 ZONE"<<endl;
       return 0;
     }
     if ( ! dk.unsetNSEC3PARAM(DNSName(cmds[1]))) {
@@ -1949,7 +1949,7 @@ try
   }
   else if(cmds[0]=="export-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec export-zone-key ZONE KEY-ID"<<endl;
+      cerr<<"Syntax: pdnsutil export-zone-key ZONE KEY-ID"<<endl;
       return 0;
     }
 
@@ -1960,14 +1960,14 @@ try
   }  
   else if(cmds[0]=="increase-serial") {
     if (cmds.size() < 2) {
-      cerr<<"Syntax: pdnssec increase-serial ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil increase-serial ZONE"<<endl;
       return 0;
     }
     return increaseSerial(DNSName(cmds[1]), dk);
   }
   else if(cmds[0]=="import-zone-key-pem") {
     if(cmds.size() < 4) {
-      cerr<<"Syntax: pdnssec import-zone-key-pem ZONE FILE ALGORITHM {ksk|zsk}"<<endl;
+      cerr<<"Syntax: pdnsutil import-zone-key-pem ZONE FILE ALGORITHM {ksk|zsk}"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -2015,7 +2015,7 @@ try
   }
   else if(cmds[0]=="import-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec import-zone-key ZONE FILE [ksk|zsk] [active|passive]"<<endl;
+      cerr<<"Syntax: pdnsutil import-zone-key ZONE FILE [ksk|zsk] [active|passive]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -2053,7 +2053,7 @@ try
   }
   else if(cmds[0]=="export-zone-dnskey") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnssec export-zone-dnskey ZONE KEY-ID"<<endl;
+      cerr<<"Syntax: pdnsutil export-zone-dnskey ZONE KEY-ID"<<endl;
       exit(1);
     }
 
@@ -2068,7 +2068,7 @@ try
   }
   else if(cmds[0] == "generate-zone-key") {
     if(cmds.size() < 2 ) {
-      cerr << "Syntax: pdnssec generate-zone-key zsk|ksk [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384] [bits]"<<endl;
+      cerr << "Syntax: pdnsutil generate-zone-key zsk|ksk [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384] [bits]"<<endl;
       return 0;
     }
     // need to get algorithm, bits & ksk or zsk from commandline
@@ -2328,7 +2328,7 @@ try
       std::vector<DNSBackend::KeyData> keys;
 
       if (cmds.size() < 9) {
-        std::cout << "Usage: pdnssec hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL" << std::endl;
+        std::cout << "Usage: pdnsutil hsm assign ZONE ALGORITHM {ksk|zsk} MODULE TOKEN PIN LABEL" << std::endl;
         return 1;
       }
 
@@ -2407,7 +2407,7 @@ try
     } else if (cmds[1] == "create-key") {
 
       if (cmds.size() < 4) {
-        cerr << "Usage: pdnssec hsm create-key ZONE KEY-ID [BITS]" << endl;
+        cerr << "Usage: pdnsutil hsm create-key ZONE KEY-ID [BITS]" << endl;
         return 1;
       }
       DomainInfo di;

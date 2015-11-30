@@ -359,7 +359,7 @@ vector<DNSResourceRecord> ChunkedSigningPipe::getChunk(bool final)
       signal(SIGCHLD, SIG_IGN);
       if(!fork()) { // child
         dup2(fds[1], 0);
-        execl("./pdnssec", "./pdnssec", "--config-dir=./", "signing-slave", NULL);
+        execl("./pdnsutil", "./pdnsutil", "--config-dir=./", "signing-slave", NULL);
         // helperWorker(new StartHelperStruct(this, n));
         return;
       }

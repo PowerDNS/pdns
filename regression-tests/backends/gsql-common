@@ -19,19 +19,19 @@ gsql_master()
 		then
 			if [ $context = ${backend}-nsec3 ] || [ $context = ${backend}-nsec3-optout ]
 			then
-				$PDNSSEC --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
+				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone "1 $optout 1 abcd" 2>&1
 			elif [ $context = ${backend}-nsec3-narrow ]
 			then
-				$PDNSSEC --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+				$PDNSUTIL --config-dir=. --config-name=$backend set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
 			fi
 			securezone $zone ${backend}
 		else
-			$PDNSSEC --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
+			$PDNSUTIL --config-dir=. --config-name=$backend rectify-zone $zone 2>&1
 		fi
 	done
 
-	$PDNSSEC --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
-	$PDNSSEC --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
+	$PDNSUTIL --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
+	$PDNSUTIL --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
 
 	$RUNWRAPPER $PDNS --daemon=no --local-port=$port --config-dir=. \
 		--config-name=$backend --socket-dir=./ --no-shuffle \

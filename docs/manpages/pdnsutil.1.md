@@ -1,18 +1,18 @@
-% PDNSSEC(1) PowerDNS DNSSEC command and control
+% PDNSUTIL(1) PowerDNS DNSSEC command and control
 % Matthijs Möhlmann <matthijs@cacholong.nl>
 % November 2011
 
 # NAME
-pdnssec - PowerDNS dnssec command and control
+pdnsutil - PowerDNS dnssec command and control
 
 # SYNOPSIS
-pdnssec [OPTION]... *COMMAND*
+pdnsutil [OPTION]... *COMMAND*
 
 # DESCRIPTION
-**pdnssec** is a powerful command that is the operator-friendly gateway into
-PowerDNSSEC configuration. Behind the scenes, **pdnssec** manipulates a PowerDNS
-backend database, which also means that for many databases, **pdnssec** can be
-run remotely, and can configure key material on different servers.
+**pdnsutil** (formerly pdnssec) is a powerful command that is the operator-friendly
+gateway into DNSSEC and zone management for PowerDNS. Behind the scenes, **pdnsutil**
+manipulates a PowerDNS backend database, which also means that for many databases,
+**pdnsutil** can be run remotely, and can configure key material on different servers.
 
 # OPTIONS
 -h | -help
@@ -98,7 +98,7 @@ set-nsec3 *ZONE* '*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*' [**narrow**]
      Setting **narrow** will make PowerDNS send out "white lies" about the next
      secure record. Instead of looking it up in the database, it will send out
      the hash + 1 as the next secure record. <br><br>
-     A sample commandline is: "pdnssec set-nsec3 powerdnssec.org '1 1 1 ab' narrow".<br><br>
+     A sample commandline is: "pdnsutil set-nsec3 powerdnssec.org '1 1 1 ab' narrow".<br><br>
      **WARNING**: If running in RSASHA1 mode (algorithm 5 or 7), switching from
      NSEC to NSEC3 will require a DS update in the parent zone.
 
@@ -185,7 +185,7 @@ rectify-zone *ZONE*
 
 secure-zone *ZONE*
 :    Configures a zone called *ZONE* with reasonable DNSSEC settings. You should
-     manually run 'pdnssec rectify-zone' afterwards.
+     manually run 'pdnsutil rectify-zone' afterwards.
 
 set-meta *ZONE* *ATTRIBUTE* [*VALUE*]
 :    Set domainmetadata *ATTRIBUTE* for *ZONE* to *VALUE*. An empty value clears it.

@@ -12,8 +12,8 @@ If a DNSSEC configuration is found for a domain, the PowerDNS daemon will provid
 As an example, securing an existing zone can be as simple as:
 
 ```
-$ pdnssec secure-zone powerdnssec.org
-$ pdnssec rectify-zone powerdnssec.org
+$ pdnsutil secure-zone powerdnssec.org
+$ pdnsutil rectify-zone powerdnssec.org
 ```
 
 Alternatively, PowerDNS can serve pre-signed zones, without knowledge of private keys.
@@ -88,14 +88,14 @@ As a special feature, PowerDNSSEC can operate as a signing server which operates
 
 In this way, if keying material is available for an unsigned zone that is retrieved from a master server, this keying material will be used when serving data from this zone.
 
-As part of the zone retrieval, the equivalent of 'pdnssec rectify-zone' is run to make sure that all DNSSEC-related fields are set correctly.
+As part of the zone retrieval, the equivalent of 'pdnsutil rectify-zone' is run to make sure that all DNSSEC-related fields are set correctly.
 
 ## PowerDNSSEC BIND-mode operation
 Starting with PowerDNS 3.1, the bindbackend can manage keys in an SQLite3 database without launching a separate gsqlite3 backend.
 
-To use this mode, add "bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3" to pdns.conf, and run "pdnssec create-bind-db /var/db/bind-dnssec-db.sqlite3". Then, restart PowerDNS.
+To use this mode, add "bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3" to pdns.conf, and run "pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3". Then, restart PowerDNS.
 
-After this, you can use "pdnssec secure-zone" and all other pdnssec commands on your BIND zones without trouble.
+After this, you can use "pdnsutil secure-zone" and all other pdnsutil commands on your BIND zones without trouble.
 
 ## PowerDNSSEC hybrid BIND-mode operation
 **Warning**: This mode is only supported in 3.0, 3.0.1 and 3.4.0 and up! In 3.1 to 3.3.1, the bindbackend always did its own key storage. In 3.4.0 and up hybrid bind mode operation is optional and enabled with the bindbackend `hybrid` config option.
@@ -113,7 +113,7 @@ To benefit from this mode, include at least one database-based backend in the 'l
 ## Rules for filling out fields in database backends
 **Note**: The BIND Backend automates all the steps outlined below, and does not need 'manual' help
 
-In PowerDNS 3.0 and up, two additional fields are important: 'auth' and 'ordername'. These fields are set correctly on an incoming zone transfer, and also by running `pdnssec rectify-zone`. zone2sql with the --dnssec flag aims to do this too but there are minor bugs in there, so please run `pdnssec rectify-zone` after `zone2sql`.
+In PowerDNS 3.0 and up, two additional fields are important: 'auth' and 'ordername'. These fields are set correctly on an incoming zone transfer, and also by running `pdnsutil rectify-zone`. zone2sql with the --dnssec flag aims to do this too but there are minor bugs in there, so please run `pdnsutil rectify-zone` after `zone2sql`.
 
 The 'auth' field should be set to '1' for data for which the zone itself is authoritative, which includes the SOA record and its own NS records.
 
@@ -123,7 +123,7 @@ The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode. W
 
 In 'NSEC' mode, it should contain the *relative* part of a domain name, in reverse order, with dots replaced by spaces. So 'www.uk.powerdnssec.org' in the 'powerdnssec.org' zone should have 'uk www' as its ordername.
 
-In 'NSEC3' non-narrow mode, the ordername should contain a lowercase base32hex encoded representation of the salted & iterated hash of the full record name. **pdnssec hash-zone-record zone record** can be used to calculate this hash.
+In 'NSEC3' non-narrow mode, the ordername should contain a lowercase base32hex encoded representation of the salted & iterated hash of the full record name. **pdnsutil hash-zone-record zone record** can be used to calculate this hash.
 
 In addition, from 3.2 and up, PowerDNS fully supports empty non-terminals. If you have a zone example.com, and a host a.b.c.example.com in it, rectify-zone (and the AXFR client code) will insert b.c.example.com and c.example.com in the records table with type NULL (SQL NULL, not 'NULL'). Having these entries provides several benefits. We no longer reply NXDOMAIN for these shorter names (this was an RFC violation but not one that caused trouble). But more importantly, to do NSEC3 correctly, we need to be able to prove existence of these shorter names. The type=NULL records entry gives us a place to store the NSEC3 hash of these names.
 
@@ -137,15 +137,15 @@ This chapter discusses various migration strategies, from existing PowerDNS setu
 ## From an existing PowerDNS installation
 To migrate an existing database-backed PowerDNS installation, a few changes must be made to the database schema. First, the records table gains two new fields: 'auth' and 'ordername'. Some data in a zone, like glue records, should not be signed, and this is signified by setting 'auth' to 0.
 
-**Warning**: Once the database schema has been updated, and the relevant `gsql-dnssec` switch has been set, stricter rules apply for filling out the database! The short version is: run `pdnssec rectify-all-zones`, even those not secured with DNSSEC!
+**Warning**: Once the database schema has been updated, and the relevant `gsql-dnssec` switch has been set, stricter rules apply for filling out the database! The short version is: run `pdnsutil rectify-all-zones`, even those not secured with DNSSEC!
 
 Additionally, NSEC and NSEC3 in non-narrow mode require ordering data in order to perform (hashed) denial of existence. The 'ordername' field is used for this purpose.
 
 Finally, two new tables are needed. DNSSEC keying material is stored in the 'cryptokeys' table (in a portable standard format). Domain metadata is stored in the 'domainmetadata' table. This includes NSEC3 settings.
 
-Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or [the PowerDNSSEC wiki](http://wiki.powerdns.com/trac/wiki/PDNSSEC) for the update statements), the `pdnssec` tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
+Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or [the PowerDNSSEC wiki](http://wiki.powerdns.com/trac/wiki/PDNSUTIL) for the update statements), the `pdnsutil` tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
 
-In short, `pdnssec secure-zone powerdnssec.org ; pdnssec rectify-zone powerdnssec.org` will deliver a correctly NSEC signed zone.
+In short, `pdnsutil secure-zone powerdnssec.org ; pdnsutil rectify-zone powerdnssec.org` will deliver a correctly NSEC signed zone.
 
 In addition, so will the [`zone2sql`](migration.md#zone2sql) import tool when run with the `--dnssec` flag.
 
@@ -156,12 +156,12 @@ TBD, see [Migration](migration.md).
 ## From existing DNSSEC non-PowerDNS setups, pre-signed
 Industry standard signed zones can be served natively by PowerDNS, without changes. In such cases, signing happens externally to PowerDNS, possibly via OpenDNSSEC, ldns-sign or dnssec-sign.
 
-PowerDNS needs to know if a zone should receive DNSSEC processing. To configure, run `pdnssec set-presigned zone`.
+PowerDNS needs to know if a zone should receive DNSSEC processing. To configure, run `pdnsutil set-presigned zone`.
 
-**Warning** Right now, you will also need to configure NSEC(3) settings for pre-signed zones using `pdnssec set-nsec3`. Default is NSEC, in which case no further configuration is necessary.
+**Warning** Right now, you will also need to configure NSEC(3) settings for pre-signed zones using `pdnsutil set-nsec3`. Default is NSEC, in which case no further configuration is necessary.
 
 ## From existing DNSSEC non-PowerDNS setups, live signing
-The `pdnssec` tool features the option to import zone keys in the industry standard private key format, version 1.2. To import an existing KSK, use `pdnssec import-zone-key zonename filename KSK`, replace KSK by ZSK for a Zone Signing Key.
+The `pdnsutil` tool features the option to import zone keys in the industry standard private key format, version 1.2. To import an existing KSK, use `pdnsutil import-zone-key zonename filename KSK`, replace KSK by ZSK for a Zone Signing Key.
 
 If all keys are imported using this tool, a zone will serve mostly identical records to before, with the important change that the RRSIG inception dates will be different.
 
@@ -178,7 +178,7 @@ As elucidated above, there are several ways in which DNSSEC can deny the existen
 
 In order to facilitate interoperability with existing technologies, PowerDNSSEC keys can be imported and exported in industry standard formats.
 
-Keys and hashes are configured using the 'pdnssec' tool, which is described next.
+Keys and hashes are configured using the 'pdnsutil' tool, which is described next.
 
 ## (Hashed) Denial of Existence
 
@@ -201,17 +201,17 @@ Precisely speaking, the time period used is always from the start of the previou
 
 **Note**: Why Thursday? POSIX-based operating systems count the time since GMT midnight January 1st of 1970, which was a Thursday. PowerDNS inception/expiration times are generated based on an integral number of weeks having passed since the start of the 'epoch'.
 
-# `pdnssec`
-`pdnssec` is a powerful command that is the operator-friendly gateway into PowerDNSSEC configuration. Behind the scenes, `pdnssec` manipulates a PowerDNS backend database, which also means that for many databases, `pdnssec` can be run remotely, and can configure key material on different servers.
+# `pdnsutil`
+`pdnsutil` (previously called `pdnssec`) is a powerful command that is the operator-friendly gateway into PowerDNSSEC configuration. Behind the scenes, `pdnsutil` manipulates a PowerDNS backend database, which also means that for many databases, `pdnsutil` can be run remotely, and can configure key material on different servers.
 
-For a list of available commands, see the [manpage](../manpages/pdnssec.1.md).
+For a list of available commands, see the [manpage](../manpages/pdnsutil.1.md).
 
 # DNSSEC advice & precautions
 DNSSEC is a major change in the way DNS works. Furthermore, there is a bewildering array of settings that can be configured.
 
 It is well possible to configure DNSSEC in such a way that your domain will not operate reliably, or even, at all.
 
-We advise operators to stick to the keying defaults of `pdnssec secure-zone`: RSASHA256 (algorithm 8), 1 Key Signing Key of 2048 bits and 1 active Zone Signing Key of 1024 bits.
+We advise operators to stick to the keying defaults of `pdnsutil secure-zone`: RSASHA256 (algorithm 8), 1 Key Signing Key of 2048 bits and 1 active Zone Signing Key of 1024 bits.
 
 While the 'GOST' and 'ECDSA' algorithms are better choices in theory, not many DNSSEC resolvers can validate answers signed with such keys. Much the same goes for RSASHA512, except that it does not offer better performance either.
 
@@ -240,44 +240,44 @@ In addition, the larger your DNS answers, the more critical the above becomes. I
 In this chapter various DNSSEC transitions are discussed, and how to execute them within PowerDNSSEC.
 
 ## Publishing a DS
-To publish a DS to a parent zone, utilize 'pdnssec show-zone' and take the DS from its output, and transfer it securely to your parent zone.
+To publish a DS to a parent zone, utilize 'pdnsutil show-zone' and take the DS from its output, and transfer it securely to your parent zone.
 
 ## ZSK rollover
 ```
-$ pdnssec activate-zone-key ZONE next-key-id
-$ pdnssec deactivate-zone-key ZONE prev-key-id
-$ pdnssec remove-zone-key ZONE prev-key-id
+$ pdnsutil activate-zone-key ZONE next-key-id
+$ pdnsutil deactivate-zone-key ZONE prev-key-id
+$ pdnsutil remove-zone-key ZONE prev-key-id
 ```
 
 ## KSK rollover
 ```
-pdnssec add-zone-key ZONE ksk
-pdnssec show-zone ZONE
+pdnsutil add-zone-key ZONE ksk
+pdnsutil show-zone ZONE
 ```
 
 Communicate duplicate DS
 
 ```
-pdnssec activate-zone-key ZONE next-key-id
-pdnssec deactivate-zone-key ZONE prev-key-id
-pdnssec remove-zone-key ZONE prev-key-id
+pdnsutil activate-zone-key ZONE next-key-id
+pdnsutil deactivate-zone-key ZONE prev-key-id
+pdnsutil remove-zone-key ZONE prev-key-id
 ```
 
 ## Going insecure
-`pdnssec disable-dnssec ZONE`
+`pdnsutil disable-dnssec ZONE`
 
 ## NSEC(3) change
 This section describes how to change NSEC(3) parameters when they are already set.
 
 **Warning**: The following instructions might not be correct or complete!
 ```
-pdnssec set-nsec3 ZONE 'parameters'
-pdnssec show-zone ZONE
+pdnsutil set-nsec3 ZONE 'parameters'
+pdnsutil show-zone ZONE
 ```
 
 Communicate duplicate DS.
 
-For further details, please see [the `pdnssec`](#pdnssec) documentation.
+For further details, please see [the `pdnsutil`](#pdnsutil) documentation.
 
 # PKCS\#11 support
 **Note**: This feature is experimental, and not ready for production. Use at your own risk!
@@ -319,13 +319,13 @@ Instructions on how to setup SoftHSM to work with the feature after compilation 
 -   Assign the keys using (note that token label is not necessarely same as object label, see p11-kit -l)
 
     ```
-    pdnssec hsm assign zone rsasha256 ksk|zsk softhsm token-label pin zone-ksk|zsk
+    pdnsutil hsm assign zone rsasha256 ksk|zsk softhsm token-label pin zone-ksk|zsk
     ```
 
 -   Verify that everything worked, you should see valid data there
 
     ```
-    pdnssec show-zone zone
+    pdnsutil show-zone zone
     ```
 
 -   SoftHSM signatures are fast enough to be used in live environment.
@@ -390,13 +390,13 @@ Instructions on how to use CryptAS [`Athena IDProtect Key USB Token V2J`](http:/
 -   Assign the keys using
 
     ```
-    pdnssec hsm assign zone rsasha256 ksk|zsk athena IDProtect#0A50123456789 pin zone-ksk|zsk
+    pdnsutil hsm assign zone rsasha256 ksk|zsk athena IDProtect#0A50123456789 pin zone-ksk|zsk
     ```
 
 -   Verify that everything worked, you should see valid data there.
 
     ```
-    pdnssec show-zone zone
+    pdnsutil show-zone zone
     ```
 
 -   Note that the physical token is pretty slow, so you have to use it as hidden master. It has been observed to produce about 1.5signatures/second.

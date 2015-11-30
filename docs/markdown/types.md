@@ -27,10 +27,10 @@ Since 4.0.0. The CDS ([Child DS](https://tools.ietf.org/html/rfc7344#section-3.1
 The CNAME record specifies the canonical name of a record. It is stored plainly. Like all other records, it is not terminated by a dot. A sample might be 'webserver-01.yourcompany.com'.
 
 ## DNSKEY
-Since 2.9.21. The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnssec`](authoritative/dnssec.md#pdnssec "'pdnssec' for PowerDNSSEC command & control").
+Since 2.9.21. The DNSKEY DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
 
 ## DS
-Since 2.9.21, The DS DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnssec`](authoritative/dnssec.md#pdnssec "'pdnssec' for PowerDNSSEC command & control").
+Since 2.9.21, The DS DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
 
 ## HINFO
 Hardware Info record, used to specify CPU and operating system. Stored with a single space separating these two, example: 'i386 Linux'.
@@ -57,7 +57,7 @@ The fields are: order, preference, flags, service, regex, replacement. Note that
 Nameserver record. Specifies nameservers for a domain. Stored plainly: 'ns1.powerdns.com', as always without a terminating dot.
 
 ## NSEC
-Since 2.9.21. The NSEC DNSSEC record type is fully supported, as described in [RFC 3757](http://tools.ietf.org/html/rfc3757). Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnssec`](authoritative/dnssec.md#pdnssec "'pdnssec' for PowerDNSSEC command & control").
+Since 2.9.21. The NSEC DNSSEC record type is fully supported, as described in [RFC 3757](http://tools.ietf.org/html/rfc3757). Before 3.0 PowerDNS didn't do any DNSSEC processing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
 
 ## OPENPGPKEY
 Since 3.4.7. The OPENPGPKEY records, specified in [RFC TBD](https://tools.ietf.org/html/draft-ietf-dane-openpgpkey-06), are used to bind OpenPGP certificates to email addresses.
@@ -69,7 +69,7 @@ Reverse pointer, used to specify the host name belonging to an IP or IPv6 addres
 Responsible Person record, as described in [RFC 1183](http://tools.ietf.org/html/rfc1183). Stored with a single space between the mailbox name and the more-information pointer. Example 'peter.powerdns.com peter.people.powerdns.com', to indicate that `peter@powerdns.com` is responsible and that more information about peter is available by querying the TXT record of peter.people.powerdns.com.
 
 ## RRSIG
-Since 2.9.21. The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [pdnssec](authoritative/dnssec.md#pdnssec).
+Since 2.9.21. The RRSIG DNSSEC record type is fully supported, as described in RFC 3757. Before 3.0 PowerDNS didn't do any DNSSEC prcessing, since 3.0 PowerDNS is able to fully process DNSSEC. This can be done with [pdnsutil](authoritative/dnssec.md#pdnsutil).
 
 ## SOA
 The Start of Authority record is one of the most complex available. It specifies a lot about a domain: the name of the master nameserver ('the primary'), the hostmaster and a set of numbers indicating how the data in this domain expires and how often it needs to be checked. Further more, it contains a serial number which should rise on each change of the domain.
