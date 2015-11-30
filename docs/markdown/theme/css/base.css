@@ -56,7 +56,7 @@ div.source-links {
 
 /* First level of nav */
 .bs-sidenav {
-    margin-top: 30px;
+    margin-top: 45px;
     margin-bottom: 30px;
     padding-top:    10px;
     padding-bottom: 10px;
@@ -109,8 +109,8 @@ div.source-links {
     }
     .bs-sidebar.affix {
         position: fixed; /* Undo the static from mobile first approach */
-        top: 60px;
-        height: 90%;
+        top: 80px;
+        height: 80%;
     }
     .bs-sidebar.affix-bottom {
         position: absolute; /* Undo the static from mobile first approach */
@@ -141,4 +141,11 @@ div.source-links {
 .footer-bar > li > a {
   padding-top: 5px;
   padding-bottom: 5px;
+}
+
+.version-warning {
+  font-size: 20px;
+  font-style: bold;
+  text-align: center;
+  background-color: #FF0000;
 }

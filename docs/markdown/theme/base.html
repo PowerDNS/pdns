@@ -2,6 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
+        <meta name="robots" content="noindex,nofollow">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {% if page_description %}<meta name="description" content="{{ page_description }}">{% endif %}
@@ -42,7 +43,7 @@
 
         {% include "nav.html" %}
 
-        <div class="container">
+        <div class="container the-content">
             <div class="col-md-3">{% include "toc.html" %}</div>
             <div class="col-md-9" role="main">{% include "content.html" %}</div>
         </div>
