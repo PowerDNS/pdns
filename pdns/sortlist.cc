@@ -26,7 +26,7 @@ void SortList::addEntry(const Netmask& formask, const Netmask& valmask, int orde
     ++order;
   }
   //  cout<<"Adding for netmask "<<formask.toString()<<" the order instruction that "<<valmask.toString()<<" is order "<<order<<endl;
-  d_sortlist[formask].d_orders[valmask]=order;
+  d_sortlist.insert(formask).second.d_orders.insert(valmask).second=order;
 }
 
 std::unique_ptr<SortListOrderCmp> SortList::getOrderCmp(const ComboAddress& who)
@@ -45,9 +45,9 @@ bool SortListOrderCmp::operator()(const ComboAddress& a, const ComboAddress& b) 
   int bOrder=aOrder;
 
   if(d_slo.d_orders.match(a))
-    aOrder = d_slo.d_orders[a];
+    aOrder = d_slo.d_orders.lookup(a)->second;
   if(d_slo.d_orders.match(b))
-    bOrder = d_slo.d_orders[b];
+    bOrder = d_slo.d_orders.lookup(b)->second;
 
   return aOrder < bOrder;
 }
