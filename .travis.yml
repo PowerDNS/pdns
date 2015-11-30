@@ -11,6 +11,9 @@ before_script:
   ### setup travis environment ###
   - sudo sysctl net.ipv6.conf.lo.disable_ipv6=0
   - export POSIXLY_CORRECT=1
+  - export CFLAGS=-O0
+  - export CXXFLAGS=-O0
+  - export OPTFLAGS=-O0
   - sudo apt-get -qq update
 
 
@@ -146,7 +149,7 @@ script:
   - ./bootstrap
   # Build without --enable-botan1.10 option, Botan/SoftHSM conflict #2496
   - source $HOME/.venv/bin/activate
-  - ./configure
+  - CFLAGS='-O1' CXXFLAGS='-O1' ./configure
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns'
     --with-modules=''
     --with-sqlite3
