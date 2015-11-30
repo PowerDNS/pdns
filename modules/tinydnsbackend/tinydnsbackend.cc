@@ -281,7 +281,7 @@ bool TinyDNSBackend::get(DNSResourceRecord &rr)
 
         DNSRecordContent *drc = DNSRecordContent::mastermake(dr, pr);
         rr.content = drc->getZoneRepresentation();
-        cerr<<"CONTENT: "<<rr.content<<endl;
+        DLOG(cerr<<"CONTENT: "<<rr.content<<endl);
         delete drc;
       }
       catch (...) {
