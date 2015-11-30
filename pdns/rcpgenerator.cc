@@ -510,10 +510,7 @@ void RecordTextWriter::xfrName(const DNSName& val, bool, bool noDot)
     d_string.append(1,' ');
   
   if(d_nodot) {
-    if(val.isRoot())
-      d_string+=".";
-    else
-      d_string+=val.toStringNoDot();
+    d_string+=val.toStringRootDot();
   }
   else
   {
