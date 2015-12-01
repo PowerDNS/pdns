@@ -64,11 +64,9 @@ DNSFilterEngine::Policy DNSFilterEngine::getQueryPolicy(const DNSName& qname, co
       return pol;
     }
     
-    for(const auto& qa : z.qpolAddr) {
-      if(qa.first.match(ca)) {
-	//	cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
-	return qa.second;
-      }
+    if(auto fnd=z.qpolAddr.lookup(ca)) {
+      //	cerr<<"Had a hit on the IP address ("<<ca.toString()<<") of the client"<<endl;
+      return fnd->second;
     }
   }
 
@@ -90,12 +88,8 @@ DNSFilterEngine::Policy DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& 
       continue;
 
     for(const auto& z : d_zones) {
-      for(const auto& qa : z.postpolAddr) {
-	if(qa.first.match(ca)) {
-	  //	  cerr<<"Had a hit on IP address in answer"<<endl;
-	  return qa.second;
-	}
-      }
+      if(auto fnd=z.postpolAddr.lookup(ca))
+	return fnd->second;
     }
   }
   return Policy{PolicyKind::NoAction};
@@ -105,19 +99,18 @@ void DNSFilterEngine::assureZones(int zone)
 {
   if((int)d_zones.size() <= zone)
     d_zones.resize(zone+1);
-
 }
 
 void DNSFilterEngine::addClientTrigger(const Netmask& nm, Policy pol, int zone)
 {
   assureZones(zone);
-  d_zones[zone].qpolAddr.push_back({nm,pol});
+  d_zones[zone].qpolAddr.insert(nm).second=pol;
 }
 
 void DNSFilterEngine::addResponseTrigger(const Netmask& nm, Policy pol, int zone)
 {
   assureZones(zone);
-  d_zones[zone].postpolAddr.push_back({nm,pol});
+  d_zones[zone].postpolAddr.insert(nm).second=pol;
 }
 
 void DNSFilterEngine::addQNameTrigger(const DNSName& n, Policy pol, int zone)
@@ -137,7 +130,7 @@ bool DNSFilterEngine::rmClientTrigger(const Netmask& nm, Policy pol, int zone)
   assureZones(zone);
 
   auto& qpols = d_zones[zone].qpolAddr;
-  qpols.erase(remove(qpols.begin(), qpols.end(),pair<Netmask,Policy>(nm,pol)), qpols.end());
+  qpols.erase(nm);
   return true;
 }
 
@@ -145,7 +138,7 @@ bool DNSFilterEngine::rmResponseTrigger(const Netmask& nm, Policy pol, int zone)
 {
   assureZones(zone);
   auto& postpols = d_zones[zone].postpolAddr;
-  postpols.erase(remove(postpols.begin(), postpols.end(),pair<Netmask,Policy>(nm,pol)), postpols.end());
+  postpols.erase(nm);  
   return true;
 }
 

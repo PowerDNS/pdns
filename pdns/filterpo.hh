@@ -34,7 +34,6 @@
    Verbatim domain names
    Wildcard versions (*.domain.com does NOT match domain.com)
    Netmasks (IPv4 and IPv6)
-
    Finally, triggers are grouped in different zones. The "first" zone that has a match
    is consulted. Then within that zone, rules again have precedences. 
 */
@@ -72,13 +71,16 @@ public:
   Policy getProcessingPolicy(const DNSName& qname) const;
   Policy getPostPolicy(const vector<DNSRecord>& records) const;
 
+  size_t size() {
+    return d_zones.size();
+  }
 private:
   void assureZones(int zone);
   struct Zone {
     std::map<DNSName, Policy> qpolName;
-    std::vector<pair<Netmask, Policy>> qpolAddr;
+    NetmaskTree<Policy> qpolAddr;
     std::map<DNSName, Policy> propolName;
-    std::vector<pair<Netmask, Policy>> postpolAddr;
+    NetmaskTree<Policy> postpolAddr;
   };
   vector<Zone> d_zones;
 
