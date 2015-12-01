@@ -98,7 +98,8 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   if(str.empty())
     return 0;
 
-  unsigned int val=atoi(str.c_str());
+  unsigned int val = pdns_strtoui(str.c_str(), NULL, 10);
+
   char lc=toupper(str[str.length()-1]);
   if(!isdigit(lc))
     switch(lc) {
