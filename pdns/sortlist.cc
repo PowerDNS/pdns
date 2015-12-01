@@ -29,7 +29,7 @@ void SortList::addEntry(const Netmask& formask, const Netmask& valmask, int orde
   d_sortlist.insert(formask).second.d_orders.insert(valmask).second=order;
 }
 
-std::unique_ptr<SortListOrderCmp> SortList::getOrderCmp(const ComboAddress& who)
+std::unique_ptr<SortListOrderCmp> SortList::getOrderCmp(const ComboAddress& who) const
 {
   if(!d_sortlist.match(who)) {
     return std::unique_ptr<SortListOrderCmp>();

@@ -21,7 +21,7 @@ public:
   void clear();
   void addEntry(const Netmask& covers, const Netmask& answermask, int order=-1);
   int getMaxOrder(const Netmask& formask) const;
-  std::unique_ptr<SortListOrderCmp> getOrderCmp(const ComboAddress& who);
+  std::unique_ptr<SortListOrderCmp> getOrderCmp(const ComboAddress& who) const;
 private:
   
   NetmaskTree<SortListOrder> d_sortlist;
