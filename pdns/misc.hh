@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <regex.h>
 #include <limits.h>
+#include <type_traits>
 #include <boost/algorithm/string.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -651,11 +652,19 @@ T valueOrEmpty(const P val) {
   return T(val);
 }
 
+
 // I'm not very OCD, but I appreciate loglines like "processing 1 delta", "processing 2 deltas" :-)
-template<typename C> const char* addS(const C& c)
+template <typename Integer>
+const char* addS(Integer siz, typename std::enable_if<std::is_integral<Integer>::value>::type*P=0)
 {
-  auto siz = c.size();
   if(!siz || siz > 1)
     return "s";
   else return "";
 }
+
+template<typename C>
+const char* addS(const C& c, typename std::enable_if<std::is_class<C>::value>::type*P=0)
+{
+  return addS(c.size());
+}
+
