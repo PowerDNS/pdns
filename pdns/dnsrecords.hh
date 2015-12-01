@@ -37,10 +37,10 @@
   static void unreport(void);                                                                    \
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);                          \
   static DNSRecordContent* make(const string& zonedata);                                         \
-  string getZoneRepresentation() const override;                                                 \
+  string getZoneRepresentation(bool noDot=false) const override;                                 \
   void toPacket(DNSPacketWriter& pw) override;                                                   \
   uint16_t getType() const override { return QType::RNAME; }                                   \
-  template<class Convertor> void xfrPacket(Convertor& conv);
+  template<class Convertor> void xfrPacket(Convertor& conv, bool noDot=false);
 
 class NAPTRRecordContent : public DNSRecordContent
 {
@@ -469,7 +469,7 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
   uint16_t getType() const override
   {
@@ -490,7 +490,7 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
   uint8_t d_algorithm, d_flags;
@@ -521,7 +521,7 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
   uint16_t getType() const override
@@ -547,7 +547,7 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
   uint8_t d_version, d_size, d_horizpre, d_vertpre;
@@ -571,7 +571,7 @@ public:
 
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& content);
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
 
   uint32_t d_ip;
@@ -586,7 +586,7 @@ public:
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
   uint16_t getType() const override { return QType::EUI48; }
 private:
@@ -601,7 +601,7 @@ public:
   static void report(void);
   static DNSRecordContent* make(const DNSRecord &dr, PacketReader& pr);
   static DNSRecordContent* make(const string& zone); // FIXME400: DNSName& zone?
-  string getZoneRepresentation() const override;
+  string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) override;
   uint16_t getType() const override { return QType::EUI64; }
 private:
@@ -674,10 +674,10 @@ RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)              
   }        											   \
 }                                                                                                  \
                                                                                                    \
-string RNAME##RecordContent::getZoneRepresentation() const                                         \
+string RNAME##RecordContent::getZoneRepresentation(bool noDot) const                               \
 {                                                                                                  \
   string ret;                                                                                      \
-  RecordTextWriter rtw(ret);                                                                       \
+  RecordTextWriter rtw(ret, noDot);                                                                       \
   const_cast<RNAME##RecordContent*>(this)->xfrPacket(rtw);                                         \
   return ret;                                                                                      \
 }                                                                                                  
@@ -686,7 +686,7 @@ string RNAME##RecordContent::getZoneRepresentation() const                      
 #define boilerplate_conv(RNAME, TYPE, CONV)                       \
 boilerplate(RNAME, TYPE)                                          \
 template<class Convertor>                                         \
-void RNAME##RecordContent::xfrPacket(Convertor& conv)             \
+void RNAME##RecordContent::xfrPacket(Convertor& conv, bool noDot) \
 {                                                                 \
   CONV;                                                           \
   if (conv.eof() == false) throw MOADNSException("All data was not consumed"); \

@@ -120,9 +120,9 @@ public:
   }
 
 
-  void xfrName(DNSName &label, bool compress=false)
+  void xfrName(DNSName &name, bool compress=false, bool noDot=false)
   {
-    label=getName();
+    name=getName();
   }
 
   void xfrText(string &text, bool multi=false)
@@ -165,7 +165,7 @@ public:
   static DNSRecordContent* mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
   static std::unique_ptr<DNSRecordContent> makeunique(uint16_t qtype, uint16_t qclass, const string& content);
 
-  virtual std::string getZoneRepresentation() const = 0;
+  virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
   virtual ~DNSRecordContent() {}
   virtual void toPacket(DNSPacketWriter& pw)=0;
   virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard

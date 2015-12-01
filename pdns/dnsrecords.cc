@@ -42,15 +42,18 @@ void DNSResourceRecord::setContent(const string &cont) {
   }
 }
 
-string DNSResourceRecord::getZoneRepresentation() const {
+string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
   ostringstream ret;
   switch(qtype.getCode()) {
     case QType::SRV:
     case QType::MX:
     case QType::CNAME:
     case QType::NS:
-      if (*(content.rbegin()) != '.')
-        ret<<content<<".";
+      if (*(content.rbegin()) != '.') {
+        ret<<content;
+        if(!noDot)
+          ret<<".";
+      }
       break;
     default:
       ret<<content;
@@ -407,7 +410,7 @@ void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
     string blob(d_eui48, d_eui48+6);
     pw.xfrBlob(blob); 
 }
-string EUI48RecordContent::getZoneRepresentation() const
+string EUI48RecordContent::getZoneRepresentation(bool noDot) const
 {
     char tmp[18]; 
     snprintf(tmp,18,"%02x-%02x-%02x-%02x-%02x-%02x", 
@@ -451,7 +454,7 @@ void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
     string blob(d_eui64, d_eui64+8);
     pw.xfrBlob(blob);
 }
-string EUI64RecordContent::getZoneRepresentation() const
+string EUI64RecordContent::getZoneRepresentation(bool noDot) const
 {
     char tmp[24]; 
     snprintf(tmp,24,"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",

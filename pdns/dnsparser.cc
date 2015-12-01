@@ -59,7 +59,7 @@ public:
     d_record.insert(d_record.end(), out.begin(), out.end());
   }
 
-  string getZoneRepresentation() const override
+  string getZoneRepresentation(bool noDot) const override
   {
     ostringstream str;
     str<<"\\# "<<(unsigned int)d_record.size()<<" ";

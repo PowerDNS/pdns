@@ -94,7 +94,7 @@ NSECRecordContent::DNSRecordContent* NSECRecordContent::make(const DNSRecord &dr
   return ret;
 }
 
-string NSECRecordContent::getZoneRepresentation() const
+string NSECRecordContent::getZoneRepresentation(bool noDot) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -227,7 +227,7 @@ NSEC3RecordContent::DNSRecordContent* NSEC3RecordContent::make(const DNSRecord &
   return ret;
 }
 
-string NSEC3RecordContent::getZoneRepresentation() const
+string NSEC3RecordContent::getZoneRepresentation(bool noDot) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -288,7 +288,7 @@ NSEC3PARAMRecordContent::DNSRecordContent* NSEC3PARAMRecordContent::make(const D
   return ret;
 }
 
-string NSEC3PARAMRecordContent::getZoneRepresentation() const
+string NSEC3PARAMRecordContent::getZoneRepresentation(bool noDot) const
 {
   string ret;
   RecordTextWriter rtw(ret);

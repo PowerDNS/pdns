@@ -41,6 +41,7 @@ public:
 
   std::string toString(const std::string& separator=".", const bool trailing=true) const;              //!< Our human-friendly, escaped, representation
   std::string toStringNoDot() const { return toString(".", false); }
+  std::string toStringRootDot() const { if(isRoot()) return "."; else return toString(".", false); }
   std::string toDNSString() const;           //!< Our representation in DNS native format
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
   void appendRawLabel(const char* start, unsigned int length); //!< Append this unescaped label
