@@ -124,9 +124,9 @@ public:
     name=getName();
   }
 
-  void xfrText(string &text, bool multi=false)
+  void xfrText(string &text, bool multi=false, bool lenField=true)
   {
-    text=getText(multi);
+    text=getText(multi, lenField);
   }
 
   void xfrBlob(string& blob);
@@ -141,7 +141,7 @@ public:
   void copyRecord(unsigned char* dest, uint16_t len);
 
   DNSName getName();
-  string getText(bool multi);
+  string getText(bool multi, bool lenField);
 
   uint16_t d_pos;
 

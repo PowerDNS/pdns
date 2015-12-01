@@ -333,7 +333,7 @@ void RecordTextWriter::xfrBase32HexBlob(const string& val)
 }
 
 
-void RecordTextReader::xfrText(string& val, bool multi)
+void RecordTextReader::xfrText(string& val, bool multi, bool lenField)
 {
   val.clear();
   val.reserve(d_end - d_pos);
@@ -547,7 +547,7 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   }
 }
 
-void RecordTextWriter::xfrText(const string& val, bool multi)
+void RecordTextWriter::xfrText(const string& val, bool multi, bool lenField)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
