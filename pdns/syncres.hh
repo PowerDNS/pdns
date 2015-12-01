@@ -24,8 +24,6 @@
 #include "iputils.hh"
 #include "filterpo.hh"
 
-extern DNSFilterEngine g_dfe;
-
 void primeHints(void);
 class RecursorLua;
 
@@ -658,8 +656,6 @@ int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<D
 template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool skipSelf=false);
 
 SyncRes::domainmap_t* parseAuthAndForwards();
-void loadRPZFiles();
-
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetCacheSize();
 uint64_t* pleaseGetNegCacheSize();

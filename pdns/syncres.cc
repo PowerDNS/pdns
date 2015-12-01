@@ -49,7 +49,7 @@
 #include "lock.hh"
 #include "ednssubnet.hh"
 #include "cachecleaner.hh"
-
+#include "rec-lua-conf.hh"
 __thread SyncRes::StaticStorage* t_sstorage;
 
 unsigned int SyncRes::s_maxnegttl;
@@ -956,7 +956,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	;
 
 	// XXX NEED TO HANDLE OTHER POLICY KINDS HERE!
-	if(g_dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction)
+	if(g_luaconfs.getLocal()->dfe.getProcessingPolicy(*tns).d_kind != DNSFilterEngine::PolicyKind::NoAction)
 	  throw ImmediateServFailException("Dropped because of policy");
 
         if(!isCanonical(*tns)) {

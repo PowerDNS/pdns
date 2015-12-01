@@ -4,10 +4,14 @@
 #endif
 
 #include <fstream>
+#include <thread>
 #include "namespaces.hh"
 #include "logger.hh"
 #include "rec-lua-conf.hh"
 #include "sortlist.hh"
+#include "filterpo.hh"
+#include "syncres.hh"
+#include "rpzloader.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
@@ -26,6 +30,17 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
 LuaConfigItems::LuaConfigItems()
 {
+}
+
+/* DID YOU READ THE STORY ABOVE? */
+
+template <typename C>
+typename C::value_type::second_type constGet(const C& c, const std::string& name)
+{
+  auto iter = c.find(name);
+  if(iter == c.end())
+    return 0;
+  return iter->second;
 }
 
 #ifndef HAVE_LUA
@@ -55,6 +70,81 @@ void loadRecursorLuaConfig(const std::string& fname)
                  {"1.2.3.4", "4.5.6.7"}
 		 {"1.2.3.4", {"4.5.6.7", "8.9.10.11"}}
   */
+
+  map<string,DNSFilterEngine::PolicyKind> pmap{
+    {"NoAction", DNSFilterEngine::PolicyKind::NoAction}, 
+    {"Drop", DNSFilterEngine::PolicyKind::Drop},
+    {"NXDOMAIN", DNSFilterEngine::PolicyKind::NXDOMAIN},
+    {"NODATA", DNSFilterEngine::PolicyKind::NODATA},
+    {"Truncate", DNSFilterEngine::PolicyKind::Truncate},
+    {"Custom", DNSFilterEngine::PolicyKind::Custom}
+  };
+  Lua.writeVariable("Policy", pmap);
+
+  Lua.writeFunction("rpzFile", [&lci](const string& fname, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
+      try {
+	boost::optional<DNSFilterEngine::Policy> defpol;
+	if(options) {
+	  auto& have = *options;
+	  if(have.count("defpol")) {
+	    cout<<"Set a default policy"<<endl;
+	    defpol=DNSFilterEngine::Policy();
+	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
+	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
+	      cout<<"Setting a custom field even!"<<endl;
+	      defpol->d_custom=
+		shared_ptr<DNSRecordContent>(
+					     DNSRecordContent::mastermake(QType::CNAME, 1, 
+									  boost::get<string>(constGet(have,"defcontent"))
+									  )
+					     );
+	    }
+	  }
+	    
+	}
+	loadRPZFromFile(fname, lci.dfe, defpol, 0);
+      }
+      catch(std::exception& e) {
+	theL()<<Logger::Error<<"Unable to load RPZ zone from '"<<fname<<"': "<<e.what()<<endl;
+      }
+    });
+
+
+  Lua.writeFunction("rpzMaster", [&lci](const string& master_, const string& zone_, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
+      try {
+	boost::optional<DNSFilterEngine::Policy> defpol;
+	if(options) {
+	  auto& have = *options;
+	  if(have.count("defpol")) {
+	    //	    cout<<"Set a default policy"<<endl;
+	    defpol=DNSFilterEngine::Policy();
+	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
+	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
+	      //	      cout<<"Setting a custom field even!"<<endl;
+	      defpol->d_custom=
+		shared_ptr<DNSRecordContent>(
+					     DNSRecordContent::mastermake(QType::CNAME, 1, 
+									  boost::get<string>(constGet(have,"defcontent"))
+									  )
+					     );
+	    }
+	  }
+	    
+	}
+	ComboAddress master(master_, 53);
+	DNSName zone(zone_);
+	auto sr=loadRPZFromServer(master,zone, lci.dfe, defpol, 0);
+	std::thread t(RPZIXFRTracker, master, zone, sr);
+	t.detach();
+      }
+      catch(std::exception& e) {
+	theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.what()<<endl;
+      }
+      catch(PDNSException& e) {
+	theL()<<Logger::Error<<"Unable to load RPZ zone '"<<zone_<<"' from '"<<master_<<"': "<<e.reason<<endl;
+      }
+
+    });
 
   typedef vector<pair<int,boost::variant<string, vector<pair<int, string> > > > > argvec_t;
   Lua.writeFunction("addSortList", 
@@ -87,8 +177,14 @@ void loadRecursorLuaConfig(const std::string& fname)
 			theL()<<Logger::Error<<"Error in addSortList: "<<e.what()<<endl;
 		      }
 		    });
-  Lua.executeCode(ifs);
-  g_luaconfs.setState(lci);
+  try {
+    Lua.executeCode(ifs);
+    g_luaconfs.setState(lci);
+  }
+  catch(std::exception& err) {
+    theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': "<<err.what()<<endl;
+  }
+
 }
 
 #endif

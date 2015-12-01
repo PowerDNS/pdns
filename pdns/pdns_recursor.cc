@@ -105,8 +105,6 @@ __thread shared_ptr<Regex>* t_traceRegex;
 NetmaskGroup g_ednssubnets;
 SuffixMatchNode g_ednsdomains;
 
-DNSFilterEngine g_dfe;
-
 RecursorControlChannel s_rcc; // only active in thread 0
 
 // for communicating with our threads
@@ -611,6 +609,8 @@ void startDoResolve(void *p)
     vector<DNSRecord> ret;
     vector<uint8_t> packet;
 
+    auto luaconfsLocal = g_luaconfs.getLocal();
+
     DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
 
     pw.getHeader()->aa=0;
@@ -672,7 +672,7 @@ void startDoResolve(void *p)
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
 
-    dfepol = g_dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote);
+    dfepol = luaconfsLocal->dfe.getQueryPolicy(dc->d_mdp.d_qname, dc->d_remote);
 
     switch(dfepol.d_kind) {
     case DNSFilterEngine::PolicyKind::NoAction:
@@ -721,7 +721,7 @@ void startDoResolve(void *p)
         res = RCode::ServFail;
       }
 
-      dfepol = g_dfe.getPostPolicy(ret); 
+      dfepol = luaconfsLocal->dfe.getPostPolicy(ret); 
       switch(dfepol.d_kind) {
       case DNSFilterEngine::PolicyKind::NoAction:
 	break;
@@ -750,6 +750,7 @@ void startDoResolve(void *p)
 	break;
 
       case DNSFilterEngine::PolicyKind::Custom:
+	ret.clear();
 	res=RCode::NoError;
 	spoofed.d_name=dc->d_mdp.d_qname;
 	spoofed.d_type=dfepol.d_custom->getType();
@@ -821,7 +822,7 @@ void startDoResolve(void *p)
 
       if(ret.size()) {
         orderAndShuffle(ret);
-	if(auto sl = g_luaconfs.getCopy().sortlist.getOrderCmp(dc->d_remote)) {
+	if(auto sl = luaconfsLocal->sortlist.getOrderCmp(dc->d_remote)) {
 	  sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
 	}
@@ -2164,6 +2165,8 @@ int serviceMain(int argc, char*argv[])
   seedRandom(::arg()["entropy-source"]);
   g_disthashseed=dns_random(0xffffffff);
 
+  loadRecursorLuaConfig(::arg()["lua-config-file"]);
+
   parseACLs();
   sortPublicSuffixList();
 
@@ -2274,8 +2277,6 @@ int serviceMain(int argc, char*argv[])
   s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
   if(!s_pidfname.empty())
     unlink(s_pidfname.c_str()); // remove possible old pid file
-
-  loadRPZFiles();
 
   if(::arg().mustDo("daemon")) {
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
@@ -2559,8 +2560,6 @@ int main(int argc, char **argv)
     ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses")="20";
     ::arg().set("single-socket", "If set, only use a single socket for outgoing queries")="off";
     ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ")="";
-    ::arg().set("rpz-files", "RPZ files to load in order, domain or domain=policy pairs separated by commas")="";
-    ::arg().set("rpz-masters", "RPZ master servers, address:name pairs separated by commas")="";
     ::arg().set("lua-config-file", "More powerful configuration options")="";
 
     ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs")="";
@@ -2610,8 +2609,6 @@ int main(int argc, char **argv)
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
     ::arg().parse(argc,argv);
-
-    loadRecursorLuaConfig(::arg()["lua-config-file"]);
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 

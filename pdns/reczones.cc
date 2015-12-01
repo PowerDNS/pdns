@@ -28,7 +28,7 @@
 #include "zoneparser-tng.hh"
 #include "logger.hh"
 #include "dnsrecords.hh"
-
+#include "rec-lua-conf.hh"
 #include <thread>
 #include "ixfr.hh"
 #include "rpzloader.hh"
@@ -316,7 +316,8 @@ string reloadAuthAndForwards()
   return "reloading failed, see log\n";
 }
 
-void ixfrTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent> oursr) 
+
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent> oursr) 
 {
   for(;;) {
     DNSRecord dr;
@@ -324,14 +325,14 @@ void ixfrTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOA
 
     sleep(oursr->d_st.refresh);
     
-
     L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<std::dynamic_pointer_cast<SOARecordContent>(dr.d_content)->d_st.serial<<endl;
 
     auto deltas = getIXFRDeltas(master, zone, dr);
     if(deltas.empty())
       continue;
-    L<<Logger::Info<<"Processing "<<deltas.size()<<" deltas for RPZ "<<zone<<endl;
+    L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zone<<endl;
 
+    auto luaconfsCopy = g_luaconfs.getCopy();
     int totremove=0, totadd=0;
     for(const auto& delta : deltas) {
       const auto& remove = delta.first;
@@ -345,11 +346,11 @@ void ixfrTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOA
 	    //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
 	  }
 	  else
-	    cerr<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
+	    L<<Logger::Error<<"GOT WRONG SOA SERIAL REMOVAL, SHOULD TRIGGER WHOLE RELOAD"<<endl;
 	}
 	else {
 	  L<<Logger::Info<<"Had removal of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, g_dfe, false, 0);
+	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, false, boost::optional<DNSFilterEngine::Policy>(), 0);
 	}
       }
 
@@ -362,36 +363,13 @@ void ixfrTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOA
 	}
 	else {
 	  L<<Logger::Info<<"Had addition of "<<rr.d_name<<endl;
-	  RPZRecordToPolicy(rr, g_dfe, true, 0);
+	  RPZRecordToPolicy(rr, luaconfsCopy.dfe, true, boost::optional<DNSFilterEngine::Policy>(), 0);
 	}
       }
     }
-    L<<Logger::Info<<"Had "<<totremove<<" RPZ removals, "<<totadd<<" additions for "<<zone<<" New serial: "<<oursr->d_st.serial<<endl;
+    L<<Logger::Info<<"Had "<<totremove<<" RPZ removal"<<addS(totremove)<<", "<<totadd<<" addition"<<addS(totadd)<<" for "<<zone<<" New serial: "<<oursr->d_st.serial<<endl;
+    g_luaconfs.setState(luaconfsCopy);
   }
-}
-
-
-void loadRPZFiles()
-{
-  vector<string> fnames;
-  stringtok(fnames, ::arg()["rpz-files"]," ,");
-  int count=0;
-  for(const auto& f : fnames) {
-    loadRPZFromFile(f, g_dfe, count++);
-  }
-
-  fnames.clear();
-  stringtok(fnames, ::arg()["rpz-masters"]," ,");
-
-  for(const auto& f : fnames) {
-    auto s = splitField(f, ':');
-    ComboAddress master(s.first, 53);
-    DNSName zone(s.second);
-    auto sr=loadRPZFromServer(master,zone, g_dfe, count++);
-    std::thread t(ixfrTracker, master, zone, sr);
-    t.detach();
-  }
-
 }
 
 SyncRes::domainmap_t* parseAuthAndForwards()

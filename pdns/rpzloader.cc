@@ -5,6 +5,7 @@
 #include "syncres.hh"
 #include "resolver.hh"
 #include "logger.hh"
+#include "rec-lua-conf.hh"
 
 static Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
@@ -14,7 +15,7 @@ static Netmask makeNetmaskFromRPZ(const DNSName& name)
   return Netmask(parts[4]+"."+parts[3]+"."+parts[2]+"."+parts[1]+"/"+parts[0]);
 }
 
-void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrRemove, int place)
+void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrRemove, boost::optional<DNSFilterEngine::Policy> defpol, int place)
 {
   static const DNSName drop("rpz-drop."), truncate("rpz-tcp-only."), noaction("rpz-passthru.");
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
@@ -24,7 +25,10 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
 
   if(dr.d_type == QType::CNAME) {
     auto target=std::dynamic_pointer_cast<CNAMERecordContent>(dr.d_content)->getTarget();
-    if(target.isRoot()) {
+    if(defpol) {
+      pol=*defpol;
+    }
+    else if(target.isRoot()) {
       // cerr<<"Wants NXDOMAIN for "<<dr.d_name<<": ";
       pol.d_kind = DNSFilterEngine::PolicyKind::NXDOMAIN;
     } else if(target==DNSName("*")) {
@@ -60,37 +64,37 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   if(dr.d_name.isPartOf(rpzNSDname)) {
     DNSName filt=dr.d_name.makeRelative(rpzNSDname);
     if(addOrRemove)
-      g_dfe.addNSTrigger(filt, pol);
+      target.addNSTrigger(filt, pol);
     else
-      g_dfe.rmNSTrigger(filt, pol);
+      target.rmNSTrigger(filt, pol);
   } else 	if(dr.d_name.isPartOf(rpzClientIP)) {
 
     auto nm=makeNetmaskFromRPZ(dr.d_name);
 
     if(addOrRemove)
-      g_dfe.addClientTrigger(nm, pol);
+      target.addClientTrigger(nm, pol);
     else
-      g_dfe.rmClientTrigger(nm, pol);
+      target.rmClientTrigger(nm, pol);
     
   } else 	if(dr.d_name.isPartOf(rpzIP)) {
     // cerr<<"Should apply answer content IP policy: "<<dr.d_name<<endl;
     auto nm=makeNetmaskFromRPZ(dr.d_name);
     if(addOrRemove)
-      g_dfe.addResponseTrigger(nm, pol);
+      target.addResponseTrigger(nm, pol);
     else
-      g_dfe.rmResponseTrigger(nm, pol);
+      target.rmResponseTrigger(nm, pol);
   } else if(dr.d_name.isPartOf(rpzNSIP)) {
     cerr<<"Should apply to nameserver IP address policy HAVE NOTHING HERE"<<endl;
 
   } else {
     if(addOrRemove)
-      g_dfe.addQNameTrigger(dr.d_name, pol);
+      target.addQNameTrigger(dr.d_name, pol);
     else
-      g_dfe.rmQNameTrigger(dr.d_name, pol);
+      target.rmQNameTrigger(dr.d_name, pol);
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, int place)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, int place)
 {
   L<<Logger::Warning<<"Loading RPZ zone '"<<zone<<"' from "<<master.toStringWithPort()<<endl;
   ComboAddress local("0.0.0.0");
@@ -111,7 +115,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
 	continue;
       }
 
-      RPZRecordToPolicy(dr, target, true, place);
+      RPZRecordToPolicy(dr, target, true, defpol, place);
       nrecords++;
     } 
     if(last != time(0)) {
@@ -123,7 +127,7 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   return sr;
 }
 
-int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, int place)
+int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, int place)
 {
   ZoneParserTNG zpt(fname);
   DNSResourceRecord drr;
@@ -142,7 +146,7 @@ int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, int place
       }
       else {
 	dr.d_name=dr.d_name.makeRelative(domain);
-	RPZRecordToPolicy(dr, target, true, place);
+	RPZRecordToPolicy(dr, target, true, defpol, place);
       }
     }
     catch(PDNSException& pe) {
