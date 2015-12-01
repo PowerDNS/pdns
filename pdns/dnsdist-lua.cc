@@ -514,7 +514,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return getDownstreamCandidates(g_dstates.getCopy(), pool);
     });
 
-  g_lua.writeFunction("getServer", [](int i) { return g_dstates.getCopy().at(i); });
+  g_lua.writeFunction("getServer", [client](int i) {
+      if (client)
+        return std::make_shared<DownstreamState>(ComboAddress());
+      return g_dstates.getCopy().at(i);
+    });
 
   g_lua.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
   g_lua.registerFunction<void(DownstreamState::*)(string)>("addPool", [](DownstreamState& s, string pool) { s.pools.insert(pool);});
