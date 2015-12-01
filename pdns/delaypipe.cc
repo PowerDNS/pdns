@@ -44,6 +44,8 @@ bool ObjectPipe<T>::read(T* t)
     unixDie("read");
   if(ret==0)
     return false;
+  if(ret != sizeof(ptr))
+    throw std::runtime_error("Partial read, should not happen");    
   *t=*ptr;
   delete ptr;
   return true;
@@ -66,6 +68,8 @@ int ObjectPipe<T>::readTimeout(T* t, double msec)
     unixDie("read");
   if(ret==0)
     return false;
+  if(ret != sizeof(ptr))
+    throw std::runtime_error("Partial read, should not happen 2");    
   *t=*ptr;
   delete ptr;
   return 1;
