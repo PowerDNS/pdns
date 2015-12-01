@@ -268,9 +268,18 @@ void* tcpClientThread(int pipefd)
           downstream_failures++;
           goto retry;
         }
-      
-        writen2WithTimeout(dsock, query, qlen, ds->tcpSendTimeout);
-      
+
+        try {
+          writen2WithTimeout(dsock, query, qlen, ds->tcpSendTimeout);
+        }
+        catch(const runtime_error& e) {
+          vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
+          close(dsock);
+          sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
+          downstream_failures++;
+          goto retry;
+        }
+
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->getName());
           close(dsock);
