@@ -39,7 +39,6 @@ case $context in
 			connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
 			$testsdir/zeromq-backend.rb &
 			echo $! > pdns-remotebackend.pid
-			sleep 20 # just a test
 			;;
 		unix)
 			connstr="unix:path=$testsdir/remote.socket"

@@ -11,7 +11,7 @@ case $context in
                 fi
 		set -e
                 testsdir=../modules/geoipbackend/regression-tests/
-		if test "$context" = "geoipbackend-nsec3-narrow"; then
+		if test "$context" = "geoip-nsec3-narrow"; then
                   narrow="narrow"
                   extracontexts="dnssec nsec3 narrow"
                   skipreasons="narrow nsec3 nodyndns"
