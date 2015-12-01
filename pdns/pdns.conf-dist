@@ -30,6 +30,21 @@
 # any-to-tcp=no
 
 #################################
+# api-key	REST API Static authentication key (required for API use)
+#
+# api-key=
+
+#################################
+# api-logfile	Filename of the log file for JSON parser
+#
+# api-logfile=/var/log/pdns.log
+
+#################################
+# api-readonly	If the JSON API should disallow data modification
+#
+# api-readonly=no
+
+#################################
 # cache-ttl	Seconds to store packets in the PacketCache
 #
 # cache-ttl=20
@@ -145,6 +160,16 @@
 # distributor-threads=3
 
 #################################
+# dname-processing	If we should support DNAME records
+#
+# dname-processing=no
+
+#################################
+# dnsupdate	Enable/Disable DNS update (RFC2136) support. Default is no.
+#
+# dnsupdate=no
+
+#################################
 # do-ipv6-additional-processing	Do AAAA additional processing
 #
 # do-ipv6-additional-processing=yes
@@ -158,36 +183,6 @@
 # entropy-source	If set, read entropy from this file
 #
 # entropy-source=/dev/urandom
-
-#################################
-# experimental-api-key	REST API Static authentication key (required for API use)
-#
-# experimental-api-key=
-
-#################################
-# experimental-api-readonly	If the JSON API should disallow data modification
-#
-# experimental-api-readonly=no
-
-#################################
-# experimental-dname-processing	If we should support DNAME records
-#
-# experimental-dname-processing=no
-
-#################################
-# experimental-dnsupdate	Enable/Disable DNS update (RFC2136) support. Default is no.
-#
-# experimental-dnsupdate=no
-
-#################################
-# experimental-json-interface	If the webserver should serve JSON data
-#
-# experimental-json-interface=no
-
-#################################
-# experimental-logfile	Filename of the log file for JSON parser
-#
-# experimental-logfile=/var/log/pdns.log
 
 #################################
 # experimental-lua-policy-script	Lua script for the policy engine
@@ -208,6 +203,11 @@
 # include-dir	Include *.conf files from this directory
 #
 # include-dir=
+
+#################################
+# json-interface	If the webserver should serve JSON data
+#
+# json-interface=no
 
 #################################
 # launch	Which backends to launch and order to query them in
