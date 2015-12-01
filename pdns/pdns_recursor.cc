@@ -2005,15 +2005,16 @@ static void checkOrFixFDS()
   unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads +25; // even healthier margin then before
 
   if(wantFDs > availFDs) {
-    if(getFilenumLimit(true) >= wantFDs) {
+    unsigned int hardlimit= getFilenumLimit(true);
+    if(hardlimit >= wantFDs) {
       setFilenumLimit(wantFDs);
       L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
-      int newval = getFilenumLimit(true) / g_numWorkerThreads;
-      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
+      int newval = (hardlimit - 25) / g_numWorkerThreads;
+      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<hardlimit<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
-      setFilenumLimit(getFilenumLimit(true));
+      setFilenumLimit(hardlimit);
     }
   }
 }
