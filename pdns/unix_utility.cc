@@ -80,8 +80,9 @@ int Utility::timed_connect( Utility::sock_t sock,
 
 void Utility::setBindAny(int af, sock_t sock)
 {
-  int one = 1;
+  const int one = 1;
 
+  (void) one; // avoids 'unused var' warning on systems that have none of the defines checked below
 #ifdef IP_FREEBIND
   if (setsockopt(sock, IPPROTO_IP, IP_FREEBIND, &one, sizeof(one)) < 0)
       theL()<<Logger::Warning<<"Warning: IP_FREEBIND setsockopt failed: "<<strerror(errno)<<endl;
