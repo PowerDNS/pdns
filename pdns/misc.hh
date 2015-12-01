@@ -650,3 +650,12 @@ T valueOrEmpty(const P val) {
   if (!val) return T{};
   return T(val);
 }
+
+// I'm not very OCD, but I appreciate loglines like "processing 1 delta", "processing 2 deltas" :-)
+template<typename C> const char* addS(const C& c)
+{
+  auto siz = c.size();
+  if(!siz || siz > 1)
+    return "s";
+  else return "";
+}
