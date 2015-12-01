@@ -694,7 +694,7 @@ void startDoResolve(void *p)
       res=RCode::NoError;
       spoofed.d_name=dc->d_mdp.d_qname;
       spoofed.d_type=dfepol.d_custom->getType();
-      spoofed.d_ttl = 1234;
+      spoofed.d_ttl = dfepol.d_ttl;
       spoofed.d_class = 1;
       spoofed.d_content = dfepol.d_custom;
       spoofed.d_place = DNSResourceRecord::ANSWER;
@@ -754,7 +754,7 @@ void startDoResolve(void *p)
 	res=RCode::NoError;
 	spoofed.d_name=dc->d_mdp.d_qname;
 	spoofed.d_type=dfepol.d_custom->getType();
-	spoofed.d_ttl = 1234;
+	spoofed.d_ttl = dfepol.d_ttl;
 	spoofed.d_class = 1;
 	spoofed.d_content = dfepol.d_custom;
 	spoofed.d_place = DNSResourceRecord::ANSWER;

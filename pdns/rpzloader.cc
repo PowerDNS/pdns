@@ -59,6 +59,9 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
     // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
   }
 
+  if(pol.d_ttl < 0)
+    pol.d_ttl = dr.d_ttl;
+
   // now to DO something with that
   
   if(dr.d_name.isPartOf(rpzNSDname)) {

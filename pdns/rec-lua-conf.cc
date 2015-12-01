@@ -98,6 +98,11 @@ void loadRecursorLuaConfig(const std::string& fname)
 									  boost::get<string>(constGet(have,"defcontent"))
 									  )
 					     );
+	 
+	      if(have.count("defttl"))
+		defpol->d_ttl = boost::get<int>(constGet(have, "defttl"));
+	      else
+		defpol->d_ttl = -1; // get it from the zone
 	    }
 	  }
 	    
@@ -127,6 +132,11 @@ void loadRecursorLuaConfig(const std::string& fname)
 									  boost::get<string>(constGet(have,"defcontent"))
 									  )
 					     );
+	      if(have.count("defttl"))
+		defpol->d_ttl = boost::get<int>(constGet(have, "defttl"));
+	      else
+		defpol->d_ttl = -1; // get it from the zone
+
 	    }
 	  }
 	    
