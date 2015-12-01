@@ -10,7 +10,7 @@ case $context in
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./  \
 			--no-shuffle --launch=opendbx \
 			--send-root-referral \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
+			--cache-ttl=$cachettl --dname-processing --no-config \
 			--opendbx-backend=sqlite3 --opendbx-host-read=./ --opendbx-host-write=./ \
 			--opendbx-database=pdns-opendbx.sqlite3 --module-dir=./modules &
 		skipreasons="nodnssec noent nodyndns nometa"

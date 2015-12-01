@@ -111,7 +111,7 @@ EOF
 
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=remote \
-			--cache-ttl=$cachettl --experimental-dname-processing --no-config \
+			--cache-ttl=$cachettl --dname-processing --no-config \
 			--send-root-referral --distributor-threads=1 \
 			--dnsupdate=yes \
 			--remote-connection-string="$connstr" $remote_add_param --module-dir=./modules &

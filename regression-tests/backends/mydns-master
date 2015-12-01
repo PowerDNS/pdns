@@ -25,7 +25,7 @@ __EOF__
 		$RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./ \
 			--config-dir=. --config-name=mydns \
 			--no-shuffle --master --send-root-referral \
-			--cache-ttl=0 --experimental-dname-processing \
+			--cache-ttl=0 --dname-processing \
 			--mydns-rr-active=no --mydns-soa-active=no --mydns-use-minimal-ttl=no &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr"
 		;;

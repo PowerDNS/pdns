@@ -243,6 +243,13 @@ Do not listen to TCP queries. Breaks RFC compliance.
 Number of Distributor (backend) threads to start per receiver thread. See
 ["Authoritative Server Performance"](performance.md).
 
+## `dname-processing`
+* Boolean
+* Default: no
+
+Synthesise CNAME records from DNAME records as required. This approximately
+doubles query load. **Do not combine with DNSSEC!**
+
 ## `dnsupdate`
 * Boolean
 * Default: no
@@ -274,13 +281,6 @@ Enables EDNS subnet processing, for backends that support it.
 * Default: /dev/urandom
 
 Entropy source file to use.
-
-## `experimental-dname-processing`
-* Boolean
-* Default: no
-
-Synthesise CNAME records from DNAME records as required. This approximately
-doubles query load. **Do not combine with DNSSEC!**
 
 ## `json-interface`
 * Boolean

@@ -75,7 +75,7 @@ void declareArguments()
   ::arg().setSwitch("api-readonly", "If the JSON API should disallow data modification")="no";
   ::arg().set("api-key", "REST API Static authentication key (required for API use)")="";
   ::arg().set("api-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
-  ::arg().setSwitch("experimental-dname-processing", "If we should support DNAME records")="no";
+  ::arg().setSwitch("dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
   ::arg().setCmd("version","Output version and compilation date");
