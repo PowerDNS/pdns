@@ -127,6 +127,7 @@ public:
     MAILB=253,
     MAILA=254,
     ANY=255,
+    URI=256,
     DLV=32769,
     ADDR=65400,
     ALIAS=65401
@@ -216,6 +217,7 @@ private:
       qtype_insert("MAILB", 253);
       qtype_insert("MAILA", 254);
       qtype_insert("ANY", 255);
+      qtype_insert("URI", 256);
       qtype_insert("DLV", 32769);
       qtype_insert("ADDR", 65400);
       qtype_insert("ALIAS", 65401);
