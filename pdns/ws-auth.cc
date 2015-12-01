@@ -600,7 +600,7 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk;
-  if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
+  if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     DomainInfo di;
     Document document;
     req->json(document);
@@ -753,7 +753,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
+  if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     // update domain settings
     UeberBackend B;
     DomainInfo di;
@@ -768,7 +768,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     fillZone(zonename, resp);
     return;
   }
-  else if(req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
+  else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     // delete domain
     UeberBackend B;
     DomainInfo di;
@@ -782,7 +782,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now
     return;
-  } else if (req->method == "PATCH" && !::arg().mustDo("experimental-api-readonly")) {
+  } else if (req->method == "PATCH" && !::arg().mustDo("api-readonly")) {
     patchZone(req, resp);
     return;
   } else if (req->method == "GET") {
@@ -1225,7 +1225,7 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void AuthWebServer::webThread()
 {
   try {
-    if(::arg().mustDo("experimental-json-interface")) {
+    if(::arg().mustDo("json-interface")) {
       d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
       d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
       d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);

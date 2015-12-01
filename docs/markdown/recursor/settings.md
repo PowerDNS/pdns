@@ -44,6 +44,30 @@ line, with optional comments preceded by a \#. Available since version 3.1.5.
 Answer questions for the ANY type on UDP with a truncated packet that refers the
 remote server to TCP. Useful for mitigating ANY reflection attacks.
 
+## `api-config-dir`
+* Path
+* Default: unset
+
+Directory where the REST API stores its configuration and zones.
+
+## `api-key`
+* String
+* Default: unset
+
+Static pre-shared authentication key for access to the REST API.
+
+## `api-readonly`
+* Boolean
+* Default: no
+
+Whether or not the JSON API is read only.
+
+## `api-logfile`
+* Path
+* Default: unset
+
+Location of the logs from the JSON parser.
+
 ## `auth-can-lower-ttl`
 * Boolean
 * Default: no
@@ -162,59 +186,35 @@ this source will be `/dev/urandom`, which will always supply random numbers,
 even if entropy is lacking. Change to `/dev/random` if PowerDNS should block
 waiting for enough entropy to arrive.
 
-## `experimental-api-config-dir`
-* Path
-* Default: unset
-
-Directory where the REST API stores its configuration and zones.
-
-## `experimental-api-key`
-* String
-* Default: unset
-
-Static pre-shared authentication key for access to the REST API.
-
-## `experimental-api-readonly`
+## `webserver`
 * Boolean
 * Default: no
 
-Whether or not the JSON API is read only.
+Start the webserver for monitoring.
 
-## `experimental-logfile`
-* Path
-* Default: unset
-
-Location of the logs from the JSON parser.
-
-## `experimental-webserver`
-* Boolean
-* Default: no
-
-Start the experimental webserver for monitoring.
-
-## `experimental-webserver-address`
+## `webserver-address`
 * IP Addresses, separated by spaces
 * Default: 127.0.0.1
 
 IP address for the webserver to listen on.
-
-## `experimental-webserver-password`
-* String
-* Default: unset
-
-Password required to access the webserver.
-
-## `experimental-webserver-port`
-* Integer
-* Default: 8082
-
-TCP port where the webserver should listen on.
 
 ## `webserver-allow-from`
 * IP addresses, comma separated
 * Default: 0.0.0.0, ::/0
 
 These subnets are allowed to access the webserver.
+
+## `webserver-password`
+* String
+* Default: unset
+
+Password required to access the webserver.
+
+## `webserver-port`
+* Integer
+* Default: 8082
+
+TCP port where the webserver should listen on.
 
 ## `etc-hosts-file`
 * Path

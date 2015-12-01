@@ -53,7 +53,7 @@ ArgvMap &arg()
 void declareArguments()
 {
   ::arg().set("local-port","The port on which we listen")="53";
-  ::arg().setSwitch("experimental-dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
+  ::arg().setSwitch("dnsupdate","Enable/Disable DNS update (RFC2136) support. Default is no.")="no";
   ::arg().setSwitch("write-pid","Write a PID file")="yes";
   ::arg().set("allow-dnsupdate-from","A global setting to allow DNS updates from these IP ranges.")="127.0.0.0/8,::1";
   ::arg().setSwitch("forward-dnsupdate","A global setting to allow DNS update packages that are for a Slave domain, to be forwarded to the master.")="yes";
@@ -71,9 +71,10 @@ void declareArguments()
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
 
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
-  ::arg().setSwitch("experimental-json-interface", "If the webserver should serve JSON data")="no";
-  ::arg().setSwitch("experimental-api-readonly", "If the JSON API should disallow data modification")="no";
-  ::arg().set("experimental-api-key", "REST API Static authentication key (required for API use)")="";
+  ::arg().setSwitch("json-interface", "If the webserver should serve JSON data")="no";
+  ::arg().setSwitch("api-readonly", "If the JSON API should disallow data modification")="no";
+  ::arg().set("api-key", "REST API Static authentication key (required for API use)")="";
+  ::arg().set("api-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
   ::arg().setSwitch("experimental-dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
@@ -154,7 +155,6 @@ void declareArguments()
   ::arg().set("max-tcp-connections","Maximum number of TCP connections")="10";
   ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
-  ::arg().set("experimental-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
   ::arg().set("setuid","If set, change user id to this uid for more security")="";
   ::arg().set("setgid","If set, change group id to this gid for more security")="";
 

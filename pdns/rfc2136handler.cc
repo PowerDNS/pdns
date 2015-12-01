@@ -663,7 +663,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, DNSPacket *p, DomainIn
 }
 
 int PacketHandler::processUpdate(DNSPacket *p) {
-  if (! ::arg().mustDo("experimental-dnsupdate"))
+  if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
   string msgPrefix="UPDATE (" + itoa(p->d.id) + ") from " + p->getRemote() + " for " + p->qdomain.toString() + ": ";

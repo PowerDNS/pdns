@@ -191,7 +191,7 @@ void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   string prefix = " " + s_programname + "[";
-  resp->body = logGrep(req->getvars["q"], ::arg()["experimental-logfile"], prefix);
+  resp->body = logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix);
 }
 
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {

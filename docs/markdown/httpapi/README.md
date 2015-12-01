@@ -22,8 +22,8 @@ PostgreSQL or SQLite3).
 
 Then configure as follows:
 
-    experimental-json-interface=yes
-    experimental-api-key=changeme
+    json-interface=yes
+    api-key=changeme
     webserver=yes
 
 
@@ -72,8 +72,8 @@ Try it (Recursor edition)
 
 Install PowerDNS Recursor, configured as follows:
 
-    experimental-webserver=yes
-    experimental-api-key=changeme
+    webserver=yes
+    api-key=changeme
     auth-zones=
     forward-zones=
     forward-zones-recurse=

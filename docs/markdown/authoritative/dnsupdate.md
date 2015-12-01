@@ -14,8 +14,8 @@ The implementation requires the backend to support a number of new oparations. C
 # Configuration options
 There are two configuration parameters that can be used within the powerdns configuration file.
 
-## `experimental-dnsupdate`
-A setting to enable/disable DNS update support completely. The default is no, which means that DNS updates are ignored by PowerDNS (no message is logged about this!). Change the setting to **experimental-dnsupdate=yes** to enable DNS update support. Default is **no**.
+## `dnsupdate`
+A setting to enable/disable DNS update support completely. The default is no, which means that DNS updates are ignored by PowerDNS (no message is logged about this!). Change the setting to **dnsupdate=yes** to enable DNS update support. Default is **no**.
 
 ## `allow-dnsupdate-from`
 A list of IP ranges that are allowed to perform updates on any domain. The default is 0.0.0.0/0, which means that all ranges are accepted. Multiple entries can be used on this line (**allow-dnsupdate-from=198.51.100.0/8 203.0.113.2/32**). The option can be left empty to disallow everything, this then should be used in combination with the **allow-dnsupdate-from** domainmetadata setting per zone.
@@ -190,13 +190,13 @@ A number of small changes are needed to powerdns to make it accept dynamic updat
 Enabled DNS update (RFC2136) support functionality in PowerDNS by adding the following to the PowerDNS configuration file (pdns.conf).
 
 ```
-experimental-dnsupdate=yes
+dnsupdate=yes
 allow-dnsupdate-from=
 ```
 
 This tells PowerDNS to:
 
-1.  Enable DNS update support([`experimental-dnsupdate`](settings.md#experimental-dnsupdate))
+1.  Enable DNS update support([`dnsupdate`](settings.md#dnsupdate))
 2.  Allow updates from NO ip-address ([`allow-dnsupdate-from=`](settings.md#allow-dnsupdate-from))
 
 We just told powerdns (via the configuration file) that we accept updates from nobody via the [`allow-dnsupdate-from`](settings.md#allow-dnsupdate-from) parameter. That's not very useful, so we're going to give permissions per zone, via the domainmetadata table.
@@ -233,7 +233,7 @@ This is a short description of how DNS update messages are processed by PowerDNS
 
 1.  The DNS update message is received. If it is TSIG signed, the TSIG is validated against the tsigkeys table. If it is not valid, Refused is returned to the requestor.
 2.  A check is performed on the zone to see if it is a valid zone. ServFail is returned when not valid.
-3.  The **experimental-dnsupdate** setting is checked. Refused is returned when the setting is 'no'.
+3.  The **dnsupdate** setting is checked. Refused is returned when the setting is 'no'.
 4.  If the **ALLOW-DNSUPDATE-FROM** has a value (from both domainmetadata and the configuration file), a check on the value is performed. If the requestor (sender of the update message) does not match the values in **ALLOW-DNSUPDATE-FROM**, Refused is returned.
 5.  If the message is TSIG signed, the TSIG keyname is compared with the TSIG keyname in domainmetadata. If they do not match, a Refused is send. The TSIG-ALLOW-DNSUPDATE domainmetadata setting is used to find which key belongs to the domain.
 6.  The backends are queried to find the backend for the given domain.

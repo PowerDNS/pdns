@@ -60,7 +60,7 @@ Authentication
 --------------
 
 The PowerDNS daemons accept a static API Key, configured with the
-[`experimental-api-key`]('../authoritative/settings.md#experimental-api-key')
+[`api-key`]('../authoritative/settings.md#api-key')
 option, which has to be sent in the `X-API-Key` header.
 
 Note: Authoritative Server 3.4.0 and Recursor 3.6.0 and 3.6.1 use HTTP

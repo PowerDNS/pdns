@@ -54,6 +54,19 @@ always receive a notification. Even if they do not match the list in
 Answer questions for the ANY and RRSIG types on UDP with a truncated packet that
 refers the remote server to TCP. Useful for mitigating reflection attacks.
 
+## `api-readonly`
+* Boolean
+* Default: no
+* Available since: 3.4
+
+Disallow data modification through the json API when set.
+
+## `api-key`
+* String
+* Available since: 3.4.1
+
+api-key REST API Static authentication key (required for API use)
+
 ## `cache-ttl`
 * Integer
 * Default: 20
@@ -230,6 +243,12 @@ Do not listen to TCP queries. Breaks RFC compliance.
 Number of Distributor (backend) threads to start per receiver thread. See
 ["Authoritative Server Performance"](performance.md).
 
+## `dnsupdate`
+* Boolean
+* Default: no
+
+Enable/Disable DNS update (RFC2136) support.
+
 ## `do-ipv6-additional-processing`
 * Boolean
 * Default: yes
@@ -256,19 +275,6 @@ Enables EDNS subnet processing, for backends that support it.
 
 Entropy source file to use.
 
-## `experimental-api-readonly`
-* Boolean
-* Default: no
-* Available since: 3.4
-
-Disallow data modification through the json API when set.
-
-## `experimental-api-key`
-* String
-* Available since: 3.4.1
-
-experimental-api-key REST API Static authentication key (required for API use)
-
 ## `experimental-dname-processing`
 * Boolean
 * Default: no
@@ -276,13 +282,7 @@ experimental-api-key REST API Static authentication key (required for API use)
 Synthesise CNAME records from DNAME records as required. This approximately
 doubles query load. **Do not combine with DNSSEC!**
 
-## `experimental-dnsupdate`
-* Boolean
-* Default: no
-
-Enable/Disable DNS update (RFC2136) support.
-
-## `experimental-json-interface`
+## `json-interface`
 * Boolean
 * Default: no
 
