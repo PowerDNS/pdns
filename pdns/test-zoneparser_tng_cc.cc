@@ -46,8 +46,11 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
     BOOST_CHECK_EQUAL(rr.qname.toString(), host);
     BOOST_CHECK_EQUAL(rr.ttl, ttl);
     BOOST_CHECK_EQUAL(rr.qtype.getName(), type);
-    if (rr.qtype == QType::SOA)
+    if (rr.qtype == QType::SOA) {
+      // ensure that we can parse large serials
+      BOOST_CHECK_EQUAL(rr.content, "ns.unit.test hostmaster.unit.test 2342420001 3600 1200 604800 300");
       continue; // FIXME400 remove trailing dots from data
+    }
     if (*(rr.content.rbegin()) != '.' && *(data.rbegin()) == '.') 
       BOOST_CHECK_EQUAL(rr.content, std::string(data.begin(),data.end()-1));
     else
