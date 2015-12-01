@@ -146,7 +146,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   string zoneId = apiZoneNameToId(iter->first);
   Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("id", jzoneid, doc.GetAllocator());
-  string url = "/servers/localhost/zones/" + zoneId;
+  string url = "/api/v1/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
   Value jname(iter->first.toString().c_str(), doc.GetAllocator()); // copy
@@ -308,7 +308,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     string zoneId = apiZoneNameToId(val.first);
     Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("id", jzoneid, doc.GetAllocator());
-    string url = "/servers/localhost/zones/" + zoneId;
+    string url = "/api/v1/servers/localhost/zones/" + zoneId;
     Value jurl(url.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("url", jurl, doc.GetAllocator());
     jdi.AddMember("name", val.first.toString().c_str(), doc.GetAllocator());
@@ -435,16 +435,16 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
-  d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
-  d_ws->registerApiHandler("/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
-  d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
-  d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-  d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
-  d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-  d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
-  d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
-  d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
-  d_ws->registerApiHandler("/servers", &apiServer);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
+  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
+  d_ws->registerApiHandler("/api/v1/servers", &apiServer);
 
   d_ws->go();
 }

@@ -30,16 +30,16 @@ Then configure as follows:
 After restarting `pdns_server`, the following examples should start working:
 
     # List zones
-    curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones | jq .
+    curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones | jq .
     
     # Create new zone "example.org" with nameservers ns1.example.org, ns2.example.org
-    curl -X POST --data '{"name":"example.org", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org", "ns2.example.org"]}' -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones | jq .
+    curl -X POST --data '{"name":"example.org", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org", "ns2.example.org"]}' -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones | jq .
     
     # Show the new zone
-    curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones/example.org | jq .
+    curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org | jq .
     
     # Add a new record to the new zone (would replace any existing test.example.org/A records)
-    curl -X PATCH --data '{"rrsets": [ {"name": "test.example.org", "type": "A", "changetype": "REPLACE", "records": [ {"content": "192.0.5.4", "disabled": false, "name": "test.example.org", "ttl": 86400, "type": "A" } ] } ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones/example.org | jq .
+    curl -X PATCH --data '{"rrsets": [ {"name": "test.example.org", "type": "A", "changetype": "REPLACE", "records": [ {"content": "192.0.5.4", "disabled": false, "name": "test.example.org", "ttl": 86400, "type": "A" } ] } ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org | jq .
 
     # Combined replacement of multiple RRsets
     curl -X PATCH --data '{"rrsets": [
@@ -53,7 +53,7 @@ After restarting `pdns_server`, the following examples should start working:
        "changetype": "REPLACE",
        "records": [ {"content": "2001:db8::6/32", "disabled": false, "name": "test.example.org", "ttl": 86400, "type": "AAAA" } ]
       }
-      ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/servers/localhost/zones/example.org | jq .
+      ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org | jq .
 
 `jq` is a highly recommended tool for pretty-printing JSON. If you don't have
 `jq`, try `json_pp` or `python -mjson.tool` instead.
@@ -81,8 +81,8 @@ Install PowerDNS Recursor, configured as follows:
 
 After restarting `pdns_recursor`, the following examples should start working:
 
-    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/servers/localhost | jq .
-    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/servers/localhost/zones | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/api/v1/servers/localhost | jq .
+    curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/api/v1/servers/localhost/zones | jq .
 
 
 API Specification

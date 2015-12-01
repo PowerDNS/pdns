@@ -86,12 +86,12 @@ static void fillServerDetail(Value& out, Value::AllocatorType& allocator)
   out.SetObject();
   out.AddMember("type", "Server", allocator);
   out.AddMember("id", "localhost", allocator);
-  out.AddMember("url", "/servers/localhost", allocator);
+  out.AddMember("url", "/api/v1/servers/localhost", allocator);
   out.AddMember("daemon_type", jdaemonType, allocator);
   Value jversion(getPDNSVersion().c_str(), allocator);
   out.AddMember("version", jversion, allocator);
-  out.AddMember("config_url", "/servers/localhost/config{/config_setting}", allocator);
-  out.AddMember("zones_url", "/servers/localhost/zones{/zone}", allocator);
+  out.AddMember("config_url", "/api/v1/servers/localhost/config{/config_setting}", allocator);
+  out.AddMember("zones_url", "/api/v1/servers/localhost/zones{/zone}", allocator);
 }
 
 void apiServer(HttpRequest* req, HttpResponse* resp) {

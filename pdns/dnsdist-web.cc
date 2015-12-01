@@ -113,7 +113,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
     }
-    else if(req.url.path=="/servers/localhost") {
+    else if(req.url.path=="/api/v1/servers/localhost") {
       resp.status=200;
 
       Json::array servers;

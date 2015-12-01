@@ -296,7 +296,7 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   string zoneId = apiZoneNameToId(di.zone);
   Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("id", jzoneId, doc.GetAllocator());
-  string url = "/servers/localhost/zones/" + zoneId;
+  string url = "api/v1/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
   Value jname(di.zone.toString().c_str(), doc.GetAllocator()); // copy
@@ -1226,20 +1226,20 @@ void AuthWebServer::webThread()
 {
   try {
     if(::arg().mustDo("json-interface")) {
-      d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
-      d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
-      d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-      d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
-      d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
-      d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
-      d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
-      d_ws->registerApiHandler("/servers", &apiServer);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", &apiServerZoneExport);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
+      d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
+      d_ws->registerApiHandler("/api/v1/servers", &apiServer);
     }
     d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
     d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));
