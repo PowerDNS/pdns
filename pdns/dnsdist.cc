@@ -64,6 +64,7 @@ bool g_console;
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 vector<std::pair<ComboAddress, bool>> g_locals;
+vector<ClientState *> g_frontends;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers. 
@@ -441,6 +442,9 @@ try
     try {
       len = recvmsg(cs->udpFD, &msgh, 0);
 
+      cs->queries++;
+      g_stats.queries++;
+
       if(len < (int)sizeof(struct dnsheader)) {
 	g_stats.nonCompliantQueries++;
 	continue;
@@ -453,7 +457,6 @@ try
         continue;
       }
 
-      g_stats.queries++;
       if(!acl->match(remote)) {
 	vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
 	g_stats.aclDrops++;
@@ -1272,14 +1275,15 @@ try
 
     SBind(cs->udpFD, cs->local);    
     toLaunch.push_back(cs);
+    g_frontends.push_back(cs);
   }
 
   for(const auto& local : g_locals) {
-    ClientState* cs = new ClientState;
     if(!local.second) { // no TCP/IP
       warnlog("Not providing TCP/IP service on local address '%s'", local.first.toStringWithPort());
       continue;
     }
+    ClientState* cs = new ClientState;
     cs->local= local.first;
 
     cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
@@ -1298,6 +1302,7 @@ try
     warnlog("Listening on %s",cs->local.toStringWithPort());
 
     toLaunch.push_back(cs);
+    g_frontends.push_back(cs);
   }
 
   uid_t newgid=0;

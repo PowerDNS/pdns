@@ -67,6 +67,15 @@ try
         str<<base<<"senderrors" << ' ' << s->sendErrors.load() << " " << now << "\r\n";
         str<<base<<"outstanding" << ' ' << s->outstanding.load() << " " << now << "\r\n";
       }
+      for(const auto& front : g_frontends) {
+        if (front->udpFD == -1 && front->tcpFD == -1)
+          continue;
+
+        string frontName = front->local.toStringWithPort() + (front->udpFD >= 0 ? "_udp" : "_tcp");
+        boost::replace_all(frontName, ".", "_");
+        const string base = "dnsdist." + hostname + ".main.frontends." + frontName + ".";
+        str<<base<<"queries" << ' ' << front->queries.load() << " " << now << "\r\n";
+      }
       const string msg = str.str();
 
       int ret = waitForRWData(s.getHandle(), false, 1 , 0); 

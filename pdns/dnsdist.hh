@@ -217,6 +217,7 @@ extern Rings g_rings;
 struct ClientState
 {
   ComboAddress local;
+  std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
 };
@@ -355,6 +356,7 @@ extern GlobalStateHolder<NetmaskGroup> g_ACL;
 extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<std::pair<ComboAddress, bool>> g_locals; // not changed at runtime (we hope XXX)
+extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
 extern int g_tcpRecvTimeout;

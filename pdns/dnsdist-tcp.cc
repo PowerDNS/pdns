@@ -341,6 +341,9 @@ void* tcpAcceptorThread(void* p)
       ci = new ConnectionInfo;
       ci->fd = -1;
       ci->fd = SAccept(cs->tcpFD, remote);
+
+      g_stats.queries++;
+      cs->queries++;
       
       if(!acl->match(remote)) {
 	g_stats.aclDrops++;
