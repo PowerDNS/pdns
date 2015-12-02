@@ -157,11 +157,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       continue;
 
     IDState* ids = &state->idStates[dh->id];
-    int origFD;
-    {
-      ReadLock rl(&(ids->lock));
-      origFD = ids->origFD;
-    }
+    int origFD = ids->origFD;
+
     if(origFD < 0) // duplicate
       continue;
     else
@@ -222,11 +219,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     doAvg(g_stats.latencyAvg10000,   udiff,   10000);
     doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 
-    {
-      WriteLock wl(&(ids->lock));
-      if (ids->origFD == origFD)
-        ids->origFD = -1;
-    }
+    if (ids->origFD == origFD)
+      ids->origFD = -1;
   }
   return 0;
 }
@@ -558,29 +552,26 @@ try
       ss->queries++;
       
       unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
-      {
-        IDState* ids = &ss->idStates[idOffset];
-        WriteLock wl(&ids->lock);
+      IDState* ids = &ss->idStates[idOffset];
+      ids->age = 0;
 
-        if(ids->origFD < 0) // if we are reusing, no change in outstanding
-          ss->outstanding++;
-        else {
-          ss->reuseds++;
-          g_stats.downstreamTimeouts++;
-        }
-
-        ids->origFD = cs->udpFD;
-        ids->age = 0;
-        ids->origID = dh->id;
-        ids->origRemote = remote;
-        ids->sentTime.start();
-        ids->qname = qname;
-        ids->qtype = qtype;
-        ids->origDest.sin4.sin_family=0;
-        ids->delayMsec = delayMsec;
-        ids->origFlags = origFlags;
-        HarvestDestinationAddress(&msgh, &ids->origDest);
+      if(ids->origFD < 0) // if we are reusing, no change in outstanding
+        ss->outstanding++;
+      else {
+        ss->reuseds++;
+        g_stats.downstreamTimeouts++;
       }
+
+      ids->origFD = cs->udpFD;
+      ids->origID = dh->id;
+      ids->origRemote = remote;
+      ids->sentTime.start();
+      ids->qname = qname;
+      ids->qtype = qtype;
+      ids->origDest.sin4.sin_family=0;
+      ids->delayMsec = delayMsec;
+      ids->origFlags = origFlags;
+      HarvestDestinationAddress(&msgh, &ids->origDest);
 
       dh->id = idOffset;
       
@@ -682,7 +673,6 @@ void* maintThread()
       dss->prev.reuseds.store(dss->reuseds.load());
       
       for(IDState& ids  : dss->idStates) { // timeouts
-        WriteLock wl(&(ids.lock));
         if(ids.origFD >=0 && ids.age++ > 2) {
           ids.age = 0;
           ids.origFD = -1;

@@ -156,7 +156,7 @@ private:
 
 struct IDState
 {
-  IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0; pthread_rwlock_init(&lock, 0);}
+  IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0;}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
@@ -165,7 +165,6 @@ struct IDState
     origDest = orig.origDest;
     delayMsec = orig.delayMsec;
     age.store(orig.age.load());
-    pthread_rwlock_init(&lock, 0);
   }
 
   int origFD;  // set to <0 to indicate this state is empty   // 4
@@ -174,7 +173,6 @@ struct IDState
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
-  pthread_rwlock_t lock;
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
   uint16_t origID;                                            // 2
