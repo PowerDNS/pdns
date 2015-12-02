@@ -176,6 +176,10 @@ void* tcpClientThread(int pipefd)
 	  goto drop;
 	}
 
+        if (dh->rd) {
+          g_stats.rdQueries++;
+        }
+
         if(blockFilter) {
 	  std::lock_guard<std::mutex> lock(g_luamutex);
 	
