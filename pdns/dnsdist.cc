@@ -454,6 +454,10 @@ try
 	g_stats.nonCompliantQueries++;
 	continue;
       }
+
+      if (dh->rd) {
+        g_stats.rdQueries++;
+      }
       
       const uint16_t * flags = getFlagsFromDNSHeader(dh);
       const uint16_t origFlags = *flags;

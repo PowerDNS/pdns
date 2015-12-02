@@ -21,6 +21,7 @@ struct DNSDistStats
   stat_t servfailResponses{0};
   stat_t queries{0};
   stat_t nonCompliantQueries{0};
+  stat_t rdQueries{0};
   stat_t aclDrops{0};
   stat_t blockFilter{0};
   stat_t dynBlocked{0};
@@ -51,6 +52,7 @@ struct DNSDistStats
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"noncompliant-queries", &nonCompliantQueries},
+    {"rdqueries", &rdQueries},
     {"cpu-user-msec", getCPUTimeUser},
     {"cpu-sys-msec", getCPUTimeSystem},
     {"fd-usage", getOpenFileDescriptors}, {"dyn-blocked", &dynBlocked}, 
