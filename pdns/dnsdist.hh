@@ -156,7 +156,7 @@ private:
 
 struct IDState
 {
-  IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0;}
+  IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0; pthread_rwlock_init(&lock, 0);}
   IDState(const IDState& orig)
   {
     origFD = orig.origFD;
@@ -165,6 +165,7 @@ struct IDState
     origDest = orig.origDest;
     delayMsec = orig.delayMsec;
     age.store(orig.age.load());
+    pthread_rwlock_init(&lock, 0);
   }
 
   int origFD;  // set to <0 to indicate this state is empty   // 4
@@ -173,6 +174,7 @@ struct IDState
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
+  pthread_rwlock_t lock;
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
   uint16_t origID;                                            // 2
@@ -185,6 +187,7 @@ struct Rings {
   {
     queryRing.set_capacity(10000);
     respRing.set_capacity(10000);
+    pthread_rwlock_init(&queryLock, 0);
   }
   struct Query
   {
@@ -206,9 +209,10 @@ struct Rings {
   };
   boost::circular_buffer<Response> respRing;
   std::mutex respMutex;
+  pthread_rwlock_t queryLock;
 };
 
-extern Rings g_rings; // XXX locking for this is still substandard, queryRing and clientRing need RW lock
+extern Rings g_rings;
 
 struct ClientState
 {
