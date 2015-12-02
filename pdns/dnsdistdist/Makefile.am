@@ -40,6 +40,7 @@ dnsdist_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	iputils.cc iputils.hh \
+	lock.hh \
 	misc.cc misc.hh \
 	htmlfiles.h \
 	namespaces.hh \

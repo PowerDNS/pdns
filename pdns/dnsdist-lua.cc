@@ -5,6 +5,7 @@
 #include "sodcrypto.hh"
 #include "base64.hh"
 #include <fstream>
+#include "lock.hh"
 
 using std::thread;
 
@@ -656,9 +657,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("topClients", [](unsigned int top) {
       map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
-      for(const auto& c : g_rings.queryRing) {
-	counts[c.requestor]++;
-	total++;
+      {
+        ReadLock rl(&g_rings.queryLock);
+        for(const auto& c : g_rings.queryRing) {
+          counts[c.requestor]++;
+          total++;
+        }
       }
       vector<pair<int, ComboAddress>> rcounts;
       for(const auto& c : counts) 
@@ -683,6 +687,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       map<DNSName, int> counts;
       unsigned int total=0;
       if(!labels) {
+	ReadLock rl(&g_rings.queryLock);
 	for(const auto& a : g_rings.queryRing) {
 	  counts[a.name]++;
 	  total++;
@@ -690,12 +695,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       else {
 	unsigned int lab = *labels;
+	ReadLock rl(&g_rings.queryLock);
 	for(auto a : g_rings.queryRing) {
 	  a.name.trimToLabels(lab);
 	  counts[a.name]++;
 	  total++;
 	}
-
       }
       // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
       vector<pair<int, DNSName>> rcounts;

@@ -38,6 +38,7 @@
 #include "dnsrulactions.hh"
 #include <grp.h>
 #include <pwd.h>
+#include "lock.hh"
 #include <getopt.h>
 
 /* Known sins:
@@ -156,7 +157,12 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       continue;
 
     IDState* ids = &state->idStates[dh->id];
-    if(ids->origFD < 0) // duplicate
+    int origFD;
+    {
+      ReadLock rl(&(ids->lock));
+      origFD = ids->origFD;
+    }
+    if(origFD < 0) // duplicate
       continue;
     else
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
@@ -178,14 +184,14 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     g_stats.responses++;
 
     if(ids->delayMsec && g_delay) {
-      DelayedPacket dp{ids->origFD, string(packet,len), ids->origRemote, ids->origDest};
+      DelayedPacket dp{origFD, string(packet,len), ids->origRemote, ids->origDest};
       g_delay->submit(dp, ids->delayMsec);
     }
     else {
       if(ids->origDest.sin4.sin_family == 0)
-	sendto(ids->origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+	sendto(origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
       else
-	sendfromto(ids->origFD, packet, len, 0, ids->origDest, ids->origRemote);
+	sendfromto(origFD, packet, len, 0, ids->origDest, ids->origRemote);
     }
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
@@ -216,7 +222,11 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     doAvg(g_stats.latencyAvg10000,   udiff,   10000);
     doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 
-    ids->origFD = -1;
+    {
+      WriteLock wl(&(ids->lock));
+      if (ids->origFD == origFD)
+        ids->origFD = -1;
+    }
   }
   return 0;
 }
@@ -253,7 +263,7 @@ shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
      which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
   poss.reserve(servers.size());
-  for(auto& d : servers) {    
+  for(auto& d : servers) {
     if(d.second->isUp()) {
       poss.push_back({make_tuple(d.second->outstanding.load(), d.second->order, d.second->latencyUsec), d.second});
     }
@@ -460,7 +470,10 @@ try
       DNSName qname(packet, len, 12, false, &qtype);
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
-      g_rings.queryRing.push_back({now,remote,qname,qtype}); // XXX LOCK?!
+      {
+        WriteLock wl(&g_rings.queryLock);
+        g_rings.queryRing.push_back({now,remote,qname,qtype});
+      }
       
       if(localDynBlock->match(remote)) {
 	vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
@@ -545,27 +558,30 @@ try
       ss->queries++;
       
       unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
-      IDState* ids = &ss->idStates[idOffset];
-      
-      if(ids->origFD < 0) // if we are reusing, no change in outstanding
-	ss->outstanding++;
-      else {
-	ss->reuseds++;
-	g_stats.downstreamTimeouts++;
+      {
+        IDState* ids = &ss->idStates[idOffset];
+        WriteLock wl(&ids->lock);
+
+        if(ids->origFD < 0) // if we are reusing, no change in outstanding
+          ss->outstanding++;
+        else {
+          ss->reuseds++;
+          g_stats.downstreamTimeouts++;
+        }
+
+        ids->origFD = cs->udpFD;
+        ids->age = 0;
+        ids->origID = dh->id;
+        ids->origRemote = remote;
+        ids->sentTime.start();
+        ids->qname = qname;
+        ids->qtype = qtype;
+        ids->origDest.sin4.sin_family=0;
+        ids->delayMsec = delayMsec;
+        ids->origFlags = origFlags;
+        HarvestDestinationAddress(&msgh, &ids->origDest);
       }
-      
-      ids->origFD = cs->udpFD;
-      ids->age = 0;
-      ids->origID = dh->id;
-      ids->origRemote = remote;
-      ids->sentTime.start();
-      ids->qname = qname;
-      ids->qtype = qtype;
-      ids->origDest.sin4.sin_family=0;
-      ids->delayMsec = delayMsec;
-      ids->origFlags = origFlags;
-      HarvestDestinationAddress(&msgh, &ids->origDest);
-      
+
       dh->id = idOffset;
       
       len = send(ss->fd, packet, len, 0);
@@ -666,6 +682,7 @@ void* maintThread()
       dss->prev.reuseds.store(dss->reuseds.load());
       
       for(IDState& ids  : dss->idStates) { // timeouts
+        WriteLock wl(&(ids.lock));
         if(ids.origFD >=0 && ids.age++ > 2) {
           ids.age = 0;
           ids.origFD = -1;

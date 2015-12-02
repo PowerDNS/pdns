@@ -4,6 +4,7 @@
 #include "dolog.hh"
 #include "sodcrypto.hh"
 #include "base64.hh"
+#include "lock.hh"
 #include <map>
 #include <fstream>
 
@@ -69,6 +70,7 @@ map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(c
   mintime=cutoff=maxtime;
   cutoff.tv_sec -= seconds;
   
+  ReadLock rl(&g_rings.queryLock);
   for(const auto& c : g_rings.queryRing) {
     if(seconds && c.when < cutoff)
       continue;

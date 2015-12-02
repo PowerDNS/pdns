@@ -22,6 +22,7 @@
 
 #include "dnsdist.hh"
 #include "dolog.hh"
+#include "lock.hh"
 #include <thread>
 #include <atomic>
 
@@ -164,7 +165,10 @@ void* tcpClientThread(int pipefd)
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	g_rings.queryRing.push_back({now,ci.remote,qname,qtype}); // XXX LOCK?!
+	{
+	  WriteLock wl(&g_rings.queryLock);
+	  g_rings.queryRing.push_back({now,ci.remote,qname,qtype});
+	}
 
 	if(localDynBlockNMG->match(ci.remote)) {
 	  vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
