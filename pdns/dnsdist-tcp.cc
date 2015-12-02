@@ -57,6 +57,7 @@ struct ConnectionInfo
 {
   int fd;
   ComboAddress remote;
+  ClientState* cs;
 };
 
 void* tcpClientThread(int pipefd);
@@ -170,6 +171,11 @@ void* tcpClientThread(int pipefd)
 	  g_rings.queryRing.push_back({now,ci.remote,qname,qtype});
 	}
 
+	g_stats.queries++;
+	if (ci.cs) {
+	  ci.cs->queries++;
+	}
+
 	if(localDynBlockNMG->match(ci.remote)) {
 	  vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
 	  g_stats.dynBlocked++;
@@ -227,6 +233,8 @@ void* tcpClientThread(int pipefd)
 	if(dh->qr) { // something turned it into a response
 	  if (putNonBlockingMsgLen(ci.fd, qlen, g_tcpSendTimeout))
 	    writen2WithTimeout(ci.fd, query, rlen, g_tcpSendTimeout);
+
+	  g_stats.selfAnswered++;
 	  goto drop;
 	}
 
@@ -305,6 +313,8 @@ void* tcpClientThread(int pipefd)
 
         if (putNonBlockingMsgLen(ci.fd, rlen, ds->tcpSendTimeout))
           writen2WithTimeout(ci.fd, answerbuffer, rlen, ds->tcpSendTimeout);
+
+        g_stats.responses++;
       }
     }
     catch(...){}
@@ -339,12 +349,10 @@ void* tcpAcceptorThread(void* p)
     try {
       ci=0;
       ci = new ConnectionInfo;
+      ci->cs = cs;
       ci->fd = -1;
       ci->fd = SAccept(cs->tcpFD, remote);
 
-      g_stats.queries++;
-      cs->queries++;
-      
       if(!acl->match(remote)) {
 	g_stats.aclDrops++;
 	close(ci->fd);
