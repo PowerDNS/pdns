@@ -296,7 +296,7 @@ static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
   string zoneId = apiZoneNameToId(di.zone);
   Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("id", jzoneId, doc.GetAllocator());
-  string url = "/servers/localhost/zones/" + zoneId;
+  string url = "api/v1/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   jdi.AddMember("url", jurl, doc.GetAllocator());
   Value jname(di.zone.toString().c_str(), doc.GetAllocator()); // copy
@@ -600,7 +600,7 @@ static void gatherRecordsFromZone(const Value &container, vector<DNSResourceReco
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk;
-  if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
+  if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     DomainInfo di;
     Document document;
     req->json(document);
@@ -753,7 +753,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
+  if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     // update domain settings
     UeberBackend B;
     DomainInfo di;
@@ -768,7 +768,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     fillZone(zonename, resp);
     return;
   }
-  else if(req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
+  else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     // delete domain
     UeberBackend B;
     DomainInfo di;
@@ -782,7 +782,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now
     return;
-  } else if (req->method == "PATCH" && !::arg().mustDo("experimental-api-readonly")) {
+  } else if (req->method == "PATCH" && !::arg().mustDo("api-readonly")) {
     patchZone(req, resp);
     return;
   } else if (req->method == "GET") {
@@ -1225,21 +1225,21 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void AuthWebServer::webThread()
 {
   try {
-    if(::arg().mustDo("experimental-json-interface")) {
-      d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
-      d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
-      d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-      d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
-      d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/export", &apiServerZoneExport);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
-      d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
-      d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
-      d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
-      d_ws->registerApiHandler("/servers", &apiServer);
+    if(::arg().mustDo("json-interface")) {
+      d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", &apiServerZoneAxfrRetrieve);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", &apiZoneCryptokeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", &apiZoneCryptokeys);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", &apiServerZoneExport);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", &apiServerZoneNotify);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
+      d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
+      d_ws->registerApiHandler("/api/v1/servers", &apiServer);
     }
     d_ws->registerWebHandler("/style.css", boost::bind(&AuthWebServer::cssfunction, this, _1, _2));
     d_ws->registerWebHandler("/", boost::bind(&AuthWebServer::indexfunction, this, _1, _2));

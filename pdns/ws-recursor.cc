@@ -53,11 +53,11 @@ void productServerStatisticsFetch(map<string,string>& out)
 
 static void apiWriteConfigFile(const string& filebasename, const string& content)
 {
-  if (::arg()["experimental-api-config-dir"].empty()) {
-    throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
+  if (::arg()["api-config-dir"].empty()) {
+    throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
-  string filename = ::arg()["experimental-api-config-dir"] + "/" + filebasename + ".conf";
+  string filename = ::arg()["api-config-dir"] + "/" + filebasename + ".conf";
   ofstream ofconf(filename.c_str());
   if (!ofconf) {
     throw ApiException("Could not open config fragment file '"+filename+"' for writing: "+stringerror());
@@ -69,7 +69,7 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
 
 static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
+  if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     Document document;
     req->json(document);
     const Value &jlist = document["value"];
@@ -146,7 +146,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   string zoneId = apiZoneNameToId(iter->first);
   Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("id", jzoneid, doc.GetAllocator());
-  string url = "/servers/localhost/zones/" + zoneId;
+  string url = "/api/v1/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
   Value jname(iter->first.toString().c_str(), doc.GetAllocator()); // copy
@@ -183,8 +183,8 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
 static void doCreateZone(const Value& document)
 {
-  if (::arg()["experimental-api-config-dir"].empty()) {
-    throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
+  if (::arg()["api-config-dir"].empty()) {
+    throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
   if(stringFromJson(document, "name").empty())
@@ -211,7 +211,7 @@ static void doCreateZone(const Value& document)
 	throw ApiException("Single IP target '"+singleIPTarget+"' is invalid");
       }
     }
-    string zonefilename = ::arg()["experimental-api-config-dir"] + "/" + confbasename + ".zone";
+    string zonefilename = ::arg()["api-config-dir"] + "/" + confbasename + ".zone";
     ofstream ofzone(zonefilename.c_str());
     if (!ofzone) {
       throw ApiException("Could not open '"+zonefilename+"' for writing: "+stringerror());
@@ -252,20 +252,20 @@ static void doCreateZone(const Value& document)
 
 static bool doDeleteZone(const DNSName& zonename)
 {
-  if (::arg()["experimental-api-config-dir"].empty()) {
-    throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
+  if (::arg()["api-config-dir"].empty()) {
+    throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
   string filename;
 
   // this one must exist
-  filename = ::arg()["experimental-api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".conf";
+  filename = ::arg()["api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".conf";
   if (unlink(filename.c_str()) != 0) {
     return false;
   }
 
   // .zone file is optional
-  filename = ::arg()["experimental-api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".zone";
+  filename = ::arg()["api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".zone";
   unlink(filename.c_str());
 
   return true;
@@ -273,9 +273,9 @@ static bool doDeleteZone(const DNSName& zonename)
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "POST" && !::arg().mustDo("experimental-api-readonly")) {
-    if (::arg()["experimental-api-config-dir"].empty()) {
-      throw ApiException("Config Option \"experimental-api-config-dir\" must be set");
+  if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
+    if (::arg()["api-config-dir"].empty()) {
+      throw ApiException("Config Option \"api-config-dir\" must be set");
     }
 
     Document document;
@@ -308,7 +308,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     string zoneId = apiZoneNameToId(val.first);
     Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("id", jzoneid, doc.GetAllocator());
-    string url = "/servers/localhost/zones/" + zoneId;
+    string url = "/api/v1/servers/localhost/zones/" + zoneId;
     Value jurl(url.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("url", jurl, doc.GetAllocator());
     jdi.AddMember("name", val.first.toString().c_str(), doc.GetAllocator());
@@ -335,7 +335,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
   if (iter == t_sstorage->domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  if(req->method == "PUT" && !::arg().mustDo("experimental-api-readonly")) {
+  if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
     Document document;
     req->json(document);
 
@@ -344,7 +344,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     reloadAuthAndForwards();
     fillZone(DNSName(stringFromJson(document, "name")), resp);
   }
-  else if(req->method == "DELETE" && !::arg().mustDo("experimental-api-readonly")) {
+  else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     if (!doDeleteZone(zonename)) {
       throw ApiException("Deleting domain failed");
     }
@@ -430,21 +430,21 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
   RecursorControlParser rcp; // inits
 
-  d_ws = new AsyncWebServer(fdm, arg()["experimental-webserver-address"], arg().asNum("experimental-webserver-port"));
+  d_ws = new AsyncWebServer(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
   d_ws->bind();
 
   // legacy dispatch
   d_ws->registerApiHandler("/jsonstat", boost::bind(&RecursorWebServer::jsonstat, this, _1, _2));
-  d_ws->registerApiHandler("/servers/localhost/flush-cache", &apiServerFlushCache);
-  d_ws->registerApiHandler("/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
-  d_ws->registerApiHandler("/servers/localhost/config", &apiServerConfig);
-  d_ws->registerApiHandler("/servers/localhost/search-log", &apiServerSearchLog);
-  d_ws->registerApiHandler("/servers/localhost/search-data", &apiServerSearchData);
-  d_ws->registerApiHandler("/servers/localhost/statistics", &apiServerStatistics);
-  d_ws->registerApiHandler("/servers/localhost/zones/<id>", &apiServerZoneDetail);
-  d_ws->registerApiHandler("/servers/localhost/zones", &apiServerZones);
-  d_ws->registerApiHandler("/servers/localhost", &apiServerDetail);
-  d_ws->registerApiHandler("/servers", &apiServer);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", &apiServerConfigAllowFrom);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", &apiServerZoneDetail);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", &apiServerZones);
+  d_ws->registerApiHandler("/api/v1/servers/localhost", &apiServerDetail);
+  d_ws->registerApiHandler("/api/v1/servers", &apiServer);
 
   d_ws->go();
 }

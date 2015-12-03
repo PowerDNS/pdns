@@ -7,7 +7,7 @@ from test_helper import ApiTestCase
 class TestBasics(ApiTestCase):
 
     def test_unauth(self):
-        r = requests.get(self.url("/servers/localhost"))
+        r = requests.get(self.url("/api/v1/servers/localhost"))
         self.assertEquals(r.status_code, requests.codes.unauthorized)
 
     def test_split_request(self):
@@ -33,7 +33,7 @@ class TestBasics(ApiTestCase):
             raise Exception('Got unwanted response: %s' % status)
 
     def test_cors(self):
-        r = self.session.options(self.url("/servers/localhost"))
+        r = self.session.options(self.url("/api/v1/servers/localhost"))
         # look for CORS headers
 
         self.assertEquals(r.status_code, requests.codes.ok)

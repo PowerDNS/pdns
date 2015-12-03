@@ -7,13 +7,13 @@ from test_helper import ApiTestCase, is_recursor
 class RecursorConfig(ApiTestCase):
 
     def test_config_allow_from_get(self):
-        r = self.session.get(self.url("/servers/localhost/config/allow-from"))
+        r = self.session.get(self.url("/api/v1/servers/localhost/config/allow-from"))
         self.assert_success_json(r)
 
     def test_config_allow_from_replace(self):
         payload = {'value': ["127.0.0.1"]}
         r = self.session.put(
-            self.url("/servers/localhost/config/allow-from"),
+            self.url("/api/v1/servers/localhost/config/allow-from"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
@@ -24,7 +24,7 @@ class RecursorConfig(ApiTestCase):
         """Test the error case, should return 422."""
         payload = {'value': ["abcdefgh"]}
         r = self.session.put(
-            self.url("/servers/localhost/config/allow-from"),
+            self.url("/api/v1/servers/localhost/config/allow-from"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)

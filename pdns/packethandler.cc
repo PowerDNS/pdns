@@ -64,7 +64,7 @@ enum root_referral {
 PacketHandler::PacketHandler():B(s_programname), d_dk(&B)
 {
   ++s_count;
-  d_doDNAME=::arg().mustDo("experimental-dname-processing");
+  d_doDNAME=::arg().mustDo("dname-processing");
   d_doRecursion= ::arg().mustDo("recursor");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   d_doIPv6AdditionalProcessing = ::arg().mustDo("do-ipv6-additional-processing");

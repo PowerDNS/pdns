@@ -114,7 +114,7 @@ static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, HttpResponse* resp) {
-  const string& api_key = arg()["experimental-api-key"];
+  const string& api_key = arg()["api-key"];
 
   if (optionsHandler(req, resp)) return;
 

@@ -60,7 +60,7 @@ Authentication
 --------------
 
 The PowerDNS daemons accept a static API Key, configured with the
-[`experimental-api-key`]('../authoritative/settings.md#experimental-api-key')
+[`api-key`]('../authoritative/settings.md#api-key')
 option, which has to be sent in the `X-API-Key` header.
 
 Note: Authoritative Server 3.4.0 and Recursor 3.6.0 and 3.6.1 use HTTP
@@ -96,16 +96,16 @@ Common Error Causes
 
 1. The client body was not a JSON document, or it could not be parsed, or the root element of the JSON document was not a hash.
 2. The client did not send an `Accept:` header, or it was set to `*/*`.
-3. For requests that operate on a zone, the `zone_id` URL part was invalid. To get a valid `zone_id`, list the zones with the `/servers/:server_id/zones` endpoint.
+3. For requests that operate on a zone, the `zone_id` URL part was invalid. To get a valid `zone_id`, list the zones with the `/api/v1/servers/:server_id/zones` endpoint.
 
 
-URL: /
-------
+URL: /api/v1
+------------
 
 Allowed methods: `GET`
 
     {
-      "server_url": "/servers{/server}",
+      "server_url": "/api/v1/servers{/server}",
       "api_features": [],
     }
 
@@ -198,11 +198,11 @@ other servers.
     {
       "type": "Server",
       "id": "localhost",
-      "url": "/servers/localhost",
+      "url": "/api/v1/servers/localhost",
       "daemon_type": "recursor",
       "version": "VERSION",
-      "config_url": "/servers/localhost/config{/config_setting}",
-      "zones_url": "/servers/localhost/zones{/zone}",
+      "config_url": "/api/v1/servers/localhost/config{/config_setting}",
+      "zones_url": "/api/v1/servers/localhost/zones{/zone}",
     }
 
 Note: On a pdns server, the servers collection is read-only, and the only
@@ -215,7 +215,7 @@ depend on the credentials you have supplied.
   May be one of `authoritative`, `recursor`.
 
 
-URL: /servers
+URL: /api/v1/servers
 -------------
 
 Collection access.
@@ -227,7 +227,7 @@ Allowed REST methods:
 * pdnscontrol: `GET`, `PUT`, `POST`, `DELETE`
 
 
-URL: /servers/:server\_id
+URL: /api/v1/servers/:server\_id
 -------------------------
 
 Returns a single server_resource.
@@ -248,7 +248,7 @@ config\_setting\_resource
     }
 
 
-URL: /servers/:server\_id/config
+URL: /api/v1/servers/:server\_id/config
 --------------------------------
 
 Collection access.
@@ -262,7 +262,7 @@ Creates a new config setting. This is useful for creating configuration for new 
 **TODO**: Not yet implemented.
 
 
-URL: /servers/:server\_id/config/:config\_setting\_name
+URL: /api/v1/servers/:server\_id/config/:config\_setting\_name
 -------------------------------------------------------
 
 Allowed REST methods: `GET`, `PUT`
@@ -287,7 +287,7 @@ zone_collection
       "id": "<id>",
       "name": "<string>",
       "type": "Zone",
-      "url": "/servers/:server_id/zones/:id",
+      "url": "/api/v1/servers/:server_id/zones/:id",
       "kind": "<kind>",
       "serial": <int>,
       "notified_serial": <int>,
@@ -384,7 +384,7 @@ When creating a slave zone, it is recommended to not set any of
 `nameservers`, `records`.
 
 
-URL: /servers/:server\_id/zones
+URL: /api/v1/servers/:server\_id/zones
 -------------------------------
 
 Allowed REST methods: `GET`, `POST`
@@ -405,7 +405,7 @@ rules before storing it. (Also applies to custom SOA records.)
 
 **TODO**: `dnssec`, `nsec3narrow`, `nsec3param`, `presigned` are not yet implemented.
 
-URL: /servers/:server\_id/zones/:zone\_id
+URL: /api/v1/servers/:server\_id/zones/:zone\_id
 -----------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`, `PATCH`.
@@ -495,7 +495,7 @@ Allowed fields in client body: all except `id` and `url`.
 Changing `name` renames the zone, as expected.
 
 
-URL: /servers/:server\_id/zones/:zone\_id/notify
+URL: /api/v1/servers/:server\_id/zones/:zone\_id/notify
 ------------------------------------------------
 
 Allowed methods: `PUT`
@@ -510,7 +510,7 @@ Not supported for recursors.
 Clients MUST NOT send a body.
 
 
-URL: /servers/:server\_id/zones/:zone\_id/axfr-retrieve
+URL: /api/v1/servers/:server\_id/zones/:zone\_id/axfr-retrieve
 -------------------------------------------------------
 
 Allowed methods: `PUT`
@@ -525,7 +525,7 @@ Not supported for recursors.
 **Note**: Added in 3.4.2
 
 
-URL: /servers/:server\_id/zones/:zone\_id/export
+URL: /api/v1/servers/:server\_id/zones/:zone\_id/export
 -------------------------------------------------------
 
 Allowed methods: `GET`
@@ -535,7 +535,7 @@ Returns the zone in AXFR format.
 Not supported for recursors.
 
 
-URL: /servers/:server\_id/zones/:zone\_id/check
+URL: /api/v1/servers/:server\_id/zones/:zone\_id/check
 -----------------------------------------------
 
 Allowed methods: `GET`
@@ -574,7 +574,7 @@ through this interface. The server SHOULD reject updates to these
 metadata.
 
 
-URL: /servers/:server\_id/zones/:zone\_name/metadata
+URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata
 ----------------------------------------------------
 
 Collection access.
@@ -583,7 +583,7 @@ Allowed methods: `GET`, `POST`
 
 **TODO**: Not yet implemented.
 
-URL: /servers/:server\_id/zones/:zone\_name/metadata/:metadata\_kind
+URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata/:metadata\_kind
 --------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
@@ -621,7 +621,7 @@ both mutually exclusive.
 `ds`: an array with all dses for this key
 
 
-URL: /servers/:server\_id/zones/:zone\_name/cryptokeys
+URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys
 ------------------------------------------------------
 
 Allowed methods: `GET`, `POST`
@@ -648,7 +648,7 @@ Where `<algo>` is one of the supported key algos in lowercase OR the
 numeric id, see
 [http://rtfm.powerdns.com/pdnsutil.html](http://rtfm.powerdns.com/pdnsutil.html)
 
-URL: /servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
+URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
 ---------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
@@ -675,7 +675,7 @@ Cache Access
 Logging & Statistics
 ====================
 
-URL: /servers/:server\_id/search-log?q=:search\_term
+URL: /api/v1/servers/:server\_id/search-log?q=:search\_term
 ----------------------------------------------------
 
 Allowed methods: `GET` (Query)
@@ -689,7 +689,7 @@ Query the log, filtered by `:search_term`. Response body:
       ...
     ]
 
-URL: /servers/:server\_id/statistics
+URL: /api/v1/servers/:server\_id/statistics
 ------------------------------------
 
 Allowed methods: `GET` (Query)
@@ -711,7 +711,7 @@ The statistic entries are dependent on the daemon type.
 Values are returned as strings.
 
 
-URL: /servers/:server\_id/trace
+URL: /api/v1/servers/:server\_id/trace
 -------------------------------
 
 **TODO**: Not yet implemented.
@@ -741,7 +741,7 @@ Retrieve query tracing log and current config. Response body:
     }
 
 
-URL: /servers/:server\_id/failures
+URL: /api/v1/servers/:server\_id/failures
 ----------------------------------
 
 **TODO**: Not yet implemented.
@@ -878,7 +878,7 @@ Clears recursively all cached data ("plain" DNS + DNSSEC)
 
 **TODO**: should this be stored? (for history)
 
-URL: /servers/:server\_id/overrides
+URL: /api/v1/servers/:server\_id/overrides
 ----------------------------------
 
 **TODO**: Not yet implemented.
@@ -887,7 +887,7 @@ Collection access.
 
 Allowed Methods: `GET`, `POST`
 
-URL: /servers/:server\_id/overrides/:override\_id
+URL: /api/v1/servers/:server\_id/overrides/:override\_id
 -------------------------------------------------
 
 **TODO**: Not yet implemented.

@@ -29,8 +29,8 @@
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./ \
 		--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave \
 		--send-root-referral --retrieval-threads=1  --config-name=bind-slave \
-		--experimental-dnsupdate=yes \
-		--cache-ttl=$cachettl --no-config --experimental-dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 \
+		--dnsupdate=yes \
+		--cache-ttl=$cachettl --no-config --dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 \
 		--module-dir=./modules &
 	echo 'waiting for zones to be loaded'
 	bindwait bind-slave

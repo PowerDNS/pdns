@@ -26,7 +26,7 @@ No breaking changes.
 ## Configuration option changes
 
 ### New options
-* [`experimental-api-key`](settings.md#experimental-api-key)
+* [`experimental-api-key`](settings.md#api-key)
 * [`security-poll-suffix`](settings.md#security-poll-suffix)
 
 # 3.3.1 to 3.4.0
