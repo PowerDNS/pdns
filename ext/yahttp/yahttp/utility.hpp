@@ -8,7 +8,7 @@ namespace YaHTTP {
   /*! Case-Insensitive NULL safe comparator for string maps */
   struct ASCIICINullSafeComparator {
     bool operator() (const std::string& lhs, const std::string& rhs) const {
-      char v;
+      int v;
       std::string::const_iterator lhi = lhs.begin();
       std::string::const_iterator rhi = rhs.begin();
       for(;lhi != lhs.end() && rhi != rhs.end(); lhi++, rhi++)
