@@ -10,7 +10,7 @@ unsigned int Rings::numDistinctRequestors()
   return s.size();
 }
 
-vector<pair<unsigned int,ComboAddress> > Rings::getTopBandwidth(int numentries)
+vector<pair<unsigned int,ComboAddress> > Rings::getTopBandwidth(unsigned int numentries)
 {
   map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
   {
@@ -29,6 +29,7 @@ vector<pair<unsigned int,ComboAddress> > Rings::getTopBandwidth(int numentries)
   ret_t ret;
   for(const auto& p : counts)
     ret.push_back({p.second, p.first});
+  numentries = ret.size() < numentries ? ret.size() : numentries;
   partial_sort(ret.begin(), ret.begin()+numentries, ret.end(), [](const ret_t::value_type&a, const ret_t::value_type&b)
 	       {
 		 return(b.second < a.second);

@@ -156,5 +156,11 @@ void moreLua()
 
     });
 
-
+  g_lua.writeFunction("topBandwidth", [](unsigned int top) {
+      auto res = g_rings.getTopBandwidth(top);
+      boost::format fmt("%7d  %s\n");
+      for(const auto& l : res) {
+	g_outputBuffer += (fmt % l.first % l.second.toString()).str();
+      }
+    });
 }
