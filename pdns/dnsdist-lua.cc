@@ -653,7 +653,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
 
-  // something needs to be done about this, unlocked will 'mostly' work
+
   g_lua.writeFunction("topClients", [](unsigned int top) {
       map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;

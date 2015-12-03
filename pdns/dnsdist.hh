@@ -194,6 +194,7 @@ struct Rings {
     struct timespec when;
     ComboAddress requestor;
     DNSName name;
+    uint16_t size;
     uint16_t qtype;
   };
   boost::circular_buffer<Query> queryRing;
@@ -210,6 +211,9 @@ struct Rings {
   boost::circular_buffer<Response> respRing;
   std::mutex respMutex;
   pthread_rwlock_t queryLock;
+
+  vector<pair<unsigned int, ComboAddress> > getTopBandwidth(int numentries);
+  unsigned int numDistinctRequestors();
 };
 
 extern Rings g_rings;
