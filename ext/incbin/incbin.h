@@ -123,17 +123,17 @@
     __asm__(INCBIN_SECTION \
             INCBIN_GLOBAL(g ## NAME ## Data) \
             INCBIN_TYPE(g ## NAME ## Data) \
-            ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n" \
+            ".balign " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n" \
             INCBIN_MANGLE "g" #NAME "Data:\n" \
             INCBIN_MACRO " \"" FILENAME "\"\n" \
             INCBIN_GLOBAL(g ## NAME ## End) \
             INCBIN_TYPE(g ## NAME ## End) \
-            ".align 1\n" \
+            ".balign 1\n" \
             INCBIN_MANGLE "g" #NAME "End:\n" \
                 INCBIN_INT "1\n"\
             INCBIN_GLOBAL(g ## NAME ## Size) \
             INCBIN_TYPE(g ## NAME ## Size) \
-            ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n" \
+            ".balign " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n" \
             INCBIN_MANGLE "g" #NAME "Size:\n" \
                 INCBIN_INT INCBIN_MANGLE "g" #NAME "End - " INCBIN_MANGLE "g" #NAME "Data\n" \
     ); \
