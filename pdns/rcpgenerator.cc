@@ -51,8 +51,7 @@ void RecordTextReader::xfr64BitInt(uint64_t &val)
     throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
 
   char *endptr;
-  unsigned long ret=strtoull(d_string.c_str() + d_pos, &endptr, 10);
-  val=ret;
+  val=strtoull(d_string.c_str() + d_pos, &endptr, 10);
   
   d_pos = endptr - d_string.c_str();
 }
