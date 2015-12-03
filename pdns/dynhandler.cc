@@ -265,7 +265,7 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
     return "Unable to convert '"+parts[2]+"' to an IP address";
   }
   
-  L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<parts[1]<<"' received"<<endl;
+  L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<parts[1]<<"' received from operator"<<endl;
   Communicator.notify(DNSName(parts[1]), parts[2]);
   return "Added to queue";
 }
