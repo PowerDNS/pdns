@@ -67,7 +67,7 @@ HTTPS is not supported, [stunnel](https://www.stunnel.org) is the suggested work
 parameters: endpoint, timeout (default 2000ms)
 
 ```
-remote-connection-string=zmq:endpoint=ipc:///tmp/tmp.sock
+remote-connection-string=zeromq:endpoint=ipc:///tmp/tmp.sock
 ```
 
 0MQ connector implements a REQ/REP RPC model. Please see <http://zeromq.org/> for more information.
