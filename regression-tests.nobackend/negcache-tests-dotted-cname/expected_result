@@ -1,0 +1,7 @@
+0	cname.example2.com.	IN	CNAME	3600	www.example.com.
+0	www.example.com.	IN	A	120	127.0.0.1
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname.example2.com.', qtype=A
+0	www.example.com.	IN	A	120	127.0.0.1
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='www.example.com.', qtype=A
