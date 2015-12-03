@@ -181,6 +181,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  ret->mustResolve=boost::get<bool>(vars["mustResolve"]);
 			}
 
+			if(vars.count("useClientSubnet")) {
+			  ret->useECS=boost::get<bool>(vars["useClientSubnet"]);
+			}
+
 			if(g_launchWork) {
 			  g_launchWork->push_back([ret]() {
 			      ret->tid = move(thread(responderThread, ret));
@@ -909,6 +913,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) { g_maxTCPClientThreads = max; });
+
+  g_lua.writeFunction("setECSSourcePrefixV4", [](uint16_t prefix) { g_ECSSourcePrefixV4=prefix; });
+
+  g_lua.writeFunction("setECSSourcePrefixV6", [](uint16_t prefix) { g_ECSSourcePrefixV6=prefix; });
+
+  g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
   g_lua.writeFunction("dumpStats", [] {
       vector<string> leftcolumn, rightcolumn;

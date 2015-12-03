@@ -279,11 +279,15 @@ script:
   - cd pdns/dnsdistdist
   - tar xf dnsdist*.tar.bz2
   - cd dnsdist-*
-  - ./configure
+  - ./configure --enable-unit-tests
   - make -k -j3
+  - ./testrunner
+  - cp ./dnsdist ../../../regression-tests.dnsdist/
+  - cd ../../../regression-tests.dnsdist
+  - DNSDISTBIN=./dnsdist ./runtests
+  - rm -f ./dnsdist
   - cd ..
-  - rm -rf dnsdist-*/
-  - cd ../../
+  - rm -rf pdns/dnsdistdist/dnsdist-*/
 
 
   ### api ###

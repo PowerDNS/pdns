@@ -145,6 +145,17 @@ its RCODE differs from NXDomain, ServFail and Refused.
 newServer {address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true}
 ```
 
+In order to provide the downstream server with the address of the real client,
+or at least the one talking to dnsdist, the 'useClientSubnet' parameter can be used
+when declaring a new server. This parameter indicates whether an EDNS Client Subnet option
+should be added to the request. If the incoming request already contains an EDNS Client Subnet value,
+it will not be overriden unless setECSOverride is set to true. The source prefix-length may be
+configured with:
+```
+> setECSSourcePrefixV4(24)
+> setECSSourcePrefixV6(56)
+```
+
 TCP timeouts
 ------------
 
@@ -580,7 +591,7 @@ Here are all functions:
    * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false})`: 
+   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false, useClientSubnet=true})`:
 instantiate a server with additional parameters
    * `showServers()`: output all servers
    * `getServer(n)`: returns server with index n 

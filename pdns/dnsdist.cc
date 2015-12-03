@@ -21,6 +21,7 @@
 */
 
 #include "dnsdist.hh"
+#include "dnsdist-ecs.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include <netinet/tcp.h>
@@ -108,12 +109,12 @@ int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
 bool g_truncateTC{1};
-void truncateTC(const char* packet, unsigned int* len)
+static void truncateTC(const char* packet, unsigned int* len)
 try
 {
   unsigned int consumed;
-  DNSName qname(packet, *len, 12, false, 0, 0, &consumed);
-  *len=consumed+12+4;
+  DNSName qname(packet, *len, sizeof(dnsheader), false, 0, 0, &consumed);
+  *len=sizeof(dnsheader)+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE;
   struct dnsheader* dh =(struct dnsheader*)packet;
   dh->ancount = dh->arcount = dh->nscount=0;
 }
@@ -139,6 +140,7 @@ struct DelayedPacket
 
 DelayPipe<DelayedPacket> * g_delay = 0;
 
+
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
@@ -146,11 +148,15 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
   const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
   const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
+  vector<uint8_t> rewrittenResponse;
   
   struct dnsheader* dh = (struct dnsheader*)packet;
   int len;
   for(;;) {
     len = recv(state->fd, packet, sizeof(packet), 0);
+    const char * response = packet;
+    size_t responseLen = len;
+
     if(len < (signed)sizeof(dnsheader))
       continue;
 
@@ -179,17 +185,46 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     *flags |= origFlags;
 
     dh->id = ids->origID;
+
+    if (ids->ednsAdded) {
+      const char * optStart = NULL;
+      size_t optLen = 0;
+      bool last = false;
+
+      int res = locateEDNSOptRR(packet, len, &optStart, &optLen, &last);
+
+      if (res == 0) {
+        if (last) {
+          /* simply remove the last AR */
+          responseLen -= optLen;
+          uint16_t arcount = ntohs(dh->arcount);
+          arcount--;
+          dh->arcount = htons(arcount);
+        }
+        else {
+          /* Removing an intermediary RR could lead to compression error */
+          if (rewriteResponseWithoutEDNS(packet, len, rewrittenResponse) == 0) {
+            response = reinterpret_cast<char*>(rewrittenResponse.data());
+            responseLen = rewrittenResponse.size();
+          }
+          else {
+            warnlog("Error rewriting content");
+          }
+        }
+      }
+    }
+
     g_stats.responses++;
 
     if(ids->delayMsec && g_delay) {
-      DelayedPacket dp{origFD, string(packet,len), ids->origRemote, ids->origDest};
+      DelayedPacket dp{origFD, string(response,responseLen), ids->origRemote, ids->origDest};
       g_delay->submit(dp, ids->delayMsec);
     }
     else {
       if(ids->origDest.sin4.sin_family == 0)
-	sendto(origFD, packet, len, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
+	sendto(origFD, response, responseLen, 0, (struct sockaddr*)&ids->origRemote, ids->origRemote.getSocklen());
       else
-	sendfromto(origFD, packet, len, 0, ids->origDest, ids->origRemote);
+	sendfromto(origFD, response, responseLen, 0, ids->origDest, ids->origRemote);
     }
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
@@ -200,7 +235,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
       g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff, (unsigned int)len});
     }
-    if(dh->rcode == 2)
+    if(dh->rcode == RCode::ServFail)
       g_stats.servfailResponses++;
     state->latencyUsec = (127.0 * state->latencyUsec / 128.0) + udiff/128.0;
 
@@ -222,6 +257,8 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 
     if (ids->origFD == origFD)
       ids->origFD = -1;
+
+    rewrittenResponse.clear();
   }
   return 0;
 }
@@ -379,26 +416,31 @@ int getEDNSZ(const char* packet, unsigned int len)
 {
   struct dnsheader* dh =(struct dnsheader*)packet;
 
-  if(dh->ancount!=0 && ntohs(dh->arcount)!=1 && dh->nscount!=0)
+  if(ntohs(dh->qdcount) != 1 || dh->ancount!=0 || ntohs(dh->arcount)!=1 || dh->nscount!=0)
     return 0;
-  
+
+  if (len <= sizeof(dnsheader))
+    return 0;
+
   unsigned int consumed;
-  DNSName qname(packet, len, 12, false, 0, 0, &consumed);
-  int pos = consumed + 4;
+  DNSName qname(packet, len, sizeof(dnsheader), false, 0, 0, &consumed);
+  size_t pos = consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
   uint16_t qtype, qclass;
 
-  DNSName aname(packet, len, 12+pos, true, &qtype, &qclass, &consumed);
-  
-  if(qtype!=QType::OPT || 12+pos+consumed+7 >= len)
+  if (len <= (sizeof(dnsheader)+pos))
     return 0;
 
-  uint8_t* z = (uint8_t*)packet+12+pos+consumed+6;
+  DNSName aname(packet, len, sizeof(dnsheader)+pos, true, &qtype, &qclass, &consumed);
+
+  if(qtype!=QType::OPT || sizeof(dnsheader)+pos+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE+EDNS_EXTENDED_RCODE_SIZE+EDNS_VERSION_SIZE+1 >= len)
+    return 0;
+
+  uint8_t* z = (uint8_t*)packet+sizeof(dnsheader)+pos+consumed+DNS_TYPE_SIZE+DNS_CLASS_SIZE+EDNS_EXTENDED_RCODE_SIZE+EDNS_VERSION_SIZE;
   return 0x100 * (*z) + *(z+1);
 }
 
-
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
-void* udpClientThread(ClientState* cs)
+static void* udpClientThread(ClientState* cs)
 try
 {
   ComboAddress remote;
@@ -406,8 +448,7 @@ try
   char packet[1500];
   struct dnsheader* dh = (struct dnsheader*) packet;
   int len;
-
-  string qname;
+  string largerQuery;
   uint16_t qtype;
 
   typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
@@ -427,6 +468,7 @@ try
   auto localDynBlock = g_dynblockNMG.getLocal();
   struct msghdr msgh;
   struct iovec iov;
+  /* used by HarvestDestinationAddress */
   char cbuf[256];
 
   remote.sin6.sin6_family=cs->local.sin6.sin6_family;
@@ -468,7 +510,8 @@ try
       
       const uint16_t * flags = getFlagsFromDNSHeader(dh);
       const uint16_t origFlags = *flags;
-      DNSName qname(packet, len, 12, false, &qtype);
+      unsigned int consumed = 0;
+      DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
       {
@@ -581,16 +624,28 @@ try
       ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
       ids->origFlags = origFlags;
+      ids->ednsAdded = false;
       HarvestDestinationAddress(&msgh, &ids->origDest);
 
       dh->id = idOffset;
+
+      if (ss->useECS) {
+        handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerQuery, &(ids->ednsAdded), remote);
+      }
       
-      len = send(ss->fd, packet, len, 0);
+      if (largerQuery.empty()) {
+        len = send(ss->fd, packet, len, 0);
+      }
+      else {
+        len = send(ss->fd, largerQuery.c_str(), largerQuery.size(), 0);
+        largerQuery.clear();
+      }
+      
       if(len < 0) {
 	ss->sendErrors++;
 	g_stats.downstreamSendErrors++;
       }
-      
+
       vinfolog("Got query from %s, relayed to %s", remote.toStringWithPort(), ss->getName());
     }
     catch(std::exception& e){
@@ -711,7 +766,7 @@ void* maintThread()
 
 string g_key;
 
-void controlClientThread(int fd, ComboAddress client)
+static void controlClientThread(int fd, ComboAddress client)
 try
 {
   SodiumNonce theirs;
@@ -807,7 +862,7 @@ catch(std::exception& e)
 
 
 
-void doClient(ComboAddress server, const std::string& command)
+static void doClient(ComboAddress server, const std::string& command)
 {
   cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
@@ -882,7 +937,7 @@ void doClient(ComboAddress server, const std::string& command)
   }
 }
 
-void doConsole()
+static void doConsole()
 {
   set<string> dupper;
   {
@@ -1060,8 +1115,8 @@ char* my_generator(const char* text, int state)
   vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
       "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
       "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
-      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "addDelay(",
-      "setMaxUDPOutstanding(", "setMaxTCPClientThreads("};
+      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "setECSOverride(", "setECSSourcePrefixV4(",
+      "setECSSourcePrefixV6(", "addDelay(", "setTCPRecvTimeout(", "setTCPSendTimeout(", "setMaxTCPClientThreads(", "setMaxUDPOutstanding(" };
   static int s_counter=0;
   int counter=0;
   if(!state)
