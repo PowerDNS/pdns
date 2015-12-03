@@ -21,6 +21,11 @@ for prog in $SDIG $SAXFR $NSEC3DIG; do
   fi
 done
 
+export SDIG="timeout 5 $SDIG"
+export NSEC3DIG="timeout 5 $NSEC3DIG"
+export SAXFR="timeout 30 $SAXFR"
+export PDNSCONTROL="timeout 5 $PDNSCONTROL"
+
 rm -f test-results failed_tests passed_tests skipped_tests ${testsdir}/*/real_result ${testsdir}/*/diff ${testsdir}/*/*.out ${testsdir}/*/start ${testsdir}/*/step.*
 
 passed=0
