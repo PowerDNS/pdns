@@ -1225,7 +1225,7 @@ void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
 void AuthWebServer::webThread()
 {
   try {
-    if(::arg().mustDo("json-interface")) {
+    if(::arg().mustDo("api")) {
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
       d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);

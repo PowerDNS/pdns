@@ -47,26 +47,30 @@ remote server to TCP. Useful for mitigating ANY reflection attacks.
 ## `api-config-dir`
 * Path
 * Default: unset
+* Available since: 4.0
 
 Directory where the REST API stores its configuration and zones.
 
 ## `api-key`
 * String
 * Default: unset
+* Available since: 4.0
 
 Static pre-shared authentication key for access to the REST API.
 
 ## `api-readonly`
 * Boolean
 * Default: no
+* Available since: 4.0
 
-Whether or not the JSON API is read only.
+Disallow data modification through the REST API when set.
 
 ## `api-logfile`
 * Path
 * Default: unset
+* Available since: 4.0
 
-Location of the logs from the JSON parser.
+Location of the server logfile (used by the REST API).
 
 ## `auth-can-lower-ttl`
 * Boolean
@@ -190,7 +194,7 @@ waiting for enough entropy to arrive.
 * Boolean
 * Default: no
 
-Start the webserver for monitoring.
+Start the webserver (for REST API).
 
 ## `webserver-address`
 * IP Addresses, separated by spaces

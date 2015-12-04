@@ -54,18 +54,26 @@ always receive a notification. Even if they do not match the list in
 Answer questions for the ANY and RRSIG types on UDP with a truncated packet that
 refers the remote server to TCP. Useful for mitigating reflection attacks.
 
-## `api-readonly`
+## `api`
 * Boolean
 * Default: no
-* Available since: 3.4
+* Available since: 4.0
 
-Disallow data modification through the json API when set.
+Enable/disable the [REST API](../httpapi/README.md). Must also enable `webserver`
+to use the API.
 
 ## `api-key`
 * String
-* Available since: 3.4.1
+* Available since: 4.0
 
-api-key REST API Static authentication key (required for API use)
+Static pre-shared authentication key for access to the REST API.
+
+## `api-readonly`
+* Boolean
+* Default: no
+* Available since: 4.0
+
+Disallow data modification through the REST API when set.
 
 ## `cache-ttl`
 * Integer
@@ -281,12 +289,6 @@ Enables EDNS subnet processing, for backends that support it.
 * Default: /dev/urandom
 
 Entropy source file to use.
-
-## `json-interface`
-* Boolean
-* Default: no
-
-Enable/disable the [JSON API](../httpapi/README.md).
 
 ## `forward-dnsupdates`
 * Boolean
@@ -770,7 +772,7 @@ this response to a custom value as well.
 * Boolean
 * Default: no
 
-Start a webserver for monitoring. See
+Start a webserver for monitoring (and REST API if enabled). See
 ["Performance Monitoring"](../common/logging.md#performance-monitoring).
 
 ## `webserver-address`
