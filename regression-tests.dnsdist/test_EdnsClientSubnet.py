@@ -280,16 +280,96 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
         self.assertEquals(expectedQuery, receivedQuery)
         self.assertEquals(expectedResponse, receivedResponse)
 
-    def testWithEDNSECS(self):
+    def testWithEDNSShorterInitialECS(self):
         """
         Send a query with EDNS and a crafted ECS value.
         Check that the query received by the responder
         has an overwritten ECS value (not the initial one)
         and that the response received from dnsdist contains
         an EDNS pseudo-RR.
+        The initial ECS value is shorter than the one it will
+        replaced with.
         """
         name = 'withednsecs.overriden.ecs.tests.powerdns.com.'
-        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4', 24)
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 8)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        receivedResponse.id = response.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        receivedResponse.id = response.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+    def testWithEDNSLongerInitialECS(self):
+        """
+        Send a query with EDNS and a crafted ECS value.
+        Check that the query received by the responder
+        has an overwritten ECS value (not the initial one)
+        and that the response received from dnsdist contains
+        an EDNS pseudo-RR.
+        The initial ECS value is longer than the one it will
+        replaced with.
+        """
+        name = 'withednsecs.overriden.ecs.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        receivedResponse.id = response.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        receivedResponse.id = response.id
+        self.assertEquals(expectedQuery, receivedQuery)
+        self.assertEquals(response, receivedResponse)
+
+    def testWithEDNSSameSizeInitialECS(self):
+        """
+        Send a query with EDNS and a crafted ECS value.
+        Check that the query received by the responder
+        has an overwritten ECS value (not the initial one)
+        and that the response received from dnsdist contains
+        an EDNS pseudo-RR.
+        The initial ECS value is exactly the same size as
+        the one it will replaced with.
+        """
+        name = 'withednsecs.overriden.ecs.tests.powerdns.com.'
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
         rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24)
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[ecso])
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096, options=[rewrittenEcso])
