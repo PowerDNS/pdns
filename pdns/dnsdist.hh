@@ -361,6 +361,9 @@ extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
 extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
+extern uint16_t g_maxOutstanding;
+extern std::atomic<bool> g_configurationDone;
+extern std::atomic<uint64_t> g_maxTCPClientThreads;
 struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);

@@ -671,6 +671,11 @@ instantiate a server with additional parameters
      * newSuffixMatchNode(): returns a new SuffixMatchNode
      * member `check(DNSName)`: returns true if DNSName is matched by this group
      * member `add(DNSName)`: add this DNSName to the node
+ * Tuning related:
+   * setTCPRecvTimeout(n): set the read timeout on TCP connections from the client, in seconds.
+   * setTCPSendTimeout(n): set the write timeout on TCP connections from the client, in seconds.
+   * setMaxTCPClientThreads(n): set the maximum of TCP client threads, handling TCP connections.
+   * setMaxUDPOutstanding(n): set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time.
 
 All hooks
 ---------

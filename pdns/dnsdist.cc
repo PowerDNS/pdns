@@ -654,6 +654,8 @@ catch(...)
   return false;
 }
 
+std::atomic<uint64_t> g_maxTCPClientThreads{10};
+
 void* maintThread()
 {
   int interval = 1;
@@ -661,7 +663,7 @@ void* maintThread()
   for(;;) {
     sleep(interval);
 
-    if(g_tcpclientthreads.d_queued > 1 && g_tcpclientthreads.d_numthreads < 10)
+    if(g_tcpclientthreads.d_queued > 1 && g_tcpclientthreads.d_numthreads < g_maxTCPClientThreads)
       g_tcpclientthreads.addTCPClientThread();
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
@@ -1053,7 +1055,8 @@ char* my_generator(const char* text, int state)
   vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
       "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
       "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
-      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "addDelay("};
+      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "addDelay(",
+      "setMaxUDPOutstanding(", "setMaxTCPClientThreads("};
   static int s_counter=0;
   int counter=0;
   if(!state)
@@ -1096,6 +1099,7 @@ struct
   string gid;
 } g_cmdLine;
 
+std::atomic<bool> g_configurationDone{false};
 
 int main(int argc, char** argv)
 try
@@ -1243,6 +1247,8 @@ try
   if(g_locals.empty())
     g_locals.push_back({ComboAddress("127.0.0.1", 53), true});
   
+
+  g_configurationDone = true;
 
   vector<ClientState*> toLaunch;
   for(const auto& local : g_locals) {

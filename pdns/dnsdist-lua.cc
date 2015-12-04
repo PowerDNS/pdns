@@ -897,6 +897,16 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout=timeout; });
 
+  g_lua.writeFunction("setMaxUDPOutstanding", [](uint16_t max) {
+      if (!g_configurationDone) {
+        g_maxOutstanding = max;
+      } else {
+        g_outputBuffer="Max UDP outstanding cannot be altered at runtime!\n";
+      }
+    });
+
+  g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) { g_maxTCPClientThreads = max; });
+
   g_lua.writeFunction("dumpStats", [] {
       vector<string> leftcolumn, rightcolumn;
 
