@@ -78,7 +78,7 @@ void RecordTextReader::xfrTime(uint32_t &val)
   memset(&tm, 0, sizeof(tm));
   
   uint64_t itmp;
-  xfr64BitInt(itmp); // ends on number, so this works 
+  xfr64BitInt(itmp);
 
   ostringstream tmp;
 
