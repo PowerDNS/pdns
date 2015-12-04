@@ -187,10 +187,8 @@ static void doCreateZone(const Value& document)
     throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
-  if(stringFromJson(document, "name").empty())
-    throw ApiException("Zone name empty");
-  
-  DNSName zonename(stringFromJson(document, "name"));
+  DNSName zonename = dnsnameFromJson(document, "name");
+  apiCheckNameAllowedCharacters(zonename.toString());
 
   string singleIPTarget = stringFromJson(document, "single_target_ip", "");
   string kind = toUpper(stringFromJson(document, "kind"));
@@ -281,7 +279,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     Document document;
     req->json(document);
 
-    DNSName zonename(stringFromJson(document, "name"));
+    DNSName zonename = dnsnameFromJson(document, "name");
 
     auto iter = t_sstorage->domainmap->find(zonename);
     if (iter != t_sstorage->domainmap->end())
@@ -342,7 +340,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     doDeleteZone(zonename);
     doCreateZone(document);
     reloadAuthAndForwards();
-    fillZone(DNSName(stringFromJson(document, "name")), resp);
+    fillZone(dnsnameFromJson(document, "name"), resp);
   }
   else if(req->method == "DELETE" && !::arg().mustDo("api-readonly")) {
     if (!doDeleteZone(zonename)) {

@@ -261,7 +261,11 @@ DNSName apiZoneIdToName(const string& id) {
 
   zonename = ss.str();
 
-  return DNSName(zonename);
+  try {
+    return DNSName(zonename);
+  } catch (...) {
+    throw ApiException("Unable to parse DNS Name '" + zonename + "'");
+  }
 }
 
 string apiZoneNameToId(const DNSName& dname) {
@@ -292,4 +296,9 @@ string apiZoneNameToId(const DNSName& dname) {
     id = (boost::format("=%02X") % (int)('.')).str();
   }
   return id;
+}
+
+void apiCheckNameAllowedCharacters(const string& label) {
+  if (label.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
+    throw ApiException("Label '"+label+"' contains unsupported characters");
 }

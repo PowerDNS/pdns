@@ -118,7 +118,7 @@ print "Running tests..."
 rc = 0
 test_env = {}
 test_env.update(os.environ)
-test_env.update({'WEBPORT': WEBPORT, 'APIKEY': APIKEY, 'DAEMON': daemon})
+test_env.update({'WEBPORT': WEBPORT, 'APIKEY': APIKEY, 'DAEMON': daemon, 'SQLITE_DB': SQLITE_DB})
 
 try:
     print ""

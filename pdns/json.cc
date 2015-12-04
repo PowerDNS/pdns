@@ -90,6 +90,27 @@ string stringFromJson(const Value& container, const char* key, const string& def
   }
 }
 
+DNSName dnsnameFromJson(const rapidjson::Value& container, const char* key)
+{
+  if (!container.IsObject()) {
+    throw JsonException("Container was not an object.");
+  }
+  const Value& val = container[key];
+  if (val.IsString()) {
+    string name = val.GetString();
+    if (!isCanonical(name)) {
+      throw JsonException("DNS Name '" + name + "' is not canonical");
+    }
+    try {
+      return DNSName(name);
+    } catch (...) {
+      throw JsonException("Unable to parse DNS Name '" + name + "'");
+    }
+  } else {
+    throw JsonException("Key '" + string(key) + "' not present or not a String");
+  }
+}
+
 bool boolFromJson(const rapidjson::Value& container, const char* key)
 {
   if (!container.IsObject()) {

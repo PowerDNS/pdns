@@ -37,6 +37,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 // helpers
 DNSName apiZoneIdToName(const string& id);
 string apiZoneNameToId(const DNSName& name);
+void apiCheckNameAllowedCharacters(const string& label);
 
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string,string>& out);

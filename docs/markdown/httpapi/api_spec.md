@@ -315,6 +315,10 @@ zone_collection
   Opaque zone id (string), assigned by the Server. Do not interpret.
   Guaranteed to be safe for embedding in URLs.
 
+* `name`
+  Zone name, always including the trailing dot. Example: `example.org.`
+  Note: Before 4.0.0, zone names were taken/given without the trailing dot.
+
 * `kind`
   Authoritative: `<kind>`: `Native`, `Master` or `Slave`
   Recursor: `<kind>`: `Native`, or `Forwarded`
@@ -351,7 +355,9 @@ zone_collection
   **Note**: Authoritative only.
 
 * `nameservers` MAY be sent in client bodies during creation, and MUST
-  NOT be sent by the server. Simple list of strings of nameserver names.
+  NOT be sent by the server. Simple list of strings of nameserver names,
+  including the trailing dot. Note: Before 4.0.0, names were taken without
+  the trailing dot.
   **Note**: Authoritative only. Not required for slave zones.
 
 * `servers`: list of forwarded-to servers, including port.
@@ -460,7 +466,7 @@ Client body for PATCH:
 Having `type` inside an RR differ from `type` at the RRset level is an error.
 
 * `name`
-  Full name of the RRset to modify. (Example: `foo.example.org`)
+  Full name of the RRset to modify. (Example: `foo.example.org.`)
 
 * `type`
   Type of the RRset to modify. (Example: `AAAA`)
@@ -505,7 +511,7 @@ Allowed methods: `PUT`
 
 Send a DNS NOTIFY to all slaves.
 
-Fails when zone kind is not `Master` or `Slave`, or `master` and `slave` are 
+Fails when zone kind is not `Master` or `Slave`, or `master` and `slave` are
 disabled in pdns configuration. Only works for `Slave` if renotify is on.
 
 Not supported for recursors.
@@ -860,7 +866,7 @@ override\_type
       "type": "Override",
       "id": <int>,
       "override": "replace",
-      "domain": "www.cnn.com",
+      "domain": "www.cnn.com.",
       "rrtype": "AAAA",
       "values": ["203.0.113.4", "203.0.113..2"],
       "until": <timestamp>,
@@ -873,7 +879,7 @@ override\_type
       "type": "Override",
       "id": <int>,
       "override": "purge",
-      "domain": "example.net",
+      "domain": "example.net.",
       "created": <timestamp>
     }
 
