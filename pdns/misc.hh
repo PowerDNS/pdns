@@ -410,33 +410,10 @@ public:
 private:
     mutable native_t value_;
 
-    // the below is necessary because __sync_fetch_and_add is not universally available on i386.. I 3> RHEL5.
-#if defined( __GNUC__ ) && ( defined( __i386__ ) || defined( __x86_64__ ) )
-    static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
-    {
-        // int r = *pw;
-        // *pw += dv;
-        // return r;
-
-        native_t r;
-
-        __asm__ __volatile__
-        (
-            "lock\n\t"
-            "xadd %1, %0":
-            "+m"( *pw ), "=r"( r ): // outputs (%0, %1)
-            "1"( dv ): // inputs (%2 == %1)
-            "memory", "cc" // clobbers
-        );
-
-        return r;
-    }
-    #else
     static native_t atomic_exchange_and_add( native_t * pw, native_t dv )
     {
       return __sync_fetch_and_add(pw, dv);
     }
-    #endif
 };
 
 // FIXME400 this should probably go?
