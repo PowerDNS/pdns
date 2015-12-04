@@ -93,9 +93,6 @@ void showBuildConfiguration()
 #ifdef HAVE_BOTAN110
     "botan1.10 " <<
 #endif
-#ifdef HAVE_BOTAN18
-    "botan1.8" <<
-#endif
 #ifdef HAVE_CRYPTOPP
     "cryptopp " <<
 #endif

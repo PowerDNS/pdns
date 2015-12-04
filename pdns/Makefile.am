@@ -20,10 +20,6 @@ if BOTAN110
 AM_CPPFLAGS += $(BOTAN110_CFLAGS)
 endif
 
-if BOTAN18
-AM_CPPFLAGS += $(BOTAN18_CFLAGS)
-endif
-
 if PKCS11
 AM_CPPFLAGS += $(P11KIT1_CFLAGS)
 endif
@@ -218,11 +214,6 @@ pdns_server_SOURCES += botan110signers.cc botansigners.cc
 pdns_server_LDADD += $(BOTAN110_LIBS)
 endif
 
-if BOTAN18
-pdns_server_SOURCES += botan18signers.cc botansigners.cc
-pdns_server_LDADD += $(BOTAN18_LIBS)
-endif
-
 if CRYPTOPP
 pdns_server_SOURCES += cryptoppsigners.cc
 pdns_server_LDADD += $(CRYPTOPP_LIBS)
@@ -316,11 +307,6 @@ pdnsutil_LDADD = \
 if BOTAN110
 pdnsutil_SOURCES += botan110signers.cc botansigners.cc
 pdnsutil_LDADD += $(BOTAN110_LIBS)
-endif
-
-if BOTAN18
-pdnsutil_SOURCES += botan18signers.cc botansigners.cc
-pdnsutil_LDADD += $(BOTAN18_LIBS)
 endif
 
 if CRYPTOPP
