@@ -216,7 +216,7 @@ depend on the credentials you have supplied.
 
 
 URL: /api/v1/servers
--------------
+--------------------
 
 Collection access.
 
@@ -228,7 +228,7 @@ Allowed REST methods:
 
 
 URL: /api/v1/servers/:server\_id
--------------------------
+--------------------------------
 
 Returns a single server_resource.
 
@@ -249,7 +249,7 @@ config\_setting\_resource
 
 
 URL: /api/v1/servers/:server\_id/config
---------------------------------
+---------------------------------------
 
 Collection access.
 
@@ -263,7 +263,7 @@ Creates a new config setting. This is useful for creating configuration for new 
 
 
 URL: /api/v1/servers/:server\_id/config/:config\_setting\_name
--------------------------------------------------------
+--------------------------------------------------------------
 
 Allowed REST methods: `GET`, `PUT`
 
@@ -385,7 +385,7 @@ When creating a slave zone, it is recommended to not set any of
 
 
 URL: /api/v1/servers/:server\_id/zones
--------------------------------
+--------------------------------------
 
 Allowed REST methods: `GET`, `POST`
 
@@ -406,7 +406,7 @@ rules before storing it. (Also applies to custom SOA records.)
 **TODO**: `dnssec`, `nsec3narrow`, `nsec3param`, `presigned` are not yet implemented.
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id
------------------------------------------
+------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`, `PATCH`.
 
@@ -496,7 +496,7 @@ Changing `name` renames the zone, as expected.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id/notify
-------------------------------------------------
+-------------------------------------------------------
 
 Allowed methods: `PUT`
 
@@ -511,7 +511,7 @@ Clients MUST NOT send a body.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id/axfr-retrieve
--------------------------------------------------------
+--------------------------------------------------------------
 
 Allowed methods: `PUT`
 
@@ -536,7 +536,7 @@ Not supported for recursors.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id/check
------------------------------------------------
+------------------------------------------------------
 
 Allowed methods: `GET`
 
@@ -575,7 +575,7 @@ metadata.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata
-----------------------------------------------------
+-----------------------------------------------------------
 
 Collection access.
 
@@ -584,7 +584,7 @@ Allowed methods: `GET`, `POST`
 **TODO**: Not yet implemented.
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata/:metadata\_kind
---------------------------------------------------------------------
+---------------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
 
@@ -622,7 +622,7 @@ both mutually exclusive.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys
-------------------------------------------------------
+-------------------------------------------------------------
 
 Allowed methods: `GET`, `POST`
 
@@ -649,7 +649,7 @@ numeric id, see
 [http://rtfm.powerdns.com/pdnsutil.html](http://rtfm.powerdns.com/pdnsutil.html)
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
----------------------------------------------------------------------
+----------------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
 
@@ -676,7 +676,7 @@ Logging & Statistics
 ====================
 
 URL: /api/v1/servers/:server\_id/search-log?q=:search\_term
-----------------------------------------------------
+-----------------------------------------------------------
 
 Allowed methods: `GET` (Query)
 
@@ -690,7 +690,7 @@ Query the log, filtered by `:search_term`. Response body:
     ]
 
 URL: /api/v1/servers/:server\_id/statistics
-------------------------------------
+-------------------------------------------
 
 Allowed methods: `GET` (Query)
 
@@ -712,7 +712,7 @@ Values are returned as strings.
 
 
 URL: /api/v1/servers/:server\_id/trace
--------------------------------
+--------------------------------------
 
 **TODO**: Not yet implemented.
 
@@ -742,7 +742,7 @@ Retrieve query tracing log and current config. Response body:
 
 
 URL: /api/v1/servers/:server\_id/failures
-----------------------------------
+-----------------------------------------
 
 **TODO**: Not yet implemented.
 
@@ -879,7 +879,7 @@ Clears recursively all cached data ("plain" DNS + DNSSEC)
 **TODO**: should this be stored? (for history)
 
 URL: /api/v1/servers/:server\_id/overrides
-----------------------------------
+------------------------------------------
 
 **TODO**: Not yet implemented.
 
@@ -888,7 +888,7 @@ Collection access.
 Allowed Methods: `GET`, `POST`
 
 URL: /api/v1/servers/:server\_id/overrides/:override\_id
--------------------------------------------------
+--------------------------------------------------------
 
 **TODO**: Not yet implemented.
 
