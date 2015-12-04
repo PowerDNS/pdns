@@ -1052,7 +1052,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   di.backend->commitTransaction();
 
   extern PacketCache PC;
-  PC.purge(zonename.toString()); // XXX DNSName pain - this seems the wrong way round!
+  PC.purgeExact(zonename);
 
   // now the PTRs
   for(const DNSResourceRecord& rr :  new_ptrs) {
@@ -1070,7 +1070,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       throw ApiException("PTR-Hosting backend for "+rr.qname.toString()+"/"+rr.qtype.getName()+" does not support editing records.");
     }
     sd.db->commitTransaction();
-    PC.purge(rr.qname.toString());
+    PC.purgeExact(rr.qname);
   }
 
   // success

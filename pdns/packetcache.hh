@@ -71,6 +71,7 @@ public:
   void cleanup(); //!< force the cache to preen itself from expired packets
   int purge();
   int purge(const std::string& match); // could be $ terminated. Is not a dnsname!
+  int purgeExact(const DNSName& qname); // no wildcard matching here
 
   map<char,int> getCounts();
 private:
@@ -149,4 +150,3 @@ private:
 
 
 #endif /* PACKETCACHE_HH */
-

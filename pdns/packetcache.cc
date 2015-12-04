@@ -251,11 +251,26 @@ int PacketCache::purge()
   return delcount;
 }
 
+int PacketCache::purgeExact(const DNSName& qname)
+{
+  int delcount=0;
+  auto& mc = getMap(qname);
+
+  WriteLock l(&mc.d_mut);
+  auto range = mc.d_map.equal_range(tie(qname));
+  if(range.first != range.second) {
+    delcount+=distance(range.first, range.second);
+    mc.d_map.erase(range.first, range.second);
+  }
+  *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+  return delcount;
+}
+
 /* purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
 int PacketCache::purge(const string &match)
 {
-  int delcount=0;
   if(ends_with(match, "$")) {
+    int delcount=0;
     string prefix(match);
     prefix.resize(prefix.size()-1);
     DNSName dprefix(prefix);
@@ -272,21 +287,12 @@ int PacketCache::purge(const string &match)
       }
       mc.d_map.erase(start, iter);
     }
+    *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED (for packetcache shards)
+    return delcount;
   }
   else {
-    DNSName dn(match);
-    auto& mc = getMap(dn);
-
-    WriteLock l(&mc.d_mut);
-    auto range = mc.d_map.equal_range(tie(dn));
-    if(range.first != range.second) {
-      delcount+=distance(range.first, range.second);
-      mc.d_map.erase(range.first, range.second);
-    }
+    return purgeExact(DNSName(match));
   }
-
-  *d_statnumentries-=delcount; // XXX FIXME NEEDS TO BE ADJUSTED
-  return delcount;
 }
 // called from ueberbackend
 bool PacketCache::getEntry(const DNSName &qname, const QType& qtype, CacheEntryType cet, vector<DNSResourceRecord>& value, int zoneID)
