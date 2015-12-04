@@ -8,8 +8,8 @@ Design Goals
 
 * Discovery endpoint
 * Unified API Scheme for Daemons & Console.
-  Think of the Console Server as a proxy for all your pdns deployments.
-* Have API docs (this!) for other consumers
+  Think of the Console Server as a proxy for all your PowerDNS deployments.
+* Have API documentation (this!) for other consumers
 
 Data format
 -----------
@@ -190,7 +190,8 @@ Servers
 server_resource
 ---------------
 
-Example with server `"localhost"`, which is the only server returned by pdns.
+Example with server `"localhost"`, which is the only server returned by
+pdns\_server or pdns\_recursor.
 
 pdnsmgrd and pdnscontrol MUST NOT return “localhost”, but SHOULD return
 other servers.
@@ -205,8 +206,8 @@ other servers.
       "zones_url": "/api/v1/servers/localhost/zones{/zone}",
     }
 
-Note: On a pdns server, the servers collection is read-only, and the only
-allowed returned server is read-only as well.
+Note: On a pdns\_server or pdns\_recursor, the servers collection is read-only,
+and the only allowed returned server is read-only as well.
 On a pdnscontrol server, the servers collection is read-write, and the
 returned server resources are read-write as well. Write permissions may
 depend on the credentials you have supplied.
@@ -222,7 +223,8 @@ Collection access.
 
 Allowed REST methods:
 
-* pdns: `GET`
+* pdns\_server: `GET`
+* pdns\_recursor: `GET`
 * pdnsmgrd: `GET`
 * pdnscontrol: `GET`, `PUT`, `POST`, `DELETE`
 
@@ -332,7 +334,8 @@ zone_collection
   **TODO**: `dnssec`, `nsec3narrow`, `nsec3param`, `presigned` are not yet implemented.
 
 * `soa_edit` MAY be set to change the `SOA-EDIT` zone setting. See
-  http://doc.powerdns.com/html/domainmetadata.html for more information.
+  [the `SOA-EDIT` documentation](../authoritative/domainmetadata.md#soa-edit)
+  for more information.
   **Note**: Authoritative only.
 
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
@@ -374,7 +377,7 @@ implemented.
 Changes made through the Zones API will always yield valid zone data,
 and the zone will be properly "rectified" (**TODO**: not yet
 implemented). If changes are made through other means (e.g. direct
-database access), this is not guranteed to be true and clients SHOULD
+database access), this is not guaranteed to be true and clients SHOULD
 trigger rectify.
 
 Backends might implement additional features (by coincidence or not).
@@ -396,7 +399,7 @@ Creates a new domain.
 * `dnssec`, `nsec3narrow`, `presigned` default to `false`.
 * The server MUST create a SOA record. The created SOA record SHOULD have
 serial set to the value given as `serial` (or 0 if missing), use the
-nameserver name, email, TTL values as specified in the pdns configuration
+nameserver name, email, TTL values as specified in the PowerDNS configuration
 (`default-soa-name`, `default-soa-mail`, etc).
 These default values can be overridden by supplying a custom SOA record in
 the records list.
@@ -464,7 +467,7 @@ Having `type` inside an RR differ from `type` at the RRset level is an error.
 
 * `changetype`
   Must be `REPLACE` or `DELETE`.
-  With `DELETE`, all existing RRs matching `name` and `type` will be deleted, incl. all comments.
+  With `DELETE`, all existing RRs matching `name` and `type` will be deleted, including all comments.
   With `REPLACE`: when `records` is present, all existing RRs matching `name` and `type` will be deleted, and then new records given in `records` will be created.
   If no records are left, any existing comments will be deleted as well.
   When `comments` is present, all existing comments for the RRs matching `name` and `type` will be deleted, and then new comments given in `comments` will be created.
@@ -517,7 +520,7 @@ Allowed methods: `PUT`
 
 Retrieves the zone from the master.
 
-Fails when zone kind is not `Slave`, or `slave` is disabled in pdns
+Fails when zone kind is not `Slave`, or `slave` is disabled in PowerDNS.
 configuration.
 
 Not supported for recursors.
@@ -567,7 +570,8 @@ zone\_metadata\_resource
       ]
     }
 
-Valid values for `<metadata_kind>` are specified in <http://doc.powerdns.com/domainmetadata.html>.
+Valid values for `<metadata_kind>` are specified in
+[the `domainmetadata` documentation](../authoritative/domainmetadata.md).
 
 Clients MUST NOT modify `NSEC3PARAM`, `NSEC3NARROW` or `PRESIGNED`
 through this interface. The server SHOULD reject updates to these
@@ -618,7 +622,7 @@ both mutually exclusive.
 
 `dnskey`: the DNSKEY for this key
 
-`ds`: an array with all dses for this key
+`ds`: an array with all DSes for this key
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys
@@ -638,15 +642,14 @@ Creates a new, single cryptokey.
 
 ##### Parameters:
 
-`content`: if `null`, pdns generates a new key. In this case, the
+`content`: if `null`, the server generates a new key. In this case, the
 following additional fields MAY be supplied:
 
 * `bits`: `<int>`
 * `algo`: `<algo>`
 
-Where `<algo>` is one of the supported key algos in lowercase OR the
-numeric id, see
-[http://rtfm.powerdns.com/pdnsutil.html](http://rtfm.powerdns.com/pdnsutil.html)
+Where `<algo>` is one of the supported key algorithms in lowercase OR the
+numeric id, see [`the list`](../authoritative/dnssec.md#supported-algorithms).
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
 ----------------------------------------------------------------------------
@@ -655,7 +658,7 @@ Allowed methods: `GET`, `PUT`, `DELETE`
 
 #### GET
 
-Returns all public data about cryptokeys, including `content`, with all the private data. An array is returned, eventhough a single key is requested.
+Returns all public data about cryptokeys, including `content`, with all the private data. An array is returned, even though a single key is requested.
 
 #### PUT
 
@@ -824,11 +827,11 @@ Where `<failure_code>` is one of these:
 
   + `refused`
 
-    All auth nameservers that have been tried responded with refused.
+    All auth nameservers that have been tried responded with REFUSED.
 
   + `servfail`
 
-    All auth nameservers that have been tried responded with servfail.
+    All auth nameservers that have been tried responded with SERVFAIL.
 
   + **TODO**: further failures
 
