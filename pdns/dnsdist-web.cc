@@ -158,13 +158,31 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 		{"action", a.second->toString()} };
 	rules.push_back(rule);
       }
+      
 
+      string acl;
+
+      vector<string> vec;
+
+      g_ACL.getCopy().toStringVector(&vec);
+
+      for(const auto& s : vec) {
+        if(!acl.empty()) acl += ", ";
+        acl+=s;      
+      }
+      string localaddresses;
+      for(const auto& loc : g_locals) {
+        if(!localaddresses.empty()) localaddresses += ", ";
+        localaddresses += loc.first.toStringWithPort();
+      }
  
       Json my_json = Json::object {
 	{ "daemon_type", "dnsdist" },
 	{ "version", VERSION},
 	{ "servers", servers},
 	{ "rules", rules},
+	{ "acl", acl},
+	{ "local", localaddresses}
       };
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
