@@ -31,6 +31,7 @@ dnsdist_SOURCES = \
 	dnsdist-carbon.cc \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
+	dnsdist-rings.cc \
 	dnsdist-tcp.cc \
 	dnsdist-web.cc \
 	dnslabeltext.cc \
