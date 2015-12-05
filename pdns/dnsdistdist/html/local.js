@@ -146,6 +146,9 @@ $(document).ready(function() {
             success: function(data, x, y) {
                 $("#questions").text(data["queries"]);
                 $("#acl-drops").text(data["acl-drops"]);
+                $("#dyn-drops").text(data["dyn-blocked"]);
+                $("#rule-drops").text(data["rule-drop"]);
+		$("#blockfilter-drops").text(data["block-filter"]);
                 $("#uptime").text(moment.duration(data["uptime"]*1000.0).humanize());
                 $("#latency").text((data["latency-avg100"]/1000.0).toFixed(2));
                 if(!gdata["cpu-sys-msec"]) 
