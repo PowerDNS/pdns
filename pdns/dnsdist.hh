@@ -13,7 +13,22 @@
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
-extern GlobalStateHolder<NetmaskTree<string>> g_dynblockNMG;
+struct DynBlock
+{
+  DynBlock& operator=(const DynBlock& rhs)
+  {
+    reason=rhs.reason;
+    until=rhs.until;
+    blocks.store(rhs.blocks);
+    return *this;
+  }
+  
+  string reason;
+  struct timespec until;
+  mutable std::atomic<unsigned int> blocks;
+};
+
+extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
 struct DNSDistStats
 {
   using stat_t=std::atomic<uint64_t>; // aww yiss ;-)

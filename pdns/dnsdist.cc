@@ -103,7 +103,7 @@ GlobalStateHolder<vector<pair<std::shared_ptr<DNSRule>, std::shared_ptr<DNSActio
 Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
-GlobalStateHolder<NetmaskTree<string>> g_dynblockNMG;
+GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
 int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
@@ -476,10 +476,13 @@ try
         g_rings.queryRing.push_back({now,remote,qname,qtype});
       }
       
-      if(localDynBlock->match(remote)) {
-	vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
-	g_stats.dynBlocked++;
-	continue;
+      if(auto got=localDynBlock->lookup(remote)) {
+	if(now < got->second.until) {
+	  vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
+	  g_stats.dynBlocked++;
+	  got->second.blocks++;
+	  continue;
+	}
       }
 
       if(blockFilter) {
@@ -699,6 +702,9 @@ void* maintThread()
     auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
     if(f)
       (*f)();
+    
+
+    // ponder pruning g_dynblocks of expired entries here
   }
   return 0;
 }

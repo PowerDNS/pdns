@@ -104,13 +104,17 @@ map<ComboAddress,int> exceedRespByterate(int rate, int seconds)
 
 void moreLua()
 {
-  typedef NetmaskTree<string> nmts_t;
+  typedef NetmaskTree<DynBlock> nmts_t;
   g_lua.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
   g_lua.writeFunction("newNMG", []() { return nmts_t(); });
-  g_lua.registerFunction<void(nmts_t::*)(const ComboAddress&, const std::string&)>("add", 
-							       [](nmts_t& s, const ComboAddress& ca, const std::string& msg) 
+  g_lua.registerFunction<void(nmts_t::*)(const ComboAddress&, const std::string&, boost::optional<int> seconds)>("add", 
+														 [](nmts_t& s, const ComboAddress& ca, const std::string& msg, boost::optional<int> seconds) 
 							       { 
-								 s.insert(Netmask(ca)).second=msg; 
+								 struct timespec until;
+								 clock_gettime(CLOCK_MONOTONIC, &until);
+								 until.tv_sec += seconds ? *seconds : 10;
+								 
+								 s.insert(Netmask(ca)).second={msg, until};
 							       });
 
   g_lua.writeFunction("setDynBlockNMG", [](const nmts_t& nmg) {
@@ -119,16 +123,42 @@ void moreLua()
 
   g_lua.writeFunction("showDynBlocks", []() {
       auto slow = g_dynblockNMG.getCopy();
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      boost::format fmt("%-24s %8d %s\n");
+      g_outputBuffer = (fmt % "Netmask" % "Seconds" % "Reason").str();
       for(const auto& e: slow) {
-	g_outputBuffer+=e->first.toString()+"\t"+e->second+"\n";
+	if(now < e->second.until)
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.reason).str();
       }
     });
 
-  g_lua.registerFunction<void(nmts_t::*)(const map<ComboAddress,int>&, const std::string&)>("add", 
-									[](nmts_t& s, const map<ComboAddress,int>& m, const std::string& msg) { 
-										for(const auto& capair : m)
-										  s.insert(Netmask(capair.first)).second=msg;
-									      });
+  g_lua.writeFunction("clearDynBlocks", []() {
+      nmts_t nmg;
+      g_dynblockNMG.setState(nmg);
+    });
+
+  g_lua.writeFunction("addDynBlocks", 
+			  [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
+			   auto slow = g_dynblockNMG.getCopy();
+			   struct timespec until;
+			   clock_gettime(CLOCK_MONOTONIC, &until);
+			   until.tv_sec += seconds ? *seconds : 10;
+			   for(const auto& capair : m)
+			     slow.insert(Netmask(capair.first)).second={msg, until};
+			   g_dynblockNMG.setState(slow);
+			 });
+
+
+
+  g_lua.registerFunction<void(nmts_t::*)(const map<ComboAddress,int>&, const std::string&, boost::optional<int>)>("add", 
+											    [](nmts_t& s, const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
+											      struct timespec until;
+											      clock_gettime(CLOCK_MONOTONIC, &until);
+											      until.tv_sec += seconds ? *seconds : 10;
+											      for(const auto& capair : m)
+												s.insert(Netmask(capair.first)).second={msg, until};
+											    });
 
 
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 

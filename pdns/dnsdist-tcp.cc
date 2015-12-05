@@ -176,10 +176,13 @@ void* tcpClientThread(int pipefd)
 	  ci.cs->queries++;
 	}
 
-	if(localDynBlockNMG->match(ci.remote)) {
-	  vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
-	  g_stats.dynBlocked++;
-	  goto drop;
+	if(auto got=localDynBlockNMG->lookup(ci.remote)) {
+	  if(now < got->second.until) {
+	    vinfolog("Query from %s dropped because of dynamic block", ci.remote.toStringWithPort());
+	    g_stats.dynBlocked++;
+	    got->second.blocks++;
+	    goto drop;
+	  }
 	}
 
         if (dh->rd) {

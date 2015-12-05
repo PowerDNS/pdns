@@ -105,8 +105,14 @@ static void connectionThread(int sock, ComboAddress remote, string password)
  
       Json::object obj;
       auto slow = g_dynblockNMG.getCopy();
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
       for(const auto& e: slow) {
-	obj.insert({e->first.toString(), e->second});
+	if(now < e->second.until ) {
+	  Json::object thing{{"reason", e->second.reason}, {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
+							     {"blocks", (double)e->second.blocks} };
+	  obj.insert({e->first.toString(), thing});
+	}
       }
       Json my_json=obj;
 

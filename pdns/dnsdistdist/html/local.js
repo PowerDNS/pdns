@@ -208,20 +208,21 @@ $(document).ready(function() {
                });
 
 
-        if((intervalcount++)%5)
-            return;
+//        if((intervalcount++)%5)
+  //          return;
         //      updateRingBuffers();
 
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json',
                  success: function(data) {
-                     var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th align=left>Reason</th></tr>';
-                     if(data.length) {
-                         $.each(data, function(a,b) {
-                             bouw=bouw+("<tr><td>"+a+"</td><td>"+b+"</td></tr>");
-                         });
-                     }
-                     else 
-                         bouw = bouw + '<tr><td align="center" colspan="2"><font color="#aaaaaa">No dynamic blocks active</font></td></tr>';
+                     var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th align=left>Reason</th></tr>';
+		     var gotsome=false;
+                     $.each(data, function(a,b) {
+                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td><td>"+b.reason+"</td></tr>");
+			 gotsome=true;
+                     });
+                     
+		     if(!gotsome)
+                         bouw = bouw + '<tr><td align="center" colspan="4"><font color="#aaaaaa">No dynamic blocks active</font></td></tr>';
 
                      bouw=bouw+"</table>";
                      $("#dynblock").html(bouw);
