@@ -125,11 +125,11 @@ void moreLua()
       auto slow = g_dynblockNMG.getCopy();
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
-      boost::format fmt("%-24s %8d %s\n");
-      g_outputBuffer = (fmt % "Netmask" % "Seconds" % "Reason").str();
+      boost::format fmt("%-24s %8d %8d %s\n");
+      g_outputBuffer = (fmt % "Netmask" % "Seconds" % "Blocks" % "Reason").str();
       for(const auto& e: slow) {
 	if(now < e->second.until)
-	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.reason).str();
+	  g_outputBuffer+= (fmt % e->first.toString() % (e->second.until.tv_sec - now.tv_sec) % e->second.blocks % e->second.reason).str();
       }
     });
 
