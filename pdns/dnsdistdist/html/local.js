@@ -184,7 +184,7 @@ $(document).ready(function() {
             },
         });
 	
-	$.ajax({ url: 'servers/localhost', type: 'GET', dataType: 'json',
+	$.ajax({ url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json',
 		 success: function(data) {
 		     $("#version").text(data["daemon_type"]+" "+data["version"]);
 		     var bouw="<table><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr>";
