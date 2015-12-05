@@ -141,11 +141,22 @@ void moreLua()
   g_lua.writeFunction("addDynBlocks", 
 			  [](const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
 			   auto slow = g_dynblockNMG.getCopy();
-			   struct timespec until;
-			   clock_gettime(CLOCK_MONOTONIC, &until);
+			   struct timespec until, now;
+			   clock_gettime(CLOCK_MONOTONIC, &now);
+			   until=now;
 			   until.tv_sec += seconds ? *seconds : 10;
-			   for(const auto& capair : m)
-			     slow.insert(Netmask(capair.first)).second={msg, until};
+			   for(const auto& capair : m) {
+			     unsigned int count;
+			     if(auto got = slow.lookup(Netmask(capair.first))) {
+			       if(until < got->second.until) // had a longer policy
+				 continue;
+			       if(now < got->second.until) // don't inherit count on expired entry
+				 count=got->second.blocks;
+			     }
+			     DynBlock db{msg,until};
+			     db.blocks=count;
+			     slow.insert(Netmask(capair.first)).second=db;
+			   }
 			   g_dynblockNMG.setState(slow);
 			 });
 
