@@ -1160,16 +1160,14 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
+void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
+  DNSName canon = apiNameToDNSName(req->getvars["domain"]);
+
   extern PacketCache PC;
-  int count;
-  if(req->getvars["domain"].empty())
-    count = PC.purge();
-  else
-    count = PC.purge(req->getvars["domain"]);
+  int count = PC.purgeExact(canon);
 
   map<string, string> object;
   object["count"] = lexical_cast<string>(count);
@@ -1217,8 +1215,8 @@ void AuthWebServer::webThread()
 {
   try {
     if(::arg().mustDo("api")) {
+      d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);
