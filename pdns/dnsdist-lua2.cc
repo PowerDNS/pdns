@@ -144,7 +144,8 @@ void moreLua()
 			   struct timespec until, now;
 			   clock_gettime(CLOCK_MONOTONIC, &now);
 			   until=now;
-			   until.tv_sec += seconds ? *seconds : 10;
+                           int actualSeconds = seconds ? *seconds : 10;
+			   until.tv_sec += actualSeconds; 
 			   for(const auto& capair : m) {
 			     unsigned int count;
 			     if(auto got = slow.lookup(Netmask(capair.first))) {
@@ -155,21 +156,11 @@ void moreLua()
 			     }
 			     DynBlock db{msg,until};
 			     db.blocks=count;
+                             warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
 			     slow.insert(Netmask(capair.first)).second=db;
 			   }
 			   g_dynblockNMG.setState(slow);
 			 });
-
-
-
-  g_lua.registerFunction<void(nmts_t::*)(const map<ComboAddress,int>&, const std::string&, boost::optional<int>)>("add", 
-											    [](nmts_t& s, const map<ComboAddress,int>& m, const std::string& msg, boost::optional<int> seconds) { 
-											      struct timespec until;
-											      clock_gettime(CLOCK_MONOTONIC, &until);
-											      until.tv_sec += seconds ? *seconds : 10;
-											      for(const auto& capair : m)
-												s.insert(Netmask(capair.first)).second={msg, until};
-											    });
 
 
   g_lua.registerFunction<bool(nmts_t::*)(const ComboAddress&)>("match", 
