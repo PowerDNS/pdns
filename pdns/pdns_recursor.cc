@@ -2515,10 +2515,10 @@ int main(int argc, char **argv)
     ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)")="1";
     ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
     ::arg().set("api-config-dir", "Directory where REST API stores config and zones") = "";
-    ::arg().set("api-key", "REST API Static authentication key (required for API use)") = "";
-    ::arg().set("api-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
-    ::arg().set("api-readonly", "If the JSON API should disallow data modification") = "no";
-    ::arg().setSwitch("webserver", "Start a webserver for monitoring") = "no";
+    ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
+    ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)") = "/var/log/pdns.log";
+    ::arg().set("api-readonly", "Disallow data modification through the REST API when set") = "no";
+    ::arg().setSwitch("webserver", "Start a webserver (for REST API)") = "no";
     ::arg().set("webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
     ::arg().set("webserver-port", "Port of webserver to listen on") = "8082";
     ::arg().set("webserver-password", "Password required for accessing the webserver") = "";

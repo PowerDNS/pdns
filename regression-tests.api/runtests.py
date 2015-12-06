@@ -78,7 +78,7 @@ if daemon == 'authoritative':
         tf.seek(0, os.SEEK_SET)  # rewind
         subprocess.check_call(["sqlite3", SQLITE_DB], stdin=tf)
 
-    pdnscmd = ("../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ --module-dir=../regression-tests/modules --no-shuffle --launch=gsqlite3 --gsqlite3-dnssec --send-root-referral --dnsupdate=yes --cache-ttl=0 --no-config --gsqlite3-dnssec=on --gsqlite3-database="+SQLITE_DB+" --json-interface=yes --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
+    pdnscmd = ("../pdns/pdns_server --daemon=no --local-port=5300 --socket-dir=./ --module-dir=../regression-tests/modules --no-shuffle --launch=gsqlite3 --gsqlite3-dnssec --send-root-referral --dnsupdate=yes --cache-ttl=0 --no-config --gsqlite3-dnssec=on --gsqlite3-database="+SQLITE_DB+" --api=yes --webserver=yes --webserver-port="+WEBPORT+" --webserver-address=127.0.0.1 --webserver-password=something --api-key="+APIKEY).split()
 
 else:
     conf_dir = 'rec-conf.d'

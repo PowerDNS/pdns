@@ -22,7 +22,7 @@ PostgreSQL or SQLite3).
 
 Then configure as follows:
 
-    json-interface=yes
+    api=yes
     api-key=changeme
     webserver=yes
 

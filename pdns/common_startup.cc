@@ -71,10 +71,10 @@ void declareArguments()
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
 
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation")="2";
-  ::arg().setSwitch("json-interface", "If the webserver should serve JSON data")="no";
-  ::arg().setSwitch("api-readonly", "If the JSON API should disallow data modification")="no";
-  ::arg().set("api-key", "REST API Static authentication key (required for API use)")="";
-  ::arg().set("api-logfile", "Filename of the log file for JSON parser" )= "/var/log/pdns.log";
+  ::arg().setSwitch("api", "Enable/disable the REST API")="no";
+  ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API")="";
+  ::arg().set("api-logfile", "Location of the server logfile (used by the REST API)")="/var/log/pdns.log";
+  ::arg().setSwitch("api-readonly", "Disallow data modification through the REST API when set")="no";
   ::arg().setSwitch("dname-processing", "If we should support DNAME records")="no";
 
   ::arg().setCmd("help","Provide a helpful message");
@@ -544,7 +544,3 @@ void mainthread()
   
   L<<Logger::Error<<"Mainthread exiting - should never happen"<<endl;
 }
-
-
-
-
