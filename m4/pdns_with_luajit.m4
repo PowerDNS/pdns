@@ -8,9 +8,13 @@ AC_DEFUN([PDNS_WITH_LUAJIT],[
   AC_MSG_RESULT([$with_luajit])
 
   AS_IF([test "x$with_luajit" = "xyes"], [
+    LUAJITPC="$with_luajit"
     PKG_CHECK_MODULES([LUA], [luajit],
       [AC_DEFINE([HAVE_LUA], [1], [Define to 1 if you have LuaJIT])],
-      [AC_MSG_ERROR([LuaJIT not found])]
+      [LUAJITPC=""]
+    )
+    AS_IF([test "x$LUAJITPC" = "x"], [
+      AC_MSG_ERROR([LuaJIT not found])]
     )
   ])
 
