@@ -148,7 +148,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   
   for(vector<DomainInfo>::const_iterator i=cmdomains.begin();i!=cmdomains.end();++i) {
     extern PacketCache PC;
-    PC.purge(i->zone.toString()); // fixes cvstrac ticket #30
+    PC.purgeExact(i->zone);
     queueNotifyDomain(i->zone,P->getBackend());
     i->backend->setNotified(i->id,i->serial); 
   }
@@ -262,4 +262,3 @@ void CommunicatorClass::notify(const DNSName &domain, const string &ip)
   d_nq.add(domain, ip);
   d_any_sem.post();
 }
-

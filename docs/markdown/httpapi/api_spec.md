@@ -8,8 +8,8 @@ Design Goals
 
 * Discovery endpoint
 * Unified API Scheme for Daemons & Console.
-  Think of the Console Server as a proxy for all your pdns deployments.
-* Have API docs (this!) for other consumers
+  Think of the Console Server as a proxy for all your PowerDNS deployments.
+* Have API documentation (this!) for other consumers
 
 Data format
 -----------
@@ -190,7 +190,8 @@ Servers
 server_resource
 ---------------
 
-Example with server `"localhost"`, which is the only server returned by pdns.
+Example with server `"localhost"`, which is the only server returned by
+pdns\_server or pdns\_recursor.
 
 pdnsmgrd and pdnscontrol MUST NOT return “localhost”, but SHOULD return
 other servers.
@@ -205,8 +206,8 @@ other servers.
       "zones_url": "/api/v1/servers/localhost/zones{/zone}",
     }
 
-Note: On a pdns server, the servers collection is read-only, and the only
-allowed returned server is read-only as well.
+Note: On a pdns\_server or pdns\_recursor, the servers collection is read-only,
+and the only allowed returned server is read-only as well.
 On a pdnscontrol server, the servers collection is read-write, and the
 returned server resources are read-write as well. Write permissions may
 depend on the credentials you have supplied.
@@ -216,19 +217,20 @@ depend on the credentials you have supplied.
 
 
 URL: /api/v1/servers
--------------
+--------------------
 
 Collection access.
 
 Allowed REST methods:
 
-* pdns: `GET`
+* pdns\_server: `GET`
+* pdns\_recursor: `GET`
 * pdnsmgrd: `GET`
 * pdnscontrol: `GET`, `PUT`, `POST`, `DELETE`
 
 
 URL: /api/v1/servers/:server\_id
--------------------------
+--------------------------------
 
 Returns a single server_resource.
 
@@ -249,7 +251,7 @@ config\_setting\_resource
 
 
 URL: /api/v1/servers/:server\_id/config
---------------------------------
+---------------------------------------
 
 Collection access.
 
@@ -263,7 +265,7 @@ Creates a new config setting. This is useful for creating configuration for new 
 
 
 URL: /api/v1/servers/:server\_id/config/:config\_setting\_name
--------------------------------------------------------
+--------------------------------------------------------------
 
 Allowed REST methods: `GET`, `PUT`
 
@@ -313,6 +315,10 @@ zone_collection
   Opaque zone id (string), assigned by the Server. Do not interpret.
   Guaranteed to be safe for embedding in URLs.
 
+* `name`
+  Zone name, always including the trailing dot. Example: `example.org.`
+  Note: Before 4.0.0, zone names were taken/given without the trailing dot.
+
 * `kind`
   Authoritative: `<kind>`: `Native`, `Master` or `Slave`
   Recursor: `<kind>`: `Native`, or `Forwarded`
@@ -332,7 +338,8 @@ zone_collection
   **TODO**: `dnssec`, `nsec3narrow`, `nsec3param`, `presigned` are not yet implemented.
 
 * `soa_edit` MAY be set to change the `SOA-EDIT` zone setting. See
-  http://doc.powerdns.com/html/domainmetadata.html for more information.
+  [the `SOA-EDIT` documentation](../authoritative/domainmetadata.md#soa-edit)
+  for more information.
   **Note**: Authoritative only.
 
 * `soa_edit_api` MAY be set. If it is set, on changes to the contents of
@@ -348,7 +355,9 @@ zone_collection
   **Note**: Authoritative only.
 
 * `nameservers` MAY be sent in client bodies during creation, and MUST
-  NOT be sent by the server. Simple list of strings of nameserver names.
+  NOT be sent by the server. Simple list of strings of nameserver names,
+  including the trailing dot. Note: Before 4.0.0, names were taken without
+  the trailing dot.
   **Note**: Authoritative only. Not required for slave zones.
 
 * `servers`: list of forwarded-to servers, including port.
@@ -374,7 +383,7 @@ implemented.
 Changes made through the Zones API will always yield valid zone data,
 and the zone will be properly "rectified" (**TODO**: not yet
 implemented). If changes are made through other means (e.g. direct
-database access), this is not guranteed to be true and clients SHOULD
+database access), this is not guaranteed to be true and clients SHOULD
 trigger rectify.
 
 Backends might implement additional features (by coincidence or not).
@@ -385,7 +394,7 @@ When creating a slave zone, it is recommended to not set any of
 
 
 URL: /api/v1/servers/:server\_id/zones
--------------------------------
+--------------------------------------
 
 Allowed REST methods: `GET`, `POST`
 
@@ -396,7 +405,7 @@ Creates a new domain.
 * `dnssec`, `nsec3narrow`, `presigned` default to `false`.
 * The server MUST create a SOA record. The created SOA record SHOULD have
 serial set to the value given as `serial` (or 0 if missing), use the
-nameserver name, email, TTL values as specified in the pdns configuration
+nameserver name, email, TTL values as specified in the PowerDNS configuration
 (`default-soa-name`, `default-soa-mail`, etc).
 These default values can be overridden by supplying a custom SOA record in
 the records list.
@@ -406,7 +415,7 @@ rules before storing it. (Also applies to custom SOA records.)
 **TODO**: `dnssec`, `nsec3narrow`, `nsec3param`, `presigned` are not yet implemented.
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id
------------------------------------------
+------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`, `PATCH`.
 
@@ -457,14 +466,14 @@ Client body for PATCH:
 Having `type` inside an RR differ from `type` at the RRset level is an error.
 
 * `name`
-  Full name of the RRset to modify. (Example: `foo.example.org`)
+  Full name of the RRset to modify. (Example: `foo.example.org.`)
 
 * `type`
   Type of the RRset to modify. (Example: `AAAA`)
 
 * `changetype`
   Must be `REPLACE` or `DELETE`.
-  With `DELETE`, all existing RRs matching `name` and `type` will be deleted, incl. all comments.
+  With `DELETE`, all existing RRs matching `name` and `type` will be deleted, including all comments.
   With `REPLACE`: when `records` is present, all existing RRs matching `name` and `type` will be deleted, and then new records given in `records` will be created.
   If no records are left, any existing comments will be deleted as well.
   When `comments` is present, all existing comments for the RRs matching `name` and `type` will be deleted, and then new comments given in `comments` will be created.
@@ -496,13 +505,13 @@ Changing `name` renames the zone, as expected.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id/notify
-------------------------------------------------
+-------------------------------------------------------
 
 Allowed methods: `PUT`
 
 Send a DNS NOTIFY to all slaves.
 
-Fails when zone kind is not `Master` or `Slave`, or `master` and `slave` are 
+Fails when zone kind is not `Master` or `Slave`, or `master` and `slave` are
 disabled in pdns configuration. Only works for `Slave` if renotify is on.
 
 Not supported for recursors.
@@ -511,13 +520,13 @@ Clients MUST NOT send a body.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id/axfr-retrieve
--------------------------------------------------------
+--------------------------------------------------------------
 
 Allowed methods: `PUT`
 
 Retrieves the zone from the master.
 
-Fails when zone kind is not `Slave`, or `slave` is disabled in pdns
+Fails when zone kind is not `Slave`, or `slave` is disabled in PowerDNS.
 configuration.
 
 Not supported for recursors.
@@ -536,7 +545,7 @@ Not supported for recursors.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_id/check
------------------------------------------------
+------------------------------------------------------
 
 Allowed methods: `GET`
 
@@ -567,7 +576,8 @@ zone\_metadata\_resource
       ]
     }
 
-Valid values for `<metadata_kind>` are specified in <http://doc.powerdns.com/domainmetadata.html>.
+Valid values for `<metadata_kind>` are specified in
+[the `domainmetadata` documentation](../authoritative/domainmetadata.md).
 
 Clients MUST NOT modify `NSEC3PARAM`, `NSEC3NARROW` or `PRESIGNED`
 through this interface. The server SHOULD reject updates to these
@@ -575,7 +585,7 @@ metadata.
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata
-----------------------------------------------------
+-----------------------------------------------------------
 
 Collection access.
 
@@ -584,7 +594,7 @@ Allowed methods: `GET`, `POST`
 **TODO**: Not yet implemented.
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/metadata/:metadata\_kind
---------------------------------------------------------------------
+---------------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
 
@@ -618,11 +628,11 @@ both mutually exclusive.
 
 `dnskey`: the DNSKEY for this key
 
-`ds`: an array with all dses for this key
+`ds`: an array with all DSes for this key
 
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys
-------------------------------------------------------
+-------------------------------------------------------------
 
 Allowed methods: `GET`, `POST`
 
@@ -638,24 +648,23 @@ Creates a new, single cryptokey.
 
 ##### Parameters:
 
-`content`: if `null`, pdns generates a new key. In this case, the
+`content`: if `null`, the server generates a new key. In this case, the
 following additional fields MAY be supplied:
 
 * `bits`: `<int>`
 * `algo`: `<algo>`
 
-Where `<algo>` is one of the supported key algos in lowercase OR the
-numeric id, see
-[http://rtfm.powerdns.com/pdnsutil.html](http://rtfm.powerdns.com/pdnsutil.html)
+Where `<algo>` is one of the supported key algorithms in lowercase OR the
+numeric id, see [`the list`](../authoritative/dnssec.md#supported-algorithms).
 
 URL: /api/v1/servers/:server\_id/zones/:zone\_name/cryptokeys/:cryptokey\_id
----------------------------------------------------------------------
+----------------------------------------------------------------------------
 
 Allowed methods: `GET`, `PUT`, `DELETE`
 
 #### GET
 
-Returns all public data about cryptokeys, including `content`, with all the private data. An array is returned, eventhough a single key is requested.
+Returns all public data about cryptokeys, including `content`, with all the private data. An array is returned, even though a single key is requested.
 
 #### PUT
 
@@ -676,7 +685,7 @@ Logging & Statistics
 ====================
 
 URL: /api/v1/servers/:server\_id/search-log?q=:search\_term
-----------------------------------------------------
+-----------------------------------------------------------
 
 Allowed methods: `GET` (Query)
 
@@ -690,7 +699,7 @@ Query the log, filtered by `:search_term`. Response body:
     ]
 
 URL: /api/v1/servers/:server\_id/statistics
-------------------------------------
+-------------------------------------------
 
 Allowed methods: `GET` (Query)
 
@@ -712,7 +721,7 @@ Values are returned as strings.
 
 
 URL: /api/v1/servers/:server\_id/trace
--------------------------------
+--------------------------------------
 
 **TODO**: Not yet implemented.
 
@@ -742,7 +751,7 @@ Retrieve query tracing log and current config. Response body:
 
 
 URL: /api/v1/servers/:server\_id/failures
-----------------------------------
+-----------------------------------------
 
 **TODO**: Not yet implemented.
 
@@ -824,11 +833,11 @@ Where `<failure_code>` is one of these:
 
   + `refused`
 
-    All auth nameservers that have been tried responded with refused.
+    All auth nameservers that have been tried responded with REFUSED.
 
   + `servfail`
 
-    All auth nameservers that have been tried responded with servfail.
+    All auth nameservers that have been tried responded with SERVFAIL.
 
   + **TODO**: further failures
 
@@ -857,7 +866,7 @@ override\_type
       "type": "Override",
       "id": <int>,
       "override": "replace",
-      "domain": "www.cnn.com",
+      "domain": "www.cnn.com.",
       "rrtype": "AAAA",
       "values": ["203.0.113.4", "203.0.113..2"],
       "until": <timestamp>,
@@ -870,7 +879,7 @@ override\_type
       "type": "Override",
       "id": <int>,
       "override": "purge",
-      "domain": "example.net",
+      "domain": "example.net.",
       "created": <timestamp>
     }
 
@@ -879,7 +888,7 @@ Clears recursively all cached data ("plain" DNS + DNSSEC)
 **TODO**: should this be stored? (for history)
 
 URL: /api/v1/servers/:server\_id/overrides
-----------------------------------
+------------------------------------------
 
 **TODO**: Not yet implemented.
 
@@ -888,7 +897,7 @@ Collection access.
 Allowed Methods: `GET`, `POST`
 
 URL: /api/v1/servers/:server\_id/overrides/:override\_id
--------------------------------------------------
+--------------------------------------------------------
 
 **TODO**: Not yet implemented.
 

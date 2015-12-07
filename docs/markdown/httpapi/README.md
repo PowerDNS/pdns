@@ -33,27 +33,27 @@ After restarting `pdns_server`, the following examples should start working:
     curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones | jq .
     
     # Create new zone "example.org" with nameservers ns1.example.org, ns2.example.org
-    curl -X POST --data '{"name":"example.org", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org", "ns2.example.org"]}' -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones | jq .
+    curl -X POST --data '{"name":"example.org.", "kind": "Native", "masters": [], "nameservers": ["ns1.example.org.", "ns2.example.org."]}' -v -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones | jq .
     
     # Show the new zone
-    curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org | jq .
+    curl -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
     
     # Add a new record to the new zone (would replace any existing test.example.org/A records)
-    curl -X PATCH --data '{"rrsets": [ {"name": "test.example.org", "type": "A", "changetype": "REPLACE", "records": [ {"content": "192.0.5.4", "disabled": false, "name": "test.example.org", "ttl": 86400, "type": "A" } ] } ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org | jq .
+    curl -X PATCH --data '{"rrsets": [ {"name": "test.example.org.", "type": "A", "changetype": "REPLACE", "records": [ {"content": "192.0.5.4", "disabled": false, "name": "test.example.org.", "ttl": 86400, "type": "A" } ] } ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
 
     # Combined replacement of multiple RRsets
     curl -X PATCH --data '{"rrsets": [
-      {"name": "test1.example.org",
+      {"name": "test1.example.org.",
        "type": "A",
        "changetype": "REPLACE",
-       "records": [ {"content": "192.0.2.5", "disabled": false, "name": "test.example.org", "ttl": 86400, "type": "A" } ]
+       "records": [ {"content": "192.0.2.5", "disabled": false, "name": "test1.example.org.", "ttl": 86400, "type": "A" } ]
       },
-      {"name": "test2.example.org",
+      {"name": "test2.example.org.",
        "type": "AAAA",
        "changetype": "REPLACE",
-       "records": [ {"content": "2001:db8::6/32", "disabled": false, "name": "test.example.org", "ttl": 86400, "type": "AAAA" } ]
+       "records": [ {"content": "2001:db8::6/32", "disabled": false, "name": "test2.example.org.", "ttl": 86400, "type": "AAAA" } ]
       }
-      ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org | jq .
+      ] }' -H 'X-API-Key: changeme' http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
 
 `jq` is a highly recommended tool for pretty-printing JSON. If you don't have
 `jq`, try `json_pp` or `python -mjson.tool` instead.
@@ -95,3 +95,107 @@ Additional help
 ---------------
 
 For additional help, come to the `#powerdns` IRC channel on `irc.oftc.net`.
+
+
+Examples (Authoritative Server)
+===============================
+
+Show zone information and records
+---------------------------------
+
+    curl -H 'X-API-Key: changeme' \
+        http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
+
+Response:
+
+    {
+      "id": "example.org.",
+      "url": "api/v1/servers/localhost/zones/example.org.",
+      "name": "example.org.",
+      "kind": "Master",
+      "dnssec": false,
+      "account": "",
+      "masters": [],
+      "serial": 2015120401,
+      "notified_serial": 0,
+      "last_check": 0,
+      "soa_edit_api": "",
+      "soa_edit": "",
+      "records": [
+        {
+          "name": "example.org.",
+          "type": "NS",
+          "ttl": 86400,
+          "disabled": false,
+          "content": "ns1.example.org."
+        },
+        {
+          "name": "example.org.",
+          "type": "NS",
+          "ttl": 86400,
+          "disabled": false,
+          "content": "ns2.powerdns.com."
+        },
+        {
+          "name": "example.org.",
+          "type": "SOA",
+          "ttl": 86400,
+          "disabled": false,
+          "content": "ns1.example.org. hostmaster.example.org. 2015120401 10800 15 604800 10800"
+        },
+        {
+          "name": "ns1.example.org.",
+          "type": "A",
+          "ttl": 86400,
+          "disabled": false,
+          "content": "192.168.0.1"
+        },
+        {
+          "name": "www.example.org.",
+          "type": "A",
+          "ttl": 86400,
+          "disabled": false,
+          "content": "192.168.0.2"
+        }
+      ],
+      "comments": []
+    }
+
+
+Replace ns1.example.org
+-----------------------
+
+Based on the example.org zone above, replace the ns1.example.org A record with
+192.0.2.5:
+
+    curl -X PATCH --data '{"rrsets": [{
+      "name": "ns1.example.org.",
+      "type": "A",
+      "changetype": "REPLACE",
+      "records": [ {
+        "content": "192.0.2.5",
+        "disabled": false,
+        "name": "ns1.example.org.",
+        "ttl": 86400,
+        "type": "A"
+      }]
+    }]}' -H 'X-API-Key: changeme' \
+    http://127.0.0.1:8081/api/v1/servers/localhost/zones/example.org. | jq .
+
+Response:
+
+    {
+      "id": "example.org.",
+      ...
+      "records": [
+        {
+          "name": "ns1.example.org.",
+          "type": "A",
+          "ttl": 86400,
+          "disabled": false,
+          "content": "192.0.2.5"
+        },
+        ...
+      ],
+      ...
+    }

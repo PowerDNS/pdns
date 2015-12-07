@@ -1,7 +1,7 @@
 import json
 import time
 import unittest
-from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor
+from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, eq_zone_dict, get_db_records
 
 
 class Zones(ApiTestCase):
@@ -29,21 +29,23 @@ class AuthZonesHelperMixin(object):
         payload = {
             'name': name,
             'kind': 'Native',
-            'nameservers': ['ns1.example.com', 'ns2.example.com']
+            'nameservers': ['ns1.example.com.', 'ns2.example.com.']
         }
         for k, v in kwargs.items():
             if v is None:
                 del payload[k]
             else:
                 payload[k] = v
-        print payload
+        print "sending", payload
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assert_success_json(r)
         self.assertEquals(r.status_code, 201)
-        return payload, r.json()
+        reply = r.json()
+        print "reply", reply
+        return payload, reply
 
 
 @unittest.skipIf(not is_auth(), "Not applicable")
@@ -58,11 +60,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['comments'], [])
         # validate generated SOA
+        expected_soa = "a.misconfigured.powerdns.server. hostmaster." + payload['name'] + " " + \
+                       str(payload['serial']) + " 10800 3600 604800 3600"
         self.assertEquals(
             [r['content'] for r in data['records'] if r['type'] == 'SOA'][0],
-            "a.misconfigured.powerdns.server hostmaster." + payload['name'] + " " + str(payload['serial']) +
-            " 10800 3600 604800 3600"
+            expected_soa
         )
+        # Because we had confusion about dots, check that the DB is without dots.
+        dbrecs = get_db_records(payload['name'], 'SOA')
+        self.assertEqual(dbrecs[0]['content'], expected_soa.replace('. ', ' '))
 
     def test_create_zone_with_soa_edit_api(self):
         # soa_edit_api wins over serial
@@ -118,36 +124,93 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         # check our comment has appeared
         self.assertEquals(data['comments'], comments)
 
+    def test_create_zone_uncanonical_nameservers(self):
+        name = unique_zone_name()
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['uncanon.example.com']
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Nameserver is not canonical', r.json()['error'])
+
+    def test_create_auth_zone_no_name(self):
+        name = unique_zone_name()
+        payload = {
+            'name': '',
+            'kind': 'Native',
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('is not canonical', r.json()['error'])
+
     def test_create_zone_with_custom_soa(self):
         name = unique_zone_name()
         records = [
             {
-                "name": name,
-                'type': 'soa',  # test uppercasing of type, too.
-                "ttl": 3600,
-                "content": "ns1.example.net testmaster@example.net 10 10800 3600 604800 3600",
-                "disabled": False
+                u"name": name,
+                u"type": u"soa",  # test uppercasing of type, too.
+                u"ttl": 3600,
+                u"content": u"ns1.example.net. testmaster@example.net. 10 10800 3600 604800 3600",
+                u"disabled": False
             }
         ]
-        payload, data = self.create_zone(name=name, records=records)
+        payload, data = self.create_zone(name=name, records=records, soa_edit_api='')
         records[0]['type'] = records[0]['type'].upper()
         self.assertEquals([r for r in data['records'] if r['type'] == records[0]['type']], records)
+        dbrecs = get_db_records(name, records[0]['type'])
+        self.assertEqual(dbrecs[0]['content'], records[0]['content'].replace('. ', ' '))
 
-    def test_create_zone_trailing_dot(self):
-        # Trailing dots should not end up in the zone name.
-        basename = unique_zone_name()
-        payload, data = self.create_zone(name=basename+'.')
-        self.assertEquals(data['name'], basename)
+    def test_create_zone_double_dot(self):
+        name = 'test..' + unique_zone_name()
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com.']
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('Unable to parse DNS Name', r.json()['error'])
+
+    def test_create_zone_restricted_chars(self):
+        name = 'test:' + unique_zone_name()  # : isn't good as a name.
+        payload = {
+            'name': name,
+            'kind': 'Native',
+            'nameservers': ['ns1.example.com']
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('contains unsupported characters', r.json()['error'])
 
     def test_create_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
-        expected_id = (name.replace('/', '=2F')) + '.'
+        expected_id = name.replace('/', '=2F')
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEquals(data[k], payload[k])
         self.assertEquals(data['id'], expected_id)
+        dbrecs = get_db_records(name, 'SOA')
+        self.assertEqual(dbrecs[0]['name'], name.rstrip('.'))
 
     def test_create_zone_with_nameservers_non_string(self):
         # ensure we don't crash
@@ -214,7 +277,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
     def test_get_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name())
         name = payload['name']
-        zone_id = (name.replace('/', '=2F')) + '.'
+        zone_id = (name.replace('/', '=2F'))
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + zone_id))
         data = r.json()
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'dnssec'):
@@ -225,13 +288,13 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
     def test_get_zone(self):
         r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
         domains = r.json()
-        example_com = [domain for domain in domains if domain['name'] == u'example.com'][0]
+        example_com = [domain for domain in domains if domain['name'] == u'example.com.'][0]
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + example_com['id']))
         self.assert_success_json(r)
         data = r.json()
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial'):
             self.assertIn(k, data)
-        self.assertEquals(data['name'], 'example.com')
+        self.assertEquals(data['name'], 'example.com.')
 
     def test_import_zone_broken(self):
         payload = {}
@@ -254,7 +317,7 @@ powerdns-broken.com.           3600    IN      MX      0 xs.powerdns.com.
 powerdns-broken.com.           3600    IN      NS      powerdnssec1.ds9a.nl.
 powerdns-broken.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
 """
-        payload['name'] = 'powerdns-broken.com'
+        payload['name'] = 'powerdns-broken.com.'
         payload['kind'] = 'Master'
         payload['nameservers'] = []
         r = self.session.post(
@@ -262,6 +325,26 @@ powerdns-broken.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
+
+    def test_import_zone_axfr_outofzone(self):
+        # Ensure we don't create out-of-zone records
+        name = unique_zone_name()
+        payload = {}
+        payload['zone'] = """
+NAME           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
+NAME           3600    IN      NS      powerdnssec2.ds9a.nl.
+example.org.   3600    IN      AAAA    2001:888:2000:1d::2
+NAME           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
+""".replace('NAME', name)
+        payload['name'] = name
+        payload['kind'] = 'Master'
+        payload['nameservers'] = []
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertEqual(r.json()['error'], 'RRset example.org. IN AAAA: Name is out of zone')
 
     def test_import_zone_axfr(self):
         payload = {}
@@ -284,9 +367,10 @@ powerdns.com.           3600    IN      MX      0 xs.powerdns.com.
 powerdns.com.           3600    IN      NS      powerdnssec1.ds9a.nl.
 powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.nl. 1343746984 10800 3600 604800 10800
 """
-        payload['name'] = 'powerdns.com'
+        payload['name'] = 'powerdns.com.'
         payload['kind'] = 'Master'
         payload['nameservers'] = []
+        payload['soa_edit_api'] = ''  # turn off so exact SOA comparison works.
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -305,23 +389,16 @@ powerdns.com.           86400   IN      SOA     powerdnssec1.ds9a.nl. ahu.ds9a.n
             'MX': [
                 { 'content': '0 xs.powerdns.com.' } ],
             'A': [
-                { 'content': '82.94.213.34', 'name': 'powerdns.com' } ],
+                { 'content': '82.94.213.34', 'name': 'powerdns.com.' } ],
             'AAAA': [
-                { 'content': '2001:888:2000:1d::2', 'name': 'powerdns.com' } ]
+                { 'content': '2001:888:2000:1d::2', 'name': 'powerdns.com.' } ]
         }
 
-        counter = {}
-        for et in expected.keys():
-            counter[et] = len(expected[et])
-            for ev in expected[et]:
-                for ret in data['records']:
-                    if 'name' in ev:
-                        if ret['name'] == ev['name'] and ret['content'] == ev['content'].rstrip('.'):
-                            counter[et] = counter[et]-1
-                            continue
-                    if ret['content'] == ev['content'].rstrip('.'):
-                        counter[et] = counter[et]-1
-            self.assertEquals(counter[et], 0)
+        eq_zone_dict(data['records'], expected)
+
+        # noDot check
+        dbrecs = get_db_records(payload['name'], 'NS')
+        self.assertEqual(dbrecs[0]['content'], 'powerdnssec2.ds9a.nl')
 
     def test_import_zone_bind(self):
         payload = {}
@@ -340,16 +417,17 @@ $ORIGIN example.org.
        IN  NS     ns2.smokeyjoe.com. ; external to domain
        IN MX  10 mail.another.com. ; external mail provider
 ; server host definitions
-ns1    IN A      192.168.0.1  ;name server definition     
+ns1    IN A      192.168.0.1  ;name server definition
 www    IN  A      192.168.0.2  ;web server definition
 ftp    IN CNAME  www.example.org.  ;ftp server definition
 ; non server domain hosts
 bill   IN  A      192.168.0.3
-fred   IN  A      192.168.0.4 
+fred   IN  A      192.168.0.4
 """
-        payload['name'] = 'example.org'
+        payload['name'] = 'example.org.'
         payload['kind'] = 'Master'
         payload['nameservers'] = []
+        payload['soa_edit_api'] = ''  # turn off so exact SOA comparison works.
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
@@ -368,29 +446,18 @@ fred   IN  A      192.168.0.4
             'MX': [
                 { 'content': '10 mail.another.com.' } ],
             'A': [
-                { 'content': '192.168.0.1', 'name': 'ns1.example.org' },
-                { 'content': '192.168.0.2', 'name': 'www.example.org' },
-                { 'content': '192.168.0.3', 'name': 'bill.example.org' },
-                { 'content': '192.168.0.4', 'name': 'fred.example.org' } ],
+                { 'content': '192.168.0.1', 'name': 'ns1.example.org.' },
+                { 'content': '192.168.0.2', 'name': 'www.example.org.' },
+                { 'content': '192.168.0.3', 'name': 'bill.example.org.' },
+                { 'content': '192.168.0.4', 'name': 'fred.example.org.' } ],
             'CNAME': [
-                { 'content': 'www.example.org', 'name': 'ftp.example.org' } ]
+                { 'content': 'www.example.org.', 'name': 'ftp.example.org.' } ]
         }
 
-        counter = {}
-        for et in expected.keys():
-            counter[et] = len(expected[et])
-            for ev in expected[et]:
-                for ret in data['records']:
-                    if 'name' in ev:
-                        if ret['name'] == ev['name'] and ret['content'] == ev['content'].rstrip('.'):
-                            counter[et] = counter[et]-1
-                            continue
-                    if ret['content'] == ev['content'].rstrip('.'):
-                        counter[et] = counter[et]-1
-            self.assertEquals(counter[et], 0)
+        eq_zone_dict(data['records'], expected)
 
     def test_export_zone_json(self):
-        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'], soa_edit_api='')
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
         name = payload['name']
         # export it
         r = self.session.get(
@@ -400,14 +467,14 @@ fred   IN  A      192.168.0.4
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('zone', data)
-        expected_data = [name + '.\t3600\tNS\tns1.foo.com.',
-                         name + '.\t3600\tNS\tns2.foo.com.',
-                         name + '.\t3600\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
-                         '. 0 10800 3600 604800 3600']
+        expected_data = [name + '\t3600\tNS\tns1.foo.com.',
+                         name + '\t3600\tNS\tns2.foo.com.',
+                         name + '\t3600\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
+                         ' 0 10800 3600 604800 3600']
         self.assertEquals(data['zone'].strip().split('\n'), expected_data)
 
     def test_export_zone_text(self):
-        payload, zone = self.create_zone(nameservers=['ns1.foo.com', 'ns2.foo.com'], soa_edit_api='')
+        payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
         name = payload['name']
         # export it
         r = self.session.get(
@@ -415,10 +482,10 @@ fred   IN  A      192.168.0.4
             headers={'accept': '*/*'}
         )
         data = r.text.strip().split("\n")
-        expected_data = [name + '.\t3600\tNS\tns1.foo.com.',
-                         name + '.\t3600\tNS\tns2.foo.com.',
-                         name + '.\t3600\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
-                         '. 0 10800 3600 604800 3600']
+        expected_data = [name + '\t3600\tNS\tns1.foo.com.',
+                         name + '\t3600\tNS\tns2.foo.com.',
+                         name + '\t3600\tSOA\ta.misconfigured.powerdns.server. hostmaster.' + name +
+                         ' 0 10800 3600 604800 3600']
         self.assertEquals(data, expected_data)
 
     def test_update_zone(self):
@@ -469,14 +536,14 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "NS",
                     "ttl": 3600,
-                    "content": "ns1.bar.com",
+                    "content": "ns1.bar.com.",
                     "disabled": False
                 },
                 {
                     "name": name,
                     "type": "NS",
                     "ttl": 1800,
-                    "content": "ns2-disabled.bar.com",
+                    "content": "ns2-disabled.bar.com.",
                     "disabled": True
                 }
             ]
@@ -491,7 +558,7 @@ fred   IN  A      192.168.0.4
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name))
         rrset['type'] = rrset['type'].upper()
         data = r.json()['records']
-        recs = [rec for rec in data if rec['type'] == rrset['type'] and rec['name'] == rrset['name']]
+        recs = [rec for rec in data if rec['type'].upper() == rrset['type'].upper() and rec['name'].upper() == rrset['name'].upper()]
         self.assertEquals(recs, rrset['records'])
 
     def test_zone_rr_update_mx(self):
@@ -508,7 +575,7 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "MX",
                     "ttl": 3600,
-                    "content": "10 mail.example.org",
+                    "content": "10 mail.example.org.",
                     "disabled": False
                 }
             ]
@@ -537,7 +604,7 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "NS",
                     "ttl": 3600,
-                    "content": "ns9999.example.com",
+                    "content": "ns9999.example.com.",
                     "disabled": False
                 }
             ]
@@ -551,7 +618,7 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "MX",
                     "ttl": 3600,
-                    "content": "10 mx444.example.com",
+                    "content": "10 mx444.example.com.",
                     "disabled": False
                 }
             ]
@@ -605,7 +672,7 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "SOA",
                     "ttl": 3600,
-                    "content": "ns1.bar.com hostmaster.foo.org 1 1 1 1 1",
+                    "content": "ns1.bar.com. hostmaster.foo.org. 1 1 1 1 1",
                     "disabled": True
                 }
             ]
@@ -653,7 +720,7 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "NS",
                     "ttl": 3600,
-                    "content": "ns1.bar.com",
+                    "content": "ns1.bar.com.",
                     "disabled": False
                 }
             ]
@@ -678,7 +745,7 @@ fred   IN  A      192.168.0.4
                     "name": 'blah.'+name,
                     "type": "NS",
                     "ttl": 3600,
-                    "content": "ns1.bar.com",
+                    "content": "ns1.bar.com.",
                     "disabled": False
                 }
             ]
@@ -696,14 +763,14 @@ fred   IN  A      192.168.0.4
         # replace with qname mismatch
         rrset = {
             'changetype': 'replace',
-            'name': 'not-in-zone',
+            'name': 'not-in-zone.',
             'type': 'NS',
             'records': [
                 {
                     "name": name,
                     "type": "NS",
                     "ttl": 3600,
-                    "content": "ns1.bar.com",
+                    "content": "ns1.bar.com.",
                     "disabled": False
                 }
             ]
@@ -715,6 +782,32 @@ fred   IN  A      192.168.0.4
             headers={'content-type': 'application/json'})
         self.assertEquals(r.status_code, 422)
         self.assertIn('out of zone', r.json()['error'])
+
+    def test_zone_rr_update_restricted_chars(self):
+        payload, zone = self.create_zone()
+        name = payload['name']
+        # replace with qname mismatch
+        rrset = {
+            'changetype': 'replace',
+            'name': 'test:' + name,
+            'type': 'NS',
+            'records': [
+                {
+                    "name": 'test:' + name,
+                    "type": "NS",
+                    "ttl": 3600,
+                    "content": "ns1.bar.com.",
+                    "disabled": False
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('contains unsupported characters', r.json()['error'])
 
     def test_rrset_unknown_type(self):
         payload, zone = self.create_zone()
@@ -768,7 +861,7 @@ fred   IN  A      192.168.0.4
         name = payload['name']
         rrset = {
             'changetype': 'delete',
-            'name': 'not-in-zone',
+            'name': 'not-in-zone.',
             'type': 'NS'
         }
         payload = {'rrsets': [rrset]}
@@ -876,7 +969,7 @@ fred   IN  A      192.168.0.4
                     "name": name,
                     "type": "NS",
                     "ttl": 3600,
-                    "content": "ns1.bar.com",
+                    "content": "ns1.bar.com.",
                     "disabled": False
                 }
             ]
@@ -901,7 +994,7 @@ fred   IN  A      192.168.0.4
         self.assertEquals(data['comments'], rrset['comments'])
 
     def test_zone_auto_ptr_ipv4(self):
-        revzone = '0.2.192.in-addr.arpa'
+        revzone = '0.2.192.in-addr.arpa.'
         self.create_zone(name=revzone)
         payload, zone = self.create_zone()
         name = payload['name']
@@ -936,12 +1029,12 @@ fred   IN  A      192.168.0.4
             u'disabled': False,
             u'ttl': 3600,
             u'type': u'PTR',
-            u'name': u'2.0.2.192.in-addr.arpa'
+            u'name': u'2.0.2.192.in-addr.arpa.'
         }])
 
     def test_zone_auto_ptr_ipv6(self):
         # 2001:DB8::bb:aa
-        revzone = '8.b.d.0.1.0.0.2.ip6.arpa'
+        revzone = '8.b.d.0.1.0.0.2.ip6.arpa.'
         self.create_zone(name=revzone)
         payload, zone = self.create_zone()
         name = payload['name']
@@ -976,19 +1069,30 @@ fred   IN  A      192.168.0.4
             u'disabled': False,
             u'ttl': 3600,
             u'type': u'PTR',
-            u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa'
+            u'name': u'a.a.0.0.b.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.'
         }])
 
     def test_search_rr_exact_zone(self):
         name = unique_zone_name()
-        self.create_zone(name=name)
-        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name))
+        self.create_zone(name=name, serial=22, soa_edit_api='')
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.')))
         self.assert_success_json(r)
         print r.json()
-        self.assertEquals(r.json(), [{u'object_type': u'zone', u'name': name, u'zone_id': name+'.'}])
+        self.assertEquals(r.json(), [
+            {u'object_type': u'zone', u'name': name, u'zone_id': name},
+            {u'content': u'a.misconfigured.powerdns.server. hostmaster.'+name+' 22 10800 3600 604800 3600',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'SOA', u'name': name},
+            {u'content': u'ns1.example.com.',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'NS', u'name': name},
+            {u'content': u'ns2.example.com.',
+             u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
+             u'ttl': 3600, u'type': u'NS', u'name': name},
+        ])
 
     def test_search_rr_substring(self):
-        name = 'search-rr-zone.name'
+        name = 'search-rr-zone.name.'
         self.create_zone(name=name)
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*rr-zone*"))
         self.assert_success_json(r)
@@ -997,7 +1101,7 @@ fred   IN  A      192.168.0.4
         self.assertEquals(len(r.json()), 4)
 
     def test_search_rr_case_insensitive(self):
-        name = 'search-rr-insenszone.name'
+        name = 'search-rr-insenszone.name.'
         self.create_zone(name=name)
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*rr-insensZONE*"))
         self.assert_success_json(r)
@@ -1015,7 +1119,7 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
         self.session.delete(self.url("/api/v1/servers/localhost/zones/=2E"))
 
     def test_create_zone(self):
-        payload, data = self.create_zone(name='', serial=22, soa_edit_api='')
+        payload, data = self.create_zone(name='.', serial=22, soa_edit_api='')
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'soa_edit_api', 'soa_edit', 'account'):
             self.assertIn(k, data)
             if k in payload:
@@ -1024,7 +1128,7 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
         # validate generated SOA
         self.assertEquals(
             [r['content'] for r in data['records'] if r['type'] == 'SOA'][0],
-            "a.misconfigured.powerdns.server hostmaster." + payload['name'] + " " + str(payload['serial']) +
+            "a.misconfigured.powerdns.server. hostmaster. " + str(payload['serial']) +
             " 10800 3600 604800 3600"
         )
         # Regression test: verify zone list works
@@ -1039,11 +1143,10 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
         for k in ('name', 'kind'):
             self.assertIn(k, data)
             self.assertEquals(data[k], payload[k])
-        self.assertEqual(data['records'][0]['name'], '')
+        self.assertEqual(data['records'][0]['name'], '.')
 
     def test_update_zone(self):
-        payload, zone = self.create_zone(name='')
-        name = ''
+        payload, zone = self.create_zone(name='.')
         zone_id = '=2E'
         # update, set as Master and enable SOA-EDIT-API
         payload = {
@@ -1101,31 +1204,41 @@ class RecursorZones(ApiTestCase):
 
     def test_create_auth_zone(self):
         payload, data = self.create_zone(kind='Native')
-        # return values are normalized
-        payload['name'] += '.'
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
+
+    def test_create_zone_no_name(self):
+        name = unique_zone_name()
+        payload = {
+            'name': '',
+            'kind': 'Native',
+            'servers': ['8.8.8.8'],
+            'recursion_desired': False,
+        }
+        print payload
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assertEquals(r.status_code, 422)
+        self.assertIn('is not canonical', r.json()['error'])
 
     def test_create_forwarded_zone(self):
         payload, data = self.create_zone(kind='Forwarded', rd=False, servers=['8.8.8.8'])
         # return values are normalized
         payload['servers'][0] += ':53'
-        payload['name'] += '.'
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
 
     def test_create_forwarded_rd_zone(self):
-        payload, data = self.create_zone(name='google.com', kind='Forwarded', rd=True, servers=['8.8.8.8'])
+        payload, data = self.create_zone(name='google.com.', kind='Forwarded', rd=True, servers=['8.8.8.8'])
         # return values are normalized
         payload['servers'][0] += ':53'
-        payload['name'] += '.'
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
 
     def test_create_auth_zone_with_symbols(self):
         payload, data = self.create_zone(name='foo/bar.'+unique_zone_name(), kind='Native')
-        # return values are normalized
-        payload['name'] += '.'
         expected_id = (payload['name'].replace('/', '=2F'))
         for k in payload.keys():
             self.assertEquals(data[k], payload[k])
@@ -1133,7 +1246,7 @@ class RecursorZones(ApiTestCase):
 
     def test_rename_auth_zone(self):
         payload, data = self.create_zone(kind='Native')
-        name = payload['name'] + '.'
+        name = payload['name']
         # now rename it
         payload = {
             'name': 'renamed-'+name,
@@ -1157,7 +1270,7 @@ class RecursorZones(ApiTestCase):
         self.assertNotIn('Content-Type', r.headers)
 
     def test_search_rr_exact_zone(self):
-        name = unique_zone_name() + '.'
+        name = unique_zone_name()
         self.create_zone(name=name, kind='Native')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name))
         self.assert_success_json(r)
@@ -1165,7 +1278,7 @@ class RecursorZones(ApiTestCase):
         self.assertEquals(r.json(), [{u'type': u'zone', u'name': name, u'zone_id': name}])
 
     def test_search_rr_substring(self):
-        name = 'search-rr-zone.name'
+        name = 'search-rr-zone.name.'
         self.create_zone(name=name, kind='Native')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=rr-zone"))
         self.assert_success_json(r)
