@@ -3,7 +3,6 @@
 #endif
 #include "dns.hh"
 #include "misc.hh"
-#include "arguments.hh"
 #include <stdexcept>
 #include <iostream>
 #include <boost/algorithm/string.hpp>
