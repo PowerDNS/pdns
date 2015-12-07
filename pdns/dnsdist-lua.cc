@@ -658,7 +658,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
 
-  g_lua.writeFunction("topClients", [](unsigned int top) {
+  g_lua.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
+      auto top = top_.get_value_or(10);
       map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
       {
