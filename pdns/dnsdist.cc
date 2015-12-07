@@ -673,7 +673,7 @@ void* maintThread()
       if(dss->availability==DownstreamState::Availability::Auto) {
 	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
 	if(newState != dss->upStatus) {
-	  warnlog("Marking downstream %s as '%s'", dss->getName(), newState ? "up" : "down");
+	  warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 	}
 	dss->upStatus = newState;
       }
@@ -697,7 +697,7 @@ void* maintThread()
         }          
       }
     }
-
+    
     std::lock_guard<std::mutex> lock(g_luamutex);
     auto f =g_lua.readVariable<boost::optional<std::function<void()> > >("maintenance");
     if(f)
@@ -753,7 +753,6 @@ try
       }
       else
 	response=g_outputBuffer;
-
 
     }
     catch(const LuaContext::ExecutionErrorException& e) {
@@ -1356,11 +1355,10 @@ try
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
       bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
-      warnlog("Marking downstream %s as '%s'", dss->remote.toStringWithPort(), newState ? "up" : "down");
+      warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
       dss->upStatus = newState;
     }
   }
-
 
   for(auto& cs : toLaunch) {
     if (cs->udpFD >= 0) {
@@ -1372,7 +1370,6 @@ try
       t1.detach();
     }
   }
-
 
   thread carbonthread(carbonDumpThread);
   carbonthread.detach();

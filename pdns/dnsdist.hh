@@ -315,6 +315,13 @@ struct DownstreamState
     }
     return name;
   }
+  string getNameWithAddr() const {
+    if (name.empty()) {
+      return remote.toStringWithPort();
+    }
+    return name + " (" + remote.toStringWithPort()+ ")";
+  }
+
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
