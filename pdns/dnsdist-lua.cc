@@ -665,6 +665,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         }
       }
       vector<pair<int, ComboAddress>> rcounts;
+      rcounts.reserve(counts.size());
       for(const auto& c : counts) 
 	rcounts.push_back(make_pair(c.second, c.first));
 
