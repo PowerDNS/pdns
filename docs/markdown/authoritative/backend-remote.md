@@ -74,7 +74,7 @@ remote-connection-string=zeromq:endpoint=ipc:///tmp/tmp.sock
 
 # API
 ## Queries
-Unix, Pipe and ZeroMQ connectors send JSON formatted string to the remote end. Each JSON query has two sections, 'method' and 'parameters'.
+Unix, Pipe and ZeroMQ connectors send JSON formatted strings to the remote end. Each JSON query has two sections, 'method' and 'parameters'.
 
 HTTP connector calls methods based on URL and has parameters in the query string. Most calls are GET; see the methods listing for details. You can change this with post and post\_json attributes.
 
