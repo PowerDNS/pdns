@@ -13,7 +13,15 @@ BOOST_REQUIRE([1.35])
 BOOST_FOREACH
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/ext/yahttp/yahttp -lyahttp'])
-DNSDIST_LUA
+
+PDNS_WITH_LUAJIT
+AS_IF([test "x$with_luajit" = "xno"], [
+  PDNS_WITH_LUA
+])
+AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
+  AC_MSG_ERROR([Neither Lua nor LuaJIT found, Lua support is not optional])
+])
+
 AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
 AC_DEFINE([HAVE_MBEDTLS2], [1], [Defined if mbed TLS version 2.x.x is used])
 
