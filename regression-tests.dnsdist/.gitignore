@@ -1,0 +1,7 @@
+/.venv
+/*.xml
+/*.pid
+/*.pyc
+dnsdist_ecs*.conf
+.dnsdist_history
+.history

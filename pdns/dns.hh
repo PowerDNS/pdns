@@ -215,10 +215,21 @@ struct dnsheader {
         unsigned        arcount :16;    /* number of resource entries */
 };
 
+static_assert(sizeof(dnsheader) == 12, "dnsheader size must be 12");
+
 inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
 {
   return (uint16_t*) (((char *) dh) + sizeof(uint16_t));
 }
+
+#define DNS_TYPE_SIZE (2)
+#define DNS_CLASS_SIZE (2)
+#define DNS_TTL_SIZE (4)
+#define DNS_RDLENGTH_SIZE (2)
+#define EDNS_EXTENDED_RCODE_SIZE (1)
+#define EDNS_VERSION_SIZE (1)
+#define EDNS_OPTION_CODE_SIZE (2)
+#define EDNS_OPTION_LENGTH_SIZE (2)
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define FLAGS_RD_OFFSET (8)

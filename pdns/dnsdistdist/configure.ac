@@ -11,6 +11,7 @@ PDNS_CHECK_READLINE([mandatory])
 PDNS_CHECK_CLOCK_GETTIME
 BOOST_REQUIRE([1.35])
 BOOST_FOREACH
+PDNS_ENABLE_UNIT_TESTS
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['-L$(top_builddir)/ext/yahttp/yahttp -lyahttp'])
 DNSDIST_LUA

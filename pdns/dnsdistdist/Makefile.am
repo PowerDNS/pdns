@@ -23,12 +23,18 @@ EXTRA_DIST=dnslabeltext.rl \
 	   .version \
 	   contrib
 
+if UNIT_TESTS
+bin_PROGRAMS = dnsdist testrunner
+else
 bin_PROGRAMS = dnsdist
+endif
+
 dnsdist_SOURCES = \
 	base64.hh \
 	dns.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-carbon.cc \
+	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
 	dnsdist-rings.cc \
@@ -36,10 +42,11 @@ dnsdist_SOURCES = \
 	dnsdist-web.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
-	dnsparser.hh \
+	dnsparser.hh dnsparser.cc \
 	dnsrulactions.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
+	ednssubnet.cc ednssubnet.hh \
 	iputils.cc iputils.hh \
 	lock.hh \
 	misc.cc misc.hh \
@@ -72,4 +79,34 @@ dnsdist_LDADD = \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS) \
 	$(SANITIZER_FLAGS)
+
+
+testrunner_SOURCES = \
+	dns.hh \
+	test-dnsdist_cc.cc dnsdist.hh \
+	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnsparser.hh dnsparser.cc \
+	dnswriter.cc dnswriter.hh \
+	dolog.hh \
+	ednssubnet.cc ednssubnet.hh \
+	iputils.cc iputils.hh \
+	misc.cc misc.hh \
+	namespaces.hh \
+	pdnsexception.hh \
+	qtype.cc qtype.hh \
+	sholder.hh \
+	sstuff.hh \
+	testrunner.cc
+
+testrunner_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(PROGRAM_LDFLAGS) \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) \
+	-pthread
+
+testrunner_LDADD = \
+	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(RT_LIBS)
 

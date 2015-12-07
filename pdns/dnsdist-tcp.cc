@@ -21,6 +21,7 @@
 */
 
 #include "dnsdist.hh"
+#include "dnsdist-ecs.hh"
 #include "dolog.hh"
 #include "lock.hh"
 #include <thread>
@@ -140,7 +141,9 @@ void* tcpClientThread(int pipefd)
     const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
     const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
     const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
-
+    string largerQuery;
+    vector<uint8_t> rewrittenResponse;
+    bool ednsAdded = false;
     shared_ptr<DownstreamState> ds;
     if (!setNonBlocking(ci.fd))
       goto drop;
@@ -155,10 +158,13 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        char query[qlen];
-        readn2WithTimeout(ci.fd, query, qlen, g_tcpRecvTimeout);
+        char queryBuffer[qlen];
+        const char * query = queryBuffer;
+        size_t queryLen = qlen;
+        readn2WithTimeout(ci.fd, queryBuffer, queryLen, g_tcpRecvTimeout);
 	uint16_t qtype;
-	DNSName qname(query, qlen, 12, false, &qtype);
+	unsigned int consumed = 0;
+	DNSName qname(query, queryLen, sizeof(dnsheader), false, &qtype, 0, &consumed);
 	string ruleresult;
 	struct dnsheader* dh =(dnsheader*)query;
 	const uint16_t * flags = getFlagsFromDNSHeader(dh);
@@ -204,8 +210,8 @@ void* tcpClientThread(int pipefd)
 	
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
-	  if(lr.first->matches(ci.remote, qname, qtype, dh, qlen)) {
-	    action=(*lr.second)(ci.remote, qname, qtype, dh, qlen, &ruleresult);
+	  if(lr.first->matches(ci.remote, qname, qtype, dh, queryLen)) {
+	    action=(*lr.second)(ci.remote, qname, qtype, dh, queryLen, &ruleresult);
 	    if(action != DNSAction::Action::None) {
 	      lr.first->d_matches++;
 	      break;
@@ -238,8 +244,8 @@ void* tcpClientThread(int pipefd)
 	}
 	
 	if(dh->qr) { // something turned it into a response
-	  if (putNonBlockingMsgLen(ci.fd, qlen, g_tcpSendTimeout))
-	    writen2WithTimeout(ci.fd, query, rlen, g_tcpSendTimeout);
+	  if (putNonBlockingMsgLen(ci.fd, queryLen, g_tcpSendTimeout))
+	    writen2WithTimeout(ci.fd, query, queryLen, g_tcpSendTimeout);
 
 	  g_stats.selfAnswered++;
 	  goto drop;
@@ -254,6 +260,18 @@ void* tcpClientThread(int pipefd)
 	  g_stats.noPolicy++;
 	  break;
 	}
+
+        if (ds->useECS) {
+          int newLen = queryLen;
+          handleEDNSClientSubnet(queryBuffer, queryLen, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
+          if (largerQuery.empty() == false) {
+            query = largerQuery.c_str();
+            queryLen = largerQuery.size();
+          } else {
+            queryLen = newLen;
+          }
+        }
+
 	if(sockets.count(ds->remote) == 0) {
 	  dsock=sockets[ds->remote]=setupTCPDownstream(ds->remote);
 	}
@@ -280,7 +298,7 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if(!putNonBlockingMsgLen(dsock, qlen, ds->tcpSendTimeout)) {
+        if(!putNonBlockingMsgLen(dsock, queryLen, ds->tcpSendTimeout)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
@@ -289,7 +307,7 @@ void* tcpClientThread(int pipefd)
         }
 
         try {
-          writen2WithTimeout(dsock, query, qlen, ds->tcpSendTimeout);
+          writen2WithTimeout(dsock, query, queryLen, ds->tcpSendTimeout);
         }
         catch(const runtime_error& e) {
           vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
@@ -317,11 +335,44 @@ void* tcpClientThread(int pipefd)
         origFlags &= ~restoreFlagsMask;
         /* set the saved flags as they were */
         *responseFlags |= origFlags;
+        char * response = answerbuffer;
+        size_t responseLen = rlen;
 
-        if (putNonBlockingMsgLen(ci.fd, rlen, ds->tcpSendTimeout))
-          writen2WithTimeout(ci.fd, answerbuffer, rlen, ds->tcpSendTimeout);
+        if (ednsAdded) {
+          const char * optStart = NULL;
+          size_t optLen = 0;
+          bool last = false;
+
+          int res = locateEDNSOptRR(response, responseLen, &optStart, &optLen, &last);
+
+          if (res == 0) {
+            if (last) {
+              /* simply remove the last AR */
+              responseLen -= optLen;
+              uint16_t arcount = ntohs(responseHeaders->arcount);
+              arcount--;
+              responseHeaders->arcount = htons(arcount);
+            }
+            else {
+              /* Removing an intermediary RR could lead to compression error */
+              if (rewriteResponseWithoutEDNS(response, responseLen, rewrittenResponse) == 0) {
+                response = reinterpret_cast<char*>(rewrittenResponse.data());
+                responseLen = rewrittenResponse.size();
+              }
+              else {
+                warnlog("Error rewriting content");
+              }
+            }
+          }
+        }
+
+        if (putNonBlockingMsgLen(ci.fd, responseLen, ds->tcpSendTimeout))
+          writen2WithTimeout(ci.fd, response, responseLen, ds->tcpSendTimeout);
 
         g_stats.responses++;
+        
+        largerQuery.clear();
+        rewrittenResponse.clear();
       }
     }
     catch(...){}
@@ -392,8 +443,8 @@ bool getMsgLen(int fd, uint16_t* len)
 try
 {
   uint16_t raw;
-  int ret = readn2(fd, &raw, 2);
-  if(ret != 2)
+  int ret = readn2(fd, &raw, sizeof raw);
+  if(ret != sizeof raw)
     return false;
   *len = ntohs(raw);
   return true;
@@ -406,8 +457,8 @@ bool putMsgLen(int fd, uint16_t len)
 try
 {
   uint16_t raw = htons(len);
-  int ret = writen2(fd, &raw, 2);
-  return ret==2;
+  int ret = writen2(fd, &raw, sizeof raw);
+  return ret==sizeof raw;
 }
 catch(...) {
   return false;

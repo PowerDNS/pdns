@@ -90,7 +90,7 @@ public:
   }
   bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
   {
-    return dh->cd || (getEDNSZ((const char*)dh, len) & 32768);    // turns out dig sets ad by default..
+    return dh->cd || (getEDNSZ((const char*)dh, len) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
   }
 
   string toString() const override

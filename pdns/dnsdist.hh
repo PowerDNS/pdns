@@ -195,6 +195,7 @@ struct IDState
   uint16_t origID;                                            // 2
   uint16_t origFlags;                                         // 2
   int delayMsec;
+  bool ednsAdded{false};
 };
 
 struct Rings {
@@ -298,6 +299,7 @@ struct DownstreamState
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
   bool mustResolve;
   bool upStatus{false};
+  bool useECS{false};
   bool isUp() const
   {
     if(availability == Availability::Down)
@@ -373,6 +375,16 @@ struct CarbonConfig
   unsigned int interval{30};
 };
 
+enum ednsHeaderFlags {
+  EDNS_HEADER_FLAG_NONE = 0,
+  EDNS_HEADER_FLAG_DO = 32768
+};
+
+enum ednsOptionCodes {
+  EDNS0_OPTION_CODE_NONE = 0,
+  EDNS0_OPTION_CODE_ECS = 8,
+};
+
 extern GlobalStateHolder<CarbonConfig> g_carbon;
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
@@ -390,6 +402,10 @@ extern int g_tcpSendTimeout;
 extern uint16_t g_maxOutstanding;
 extern std::atomic<bool> g_configurationDone;
 extern std::atomic<uint64_t> g_maxTCPClientThreads;
+extern uint16_t g_ECSSourcePrefixV4;
+extern uint16_t g_ECSSourcePrefixV6;
+extern bool g_ECSOverride;
+
 struct dnsheader;
 
 void controlThread(int fd, ComboAddress local);
@@ -403,6 +419,7 @@ std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, co
 std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
 int getEDNSZ(const char* packet, unsigned int len);
+uint16_t getEDNSOptionCode(const char * packet, size_t len);
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password);
 bool getMsgLen(int fd, uint16_t* len);
 bool putMsgLen(int fd, uint16_t len);
