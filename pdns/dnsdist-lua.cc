@@ -704,6 +704,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
       vector<pair<int, DNSName>> rcounts;
+      rcounts.reserve(counts.size());
       for(const auto& c : counts) 
 	rcounts.push_back(make_pair(c.second, c.first));
 
@@ -776,6 +777,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
       vector<pair<int, DNSName>> rcounts;
+      rcounts.reserve(counts.size());
       for(const auto& c : counts) 
 	rcounts.push_back(make_pair(c.second, c.first));
 
