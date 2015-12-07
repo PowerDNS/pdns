@@ -13,7 +13,7 @@
 
 \* If provided by the responder (your script).
 
-This backend provides unix socket, pipe, http and ZeroMQ remoting for powerdns. You should think this as normal RPC thin client, which converts native C++ calls into JSON/RPC and passes them to you via connector.
+This backend provides Unix socket, Pipe, HTTP and ZeroMQ remoting for powerdns. You should think this as normal RPC thin client, which converts native C++ calls into JSON/RPC and passes them to you via connector.
 
 ## Important notices
 Please do not use remotebackend shipped before version 3.3. This version has severe bug that can crash the entire process.
