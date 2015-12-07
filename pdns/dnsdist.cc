@@ -516,7 +516,7 @@ try
       clock_gettime(CLOCK_MONOTONIC, &now);
       {
         WriteLock wl(&g_rings.queryLock);
-        g_rings.queryRing.push_back({now,remote,qname,qtype});
+        g_rings.queryRing.push_back({now,remote,qname,(uint16_t)len,qtype});
       }
       
       if(auto got=localDynBlock->lookup(remote)) {
