@@ -1081,7 +1081,7 @@ Content-Type: text/javascript; charset=utf-8
 ```
 
 # Examples
-## Scenario: SOA lookup via pipe or unix connector
+## Scenario: SOA lookup via pipe, unix or zeromq connector
 Query:
 ```
 { 
