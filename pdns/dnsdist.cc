@@ -1069,7 +1069,7 @@ static uid_t strToUID(const string &str)
     char * endptr = 0;
     long int val = strtol(cstr, &endptr, 10);
 
-    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
+    if (((val == LONG_MAX || val == LONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
       warnlog("Warning: Unable to parse user ID %s", cstr);
     }
     else {
@@ -1093,7 +1093,7 @@ static gid_t strToGID(const string &str)
     char * endptr = 0;
     long int val = strtol(cstr, &endptr, 10);
 
-    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
+    if (((val == LONG_MAX || val == LONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
       warnlog("Warning: Unable to parse group ID %s", cstr);
     }
     else {
