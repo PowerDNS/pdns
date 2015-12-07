@@ -599,6 +599,7 @@ dnstcpbench_LDADD = \
 dnsdist_SOURCES = \
 	base32.cc \
 	base64.hh \
+	dns.cc \
 	dnsparser.hh dnsparser.cc \
 	ednssubnet.cc ednssubnet.hh \
 	dnsdist.cc \

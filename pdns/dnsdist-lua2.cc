@@ -195,4 +195,62 @@ void moreLua()
 	g_outputBuffer += (fmt % l.first % l.second.toString()).str();
       }
     });
+
+  g_lua.writeFunction("grepq", [](const std::string& s, boost::optional<unsigned int> limit) {
+      boost::optional<Netmask>  nm;
+      boost::optional<DNSName> dn;
+      try 
+      {
+        nm = Netmask(s);
+      }
+      catch(...) {
+        try { dn=DNSName(s); }
+        catch(...) 
+          {
+            g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
+            return;
+          }
+      }
+
+      decltype(g_rings.queryRing) qr;
+      decltype(g_rings.respRing) rr;
+      {
+        ReadLock rl(&g_rings.queryLock);
+        qr=g_rings.queryRing;
+      }
+      {
+	std::lock_guard<std::mutex> lock(g_rings.respMutex);
+        rr=g_rings.respRing;
+      }
+      
+      unsigned int num=0;
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      std::multimap<struct timespec, string> out;
+      for(const auto& c : qr) {
+        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
+          QType qt(c.qtype);
+          out.insert(make_pair(c.when,std::to_string(DiffTime(now, c.when))+'\t'+c.requestor.toStringWithPort() +'\t'+c.name.toString() + '\t' + qt.getName()));
+
+          if(limit && *limit==++num)
+            break;
+        }
+      }
+      num=0;
+
+      for(const auto& c : rr) {
+        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
+          QType qt(c.qtype);
+          out.insert(make_pair(c.when,std::to_string(DiffTime(now, c.when))+'\t'+c.requestor.toStringWithPort() +'\t'+c.name.toString() + '\t' + qt.getName()+'\t' + std::to_string(c.usec/1000.0) + '\t'+ RCode::to_s(c.rcode)));
+
+          if(limit && *limit==++num)
+            break;
+        }
+      }
+
+      for(const auto& p : out) {
+        g_outputBuffer+=p.second;
+        g_outputBuffer.append(1,'\n');
+      }
+    });
 }

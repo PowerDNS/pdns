@@ -31,7 +31,7 @@ endif
 
 dnsdist_SOURCES = \
 	base64.hh \
-	dns.hh \
+	dns.cc dns.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-carbon.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
