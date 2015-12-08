@@ -1792,17 +1792,19 @@ static void checkLinuxIPv6Limits()
 }
 static void checkOrFixFDS()
 {
-  unsigned int availFDs=getFilenumLimit()-10; // some healthy margin, thanks AJ ;-)
-  if(g_maxMThreads * g_numWorkerThreads > availFDs) {
-    if(getFilenumLimit(true) >= g_maxMThreads * g_numWorkerThreads) {
-      setFilenumLimit(g_maxMThreads * g_numWorkerThreads);
-      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<g_maxMThreads * g_numWorkerThreads<<" to match max-mthreads and threads settings"<<endl;
+  unsigned int availFDs=getFilenumLimit();
+  unsigned int wantFDs = g_maxMThreads * g_numWorkerThreads +25; // even healthier margin than before
+
+  if(wantFDs > availFDs) {
+    if(getFilenumLimit(true) >= wantFDs) {
+      setFilenumLimit(wantFDs);
+      L<<Logger::Warning<<"Raised soft limit on number of filedescriptors to "<<wantFDs<<" to match max-mthreads and threads settings"<<endl;
     }
     else {
       int newval = getFilenumLimit(true) / g_numWorkerThreads;
-      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<g_maxMThreads*g_numWorkerThreads<<"), reducing max-mthreads to "<<newval<<endl;
+      L<<Logger::Warning<<"Insufficient number of filedescriptors available for max-mthreads*threads setting! ("<<availFDs<<" < "<<wantFDs<<"), reducing max-mthreads to "<<newval<<endl;
       g_maxMThreads = newval;
-      setFilenumLimit(g_maxMThreads * g_numWorkerThreads);
+      setFilenumLimit(getFilenumLimit(true));
     }
   }
 }
@@ -2038,6 +2040,7 @@ int serviceMain(int argc, char*argv[])
   writePid();
   makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
+  g_numWorkerThreads = ::arg().asNum("threads");
   g_maxMThreads = ::arg().asNum("max-mthreads");
   checkOrFixFDS();
   
@@ -2058,8 +2061,6 @@ int serviceMain(int argc, char*argv[])
   }
 
   Utility::dropUserPrivs(newuid);
-  g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
-  g_numWorkerThreads = ::arg().asNum("threads");
   makeThreadPipes();
   
   g_tcpTimeout=::arg().asNum("client-tcp-timeout");
