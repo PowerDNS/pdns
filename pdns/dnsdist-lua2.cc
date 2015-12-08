@@ -22,8 +22,7 @@ static double DiffTime(const struct timespec& first, const struct timespec& seco
 }
 
 map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts, 
-				  struct timespec& mintime,
-				  struct timespec& maxtime, int rate)
+				  double delta, int rate)
 {
   std::multimap<unsigned int,ComboAddress> score;
   for(const auto& e : counts) 
@@ -31,7 +30,6 @@ map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddr
 
   map<ComboAddress,int> ret;
   
-  double delta=DiffTime(mintime, maxtime);
   double lim = delta*rate;
   
   for(auto s = score.crbegin(); s != score.crend() && s->first > lim; ++s) {
@@ -45,42 +43,45 @@ typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > cou
 map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T) 
 {
   counts_t counts;
-  struct timespec mintime, maxtime, cutoff;
-  clock_gettime(CLOCK_MONOTONIC, &maxtime);
-  mintime=cutoff=maxtime;
+  struct timespec cutoff, mintime, now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
   
   for(const auto& c : g_rings.respRing) {
     if(seconds && c.when < cutoff)
       continue;
-
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
-  }
-  
-  return filterScore(counts, mintime, maxtime, rate);
-}
-
-map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
-{
-  counts_t counts;
-  struct timespec mintime, maxtime, cutoff;
-  clock_gettime(CLOCK_MONOTONIC, &maxtime);
-  mintime=cutoff=maxtime;
-  cutoff.tv_sec -= seconds;
-  
-  ReadLock rl(&g_rings.queryLock);
-  for(const auto& c : g_rings.queryRing) {
-    if(seconds && c.when < cutoff)
+    if(now < c.when)
       continue;
 
     T(counts, c);
     if(c.when < mintime)
       mintime = c.when;
   }
-  
-  return filterScore(counts, mintime, maxtime, rate);
+  double delta = seconds ? seconds : DiffTime(now, mintime);
+  return filterScore(counts, delta, rate);
+}
+
+map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
+{
+  counts_t counts;
+  struct timespec cutoff, mintime, now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  cutoff = mintime = now;
+  cutoff.tv_sec -= seconds;
+
+  ReadLock rl(&g_rings.queryLock);
+  for(const auto& c : g_rings.queryRing) {
+    if(seconds && c.when < cutoff)
+      continue;
+    if(now < c.when)
+      continue;
+    T(counts, c);
+    if(c.when < mintime)
+      mintime = c.when;
+  }
+  double delta = seconds ? seconds : DiffTime(now, mintime);
+  return filterScore(counts, delta, rate);
 }
 
 
