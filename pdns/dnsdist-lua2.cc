@@ -218,14 +218,22 @@ void moreLua()
         ReadLock rl(&g_rings.queryLock);
         qr=g_rings.queryRing;
       }
+      sort(qr.begin(), qr.end(), [](const decltype(qr)::value_type& a, const decltype(qr)::value_type& b) {
+        return b.when < a.when;
+      });
       {
 	std::lock_guard<std::mutex> lock(g_rings.respMutex);
         rr=g_rings.respRing;
       }
+
+      sort(rr.begin(), rr.end(), [](const decltype(rr)::value_type& a, const decltype(rr)::value_type& b) {
+        return b.when < a.when;
+      });
       
       unsigned int num=0;
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
+            
       std::multimap<struct timespec, string> out;
       for(const auto& c : qr) {
         if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
