@@ -174,7 +174,7 @@ void* tcpClientThread(int pipefd)
 
 	{
 	  WriteLock wl(&g_rings.queryLock);
-	  g_rings.queryRing.push_back({now,ci.remote,qname,qtype});
+	  g_rings.queryRing.push_back({now,ci.remote,qname,(uint16_t)queryLen,qtype,*dh});
 	}
 
 	g_stats.queries++;
@@ -370,7 +370,14 @@ void* tcpClientThread(int pipefd)
           writen2WithTimeout(ci.fd, response, responseLen, ds->tcpSendTimeout);
 
         g_stats.responses++;
-        
+        struct timespec answertime;
+        clock_gettime(CLOCK_MONOTONIC, &answertime);
+        unsigned int udiff = 1000000.0*DiffTime(now,answertime);
+        {
+          std::lock_guard<std::mutex> lock(g_rings.respMutex);
+          g_rings.respRing.push_back({answertime,  ci.remote, qname, qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh});
+        }
+
         largerQuery.clear();
         rewrittenResponse.clear();
       }

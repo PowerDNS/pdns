@@ -748,7 +748,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       for(const auto& r : ring) {
 	item["name"]=r.name.toString();
 	item["qtype"]=r.qtype;
-	item["rcode"]=r.rcode;
+	item["rcode"]=r.dh.rcode;
 	item["usec"]=r.usec;
 	ret.push_back(item);
       }
@@ -762,7 +762,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	std::lock_guard<std::mutex> lock(g_rings.respMutex);
 	if(!labels) {
 	  for(const auto& a : g_rings.respRing) {
-	    if(a.rcode!=kind)
+	    if(a.dh.rcode!=kind)
 	      continue;
 	    counts[a.name]++;
 	    total++;
@@ -771,7 +771,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	else {
 	  unsigned int lab = *labels;
 	  for(auto a : g_rings.respRing) {
-	    if(a.rcode!=kind)
+	    if(a.dh.rcode!=kind)
 	      continue;
 
 	    a.name.trimToLabels(lab);
