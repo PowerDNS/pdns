@@ -1,5 +1,5 @@
-#2000081501 auto axfr-get
-Zexample.com:ns1.example.com.:ahu.example.com.:2000081501:28800:7200:604800:86400:100000
+#2847484148 auto axfr-get
+Zexample.com:ns1.example.com.:ahu.example.com.:2847484148:28800:7200:604800:86400:100000
 &example.com::ns1.example.com.:120
 &example.com::ns2.example.com.:120
 @example.com::smtp-servers.example.com.:10:120
