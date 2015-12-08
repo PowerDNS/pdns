@@ -233,7 +233,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (uint8_t)dh->rcode, (unsigned int)udiff, (unsigned int)len});
+      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)len, *dh});
     }
     if(dh->rcode == RCode::ServFail)
       g_stats.servfailResponses++;
@@ -516,7 +516,7 @@ try
       clock_gettime(CLOCK_MONOTONIC, &now);
       {
         WriteLock wl(&g_rings.queryLock);
-        g_rings.queryRing.push_back({now,remote,qname,(uint16_t)len,qtype});
+        g_rings.queryRing.push_back({now,remote,qname,(uint16_t)len,qtype, *dh});
       }
       
       if(auto got=localDynBlock->lookup(remote)) {

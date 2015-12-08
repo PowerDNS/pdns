@@ -8,22 +8,8 @@
 #include <map>
 #include <fstream>
 
-
-static double DiffTime(const struct timespec& first, const struct timespec& second)
-{
-  int seconds=second.tv_sec - first.tv_sec;
-  int nseconds=second.tv_nsec - first.tv_nsec;
-  
-  if(nseconds < 0) {
-    seconds-=1;
-    nseconds+=1000000000;
-  }
-  return seconds + nseconds/1000000000.0;
-}
-
 map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan >& counts, 
-				  struct timespec& mintime,
-				  struct timespec& maxtime, int rate)
+				  double delta, int rate)
 {
   std::multimap<unsigned int,ComboAddress> score;
   for(const auto& e : counts) 
@@ -31,9 +17,7 @@ map<ComboAddress,int> filterScore(const map<ComboAddress, unsigned int,ComboAddr
 
   map<ComboAddress,int> ret;
   
-  double delta=DiffTime(mintime, maxtime);
   double lim = delta*rate;
-  
   for(auto s = score.crbegin(); s != score.crend() && s->first > lim; ++s) {
     ret[s->second]=s->first;
   }
@@ -45,42 +29,45 @@ typedef   map<ComboAddress, unsigned int,ComboAddress::addressOnlyLessThan > cou
 map<ComboAddress,int> exceedRespGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T) 
 {
   counts_t counts;
-  struct timespec mintime, maxtime, cutoff;
-  clock_gettime(CLOCK_MONOTONIC, &maxtime);
-  mintime=cutoff=maxtime;
+  struct timespec cutoff, mintime, now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  cutoff = mintime = now;
   cutoff.tv_sec -= seconds;
   
   for(const auto& c : g_rings.respRing) {
     if(seconds && c.when < cutoff)
       continue;
-
-    T(counts, c);
-    if(c.when < mintime)
-      mintime = c.when;
-  }
-  
-  return filterScore(counts, mintime, maxtime, rate);
-}
-
-map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
-{
-  counts_t counts;
-  struct timespec mintime, maxtime, cutoff;
-  clock_gettime(CLOCK_MONOTONIC, &maxtime);
-  mintime=cutoff=maxtime;
-  cutoff.tv_sec -= seconds;
-  
-  ReadLock rl(&g_rings.queryLock);
-  for(const auto& c : g_rings.queryRing) {
-    if(seconds && c.when < cutoff)
+    if(now < c.when)
       continue;
 
     T(counts, c);
     if(c.when < mintime)
       mintime = c.when;
   }
-  
-  return filterScore(counts, mintime, maxtime, rate);
+  double delta = seconds ? seconds : DiffTime(now, mintime);
+  return filterScore(counts, delta, rate);
+}
+
+map<ComboAddress,int> exceedQueryGen(int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T) 
+{
+  counts_t counts;
+  struct timespec cutoff, mintime, now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  cutoff = mintime = now;
+  cutoff.tv_sec -= seconds;
+
+  ReadLock rl(&g_rings.queryLock);
+  for(const auto& c : g_rings.queryRing) {
+    if(seconds && c.when < cutoff)
+      continue;
+    if(now < c.when)
+      continue;
+    T(counts, c);
+    if(c.when < mintime)
+      mintime = c.when;
+  }
+  double delta = seconds ? seconds : DiffTime(now, mintime);
+  return filterScore(counts, delta, rate);
 }
 
 
@@ -88,7 +75,7 @@ map<ComboAddress,int> exceedRCode(int rate, int seconds, int rcode)
 {
   return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r) 
 		   {
-		     if(r.rcode == rcode)
+		     if(r.dh.rcode == rcode)
 		       counts[r.requestor]++;
 		   });
 }
@@ -235,10 +222,14 @@ void moreLua()
       clock_gettime(CLOCK_MONOTONIC, &now);
             
       std::multimap<struct timespec, string> out;
+
+      boost::format      fmt("%-7.1f %-47s %-5d %-25s %-5s %-4.1f %-2s %-2s %-2s %s\n");
+      g_outputBuffer+= (fmt % "Time" % "Client" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
+
       for(const auto& c : qr) {
         if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
           QType qt(c.qtype);
-          out.insert(make_pair(c.when,std::to_string(DiffTime(now, c.when))+'\t'+c.requestor.toStringWithPort() +'\t'+c.name.toString() + '\t' + qt.getName()));
+          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str()  )) ;
 
           if(limit && *limit==++num)
             break;
@@ -246,10 +237,12 @@ void moreLua()
       }
       num=0;
 
+
+
       for(const auto& c : rr) {
         if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
           QType qt(c.qtype);
-          out.insert(make_pair(c.when,std::to_string(DiffTime(now, c.when))+'\t'+c.requestor.toStringWithPort() +'\t'+c.name.toString() + '\t' + qt.getName()+'\t' + std::to_string(c.usec/1000.0) + '\t'+ RCode::to_s(c.rcode)));
+          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % RCode::to_s(c.dh.rcode)).str()  )) ;
 
           if(limit && *limit==++num)
             break;
@@ -258,7 +251,6 @@ void moreLua()
 
       for(const auto& p : out) {
         g_outputBuffer+=p.second;
-        g_outputBuffer.append(1,'\n');
       }
     });
 }

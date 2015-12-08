@@ -645,3 +645,5 @@ const char* addS(const C& c, typename std::enable_if<std::is_class<C>::value>::t
   return addS(c.size());
 }
 
+double DiffTime(const struct timespec& first, const struct timespec& second);
+double DiffTime(const struct timeval& first, const struct timeval& second);

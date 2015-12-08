@@ -203,17 +203,6 @@ unsigned int s_webetter, s_origbetter, s_norecursionavailable;
 unsigned int s_weunmatched, s_origunmatched;
 unsigned int s_wednserrors, s_origdnserrors, s_duplicates;
 
-static double DiffTime(const struct timeval& first, const struct timeval& second)
-{
-  int seconds=second.tv_sec - first.tv_sec;
-  int useconds=second.tv_usec - first.tv_usec;
-  
-  if(useconds < 0) {
-    seconds-=1;
-    useconds+=1000000;
-  }
-  return seconds + useconds/1000000.0;
-}
 
 
 void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int& weSlow, int& origSlow)

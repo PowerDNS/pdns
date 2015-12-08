@@ -1208,3 +1208,27 @@ uint64_t getCPUTimeSystem(const std::string&)
   getrusage(RUSAGE_SELF, &ru);
   return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
 }
+
+double DiffTime(const struct timespec& first, const struct timespec& second)
+{
+  int seconds=second.tv_sec - first.tv_sec;
+  int nseconds=second.tv_nsec - first.tv_nsec;
+  
+  if(nseconds < 0) {
+    seconds-=1;
+    nseconds+=1000000000;
+  }
+  return seconds + nseconds/1000000000.0;
+}
+
+double DiffTime(const struct timeval& first, const struct timeval& second)
+{
+  int seconds=second.tv_sec - first.tv_sec;
+  int useconds=second.tv_usec - first.tv_usec;
+  
+  if(useconds < 0) {
+    seconds-=1;
+    useconds+=1000000;
+  }
+  return seconds + useconds/1000000.0;
+}

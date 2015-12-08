@@ -212,6 +212,7 @@ struct Rings {
     DNSName name;
     uint16_t size;
     uint16_t qtype;
+    struct dnsheader dh;
   };
   boost::circular_buffer<Query> queryRing;
   struct Response
@@ -220,9 +221,9 @@ struct Rings {
     ComboAddress requestor;
     DNSName name;
     uint16_t qtype;
-    uint8_t rcode;
     unsigned int usec;
     unsigned int size;
+    struct dnsheader dh;
   };
   boost::circular_buffer<Response> respRing;
   std::mutex respMutex;
