@@ -427,3 +427,9 @@ bool putMsgLen32(int fd, uint32_t len);
 void* tcpAcceptorThread(void* p);
 
 void moreLua();
+void doClient(ComboAddress server, const std::string& command);
+void doConsole();
+void controlClientThread(int fd, ComboAddress client);
+extern "C" {
+char** my_completion( const char * text , int start,  int end);
+}

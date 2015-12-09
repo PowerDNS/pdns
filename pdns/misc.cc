@@ -54,6 +54,10 @@
 #include <boost/algorithm/string.hpp>
 #include "iputils.hh"
 #include "dnsparser.hh"
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
+
 
 bool g_singleThreaded;
 
@@ -1232,3 +1236,53 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
   }
   return seconds + useconds/1000000.0;
 }
+
+
+uid_t strToUID(const string &str)
+{
+  uid_t result = 0;
+  const char * cstr = str.c_str();
+  struct passwd * pwd = getpwnam(cstr);
+
+  if (pwd == NULL) {
+    char * endptr = 0;
+    long int val = strtol(cstr, &endptr, 10);
+
+    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
+      throw runtime_error((boost::format("Warning: Unable to parse user ID %s") % cstr).str() );
+    }
+    else {
+      result = val;
+    }
+  }
+  else {
+    result = pwd->pw_uid;
+  }
+
+  return result;
+}
+
+gid_t strToGID(const string &str)
+{
+  gid_t result = 0;
+  const char * cstr = str.c_str();
+  struct group * grp = getgrnam(cstr);
+
+  if (grp == NULL) {
+    char * endptr = 0;
+    long int val = strtol(cstr, &endptr, 10);
+
+    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
+      throw runtime_error((boost::format("Warning: Unable to parse group ID %s") % cstr).str() );
+    }
+    else {
+      result = val;
+    }
+  }
+  else {
+    result = grp->gr_gid;
+  }
+
+  return result;
+}
+

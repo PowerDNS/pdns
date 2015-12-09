@@ -604,6 +604,7 @@ dnsdist_SOURCES = \
 	ednssubnet.cc ednssubnet.hh \
 	dnsdist.cc \
 	dnsdist-carbon.cc \
+	dnsdist-console.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \

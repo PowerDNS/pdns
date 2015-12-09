@@ -34,6 +34,7 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-carbon.cc \
+	dnsdist-console.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
