@@ -877,9 +877,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   
-  g_lua.writeFunction("testCrypto", [](string testmsg)
+  g_lua.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
    {
      try {
+       string testmsg;
+
+       if (optTestMsg) {
+         testmsg = *optTestMsg;
+       }
+       else {
+         testmsg = "testStringForCryptoTests";
+       }
+
        SodiumNonce sn, sn2;
        sn.init();
        sn2=sn;

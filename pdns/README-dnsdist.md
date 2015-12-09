@@ -505,6 +505,10 @@ Then start `dnsdist` as a daemon, and then connect to it:
 > 
 ```
 
+Please note that, without libsodium support, 'makeKey()' will return
+setKey("plaintext") and the communication between the client and the
+server will not be encrypted.
+
 ACL, who can use dnsdist
 ------------------------
 For safety reasons, by default only private networks can use dnsdist, see below
