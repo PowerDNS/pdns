@@ -247,6 +247,7 @@ private:
 class OPTRecordContent : public DNSRecordContent
 {
 public:
+  OPTRecordContent(){}
   includeboilerplate(OPT)
   void getData(vector<pair<uint16_t, string> > &opts);
 private:
@@ -704,7 +705,7 @@ struct EDNSOpts
 
 class MOADNSParser;
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
-
+DNSRecord makeOpt(int udpsize, int extRCode, int Z);
 void reportBasicTypes();
 void reportOtherTypes();
 void reportAllTypes();

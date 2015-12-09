@@ -531,6 +531,24 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
   return false;
 }
 
+DNSRecord makeOpt(int udpsize, int extRCode, int Z)
+{
+  EDNS0Record stuff;
+  stuff.extRCode=0;
+  stuff.version=0;
+  stuff.Z=htons(Z);
+  DNSRecord dr;
+  memcpy(&dr.d_ttl, &stuff, sizeof(stuff));
+  dr.d_ttl=ntohl(dr.d_ttl);
+  dr.d_name=DNSName(".");
+  dr.d_type = QType::OPT;
+  dr.d_class=udpsize;
+  dr.d_place=DNSResourceRecord::ADDITIONAL;
+  dr.d_content = std::make_shared<OPTRecordContent>();
+  // if we ever do options, I think we stuff them into OPTRecordContent::data
+  return dr;
+}
+
 
 void reportBasicTypes()
 {
