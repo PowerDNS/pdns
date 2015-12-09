@@ -677,9 +677,25 @@ Returns all public data about cryptokeys, including `content`, with all the priv
 Cache Access
 ============
 
-**TODO**: Peek at the cache, clear the cache, possibly dump it into a file?
+**TODO**: Not yet implemented: Peek at the cache, clear the cache, possibly read cache?
 
-**TODO**: Not yet implemented.
+URL: /api/v1/servers/:server\_id/cache/flush?domain=:domain
+--------------------------------------------
+
+Allowed methods: `PUT` (Execute)
+
+#### PUT (Execute)
+
+Flush the cache for a given domain name `:domain`. Response body:
+
+    {
+      "count": 10,
+      "result": "Flushed cache."
+    }
+
+Implementation detail: On Authoritative servers, this clears the packet cache.
+On Recursors, this clears the positive, negative and packet cache.
+
 
 Logging & Statistics
 ====================
@@ -691,7 +707,7 @@ Allowed methods: `GET` (Query)
 
 #### GET (Query)
 
-Query the log, filtered by `:search_term`. Response body:
+Query the log, filtered by `:search_term` (query parameter). Response body:
 
     [
       "<log_line>",

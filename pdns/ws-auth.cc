@@ -413,7 +413,7 @@ static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new
   if (records.IsArray()) {
     for (SizeType idx = 0; idx < records.Size(); ++idx) {
       const Value& record = records[idx];
-      rr.qname = dnsnameFromJson(record, "name");
+      rr.qname = apiNameToDNSName(stringFromJson(record, "name"));
       rr.qtype = stringFromJson(record, "type");
       string content = stringFromJson(record, "content");
       rr.auth = 1;
@@ -621,7 +621,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     DomainInfo di;
     Document document;
     req->json(document);
-    DNSName zonename = dnsnameFromJson(document, "name");
+    DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
     apiCheckNameAllowedCharacters(zonename.toString());
 
     string zonestring = stringFromJson(document, "zone", "");
@@ -952,7 +952,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
       const Value& rrset = rrsets[rrsetIdx];
       string changetype;
       QType qtype;
-      DNSName qname = dnsnameFromJson(rrset, "name");
+      DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
       apiCheckNameAllowedCharacters(qname.toString());
       qtype = stringFromJson(rrset, "type");
       changetype = toUpper(stringFromJson(rrset, "changetype"));
@@ -1160,16 +1160,14 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-void apiServerFlushCache(HttpRequest* req, HttpResponse* resp) {
+void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
 
+  DNSName canon = apiNameToDNSName(req->getvars["domain"]);
+
   extern PacketCache PC;
-  int count;
-  if(req->getvars["domain"].empty())
-    count = PC.purge();
-  else
-    count = PC.purge(req->getvars["domain"]);
+  int count = PC.purgeExact(canon);
 
   map<string, string> object;
   object["count"] = lexical_cast<string>(count);
@@ -1217,8 +1215,8 @@ void AuthWebServer::webThread()
 {
   try {
     if(::arg().mustDo("api")) {
+      d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", &apiServerCacheFlush);
       d_ws->registerApiHandler("/api/v1/servers/localhost/config", &apiServerConfig);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/flush-cache", &apiServerFlushCache);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-log", &apiServerSearchLog);
       d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", &apiServerSearchData);
       d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", &apiServerStatistics);

@@ -25,7 +25,6 @@
 #include <map>
 #include <stdexcept>
 #include "rapidjson/document.h"
-#include "dnsname.hh"
 
 std::string returnJsonObject(const std::map<std::string, std::string>& items);
 std::string returnJsonError(const std::string& error);
@@ -35,7 +34,6 @@ int intFromJson(const rapidjson::Value& container, const char* key);
 int intFromJson(const rapidjson::Value& container, const char* key, const int default_value);
 std::string stringFromJson(const rapidjson::Value& container, const char* key);
 std::string stringFromJson(const rapidjson::Value& container, const char* key, const std::string& default_value);
-DNSName dnsnameFromJson(const rapidjson::Value& container, const char* key);
 bool boolFromJson(const rapidjson::Value& container, const char* key);
 bool boolFromJson(const rapidjson::Value& container, const char* key, const bool default_value);
 
