@@ -446,24 +446,26 @@ void* tcpAcceptorThread(void* p)
 }
 
 
-bool getMsgLen(int fd, uint16_t* len)
+bool getMsgLen32(int fd, uint32_t* len)
 try
 {
-  uint16_t raw;
+  uint32_t raw;
   int ret = readn2(fd, &raw, sizeof raw);
   if(ret != sizeof raw)
     return false;
-  *len = ntohs(raw);
+  *len = ntohl(raw);
+  if(*len > 10000000) // arbitrary 10MB limit
+    return false;
   return true;
 }
 catch(...) {
    return false;
 }
 
-bool putMsgLen(int fd, uint16_t len)
+bool putMsgLen32(int fd, uint32_t len)
 try
 {
-  uint16_t raw = htons(len);
+  uint32_t raw = htonl(len);
   int ret = writen2(fd, &raw, sizeof raw);
   return ret==sizeof raw;
 }

@@ -776,13 +776,13 @@ try
   writen2(fd, (char*)ours.value, sizeof(ours.value));
 
   for(;;) {
-    uint16_t len;
-    if(!getMsgLen(fd, &len))
+    uint32_t len;
+    if(!getMsgLen32(fd, &len))
       break;
-    char msg[len];
-    readn2(fd, msg, len);
+    boost::scoped_array<char> msg(new char[len]);
+    readn2(fd, msg.get(), len);
     
-    string line(msg, len);
+    string line(msg.get(), len);
     line = sodDecryptSym(line, g_key, theirs);
     //    cerr<<"Have decrypted line: "<<line<<endl;
     string response;
@@ -827,8 +827,8 @@ try
       response = "Error: " + string(e.what()) + ": ";
     }
     response = sodEncryptSym(response, g_key, ours);
-    putMsgLen(fd, response.length());
-    writen2(fd, response.c_str(), (uint16_t)response.length());
+    putMsgLen32(fd, response.length());
+    writen2(fd, response.c_str(), response.length());
   }
   infolog("Closed control connection from %s", client.toStringWithPort());
   close(fd);
@@ -877,14 +877,14 @@ static void doClient(ComboAddress server, const std::string& command)
   if(!command.empty()) {
     string response;
     string msg=sodEncryptSym(command, g_key, ours);
-    putMsgLen(fd, msg.length());
+    putMsgLen32(fd, msg.length());
     if(!msg.empty())
       writen2(fd, msg);
-    uint16_t len;
-    getMsgLen(fd, &len);
-    char resp[len];
-    readn2(fd, resp, len);
-    msg.assign(resp, len);
+    uint32_t len;
+    getMsgLen32(fd, &len);
+    boost::scoped_array<char> resp(new char[len]);
+    readn2(fd, resp.get(), len);
+    msg.assign(resp.get(), len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
     return; 
@@ -919,19 +919,17 @@ static void doClient(ComboAddress server, const std::string& command)
 
     string response;
     string msg=sodEncryptSym(line, g_key, ours);
-    putMsgLen(fd, msg.length());
+    putMsgLen32(fd, msg.length());
     writen2(fd, msg);
-    uint16_t len;
-    getMsgLen(fd, &len);
-
-    if(len == 0) {
+    uint32_t len;
+    if(!getMsgLen32(fd, &len) || len == 0) {
       cout << "Connection closed by the server." << endl;
       break;
     }
 
-    char resp[len];
-    readn2(fd, resp, len);
-    msg.assign(resp, len);
+    boost::scoped_array<char> resp(new char[len]);
+    readn2(fd, resp.get(), len);
+    msg.assign(resp.get(), len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
   }
