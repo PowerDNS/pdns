@@ -48,7 +48,6 @@
 
 
 StatBag S;
-static bool g_doDNSSEC;
 
 enum dbmode_t {MYSQL, GORACLE, POSTGRES, SQLITE, MYDNS, ORACLE};
 static dbmode_t g_mode;
@@ -187,44 +186,23 @@ static void emitRecord(const string& zoneName, const DNSName &DNSqname, const st
   }
 
   if(g_mode==MYSQL || g_mode==SQLITE) {
-    if(!g_doDNSSEC) {
-      cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(qname))<<", "<<
-        sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
-        " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+    cout<<"insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,"<<
+      sqlstr(toLower(qname))<<", "<<
+      sqlstr(qtype)<<", "<<
+      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
+      " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
 
-      if(!recordcomment.empty()) {
-        cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(stripDot(qname)))<<", "<<sqlstr(qtype)<<", "<<time(0)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
-       
-      }
-
-    } else
-    {
-      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(qname))<<", "<<
-        sqlstr(toLower(labelReverse(makeRelative(qname, zoneName))))<<", "<<auth<<", "<<
-        sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", "<<disabled<<
-        " from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
+    if(!recordcomment.empty()) {
+      cout<<"insert into comments (domain_id,name,type,modified_at, comment) select id, "<<toLower(sqlstr(stripDot(qname)))<<", "<<sqlstr(qtype)<<", "<<time(0)<<", "<<sqlstr(recordcomment)<<" from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
     }
   }
   else if(g_mode==POSTGRES) {
-    if(!g_doDNSSEC) {
-      cout<<"insert into records (domain_id, name,type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(qname))<<", "<<
-        sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<< (disabled ? 't': 'f')<<
-        "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
-    } else
-    {
-      cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
-        sqlstr(toLower(qname))<<", "<<
-        sqlstr(toLower(labelReverse(makeRelative(qname, zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
-        sqlstr(qtype)<<", "<<
-        sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
-        "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
-    }
+    cout<<"insert into records (domain_id, name, ordername, auth, type,content,ttl,prio,disabled) select id ,"<<
+      sqlstr(toLower(qname))<<", "<<
+      sqlstr(toLower(labelReverse(makeRelative(qname, zoneName))))<<", '"<< (auth  ? 't' : 'f') <<"', "<<
+      sqlstr(qtype)<<", "<<
+      sqlstr(stripDotContent(content))<<", "<<ttl<<", "<<prio<<", '"<<(disabled ? 't': 'f') <<
+      "' from domains where name="<<toLower(sqlstr(zoneName))<<";\n";
   }
   else if(g_mode==GORACLE) {
     cout<<"insert into Records (id, domain_id, name, type, content, ttl, prio, disabled) select RECORDS_ID_SEQUENCE.nextval,id ,"<<
@@ -296,7 +274,6 @@ try
     ::arg().setSwitch("oracle","Output in format suitable for the oraclebackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
-    ::arg().setSwitch("dnssec","Add DNSSEC related data")="no";
     ::arg().setSwitch("slave","Keep BIND slaves as slaves. Only works with named-conf.")="no";
     ::arg().setSwitch("json-comments","Parse json={} field for disabled & comments")="no";
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
@@ -358,8 +335,6 @@ try
     if((g_mode==GORACLE || g_mode==ORACLE) && !::arg().mustDo("transactions"))
       cout<<"set autocommit on;"<<endl;
 
-    g_doDNSSEC=::arg().mustDo("dnssec");
-      
     namedfile=::arg()["named-conf"];
     zonefile=::arg()["zone"];
 
