@@ -229,7 +229,7 @@ void moreLua()
       for(const auto& c : qr) {
         if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
           QType qt(c.qtype);
-          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str()  )) ;
+          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
 
           if(limit && *limit==++num)
             break;
@@ -238,11 +238,15 @@ void moreLua()
       num=0;
 
 
-
+      string extra;
       for(const auto& c : rr) {
         if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
           QType qt(c.qtype);
-          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % RCode::to_s(c.dh.rcode)).str()  )) ;
+	  if(!c.dh.rcode)
+	    extra=". " +std::to_string(htons(c.dh.ancount))+ " answers";
+	  else 
+	    extra.clear();
+          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
 
           if(limit && *limit==++num)
             break;
