@@ -398,6 +398,7 @@ extern std::vector<std::pair<ComboAddress, bool>> g_locals; // not changed at ru
 extern vector<ClientState*> g_frontends;
 extern std::string g_key; // in theory needs locking
 extern bool g_truncateTC;
+extern bool g_fixupCase;
 extern int g_tcpRecvTimeout;
 extern int g_tcpSendTimeout;
 extern uint16_t g_maxOutstanding;

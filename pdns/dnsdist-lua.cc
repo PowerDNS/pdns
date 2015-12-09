@@ -273,6 +273,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("truncateTC", [](bool tc) { g_truncateTC=tc; });
+  g_lua.writeFunction("fixupCase", [](bool fu) { g_fixupCase=fu; });
 
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);

@@ -366,6 +366,11 @@ void* tcpClientThread(int pipefd)
           }
         }
 
+	if(g_fixupCase) {
+	  string realname = qname.toDNSString();
+	  memcpy(response+12, realname.c_str(), realname.length());
+	}
+
         if (putNonBlockingMsgLen(ci.fd, responseLen, ds->tcpSendTimeout))
           writen2WithTimeout(ci.fd, response, responseLen, ds->tcpSendTimeout);
 

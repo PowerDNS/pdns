@@ -109,6 +109,7 @@ int g_tcpRecvTimeout{2};
 int g_tcpSendTimeout{2};
 
 bool g_truncateTC{1};
+bool g_fixupCase{0};
 static void truncateTC(const char* packet, unsigned int* len)
 try
 {
@@ -171,10 +172,14 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     else
       --state->outstanding;  // you'd think an attacker could game this, but we're using connected socket
 
+    if(g_fixupCase) {
+      string realname = ids->qname.toDNSString();
+      memcpy(packet+12, realname.c_str(), realname.length());
+    }
+
     if(dh->tc && g_truncateTC) {
       truncateTC(packet, (unsigned int*)&len);
     }
-
     uint16_t * flags = getFlagsFromDNSHeader(dh);
     uint16_t origFlags = ids->origFlags;
     /* clear the flags we are about to restore */
