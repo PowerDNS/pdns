@@ -593,6 +593,7 @@ struct RecursorStats
   uint64_t noPingOutQueries, noEdnsOutQueries;
   uint64_t packetCacheHits;
   uint64_t noPacketError;
+  uint64_t ignoredCount;
   time_t startupTime;
   unsigned int maxMThreadStackUsage;
 };
