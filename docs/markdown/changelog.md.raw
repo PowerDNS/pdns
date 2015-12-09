@@ -1,5 +1,31 @@
 **Note**: Beyond PowerDNS 2.9.20, the Authoritative Server and Recursor are released separately.
 
+# PowerDNS Recursor 4.0.0
+UNRELEASED - trial packages on [our builder](https://builder.powerdns.com) and on [our repositories](https://repo.powerdns.com).
+
+PowerDNS Recursor 4.0.0 is part of [the great 4.x "Spring Cleaning"](http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/) of PowerDNS which lasted through the end of 2015.
+
+As part of the general cleanup, we did the following:
+
+- Moved to C++ 2011, a cleaner more powerful version of C++ that has allowed us to [improve the quality of implementation](http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html) in many places.
+- Implemented dedicated infrastructure for dealing with DNS names that is fully "DNS Native" and needs less escaping and unescaping
+- Switched to binary storage of DNS records in all places
+- Moved ACLs to a dedicated Netmask Tree (Patricia Trie)
+- Implemented a version of [RCU](https://en.wikipedia.org/wiki/Read-copy-update) for configuration changes
+- Instrumented our use of the memory allocator, reduced number of malloc calls substantially.
+
+In addition to this cleanup, which has many internal benefits and solves longstanding issues with escaped domain names, 4.0.0 brings the following major new features:
+
+- RPZ aka Response Policy Zone support
+- IXFR slaving in the PowerDNS Recursor for RPZ
+- DNSSEC processing in Recursor (authoritative has had this for years)
+- DNSSEC validation
+- EDNS Client Subnet support in PowerDNS Recursor (authoritative has had this for years)
+- Lua asynchronous queries for per-IP/per-domain status
+- Caches that can now be wiped per whole zone instead of per name
+
+.. to be continued
+
 # PowerDNS Authoritative Server 3.4.7
 Released 3rd of November 2015
 
