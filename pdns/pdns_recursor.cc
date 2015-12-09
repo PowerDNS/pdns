@@ -601,8 +601,11 @@ void startDoResolve(void *p)
 
     uint32_t maxanswersize= dc->d_tcp ? 65535 : min((uint16_t) 512, g_udpTruncationThreshold);
     EDNSOpts edo;
-    if(getEDNSOpts(dc->d_mdp, &edo) && !dc->d_tcp) {
-      maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
+    bool haveEDNS=false;
+    if(getEDNSOpts(dc->d_mdp, &edo)) {
+      if(!dc->d_tcp)
+	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
+      haveEDNS=true;
     }
     ComboAddress local;
     listenSocketsAddresses_t::const_iterator lociter;
@@ -806,19 +809,23 @@ void startDoResolve(void *p)
     else {
       pw.getHeader()->rcode=res;
 
-      if(edo.d_Z & EDNSOpts::DNSSECOK) {
-	auto state=validateRecords(ret);
-	if(state == Secure) {
-	  pw.getHeader()->ad=1;
-	}
-	else if(state == Insecure) {
-	  pw.getHeader()->ad=0;
-	}
-	else if(state == Bogus && !pw.getHeader()->cd) {
-	  pw.getHeader()->rcode=RCode::ServFail;
-	  goto sendit;
+      if(haveEDNS) {
+	if(edo.d_Z & EDNSOpts::DNSSECOK) {
+	  auto state=validateRecords(ret);
+	  if(state == Secure) {
+	    pw.getHeader()->ad=1;
+	  }
+	  else if(state == Insecure) {
+	    pw.getHeader()->ad=0;
+	  }
+	  else if(state == Bogus && !pw.getHeader()->cd) {
+	    pw.getHeader()->rcode=RCode::ServFail;
+	    goto sendit;
+	  }
 	}
       }
+
+
 
       if(ret.size()) {
         orderAndShuffle(ret);
@@ -826,23 +833,28 @@ void startDoResolve(void *p)
 	  sort(ret.begin(), ret.end(), *sl);
 	  variableAnswer=true;
 	}
-        for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
-          pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
-          minTTL = min(minTTL, i->d_ttl);
-	  i->d_content->toPacket(pw);
-          if(pw.size() > maxanswersize) {
-            pw.rollback();
-            if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
+      }
+      if(haveEDNS)  {
+	ret.push_back(makeOpt(edo.d_packetsize, 0, edo.d_Z));
+      }
+      
+      for(auto i=ret.cbegin(); i!=ret.cend(); ++i) {
+	pw.startRecord(i->d_name, i->d_type, i->d_ttl, i->d_class, i->d_place);
+	if(i->d_type != QType::OPT) // their TTL ain't real
+	  minTTL = min(minTTL, i->d_ttl);
+	i->d_content->toPacket(pw);
+	if(pw.size() > maxanswersize) {
+	  pw.rollback();
+	  if(i->d_place==DNSResourceRecord::ANSWER)  // only truncate if we actually omitted parts of the answer
             {
               pw.getHeader()->tc=1;
               pw.truncate();
             }
-            goto sendit; // need to jump over pw.commit
-          }
-        }
-
-	pw.commit();
+	  goto sendit; // need to jump over pw.commit
+	}
       }
+      if(ret.size())
+	pw.commit();
     }
   sendit:;
 
