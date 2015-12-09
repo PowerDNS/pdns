@@ -15,6 +15,10 @@
 using namespace ::boost::multi_index;
 
 //! Stores whole packets, ready for lobbing back at the client. Not threadsafe.
+/* Note: we store answers as value AND KEY, and with careful work, we make sure that
+   you can use a query as a key too. But query and answer must compare as identical! 
+   
+   This precludes doing anything smart with EDNS directly from the packet */
 class RecursorPacketCache
 {
 public:
@@ -62,9 +66,13 @@ inline bool RecursorPacketCache::Entry::operator<(const struct RecursorPacketCac
   const struct dnsheader* 
     dh=(const struct dnsheader*) d_packet.c_str(), 
     *rhsdh=(const struct dnsheader*)rhs.d_packet.c_str();
-  if(boost::make_tuple(dh->opcode, dh->rd, dh->qdcount) < 
-     boost::make_tuple(rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
+  if(std::tie(dh->opcode, dh->rd, dh->qdcount) < 
+     std::tie(rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
     return true;
+
+  if(std::tie(dh->opcode, dh->rd, dh->qdcount) >
+     std::tie(rhsdh->opcode, rhsdh->rd, rhsdh->qdcount))
+    return false;
 
   return dnspacketLessThan(d_packet, rhs.d_packet);
 }
