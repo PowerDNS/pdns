@@ -1,3 +1,8 @@
+/*
+ * NOTE: sys/devpoll.h relies on sigset_t being already defined so we need
+ * to include sys/signal.h *before* including sys/devpoll.h.
+ */
+#include <sys/signal.h>
 #include <sys/devpoll.h>
 #include "mplexer.hh"
 #include "sstuff.hh"
