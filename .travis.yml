@@ -293,7 +293,7 @@ script:
   ### api ###
   - cd regression-tests.api
   - ./runtests authoritative
-  #DNSName: - ./runtests recursor
+  - ./runtests recursor
   - cd ..
 
 

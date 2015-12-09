@@ -149,8 +149,8 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   string url = "/api/v1/servers/localhost/zones/" + zoneId;
   Value jurl(url.c_str(), doc.GetAllocator()); // copy
   doc.AddMember("url", jurl, doc.GetAllocator());
-  Value jname(iter->first.toString().c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("name", jname, doc.GetAllocator());
+  Value jzonename(iter->first.toString().c_str(), doc.GetAllocator()); // copy
+  doc.AddMember("name", jzonename, doc.GetAllocator());
   doc.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
   Value servers;
   servers.SetArray();
@@ -309,7 +309,8 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     string url = "/api/v1/servers/localhost/zones/" + zoneId;
     Value jurl(url.c_str(), doc.GetAllocator()); // copy
     jdi.AddMember("url", jurl, doc.GetAllocator());
-    jdi.AddMember("name", val.first.toString().c_str(), doc.GetAllocator());
+    Value jzonename(val.first.toString().c_str(), doc.GetAllocator()); // copy
+    jdi.AddMember("name", jzonename, doc.GetAllocator());
     jdi.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
     Value servers;
     servers.SetArray();
