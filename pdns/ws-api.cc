@@ -221,6 +221,17 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
+DNSName apiNameToDNSName(const string& name) {
+  if (!isCanonical(name)) {
+    throw ApiException("DNS Name '" + name + "' is not canonical");
+  }
+  try {
+    return DNSName(name);
+  } catch (...) {
+    throw ApiException("Unable to parse DNS Name '" + name + "'");
+  }
+}
+
 DNSName apiZoneIdToName(const string& id) {
   string zonename;
   ostringstream ss;
