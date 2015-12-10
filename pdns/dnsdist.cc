@@ -452,7 +452,6 @@ try
   remote.sin4.sin_family = cs->local.sin4.sin_family;
   char packet[1500];
   struct dnsheader* dh = (struct dnsheader*) packet;
-  int len;
   string largerQuery;
   uint16_t qtype;
 
@@ -481,16 +480,16 @@ try
 
   for(;;) {
     try {
-      len = recvmsg(cs->udpFD, &msgh, 0);
+      int ret = recvmsg(cs->udpFD, &msgh, 0);
 
       cs->queries++;
       g_stats.queries++;
 
-      if(len < (int)sizeof(struct dnsheader)) {
+      if(ret < (int)sizeof(struct dnsheader)) {
 	g_stats.nonCompliantQueries++;
 	continue;
       }
-
+      uint16_t len=ret;
       if (msgh.msg_flags & MSG_TRUNC) {
         /* message was too large for our buffer */
         vinfolog("Dropping message too large for our buffer");
@@ -521,7 +520,7 @@ try
       clock_gettime(CLOCK_MONOTONIC, &now);
       {
         WriteLock wl(&g_rings.queryLock);
-        g_rings.queryRing.push_back({now,remote,qname,(uint16_t)len,qtype, *dh});
+        g_rings.queryRing.push_back({now,remote,qname,len,qtype, *dh});
       }
       
       if(auto got=localDynBlock->lookup(remote)) {

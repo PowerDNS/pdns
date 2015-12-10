@@ -160,7 +160,7 @@ void* tcpClientThread(int pipefd)
 
         char queryBuffer[qlen];
         const char * query = queryBuffer;
-        size_t queryLen = qlen;
+        uint16_t queryLen = qlen;
         readn2WithTimeout(ci.fd, queryBuffer, queryLen, g_tcpRecvTimeout);
 	uint16_t qtype;
 	unsigned int consumed = 0;
@@ -262,7 +262,7 @@ void* tcpClientThread(int pipefd)
 	}
 
         if (ds->useECS) {
-          int newLen = queryLen;
+          uint16_t newLen = queryLen;
           handleEDNSClientSubnet(queryBuffer, queryLen, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
           if (largerQuery.empty() == false) {
             query = largerQuery.c_str();

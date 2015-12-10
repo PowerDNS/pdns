@@ -18,7 +18,7 @@ public:
   LuaAction(LuaAction::func_t func) : d_func(func)
   {}
 
-  Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len, string* ruleresult) const
+  Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, string* ruleresult) const override
   {
     auto ret = d_func(remote, qname, qtype, dh, len);
     if(ruleresult)
@@ -78,7 +78,6 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"Pool", (int)DNSAction::Action::Pool}, 
       {"None",(int)DNSAction::Action::Pool}}
     );
-
   
   g_lua.writeFunction("newServer", 
 		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
@@ -399,6 +398,37 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("NoRecurseAction", []() {
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
     });
+
+  g_lua.writeFunction("SpoofAction", [](const string& a, boost::optional<string> b) {
+      if(b) 
+	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a), ComboAddress(*b)));
+      else 
+	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a)));
+    });
+
+  g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, const std::string& ip, boost::optional<string> ip6) { 
+      SuffixMatchNode smn;
+      ComboAddress a, b;
+      b.sin6.sin6_family=0;
+      try
+      {
+	smn.add(DNSName(domain));
+	a=ComboAddress(ip);
+	if(ip6)
+	  b=ComboAddress(*ip6);
+      }
+      catch(std::exception& e) {
+	g_outputBuffer="Error parsing parameters: "+string(e.what());
+	return;
+      }
+      g_rulactions.modify([&smn,&a,&b](decltype(g_rulactions)::value_type& rulactions) {
+	  rulactions.push_back({
+	      std::make_shared<SuffixMatchNodeRule>(smn), 
+		std::make_shared<SpoofAction>(a, b)  });
+	});
+
+    });
+
 
   g_lua.writeFunction("DropAction", []() {
       return std::shared_ptr<DNSAction>(new DropAction);

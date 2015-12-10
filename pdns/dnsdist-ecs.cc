@@ -284,7 +284,7 @@ static void generateECSOptRR(const ComboAddress& source, string & res)
   res.append(optRData.c_str(), optRData.length());
 }
 
-static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, int * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, uint16_t * const optRDLen)
+static void replaceEDNSClientSubnetOption(char * const packet, const size_t packetSize, uint16_t * const len, string& largerPacket, const ComboAddress& remote, char * const oldEcsOptionStart, size_t const oldEcsOptionSize, uint16_t * const optRDLen)
 {
   assert(packet != NULL);
   assert(len != NULL);
@@ -333,7 +333,7 @@ static void replaceEDNSClientSubnetOption(char * const packet, const size_t pack
   }
 }
 
-void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const unsigned int consumed, int * const len, string& largerPacket, bool * const ednsAdded, const ComboAddress& remote)
+void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const unsigned int consumed, uint16_t * const len, string& largerPacket, bool * const ednsAdded, const ComboAddress& remote)
 {
   assert(packet != NULL);
   assert(len != NULL);
