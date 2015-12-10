@@ -310,7 +310,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
   toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
 
   for(shared_ptr<DNSRecordContent>& add :  signRecords) {
-    toHash.append(qname.toDNSString()); // FIXME400 tolower?
+    toHash.append(qname.toDNSStringLC()); 
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
     tmp=htons(1); // class
@@ -329,7 +329,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, v
 DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent& drc, int digest)
 {
   string toHash;
-  toHash.assign(qname.toDNSString()); // FIXME400 tolower?
+  toHash.assign(qname.toDNSStringLC()); 
   toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize(DNSName(), true, true));
   
   DSRecordContent dsrc;
@@ -399,7 +399,7 @@ string hashQNameWithSalt(const NSEC3PARAMRecordContent& ns3prc, const DNSName& q
 {
   unsigned int times = ns3prc.d_iterations;
   unsigned char hash[20];
-  string toHash(qname.toDNSString());
+  string toHash(qname.toDNSStringLC());
 
   for(;;) {
     toHash.append(ns3prc.d_salt);

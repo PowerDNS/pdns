@@ -115,9 +115,12 @@ std::string DNSName::toDNSString() const
   if (empty())
     throw std::out_of_range("Attempt to DNSString an unset dnsname");
 
-  string ret(d_storage.c_str(), d_storage.length());
-  return toLower(ret); // toLower or not toLower, that is the question
-  // return ret;
+  return std::string(d_storage.c_str(), d_storage.length());
+}
+
+std::string DNSName::toDNSStringLC() const
+{
+  return toLower(toDNSString()); // label lengths are always < 'A'
 }
 
 /**

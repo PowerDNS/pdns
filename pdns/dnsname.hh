@@ -43,6 +43,7 @@ public:
   std::string toStringNoDot() const { return toString(".", false); }
   std::string toStringRootDot() const { if(isRoot()) return "."; else return toString(".", false); }
   std::string toDNSString() const;           //!< Our representation in DNS native format
+  std::string toDNSStringLC() const;           //!< Our representation in DNS native format, lower cased
   void appendRawLabel(const std::string& str); //!< Append this unescaped label
   void appendRawLabel(const char* start, unsigned int length); //!< Append this unescaped label
   void prependRawLabel(const std::string& str); //!< Prepend this unescaped label
