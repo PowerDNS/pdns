@@ -1245,15 +1245,20 @@ uid_t strToUID(const string &str)
   struct passwd * pwd = getpwnam(cstr);
 
   if (pwd == NULL) {
-    char * endptr = 0;
-    long int val = strtol(cstr, &endptr, 10);
+    long long val;
 
-    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
-      throw runtime_error((boost::format("Warning: Unable to parse user ID %s") % cstr).str() );
+    try {
+      val = stoll(str);
     }
-    else {
-      result = val;
+    catch(std::exception& e) {
+      throw runtime_error((boost::format("Error: Unable to parse user ID %s") % cstr).str() );
     }
+
+    if (val < std::numeric_limits<uid_t>::min() || val > std::numeric_limits<uid_t>::max()) {
+      throw runtime_error((boost::format("Error: Unable to parse user ID %s") % cstr).str() );
+    }
+
+    result = static_cast<uid_t>(val);
   }
   else {
     result = pwd->pw_uid;
@@ -1269,15 +1274,20 @@ gid_t strToGID(const string &str)
   struct group * grp = getgrnam(cstr);
 
   if (grp == NULL) {
-    char * endptr = 0;
-    long int val = strtol(cstr, &endptr, 10);
+    long long val;
 
-    if (((val == LONG_MAX || val == LLONG_MIN) && errno == ERANGE) || endptr == cstr || val <= 0) {
-      throw runtime_error((boost::format("Warning: Unable to parse group ID %s") % cstr).str() );
+    try {
+      val = stoll(str);
     }
-    else {
-      result = val;
+    catch(std::exception& e) {
+      throw runtime_error((boost::format("Error: Unable to parse group ID %s") % cstr).str() );
     }
+
+    if (val < std::numeric_limits<gid_t>::min() || val > std::numeric_limits<gid_t>::max()) {
+      throw runtime_error((boost::format("Error: Unable to parse group ID %s") % cstr).str() );
+    }
+
+    result = static_cast<gid_t>(val);
   }
   else {
     result = grp->gr_gid;
