@@ -377,6 +377,8 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
     prefix=d_prefix;
     prefix.append(depth, ' ');
   }
+  
+  LOG(prefix<<qname.toString()<<": Wants "<< (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing"<<endl);
 
   int res=0;
   if(!(d_nocache && qtype.getCode()==QType::NS && qname.isRoot())) {
