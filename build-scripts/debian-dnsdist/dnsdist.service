@@ -3,8 +3,8 @@ Description=DNSdist
 After=syslog.target
 
 [Service]
-EnvironmentFile=-/etc/default/dnsdist
-ExecStart=/usr/bin/dnsdist --supervised ${OPTIONS}
+# Keep the --supervised option when modifying the default options
+ExecStart=/usr/bin/dnsdist --supervised
 
 [Install]
 WantedBy=multi-user.target
