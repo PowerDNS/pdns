@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
   vector<uint8_t> query;
   DNSPacketWriter pw(query, name, QType::A, QClass::IN, 0);
   pw.getHeader()->rd = 1;
-  int len = query.size();
+  uint16_t len = query.size();
 
   /* large enough packet */
   char packet[1500];
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(addECSWithEDNSNoECS) {
   pw.getHeader()->rd = 1;
   pw.addOpt(512, 0, 0);
   pw.commit();
-  int len = query.size();
+  uint16_t len = query.size();
 
   /* large enough packet */
   char packet[1500];
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSize) {
   opts.push_back(make_pair(EDNS0_OPTION_CODE_ECS, origECSOption));
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
-  int len = query.size();
+  uint16_t len = query.size();
 
   /* large enough packet */
   char packet[1500];
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSmaller) {
   opts.push_back(make_pair(EDNS0_OPTION_CODE_ECS, origECSOption));
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
-  int len = query.size();
+  uint16_t len = query.size();
 
   /* large enough packet */
   char packet[1500];
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger) {
   opts.push_back(make_pair(EDNS0_OPTION_CODE_ECS, origECSOption));
   pw.addOpt(512, 0, 0, opts);
   pw.commit();
-  int len = query.size();
+  uint16_t len = query.size();
 
   /* large enough packet */
   char packet[1500];
