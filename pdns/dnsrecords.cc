@@ -36,6 +36,7 @@ void DNSResourceRecord::setContent(const string &cont) {
       if (content.size() >= 2 && *(content.rbegin()+1) == ' ')
         return;
     case QType::CNAME:
+    case QType::DNAME:
     case QType::NS:
       if(!content.empty())
         boost::erase_tail(content, 1);
@@ -48,6 +49,7 @@ string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
     case QType::SRV:
     case QType::MX:
     case QType::CNAME:
+    case QType::DNAME:
     case QType::NS:
       if (*(content.rbegin()) != '.') {
         ret<<content;

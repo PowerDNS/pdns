@@ -604,7 +604,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
     //   numerrors++;
     // }
 
-    if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) &&
+    if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME || rr.qtype.getCode() == QType::DNAME) &&
          rr.content[rr.content.size()-1] == '.') {
       cout<<"[Warning] The record "<<rr.qname.toString()<<" with type "<<rr.qtype.getName()<<" has a trailing dot in the content ("<<rr.content<<"). Your backend might not work well with this."<<endl;
       numwarnings++;
