@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 #include "dnsparser.hh"
+#include "rec-lua-conf.hh"
 #include "sstuff.hh"
 #include "misc.hh"
 #include "dnswriter.hh"
@@ -94,19 +95,25 @@ private:
   ComboAddress d_dest;
 };
 
+GlobalStateHolder<LuaConfigItems> g_luaconfs;
+LuaConfigItems::LuaConfigItems()
+{
+  auto ds=std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5")));
+  // this hurts physically
+  dsAnchors[DNSName(".")] = *ds;
+}
 
-
-
-
+DNSFilterEngine::DNSFilterEngine() {}
 
 int main(int argc, char** argv)
 try
 {
   reportAllTypes();
-  g_rootDS =  "19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5";
+//  g_rootDS =  "19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5";
 
-  if(argv[5])
-    g_rootDS = argv[5];
+//  if(argv[5])
+//    g_rootDS = argv[5];
+  
   //  g_anchors.insert(DSRecordContent("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5"));
   if(argc < 4) {
     cerr<<"Syntax: toysdig IP-address port question question-type [rootDS]\n";
