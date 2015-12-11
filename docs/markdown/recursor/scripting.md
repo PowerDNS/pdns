@@ -66,10 +66,10 @@ Available since 3.7.
 
 **Note**: `remoteip` is passed as an `iputils.ca` type (for which see below).
 
-### `preresolve ( remoteip, domain, qtype )`
+### `function preresolve ( remoteip, domain, qtype )`
 is called before any DNS resolution is attempted, and if this function indicates it, it can supply a direct answer to the DNS query, overriding the internet. This is useful to combat botnets, or to disable domains unacceptable to an organization for whatever reason.
 
-### `postresolve ( remoteip, domain, qtype, records, origrcode )`
+### `function postresolve ( remoteip, domain, qtype, records, origrcode )`
 is called right before returning a response to a client (and, unless `setvariable()` is called, to the packet cache too). It allows inspection and modification of almost any detail in the return packet. Available since version 3.4.
 
 ### `function nxdomain ( remoteip, domain, qtype )`
@@ -104,7 +104,7 @@ A minimal sample script:
 
 ```
 function nxdomain ( ip, domain, qtype )
-  print ("nxhandler called for: ", ip, domain, qtype)
+  pdnslog("nxhandler called for: "..ip" "..domain.." "..qtype)
 
   ret={}
   if qtype ~= pdns.A then return pdns.PASS, ret end  --  only A records
