@@ -467,7 +467,7 @@ SOracle::~SOracle()
 }
 
 void SOracle::startTransaction() {
-  std::string cmd = "SET TRANSACTION NAME '" + boost::lexical_cast<std::string>(s_txid++) + "'";
+  std::string cmd = "SET TRANSACTION NAME '" + std::to_string(s_txid++) + "'";
   execute(cmd);
 }
 
