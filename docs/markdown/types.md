@@ -175,7 +175,26 @@ Since 3.0. The TLSA records, specified in [RFC 6698](http://tools.ietf.org/html/
 are used to bind SSL/TLS certificate to named hosts and ports.
 
 ## TXT
-The TXT field can be used to attach textual data to a domain. Text is stored plainly.
+The TXT field can be used to attach textual data to a domain. Text is stored
+plainly, PowerDNS understands content not enclosed in quotes. However, all quotes
+characters (`"`) in the TXT content must be preceded with a backslash (`\`).:
+
+```
+"This \"is\" valid"
+```
+
+For a literal backslash in the TXT record, escape it:
+
+```
+"This is also \\ valid"
+```
+
+Unicode characters can be added in two ways, either by adding the character itself
+or the escaped variant to the content field. e.g. `"ç"` is equal to `"\195\167"`.
+
+When a TXT record is longer than 255 characters/bytes (excluding possible enclosing
+quotes), PowerDNS will cut up the content into 255 character/byte chunks for
+transmission to the client.
 
 ## Other types
 The following, rarely used or obsolete record types, are also supported:
