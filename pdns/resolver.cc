@@ -208,6 +208,7 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
         if (rr.content.size() >= 2 && *(rr.content.rbegin()+1) == ' ')
           break;
       case QType::CNAME:
+      case QType::DNAME:
       case QType::NS:
         if(!rr.content.empty())
           boost::erase_tail(rr.content, 1);
