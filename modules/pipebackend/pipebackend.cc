@@ -25,7 +25,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <boost/lexical_cast.hpp>
 #include "pipebackend.hh"
 
 static const char *kBackendId = "[PIPEBackend]";
@@ -56,7 +55,7 @@ void CoWrapper::launch()
      d_cp = new UnixRemote(d_command, d_timeout);
    else
      d_cp = new CoProcess(d_command, d_timeout); 
-   d_cp->send("HELO\t"+lexical_cast<string>(d_abiVersion));
+   d_cp->send("HELO\t"+std::to_string(d_abiVersion));
    string banner;
    d_cp->receive(banner); 
    L<<Logger::Error<<"Backend launched with banner: "<<banner<<endl;
@@ -176,7 +175,7 @@ bool PipeBackend::list(const DNSName& target, int inZoneId, bool include_disable
 
 string PipeBackend::directBackendCmd(const string &query) {
   if (d_abiVersion < 5)
-    return "not supported on ABI version " + boost::lexical_cast<string>(d_abiVersion) + "(use ABI version 5 or later)\n";
+    return "not supported on ABI version " + std::to_string(d_abiVersion) + "(use ABI version 5 or later)\n";
 
   ostringstream oss;
 
@@ -257,16 +256,16 @@ bool PipeBackend::get(DNSResourceRecord &r)
          }
          
          if(d_abiVersion >= 3) {
-           r.scopeMask = atoi(parts[1].c_str());
-           r.auth = atoi(parts[2].c_str());
+           r.scopeMask = std::stoi(parts[1]);
+           r.auth = (parts[2] == "1");
          } else {
            r.scopeMask = 0;
            r.auth = 1;
          }
          r.qname=DNSName(parts[1+extraFields]);
          r.qtype=parts[3+extraFields];
-         r.ttl=atoi(parts[4+extraFields].c_str());
-         r.domain_id=atoi(parts[5+extraFields].c_str());
+         r.ttl=pdns_stou(parts[4+extraFields]);
+         r.domain_id=std::stoi(parts[5+extraFields]);
          
          if(r.qtype.getCode() != QType::MX && r.qtype.getCode() != QType::SRV) {
            r.content.clear();
