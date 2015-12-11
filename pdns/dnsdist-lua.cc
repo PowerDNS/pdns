@@ -289,6 +289,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
       if(client)
 	return;
+      if (g_configurationDone) {
+        g_outputBuffer="setLocal cannot be used at runtime!\n";
+        return;
+      }
       try {
 	ComboAddress loc(addr, 53);
 	g_locals.clear();
@@ -302,6 +306,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
       if(client)
 	return;
+      if (g_configurationDone) {
+        g_outputBuffer="addLocal cannot be used at runtime!\n";
+        return;
+      }
       try {
 	ComboAddress loc(addr, 53);
 	g_locals.push_back({loc, doTCP ? *doTCP : true}); /// only works pre-startup, so no sync necessary
