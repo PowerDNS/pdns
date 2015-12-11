@@ -666,12 +666,11 @@ bool OdbxBackend::feedRecord( const DNSResourceRecord& rr, string *ordername )
 
         	string tmp = rr.qname.toStringNoDot();
 
-        	int priority=0;
+        	unsigned int priority=0;
         	string content(rr.content);
 
         	if(rr.qtype == QType::MX || rr.qtype == QType::SRV) {
-        		priority=atoi(content.c_str());
-
+        		priority=pdns_stou(content);
         		string::size_type pos = content.find_first_not_of("0123456789");
         		if(pos != string::npos)
         			boost::erase_head(content, pos);
