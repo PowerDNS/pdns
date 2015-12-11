@@ -60,21 +60,30 @@ void doClient(ComboAddress server, const std::string& command)
     if(line=="quit")
       break;
 
+    /* no need to send an empty line to the server */
+    if(line.empty())
+      continue;
+
     string response;
     string msg=sodEncryptSym(line, g_key, ours);
     putMsgLen32(fd, msg.length());
     writen2(fd, msg);
     uint32_t len;
-    if(!getMsgLen32(fd, &len) || len == 0) {
+    if(!getMsgLen32(fd, &len)) {
       cout << "Connection closed by the server." << endl;
       break;
     }
 
-    boost::scoped_array<char> resp(new char[len]);
-    readn2(fd, resp.get(), len);
-    msg.assign(resp.get(), len);
-    msg=sodDecryptSym(msg, g_key, theirs);
-    cout<<msg<<endl;
+    if (len > 0) {
+      boost::scoped_array<char> resp(new char[len]);
+      readn2(fd, resp.get(), len);
+      msg.assign(resp.get(), len);
+      msg=sodDecryptSym(msg, g_key, theirs);
+      cout<<msg<<endl;
+    }
+    else {
+      cout<<endl;
+    }
   }
 }
 
@@ -202,6 +211,14 @@ try
     uint32_t len;
     if(!getMsgLen32(fd, &len))
       break;
+
+    if (len == 0) {
+      /* just ACK an empty message
+         with an empty response */
+      putMsgLen32(fd, 0);
+      continue;
+    }
+
     boost::scoped_array<char> msg(new char[len]);
     readn2(fd, msg.get(), len);
     
