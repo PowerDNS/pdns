@@ -12,7 +12,6 @@
 #include "pdns/pdnsexception.hh"
 #include "pdns/sstuff.hh"
 #include "pdns/ueberbackend.hh"
-#include <boost/lexical_cast.hpp>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 #include "yahttp/yahttp.hpp"

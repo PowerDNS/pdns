@@ -27,7 +27,7 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   this->d_timeout=2000;
 
   if (options.find("timeout") != options.end()) {
-     this->d_timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+     this->d_timeout = std::stoi(options.find("timeout")->second);
   }
 
   d_ctx = zmq_init(2);

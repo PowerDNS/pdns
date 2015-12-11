@@ -15,7 +15,7 @@ PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
   d_timeout=2000;
 
   if (options.find("timeout") != options.end()) {
-     d_timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+     d_timeout = std::stoi(options.find("timeout")->second);
   }
 
   d_pid = -1;

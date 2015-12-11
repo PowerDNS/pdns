@@ -9,7 +9,6 @@
 #include "pdns/pdnsexception.hh"
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
-#include <boost/lexical_cast.hpp>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
 #include "pdns/json.hh"
