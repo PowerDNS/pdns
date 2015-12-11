@@ -9,6 +9,7 @@ public:
   LuaConfigItems();
   SortList sortlist;
   DNSFilterEngine dfe;
+  map<DNSName,DSRecordContent> dsAnchors;
 };
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;

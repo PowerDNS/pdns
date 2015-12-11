@@ -33,4 +33,3 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const std::
 cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs);
 vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, std::set<DNSKEYRecordContent> &keyset);
 
-extern const char *g_rootDS;

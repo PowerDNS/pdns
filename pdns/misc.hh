@@ -645,6 +645,15 @@ const char* addS(const C& c, typename std::enable_if<std::is_class<C>::value>::t
   return addS(c.size());
 }
 
+template<typename C>
+const typename C::value_type::second_type* rplookup(const C& c, const typename C::value_type::first_type& key)
+{
+  auto fnd = c.find(key);
+  if(fnd == c.end())
+    return 0;
+  return &fnd->second;
+}
+
 double DiffTime(const struct timespec& first, const struct timespec& second);
 double DiffTime(const struct timeval& first, const struct timeval& second);
 uid_t strToUID(const string &str);

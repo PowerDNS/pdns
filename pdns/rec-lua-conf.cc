@@ -30,6 +30,9 @@ GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
 LuaConfigItems::LuaConfigItems()
 {
+  auto ds=std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make("19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5")));
+  // this hurts physically
+  dsAnchors[DNSName(".")] = *ds;
 }
 
 /* DID YOU READ THE STORY ABOVE? */
@@ -187,12 +190,40 @@ void loadRecursorLuaConfig(const std::string& fname)
 			theL()<<Logger::Error<<"Error in addSortList: "<<e.what()<<endl;
 		      }
 		    });
+
+  Lua.writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
+      lci.dsAnchors[DNSName(who)]= *std::unique_ptr<DSRecordContent>(dynamic_cast<DSRecordContent*>(DSRecordContent::make(what)));
+    });
+
+  Lua.writeFunction("clearDS", [&lci](boost::optional<string> who) {
+      if(who)
+        lci.dsAnchors.erase(DNSName(*who));
+      else
+        lci.dsAnchors.clear();
+    });
+
   try {
     Lua.executeCode(ifs);
     g_luaconfs.setState(lci);
   }
+  catch(const LuaContext::ExecutionErrorException& e) {
+    theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': ";
+    try {
+      std::rethrow_if_nested(e);
+    } catch(const std::exception& e) {
+      // e is the exception that was thrown from inside the lambda
+      theL() << e.what() << std::endl;      
+    }
+    catch(const PDNSException& e) {
+      // e is the exception that was thrown from inside the lambda
+      theL() << e.reason << std::endl;      
+    }
+    throw;
+
+  }
   catch(std::exception& err) {
     theL()<<Logger::Error<<"Unable to load Lua script from '"+fname+"': "<<err.what()<<endl;
+    throw;
   }
 
 }

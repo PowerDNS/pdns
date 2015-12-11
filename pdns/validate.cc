@@ -1,6 +1,7 @@
 #include "validate.hh"
 #include "misc.hh"
 #include "dnssecinfra.hh"
+#include "rec-lua-conf.hh"
 #include "base32.hh"
 
 void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color="");
@@ -157,19 +158,18 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 
   state = Indeterminate;
 
-  DNSName qname(".");
   typedef std::multimap<uint16_t, DSRecordContent> dsmap_t;
   dsmap_t dsmap;
   keyset_t validkeys;
 
-  state = Secure; // nice
+  DNSName qname(".");
+  state = Secure; // the root is secure
+  auto luaLocal = g_luaconfs.getLocal();
   while(zone.isPartOf(qname))
   {
-    if(qname.isRoot())
+    if(auto ds = rplookup(luaLocal->dsAnchors, qname))
     {
-      DSRecordContent rootanchor=dynamic_cast<DSRecordContent&> (*(DNSRecordContent::mastermake(QType::DS, 1, g_rootDS)));
-      dsmap.clear();
-      dsmap.insert(make_pair(rootanchor.d_tag, rootanchor));
+      dsmap.insert(make_pair(ds->d_tag, *ds));
     }
   
     vector<RRSIGRecordContent> sigs;

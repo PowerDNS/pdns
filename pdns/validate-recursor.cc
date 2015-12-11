@@ -23,7 +23,6 @@ public:
 
 vState validateRecords(const vector<DNSRecord>& recs)
 {
-  g_rootDS =  "19036 8 2 49aac11d7b6f6446702e54a1607371607a1a41855200fd2ce1cdde32f24e8fb5";
   cspmap_t cspmap=harvestCSPFromRecs(recs);
   //  cerr<<"Got "<<cspmap.size()<<" RRSETs: ";
   int numsigs=0;
@@ -40,7 +39,7 @@ vState validateRecords(const vector<DNSRecord>& recs)
   if(numsigs) {
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
-	vState state = getKeysFor(sro, sig->d_signer, keys);
+	getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
 	//	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl;
       }
     }
