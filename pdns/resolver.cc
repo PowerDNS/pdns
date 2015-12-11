@@ -203,7 +203,7 @@ static int parseResult(MOADNSParser& mdp, const std::string& origQname, uint16_t
 
     uint16_t qtype=rr.qtype.getCode();
 
-    if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
+    if(!rr.content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME || qtype==QType::DNAME))
       boost::erase_tail(rr.content, 1);
 
     if(rr.qtype.getCode() == QType::MX) {

@@ -26,7 +26,7 @@
 
 void DNSResourceRecord::setContent(const string &cont) {
   content = cont;
-  if(!content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME))
+  if(!content.empty() && (qtype==QType::MX || qtype==QType::NS || qtype==QType::CNAME || qtype==QType::DNAME))
     boost::erase_tail(content, 1);
 
   if(qtype.getCode() == QType::MX) {
@@ -58,6 +58,7 @@ string DNSResourceRecord::getZoneRepresentation() const {
       if (*(content.rbegin()) != '.') ret<<".";
     break;
     case QType::CNAME:
+    case QType::DNAME:
     case QType::NS:
       ret<<content;
       if (*(content.rbegin()) != '.') ret<<".";
