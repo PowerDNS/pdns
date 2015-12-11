@@ -29,6 +29,33 @@ In addition to this cleanup, which has many internal benefits and solves longsta
 
 .. to be continued
 
+# PowerDNS Authoritative Server 4.0.0
+UNRELEASED - trial packages on [our builder](https://builder.powerdns.com) and on [our repositories](https://repo.powerdns.com).
+
+PowerDNS Authoritative Server 4.0.0 is part of [the great 4.x "Spring Cleaning"](http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/)
+of PowerDNS which lasted through the end of 2015.
+
+As part of the general cleanup, we did the following:
+
+- Moved to C++ 2011, a cleaner more powerful version of C++ that has allowed us to [improve the quality of implementation](http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html) in many places.
+- Implemented dedicated infrastructure for dealing with DNS names that is fully "DNS Native" and needs less escaping and unescaping
+
+In addition to this cleanup, 4.0.0 brings the following new features:
+
+- All backends derived from the Generic SQL backend use prepared statements
+- Support for CDS/CDNSKEY and [RFC 7344](https://tools.ietf.org/html/rfc7344) key-rollovers
+- Support for the ALIAS record
+- The webserver and API are no longer marked experimental
+- DNSUpdate is no longer experimental
+- Experimental support for ed25519 DNSSEC signatures (when compiled with libsodium support)
+
+The following backend have been dropped in 4.0.0:
+
+- LMDB
+- Geo (use the [GeoIP](authoritative/backend-geoip.md) instead)
+
+to be continued....
+
 # PowerDNS Authoritative Server 3.4.7
 Released 3rd of November 2015
 
