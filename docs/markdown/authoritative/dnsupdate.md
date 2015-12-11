@@ -7,9 +7,11 @@ Starting with the PowerDNS Authoritative Server 3.4.0, DNS update support is ava
 
 The implementation requires the backend to support a number of new oparations. Currently, the following backends have been modified to support DNS update:
 
-* [gmysql](backend-generic-mypgsql.md)
-* [gpgsql](backend-generic-mypgsql.md)
-* [gsqlite3](backend-gsqlite.md)
+* [gmysql](backend-generic-mysql.md)
+* [gpgsql](backend-generic-postgresql.md)
+* [gsqlite3](backend-generic-sqlite.md)
+* [goracle](backend-generic-oracle.md)
+* [godbc](backend-generic-odbc.md)
 
 # Configuration options
 There are two configuration parameters that can be used within the powerdns configuration file.

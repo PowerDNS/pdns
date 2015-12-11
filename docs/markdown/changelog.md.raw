@@ -2331,7 +2331,7 @@ See [Recursion](authoritative/recursion.md "Recursion") for details. The changes
 -   Added the new DNS parser logic, called MOADNSParser. Completely modular, every memory access checked.
 -   'sdig', a simple dig work-alike with 'canonical' output, which is used for the regression tests. Based on the new DNS parser logic.
 -   **dnswasher**, **dnsreplay** and **dnsscope**, all DNS analysis tools. See [Tools to analyse DNS traffic](tools/analysis.md "Tools to analyse DNS traffic") for more details.
--   Generic Oracle Backend, sponsored by Register.COM. See [Oracle specifics](authoritative/backend-generic-mypgsql.md#goracle "Oracle specifics").
+-   Generic Oracle Backend, sponsored by Register.COM. See [Oracle specifics](authoritative/backend-generic-oracle.md "Oracle specifics").
 
 # Version 2.9.17
 
@@ -2468,7 +2468,7 @@ Release rich in features. Work on Verisign oddities, addition of SQLite backend,
 ## New features
 -   --version command (requested by Mike Benoit)
 -   delegation-only, a Verisign special.
--   Generic [SQLite](http://www.sqlite.org) support, by Michel 'Who da man?' Stol. See [Generic SQLite backend](authoritative/backend-gsqlite.md).
+-   Generic [SQLite](http://www.sqlite.org) support, by Michel 'Who da man?' Stol. See [Generic SQLite backend](authoritative/backend-generic-sqlite.md).
 -   init.d script for pdns\_recursor
 -   Recursor now actually purges its cache, saving memory.
 -   Slave configuration now no longer falls over when presented with a NULL master
@@ -2629,7 +2629,7 @@ From this, it is apparent that far more people are interested in PowerDNS than y
 In other news, we now have a security page at [Security](security/index.md). Furthermore, Maurice Nonnekes contributed an OpenBSD port! See [his page](http://www.codeninja.nl/openbsd/powerdns/) for more details!
 
 ## New features and improvements
--   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic MySQL and PostgreSQL backends](authoritative/backend-generic-mypgsql.md).
+-   All SQL queries in the generic backends are now available for configuration. (Martin Klebermass, Bert Hubert). See [Generic SQL backends](authoritative/backend-generic-sql.md).
 -   A recursing nameserver! See [PowerDNS Recursor](recursor/index.md).
 -   An incoming AXFR now only starts a backend zone replacement transaction after the first record arrived successfully, thus making sure no work is done when a remote nameserver is unable/unwilling to AXFR a zone to us.
 -   Zone parser error messages were improved slightly (thanks to Stef van Dessel for spotting this shortcoming)
@@ -2939,7 +2939,7 @@ Documentation: added details for **strict-rfc-axfrs**. This feature can be used 
 
 Developers: this version is compatible with the pdns-2.1 development kit, available on <http://downloads.powerdns.com/releases/dev>. See also [Backend writers' guide](appendix/backend-writers-guide.md "Backend writers' guide")
 
-This release adds the Generic MySQL backend which allows full master/slave semantics with MySQL and InnoDB tables (or other tables that support transactions). See [Generic MySQL and PostgreSQL backends](authoritative/backend-generic-mypgsql.md "Generic MySQL and PostgreSQL backends").
+This release adds the Generic MySQL backend which allows full master/slave semantics with MySQL and InnoDB tables (or other tables that support transactions). See [Generic MySQL backend](authoritative/backend-generic-mysql.md "Generic MySQL backend").
 
 ## Other new features
 -   Improved error messages in master/slave communicator will help down track problems.

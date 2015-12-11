@@ -2,7 +2,7 @@
 Before migrating to PowerDNS a few things should be considered.
 
 PowerDNS does not operate as a 'slave' or 'master' server with all backends.
-Only the [Generic SQL](backend-generic-mypgsql.md), [BIND](backend-bind.md) backends have the ability to act as master or slave.
+Only the [Generic SQL](backend-generic-sql.md), [BIND](backend-bind.md) backends have the ability to act as master or slave.
 
 To migrate, the `zone2sql` tool is provided. There are also scripts from external contributors for migrating from `MyDNS` server. See https://github.com/PowerDNS/pdns/wiki/Migrating-DBs-FROM-MyDNS for details. There is also tool in pdnsutil to migrate using various backends, most notably bind and mydns. See below for more information.
 

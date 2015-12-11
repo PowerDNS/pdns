@@ -16,18 +16,19 @@ The following table describes the capabilities of the backends.
 | Name | Status | Native | Master | Slave | Superslave | Autoserial | DNSSEC | Disabled Data | Comments | Launch Name |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
 | [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No | `bind` |
+| [Generic MySQL](backend-generic-mysql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
+| [Generic ODBC](backend-generic-odbc.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes| `godbc` |
+| [Generic Oracle](backend-generic-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `goracle` |
+| [Generic PostgreSQL](backend-generic-postgresql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
+| [Generic SQLite 3](backend-generic-sqlite.md) 3 | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `gsqlite3` |
 | [GeoIP](backend-geoip.md) | Supported | Yes | No | No | No | No | Yes | No | No | `geoip` |
 | [LDAP](backend-ldap.md) | Unmaintained | Yes | No | No | No | No | No | Unknown (No) | Unknown (No) | Unknown |
-| [MySQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
 | [MyDNS](backend-mydns.md) | Supported | Yes | No | No | No | No | No | No | No | `mydns` |
-| [ODBC](backend-godbc.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes| `godbc` |
 | [OpenDBX](backend-opendbx.md) | Supported | Yes | Yes | Yes | Yes | Unknown (No) | No | Unknown (No) | Unknown (No) | `opendbx` |
 | [Oracle](backend-oracle.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Unknown (No) | No | `oracle` |
 | [Pipe](backend-pipe.md) | Supported | Yes | No | No | No | No | Partial (no delegation, no key storage) | No | No | `pipe` |
-| [PostgreSQL](backend-generic-mypgsql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gpgsql` |
 | [Random](backend-random.md) | Supported | Yes | No | No | No | No | Yes (no key storage) | No | No | `random` |
 | [Remote](backend-remote.md) | Supported | Yes | Yes\* | Yes\* | Yes\* | Yes\* | Yes\* | Unknown (No) | Unknown(No) | `remote` |
-| [SQLite](backend-gsqlite.md) 3 | Supported | Yes | Yes | Yes | Yes | Yes | Yes  | Yes | Yes | `gsqlite3` |
 | [TinyDNS](backend-tinydns.md) | Experimental | Yes | Yes | No | No | No | No | Unknown (No) | Unknown (No) | `tinydns` |
 
 \*: Please read the backend-specific documentation.
