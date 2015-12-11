@@ -7,6 +7,10 @@ a '.' in PowerDNS storage! If a trailing '.' is present it will inevitably cause
 problems, problems that may be hard to debug. Use [`pdnsutil check-zone`](authoritative/dnssec.md#pdnsutil)
 to validate your zone data.
 
+**Note**: Whenever the storage format is mentioned, this relates only to the way
+the record should be stored in one of the [generic SQL](authoritative/backend-generic-sql.md)
+backends. The other backends should use their *native* format.
+
 The PowerDNS Recursor can serve and store all record types, regardless of whether
 these are explicitly supported.
 
