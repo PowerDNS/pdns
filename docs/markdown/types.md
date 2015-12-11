@@ -14,6 +14,12 @@ The AAAA record contains an IPv6 address. An example: '2001:DB8:2000:bf0::1'.
 ## AFSDB
 Since 2.9.21. Specialised record type for the 'Andrew Filesystem'. Stored as: '\#subtype hostname', where subtype is a number.
 
+## ALIAS
+Since 4.0.0, the ALIAS pseudo-record type is supported to provide CNAME-like
+mechanisms on a zone's apex. See the [howto](authoritative/howtos.md#using-alias-records)
+for information on how to configure PowerDNS to serve records synthesized from
+ALIAS records.
+
 ## CERT
 Since 2.9.21. Specialised record type for storing certificates, defined in [RFC 2538](http://tools.ietf.org/html/rfc2538).
 
