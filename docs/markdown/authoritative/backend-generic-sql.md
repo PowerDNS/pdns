@@ -88,6 +88,11 @@ The REST API will still see the record (or domain). Even if a domain is disabled
 slaving still works. Slaving considers a disabled domain to have a serial of 0;
 this implies that a slaved domain will not stay disabled.
 
+## Autoserial
+The autoserial functionality makes PowerDNS generate the SOA serial when the SOA
+serial set to `0` in the database. The serial in SOA responses is set to the
+highest value of the `change_date` field in the "records" table.
+
 # Queries
 From version 4.0.0 onward, the generic SQL backends use prepared statements for
 their queries. Before 4.0.0, queries were expanded using the C function 'snprintf'

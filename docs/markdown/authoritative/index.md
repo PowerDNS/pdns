@@ -13,7 +13,7 @@ Multiple backends can be enabled in the configuration by using the [`launch`](se
 ## Backend Capabilities
 The following table describes the capabilities of the backends.
 
-| Name | Status | Native | Master | Slave | Superslave | Autoserial | DNSSEC | Disabled Data | Comments | Launch Name |
+| Name | Status | Native | Master | Slave | Superslave | [Autoserial](backend-generic-sql.md#autoserial) | DNSSEC | [Disabled Data](backend-generic-sql.md#disabled-data) | Comments | Launch Name |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
 | [BIND](backend-bind.md) | Supported | Yes | Yes | Yes | Experimental | No | Yes | No | No | `bind` |
 | [Generic MySQL](backend-generic-mysql.md) | Supported | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | `gmysql` |
