@@ -38,7 +38,7 @@
 #include <boost/format.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#define ASSERT_ROW_COLUMNS(query, row, num) { if (row.size() != num) { throw PDNSException(std::string(query) + " returned wrong number of columns, expected "  #num  ", got " + boost::lexical_cast<std::string>(row.size())); } }
+#define ASSERT_ROW_COLUMNS(query, row, num) { if (row.size() != num) { throw PDNSException(std::string(query) + " returned wrong number of columns, expected "  #num  ", got " + std::to_string(row.size())); } }
 
 GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
@@ -318,11 +318,11 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
 
   ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 7);
 
-  di.id=atol(d_result[0][0].c_str());
+  di.id=pdns_stou(d_result[0][0]);
   di.zone=DNSName(d_result[0][1]);
   stringtok(di.masters, d_result[0][2], " ,\t");
-  di.last_check=atol(d_result[0][3].c_str());
-  di.notified_serial = atol(d_result[0][4].c_str());
+  di.last_check=pdns_stou(d_result[0][3]);
+  di.notified_serial = pdns_stou(d_result[0][4]);
   string type=d_result[0][5];
   di.account=d_result[0][6];
   di.backend=this;
@@ -363,10 +363,10 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   for(int n=0;n<numanswers;++n) { // id,name,master,last_check
     DomainInfo sd;
     ASSERT_ROW_COLUMNS("info-all-slaves-query", d_result[n], 4);
-    sd.id=atol(d_result[n][0].c_str());
+    sd.id=pdns_stou(d_result[n][0]);
     sd.zone= DNSName(d_result[n][1]);
     stringtok(sd.masters, d_result[n][2], ", \t");
-    sd.last_check=atol(d_result[n][3].c_str());
+    sd.last_check=pdns_stou(d_result[n][3]);
     sd.backend=this;
     sd.kind=DomainInfo::Slave;
     allSlaves.push_back(sd);
@@ -403,10 +403,10 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo> *updatedDomains)
   for(int n=0;n<numanswers;++n) { // id,name,master,last_check,notified_serial
     DomainInfo sd;
     ASSERT_ROW_COLUMNS("info-all-master-query", d_result[n], 6);
-    sd.id=atol(d_result[n][0].c_str());
+    sd.id=pdns_stou(d_result[n][0]);
     sd.zone= DNSName(d_result[n][1]);
-    sd.last_check=atol(d_result[n][3].c_str());
-    sd.notified_serial=atoi(d_result[n][4].c_str());
+    sd.last_check=pdns_stou(d_result[n][3]);
+    sd.notified_serial=pdns_stou(d_result[n][4]);
     sd.backend=this;
     sd.kind=DomainInfo::Master;
     allMasters.push_back(sd);
@@ -809,9 +809,9 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vec
       //~ for(const auto& val: row) {
         //~ cerr<<"'"<<val<<"'"<<endl;
       //~ }
-      kd.id = atoi(row[0].c_str());
-      kd.flags = atoi(row[1].c_str());
-      kd.active = atoi(row[2].c_str());
+      kd.id = pdns_stou(row[0]);
+      kd.flags = pdns_stou(row[1]);
+      kd.active = row[2] == "1";
       kd.content = row[3];
       keys.push_back(kd);
     }
@@ -1152,7 +1152,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       d_getAllDomainsQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-all-domains-query", row, 8);
       DomainInfo di;
-      di.id = atol(row[0].c_str());
+      di.id = pdns_stou(row[0]);
       di.zone = DNSName(row[1]);
   
       if (!row[4].empty()) {
@@ -1162,8 +1162,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
       SOAData sd;
       fillSOAData(row[2], sd);
       di.serial = sd.serial;
-      di.notified_serial = atol(row[5].c_str());
-      di.last_check = atol(row[6].c_str());
+      di.notified_serial = pdns_stou(row[5]);
+      di.last_check = pdns_stou(row[6]);
       di.account = row[7];
 
       if (pdns_iequals(row[3], "MASTER"))
@@ -1231,10 +1231,11 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
   int prio=0;
   string content(r.content);
   if (r.qtype == QType::MX || r.qtype == QType::SRV) {
-    prio=atoi(content.c_str());
     string::size_type pos = content.find_first_not_of("0123456789");
-    if(pos != string::npos)
+    if (pos != string::npos) {
+      prio=pdns_stou(content.substr(0,pos));
       boost::erase_head(content, pos);
+    }
     trim_left(content);
   }
 
@@ -1392,7 +1393,7 @@ bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, t
  
   if (!d_result.empty()) {
     ASSERT_ROW_COLUMNS("zone-lastchange-query", d_result[0], 1);
-    serial = atol(d_result[0][0].c_str());
+    serial = pdns_stou(d_result[0][0]);
     return true;
   }
 
@@ -1583,7 +1584,7 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
   if (row[1].empty())
       r.ttl = ::arg().asNum( "default-ttl" );
   else
-      r.ttl=atol(row[1].c_str());
+      r.ttl=pdns_stou(row[1]);
   if(!d_qname.empty())
     r.qname=d_qname;
   else
@@ -1591,9 +1592,12 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
 
   r.qtype=row[3];
 
-  if (r.qtype==QType::MX || r.qtype==QType::SRV)
+  if (r.qtype==QType::MX || r.qtype==QType::SRV) {
+    auto prio = std::stoul(row[2]);
+    if (prio > UINT16_MAX)
+      throw std::range_error((boost::format("priority value %lu for %s is too large") % prio % row[0]).str());
     r.content=row[2]+" "+row[0];
-  else
+  } else
     r.content=row[0];
 
   r.last_modified=0;
@@ -1605,15 +1609,15 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
 
   r.disabled = !row[5].empty() && row[5][0]=='1';
 
-  r.domain_id=atoi(row[4].c_str());
+  r.domain_id=pdns_stou(row[4]);
 }
 
 void GSQLBackend::extractComment(const SSqlStatement::row_t& row, Comment& comment)
 {
- comment.domain_id = atol(row[0].c_str());
+ comment.domain_id = pdns_stou(row[0]);
  comment.qname = row[1];
  comment.qtype = row[2];
- comment.modified_at = atol(row[3].c_str());
+ comment.modified_at = pdns_stou(row[3]);
  comment.account = row[4];
  comment.content = row[5];
 }
