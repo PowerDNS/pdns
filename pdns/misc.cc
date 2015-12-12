@@ -1236,7 +1236,6 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
   return seconds + useconds/1000000.0;
 }
 
-
 uid_t strToUID(const string &str)
 {
   uid_t result = 0;
@@ -1283,5 +1282,15 @@ gid_t strToGID(const string &str)
   }
 
   return result;
+}
+
+unsigned int pdns_stou(const std::string& str, size_t * idx, int base);
+{
+  if (str.empty()) return 0; // compability
+  unsigned long result = std::stoul(str, idx, base);
+  if (result > std::numeric_limits<unsigned int>::max()) {
+    throw std::out_of_range("stou");
+  }
+  return static_cast<unsigned int>(result);
 }
 
