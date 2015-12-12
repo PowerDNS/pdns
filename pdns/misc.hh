@@ -70,7 +70,6 @@ uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
-uint32_t pdns_strtoui(const char *nptr, char **endptr, int base);
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 

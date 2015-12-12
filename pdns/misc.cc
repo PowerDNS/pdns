@@ -1042,20 +1042,6 @@ bool setSocketTimestamps(int fd)
   return true; // we pretend this happened.
 }
 
-uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
-{
-#if ULONG_MAX == 4294967295
-  return strtoul(nptr, endptr, base);
-#else
-  unsigned long val = strtoul(nptr, endptr, base);
-  if (val > UINT_MAX) {
-   errno = ERANGE;
-   return UINT_MAX;
-  }
-
-  return val;
-#endif
-}
 bool setNonBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
