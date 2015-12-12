@@ -5,7 +5,6 @@
 #include <boost/shared_array.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/lexical_cast.hpp>
 #include <vector>
 #include <map>
 #include <stdexcept>
@@ -87,7 +86,7 @@ public:
   virtual funcparam_t& getReadParameter(int fd) 
   {
     if(!d_readCallbacks.count(fd))
-      throw FDMultiplexerException("attempt to look up data in multiplexer for unlisted fd "+boost::lexical_cast<std::string>(fd));
+      throw FDMultiplexerException("attempt to look up data in multiplexer for unlisted fd "+std::to_string(fd));
     return d_readCallbacks[fd].d_parameter;
   }
 
@@ -129,14 +128,14 @@ protected:
     memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
   
     if(cbmap.count(fd))
-      throw FDMultiplexerException("Tried to add fd "+boost::lexical_cast<std::string>(fd)+ " to multiplexer twice");
+      throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
     cbmap[fd]=cb;
   }
 
   void accountingRemoveFD(callbackmap_t& cbmap, int fd) 
   {
     if(!cbmap.erase(fd)) 
-      throw FDMultiplexerException("Tried to remove unlisted fd "+boost::lexical_cast<std::string>(fd)+ " from multiplexer");
+      throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
   }
 };
 

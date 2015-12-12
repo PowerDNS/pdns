@@ -6,7 +6,6 @@
 #include <iostream>
 #include <poll.h>
 #include "misc.hh"
-#include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 #include "utility.hh" 
 #include "namespaces.hh"
@@ -32,7 +31,7 @@ void PollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo,
   cb.d_parameter=parameter;
   memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
   if(cbmap.count(fd))
-    throw FDMultiplexerException("Tried to add fd "+lexical_cast<string>(fd)+ " to multiplexer twice");
+    throw FDMultiplexerException("Tried to add fd "+std::to_string(fd)+ " to multiplexer twice");
   cbmap[fd]=cb;
 }
 
@@ -42,7 +41,7 @@ void PollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
     d_iter++;
 
   if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
+    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
 }
 
 bool pollfdcomp(const struct pollfd& a, const struct pollfd& b)

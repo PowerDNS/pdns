@@ -384,7 +384,7 @@ string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid)
   return "PKCS#11 support not compiled in";
 #else
   if (parts.size() != 4) {
-    return "invalid number of parameters, needs 4, got " + boost::lexical_cast<string>(parts.size());
+    return "invalid number of parameters, needs 4, got " + std::to_string(parts.size());
   }
 
   if (PKCS11ModuleSlotLogin(parts[1], parts[2], parts[3])) {

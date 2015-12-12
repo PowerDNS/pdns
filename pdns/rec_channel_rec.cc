@@ -3,7 +3,6 @@
 #endif
 #include "utility.hh"
 #include "rec_channel.hh"
-#include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <vector>
 #ifdef MALLOC_TRACE
@@ -71,15 +70,15 @@ map<string,string> getAllStatsMap()
   map<string,string> ret;
   
   for(const auto& the32bits :  d_get32bitpointers) {
-    ret.insert(make_pair(the32bits.first, lexical_cast<string>(*the32bits.second)));
+    ret.insert(make_pair(the32bits.first, std::to_string(*the32bits.second)));
   }
   for(const auto& the64bits :  d_get64bitpointers) {
-    ret.insert(make_pair(the64bits.first, lexical_cast<string>(*the64bits.second)));
+    ret.insert(make_pair(the64bits.first, std::to_string(*the64bits.second)));
   }
   for(const auto& the32bitmembers :  d_get32bitmembers) { 
     if(the32bitmembers.first == "cache-bytes" || the32bitmembers.first=="packetcache-bytes")
       continue; // too slow for 'get-all'
-    ret.insert(make_pair(the32bitmembers.first, lexical_cast<string>(the32bitmembers.second())));
+    ret.insert(make_pair(the32bitmembers.first, std::to_string(the32bitmembers.second())));
   }
   return ret;
 }
@@ -103,7 +102,7 @@ string doGet(T begin, T end)
   for(T i=begin; i != end; ++i) {
     optional<uint64_t> num=get(*i);
     if(num)
-      ret+=lexical_cast<string>(*num)+"\n";
+      ret+=std::to_string(*num)+"\n";
     else
       ret+="UNKNOWN\n";
   }
@@ -182,7 +181,7 @@ string doDumpNSSpeeds(T begin, T end)
   catch(...){}
 
   close(fd);
-  return "dumped "+lexical_cast<string>(total)+" records\n";
+  return "dumped "+std::to_string(total)+" records\n";
 }
 
 template<typename T>
@@ -204,7 +203,7 @@ string doDumpCache(T begin, T end)
   catch(...){}
   
   close(fd);
-  return "dumped "+lexical_cast<string>(total)+" records\n";
+  return "dumped "+std::to_string(total)+" records\n";
 }
 
 template<typename T>
@@ -303,7 +302,7 @@ string setMinimumTTL(T begin, T end)
 {
   if(end-begin != 1) 
     return "Need to supply new minimum TTL number\n";
-  SyncRes::s_minimumTTL = atoi(begin->c_str());
+  SyncRes::s_minimumTTL = pdns_stou(*begin);
   return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
 }
 

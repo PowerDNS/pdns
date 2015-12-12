@@ -231,7 +231,7 @@ class Pkcs11Slot {
         d_logged_in = !((tokenInfo.flags & CKF_LOGIN_REQUIRED) == CKF_LOGIN_REQUIRED);
       } else {
         logError("C_GetTokenInfo");
-        throw PDNSException("Cannot get token info for slot " + boost::lexical_cast<std::string>(slot));
+        throw PDNSException("Cannot get token info for slot " + std::to_string(slot));
       }
     }
 
@@ -658,7 +658,7 @@ CK_RV Pkcs11Slot::HuntSlot(const string& tokenId, CK_SLOT_ID &slotId, _CK_SLOT_I
 
   // see if we can find it with slotId
   try {
-    slotId = boost::lexical_cast<int>(tokenId);
+    slotId = std::stoi(tokenId);
     if ((err = functions->C_GetSlotInfo(slotId, info))) {
       L<<Logger::Warning<<"C_GetSlotList("<<slotId<<", info) = " << err << std::endl;
       return err;
@@ -711,7 +711,7 @@ std::shared_ptr<Pkcs11Token> Pkcs11Token::GetToken(const std::string& module, co
   // see if we can find module
   std::string tidx = module;
   tidx.append("|");
-  tidx.append(boost::lexical_cast<std::string>(tokenId));
+  tidx.append(tokenId);
   tidx.append("|");
   tidx.append(label);
   std::map<std::string, std::shared_ptr<Pkcs11Token> >::iterator tokenIter;
@@ -930,7 +930,7 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
   outputs_t outputs;
 
   boost::assign::push_back(storvect)
-   (make_pair("Algorithm", boost::lexical_cast<std::string>(d_algorithm)))
+   (make_pair("Algorithm", std::to_string(d_algorithm)))
    (make_pair("Engine", d_module))
    (make_pair("Slot", d_slot_id))
    (make_pair("PIN", d_pin))
@@ -939,7 +939,7 @@ DNSCryptoKeyEngine::storvector_t PKCS11DNSCryptoKeyEngine::convertToISCVector() 
 };
 
 void PKCS11DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) {
-  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
   d_module = stormap["engine"];
   d_slot_id = stormap["slot"];
   boost::trim(d_slot_id);

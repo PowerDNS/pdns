@@ -275,7 +275,7 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
   if (req.method == "HEAD") {
     resp.body = "";
   } else {
-    resp.headers["Content-Length"] = lexical_cast<string>(resp.body.size());
+    resp.headers["Content-Length"] = std::to_string(resp.body.size());
   }
 
   return resp;

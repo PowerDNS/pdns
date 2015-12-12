@@ -6,7 +6,6 @@
 #include <iostream>
 #include <unistd.h>
 #include "misc.hh"
-#include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 #include <sys/types.h>
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)

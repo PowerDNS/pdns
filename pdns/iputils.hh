@@ -34,10 +34,9 @@
 #include "misc.hh"
 #include <sys/socket.h>
 #include <netdb.h>
-
+#include <sstream>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "namespaces.hh"
 
@@ -220,9 +219,9 @@ union ComboAddress {
   string toStringWithPort() const
   {
     if(sin4.sin_family==AF_INET)
-      return toString() + ":" + boost::lexical_cast<string>(ntohs(sin4.sin_port));
+      return toString() + ":" + std::to_string(ntohs(sin4.sin_port));
     else
-      return "["+toString() + "]:" + boost::lexical_cast<string>(ntohs(sin4.sin_port));
+      return "["+toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
   void truncate(unsigned int bits);
@@ -280,7 +279,7 @@ public:
     d_network=makeComboAddress(split.first);
     
     if(!split.second.empty()) {
-      d_bits = lexical_cast<unsigned int>(split.second);
+      d_bits = pdns_stou(split.second);
       if(d_bits<32)
         d_mask=~(0xFFFFFFFF>>d_bits);
       else
@@ -344,7 +343,7 @@ public:
 
   string toString() const
   {
-    return d_network.toString()+"/"+boost::lexical_cast<string>((unsigned int)d_bits);
+    return d_network.toString()+"/"+std::to_string((unsigned int)d_bits);
   }
 
   string toStringNoMask() const

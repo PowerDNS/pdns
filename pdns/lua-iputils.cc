@@ -277,7 +277,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    port = atoi(addr.c_str()+pos+2);  
+    port = pdns_stou(addr.substr(pos+2));
   }
   ret->sin6_scope_id=0;
   ret->sin6_family=AF_INET6;

@@ -136,7 +136,7 @@ ComboAddress AAAARecordContent::getCA(int port) const
 void ARecordContent::doRecordCheck(const DNSRecord& dr)
 {  
   if(dr.d_clen!=4)
-    throw MOADNSException("Wrong size for A record ("+lexical_cast<string>(dr.d_clen)+")");
+    throw MOADNSException("Wrong size for A record ("+std::to_string(dr.d_clen)+")");
 }
 
 boilerplate_conv(AAAA, QType::AAAA, conv.xfrIP6(d_ip6); );

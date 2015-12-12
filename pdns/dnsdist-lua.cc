@@ -132,7 +132,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 			
 			if(vars.count("qps")) {
-			  int qps=boost::lexical_cast<int>(boost::get<string>(vars["qps"]));
+			  int qps=std::stoi(boost::get<string>(vars["qps"]));
 			  ret->qps=QPSLimiter(qps, qps);
 			}
 
@@ -147,23 +147,23 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			}
 
 			if(vars.count("order")) {
-			  ret->order=boost::lexical_cast<int>(boost::get<string>(vars["order"]));
+			  ret->order=std::stoi(boost::get<string>(vars["order"]));
 			}
 
 			if(vars.count("weight")) {
-			  ret->weight=boost::lexical_cast<int>(boost::get<string>(vars["weight"]));
+			  ret->weight=std::stoi(boost::get<string>(vars["weight"]));
 			}
 
 			if(vars.count("retries")) {
-			  ret->retries=boost::lexical_cast<int>(boost::get<string>(vars["retries"]));
+			  ret->retries=std::stoi(boost::get<string>(vars["retries"]));
 			}
 
 			if(vars.count("tcpSendTimeout")) {
-			  ret->tcpSendTimeout=boost::lexical_cast<int>(boost::get<string>(vars["tcpSendTimeout"]));
+			  ret->tcpSendTimeout=std::stoi(boost::get<string>(vars["tcpSendTimeout"]));
 			}
 
 			if(vars.count("tcpRecvTimeout")) {
-			  ret->tcpRecvTimeout=boost::lexical_cast<int>(boost::get<string>(vars["tcpRecvTimeout"]));
+			  ret->tcpRecvTimeout=std::stoi(boost::get<string>(vars["tcpRecvTimeout"]));
 			}
 
 			if(vars.count("name")) {

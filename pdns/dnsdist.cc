@@ -575,7 +575,7 @@ try
 	break;
 
       case DNSAction::Action::Delay:
-	delayMsec = atoi(ruleresult.c_str()); // sorry
+	delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
 	break;
       case DNSAction::Action::Allow:
       case DNSAction::Action::None:

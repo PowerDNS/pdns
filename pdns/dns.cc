@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <iostream>
 #include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/assign/list_of.hpp>
 #include "dnsparser.hh"
 
@@ -38,7 +37,7 @@ std::vector<std::string> RCode::rcodes_s = boost::assign::list_of
 
 std::string RCode::to_s(unsigned short rcode) {
   if (rcode > RCode::rcodes_s.size()-1 ) 
-    return std::string("Err#")+boost::lexical_cast<std::string>(rcode);
+    return std::string("Err#")+std::to_string(rcode);
   return RCode::rcodes_s[rcode];
 }
 
@@ -58,7 +57,7 @@ public:
   {
     if(offset < d_length)
       return d_ptr[offset];
-    throw runtime_error("out of bounds: "+boost::lexical_cast<string>(offset)+" >= " + boost::lexical_cast<string>(d_length));
+    throw runtime_error("out of bounds: "+std::to_string(offset)+" >= " + std::to_string(d_length));
   }
 private:  
   const char* d_ptr;

@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
   int counter=0;
   try {
     for(counter = 0; counter < 100000; ++counter) {
-      DNSName a=DNSName("hello ")+DNSName(boost::lexical_cast<string>(counter));
+      DNSName a=DNSName("hello ")+DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
       PC.insert(a, QType(QType::A), PacketCache::QUERYCACHE, "something", 3600, 1);
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     
     int delcounter=0;
     for(delcounter=0; delcounter < counter/100; ++delcounter) {
-      DNSName a=DNSName("hello ")+DNSName(boost::lexical_cast<string>(delcounter));
+      DNSName a=DNSName("hello ")+DNSName(std::to_string(delcounter));
       PC.purge(a.toString());
     }
     
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     vector<DNSResourceRecord> entry;
     int expected=counter-delcounter;
     for(; delcounter < counter; ++delcounter) {
-      if(PC.getEntry(DNSName("hello ")+DNSName(boost::lexical_cast<string>(delcounter)), QType(QType::A), PacketCache::QUERYCACHE, entry, 1)) {
+      if(PC.getEntry(DNSName("hello ")+DNSName(std::to_string(delcounter)), QType(QType::A), PacketCache::QUERYCACHE, entry, 1)) {
 	matches++;
       }
     }
@@ -83,7 +83,7 @@ try
 {
   unsigned int offset=(unsigned int)(unsigned long)a;
   for(unsigned int counter=0; counter < 100000; ++counter)
-    g_PC->insert(DNSName("hello ")+DNSName(boost::lexical_cast<string>(counter+offset)), QType(QType::A), PacketCache::QUERYCACHE, "something", 3600, 1);    
+    g_PC->insert(DNSName("hello ")+DNSName(std::to_string(counter+offset)), QType(QType::A), PacketCache::QUERYCACHE, "something", 3600, 1);    
   return 0;
 }
  catch(PDNSException& e) {
@@ -99,7 +99,7 @@ try
   unsigned int offset=(unsigned int)(unsigned long)a;
   vector<DNSResourceRecord> entry;
   for(unsigned int counter=0; counter < 100000; ++counter)
-    if(!g_PC->getEntry(DNSName("hello ")+DNSName(boost::lexical_cast<string>(counter+offset)), QType(QType::A), PacketCache::QUERYCACHE, entry, 1)) {
+    if(!g_PC->getEntry(DNSName("hello ")+DNSName(std::to_string(counter+offset)), QType(QType::A), PacketCache::QUERYCACHE, entry, 1)) {
 	g_missing++;
     }
   return 0;
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheClean) {
     PacketCache PC;
 
     for(unsigned int counter = 0; counter < 1000000; ++counter) {
-      PC.insert(DNSName("hello ")+DNSName(boost::lexical_cast<string>(counter)), QType(QType::A), PacketCache::QUERYCACHE, "something", 1, 1);
+      PC.insert(DNSName("hello ")+DNSName(std::to_string(counter)), QType(QType::A), PacketCache::QUERYCACHE, "something", 1, 1);
     }
 
     sleep(1);

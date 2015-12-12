@@ -689,7 +689,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
         vector<string> digestAlgos;
         stringtok(digestAlgos, publishCDS, ", ");
         for(auto const &digestAlgo : digestAlgos) {
-          rr.content=makeDSFromDNSKey(target, value.first.getDNSKEY(), lexical_cast<int>(digestAlgo)).getZoneRepresentation();
+          rr.content=makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns_stou(digestAlgo)).getZoneRepresentation();
           cds.push_back(rr);
         }
       }
@@ -1002,7 +1002,7 @@ int TCPNameserver::doIXFR(shared_ptr<DNSPacket> q, int outsock)
       vector<string>parts;
       stringtok(parts, rr->d_content->getZoneRepresentation());
       if (parts.size() >= 3) {
-        serial=atoi(parts[2].c_str());
+        serial=pdns_stou(parts[2]);
       } else {
         L<<Logger::Error<<"No serial in IXFR query"<<endl;
         outpacket->setRcode(RCode::FormErr);

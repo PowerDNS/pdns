@@ -59,7 +59,7 @@ static Json::object emitRecord(const string& zoneName, const DNSName &DNSqname, 
   g_numRecords++;
   string content(ocontent);
   if(qtype == "MX" || qtype == "SRV") { 
-    prio=atoi(content.c_str());
+    prio=pdns_stou(content);
     
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)

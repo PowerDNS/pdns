@@ -40,7 +40,6 @@
 #include "arguments.hh"
 #include "packetcache.hh"
 
-#include <boost/lexical_cast.hpp>
 #include "base64.hh"
 #include "inflighter.cc"
 #include "lua-auth.hh"

@@ -221,7 +221,7 @@ bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
       continue;
     }
     for(auto const &digestAlgo : digestAlgos){
-      rr.content=makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), lexical_cast<int>(digestAlgo)).getZoneRepresentation();
+      rr.content=makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), std::stoi(digestAlgo)).getZoneRepresentation();
       r->addRecord(rr);
       haveOne=true;
     }

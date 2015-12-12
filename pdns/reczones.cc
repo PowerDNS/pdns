@@ -201,14 +201,14 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
 
   try { // case 2
     both=splitField(input,':');
-    uint16_t newport=boost::lexical_cast<uint16_t>(both.second);
+    uint16_t newport=static_cast<uint16_t>(pdns_stou(both.second));
     return ComboAddress(both.first, newport);
   } 
   catch(...){}
 
   if(input[0]=='[') { // case 4
     both=splitField(input.substr(1),']');
-    return ComboAddress(both.first, both.second.empty() ? port : boost::lexical_cast<uint16_t>(both.second.substr(1)));
+    return ComboAddress(both.first, both.second.empty() ? port : static_cast<uint16_t>(pdns_stou(both.second.substr(1))));
   }
 
   return ComboAddress(input, port); // case 3
@@ -464,7 +464,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
         ad.d_rdForward = false;
       if(domain.empty()) {
         delete newMap;
-        throw PDNSException("Error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+        throw PDNSException("Error parsing line "+std::to_string(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
       try {
@@ -472,7 +472,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
       }
       catch(...) {
         delete newMap;
-        throw PDNSException("Conversion error parsing line "+lexical_cast<string>(linenum)+" of " +::arg()["forward-zones-file"]);
+        throw PDNSException("Conversion error parsing line "+std::to_string(linenum)+" of " +::arg()["forward-zones-file"]);
       }
 
       (*newMap)[DNSName(domain)]=ad;
@@ -528,7 +528,7 @@ SyncRes::domainmap_t* parseAuthAndForwards()
     parts[0]="192.168";
     makeIPToNamesZone(newMap, parts);
     for(int n=16; n < 32; n++) {
-      parts[0]="172."+lexical_cast<string>(n);
+      parts[0]="172."+std::to_string(n);
       makeIPToNamesZone(newMap,parts);
     }
   }

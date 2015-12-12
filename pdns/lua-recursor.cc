@@ -142,7 +142,7 @@ int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DN
   string newquery;
   for(int n = 0; n < 4; ++n) {
     newquery +=
-      lexical_cast<string>(strtol(parts[n*2].c_str(), 0, 16) + 16*strtol(parts[n*2+1].c_str(), 0, 16));
+      std::to_string(std::stol(parts[n*2], 0, 16) + 16*std::stol(parts[n*2+1], 0, 16));
     newquery.append(1,'.');
   }
   newquery += "in-addr.arpa.";

@@ -41,7 +41,7 @@ int intFromJson(const Value& container, const char* key)
   if (val.IsInt()) {
     return val.GetInt();
   } else if (val.IsString()) {
-    return atoi(val.GetString());
+    return std::stoi(val.GetString());
   } else {
     throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
@@ -56,7 +56,7 @@ int intFromJson(const Value& container, const char* key, const int default_value
   if (val.IsInt()) {
     return val.GetInt();
   } else if (val.IsString()) {
-    return atoi(val.GetString());
+    return std::stoi(val.GetString());
   } else {
     // TODO: check if value really isn't present
     return default_value;

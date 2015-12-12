@@ -210,9 +210,9 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     return;
   }
   if(!req->getvars["resizering"].empty()){
-    int size=atoi(req->getvars["size"].c_str());
+    int size=std::stoi(req->getvars["size"]);
     if (S.ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000)
-      S.resizeRing(req->getvars["resizering"], atoi(req->getvars["size"].c_str()));
+      S.resizeRing(req->getvars["resizering"], std::stoi(req->getvars["size"]));
     resp->status = 301;
     resp->headers["Location"] = req->url.path;
     return;
@@ -399,11 +399,11 @@ void productServerStatisticsFetch(map<string,string>& out)
 {
   vector<string> items = S.getEntries();
   for(const string& item :  items) {
-    out[item] = lexical_cast<string>(S.read(item));
+    out[item] = std::to_string(S.read(item));
   }
 
   // add uptime
-  out["uptime"] = lexical_cast<string>(time(0) - s_starttime);
+  out["uptime"] = std::to_string(time(0) - s_starttime);
 }
 
 static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
@@ -538,8 +538,8 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
 
   for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
     if (req->parameters.count("key_id")) {
-      int keyid = lexical_cast<int>(req->parameters["key_id"]);
-      int curid = lexical_cast<int>(value.second.id);
+      int keyid = std::stoi(req->parameters["key_id"]);
+      int curid = value.second.id;
       if (keyid != curid)
         continue;
     }
@@ -552,7 +552,7 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
     Value dnskey(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
     key.AddMember("dnskey", dnskey, doc.GetAllocator());
     if (req->parameters.count("key_id")) {
-      DNSSECPrivateKey dpk=dk.getKeyById(zonename, lexical_cast<int>(req->parameters["key_id"]));
+      DNSSECPrivateKey dpk=dk.getKeyById(zonename, std::stoi(req->parameters["key_id"]));
       Value content(dpk.getKey()->convertToISC().c_str(), doc.GetAllocator());
       key.AddMember("content", content, doc.GetAllocator());
     }
@@ -1078,7 +1078,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if (q.empty())
     throw ApiException("Query q can't be blank");
   if (sMax.empty() == false)
-    maxEnts = boost::lexical_cast<int>(sMax);
+    maxEnts = std::stoi(sMax);
   if (maxEnts < 1)
     throw ApiException("Maximum entries must be larger than 0");
 
@@ -1170,7 +1170,7 @@ void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   int count = PC.purgeExact(canon);
 
   map<string, string> object;
-  object["count"] = lexical_cast<string>(count);
+  object["count"] = std::to_string(count);
   object["result"] = "Flushed cache.";
   resp->body = returnJsonObject(object);
 }

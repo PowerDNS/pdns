@@ -1,6 +1,5 @@
 #ifndef PDNS_NAMESPACES_HH
 #define PDNS_NAMESPACES_HH
-#include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #include <boost/shared_array.hpp>
@@ -37,7 +36,6 @@ using std::min; // these are a bit scary, everybody uses 'min'
 using std::max;
 using std::string;
 
-using boost::lexical_cast;
 using boost::tie;
 using std::shared_ptr;
 using std::unique_ptr;

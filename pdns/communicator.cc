@@ -36,7 +36,6 @@
 #include "dns.hh"
 #include "arguments.hh"
 #include "packetcache.hh"
-#include <boost/lexical_cast.hpp>
 
 // #include "namespaces.hh"
 

@@ -45,7 +45,7 @@ void doSecPoll(time_t* last_secpoll)
       
     pair<string, string> split = splitField(content, ' ');
     
-    g_security_status = atoi(split.first.c_str());
+    g_security_status = std::stoi(split.first);
     g_security_message = split.second;
 
     *last_secpoll=now.tv_sec;

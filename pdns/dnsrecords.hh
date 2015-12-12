@@ -26,7 +26,6 @@
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 #include "rcpgenerator.hh"
-#include <boost/lexical_cast.hpp>
 #include <set>
 #include <bitset>
 #include "namespaces.hh"

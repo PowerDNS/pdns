@@ -127,7 +127,7 @@ uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const stri
   localtime_r(&now, &tm);
   boost::format fmt("%04d%02d%02d%02d");
   string newdate = (fmt % (tm.tm_year + 1900) % (tm.tm_mon + 1) % tm.tm_mday % 1).str();
-  uint32_t new_serial = atol(newdate.c_str());
+  uint32_t new_serial = pdns_stou(newdate);
   if (new_serial <= sd.serial) {
     new_serial = sd.serial + 1;
   }

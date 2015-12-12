@@ -106,7 +106,7 @@ int main(int argc, char **argv)
     else {
       uint16_t port;
       try {
-        port  = lexical_cast<uint16_t>(::arg()["remote-port"]);
+        port = static_cast<uint16_t>(pdns_stou(::arg()["remote-port"]));
       }
       catch(...) {
         cerr<<"Unable to convert '"<<::arg()["remote-port"]<<"' to a port number for connecting to remote PowerDNS\n";

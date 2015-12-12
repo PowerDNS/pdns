@@ -360,7 +360,7 @@ void Resolver::getSoaSerial(const string &ipport, const DNSName &domain, uint32_
   if(parts.size()<3)
     throw ResolverException("Query to '" + ipport + "' for SOA of '" + domain.toString() + "' produced an unparseable response");
   
-  *serial=(uint32_t)atol(parts[2].c_str());
+  *serial=pdns_stou(parts[2]);
 }
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
