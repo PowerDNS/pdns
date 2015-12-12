@@ -21,7 +21,7 @@ A setting to enable/disable DNS update support completely. The default is no, wh
 A list of IP ranges that are allowed to perform updates on any domain. The default is 0.0.0.0/0, which means that all ranges are accepted. Multiple entries can be used on this line (**allow-dnsupdate-from=198.51.100.0/8 203.0.113.2/32**). The option can be left empty to disallow everything, this then should be used in combination with the **allow-dnsupdate-from** domainmetadata setting per zone.
 
 ## `forward-dnsupdate`
-Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table. The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the **allow-dnsupdate-from** and **TSIG-2136-ALLOW** are processed first, so those permissions apply before the **forward-dnsupdate** is used. It will try all masters that you have configured until one is successful.
+Tell PowerDNS to forward to the master server if the zone is configured as slave. Masters are determined by the masters field in the domains table. The default behaviour is enabled (yes), which means that it will try to forward. In the processing of the update packet, the **allow-dnsupdate-from** and **TSIG-ALLOW-DNSUPDATE** are processed first, so those permissions apply before the **forward-dnsupdate** is used. It will try all masters that you have configured until one is successful.
 
 The semantics are that first a dynamic update has to be allowed either by the global allow-dnsupdate-from setting, or by a per-zone ALLOW-DNSUPDATE-FROM metadata setting.
 
