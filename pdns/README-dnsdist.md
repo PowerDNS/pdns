@@ -243,8 +243,11 @@ Rules have selectors and actions. Current selectors are:
  * Query domain
  * QPS Limit total
  * QPS Limit per IP address or subnet
+ * QType (QTypeRule)
  * RegexRule on query name
  * Packet requests DNSSEC processing
+
+A special rule is `AndRule{rule1, rule2}`, which only matches if all of its subrules match.
 
 Current actions are:
  * Drop

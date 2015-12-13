@@ -5,6 +5,7 @@
 #include "sodcrypto.hh"
 #include "base64.hh"
 #include <fstream>
+#include "dnswriter.hh"
 #include "lock.hh"
 
 using std::thread;
@@ -476,6 +477,61 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("RegexRule", [](const std::string& str) {
       return std::shared_ptr<DNSRule>(new RegexRule(str));
     });
+
+
+  g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
+      int times = times_.get_value_or(100000);
+      DNSName suffix(suffix_.get_value_or("powerdns.com"));
+      struct item {
+        vector<uint8_t> packet;        
+        ComboAddress rem;
+        DNSName qname;
+        uint16_t qtype;
+      };
+      vector<item> items;
+      items.reserve(1000);
+      for(int n=0; n < 1000; ++n) {
+        struct item i;
+        i.qname=DNSName(std::to_string(random()));
+        i.qname += suffix;
+        i.qtype = random() % 0xff;
+        i.rem=ComboAddress("127.0.0.1");
+        i.rem.sin4.sin_addr.s_addr = random();
+        DNSPacketWriter pw(i.packet, i.qname, i.qtype);
+        items.push_back(i);
+      }
+
+      int matches=0;
+      DTime dt;
+      dt.set();
+      for(int n=0; n < times; ++n) {
+        const item& i = items[n % items.size()];
+        struct dnsheader* dh = (struct dnsheader*)&i.packet[0];
+        if(rule->matches(i.rem, i.qname, i.qtype, dh, i.packet.size()))
+          matches++;
+      }
+      double udiff=dt.udiff();
+      g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
+
+    });
+  g_lua.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
+      uint16_t qtype;
+      if(auto dir = boost::get<int>(&str)) {
+        qtype = *dir;
+      }
+      else {
+        string val=boost::get<string>(str);
+        qtype = QType::chartocode(val.c_str());
+        if(!qtype)
+          throw std::runtime_error("Unable to convert '"+val+"' to a DNS type");
+      }
+      return std::shared_ptr<DNSRule>(new QTypeRule(qtype));
+    });
+
+  g_lua.writeFunction("AndRule", [](vector<pair<int, std::shared_ptr<DNSRule> > >a) {
+      return std::shared_ptr<DNSRule>(new AndRule(a));
+    });
+
 
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
 		      {
