@@ -99,6 +99,27 @@ public:
   }
 };
 
+class RegexRule : public DNSRule
+{
+public:
+  RegexRule(const std::string& regex) : d_regex(regex), d_visual(regex)
+  {
+    
+  }
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  {
+    return d_regex.match(qname.toStringNoDot());
+  }
+
+  string toString() const override
+  {
+    return "Regex qname: "+d_visual;
+  }
+private:
+  Regex d_regex;
+  string d_visual;
+};
+
 
 class SuffixMatchNodeRule : public DNSRule
 {

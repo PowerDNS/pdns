@@ -243,6 +243,8 @@ Rules have selectors and actions. Current selectors are:
  * Query domain
  * QPS Limit total
  * QPS Limit per IP address or subnet
+ * RegexRule on query name
+ * Packet requests DNSSEC processing
 
 Current actions are:
  * Drop
@@ -348,6 +350,21 @@ topRule()
 
 This routes all queries with a DNSSEC OK (DO) or CD bit set to on to the "dnssec" pool.
 The final `topRule()` command moves this rule to the top, so it gets evaluated first.
+
+Regular Expressions
+-------------------
+`RegexRule()` matches a regular expression on the query name, and it works like this:
+
+```
+addAction(RegexRule("[0-9]{5,}"), DelayAction(750)) -- milliseconds
+addAction(RegexRule("[0-9]{4,}\\.cn$"), DropAction())
+```
+
+This delays any query for a domain name with 5 or more consecutive digits in it.
+The second rule drops anything with more than 4 consecutive digits within a .CN domain.
+
+Note that the query name is presented without a trailing dot to the regex.
+The regex is applied case insensitively. 
 
 Inspecting live traffic
 -----------------------

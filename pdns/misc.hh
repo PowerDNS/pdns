@@ -523,11 +523,11 @@ public:
     regfree(&d_preg);
   }
   /** call this to find out if 'line' matches your expression */
-  bool match(const string &line)
+  bool match(const string &line) const
   {
     return regexec(&d_preg,line.c_str(),0,0,0)==0;
   }
-  bool match(const DNSName& name)
+  bool match(const DNSName& name) const
   {
     return match(name.toStringNoDot());
   }

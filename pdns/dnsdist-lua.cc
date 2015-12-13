@@ -442,6 +442,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new DropAction);
     });
 
+  g_lua.writeFunction("DelayAction", [](int msec) {
+      return std::shared_ptr<DNSAction>(new DelayAction(msec));
+    });
+
+
   g_lua.writeFunction("TCAction", []() {
       return std::shared_ptr<DNSAction>(new TCAction);
     });
@@ -463,6 +468,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         return std::shared_ptr<DNSRule>(new MaxQPSRule(qps, *burst));      
     });
 
+
+  g_lua.writeFunction("RegexRule", [](const std::string& str) {
+      return std::shared_ptr<DNSRule>(new RegexRule(str));
+    });
 
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
 		      {
