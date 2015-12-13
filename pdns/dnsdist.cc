@@ -480,7 +480,7 @@ try
 
   for(;;) {
     try {
-      int ret = recvmsg(cs->udpFD, &msgh, 0);
+      ssize_t ret = recvmsg(cs->udpFD, &msgh, 0);
 
       cs->queries++;
       g_stats.queries++;
@@ -638,14 +638,14 @@ try
       }
       
       if (largerQuery.empty()) {
-        len = send(ss->fd, packet, len, 0);
+        ret = send(ss->fd, packet, len, 0);
       }
       else {
-        len = send(ss->fd, largerQuery.c_str(), largerQuery.size(), 0);
+        ret = send(ss->fd, largerQuery.c_str(), largerQuery.size(), 0);
         largerQuery.clear();
       }
       
-      if(len < 0) {
+      if(ret < 0) {
 	ss->sendErrors++;
 	g_stats.downstreamSendErrors++;
       }

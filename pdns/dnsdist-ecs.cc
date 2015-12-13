@@ -337,7 +337,6 @@ void handleEDNSClientSubnet(char * const packet, const size_t packetSize, const 
 {
   assert(packet != NULL);
   assert(len != NULL);
-  assert(*len >= 0);
   assert(consumed <= (size_t) *len);
   assert(ednsAdded != NULL);
   char * optRRStart = NULL;
