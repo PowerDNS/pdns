@@ -407,6 +407,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new NoRecurseAction);
     });
 
+  g_lua.writeFunction("PoolAction", [](const string& a) {
+      return std::shared_ptr<DNSAction>(new PoolAction(a));
+    });
+
   g_lua.writeFunction("SpoofAction", [](const string& a, boost::optional<string> b) {
       if(b) 
 	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a), ComboAddress(*b)));
