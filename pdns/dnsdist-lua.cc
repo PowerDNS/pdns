@@ -83,6 +83,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("newServer", 
 		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
 		      { 
+                        setLuaSideEffect();
 			if(client) {
 			  return std::make_shared<DownstreamState>(ComboAddress());
 			}
@@ -205,12 +206,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("addAnyTCRule", []() {
+      setLuaSideEffect();
       auto rules=g_rulactions.getCopy();
       rules.push_back({ std::make_shared<QTypeRule>(0xff), std::make_shared<TCAction>()});
       g_rulactions.setState(rules);
     });
 
   g_lua.writeFunction("rmRule", [](unsigned int num) {
+      setLuaSideEffect();
       auto rules = g_rulactions.getCopy();
       if(num >= rules.size()) {
 	g_outputBuffer = "Error: attempt to delete non-existing rule\n";
@@ -221,6 +224,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("topRule", []() {
+      setLuaSideEffect();
       auto rules = g_rulactions.getCopy();
       if(rules.empty())
 	return;
@@ -230,6 +234,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_rulactions.setState(rules);
     });
   g_lua.writeFunction("mvRule", [](unsigned int from, unsigned int to) {
+      setLuaSideEffect();
       auto rules = g_rulactions.getCopy();
       if(from >= rules.size() || to > rules.size()) {
 	g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
@@ -252,6 +257,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("rmServer", 
 		      [](boost::variant<std::shared_ptr<DownstreamState>, int> var)
 		      { 
+                        setLuaSideEffect();
 			auto states = g_dstates.getCopy();
 			if(auto* rem = boost::get<shared_ptr<DownstreamState>>(&var))
 			  states.erase(remove(states.begin(), states.end(), *rem), states.end());
@@ -262,18 +268,21 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("setServerPolicy", [](ServerPolicy policy)  {
+      setLuaSideEffect();
       g_policy.setState(policy);
     });
   g_lua.writeFunction("setServerPolicyLua", [](string name, policy_t policy)  {
+      setLuaSideEffect();
       g_policy.setState(ServerPolicy{name, policy});
     });
 
   g_lua.writeFunction("showServerPolicy", []() {
+      setLuaSideEffect();
       g_outputBuffer=g_policy.getLocal()->name+"\n";
     });
 
-  g_lua.writeFunction("truncateTC", [](bool tc) { g_truncateTC=tc; });
-  g_lua.writeFunction("fixupCase", [](bool fu) { g_fixupCase=fu; });
+  g_lua.writeFunction("truncateTC", [](bool tc) { setLuaSideEffect(); g_truncateTC=tc; });
+  g_lua.writeFunction("fixupCase", [](bool fu) { setLuaSideEffect(); g_fixupCase=fu; });
 
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
@@ -284,10 +293,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeVariable("whashed", ServerPolicy{"whashed", whashed});
   g_lua.writeVariable("leastOutstanding", ServerPolicy{"leastOutstanding", leastOutstanding});
   g_lua.writeFunction("addACL", [](const std::string& domain) {
+      setLuaSideEffect();
       g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
     });
 
   g_lua.writeFunction("setLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
+      setLuaSideEffect();
       if(client)
 	return;
       if (g_configurationDone) {
@@ -305,6 +316,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("addLocal", [client](const std::string& addr, boost::optional<bool> doTCP) {
+      setLuaSideEffect();
       if(client)
 	return;
       if (g_configurationDone) {
@@ -320,6 +332,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
     });
   g_lua.writeFunction("setACL", [](boost::variant<string,vector<pair<int, string>>> inp) {
+      setLuaSideEffect();
       NetmaskGroup nmg;
       if(auto str = boost::get<string>(&inp)) {
 	nmg.addMask(*str);
@@ -330,6 +343,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_ACL.setState(nmg);
   });
   g_lua.writeFunction("showACL", []() {
+      setLuaNoSideEffect();
       vector<string> vec;
 
       g_ACL.getCopy().toStringVector(&vec);
@@ -342,6 +356,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("addDomainBlock", [](const std::string& domain) { 
+      setLuaSideEffect();
       SuffixMatchNode smn;
       smn.add(DNSName(domain));
 	g_rulactions.modify([smn](decltype(g_rulactions)::value_type& rulactions) {
@@ -352,6 +367,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
     });
   g_lua.writeFunction("showServers", []() {  
+      setLuaNoSideEffect();
       try {
       ostringstream ret;
       boost::format fmt("%1$-3d %2$-20.20s %|25t|%3% %|55t|%4$5s %|51t|%5$7.1f %|66t|%6$7d %|69t|%7$3d %|78t|%8$2d %|80t|%9$10d %|86t|%10$7d %|91t|%11$5.1f %|109t|%12$5.1f %13%" );
@@ -396,6 +412,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addLuaAction", [](luadnsrule_t var, LuaAction::func_t func) 
 		      {
+                        setLuaSideEffect();
 			auto rule=makeRule(var);
 			g_rulactions.modify([rule,func](decltype(g_rulactions)::value_type& rulactions){
 			    rulactions.push_back({rule,
@@ -420,6 +437,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, const std::string& ip, boost::optional<string> ip6) { 
+      setLuaSideEffect();
       SuffixMatchNode smn;
       ComboAddress a, b;
       b.sin6.sin6_family=0;
@@ -480,6 +498,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
+      setLuaNoSideEffect();
       int times = times_.get_value_or(100000);
       DNSName suffix(suffix_.get_value_or("powerdns.com"));
       struct item {
@@ -535,6 +554,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
 		      {
+                        setLuaSideEffect();
 			auto rule=makeRule(var);
 			g_rulactions.modify([rule, ea](decltype(g_rulactions)::value_type& rulactions){
 			    rulactions.push_back({rule, ea});
@@ -543,6 +563,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("addPoolRule", [](luadnsrule_t var, string pool) {
+      setLuaSideEffect();
       auto rule=makeRule(var);
 	g_rulactions.modify([rule, pool](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -552,6 +573,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("addNoRecurseRule", [](luadnsrule_t var) {
+      setLuaSideEffect();
       auto rule=makeRule(var);
 	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -561,6 +583,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("addDisableValidationRule", [](luadnsrule_t var) {
+      setLuaSideEffect();
       auto rule=makeRule(var);
 	g_rulactions.modify([rule](decltype(g_rulactions)::value_type& rulactions) {
 	    rulactions.push_back({
@@ -571,6 +594,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("addQPSPoolRule", [](luadnsrule_t var, int limit, string pool) {
+      setLuaSideEffect();
       auto rule = makeRule(var);
       g_rulactions.modify([rule, pool,limit](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({
@@ -580,6 +604,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("setDNSSECPool", [](const std::string& pool) {
+      setLuaSideEffect();
       g_rulactions.modify([pool](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({std::make_shared<DNSSECRule>(), 
 		std::make_shared<PoolAction>(pool)}); 
@@ -587,6 +612,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("addQPSLimit", [](luadnsrule_t var, int lim) {
+      setLuaSideEffect();
       auto rule = makeRule(var);
       g_rulactions.modify([lim,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
@@ -595,6 +621,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
    
   g_lua.writeFunction("addDelay", [](luadnsrule_t var, int msec) {
+      setLuaSideEffect();
       auto rule = makeRule(var);
       g_rulactions.modify([msec,rule](decltype(g_rulactions)::value_type& rulactions) {
 	  rulactions.push_back({rule, 
@@ -604,6 +631,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("showRules", []() {
+     setLuaNoSideEffect();
      boost::format fmt("%-3d %9d %-50s %s\n");
      g_outputBuffer += (fmt % "#" % "Matches" % "Rule" % "Action").str();
      int num=0;
@@ -615,6 +643,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("getServers", []() {
+      setLuaNoSideEffect();
       vector<pair<int, std::shared_ptr<DownstreamState> > > ret;
       int count=1;
       for(const auto& s : g_dstates.getCopy()) {
@@ -703,6 +732,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName,
 					 boost::optional<int> interval) {
+                        setLuaSideEffect();
 			auto ours = g_carbon.getCopy();
 			ours.server=ComboAddress(address, 2003);
 			if(ourName)
@@ -715,6 +745,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		      });
 
   g_lua.writeFunction("webserver", [client](const std::string& address, const std::string& password) {
+      setLuaSideEffect();
       if(client)
 	return;
       ComboAddress local(address);
@@ -738,6 +769,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
     });
   g_lua.writeFunction("controlSocket", [client](const std::string& str) {
+      setLuaSideEffect();
       ComboAddress local(str, 5199);
 
       if(client) {
@@ -767,6 +799,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("topClients", [](boost::optional<unsigned int> top_) {
+      setLuaNoSideEffect();
       auto top = top_.get_value_or(10);
       map<ComboAddress, int,ComboAddress::addressOnlyLessThan > counts;
       unsigned int total=0;
@@ -798,6 +831,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
+      setLuaNoSideEffect();
       map<DNSName, int> counts;
       unsigned int total=0;
       if(!labels) {
@@ -845,6 +879,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("getResponseRing", []() {
+      setLuaNoSideEffect();
       decltype(g_rings.respRing) ring;
       {
 	std::lock_guard<std::mutex> lock(g_rings.respMutex);
@@ -864,6 +899,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
+      setLuaNoSideEffect();
       map<DNSName, int> counts;
       unsigned int total=0;
       {
@@ -917,7 +953,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("showResponseLatency", []() {
-
+      setLuaNoSideEffect();
       map<double, unsigned int> histo;
       double bin=100;
       for(int i=0; i < 15; ++i) {
@@ -973,10 +1009,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
 
   g_lua.writeFunction("makeKey", []() {
+      setLuaNoSideEffect();
       g_outputBuffer="setKey("+newKey()+")\n";
     });
   
   g_lua.writeFunction("setKey", [](const std::string& key) {
+      setLuaSideEffect();
       if(B64Decode(key, g_key) < 0) {
 	  g_outputBuffer=string("Unable to decode ")+key+" as Base64";
 	  errlog("%s", g_outputBuffer);
@@ -986,6 +1024,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   
   g_lua.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
    {
+     setLuaNoSideEffect();
      try {
        string testmsg;
 
@@ -1039,6 +1078,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("setECSOverride", [](bool override) { g_ECSOverride=override; });
 
   g_lua.writeFunction("dumpStats", [] {
+      setLuaNoSideEffect();
       vector<string> leftcolumn, rightcolumn;
 
       boost::format fmt("%-23s\t%+11s");

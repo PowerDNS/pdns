@@ -5,6 +5,16 @@
 #include <fstream>
 #include "dolog.hh"
 
+vector<pair<struct timeval, string> > g_confDelta;
+
+// MUST BE CALLED UNDER A LOCK - right now the LuaLock
+void feedConfigDelta(const std::string& line)
+{
+  struct timeval now;
+  gettimeofday(&now, 0);
+  g_confDelta.push_back({now,line});
+}
+
 void doClient(ComboAddress server, const std::string& command)
 {
   cout<<"Connecting to "<<server.toStringWithPort()<<endl;
@@ -120,6 +130,7 @@ void doConsole()
     try {
       std::lock_guard<std::mutex> lock(g_luamutex);
       g_outputBuffer.clear();
+      resetLuaSideEffect();
       auto ret=g_lua.executeCode<
 	boost::optional<
 	  boost::variant<
@@ -139,7 +150,8 @@ void doConsole()
       }
       else 
 	cout << g_outputBuffer;
-
+      if(!getLuaNoSideEffect())
+        feedConfigDelta(line);
     }
     catch(const LuaContext::ExecutionErrorException& e) {
       std::cerr << e.what() << ": ";
@@ -229,6 +241,7 @@ try
     try {
       std::lock_guard<std::mutex> lock(g_luamutex);
       g_outputBuffer.clear();
+      resetLuaSideEffect();
       auto ret=g_lua.executeCode<
 	boost::optional<
 	  boost::variant<
@@ -248,7 +261,8 @@ try
       }
       else
 	response=g_outputBuffer;
-
+      if(!getLuaNoSideEffect())
+        feedConfigDelta(line);
     }
     catch(const LuaContext::ExecutionErrorException& e) {
       response = "Error: " + string(e.what()) + ": ";

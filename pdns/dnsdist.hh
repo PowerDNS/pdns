@@ -29,6 +29,9 @@ struct DynBlock
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
+
+extern vector<pair<struct timeval, std::string> > g_confDelta;
+
 struct DNSDistStats
 {
   using stat_t=std::atomic<uint64_t>; // aww yiss ;-)
@@ -434,3 +437,7 @@ void controlClientThread(int fd, ComboAddress client);
 extern "C" {
 char** my_completion( const char * text , int start,  int end);
 }
+void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
+void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
+bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
+void resetLuaSideEffect(); // reset to indeterminate state
