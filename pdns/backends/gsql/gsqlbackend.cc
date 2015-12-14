@@ -71,7 +71,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertSlaveZoneQuery=getArg("insert-slave-query");
   d_InsertRecordQuery=getArg("insert-record-query");
-  d_InsertEntQuery=getArg("insert-ent-query");
   d_UpdateMasterOfZoneQuery=getArg("update-master-query");
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
@@ -85,9 +84,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteNamesQuery=getArg("delete-names-query");
   d_getAllDomainsQuery=getArg("get-all-domains-query");
 
-  d_removeEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
-  d_insertEmptyNonTerminalQuery = getArg("insert-empty-non-terminal-query");
-  d_deleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
+  d_InsertEmptyNonTerminalOrderQuery=getArg("insert-empty-non-terminal-order-query");
+  d_DeleteEmptyNonTerminalQuery = getArg("delete-empty-non-terminal-query");
+  d_RemoveEmptyNonTerminalsFromZoneQuery = getArg("remove-empty-non-terminals-from-zone-query");
 
   d_ListCommentsQuery = getArg("list-comments-query");
   d_InsertCommentQuery = getArg("insert-comment-query");
@@ -95,7 +94,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteCommentsQuery = getArg("delete-comments-query");
 
   d_InsertRecordOrderQuery=getArg("insert-record-order-query");
-  d_InsertEntOrderQuery=getArg("insert-ent-order-query");
 
   d_firstOrderQuery = getArg("get-order-first-query");
   d_beforeOrderQuery = getArg("get-order-before-query");
@@ -146,9 +144,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_InsertZoneQuery_stmt = NULL;
   d_InsertSlaveZoneQuery_stmt = NULL;
   d_InsertRecordQuery_stmt = NULL;
-  d_InsertEntQuery_stmt = NULL;
   d_InsertRecordOrderQuery_stmt = NULL;
-  d_InsertEntOrderQuery_stmt = NULL;
+  d_InsertEmptyNonTerminalOrderQuery_stmt = NULL;
   d_UpdateMasterOfZoneQuery_stmt = NULL;
   d_UpdateKindOfZoneQuery_stmt = NULL;
   d_UpdateSerialOfZoneQuery_stmt = NULL;
@@ -168,9 +165,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_updateOrderNameAndAuthTypeQuery_stmt = NULL;
   d_nullifyOrderNameAndUpdateAuthQuery_stmt = NULL;
   d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = NULL;
-  d_removeEmptyNonTerminalsFromZoneQuery_stmt = NULL;
-  d_insertEmptyNonTerminalQuery_stmt = NULL;
-  d_deleteEmptyNonTerminalQuery_stmt = NULL;
+  d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = NULL;
+  d_DeleteEmptyNonTerminalQuery_stmt = NULL;
   d_AddDomainKeyQuery_stmt = NULL;
   d_ListDomainKeysQuery_stmt = NULL;
   d_GetAllDomainMetadataQuery_stmt = NULL;
@@ -521,7 +517,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zon
 
   if(remove) {
     try {
-      d_removeEmptyNonTerminalsFromZoneQuery_stmt->
+      d_RemoveEmptyNonTerminalsFromZoneQuery_stmt->
         bind("domain_id", domain_id)->
         execute()->
         reset();
@@ -535,7 +531,7 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zon
   {
     for(const auto& qname: erase) {
       try {
-        d_deleteEmptyNonTerminalQuery_stmt->
+        d_DeleteEmptyNonTerminalQuery_stmt->
           bind("domain_id", domain_id)->
           bind("qname", qname)->
           execute()->
@@ -550,9 +546,11 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zon
 
   for(const auto& qname: insert) {
     try {
-      d_insertEmptyNonTerminalQuery_stmt->
+      d_InsertEmptyNonTerminalOrderQuery_stmt->
         bind("domain_id", domain_id)->
         bind("qname", qname)->
+        bindNull("ordername")->
+        bind("auth", true)->
         execute()->
         reset();
     }
@@ -1353,9 +1351,10 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
 
   for(const auto& nt: nonterm) {
     try {
-      d_InsertEntQuery_stmt->
+      d_InsertEmptyNonTerminalOrderQuery_stmt->
         bind("domain_id",domain_id)->
         bind("qname", nt.first)->
+        bindNull("ordername")->
         bind("auth",(nt.second || !d_dnssecQueries))->
         execute()->
         reset();
@@ -1377,23 +1376,21 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
 
   for(const auto& nt: nonterm) {
     try {
-      if(narrow || !nt.second) {
-        d_InsertEntQuery_stmt->
-          bind("domain_id",domain_id)->
-          bind("qname", nt.first)->
-          bind("auth", nt.second)->
-          execute()->
-          reset();
+      d_InsertEmptyNonTerminalOrderQuery_stmt->
+        bind("domain_id",domain_id)->
+        bind("qname", nt.first);
+      if (narrow || !nt.second) {
+        d_InsertEmptyNonTerminalOrderQuery_stmt->
+          bindNull("ordername");
       } else {
         ordername=toBase32Hex(hashQNameWithSalt(ns3prc, nt.first));
-        d_InsertEntOrderQuery_stmt->
-          bind("domain_id",domain_id)->
-          bind("qname", nt.first)->
-          bind("ordername",ordername)->
-          bind("auth",nt.second)->
-          execute()->
-          reset();
+        d_InsertEmptyNonTerminalOrderQuery_stmt->
+          bind("ordername", ordername);
       }
+      d_InsertEmptyNonTerminalOrderQuery_stmt->
+        bind("auth",nt.second)->
+        execute()->
+        reset();
     }
     catch (SSqlException &e) {
       throw DBException("GSQLBackend unable to feed empty non-terminal: "+e.txtReason());

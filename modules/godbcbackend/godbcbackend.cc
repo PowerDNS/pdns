@@ -62,7 +62,6 @@ public:
     declare(suffix, "list-subzone-query", "Subzone listing", record_query+" disabled=0 and (name=? OR name like ?) and domain_id=?");
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=? and type is null");
-    declare(suffix, "insert-empty-non-terminal-query", "insert empty non-terminal in zone", "insert into records (domain_id,name,type,disabled,auth) values (?,?,null,0,1)");
     declare(suffix, "delete-empty-non-terminal-query", "delete empty non-terminal from zone", "delete from records where domain_id=? and name=? and type is null");
 
     declare(suffix,"master-zone-query","Data", "select master from domains where name=? and type='SLAVE'");
@@ -78,8 +77,7 @@ public:
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,auth) values (?,?,?,?,?,?,?,?)");
     declare(suffix, "insert-record-order-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (?,?,?,?,?,?,?,convert(varbinary(255),?),?)");
-    declare(suffix, "insert-ent-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,auth) values (null,?,0,?,?)");
-    declare(suffix, "insert-ent-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,?,0,?,convert(varbinary(255),?),?)");
+    declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth) values (null,?,0,?,convert(varbinary(255),?),?)");
 
     declare(suffix, "get-order-first-query", "DNSSEC Ordering Query, first", "select top 1 convert(varchar(255), ordername) from records where domain_id=? and disabled=0 and ordername is not null order by 1 asc");
     declare(suffix, "get-order-before-query", "DNSSEC Ordering Query, before", "select top 1 convert(varchar(255), ordername), name from records where ordername <= convert(varbinary(255),?) and domain_id=? and disabled=0 and ordername is not null order by 1 desc");

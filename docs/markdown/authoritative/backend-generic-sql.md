@@ -180,9 +180,7 @@ These queries are used by e.g. `pdnsutil rectify-zone`. Make sure to read
 [Rules for filling out fields in database backends](dnssec.md#rules-for-filling-out-fields-in-database-backends)
 if you wish to calculate ordername and auth without using pdns-rectify.
 
-- `insert-ent-query`: Insert empty non-terminal in zone.
-- `insert-empty-non-terminal-query`: Insert empty non-terminal in zone.
-- `insert-ent-order-query`: Insert empty non-terminal in zone with the ordername set.
+- `insert-empty-non-terminal-order--query`: Insert empty non-terminal in zone.
 - `delete-empty-non-terminal-query`: Delete an empty non-terminal in a zone.
 - `remove-empty-non-terminals-from-zone-query`: remove all empty non-terminals from zone.
 
