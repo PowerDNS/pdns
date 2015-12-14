@@ -142,7 +142,7 @@ int loadRPZFromFile(const std::string& fname, DNSFilterEngine& target, boost::op
       DNSRecord dr(drr);
       if(dr.d_type == QType::SOA) {
 	domain = dr.d_name;
-	cerr<<"Origin is "<<domain<<endl;
+//	cerr<<"Origin is "<<domain<<endl;
       }
       else if(dr.d_type == QType::NS) {
 	continue;
