@@ -874,7 +874,7 @@ int listZone(const DNSName &zone) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.') 
 	rr.content.append(1, '.');
 	
-      cout<<rr.qname.toString()<<".\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<endl;
+      cout<<rr.qname.toString()<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.getName()<<"\t"<<rr.content<<endl;
     }
   }
   return 0;
