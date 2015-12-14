@@ -151,12 +151,6 @@ Operate in the background.
 
 Which domains we only accept delegations from (a Verisign special).
 
-## `disable-edns`
-* Boolean
-* Default: yes
-
-Disable EDNS. EDNS support is experimental, please keep this setting as-is.
-
 ## `disable-packetcache`
 * Boolean
 * Default: no
