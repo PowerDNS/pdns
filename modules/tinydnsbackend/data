@@ -20036,6 +20036,7 @@ Cloop3.example.com:loop1.example.com.:120
 +ns2.example.com:192.168.1.2:120
 Cnxd.example.com:nxdomain.example.com.:120
 +outpost.example.com:192.168.2.1:120
+Crhs-at-expansion.example.com:example.com.:120
 Csemi-external.example.com:bla.something.wtest.com.:120
 Cserver1.example.com:server1.france.example.com.:120
 +smtp-servers.example.com:192.168.0.2:120
@@ -20149,8 +20150,8 @@ Ztest.com:ns1.test.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 @test.com::smtp-servers.test.com.:15:3600
 :_underscore.test.com:16:\030underscores\040are\040terrible:3600
 :aland.test.com:16:\016\303\205LAND\040ISLANDS:3600
-+blah.test.com:192.168.6.1:3600
 &blah.test.com::blah.test.com.:3600
++blah.test.com:192.168.6.1:3600
 +b.c.test.com:5.6.7.8:3600
 +\052.a.b.c.test.com:8.7.6.5:3600
 +counter.test.com:1.1.1.5:3600
@@ -20200,11 +20201,11 @@ Ccname2.test.dyndns:host-2.test.dyndns.:3600
 +\052.wild.test.dyndns:127.0.1.255:3600
 #2005092501 auto axfr-get
 Zwtest.com:ns1.wtest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
-+wtest.com:9.9.9.9:3600
 &wtest.com::..:3600
 &wtest.com::ns1.wtest.com.:3600
 @wtest.com::smtp-servers.example.com.:10:3600
 @wtest.com::smtp-servers.wtest.com.:15:3600
++wtest.com:9.9.9.9:3600
 C\052.wtest.com:server1.wtest.com.:3600
 :e.wtest.com:16:\011non-empty:3600
 :d.e.wtest.com:16:\011non-empty:3600
@@ -20220,16 +20221,16 @@ C\052.wtest.com:server1.wtest.com.:3600
 +a.something.wtest.com:10.11.12.13:3600
 #2005092501 auto axfr-get
 Znztest.com:ns1.nztest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
-+nztest.com:127.0.0.1:3600
 &nztest.com::ns1.nztest.com.:3600
 &nztest.com::ns2.nztest.com.:3600
++nztest.com:127.0.0.1:3600
 +ns1.nztest.com:1.1.1.1:3600
 +ns2.nztest.com:2.2.2.2:3600
 #2005092501 auto axfr-get
 Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
-+dnssec-parent.com:9.9.9.9:3600
 &dnssec-parent.com::ns1.dnssec-parent.com.:3600
 &dnssec-parent.com::ns2.dnssec-parent.com.:3600
++dnssec-parent.com:9.9.9.9:3600
 &insecure-delegated.ent.ent.auth-ent.dnssec-parent.com::ns.example.com.:3600
 +something1.auth-ent.dnssec-parent.com:1.1.2.3:3600
 &delegated.dnssec-parent.com::ns1.delegated.dnssec-parent.com.:3600
@@ -20238,25 +20239,25 @@ Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200
 +ns2.delegated.dnssec-parent.com:5.6.7.8:3600
 +ns1.dnssec-parent.com:1.2.3.4:3600
 +ns2.dnssec-parent.com:4.3.2.1:3600
+:secure-delegated.dnssec-parent.com:43:\324\057\010\002\240\271\303\214\323\044\030\052\360\357f\203\015\012\016\205\241\325\211y\311\203N\030\310qw\236\004\010W\267:3600
 &secure-delegated.dnssec-parent.com::ns1.secure-delegated.dnssec-parent.com.:3600
 &secure-delegated.dnssec-parent.com::ns2.secure-delegated.dnssec-parent.com.:3600
-:secure-delegated.dnssec-parent.com:43:\324\057\010\002\240\271\303\214\323\044\030\052\360\357f\203\015\012\016\205\241\325\211y\311\203N\030\310qw\236\004\010W\267:3600
 +ns1.secure-delegated.dnssec-parent.com:1.2.3.4:3600
 +ns2.secure-delegated.dnssec-parent.com:5.6.7.8:3600
 #2005092501 auto axfr-get
 Zdelegated.dnssec-parent.com:ns1.delegated.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
-+delegated.dnssec-parent.com:9.9.9.9:3600
 &delegated.dnssec-parent.com::ns1.delegated.dnssec-parent.com.:3600
 &delegated.dnssec-parent.com::ns2.delegated.dnssec-parent.com.:3600
++delegated.dnssec-parent.com:9.9.9.9:3600
 :delegated.dnssec-parent.com:43:\253\376\010\002\324\303\325U\053\206y\372\356\2741\176\137\004\213aK.\137\140\175\305\177\025S\030-I\253\041y\367:3600
 +ns1.delegated.dnssec-parent.com:4.5.6.7:3600
 +ns2.delegated.dnssec-parent.com:5.6.7.8:3600
 Cwww.delegated.dnssec-parent.com:delegated.dnssec-parent.com.:3600
 #2005092501 auto axfr-get
 Zsecure-delegated.dnssec-parent.com:ns1.secure-delegated.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
-+secure-delegated.dnssec-parent.com:9.9.9.9:3600
 &secure-delegated.dnssec-parent.com::ns1.secure-delegated.dnssec-parent.com.:3600
 &secure-delegated.dnssec-parent.com::ns2.secure-delegated.dnssec-parent.com.:3600
++secure-delegated.dnssec-parent.com:9.9.9.9:3600
 +ns1.secure-delegated.dnssec-parent.com:1.2.3.4:3600
 +ns2.secure-delegated.dnssec-parent.com:5.6.7.8:3600
 Cwww.secure-delegated.dnssec-parent.com:secure-delegated.dnssec-parent.com.:3600
