@@ -165,6 +165,29 @@ Disable EDNS. EDNS support is experimental, please keep this setting as-is.
 Turn off the packet cache. Useful when running with Lua scripts that can not be
 cached.
 
+## `dnssec`
+* One of `off`, `process`, `log-fail`, `validate`, String
+* Default: `process`
+* Available since: 4.0.0
+
+Set the mode for DNSSEC processing:
+
+### `off`
+No DNSSEC processing whatsoever. Ignore DO-bits in queries, don't request any
+DNSSEC information from authoritative servers. This behaviour is similar to
+PowerDNS Recursor pre-4.0.
+
+### `process`
+Respond with DNSSEC records to clients that ask for it, set the DO bit on all
+outgoing queries. Don't do any validation.
+
+### `log-fail`
+Similar behaviour to `process`, but validate RRSIGs on responses and log bogus
+responses.
+
+#### `validate`
+Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
+
 ## `dont-query`
 * Netmasks, comma separated
 * Default: 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16,
