@@ -90,11 +90,9 @@ void loadRecursorLuaConfig(const std::string& fname)
 	if(options) {
 	  auto& have = *options;
 	  if(have.count("defpol")) {
-	    cout<<"Set a default policy"<<endl;
 	    defpol=DNSFilterEngine::Policy();
 	    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<int>(constGet(have, "defpol"));
 	    if(defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
-	      cout<<"Setting a custom field even!"<<endl;
 	      defpol->d_custom=
 		shared_ptr<DNSRecordContent>(
 					     DNSRecordContent::mastermake(QType::CNAME, 1, 
