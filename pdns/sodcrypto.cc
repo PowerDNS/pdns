@@ -219,9 +219,15 @@ int B64Decode(const std::string& strInput, std::string& strOutput)
     // Interpret the resulting 3 bytes...note there
     // may have been padding, so those padded bytes
     // are actually ignored.
+#if BYTE_ORDER == BIG_ENDIAN
+    strOutput += pBuf[sizeof(long)-3];
+    strOutput += pBuf[sizeof(long)-2];
+    strOutput += pBuf[sizeof(long)-1];
+#else
     strOutput += pBuf[2];
     strOutput += pBuf[1];
     strOutput += pBuf[0];
+#endif
   } // while
   if(pad)
     strOutput.resize(strOutput.length()-pad);
