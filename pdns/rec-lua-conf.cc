@@ -13,7 +13,7 @@
 #include "syncres.hh"
 #include "rpzloader.hh"
 
-GlobalStateHolder<LuaConfigItems> g_luaconfs;
+GlobalStateHolder<LuaConfigItems> g_luaconfs; 
 
 /* SO HOW DOES THIS WORK! AND PLEASE PAY ATTENTION!
    This function can be called at any time. It is expected to overwrite all the contents

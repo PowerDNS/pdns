@@ -22,11 +22,11 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, 
   pw.getHeader()->rd=1;
   Entry e;
   e.d_packet.assign((const char*)&*packet.begin(), packet.size());
-
+  e.d_wantsDNSSEC=false;
   // so the idea is, we search for a packet with qtype=0, which is ahead of anything with that name
 
   int count=0;
-  for(packetCache_t::iterator iter = d_packetCache.lower_bound(e); iter != d_packetCache.end(); ) {
+  for(auto iter = d_packetCache.lower_bound(e); iter != d_packetCache.end(); ) {
     const struct dnsheader* packet = reinterpret_cast<const struct dnsheader*>((*iter).d_packet.c_str());
     if(packet->qdcount==0)
       break;
@@ -55,11 +55,12 @@ int RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qtype, 
   return count;
 }
 
-bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time_t now, 
+bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, bool wantsDNSSEC, time_t now, 
   std::string* responsePacket, uint32_t* age)
 {
   struct Entry e;
   e.d_packet=queryPacket;
+  e.d_wantsDNSSEC = wantsDNSSEC;
   
   packetCache_t::const_iterator iter = d_packetCache.find(e);
   
@@ -96,10 +97,11 @@ bool RecursorPacketCache::getResponsePacket(const std::string& queryPacket, time
   return false;
 }
 
-void RecursorPacketCache::insertResponsePacket(const std::string& responsePacket, time_t now, uint32_t ttl)
+void RecursorPacketCache::insertResponsePacket(const std::string& responsePacket, bool wantsDNSSEC, time_t now, uint32_t ttl)
 {
   struct Entry e;
   e.d_packet = responsePacket;
+  e.d_wantsDNSSEC = wantsDNSSEC;
   e.d_ttd = now+ttl;
   e.d_creation = now;
   packetCache_t::iterator iter = d_packetCache.find(e);

@@ -810,7 +810,7 @@ void startDoResolve(void *p)
       pw.getHeader()->rcode=res;
 
       if(haveEDNS) {
-	if(edo.d_Z & EDNSOpts::DNSSECOK) {
+	if(g_dnssecmode != DNSSECMode::Off && ((edo.d_Z & EDNSOpts::DNSSECOK) || g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode==DNSSECMode::ValidateForLog)) {
 	  auto state=validateRecords(ret);
 	  if(state == Secure) {
 	    pw.getHeader()->ad=1;
@@ -819,8 +819,13 @@ void startDoResolve(void *p)
 	    pw.getHeader()->ad=0;
 	  }
 	  else if(state == Bogus && !pw.getHeader()->cd) {
-	    pw.getHeader()->rcode=RCode::ServFail;
-	    goto sendit;
+            if(g_dnssecmode == DNSSECMode::ValidateAll || (edo.d_Z & EDNSOpts::DNSSECOK)) {
+              pw.getHeader()->rcode=RCode::ServFail;
+              goto sendit;
+            }
+            else {
+              L<<Logger::Warning<<"Failed to validate "<<dc->d_mdp.d_qname<<" for "<<dc->d_remote.toStringWithPort()<<endl;
+            }
 	  }
 	}
       }
@@ -873,6 +878,7 @@ void startDoResolve(void *p)
       sendmsg(dc->d_socket, &msgh, 0);
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
+                                            (edo.d_Z & EDNSOpts::DNSSECOK), // ponder filtering on dnssecmode here
                                             g_now.tv_sec,
                                             min(minTTL,
                                                 (pw.getHeader()->rcode == RCode::ServFail) ? SyncRes::s_packetcacheservfailttl : SyncRes::s_packetcachettl
@@ -1142,8 +1148,16 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     g_mtracer->clearAllocators();
     */
 #endif
-
-    if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, g_now.tv_sec, &response, &age)) {
+    bool needsDNSSEC=false;
+    const struct dnsheader* dh = (struct dnsheader*)question.c_str();
+    if(dh->arcount) {
+      unsigned int consumed=0;
+      DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, 0, 0, &consumed);
+      if(question.size() > (consumed+12+11) && ((question[consumed+12+11]&0x80)==0x80))
+        needsDNSSEC=true;
+    }
+    
+    if(!SyncRes::s_nopacketcache && t_packetCache->getResponsePacket(question, needsDNSSEC, g_now.tv_sec, &response, &age)) {
       if(!g_quiet)
         L<<Logger::Notice<<t_id<< " question answered from packet cache from "<<fromaddr.toString()<<endl;
       // t_queryring->push_back("packetcached");
@@ -2213,6 +2227,19 @@ int serviceMain(int argc, char*argv[])
   setupDelegationOnly();
   g_outgoingEDNSBufsize=::arg().asNum("edns-outgoing-bufsize");
 
+  if(::arg()["dnssec"]=="off") 
+    g_dnssecmode=DNSSECMode::Off;
+  else if(::arg()["dnssec"]=="process") 
+    g_dnssecmode=DNSSECMode::Process;
+  else if(::arg()["dnssec"]=="validate")
+    g_dnssecmode=DNSSECMode::ValidateAll; 
+  else if(::arg()["dnssec"]=="log-fail")
+    g_dnssecmode=DNSSECMode::ValidateForLog;
+  else {
+    L<<Logger::Error<<"Unknown DNSSEC mode "<<::arg()["dnssec"]<<endl;
+    exit(1);
+  }
+
   if(::arg()["trace"]=="fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
   }
@@ -2519,6 +2546,7 @@ int main(int argc, char **argv)
     ::arg().set("local-address","IP addresses to listen on, separated by spaces or commas. Also accepts ports.")="127.0.0.1";
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
+    ::arg().set("dnssec", "DNSSEC mode: off/process (default)/log-fail/validate")="process";
     ::arg().set("daemon","Operate as a daemon")="yes";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";

@@ -291,7 +291,7 @@ void SyncRes::doEDNSDumpAndClose(int fd)
   fclose(fp);
 }
 
-int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
+int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res)
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the highest level of EDNS support
@@ -331,7 +331,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, 
   for(int tries = 0; tries < 3; ++tries) {
     //    cerr<<"Remote '"<<ip.toString()<<"' currently in mode "<<mode<<endl;
     
-    if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
+    if(ednsMANDATORY || mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode==EDNSStatus::EDNSIGNORANT)
       EDNSLevel = 1;
     else if(mode==EDNSStatus::NOEDNS) {
       g_stats.noEdnsOutQueries++;
@@ -341,7 +341,13 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, 
     ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, res);
 
     if(ret == 0 || ret < 0) {
-      //      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret="<<ret<<"), no change in mode"<<endl;
+      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret = "<<ret<<", mode = "<<(int)mode<<")"<<endl;
+      // timeout = downgrade to EDNS
+      if(ret==0 && mode != EDNSStatus::NOEDNS) {
+        //	cerr<<"\tDowngrading to NOEDNS"<<endl;
+	mode = EDNSStatus::NOEDNS;
+	continue;
+      }
       return ret;
     }
     else if(mode==EDNSStatus::UNKNOWN || mode==EDNSStatus::EDNSOK || mode == EDNSStatus::EDNSIGNORANT ) {
@@ -362,7 +368,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, 
       }
       
     }
-    if(oldmode != mode)
+    if(oldmode != mode || !ednsstatus->modeSetAt)
       ednsstatus->modeSetAt=d_now.tv_sec;
     //    cerr<<"Result: ret="<<ret<<", EDNS-level: "<<EDNSLevel<<", haveEDNS: "<<res->d_haveEDNS<<", new mode: "<<mode<<endl;  
     return ret;
@@ -399,7 +405,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
           LOG(prefix<<qname.toString()<<": forwarding query to hardcoded nameserver '"<< remoteIP.toStringWithPort()<<"' for zone '"<<authname.toString()<<"'"<<endl);
 
 	  boost::optional<Netmask> nm;
-          res=asyncresolveWrapper(remoteIP, qname, qtype.getCode(), false, false, &d_now, nm, &lwr);
+          res=asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, qtype.getCode(), false, false, &d_now, nm, &lwr);
           // filter out the good stuff from lwr.result()
 
 	  for(const auto& rec : lwr.d_records) {
@@ -1033,7 +1039,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 	    }
 	    else {
 	      ednsmask=getEDNSSubnetMask(d_requestor, qname, *remoteIP);
-	      resolveret=asyncresolveWrapper(*remoteIP, qname,  qtype.getCode(),
+	      resolveret=asyncresolveWrapper(*remoteIP, d_doDNSSEC, qname,  qtype.getCode(),
 					     doTCP, sendRDQuery, &d_now, ednsmask, &lwr);    // <- we go out on the wire!
 	    }
             if(resolveret==-3)
@@ -1139,14 +1145,12 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
       typedef map<CacheKey, CachePair> tcache_t;
       tcache_t tcache;
 
-      if(d_doDNSSEC) {
-	for(const auto& rec : lwr.d_records) {
-	  if(rec.d_type == QType::RRSIG) {
-	    auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.d_content);
-	    //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
-	    tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
-	  }
-	}
+      for(const auto& rec : lwr.d_records) {
+        if(rec.d_type == QType::RRSIG) {
+          auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rec.d_content);
+          //	    cerr<<"Got an RRSIG for "<<DNSRecordContent::NumberToType(rrsig->d_type)<<" with name '"<<rec.d_name<<"'"<<endl;
+          tcache[{rec.d_name, rrsig->d_type, rec.d_place}].signatures.push_back(rrsig);
+        }
       }
 
       // reap all answers from this packet that are acceptable

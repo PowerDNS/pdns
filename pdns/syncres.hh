@@ -302,7 +302,7 @@ public:
     return d_wasVariable;
   }
 
-  int asyncresolveWrapper(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
+  int asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res);
 
   static void doEDNSDumpAndClose(int fd);
 
@@ -645,6 +645,8 @@ extern RecursorStats g_stats;
 extern unsigned int g_numThreads;
 extern SuffixMatchNode g_delegationOnly;
 extern uint16_t g_outgoingEDNSBufsize;
+
+
 std::string reloadAuthAndForwards();
 ComboAddress parseIPAndPort(const std::string& input, uint16_t port);
 ComboAddress getQueryLocalAddress(int family, uint16_t port);

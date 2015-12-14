@@ -47,6 +47,7 @@
 #include "dns_random.hh"
 #include <boost/scoped_array.hpp>
 #include <boost/algorithm/string.hpp>
+#include "validate-recursor.hh"
 #include "ednssubnet.hh"
 
 //! returns -2 for OS limits error, -1 for permanent error that has to do with remote **transport**, 0 for timeout, 1 for success
@@ -77,7 +78,7 @@ int asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool d
       srcmask=boost::optional<Netmask>(); // this is also our return value
     }
 
-    pw.addOpt(g_outgoingEDNSBufsize, 0, EDNSOpts::DNSSECOK, opts); 
+    pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts); 
     pw.commit();
   }
   lwr->d_rcode = 0;

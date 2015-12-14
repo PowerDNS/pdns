@@ -2,6 +2,8 @@
 #include "validate-recursor.hh"
 #include "syncres.hh"
 
+DNSSECMode g_dnssecmode{DNSSECMode::Process};
+
 class SRRecordOracle : public DNSRecordOracle
 {
 public:
