@@ -1122,20 +1122,19 @@ uint64_t udpErrorStats(const std::string& str)
 
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 {
-  string strAlgoName = algoName.toString();
-  if (strAlgoName == "hmac-md5.sig-alg.reg.int." || strAlgoName == "hmac-md5.") // FIXME400
+  if (algoName == DNSName("hmac-md5.sig-alg.reg.int") || algoName == DNSName("hmac-md5"))
     algoEnum = TSIG_MD5;
-  else if (strAlgoName == "hmac-sha1.")
+  else if (algoName == DNSName("hmac-sha1"))
     algoEnum = TSIG_SHA1;
-  else if (strAlgoName == "hmac-sha224.")
+  else if (algoName == DNSName("hmac-sha224"))
     algoEnum = TSIG_SHA224;
-  else if (strAlgoName == "hmac-sha256.")
+  else if (algoName == DNSName("hmac-sha256"))
     algoEnum = TSIG_SHA256;
-  else if (strAlgoName == "hmac-sha384.")
+  else if (algoName == DNSName("hmac-sha384"))
     algoEnum = TSIG_SHA384;
-  else if (strAlgoName == "hmac-sha512.")
+  else if (algoName == DNSName("hmac-sha512"))
     algoEnum = TSIG_SHA512;
-  else if (strAlgoName == "gss-tsig.")
+  else if (algoName == DNSName("gss-tsig"))
     algoEnum = TSIG_GSS;
   else {
      return false;
