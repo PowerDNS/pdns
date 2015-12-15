@@ -61,7 +61,7 @@ string DLQuitHandler(const vector<string>&parts, Utility::pid_t ppid)
 
 static void dokill(int)
 {
-  exit(1);
+  exit(0);
 }
 
 string DLCurrentConfigHandler(const vector<string>&parts, Utility::pid_t ppid)
