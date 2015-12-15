@@ -91,6 +91,14 @@ have to tick an 'RFC 2181 compliant' box.
 Zones read from these files (in BIND format) are served authoritatively. Example:
 `auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com`.
 
+## `carbon-interval`
+* Integer
+* Default: 30
+* Available since: 3.5.3
+
+If sending carbon updates, this is the interval between them in seconds. See
+["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
+
 ## `carbon-ourname`
 * String
 * Available since: 3.5.3
@@ -104,15 +112,9 @@ are doing. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphi
 * Available since: 3.5.3
 
 If set to an IP or IPv6 address, will send all available metrics to this server
-via the carbon protocol, which is used by graphite and metronome.  You may specify 
+via the carbon protocol, which is used by graphite and metronome. You may specify
 an alternate port by appending :port, ex: 127.0.0.1:2004. See
 ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome).
-
-## `carbon-interval`
-* Integer
-* Default: 30
-
-If sending carbon updates, this is the interval between them in seconds. See ["PowerDNS Metrics"](../common/logging.md#sending-to-carbongraphitemetronome). Available beyond 3.5.3.
 
 ## `chroot`
 * Path to a Directory
@@ -151,12 +153,6 @@ Operate in the background.
 
 Which domains we only accept delegations from (a Verisign special).
 
-## `disable-edns`
-* Boolean
-* Default: yes
-
-Disable EDNS. EDNS support is experimental, please keep this setting as-is.
-
 ## `disable-packetcache`
 * Boolean
 * Default: no
@@ -164,6 +160,29 @@ Disable EDNS. EDNS support is experimental, please keep this setting as-is.
 
 Turn off the packet cache. Useful when running with Lua scripts that can not be
 cached.
+
+## `dnssec`
+* One of `off`, `process`, `log-fail`, `validate`, String
+* Default: `process`
+* Available since: 4.0.0
+
+Set the mode for DNSSEC processing:
+
+### `off`
+No DNSSEC processing whatsoever. Ignore DO-bits in queries, don't request any
+DNSSEC information from authoritative servers. This behaviour is similar to
+PowerDNS Recursor pre-4.0.
+
+### `process`
+Respond with DNSSEC records to clients that ask for it, set the DO bit on all
+outgoing queries. Don't do any validation.
+
+### `log-fail`
+Similar behaviour to `process`, but validate RRSIGs on responses and log bogus
+responses.
+
+#### `validate`
+Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
 
 ## `dont-query`
 * Netmasks, comma separated
@@ -189,36 +208,6 @@ random numbers which are very hard to predict. Generally on UNIX platforms,
 this source will be `/dev/urandom`, which will always supply random numbers,
 even if entropy is lacking. Change to `/dev/random` if PowerDNS should block
 waiting for enough entropy to arrive.
-
-## `webserver`
-* Boolean
-* Default: no
-
-Start the webserver (for REST API).
-
-## `webserver-address`
-* IP Addresses, separated by spaces
-* Default: 127.0.0.1
-
-IP address for the webserver to listen on.
-
-## `webserver-allow-from`
-* IP addresses, comma separated
-* Default: 0.0.0.0, ::/0
-
-These subnets are allowed to access the webserver.
-
-## `webserver-password`
-* String
-* Default: unset
-
-Password required to access the webserver.
-
-## `webserver-port`
-* Integer
-* Default: 8082
-
-TCP port where the webserver should listen on.
 
 ## `etc-hosts-file`
 * Path
@@ -666,6 +655,36 @@ recursor is installed on a system. Available since version 3.1.5.
 
 By default, PowerDNS replies to the 'version.bind' query with its version number.
 Security conscious users may wish to override the reply PowerDNS issues.
+
+## `webserver`
+* Boolean
+* Default: no
+
+Start the webserver (for REST API).
+
+## `webserver-address`
+* IP Addresses, separated by spaces
+* Default: 127.0.0.1
+
+IP address for the webserver to listen on.
+
+## `webserver-allow-from`
+* IP addresses, comma separated
+* Default: 0.0.0.0, ::/0
+
+These subnets are allowed to access the webserver.
+
+## `webserver-password`
+* String
+* Default: unset
+
+Password required to access the webserver.
+
+## `webserver-port`
+* Integer
+* Default: 8082
+
+TCP port where the webserver should listen on.
 
 ## `write-pid`
 * Boolean

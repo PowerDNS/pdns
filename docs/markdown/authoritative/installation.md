@@ -192,9 +192,9 @@ You now have a working database driven nameserver! To convert other zones alread
 Most problems involve PDNS not being able to connect to the database.
 
 ### Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)
-Your MySQL installation is probably defaulting to another location for its socket. Can be resolved by figuring out this location (often `/var/run/mysqld.sock`), and specifying it in the configuration file with the [`gmysql-socket`](backend-generic-mypgsql.md#gmysql-socket) parameter.
+Your MySQL installation is probably defaulting to another location for its socket. Can be resolved by figuring out this location (often `/var/run/mysqld.sock`), and specifying it in the configuration file with the [`gmysql-socket`](backend-generic-mysql.md#gmysql-socket) parameter.
 
-Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying [`gmysql-host=127.0.0.1`](backend-generic-mypgsql.md#gmysql-host).
+Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying [`gmysql-host=127.0.0.1`](backend-generic-mysql.md#gmysql-host).
 
 ### Host 'x.y.z.w' is not allowed to connect to this MySQL server
 These errors are generic MySQL errors. Solve them by trying to connect to your MySQL database with the MySQL console utility `mysql` with the parameters specified to PDNS. Consult the MySQL documentation.

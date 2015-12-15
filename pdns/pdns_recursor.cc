@@ -2615,8 +2615,6 @@ int main(int argc, char **argv)
     ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space")="";
     ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers")="";
     ::arg().set("latency-statistic-size","Number of latency values to calculate the qa-latency average")="10000";
-//    ::arg().setSwitch( "disable-edns-ping", "Disable EDNSPing - EXPERIMENTAL, LEAVE DISABLED" )= "no";
-    ::arg().setSwitch( "disable-edns", "Disable EDNS - EXPERIMENTAL, LEAVE DISABLED" )= "";
     ::arg().setSwitch( "disable-packetcache", "Disable packetcache" )= "no";
     ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for")="powerdns.com,82.94.213.34,2001:888:2000:1d::2";
     ::arg().setSwitch( "pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads")="";

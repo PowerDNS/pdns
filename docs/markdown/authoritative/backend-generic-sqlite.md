@@ -21,7 +21,7 @@ server process. It also reduces overhead, and simplifies installation. At
 
 As this is a generic backend, built on top of the gSql framework, you can
 specify all queries as documented in
-[Generic MySQL and PostgreSQL backends](backend-generic-mypgsql.md#queries-and-settings).
+[Generic SQL Backends](backend-generic-sql.md#queries).
 
 SQLite exists in two incompatible versions, PowerDNS only supports version 3. To
 launch the backend, put `launch=gsqlite3` in the configuration.

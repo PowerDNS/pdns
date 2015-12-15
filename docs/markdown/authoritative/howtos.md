@@ -1,3 +1,28 @@
+# Using ALIAS records
+The ALIAS record provides a way to have CNAME-like behaviour on the zone apex.
+
+In order to correctly serve ALIAS records, set the [`recursor`](settings.md#recursor)
+setting to an existing resolver and add the ALIAS record to your zone apex. e.g.:
+
+```
+recursor=[::1]:5300
+```
+
+```
+$ORIGIN example.net
+$TTL 1800
+
+@ IN SOA ns1.example.net. hostmaster.example.net. 2015121101 1H 15 1W 2H
+
+@ IN NS ns1.example.net.
+
+@ IN ALIAS mywebapp.paas-provider.net.
+```
+
+When the authoritative server receives a query for the A-record for `example.net`,
+it will resolve the A record for `mywebapp.paas-provider.net` and serve an answer
+for `example.net` with that A record.
+
 # CDS & CDNSKEY Key Rollover
 If the upstream registry supports [RFC 7344](https://tools.ietf.org/html/rfc7344)
 key rollovers you can use several [`pdnsutil`](dnssec.md#pdnsutil) commands to do
