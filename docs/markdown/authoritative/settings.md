@@ -505,7 +505,8 @@ for this reason it is disabled by default.
 * Default: secpoll.powerdns.com.
 * Available since: 3.4.1
 
-Domain name from which to query security update notifications
+Domain name from which to query security update notifications. Setting this to
+an empty string disables secpoll.
 
 ## `server-id`
 * String

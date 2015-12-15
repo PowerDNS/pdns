@@ -541,6 +541,13 @@ Don't log queries.
 If set, an NXDOMAIN from the root-servers will serve as a blanket NXDOMAIN for the entire TLD
 the query belonged to. The effect of this is far fewer queries to the root-servers.
 
+## `security-poll-suffix`
+* String
+* Default: secpoll.powerdns.com.
+
+Domain name from which to query security update notifications. Setting this to
+an empty string disables secpoll.
+
 ## `serve-rfc1918`
 * Boolean
 * Default: yes
