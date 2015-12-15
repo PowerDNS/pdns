@@ -81,6 +81,23 @@ private:
   NetmaskGroup d_nmg;
 };
 
+class AllRule : public DNSRule
+{
+public:
+  AllRule() {}
+  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  {
+    return true;
+  }
+
+  string toString() const override
+  {
+    return "All";
+  }
+
+};
+
+
 class DNSSECRule : public DNSRule
 {
 public:

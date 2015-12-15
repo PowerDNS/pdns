@@ -533,6 +533,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       g_outputBuffer=(boost::format("Had %d matches out of %d, %.1f qps, in %.1f usec\n") % matches % times % (1000000*(1.0*times/udiff)) % udiff).str();
 
     });
+
+  g_lua.writeFunction("AllRule", []() {
+      return std::shared_ptr<DNSRule>(new AllRule());
+    });
+
   g_lua.writeFunction("QTypeRule", [](boost::variant<int, std::string> str) {
       uint16_t qtype;
       if(auto dir = boost::get<int>(&str)) {
