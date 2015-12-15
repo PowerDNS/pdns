@@ -1,0 +1,20 @@
+{
+  "id": "forward-zones-test2.non-existing.powerdns.com.",
+  "url": "/api/v1/servers/localhost/zones/forward-zones-test2.non-existing.powerdns.com.",
+  "name": "forward-zones-test2.non-existing.powerdns.com.",
+  "kind": "Forwarded",
+  "servers": [
+    "8.8.8.8:53"
+  ],
+  "recursion_desired": false
+}
+{
+  "id": "forward-zones-test.non-existing.powerdns.com.",
+  "url": "/api/v1/servers/localhost/zones/forward-zones-test.non-existing.powerdns.com.",
+  "name": "forward-zones-test.non-existing.powerdns.com.",
+  "kind": "Forwarded",
+  "servers": [
+    "8.8.8.8:53"
+  ],
+  "recursion_desired": false
+}

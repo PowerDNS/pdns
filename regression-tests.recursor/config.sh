@@ -450,7 +450,18 @@ EOF
     ln -s ../run-auth $dir/run
 done
 
+cat > recursor-service/forward-zones-file << EOF
+# Some comment that should be ignored
+forward-zones-test.non-existing.powerdns.com=8.8.8.8
+forward-zones-test2.non-existing.powerdns.com=8.8.8.8# This comment should be ignored as well
+EOF
+
 cat > recursor-service/recursor.conf <<EOF
+webserver=yes
+api-key=secret
+api-readonly=yes
+forward-zones-file=$(pwd)/recursor-service/forward-zones-file
+
 socket-dir=$(pwd)/recursor-serviceS
 auth-zones=global.box.answer-cname-in-local.example.net=$(pwd)/recursor-service/global.box.answer-cname-in-local.example.net.zone,auth-zone.example.net=$(pwd)/recursor-service/auth-zone.example.net.zone,another-auth-zone.example.net=$(pwd)/recursor-service/another-auth-zone.example.net.zone
 
