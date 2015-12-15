@@ -1107,6 +1107,7 @@ pdns_recursor_SOURCES = \
 	logger.cc \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	lua-recursor.cc lua-recursor.hh \
+	lua-recursor4.cc lua-recursor4.hh \	
 	lwres.cc lwres.hh \
 	mbedtlscompat.hh \
 	mbedtlssigners.cc \

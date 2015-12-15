@@ -1,5 +1,6 @@
 #include "dnsdist.hh"
 #include "dnsname.hh"
+#include "dolog.hh"
 
 class MaxQPSIPRule : public DNSRule
 {
@@ -405,6 +406,46 @@ public:
     return "set rd=0";
   }
 };
+
+class LogAction : public DNSAction, public boost::noncopyable
+{
+public:
+  LogAction() : d_fp(0)
+  {
+  }
+  LogAction(const std::string& str) : d_fname(str)
+  {
+    if(str.empty())
+      return;
+    d_fp = fopen(str.c_str(), "w");
+    if(!d_fp)
+      throw std::runtime_error("Unable to open file '"+str+"' for logging: "+string(strerror(errno)));
+  }
+  ~LogAction()
+  {
+    if(d_fp)
+      fclose(d_fp);
+  }
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, string* ruleresult) const override
+  {
+    if(!d_fp) 
+      infolog("Packet from %s for %s %s with id %d", remote.toStringWithPort(), qname.toString(), QType(qtype).getName(), dh->id);
+    else {
+      string out = qname.toDNSString();
+      fwrite(out.c_str(), 1, out.size(), d_fp);
+      fwrite((void*)&qtype, 1, 2, d_fp);
+    }
+    return Action::None;
+  }
+  string toString() const override
+  {
+    return "log";
+  }
+private:
+  string d_fname;
+  FILE* d_fp;
+};
+
 
 class DisableValidationAction : public DNSAction
 {

@@ -478,6 +478,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new DisableValidationAction);
     });
 
+  g_lua.writeFunction("LogAction", [](const std::string& fname) {
+      return std::shared_ptr<DNSAction>(new LogAction(fname));
+    });
+
 
   g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));

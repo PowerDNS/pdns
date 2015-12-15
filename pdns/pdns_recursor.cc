@@ -73,6 +73,7 @@ extern SortList g_sortlist;
 #include "mplexer.hh"
 #include "config.h"
 #include "lua-recursor.hh"
+#include "lua-recursor4.hh"
 #include "version.hh"
 #include "responsestats.hh"
 #include "secpoll-recursor.hh"
@@ -595,6 +596,7 @@ catch(...)
 
 void startDoResolve(void *p)
 {
+  RecursorLua4 rl4("./recursor4.lua");
   DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
     t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
@@ -714,7 +716,8 @@ void startDoResolve(void *p)
       break;
     }
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+
+    if(/* !t_pdl->get() ||*/ !rl4.preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
