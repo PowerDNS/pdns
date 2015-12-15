@@ -6,7 +6,7 @@
 **zone2sql** - convert BIND zones to SQL
 
 # SYNOPSIS
-**zone2sql** {**--named-conf=***PATH*,**--zone-file=***PATH* **--zone-name=***NAME*} [*OPTIONS*]
+**zone2sql** {**--named-conf=***PATH*,**--zone-file=***PATH* [**--zone-name=***NAME*]} [*OPTIONS*]
 
 # DESCRIPTION
 **zone2sql** parses Bind named.conf files and zonefiles and outputs SQL

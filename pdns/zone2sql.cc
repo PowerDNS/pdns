@@ -431,20 +431,30 @@ try
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
-      DNSName zonename(::arg()["zone-name"]);
+      DNSName zonename;
+      if(!::arg()["zone-name"].empty())
+        zonename = DNSName(::arg()["zone-name"]);
+
       ZoneParserTNG zpt(zonefile, zonename);
       DNSResourceRecord rr;
       startNewTransaction();
-      emitDomain(zonename.toStringNoDot());
       string comment;
       bool seenSOA=false;
+      bool haveEmittedZone = false;
       while(zpt.get(rr, &comment))  {
 	if(filterDupSOA && seenSOA && rr.qtype.getCode() == QType::SOA)
 	  continue;
 	if(rr.qtype.getCode() == QType::SOA)
 	  seenSOA=true;
+        if(!haveEmittedZone && !zpt.getZoneName().empty()){
+          emitDomain(zpt.getZoneName().toStringNoDot());
+          haveEmittedZone = true;
+        } else {
+          // We have no zonename yet, don't emit
+          continue;
+        }
 
-        emitRecord(zonename.toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
+        emitRecord(zpt.getZoneName().toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
       }
       num_domainsdone=1;
     }

@@ -237,6 +237,11 @@ bool findAndElide(string& line, char c)
   return false;
 }
 
+DNSName ZoneParserTNG::getZoneName()
+{
+  return d_zonename;
+}
+
 string ZoneParserTNG::getLineOfFile()
 {
   if (d_zonedata.size() > 0)

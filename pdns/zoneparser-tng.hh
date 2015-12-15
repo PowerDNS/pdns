@@ -39,6 +39,7 @@ public:
   bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
   typedef deque<pair<string::size_type, string::size_type> > parts_t;
+  DNSName getZoneName();
   string getLineOfFile();
 private:
   bool getLine();
