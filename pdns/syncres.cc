@@ -1342,7 +1342,7 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
         return RCode::NXDomain;
       }
-      if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit)) {
+      if(nsset.empty() && !lwr.d_rcode && (negindic || lwr.d_aabit || sendRDQuery)) {
         LOG(prefix<<qname.toString()<<": status=noerror, other types may exist, but we are done "<<(negindic ? "(have negative SOA) " : "")<<(lwr.d_aabit ? "(have aa bit) " : "")<<endl);
 	addNXNSECS(ret, lwr.d_records);
         return 0;
