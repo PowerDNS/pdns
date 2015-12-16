@@ -728,7 +728,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.registerFunction("tostring", &ComboAddress::toString);
 
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
-  g_lua.registerFunction("tostring", &DNSName::toString);
+  g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
 
