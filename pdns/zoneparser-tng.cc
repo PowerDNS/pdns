@@ -377,7 +377,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   trim(rr.content);
 
   if(equals(rr.content, "@"))
-    rr.content=d_zonename.toStringRootDot();
+    rr.content=d_zonename.toString();
 
   if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
     if(!findAndElide(rr.content, ')')) {
