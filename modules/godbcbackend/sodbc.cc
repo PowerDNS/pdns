@@ -6,7 +6,7 @@
 static void testResult( SQLRETURN result, SQLSMALLINT type, SQLHANDLE handle, const std::string & message )
 {
   // cerr<<"result = "<<result<<endl;
-  if ( result == SQL_SUCCESS) // FIXME: testing only? || result == SQL_SUCCESS_WITH_INFO )
+  if ( result == SQL_SUCCESS || result == SQL_SUCCESS_WITH_INFO )
     return;
 
   ostringstream errmsg;
