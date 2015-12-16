@@ -423,7 +423,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
   if (haveNSEC3 && isSecure && zone.wirelength() > 222) {
     numerrors++;
-    cerr<<"[Error] zone '" << zone.toStringNoDot() << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+    cout<<"[Error] zone '" << zone.toStringNoDot() << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
   }
 
   // Check for delegation in parent zone
@@ -437,7 +437,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
       while(B.get(rr))
         ns |= (rr.qtype == QType::NS);
       if (!ns) {
-        cerr<<"[Error] No delegation for zone '"<<zone.toString()<<"' in parent '"<<parent.toString()<<"'"<<endl;
+        cout<<"[Error] No delegation for zone '"<<zone.toString()<<"' in parent '"<<parent.toString()<<"'"<<endl;
         numerrors++;
       }
       break;
@@ -654,7 +654,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
 
   for(const auto &qname : checkglue) {
     if (!glue.count(qname)) {
-      cerr<<"[Warning] Missing glue for '"<<qname.toString()<<"' in zone '"<<zone.toString()<<"'"<<endl;
+      cout<<"[Warning] Missing glue for '"<<qname.toString()<<"' in zone '"<<zone.toString()<<"'"<<endl;
       numwarnings++;
     }
   }
@@ -690,7 +690,7 @@ int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
   UeberBackend B("default");
   SOAData sd;
   if(!B.getSOAUncached(zone, sd)) {
-    cout<<"No SOA for zone '"<<zone.toString()<<"'"<<endl;
+    cerr<<"No SOA for zone '"<<zone.toString()<<"'"<<endl;
     return -1;
   }
 
@@ -1212,14 +1212,14 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   DomainInfo di;
   UeberBackend B("default");
   if(!B.getDomainInfo(zone, di) || !di.backend) { // di.backend and B are mostly identical
-    cout<<"Can't find a zone called '"<<zone.toString()<<"'"<<endl;
+    cerr<<"Can't find a zone called '"<<zone.toString()<<"'"<<endl;
     return false;
   }
 
   if(di.kind == DomainInfo::Slave)
   {
-    cout<<"Warning! This is a slave domain! If this was a mistake, please run"<<endl;
-    cout<<"pdnsutil disable-dnssec "<<zone.toString()<<" right now!"<<endl;
+    cerr<<"Warning! This is a slave domain! If this was a mistake, please run"<<endl;
+    cerr<<"pdnsutil disable-dnssec "<<zone.toString()<<" right now!"<<endl;
   }
 
   if (k_size)
@@ -2172,7 +2172,7 @@ seedRandom(::arg()["entropy-source"]);
      if (B.setTSIGKey(name, DNSName(algo), key)) { // you are feeling bored, put up DNSName(algo) up earlier
        cout << "Create new TSIG key " << name << " " << algo << " " << key << endl;
      } else {
-       cout << "Failure storing new TSIG key " << name << " " << algo << " " << key << endl;
+       cerr << "Failure storing new TSIG key " << name << " " << algo << " " << key << endl;
        return 1;
      }
      return 0;
@@ -2189,7 +2189,7 @@ seedRandom(::arg()["entropy-source"]);
      if (B.setTSIGKey(name, DNSName(algo), key)) {
        cout << "Imported TSIG key " << name << " " << algo << endl;
      } else {
-       cout << "Failure importing TSIG key " << name << " " << algo << endl;
+       cerr << "Failure importing TSIG key " << name << " " << algo << endl;
        return 1;
      }
      return 0;
@@ -2204,7 +2204,7 @@ seedRandom(::arg()["entropy-source"]);
      if (B.deleteTSIGKey(name)) {
        cout << "Deleted TSIG key " << name << endl;
      } else {
-       cout << "Failure deleting TSIG key " << name << endl;
+       cerr << "Failure deleting TSIG key " << name << endl;
        return 1;
      }
      return 0;
@@ -2236,7 +2236,7 @@ seedRandom(::arg()["entropy-source"]);
      UeberBackend B("default");
      std::vector<std::string> meta; 
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
-       cout << "Failure enabling TSIG key " << name << " for " << zname << endl;
+       cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
        return 1;
      }
      bool found = false;
@@ -2247,7 +2247,7 @@ seedRandom(::arg()["entropy-source"]);
      if (B.setDomainMetadata(zname, metaKey, meta)) {
        cout << "Enabled TSIG key " << name << " for " << zname << endl;
      } else {
-       cout << "Failure enabling TSIG key " << name << " for " << zname << endl;
+       cerr << "Failure enabling TSIG key " << name << " for " << zname << endl;
        return 1;
      }
      return 0;
@@ -2271,7 +2271,7 @@ seedRandom(::arg()["entropy-source"]);
      UeberBackend B("default");
      std::vector<std::string> meta;
      if (!B.getDomainMetadata(zname, metaKey, meta)) {
-       cout << "Failure disabling TSIG key " << name << " for " << zname << endl;
+       cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
        return 1;
      }
      std::vector<std::string>::iterator iter = meta.begin();
@@ -2280,7 +2280,7 @@ seedRandom(::arg()["entropy-source"]);
      if (B.setDomainMetadata(zname, metaKey, meta)) {
        cout << "Disabled TSIG key " << name << " for " << zname << endl;
      } else {
-       cout << "Failure disabling TSIG key " << name << " for " << zname << endl;
+       cerr << "Failure disabling TSIG key " << name << " for " << zname << endl;
        return 1;
      }
      return 0;
