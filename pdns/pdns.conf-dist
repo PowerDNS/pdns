@@ -232,7 +232,7 @@
 #################################
 # local-ipv6	Local IP address to which we bind
 #
-# local-ipv6=
+# local-ipv6=::
 
 #################################
 # local-ipv6-nonexist-fail	Fail to start if one or more of the local-ipv6 addresses do not exist on this server
