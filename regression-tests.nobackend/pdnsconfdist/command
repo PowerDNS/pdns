@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-diff -u ../pdns/pdns.conf-dist <($PDNS --config)
+$PDNS --config > pdnsconfdist/pdns.conf-dist.out
+diff -u ../pdns/pdns.conf-dist ./pdnsconfdist/pdns.conf-dist.out
