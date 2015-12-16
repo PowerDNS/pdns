@@ -53,6 +53,7 @@ filterpo.cc rpzloader.cc ixfr.cc dnssecinfra.cc gss_context.cc resolver.cc \
 ednssubnet.cc validate.cc validate-recursor.cc mbedtlssigners.cc rec-lua-conf.cc \
 sortlist.cc"
 
+curl https://publicsuffix.org/list/public_suffix_list.dat > effective_tld_names.dat
 ./mkpubsuffixcc
 
 DIRNAME=pdns-recursor-$VERSION
