@@ -30,17 +30,22 @@
 # any-to-tcp=no
 
 #################################
-# api-key	REST API Static authentication key (required for API use)
+# api	Enable/disable the REST API
+#
+# api=no
+
+#################################
+# api-key	Static pre-shared authentication key for access to the REST API
 #
 # api-key=
 
 #################################
-# api-logfile	Filename of the log file for JSON parser
+# api-logfile	Location of the server logfile (used by the REST API)
 #
 # api-logfile=/var/log/pdns.log
 
 #################################
-# api-readonly	If the JSON API should disallow data modification
+# api-readonly	Disallow data modification through the REST API when set
 #
 # api-readonly=no
 
@@ -203,11 +208,6 @@
 # include-dir	Include *.conf files from this directory
 #
 # include-dir=
-
-#################################
-# json-interface	If the webserver should serve JSON data
-#
-# json-interface=no
 
 #################################
 # launch	Which backends to launch and order to query them in
