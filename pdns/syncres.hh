@@ -22,10 +22,11 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include "mtasker.hh"
 #include "iputils.hh"
+
 #include "filterpo.hh"
 
 void primeHints(void);
-class RecursorLua;
+class RecursorLua4;
 
 struct BothRecordsAndSignatures
 {
@@ -292,7 +293,7 @@ public:
     return d_trace.str();
   }
 
-  void setLuaEngine(shared_ptr<RecursorLua> pdl)
+  void setLuaEngine(shared_ptr<RecursorLua4> pdl)
   {
     d_pdl = pdl;
   }
@@ -474,7 +475,7 @@ private:
   vector<ComboAddress> getAddrs(const DNSName &qname, int depth, set<GetBestNSAnswer>& beenthere);
 private:
   ostringstream d_trace;
-  shared_ptr<RecursorLua> d_pdl;
+  shared_ptr<RecursorLua4> d_pdl;
   string d_prefix;
   bool d_cacheonly;
   bool d_nocache;

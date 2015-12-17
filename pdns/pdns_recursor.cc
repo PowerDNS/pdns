@@ -96,7 +96,7 @@ uint64_t g_latencyStatSize;
 bool g_logCommonErrors;
 bool g_anyToTcp;
 uint16_t g_udpTruncationThreshold, g_outgoingEDNSBufsize;
-__thread shared_ptr<RecursorLua>* t_pdl;
+__thread shared_ptr<RecursorLua4>* t_pdl;
 
 __thread addrringbuf_t* t_remotes, *t_servfailremotes, *t_largeanswerremotes;
 
@@ -596,7 +596,6 @@ catch(...)
 
 void startDoResolve(void *p)
 {
-  RecursorLua4 rl4("./recursor4.lua");
   DNSComboWriter* dc=(DNSComboWriter *)p;
   try {
     t_queryring->push_back(make_pair(dc->d_mdp.d_qname, dc->d_mdp.d_qtype));
@@ -717,7 +716,7 @@ void startDoResolve(void *p)
     }
 
 
-    if(/* !t_pdl->get() ||*/ !rl4.preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
@@ -767,7 +766,7 @@ void startDoResolve(void *p)
 	ret.push_back(spoofed);
 	goto haveAnswer;
       }
-      
+
       if(t_pdl->get()) {
         if(res == RCode::NoError) {
 	        auto i=ret.cbegin();
@@ -776,11 +775,11 @@ void startDoResolve(void *p)
                           break;
                 if(i == ret.cend())
                   (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
-              }
-              else if(res == RCode::NXDomain)
-		(*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	}
+	else if(res == RCode::NXDomain)
+	  (*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	
-	
+
 	(*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
       }
     }
@@ -1197,7 +1196,10 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   }
 
   if(t_pdl->get()) {
-    if((*t_pdl)->ipfilter(fromaddr, destaddr)) {
+    struct dnsheader dh;
+    memcpy(&dh, response.c_str(), sizeof(dh));
+    
+    if((*t_pdl)->ipfilter(fromaddr, destaddr, dh)) {
       if(!g_quiet)
 	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
       g_stats.policyDrops++;
@@ -1979,7 +1981,7 @@ string* doReloadLuaScript()
       return new string("unloaded\n");
     }
     else {
-      *t_pdl = shared_ptr<RecursorLua>(new RecursorLua(fname));
+      *t_pdl = shared_ptr<RecursorLua4>(new RecursorLua4(fname));
     }
   }
   catch(std::exception& e) {
@@ -2395,11 +2397,11 @@ try
 
   L<<Logger::Warning<<"Done priming cache with root hints"<<endl;
 
-  t_pdl = new shared_ptr<RecursorLua>();
+  t_pdl = new shared_ptr<RecursorLua4>();
 
   try {
     if(!::arg()["lua-dns-script"].empty()) {
-      *t_pdl = shared_ptr<RecursorLua>(new RecursorLua(::arg()["lua-dns-script"]));
+      *t_pdl = shared_ptr<RecursorLua4>(new RecursorLua4(::arg()["lua-dns-script"]));
       L<<Logger::Warning<<"Loaded 'lua' script from '"<<::arg()["lua-dns-script"]<<"'"<<endl;
     }
   }

@@ -25,7 +25,7 @@
 #endif
 #include <boost/algorithm/string.hpp>
 
-#include "lua-recursor.hh"
+#include "lua-recursor4.hh"
 #include "utility.hh"
 #include "syncres.hh"
 #include <iostream>
@@ -1369,13 +1369,13 @@ int SyncRes::doResolveAt(set<DNSName> nameservers, DNSName auth, bool flawedNSSe
 
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_ercursor.cc
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret)
+int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret)
 {
   struct timeval now;
   gettimeofday(&now, 0);
 
   SyncRes sr(now);
-  int res = sr.beginResolve(DNSName(qname), QType(qtype), qclass, ret); // DNSName conversion XXX
+  int res = sr.beginResolve(qname, QType(qtype), qclass, ret); 
   
   return res;
 }

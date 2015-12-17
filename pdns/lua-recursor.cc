@@ -3,7 +3,7 @@
 #endif
 #include "lua-recursor.hh"
 // to avoid including all of syncres.hh
-int directResolve(const std::string& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
+int directResolve(const DNSName& qname, const QType& qtype, int qclass, vector<DNSRecord>& ret);
 
 #if !defined(HAVE_LUA)
 
@@ -81,7 +81,7 @@ RecursorLua::RecursorLua(const std::string &fname)
   lua_setglobal(d_lua, "getregisteredname");
 }
 
-int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
+static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
   vector<DNSRecord> resolved;
   string target; // XXX DNSNAME PAIN
@@ -97,7 +97,7 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
   if(target[target.size()-1]!='.')
     target.append(1, '.');
 
-  int rcode=directResolve(target, qtype, 1, resolved); // 1 == class
+  int rcode=directResolve(DNSName(target), qtype, 1, resolved); // 1 == class
 
   for(const DNSRecord& rr :  resolved)
   {
@@ -108,9 +108,9 @@ int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 }
 
 
-int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSRecord>& ret)
+static int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
-  int rcode=directResolve(qname, QType(QType::A), 1, ret);
+  int rcode=directResolve(DNSName(qname), QType(QType::A), 1, ret);
 
   ComboAddress prefixAddress(prefix);
 
@@ -129,7 +129,7 @@ int getFakeAAAARecords(const std::string& qname, const std::string& prefix, vect
   return rcode;
 }
 
-int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
+static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DNSRecord>& ret)
 {
   /* qname has a reverse ordered IPv6 address, need to extract the underlying IPv4 address from it
      and turn it into an IPv4 in-addr.arpa query */
@@ -148,7 +148,7 @@ int getFakePTRRecords(const DNSName& qname, const std::string& prefix, vector<DN
   newquery += "in-addr.arpa.";
 
 
-  int rcode = directResolve(newquery, QType(QType::PTR), 1, ret);
+  int rcode = directResolve(DNSName(newquery), QType(QType::PTR), 1, ret);
   for(DNSRecord& rr :  ret)
   {
     if(rr.d_type == QType::PTR && rr.d_place==DNSResourceRecord::ANSWER) {
