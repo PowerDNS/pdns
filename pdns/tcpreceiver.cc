@@ -751,7 +751,16 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
           continue;
         }
       }
-      rrs.push_back(rr);
+      bool skipRecord = false;
+      for (auto const &i : rrs) {
+        if(rr.qname==i.qname && rr.qtype==i.qtype && (rr.content==i.content || (rr.qtype == QType::TXT && (rr.content==i.content || "\""+rr.content+"\""==i.content || rr.content=="\""+i.content+"\"")))){
+          L<<Logger::Warning<<"Duplicate Resource Record found for "<<rr.qname<<"|"<<rr.qtype.getName()<<" (ignoring the duplicate), please run 'pdnsutil check-zone'"<<endl;
+          skipRecord = true;
+          break;
+        }
+      }
+      if (!skipRecord)
+        rrs.push_back(rr);
     } else {
       if (rr.qtype.getCode())
         L<<Logger::Warning<<"Zone '"<<target<<"' contains out-of-zone data '"<<rr.qname<<"|"<<rr.qtype.getName()<<"', ignoring"<<endl;
