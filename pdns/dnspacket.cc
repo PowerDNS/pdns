@@ -183,10 +183,12 @@ void DNSPacket::addRecord(const DNSResourceRecord &rr)
   // for AXFR, no such checking is performed!
   // cerr<<"addrecord, content=["<<rr.content<<"]"<<endl;
   if(d_compress)
-    for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) 
-      if(rr.qname==i->qname && rr.qtype==i->qtype && rr.content==i->content) {
-          return;
+    for(vector<DNSResourceRecord>::const_iterator i=d_rrs.begin();i!=d_rrs.end();++i) {
+      if(rr.qname==i->qname && rr.qtype==i->qtype && (rr.content==i->content || (rr.qtype == QType::TXT && (rr.content==i->content || "\""+rr.content+"\""==i->content || rr.content=="\""+i->content+"\"")))){
+        L<<Logger::Warning<<"Duplicate Resource Record found for "<<rr.qname<<"|"<<rr.qtype.getName()<<" (ignoring the duplicate), please run 'pdnsutil check-zone'"<<endl;
+        return;
       }
+    }
   // cerr<<"added to d_rrs"<<endl;
   d_rrs.push_back(rr);
 }
