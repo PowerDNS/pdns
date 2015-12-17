@@ -2,3 +2,7 @@
 2	.	IN	OPT	32768	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='double.example.com.', qtype=A
+0	double-txt.example.com.	IN	TXT	120	"blablabla"
+2	.	IN	OPT	32768	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='double-txt.example.com.', qtype=TXT
