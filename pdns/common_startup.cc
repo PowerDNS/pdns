@@ -341,7 +341,6 @@ void *qthread(void *number)
   int diff;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
   bool doRecursion = ::arg().mustDo("recursor");
-  bool skipfirst=true;
   UDPNameserver *NS = N;
 
   // If we have SO_REUSEPORT then create a new port for all receiver threads
@@ -361,11 +360,7 @@ void *qthread(void *number)
       continue;                    // packet was broken, try again
     }
 
-    if (skipfirst)
-      skipfirst=false;
-    else  
-      numreceived++;
-
+    numreceived++;
 
     if(P->d_remote.getSocklen()==sizeof(sockaddr_in))
       numreceived4++;
