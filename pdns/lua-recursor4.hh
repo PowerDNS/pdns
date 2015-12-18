@@ -3,6 +3,7 @@
 #include "dnsname.hh"
 #include "namespaces.hh"
 #include "dnsrecords.hh"
+string GenUDPQueryResponse(const ComboAddress& dest, const string& query);
 
 class LuaContext;
 class RecursorLua4 : public boost::noncopyable
@@ -35,15 +36,20 @@ private:
     
     string followupFunction;
     string followupPrefix;
+
+    string udpQuery;
+    ComboAddress udpQueryDest;
+    string udpAnswer;
+    string udpCallback;
+    
     DNSName followupName;
   };
-
 
   LuaContext* d_lw;
   typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
   luacall_t d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
-  typedef std::function<bool(const ComboAddress&, const ComboAddress&)> ipfilter_t;
+  typedef std::function<bool(ComboAddress,ComboAddress)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };
 

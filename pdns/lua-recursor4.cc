@@ -6,10 +6,6 @@
 #include "dnsparser.hh"
 #include "syncres.hh"
 
-namespace {
-  enum class PolicyDecision { PASS=-1, DROP=-2, TRUNCATE=-3 };
-}
-
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
   vector<DNSRecord> resolved;
@@ -122,7 +118,15 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw = new LuaContext;
   d_lw->writeFunction("newDN", [](const std::string& dom){ return DNSName(dom); });  
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);  
-  //d_lw->registerFunction("toString", &ComboAddress::toString);  
+  d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
+  d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
+  d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
+  d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
+			 {
+			   nmg.addMask(mask);
+			 });
+
+  d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
   d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   d_lw->registerMember("qname", &DNSQuestion::qname);
   d_lw->registerMember("qtype", &DNSQuestion::qtype);
@@ -185,8 +189,10 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_nodata = d_lw->readVariable<boost::optional<luacall_t>>("nodata").get_value_or(0);
   d_nxdomain = d_lw->readVariable<boost::optional<luacall_t>>("nxdomain").get_value_or(0);
   d_postresolve = d_lw->readVariable<boost::optional<luacall_t>>("postresolve").get_value_or(0);
-  
-  //  d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
+  d_preoutquery = d_lw->readVariable<boost::optional<luacall_t>>("preoutquery").get_value_or(0);
+
+  d_ipfilter = d_lw->readVariable<boost::optional<ipfilter_t>>("ipfilter").get_value_or(0);
+
 }
 
 bool RecursorLua4::preresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
@@ -211,13 +217,14 @@ bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& lo
 
 bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& requestor, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret)
 {
-  return genhook(d_postresolve, ns, requestor, query, qtype, res, ret, 0);
+  return genhook(d_preoutquery, ns, requestor, query, qtype, res, ret, 0);
 }
 
 bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
 {
   if(d_ipfilter)
-    return d_ipfilter(remote, local);
+    return d_ipfilter({remote}, {local});
+  return false; // don't block
 }
 
 bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable)
@@ -233,11 +240,11 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   dq->records = res;
 
   bool handled=func(dq);
-  if(variable) *variable = dq->variable; // could still be set to indicate this *name* is variable
+  if(variable) *variable |= dq->variable; // could still be set to indicate this *name* is variable
 
   if(handled) {
     ret=dq->rcode;
-    
+  loop:;
     if(!dq->followupFunction.empty()) {
       if(dq->followupFunction=="followCNAMERecords") {
 	ret = followCNAMERecords(dq->records, qtype);
@@ -248,11 +255,18 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
       else if(dq->followupFunction=="getFakePTRRecords") {
 	ret=getFakePTRRecords(dq->followupName, dq->followupPrefix, dq->records);
       }
+      else if(dq->followupFunction=="udpQueryResponse") {
+	dq->udpAnswer = GenUDPQueryResponse(dq->udpQueryDest, dq->udpQuery);
+	auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
+	if(!func) {
+	  L<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
+	  return false;
+	}
+	goto loop;
+      }
+      
     }
     res=dq->records;
-
-    
-
   }
 
 

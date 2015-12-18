@@ -291,7 +291,6 @@ bool RecursorLua::passthrough(const string& func, const ComboAddress& remote, co
       auto table = getLuaTable(d_lua, -1);
       lua_pop(d_lua, 2);
       string answer = GenUDPQueryResponse(ComboAddress(dest), uquery);
-
       lua_getglobal(d_lua,  callback.c_str());
       
       lua_pushstring(d_lua,  remote.toString().c_str() );

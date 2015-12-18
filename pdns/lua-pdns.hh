@@ -31,8 +31,7 @@ protected: // FIXME?
   bool d_failed;
   bool d_variable;  
 };
-// enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
-namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
+
 void pushResourceRecordsTable(lua_State* lua, const vector<DNSRecord>& records);
 void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRecord>& ret);
 void pushSyslogSecurityLevelTable(lua_State *lua);

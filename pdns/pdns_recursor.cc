@@ -72,7 +72,6 @@ extern SortList g_sortlist;
 #include "iputils.hh"
 #include "mplexer.hh"
 #include "config.h"
-#include "lua-recursor.hh"
 #include "lua-recursor4.hh"
 #include "version.hh"
 #include "responsestats.hh"
