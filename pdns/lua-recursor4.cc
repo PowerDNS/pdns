@@ -1,10 +1,52 @@
 #include "lua-recursor4.hh"
 #include <fstream>
-#undef L
-#include "ext/luawrapper/include/LuaContext.hpp"
 #include "logger.hh"
 #include "dnsparser.hh"
 #include "syncres.hh"
+
+#if !defined(HAVE_LUA)
+
+RecursorLua4::RecursorLua4(const std::string &fname)
+{
+  // empty
+}
+
+bool RecursorLua4::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
+{
+  return false;
+}
+
+bool RecursorLua4::nodata(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
+{
+  return false;
+}
+
+bool RecursorLua4::postresolve(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
+{
+  return false;
+}
+
+
+bool RecursorLua4::preresolve(const ComboAddress& remote, const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
+{
+  return false;
+}
+
+bool RecursorLua4::preoutquery(const ComboAddress& remote, const ComboAddress& local,const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res)
+{
+  return false;
+}
+
+bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
+{
+  return false;
+}
+
+
+#else
+#undef L
+#include "ext/luawrapper/include/LuaContext.hpp"
+
 
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
@@ -273,3 +315,4 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
   // see if they added followup work for us too
   return handled;
 }
+#endif
