@@ -49,6 +49,12 @@ do
   rm $zone.out
 done
 
+# As the AXFR strips double RRs, we need to re-add them
+perl -i -pe 's/(\+double\.example\.com:192\.168\.5\.1:120)/$1\n$1/' data
+
+# Use the native txt format for the double-txt record
+perl -i -pe 's/(:double-txt\.example\.com:16:\\011blablabla:120)/$1\n'"'"'double-txt.example.com:blablabla:120/' data
+
 $tinydnsdata  
 
 kill $(cat ../../regression-tests/pdns.pid)
