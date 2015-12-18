@@ -66,6 +66,9 @@ public:
   enum { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
 };
 
+// enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
+namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
+
 //! This class represents a resource record
 class DNSResourceRecord
 {

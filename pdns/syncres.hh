@@ -676,6 +676,5 @@ void doCarbonDump(void*);
 boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSName&dn, const ComboAddress& rem);
 void  parseEDNSSubnetWhitelist(const std::string& wlist);
 
-// enum for policy decisions, used by both auth and recursor. Not all values supported everywhere.
-namespace PolicyDecision { enum returnTypes { PASS=-1, DROP=-2, TRUNCATE=-3 }; };
+
 #endif
