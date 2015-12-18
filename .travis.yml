@@ -6,6 +6,7 @@ compiler:
   - clang
 
 before_script:
+  - exit 1
   - git describe --always --dirty=+
 
   ### setup travis environment ###
