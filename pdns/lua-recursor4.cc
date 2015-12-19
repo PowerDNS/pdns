@@ -47,7 +47,6 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
 #undef L
 #include "ext/luawrapper/include/LuaContext.hpp"
 
-
 static int followCNAMERecords(vector<DNSRecord>& ret, const QType& qtype)
 {
   vector<DNSRecord> resolved;
@@ -301,7 +300,7 @@ bool RecursorLua4::genhook(luacall_t& func, const ComboAddress& remote,const Com
 	dq->udpAnswer = GenUDPQueryResponse(dq->udpQueryDest, dq->udpQuery);
 	auto func = d_lw->readVariable<boost::optional<luacall_t>>(dq->udpCallback).get_value_or(0);
 	if(!func) {
-	  L<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
+	  theL()<<Logger::Error<<"Attempted callback for Lua UDP Query/Response which could not be found"<<endl;
 	  return false;
 	}
 	goto loop;
