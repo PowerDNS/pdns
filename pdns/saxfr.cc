@@ -18,8 +18,8 @@ StatBag S;
 
 bool validateTSIG(const string& message, const TSIGHashEnum& algo, const DNSName& key, const string& secret, const TSIGRecordContent *trc) {
   int64_t now = time(0);
-  if(abs((int64_t)trc->d_time - now) > trc->d_fudge) {
-    cerr<<"TSIG (key '"<<key<<"') time delta "<< abs(trc->d_time - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
+  if(abs(static_cast<int64_t>(trc->d_time) - now) > trc->d_fudge) {
+    cerr<<"TSIG (key '"<<key<<"') time delta "<< abs(static_cast<int64_t>(trc->d_time) - now)<<" > 'fudge' "<<trc->d_fudge<<endl;
     return false;
   }
   if (algo == TSIG_GSS) {
