@@ -207,17 +207,28 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 										   });
   d_lw->registerFunction("check",(bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
 
-  
-  vector<pair<string,int>> pd{
+
+  d_lw->writeFunction("pdnslog", [](const std::string& msg, int loglevel) {
+      theL() << (Logger::Urgency)loglevel << msg<<endl;
+    });
+  typedef vector<pair<string, int> > in_t;
+  vector<pair<string, boost::variant<int, in_t > > >  pd{
     {"PASS", (int)PolicyDecision::PASS}, {"DROP",  (int)PolicyDecision::DROP},
     {"TRUNCATE", (int)PolicyDecision::TRUNCATE}
   };
 
+  pd.push_back({"loglevels", in_t{
+	{"Critical", LOG_CRIT},
+	{"Debug", LOG_DEBUG},
+	{"Info", LOG_INFO},
+	{"Notice", LOG_NOTICE},
+	{"Warning", LOG_WARNING},
+	{"Error", LOG_ERR}
+	  }});
+  
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
-  
-
-  d_lw->writeVariable("pdns", pd);            
+  d_lw->writeVariable("pdns", pd);
   
   ifstream ifs(fname);
   if(!ifs) {
