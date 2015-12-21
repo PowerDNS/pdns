@@ -1592,12 +1592,9 @@ void GSQLBackend::extractRecord(const SSqlStatement::row_t& row, DNSResourceReco
 
   r.qtype=row[3];
 
-  if (r.qtype==QType::MX || r.qtype==QType::SRV) {
-    auto prio = std::stoul(row[2]);
-    if (prio > UINT16_MAX)
-      throw std::range_error((boost::format("priority value %lu for %s is too large") % prio % row[0]).str());
+  if (r.qtype==QType::MX || r.qtype==QType::SRV)
     r.content=row[2]+" "+row[0];
-  } else
+  else
     r.content=row[0];
 
   r.last_modified=0;
