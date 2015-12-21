@@ -1399,7 +1399,7 @@ try
     cerr<<"activate-tsig-key ZONE NAME {master|slave}"<<endl;
     cerr<<"                                   Enable TSIG key for a zone"<<endl;
     cerr<<"activate-zone-key ZONE KEY-ID      Activate the key with key id KEY-ID in ZONE"<<endl;
-    cerr<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|passive]"<<endl;
+    cerr<<"add-zone-key ZONE {zsk|ksk} [BITS] [active|inactive]"<<endl;
     cerr<<"             [rsasha1|rsasha256|rsasha512|gost|ecdsa256|ecdsa384";
 #ifdef HAVE_LIBSODIUM
     cerr<<"|experimental-ed25519";
@@ -1436,7 +1436,7 @@ try
     cerr<<"increase-serial ZONE               Increases the SOA-serial by 1. Uses SOA-EDIT"<<endl;
     cerr<<"import-tsig-key NAME ALGORITHM KEY Import TSIG key"<<endl;
     cerr<<"import-zone-key ZONE FILE          Import from a file a private key, ZSK or KSK"<<endl;
-    cerr<<"       [active|passive] [ksk|zsk]  Defaults to KSK and active"<<endl;
+    cerr<<"       [active|inactive] [ksk|zsk]  Defaults to KSK and active"<<endl;
     cerr<<"load-zone ZONE FILE                Load ZONE from FILE, possibly creating zone or atomically"<<endl;
     cerr<<"                                   replacing contents"<<endl;
     cerr<<"list-keys [ZONE]                   List DNSSEC keys for ZONE. When ZONE is unset or \"all\", display all keys for all zones"<<endl;
@@ -1681,7 +1681,7 @@ try
         algorithm = tmp_algo;
       } else if(pdns_iequals(cmds[n], "active")) {
         active=true;
-      } else if(pdns_iequals(cmds[n], "inactive") || pdns_iequals(cmds[n], "passive")) {
+      } else if(pdns_iequals(cmds[n], "inactive") || pdns_iequals(cmds[n], "passive")) { // 'passive' eventually needs to be removed
         active=false;
       } else if(atoi(cmds[n].c_str())) {
         bits = atoi(cmds[n].c_str());
@@ -2015,7 +2015,7 @@ try
   }
   else if(cmds[0]=="import-zone-key") {
     if(cmds.size() < 3) {
-      cerr<<"Syntax: pdnsutil import-zone-key ZONE FILE [ksk|zsk] [active|passive]"<<endl;
+      cerr<<"Syntax: pdnsutil import-zone-key ZONE FILE [ksk|zsk] [active|inactive]"<<endl;
       exit(1);
     }
     string zone=cmds[1];
@@ -2039,7 +2039,7 @@ try
         dpk.d_flags = 257;
       else if(pdns_iequals(cmds[n], "active"))
         active = 1;
-      else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive"))
+      else if(pdns_iequals(cmds[n], "passive") || pdns_iequals(cmds[n], "inactive")) // passive eventually needs to be removed
         active = 0;
       else { 
         cerr<<"Unknown key flag '"<<cmds[n]<<"'"<<endl;

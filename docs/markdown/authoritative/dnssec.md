@@ -170,7 +170,7 @@ If all keys are imported using this tool, a zone will serve mostly identical rec
 # Records, Keys, signatures, hashes within PowerDNSSEC in online signing mode
 Within PowerDNSSEC live signing, keys are stored separately from the zone records. Zone data are only combined with signatures and keys when requests come in over the internet.
 
-Each zone can have a number of keys associated with it, with varying key lengths. Typically 1 or at most 2 of these keys are employed as actual Zone Signing Keys (ZSKs). During normal operations, this means that only 1 ZSK is 'active', and the other is passive.
+Each zone can have a number of keys associated with it, with varying key lengths. Typically 1 or at most 2 of these keys are employed as actual Zone Signing Keys (ZSKs). During normal operations, this means that only 1 ZSK is 'active', and the other is inactive.
 
 Should it be desired to 'roll over' to a new key, both keys can temporarily be active (and used for signing), and after a while the old key can be inactivated. Subsequently it can be removed.
 
