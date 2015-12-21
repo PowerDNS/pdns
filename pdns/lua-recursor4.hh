@@ -28,8 +28,8 @@ private:
     int rcode{0};
     // struct dnsheader, packet length would be great
     vector<DNSRecord> records;
-    void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl);
-    void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl);
+    void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
+    void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
     vector<pair<int,DNSRecord> > getRecords();
     void setRecords(const vector<pair<int,DNSRecord> >& records);
     bool variable{false};

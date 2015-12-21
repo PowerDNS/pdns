@@ -138,10 +138,10 @@ void RecursorLua4::DNSQuestion::setRecords(const vector<pair<int, DNSRecord> >& 
   }
 }
 
-void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl)
+void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name)
 {
   DNSRecord dr;
-  dr.d_name=qname;
+  dr.d_name=name ? DNSName(*name) : qname;
   dr.d_ttl=ttl.get_value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
@@ -149,9 +149,9 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   records.push_back(dr);
 }
 
-void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl)
+void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)
 {
-  addRecord(type, content, DNSResourceRecord::ANSWER, ttl);
+  addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
 }
   
 RecursorLua4::RecursorLua4(const std::string& fname)

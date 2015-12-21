@@ -1,194 +1,104 @@
-pdnslog("pdns-recursor starting!", pdns.loglevels.Info)
-function endswith(s, send)
-	 return #s >= #send and s:find(send, #s-#send+1, true) and true or false
+pdnslog("pdns-recursor Lua script starting!", pdns.loglevels.Warning)
+
+blockset = newDS()
+blockset:add{"powerdns.org", "xxx"}
+
+dropset = newDS();
+dropset:add("123.cn")
+
+malwareset = newDS()
+malwareset:add("nl")
+
+-- shows the various ways of blocking, dropping, changing questions
+-- return false to say you did not take over the question, but we'll still listen to 'variable'
+-- to selectively disable the cache
+function preresolve1(dq)
+	print("Got question for "..dq.qname:toString())
+        
+        if blockset:check(dq.qname) then
+                dq.variable = true  -- disable packet cache in any case
+                if dq.qtype == pdns.A then
+	        	dq:addAnswer(pdns.A, "1.2.3.4")
+        		dq:addAnswer(pdns.TXT, "\"Hello!\"", 3601) -- ttl    	
+        		return true;
+        	end
+        end
+        
+        if dropset:check(dq.qname) then
+        	dq.rcode = pdns.DROP  
+        	return true;
+        end
+
+	        
+        
+        if malwareset:check(dq.qname) then
+		dq:addAnswer(pdns.CNAME, "xs.powerdns.com.")
+        	dq.rcode = 0
+        	dq.followupFunction="followCNAMERecords"    -- this makes PowerDNS lookup your CNAME
+        	return true;
+        end        
+        
+	return false; 
 end
 
-function preresolve ( remoteip, domain, qtype )
 
-	print ("prequery handler called for: ", remoteip, "local: ", getlocaladdress(), domain, qtype)
-	pdnslog("a test message.. received query from "..remoteip.." on "..getlocaladdress(), pdns.loglevels.Info);
+-- this implements DNS64
 
-	if endswith(domain, "f.f.7.7.b.1.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f.ip6.arpa.")
-	then
-		print("This is our faked AAAA record in reverse")
-		return "getFakePTRRecords", domain, "fe80::21b::77ff:0:0"
-	end
-
-	if domain == "www.followme.com."
-	then
-		print ("Need to CNAME www.followme.com to www.powerdns.com")
-		return "followCNAMERecords", 0, {{qtype=pdns.CNAME, content="www.powerdns.com"}}
-	end
-
-	if domain == "www.donotanswer.org."
-	then
-		print("we won't answer a query for donotanswer.org")
-		return pdns.DROP, {}
-	end
-
-	if domain == "www.donotcache.org."
-	then
-		print("making sure www.donotcache.org will never end up in the cache", pdns.loglevels.Debug)
-		setvariable()
-		return pdns.PASS, {}
-	end
-
-	if domain == "www.powerdns.org." 
-	then
-		local ret={}
-		ret[1]= {qtype=pdns.A, content="85.17.220.215", ttl=86400}
-		print "dealing!"
-		return 0, ret
-	elseif domain == "www.baddomain.com."
-	then
-		print "dealing - faking nx"
-	       	return pdns.NXDOMAIN, {}
-	elseif domain == "echo."
-	then
-		print "dealing with echo!"
-		return 0, {{qtype=pdns.A, content=remoteip}}
-	elseif domain == "echo6."
-	then
-		print "dealing with echo6!"
-		return 0, {{qtype=pdns.AAAA, content=remoteip}}
-	else
-		print "not dealing!"
-		return pdns.PASS, {}
-	end
-end
-
-function nxdomain ( remoteip, domain, qtype )
-	print ("nxhandler called for: ", remoteip, getlocaladdress(), domain, qtype, pdns.AAAA)
-	if qtype ~= pdns.A then 
-    		pdnslog("Only A records", pdns.loglevels.Error)
-	return pdns.PASS, {} 
-	end  --  only A records
-	if not string.find(domain, "^www%.") then 
-		pdnslog("Only strings that start with www.", pdns.loglevels.Error)
-	return pdns.PASS, {} 
-	end  -- only things that start with www.
-	
-	setvariable()
-	if matchnetmask(remoteip, {"127.0.0.1/32", "10.1.0.0/16"}) 
-	then 
-		print "dealing"
-		local ret={}
-		ret[1]={qtype=pdns.CNAME, content="www.webserver.com", ttl=3602}
-		ret[2]={qname="www.webserver.com", qtype=pdns.A, content="1.2.3.4", ttl=3602}
-		ret[3]={qname="webserver.com", qtype=pdns.NS, content="ns1.webserver.com", place=2}
---		ret[1]={15, "25 ds9a.nl", 3602}
-		return 0, ret
-	else
-		print "not dealing"
-		return pdns.PASS, ret
-	end
-end
-
-function axfrfilter(remoteip, zone, qname, qtype, ttl, content)
-	if qtype ~= pdns.SOA or zone ~= "secured-by-gost.org"
-	then
-		local ret = {}
-		return pdns.PASS, ret
-	end
-
-	print "got soa!"
-	local ret={}
-	ret[1]={qname=qname, qtype=qtype, content=content, ttl=ttl}
-	ret[2]={qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
-	return 0, ret
-end
-
-function nodata ( remoteip, domain, qtype, records )
-	print ("nodata called for: ", remoteip, getlocaladdress(), domain, qtype)
-	if qtype ~= pdns.AAAA then return pdns.PASS, {} end  --  only AAAA records
-
-	setvariable()
-    	return "getFakeAAAARecords", domain, "fe80::21b:77ff:0:0"
-end	
-
--- records contains the entire packet, ready for your modifying pleasure
-function postresolve ( remoteip, domain, qtype, records, origrcode )
-	print ("postresolve called for: ", remoteip, getlocaladdress(), domain, qtype, origrcode, pdns.loglevels.Info)
-
-	for key,val in ipairs(records) 
-	do
-		if(val.content == '173.201.188.46' and val.qtype == pdns.A)
-		then
-			val.content = '127.0.0.1'
-			setvariable()
-		end
-		if val.qtype == pdns.A and matchnetmask(remoteip, "192.168.0.0/16") and matchnetmask(val.content, "85.17.219.0/24") 
-		then
-			val.content = string.gsub(val.content, "^85.17.219.", "192.168.219.", 1)
-			setvariable()
-		end
-		
-	--	print(val.content)
-	end
-	return origrcode, records
-end	
-
-function prequery ( dnspacket )
-	-- pdnslog ("prequery called for ".. tostring(dnspacket) )
-	qname, qtype = dnspacket:getQuestion()
-	pdnslog ("q: ".. qname.." "..qtype)
-	if qtype == pdns.A and qname == "www.domain.com" 
-	then
-		pdnslog ("calling dnspacket:setRcode", pdns.loglevels.Debug)
-		dnspacket:setRcode(pdns.NXDOMAIN)
-		pdnslog ("called dnspacket:setRcode", pdns.loglevels.Debug)
-		pdnslog ("adding records", pdns.loglevels.Debug)
-		local ret = {}
-		ret[1] = {qname=qname, qtype=qtype, content="1.2.3.4", place=2}
-		ret[2] = {qname=qname, qtype=pdns.TXT, content=os.date("Retrieved at %Y-%m-%d %H:%M"), ttl=ttl}
-		dnspacket:addRecords(ret)
-		pdnslog ("returning true", pdns.loglevels.Debug)
-		return true
-	end
-	pdnslog ("returning false")
+function nodata(dq)
+        if dq.qtype == pdns.AAAA then
+        	dq.followupFunction="getFakeAAAARecords"
+        	dq.followupName=dq.qname
+        	dq.followupPrefix="fe80::"
+        	return true
+        end
+        
+        if dq.qtype == pdns.PTR then
+        	dq.followupFunction="getFakePTRRecords"
+        	dq.followupName=dq.qname
+        	dq.followupPrefix="fe80::"
+        	return true
+        end        
 	return false
 end
 
 
--- rename this function to 'postresolve' (and make sure you remove the other one!) to implement djb dnscache-like TTL hiding
-function hidettl ( remoteip, domain, qtype, records, origrcode )
-	for key,val in ipairs(records)
-	do
-		val.ttl=0
-	end
-	return origrcode, records
+badips = newNMG()
+badips:addMask("127.0.0.0/8")
+
+-- this check is applied before any packet parsing is done
+function ipfilter(loc, rem)
+	print("ipfilter called, rem: ", rem:toString(), badips:match(rem))
+	return badips:match(rem)
 end
 
-nmg=iputils.newnmgroup()
-nmg:add("192.121.121.0/24")
-
-ipset=iputils.newipset()
-
-function preoutquery(remoteip, domain, qtype)
-	print("pdns wants to ask "..remoteip:tostring().." about "..domain.." "..qtype.." on behalf of requestor "..getlocaladdress())
-	if(nmg:match(remoteip))
-	then
-		print("We matched the group "..nmg:tostring().."! Killing query dead & adding requestor "..getlocaladdress().." to block list")
-		ipset[iputils.newca(getlocaladdress())]=1
-		return -3,{}
+-- postresolve runs after the packet has been answered, and can be used to change things
+-- or still drop
+function postresolve(dq)
+	print("postresolve called for ",dq.qname:toString())
+	local records = dq:getRecords()
+	for k,v in pairs(records) do
+		print(k, v.name:toString(), v:getContent())
+		if v.type == pdns.A and v:getContent() == "185.31.17.73"
+		then
+			print("Changing content!")
+			v:changeContent("130.161.252.29")
+			v.ttl=1
+		end
 	end
-	return -1,{}
+	dq:setRecords(records)
+	return true
 end
 
+nxdomainsuffix=newDN("com")
 
-local delcount=0
-
-function ipfilter(remoteip)
-	delcount=delcount+1
-	
-	if((delcount % 10000)==0)
+function preresolve(dq)
+	print("Hooking: ",dq.qname:toString())
+	if dq.qname:isPartOf(nxdomainsuffix)
 	then
-		print("Clearing ipset!")
-		ipset=iputils.newipset()  -- clear it
+		dq.rcode=0 -- make it a normal answer
+		dq:addAnswer(pdns.CNAME, "ourhelpfulservice.com")
+		dq:addAnswer(pdns.A, "1.2.3.4", 60, "ourhelpfulservice.com")
+		return true
 	end
-	
-	if(ipset[remoteip] ~= nil) then
-		return 1
-	end
-	return -1
+	return false
 end
