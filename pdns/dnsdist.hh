@@ -1,4 +1,5 @@
 #pragma once
+#include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include <time.h>
 #include "misc.hh"
@@ -10,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include "sholder.hh"
+#include "dnscrypt.hh"
 void* carbonDumpThread();
 uint64_t uptimeOfProcess(const std::string& str);
 
@@ -173,7 +175,6 @@ private:
   mutable unsigned int d_blocked{0};
 };
 
-
 struct IDState
 {
   IDState() : origFD(-1), delayMsec(0) { origDest.sin4.sin_family = 0;}
@@ -193,6 +194,9 @@ struct IDState
   ComboAddress origDest;                                      // 28
   StopWatch sentTime;                                         // 16
   DNSName qname;                                              // 80
+#ifdef HAVE_DNSCRYPT
+  std::shared_ptr<DnsCryptQuery> dnsCryptQuery{0};
+#endif
   std::atomic<uint16_t> age;                                  // 4
   uint16_t qtype;                                             // 2
   uint16_t origID;                                            // 2
@@ -241,6 +245,9 @@ extern Rings g_rings;
 struct ClientState
 {
   ComboAddress local;
+#ifdef HAVE_DNSCRYPT
+  DnsCryptContext* dnscryptCtx{0};
+#endif
   std::atomic<uint64_t> queries{0};
   int udpFD{-1};
   int tcpFD{-1};
@@ -441,3 +448,9 @@ void setLuaNoSideEffect(); // if nothing has been declared, set that there are n
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
 void resetLuaSideEffect(); // reset to indeterminate state
+
+#ifdef HAVE_DNSCRYPT
+extern std::vector<std::pair<ComboAddress,DnsCryptContext>> g_dnsCryptLocals;
+
+int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::shared_ptr<DnsCryptQuery>& query, uint16_t* decryptedQueryLen, bool tcp, std::vector<uint8_t>& reponse);
+#endif

@@ -32,9 +32,11 @@ endif
 dnsdist_SOURCES = \
 	base64.hh \
 	dns.cc dns.hh \
+	dnscrypt.cc dnscrypt.hh \
 	dnsdist.cc dnsdist.hh \
 	dnsdist-carbon.cc \
 	dnsdist-console.cc \
+	dnsdist-dnscrypt.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-lua.cc \
 	dnsdist-lua2.cc \
@@ -83,10 +85,14 @@ dnsdist_LDADD = \
 
 
 testrunner_SOURCES = \
-	base64.hh dns.hh \
+	base64.hh \
+	dns.hh \
 	test-base64_cc.cc \
-	test-dnsdist_cc.cc dnsdist.hh \
+	test-dnsdist_cc.cc \
+	test-dnscrypt_cc.cc \
+	dnsdist.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnscrypt.cc dnscrypt.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
@@ -111,5 +117,6 @@ testrunner_LDFLAGS = \
 
 testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
+	$(LIBSODIUM_LIBS) \
 	$(RT_LIBS)
 

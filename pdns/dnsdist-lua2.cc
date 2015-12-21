@@ -307,4 +307,119 @@ void moreLua()
         g_outputBuffer+=p.second;
       }
     });
+
+  g_lua.writeFunction("addDNSCryptBind", [](const std::string& addr, const std::string& providerName, const std::string& certFile, const std::string keyFile) {
+      if (g_configurationDone) {
+        g_outputBuffer="addDNSCryptBind cannot be used at runtime!\n";
+        return;
+      }
+#ifdef HAVE_DNSCRYPT
+      try {
+        DnsCryptContext ctx(providerName, certFile, keyFile);
+        g_dnsCryptLocals.push_back({ComboAddress(addr, 443), ctx});
+      }
+      catch(std::exception& e) {
+        errlog(e.what());
+	g_outputBuffer="Error: "+string(e.what())+"\n";
+      }
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+  g_lua.writeFunction("showDNSCryptBinds", []() {
+      setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+      ostringstream ret;
+      boost::format fmt("%1$-3d %2% %|25t|%3$-20.20s %|26t|%4$-8d %|35t|%5$-21.21s %|56t|%6$-9d %|66t|%7$-21.21s" );
+      ret << (fmt % "#" % "Address" % "Provider Name" % "Serial" % "Validity" % "P. Serial" % "P. Validity") << endl;
+      size_t idx = 0;
+
+      for (const auto& local : g_dnsCryptLocals) {
+        const DnsCryptContext& ctx = local.second;
+        bool const hasOldCert = ctx.hadOldCertificate();
+        const DnsCryptCert& cert = ctx.getCurrentCertificate();
+        const DnsCryptCert& oldCert = ctx.getOldCertificate();
+
+        ret<< (fmt % idx % local.first.toStringWithPort() % ctx.getProviderName() % cert.signedData.serial % DnsCryptContext::certificateDateToStr(cert.signedData.tsEnd) % (hasOldCert ? oldCert.signedData.serial : 0) % (hasOldCert ? DnsCryptContext::certificateDateToStr(oldCert.signedData.tsEnd) : "-")) << endl;
+        idx++;
+      }
+
+      g_outputBuffer=ret.str();
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+    g_lua.writeFunction("generateDNSCryptProviderKeys", [](const std::string& publicKeyFile, const std::string privateKeyFile) {
+        setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+        unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
+        unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+        sodium_mlock(privateKey, sizeof(privateKey));
+
+        try {
+          DnsCryptContext::generateProviderKeys(publicKey, privateKey);
+
+          ofstream pubKStream(publicKeyFile);
+          pubKStream.write((char*) publicKey, sizeof(publicKey));
+          pubKStream.close();
+
+          ofstream privKStream(privateKeyFile);
+          privKStream.write((char*) privateKey, sizeof(privateKey));
+          privKStream.close();
+
+          g_outputBuffer="Provider fingerprint is: " + DnsCryptContext::getProviderFingerprint(publicKey) + "\n";
+        }
+        catch(std::exception& e) {
+          errlog(e.what());
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+        }
+
+        sodium_memzero(privateKey, sizeof(privateKey));
+        sodium_munlock(privateKey, sizeof(privateKey));
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
+    g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end) {
+        setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+        unsigned char privateKey[DNSCRYPT_PRIVATE_KEY_SIZE];
+        unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+        sodium_mlock(providerPrivateKey, sizeof(providerPrivateKey));
+        sodium_mlock(privateKey, sizeof(privateKey));
+        sodium_memzero(providerPrivateKey, sizeof(providerPrivateKey));
+        sodium_memzero(privateKey, sizeof(privateKey));
+
+        try {
+          DnsCryptPrivateKey privateKey;
+          DnsCryptCert cert;
+          ifstream providerKStream(providerPrivateKeyFile);
+          providerKStream.read((char*) providerPrivateKey, sizeof(providerPrivateKey));
+          if (providerKStream.fail()) {
+            providerKStream.close();
+            throw std::runtime_error("Invalid DNSCrypt provider key file " + providerPrivateKeyFile);
+          }
+
+          DnsCryptContext::generateCertificate(serial, begin, end, providerPrivateKey, privateKey, cert);
+
+          privateKey.saveToFile(privateKeyFile);
+          DnsCryptContext::saveCertFromFile(cert, certificateFile);
+        }
+        catch(std::exception& e) {
+          errlog(e.what());
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+        }
+
+        sodium_memzero(providerPrivateKey, sizeof(providerPrivateKey));
+        sodium_memzero(privateKey, sizeof(privateKey));
+        sodium_munlock(providerPrivateKey, sizeof(providerPrivateKey));
+        sodium_munlock(privateKey, sizeof(privateKey));
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
 }

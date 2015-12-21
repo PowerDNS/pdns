@@ -65,6 +65,9 @@ bool g_console;
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 vector<std::pair<ComboAddress, bool>> g_locals;
+#ifdef HAVE_DNSCRYPT
+std::vector<std::pair<ComboAddress,DnsCryptContext>> g_dnsCryptLocals;
+#endif
 vector<ClientState *> g_frontends;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
@@ -145,7 +148,11 @@ DelayPipe<DelayedPacket> * g_delay = 0;
 // listens on a dedicated socket, lobs answers from downstream servers to original requestors
 void* responderThread(std::shared_ptr<DownstreamState> state)
 {
+#ifdef HAVE_DNSCRYPT
+  char packet[4096 + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE];
+#else
   char packet[4096];
+#endif
   const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
   const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
   const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
@@ -155,8 +162,11 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   int len;
   for(;;) {
     len = recv(state->fd, packet, sizeof(packet), 0);
-    const char * response = packet;
+    char * response = packet;
     size_t responseLen = len;
+#ifdef HAVE_DNSCRYPT
+    uint16_t responseSize = sizeof(packet);
+#endif
 
     if(len < (signed)sizeof(dnsheader))
       continue;
@@ -196,7 +206,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       size_t optLen = 0;
       bool last = false;
 
-      int res = locateEDNSOptRR(packet, len, &optStart, &optLen, &last);
+      int res = locateEDNSOptRR(response, responseLen, &optStart, &optLen, &last);
 
       if (res == 0) {
         if (last) {
@@ -208,9 +218,15 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
         }
         else {
           /* Removing an intermediary RR could lead to compression error */
-          if (rewriteResponseWithoutEDNS(packet, len, rewrittenResponse) == 0) {
-            response = reinterpret_cast<char*>(rewrittenResponse.data());
+          if (rewriteResponseWithoutEDNS(response, responseLen, rewrittenResponse) == 0) {
             responseLen = rewrittenResponse.size();
+#ifdef HAVE_DNSCRYPT
+            if (ids->dnsCryptQuery && (UINT16_MAX - DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) > responseLen) {
+              rewrittenResponse.reserve(responseLen + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE);
+            }
+            responseSize = rewrittenResponse.capacity();
+#endif
+            response = reinterpret_cast<char*>(rewrittenResponse.data());
           }
           else {
             warnlog("Error rewriting content");
@@ -220,6 +236,21 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     }
 
     g_stats.responses++;
+
+#ifdef HAVE_DNSCRYPT
+    uint16_t encryptedResponseLen = 0;
+    if(ids->dnsCryptQuery) {
+      int res = ids->dnsCryptQuery->ctx->encryptResponse(response, responseLen, responseSize, ids->dnsCryptQuery, false, &encryptedResponseLen);
+
+      if (res == 0) {
+        responseLen = encryptedResponseLen;
+      } else {
+        /* dropping response */
+        vinfolog("Error encrypting the response, dropping.");
+        continue;
+      }
+    }
+#endif
 
     if(ids->delayMsec && g_delay) {
       DelayedPacket dp{origFD, string(response,responseLen), ids->origRemote, ids->origDest};
@@ -231,6 +262,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       else
 	sendfromto(origFD, response, responseLen, 0, ids->origDest, ids->origRemote);
     }
+
     double udiff = ids->sentTime.udiff();
     vinfolog("Got answer from %s, relayed to %s, took %f usec", state->remote.toStringWithPort(), ids->origRemote.toStringWithPort(), udiff);
 
@@ -260,8 +292,12 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     doAvg(g_stats.latencyAvg10000,   udiff,   10000);
     doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
 
-    if (ids->origFD == origFD)
+    if (ids->origFD == origFD) {
+#ifdef HAVE_DNSCRYPT
+      ids->dnsCryptQuery = 0;
+#endif
       ids->origFD = -1;
+    }
 
     rewrittenResponse.clear();
   }
@@ -451,14 +487,11 @@ try
   ComboAddress remote;
   remote.sin4.sin_family = cs->local.sin4.sin_family;
   char packet[1500];
-  struct dnsheader* dh = (struct dnsheader*) packet;
   string largerQuery;
   uint16_t qtype;
 
   typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
-
-  
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
     auto candidate = g_lua.readVariable<boost::optional<blockfilter_t> >("blockFilter");
@@ -474,12 +507,16 @@ try
   struct iovec iov;
   /* used by HarvestDestinationAddress */
   char cbuf[256];
-
   remote.sin6.sin6_family=cs->local.sin6.sin6_family;
   fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), packet, sizeof(packet), &remote);
 
   for(;;) {
     try {
+#ifdef HAVE_DNSCRYPT
+      std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
+#endif
+      char* query = packet;
+      size_t querySize = sizeof(packet);
       ssize_t ret = recvmsg(cs->udpFD, &msgh, 0);
 
       cs->queries++;
@@ -489,7 +526,7 @@ try
 	g_stats.nonCompliantQueries++;
 	continue;
       }
-      uint16_t len=ret;
+
       if (msgh.msg_flags & MSG_TRUNC) {
         /* message was too large for our buffer */
         vinfolog("Dropping message too large for our buffer");
@@ -502,7 +539,33 @@ try
 	g_stats.aclDrops++;
 	continue;
       }
-      
+
+      uint16_t len = ret;
+
+#ifdef HAVE_DNSCRYPT
+      if (cs->dnscryptCtx) {
+        vector<uint8_t> response;
+        uint16_t decryptedQueryLen = 0;
+        dnsCryptQuery = std::make_shared<DnsCryptQuery>();
+
+        bool decrypted = handleDnsCryptQuery(cs->dnscryptCtx, query, len, dnsCryptQuery, &decryptedQueryLen, false, response);
+
+        if (!decrypted) {
+          if (response.size() > 0) {
+            ComboAddress dest;
+            if(HarvestDestinationAddress(&msgh, &dest))
+              sendfromto(cs->udpFD, (const char *) response.data(), response.size(), 0, dest, remote);
+            else
+              sendto(cs->udpFD, response.data(), response.size(), 0, (struct sockaddr*)&remote, remote.getSocklen());
+          }
+          continue;
+        }
+        len = decryptedQueryLen;
+      }
+#endif
+
+      struct dnsheader* dh = (struct dnsheader*) query;
+
       if(dh->qr) {   // don't respond to responses
 	g_stats.nonCompliantQueries++;
 	continue;
@@ -511,18 +574,18 @@ try
       if (dh->rd) {
         g_stats.rdQueries++;
       }
-      
+
       const uint16_t * flags = getFlagsFromDNSHeader(dh);
       const uint16_t origFlags = *flags;
       unsigned int consumed = 0;
-      DNSName qname(packet, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+      DNSName qname(query, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
       {
         WriteLock wl(&g_rings.queryLock);
-        g_rings.queryRing.push_back({now,remote,qname,len,qtype, *dh});
+        g_rings.queryRing.push_back({now,remote,qname,len,qtype,*dh});
       }
-      
+
       if(auto got=localDynBlock->lookup(remote)) {
 	if(now < got->second.until) {
 	  vinfolog("Query from %s dropped because of dynamic block", remote.toStringWithPort());
@@ -567,13 +630,11 @@ try
       case DNSAction::Action::Pool: 
 	pool=ruleresult;
 	break;
-
       case DNSAction::Action::Spoof:
 	;
       case DNSAction::Action::HeaderModify:
 	dh->qr=true;
 	break;
-
       case DNSAction::Action::Delay:
 	delayMsec = atoi(ruleresult.c_str()); // sorry
 	break;
@@ -583,14 +644,34 @@ try
       }
 
       if(dh->qr) { // something turned it into a response
-	g_stats.selfAnswered++;
-	ComboAddress dest;
-	if(HarvestDestinationAddress(&msgh, &dest)) 
-	  sendfromto(cs->udpFD, packet, len, 0, dest, remote);
-	else
-	  sendto(cs->udpFD, packet, len, 0, (struct sockaddr*)&remote, remote.getSocklen());
+        char* response = query;
+        uint16_t responseLen = len;
+#ifdef HAVE_DNSCRYPT
+        uint16_t responseSize = querySize;
+#endif
+        g_stats.selfAnswered++;
 
-	continue;
+#ifdef HAVE_DNSCRYPT
+        uint16_t encryptedResponseLen = 0;
+
+        if(dnsCryptQuery) {
+          int res = cs->dnscryptCtx->encryptResponse(response, responseLen, responseSize, dnsCryptQuery, false, &encryptedResponseLen);
+
+          if (res == 0) {
+            responseLen = encryptedResponseLen;
+          } else {
+            /* dropping response */
+            continue;
+          }
+        }
+#endif
+        ComboAddress dest;
+        if(HarvestDestinationAddress(&msgh, &dest))
+          sendfromto(cs->udpFD, response, responseLen, 0, dest, remote);
+        else
+          sendto(cs->udpFD, response, responseLen, 0, (struct sockaddr*)&remote, remote.getSocklen());
+
+        continue;
       }
 
       DownstreamState* ss = 0;
@@ -603,11 +684,11 @@ try
 
       if(!ss) {
 	g_stats.noPolicy++;
-	continue;	
+	continue;
       }
-      
+
       ss->queries++;
-      
+
       unsigned int idOffset = (ss->idOffset++) % ss->idStates.size();
       IDState* ids = &ss->idStates[idOffset];
       ids->age = 0;
@@ -629,22 +710,25 @@ try
       ids->delayMsec = delayMsec;
       ids->origFlags = origFlags;
       ids->ednsAdded = false;
+#ifdef HAVE_DNSCRYPT
+      ids->dnsCryptQuery = dnsCryptQuery;
+#endif
       HarvestDestinationAddress(&msgh, &ids->origDest);
 
       dh->id = idOffset;
 
       if (ss->useECS) {
-        handleEDNSClientSubnet(packet, sizeof packet, consumed, &len, largerQuery, &(ids->ednsAdded), remote);
+        handleEDNSClientSubnet(query, querySize, consumed, &len, largerQuery, &(ids->ednsAdded), remote);
       }
-      
+
       if (largerQuery.empty()) {
-        ret = send(ss->fd, packet, len, 0);
+        ret = send(ss->fd, query, len, 0);
       }
       else {
         ret = send(ss->fd, largerQuery.c_str(), largerQuery.size(), 0);
         largerQuery.clear();
       }
-      
+
       if(ret < 0) {
 	ss->sendErrors++;
 	g_stats.downstreamSendErrors++;
@@ -1024,11 +1108,11 @@ try
       int one=1;
       setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
 #endif
     }
 
-    SBind(cs->udpFD, cs->local);    
+    SBind(cs->udpFD, cs->local);
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
   }
@@ -1059,6 +1143,47 @@ try
     toLaunch.push_back(cs);
     g_frontends.push_back(cs);
   }
+
+#ifdef HAVE_DNSCRYPT
+  for(auto& dcLocal : g_dnsCryptLocals) {
+    ClientState* cs = new ClientState;
+    cs->local = dcLocal.first;
+    cs->dnscryptCtx = &dcLocal.second;
+    cs->udpFD = SSocket(cs->local.sin4.sin_family, SOCK_DGRAM, 0);
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+    bindAny(cs->local.sin4.sin_family, cs->udpFD);
+    if(IsAnyAddress(cs->local)) {
+      int one=1;
+      setsockopt(cs->udpFD, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+#ifdef IPV6_RECVPKTINFO
+      setsockopt(cs->udpFD, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)); 
+#endif
+    }
+    SBind(cs->udpFD, cs->local);    
+    toLaunch.push_back(cs);
+    g_frontends.push_back(cs);
+
+    cs = new ClientState;
+    cs->local = dcLocal.first;
+    cs->dnscryptCtx = &dcLocal.second;
+    cs->tcpFD = SSocket(cs->local.sin4.sin_family, SOCK_STREAM, 0);
+    SSetsockopt(cs->tcpFD, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef TCP_DEFER_ACCEPT
+    SSetsockopt(cs->tcpFD, SOL_TCP,TCP_DEFER_ACCEPT, 1);
+#endif
+    if(cs->local.sin4.sin_family == AF_INET6) {
+      SSetsockopt(cs->tcpFD, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+    }
+    bindAny(cs->local.sin4.sin_family, cs->tcpFD);
+    SBind(cs->tcpFD, cs->local);
+    SListen(cs->tcpFD, 64);
+    warnlog("Listening on %s", cs->local.toStringWithPort());
+    toLaunch.push_back(cs);
+    g_frontends.push_back(cs);
+  }
+#endif
 
   uid_t newgid=0;
   gid_t newuid=0;

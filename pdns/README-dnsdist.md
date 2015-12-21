@@ -561,6 +561,37 @@ latest version of [PowerDNS
 Metronome](https://github.com/ahupowerdns/metronome) comes with attractive
 graphs for dnsdist by default.
 
+DNSCrypt
+--------
+`dnsdist`, when compiled with --enable-dnscrypt, can be used as a DNSCrypt server,
+uncurving queries before forwarding them to downstream servers and curving responses back.
+To make `dnsdist` listen to incoming DNSCrypt queries on 127.0.0.1 port 443,
+with a provider name of "2.providername", using a resolver certificate and associated key
+stored respectively in the `resolver.cert` and `resolver.key` files, the `addDnsCryptBind()`
+directive can be used:
+
+```
+addDNSCryptBind("127.0.0.1:8443", "2.providername", "/path/to/resolver.cert", "/path/to/resolver.key")
+```
+
+To generate the provider and resolver certificates and keys, you can simply do:
+
+```
+> generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key")
+> generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil)
+```
+
+Ideally, the certificates and keys should be generated on an offline dedicated hardware and not on the resolver.
+The resolver key should be regularly rotated and should never touch persistent storage, being stored in a tmpfs
+with no swap configured.
+
+You can display the currently configured DNSCrypt binds with:
+```
+> showDNSCryptBinds()
+#   Address              Provider Name        Serial   Validity              P. Serial P. Validity
+0   127.0.0.1:8443       2.name               14       2016-04-10 08:14:15   0         -
+```
+
 All functions and types
 -----------------------
 Within `dnsdist` several core object types exist:
