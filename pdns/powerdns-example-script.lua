@@ -9,11 +9,26 @@ dropset:add("123.cn")
 malwareset = newDS()
 malwareset:add("nl")
 
+magic2 = newDN("www.magic2.com")
+
 -- shows the various ways of blocking, dropping, changing questions
 -- return false to say you did not take over the question, but we'll still listen to 'variable'
 -- to selectively disable the cache
 function preresolve(dq)
 	print("Got question for "..dq.qname:toString())
+
+	-- note that the comparisons below are CaSe InSensiTivE and you don't have to worry about trailing dots
+	if(dq.qname:equal("magic.com"))
+	then
+		print("Magic!")
+	else
+		print("not magic..")
+	end
+
+	if(dq.qname:__eq(magic2)) -- we hope to improve this syntax
+	then
+		print("Faster magic") -- compares against existing DNSName
+	end                           -- sadly, dq.qname == magic2 won't work yet
         
         if blockset:check(dq.qname) then
                 dq.variable = true  -- disable packet cache in any case

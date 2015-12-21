@@ -158,7 +158,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 {
   d_lw = new LuaContext;
   d_lw->writeFunction("newDN", [](const std::string& dom){ return DNSName(dom); });  
-  d_lw->registerFunction("isPartOf", &DNSName::isPartOf);  
+  d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
+  d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal",
+							      [](const DNSName& lhs, const std::string& rhs) { return lhs==DNSName(rhs); });
+  d_lw->registerFunction("__eq", &DNSName::operator==);
+
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
