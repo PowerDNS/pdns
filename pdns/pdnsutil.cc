@@ -1149,7 +1149,7 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
         continue;
       }
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
-      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\tActive: "<<value.second.active<< " ( " + algname + " ) "<<endl;
+      cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
       if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey") || g_verbose)
         cout<<(value.second.keyOrZone ? "KSK" : "ZSK")<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
       if(value.second.keyOrZone || g_verbose) {
