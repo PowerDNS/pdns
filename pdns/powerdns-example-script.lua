@@ -12,7 +12,7 @@ malwareset:add("nl")
 -- shows the various ways of blocking, dropping, changing questions
 -- return false to say you did not take over the question, but we'll still listen to 'variable'
 -- to selectively disable the cache
-function preresolve1(dq)
+function preresolve(dq)
 	print("Got question for "..dq.qname:toString())
         
         if blockset:check(dq.qname) then
@@ -91,7 +91,7 @@ end
 
 nxdomainsuffix=newDN("com")
 
-function preresolve(dq)
+function nxdomain(dq)
 	print("Hooking: ",dq.qname:toString())
 	if dq.qname:isPartOf(nxdomainsuffix)
 	then
