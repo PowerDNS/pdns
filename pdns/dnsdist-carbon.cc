@@ -80,7 +80,7 @@ try
 
       int ret = waitForRWData(s.getHandle(), false, 1 , 0); 
       if(ret <= 0 ) {
-	infolog("Unable to write data to carbon server on %s: %s", localCarbon->server.toStringWithPort(), (ret<0 ? strerror(errno) : "Timeout"));
+	vinfolog("Unable to write data to carbon server on %s: %s", localCarbon->server.toStringWithPort(), (ret<0 ? strerror(errno) : "Timeout"));
 	continue;
       }
       s.setBlocking();
