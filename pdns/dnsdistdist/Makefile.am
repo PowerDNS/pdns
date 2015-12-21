@@ -83,7 +83,8 @@ dnsdist_LDADD = \
 
 
 testrunner_SOURCES = \
-	dns.hh \
+	base64.hh dns.hh \
+	test-base64_cc.cc \
 	test-dnsdist_cc.cc dnsdist.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnslabeltext.cc \
@@ -98,6 +99,7 @@ testrunner_SOURCES = \
 	pdnsexception.hh \
 	qtype.cc qtype.hh \
 	sholder.hh \
+	sodcrypto.cc \
 	sstuff.hh \
 	testrunner.cc
 
