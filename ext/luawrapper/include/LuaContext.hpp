@@ -2500,7 +2500,7 @@ struct LuaContext::Reader<
     static auto read(lua_State* state, int index)
         -> boost::optional<TType>
     {
-        if (!lua_isnumber(state, index) != 0 || fmod(lua_tonumber(state, index), 1.) != 0)
+        if (!lua_isnumber(state, index) || fmod(lua_tonumber(state, index), 1.) != 0)
             return boost::none;
         return static_cast<TType>(lua_tointeger(state, index));
     }

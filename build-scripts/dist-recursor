@@ -32,7 +32,7 @@ rcpgenerator.hh lock.hh dnswriter.hh  dnsrecords.hh dnsparser.hh utility.hh \
 recursor_cache.hh rec_channel.hh qtype.hh misc.hh dns.hh syncres.hh \
 sstuff.hh mtasker.hh mtasker.cc lwres.hh logger.hh pdnsexception.hh \
 mplexer.hh pubsuffix.hh mbedtlscompat.hh \
-dns_random.hh lua-pdns.hh lua-recursor.hh namespaces.hh \
+dns_random.hh lua-recursor4.hh namespaces.hh \
 recpacketcache.hh base32.hh cachecleaner.hh json.hh version.hh \
 ws-recursor.hh ws-api.hh secpoll-recursor.hh \
 responsestats.hh webserver.hh dnsname.hh dnspacket.hh ednssubnet.hh \
@@ -41,11 +41,11 @@ dnsseckeeper.hh statbag.hh ueberbackend.hh sha.hh dnsbackend.hh comment.hh \
 validate.hh validate-recursor.hh sortlist.hh rec-lua-conf.hh sholder.hh"
 
 CFILES="syncres.cc iputils.cc  misc.cc unix_utility.cc qtype.cc \
-logger.cc arguments.cc  lwres.cc pdns_recursor.cc lua-iputils.cc \
+logger.cc arguments.cc  lwres.cc pdns_recursor.cc \
 recursor_cache.cc  dnsparser.cc dnswriter.cc  dnsrecords.cc  rcpgenerator.cc  \
 base64.cc  zoneparser-tng.cc  rec_channel.cc rec_channel_rec.cc rec_control.cc \
 selectmplexer.cc epollmplexer.cc kqueuemplexer.cc portsmplexer.cc pdns_hw.cc \
-sillyrecords.cc pubsuffix.cc lua-pdns.cc lua-recursor.cc randomhelper.cc \
+sillyrecords.cc pubsuffix.cc lua-recursor4.cc randomhelper.cc \
 devpollmplexer.cc recpacketcache.cc dns.cc reczones.cc base32.cc nsecrecords.cc \
 dnslabeltext.cc json.cc ws-recursor.cc ws-api.cc version.cc dns_random.cc \
 responsestats.cc webserver.cc rec-carbon.cc secpoll-recursor.cc dnsname.cc \
