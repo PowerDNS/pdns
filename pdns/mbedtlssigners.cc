@@ -19,9 +19,9 @@
 #include "dnssecinfra.hh"
 using namespace boost::assign;
 
-#define PDNSUTIL_MI(x) mbedtls_mpi_init(&d_context.x)
-#define PDNSUTIL_MC(x) PDNSUTIL_MI(x); mbedtls_mpi_copy(&d_context.x, const_cast<mbedtls_mpi*>(&orig.d_context.x))
-#define PDNSUTIL_MF(x) mbedtls_mpi_free(&d_context.x)
+#define PDNSSEC_MI(x) mbedtls_mpi_init(&d_context.x)
+#define PDNSSEC_MC(x) PDNSSEC_MI(x); mbedtls_mpi_copy(&d_context.x, const_cast<mbedtls_mpi*>(&orig.d_context.x))
+#define PDNSSEC_MF(x) mbedtls_mpi_free(&d_context.x)
 
 class RSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
@@ -31,14 +31,14 @@ public:
   explicit RSADNSCryptoKeyEngine(unsigned int algorithm) : DNSCryptoKeyEngine(algorithm)
   {
     memset(&d_context, 0, sizeof(d_context));
-    PDNSUTIL_MI(N); 
-    PDNSUTIL_MI(E); PDNSUTIL_MI(D); PDNSUTIL_MI(P); PDNSUTIL_MI(Q); PDNSUTIL_MI(DP); PDNSUTIL_MI(DQ); PDNSUTIL_MI(QP); PDNSUTIL_MI(RN); PDNSUTIL_MI(RP); PDNSUTIL_MI(RQ);
+    PDNSSEC_MI(N); 
+    PDNSSEC_MI(E); PDNSSEC_MI(D); PDNSSEC_MI(P); PDNSSEC_MI(Q); PDNSSEC_MI(DP); PDNSSEC_MI(DQ); PDNSSEC_MI(QP); PDNSSEC_MI(RN); PDNSSEC_MI(RP); PDNSSEC_MI(RQ);
   }
 
   ~RSADNSCryptoKeyEngine()
   {
-    PDNSUTIL_MF(N); 
-    PDNSUTIL_MF(E); PDNSUTIL_MF(D); PDNSUTIL_MF(P); PDNSUTIL_MF(Q); PDNSUTIL_MF(DP); PDNSUTIL_MF(DQ); PDNSUTIL_MF(QP); PDNSUTIL_MF(RN); PDNSUTIL_MF(RP); PDNSUTIL_MF(RQ);
+    PDNSSEC_MF(N); 
+    PDNSSEC_MF(E); PDNSSEC_MF(D); PDNSSEC_MF(P); PDNSSEC_MF(Q); PDNSSEC_MF(DP); PDNSSEC_MF(DQ); PDNSSEC_MF(QP); PDNSSEC_MF(RN); PDNSSEC_MF(RP); PDNSSEC_MF(RQ);
   }
 
   bool operator<(const RSADNSCryptoKeyEngine& rhs) const
@@ -56,8 +56,8 @@ public:
     d_context.padding = orig.d_context.padding;
     d_context.hash_id = orig.d_context.hash_id;
     
-    PDNSUTIL_MC(N); 
-    PDNSUTIL_MC(E); PDNSUTIL_MC(D); PDNSUTIL_MC(P); PDNSUTIL_MC(Q); PDNSUTIL_MC(DP); PDNSUTIL_MC(DQ); PDNSUTIL_MC(QP); PDNSUTIL_MC(RN); PDNSUTIL_MC(RP); PDNSUTIL_MC(RQ);
+    PDNSSEC_MC(N); 
+    PDNSSEC_MC(E); PDNSSEC_MC(D); PDNSSEC_MC(P); PDNSSEC_MC(Q); PDNSSEC_MC(DP); PDNSSEC_MC(DQ); PDNSSEC_MC(QP); PDNSSEC_MC(RN); PDNSSEC_MC(RP); PDNSSEC_MC(RQ);
   }
 
   RSADNSCryptoKeyEngine& operator=(const RSADNSCryptoKeyEngine& orig) 
@@ -100,9 +100,9 @@ private:
 };
 
 // see above
-#undef PDNSUTIL_MC
-#undef PDNSUTIL_MI
-#undef PDNSUTIL_MF
+#undef PDNSSEC_MC
+#undef PDNSSEC_MI
+#undef PDNSSEC_MF
 
 
 inline bool operator<(const mbedtls_mpi& a, const mbedtls_mpi& b)
