@@ -54,6 +54,10 @@ The following backend have been dropped in 4.0.0:
 - LMDB
 - Geo (use the [GeoIP](authoritative/backend-geoip.md) instead)
 
+Important changes:
+
+- PowerDNS now listens by default on all IPv6 addresses
+
 to be continued....
 
 # PowerDNS Authoritative Server 3.4.7
