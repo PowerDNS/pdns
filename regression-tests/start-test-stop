@@ -86,12 +86,6 @@ securezone ()
                   else
                     slot=$((slot+1))
                   fi
-                  sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot 
-                  kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone rsasha256 ksk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
-# keep this until #1413 is merged
-                  kid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep 'ID =.*KSK' | awk '{ print $3 }'`
-                  $PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
-                  slot=$((slot+1))
                   sudo softhsm --init-token --slot $slot --label label$slot --pin 123$slot --so-pin 123$slot
                   kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone rsasha256 zsk softhsm label$slot 123$slot label$slot 2>&1 | grep softhsm | awk '{ print $NF }'`
                   kid=`$PDNSUTIL --config-dir=. $configname show-zone $zone | grep 'ID =.*ZSK' | awk '{ print $3 }'`
