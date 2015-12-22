@@ -123,6 +123,12 @@ If set, chroot to this directory for more security. See [Security](../common/sec
 Make sure that `/dev/log` is available from within the chroot. Logging will
 silently fail over time otherwise (on logrotate).
 
+When using `chroot`, all other paths (except for [`config-dir`](#config-dir) set
+in the configuration are relative to the new root.
+
+When using `chroot` and the API ([`webserver`](#webserver)), [`api-readonly`](#api-readonly)
+must be set and [`api-config-dir`](#api-config-dir) unset.
+
 ## `client-tcp-timeout`
 * Integer
 * Default: 2
@@ -606,6 +612,8 @@ Use only a single socket for outgoing queries.
 
 Where to store the control socket and pidfile. The default depends on
 `LOCALSTATEDIR` during compile-time (usually `/var/run` or `/run`).
+
+When using [`chroot`](#chroot) the default becomes to `/`.
 
 ## `socket-owner`, `socket-group`, `socket-mode`
 Owner, group and mode of the controlsocket. Owner and group can be specified by

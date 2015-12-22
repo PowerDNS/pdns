@@ -177,7 +177,16 @@ DynListener::DynListener(const string &progname)
   d_s=-1;
 
   if(!progname.empty()) {
-    string socketname=arg()["socket-dir"]+"/";
+    string socketname = ::arg()["socket-dir"];
+    if (::arg()["socket-dir"].empty()) {
+      if (::arg()["chroot"].empty())
+        socketname = LOCALSTATEDIR;
+      else
+        socketname = ::arg()["chroot"];
+    } else if (!::arg()["socket-dir"].empty() && !::arg()["chroot"].empty()) {
+      socketname = ::arg()["chroot"] + ::arg()["socket-dir"];
+    }
+    socketname += "/";
     cleanSlashes(socketname);
     
     if(!mkdir(socketname.c_str(),0700)) // make /var directory, if needed

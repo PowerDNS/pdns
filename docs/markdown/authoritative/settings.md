@@ -114,6 +114,13 @@ If sending carbon updates, this is the interval between them in seconds. See
 If set, chroot to this directory for more security. See
 ["Security settings & considerations"](../common/security.md).
 
+Make sure that `/dev/log` is available from within the chroot. Logging will
+silently fail over time otherwise (on logrotate).
+
+When setting `chroot`, all other paths in the config (except for
+[`config-dir`](#config-dir) and [`module-dir`](#module-dir)) set in the configuration
+are relative to the new root.
+
 ## `config-dir`
 * Path
 

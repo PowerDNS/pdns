@@ -935,6 +935,11 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   }
 
   if(cmd=="reload-acls") {
+    if(!::arg()["chroot"].empty()) {
+      L<<Logger::Error<<"Unable to reload ACL when chroot()'ed, requested via control channel"<<endl;
+      return "Unable to reload ACL when chroot()'ed, please restart\n";
+    }
+
     try {
       parseACLs();
     } 
@@ -983,6 +988,10 @@ string RecursorControlParser::getAnswer(const string& question, RecursorControlP
   }
 
   if(cmd=="reload-zones") {
+    if(!::arg()["chroot"].empty()) {
+      L<<Logger::Error<<"Unable to reload zones and forwards when chroot()'ed, requested via control channel"<<endl;
+      return "Unable to reload zones and forwards when chroot()'ed, please restart\n";
+    }
     return reloadAuthAndForwards();
   }
 

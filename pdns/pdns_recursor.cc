@@ -1774,6 +1774,13 @@ void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
   RecursorControlParser::func_t* command;
 
   string answer=rcp.getAnswer(msg, &command);
+
+  // If we are inside a chroot, we need to strip
+  if (!arg()["chroot"].empty()) {
+    int len = arg()["chroot"].length();
+    remote = remote.substr(len);
+  }
+
   try {
     s_rcc.send(answer, &remote);
     command();
@@ -2320,10 +2327,6 @@ int serviceMain(int argc, char*argv[])
       break;
   }
 
-  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
-  if(!s_pidfname.empty())
-    unlink(s_pidfname.c_str()); // remove possible old pid file
-
   if(::arg().mustDo("daemon")) {
     L<<Logger::Warning<<"Calling daemonize, going to background"<<endl;
     L.toConsole(Logger::Critical);
@@ -2332,8 +2335,6 @@ int serviceMain(int argc, char*argv[])
   signal(SIGUSR1,usr1Handler);
   signal(SIGUSR2,usr2Handler);
   signal(SIGPIPE,SIG_IGN);
-  writePid();
-  makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
   g_numThreads = ::arg().asNum("threads") + ::arg().mustDo("pdns-distributes-queries");
   g_numWorkerThreads = ::arg().asNum("threads");
   g_maxMThreads = ::arg().asNum("max-mthreads");
@@ -2353,7 +2354,16 @@ int serviceMain(int argc, char*argv[])
       L<<Logger::Error<<"Unable to chroot to '"+::arg()["chroot"]+"': "<<strerror (errno)<<", exiting"<<endl;
       exit(1);
     }
+    else
+      L<<Logger::Error<<"Chrooted to '"<<::arg()["chroot"]<<"'"<<endl;
   }
+
+  s_pidfname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  if(!s_pidfname.empty())
+    unlink(s_pidfname.c_str()); // remove possible old pid file
+  writePid();
+
+  makeControlChannelSocket( ::arg().asNum("processes") > 1 ? forks : -1);
 
   Utility::dropUserPrivs(newuid);
 
@@ -2580,7 +2590,7 @@ int main(int argc, char **argv)
     ::arg().set("socket-group","Group of socket")="";
     ::arg().set("socket-mode", "Permissions for socket")="";
 
-    ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+    ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
     ::arg().set("delegation-only","Which domains we only accept delegations from")="";
     ::arg().set("query-local-address","Source IP address for sending queries")="0.0.0.0";
     ::arg().set("query-local-address6","Source IPv6 address for sending queries. IF UNSET, IPv6 WILL NOT BE USED FOR OUTGOING QUERIES")="";
@@ -2654,6 +2664,18 @@ int main(int argc, char **argv)
       L<<Logger::Warning<<"Unable to parse configuration file '"<<configname<<"'"<<endl;
 
     ::arg().parse(argc,argv);
+
+    if( !::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty() && !::arg().mustDo("api-readonly") )  {
+      L<<Logger::Error<<"Using chroot and a writable API is not possible"<<endl;
+      exit(EXIT_FAILURE);
+    }
+
+    if (::arg()["socket-dir"].empty()) {
+      if (::arg()["chroot"].empty())
+        ::arg().set("socket-dir") = LOCALSTATEDIR;
+      else
+        ::arg().set("socket-dir") = "/";
+    }
 
     ::arg().set("delegation-only")=toLower(::arg()["delegation-only"]);
 

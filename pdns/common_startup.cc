@@ -472,7 +472,7 @@ void mainthread()
 
    secPollParseResolveConf();
 
-   if(!::arg()["chroot"].empty()) {  
+   if(!::arg()["chroot"].empty()) {
      triggerLoadOfLibraries();
      if(::arg().mustDo("master") || ::arg().mustDo("slave"))
         gethostbyname("a.root-servers.net"); // this forces all lookup libraries to be loaded
