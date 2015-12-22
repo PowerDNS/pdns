@@ -30,8 +30,8 @@ this rollover. This HowTo follows the rollover example from the RFCs [Appendix B
 
 We assume the zone name is example.com and is already DNSSEC signed.
 
-Start by adding a new KSK to the zone: `pdnsutil add-zone-key example.com ksk 2048 passive`.
-The "passive" means that the key is not used to sign any ZSK records. This limits
+Start by adding a new KSK to the zone: `pdnsutil add-zone-key example.com ksk 2048 inactive`.
+The "inactive" means that the key is not used to sign any ZSK records. This limits
 the size of `ANY` and DNSKEY responses.
 
 Publish the CDS records: `pdnsutil set-publish-cds example.com`, these records
