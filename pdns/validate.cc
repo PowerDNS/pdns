@@ -3,6 +3,7 @@
 #include "dnssecinfra.hh"
 #include "rec-lua-conf.hh"
 #include "base32.hh"
+#include "logger.hh"
 
 void dotEdge(DNSName zone, string type1, DNSName name1, string tag1, string type2, DNSName name2, string tag2, string color="");
 void dotNode(string type, DNSName name, string tag, string content);
@@ -103,10 +104,10 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  if(signature->d_siginception < now && signature->d_sigexpire > now)
 	    isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(l.d_algorithm, l.d_key)->verify(msg, signature->d_signature);
 	  else
-	    ; // cerr<<"signature is expired/not yet valid ";
+	    DLOG(cerr<<"signature is expired/not yet valid"<<endl);
 	}
 	catch(std::exception& e) {
-	  // cerr<<"Error validating with engine: "<<e.what()<<endl;
+	  DLOG(cerr<<"Error validating with engine: "<<e.what()<<endl);
 	}
 	if(isValid) {
 	  validated[i->first] = i->second;
@@ -114,7 +115,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  //	  cerr<<"! validated "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl;
 	}
 	else 
-	  ; // cerr<<"signature invalid"<<endl;
+          DLOG(cerr<<"signature invalid"<<endl);
 	if(signature->d_type != QType::DNSKEY) {
 	  dotEdge(signature->d_signer,
 		  "DNSKEY", signature->d_signer, std::to_string(signature->d_tag),
@@ -284,7 +285,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
             break;
           }
 	  else
-	    ; // cerr<<"Validation did not succeed!"<<endl;
+	    DLOG(cerr<<"Validation did not succeed!"<<endl);
         }
 	//        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
       }
