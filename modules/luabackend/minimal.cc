@@ -157,6 +157,7 @@ bool LUABackend::get(DNSResourceRecord &rr) {
         rr.ttl = ::arg().asNum( "default-ttl" );
 
     getValueFromTable(lua, "content", rr.content);
+    getValueFromTable(lua, "scopeMask", rr.scopeMask);
 
     lua_pop(lua, 1 );
 

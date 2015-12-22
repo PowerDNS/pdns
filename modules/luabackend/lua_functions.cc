@@ -111,8 +111,9 @@ int l_dnspacket (lua_State *lua) {
     lua_pushstring(lua, lb->dnspacket->getRemote().c_str());
     lua_pushnumber(lua, lb->dnspacket->getRemotePort());
     lua_pushstring(lua, lb->dnspacket->getLocal().c_str());
+    lua_pushstring(lua, lb->dnspacket->getRealRemote().toString().c_str());
 
-    return 3;
+    return 4;
 }
 
 int l_logger (lua_State *lua) {
@@ -304,6 +305,22 @@ bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint1
 
   lua_pop(lua, 1);
 
+  return ret;
+}
+
+bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, uint8_t& value) {
+  lua_pushstring(lua, key.c_str()); 
+  lua_gettable(lua, -2);  
+
+  bool ret = false;
+  
+  if(!lua_isnil(lua, -1)) {
+    value = (uint8_t)lua_tonumber(lua, -1);
+    ret = true;
+  }
+  
+  lua_pop(lua, 1);
+  
   return ret;
 }
 
