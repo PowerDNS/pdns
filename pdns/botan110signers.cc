@@ -107,7 +107,7 @@ DNSCryptoKeyEngine::storvector_t GOSTDNSCryptoKeyEngine::convertToISCVector() co
 
 void GOSTDNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap )
 { 
-  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
   string privateKey=stormap["gostasn1"];
   //cerr<<"PrivateKey.size() = "<<privateKey.size()<<endl;
   //cerr<<makeHexDump(string(privateKey.c_str(), 39))<<endl;
@@ -291,7 +291,7 @@ EC_Domain_Params ECDSADNSCryptoKeyEngine::getECParams(unsigned int algorithm)
   else if(algorithm == 14)
     return EC_Domain_Params("1.3.132.0.34");
   else
-    throw runtime_error("Requested for unknown EC domain parameters for algorithm "+lexical_cast<string>(algorithm));
+    throw runtime_error("Requested for unknown EC domain parameters for algorithm "+to_string(algorithm));
 }
 
 void ECDSADNSCryptoKeyEngine::create(unsigned int bits)
@@ -305,7 +305,7 @@ void ECDSADNSCryptoKeyEngine::create(unsigned int bits)
     params = getECParams(14);
   }
   else {
-    throw runtime_error("Unknown key length of "+lexical_cast<string>(bits)+" bits requested from ECDSA class");
+    throw runtime_error("Unknown key length of "+to_string(bits)+" bits requested from ECDSA class");
   }
   d_key = shared_ptr<ECDSA_PrivateKey>(new ECDSA_PrivateKey(rng, params));
 }
@@ -347,9 +347,9 @@ void ECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std:
    Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
   
-  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
   if(drc.d_algorithm != d_algorithm) 
-    throw runtime_error("Tried to feed an algorithm "+lexical_cast<string>(drc.d_algorithm)+" to a "+lexical_cast<string>(d_algorithm)+" key!");
+    throw runtime_error("Tried to feed an algorithm "+to_string(drc.d_algorithm)+" to a "+to_string(d_algorithm)+" key!");
   string privateKey=stormap["privatekey"];
   
   BigInt bigint((byte*)privateKey.c_str(), privateKey.length());

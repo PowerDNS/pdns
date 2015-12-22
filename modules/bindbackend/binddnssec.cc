@@ -268,9 +268,9 @@ bool Bind2Backend::getDomainKeys(const DNSName& name, unsigned int kind, std::ve
     SSqlStatement::row_t row;
     while(d_getDomainKeysQuery_stmt->hasNextRow()) {
       d_getDomainKeysQuery_stmt->nextRow(row);
-      kd.id = atoi(row[0].c_str());
-      kd.flags = atoi(row[1].c_str());
-      kd.active = atoi(row[2].c_str());
+      kd.id = pdns_stou(row[0]);
+      kd.flags = pdns_stou(row[1]);
+      kd.active = (row[2] == "1");
       kd.content = row[3];
       keys.push_back(kd);
     }

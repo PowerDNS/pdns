@@ -161,7 +161,7 @@ void doSecPoll(bool first)
 
     pair<string, string> split = splitField(content, ' ');
 
-    security_status = atoi(split.first.c_str());
+    security_status = std::stoi(split.first);
     g_security_message = split.second;
 
   }

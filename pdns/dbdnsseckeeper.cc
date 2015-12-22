@@ -85,7 +85,7 @@ bool DNSSECKeeper::addKey(const DNSName& name, bool keyOrZone, int algorithm, in
       else if(algorithm == 14) // ECDSAP384SHA384
         bits = 384;
       else {
-        throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algorithm));
+        throw runtime_error("Can't guess key size for algorithm "+std::to_string(algorithm));
       }
     }
   }
@@ -158,7 +158,7 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
     
     return dpk;    
   }
-  throw runtime_error("Can't find a key with id "+lexical_cast<string>(id)+" for zone '"+zname.toString()+"'");
+  throw runtime_error("Can't find a key with id "+std::to_string(id)+" for zone '"+zname.toString()+"'");
 }
 
 

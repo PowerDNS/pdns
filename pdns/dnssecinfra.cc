@@ -61,8 +61,8 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::makeFromISCString(DNSKEYRecordContent& d
     tie(key,value)=splitField(sline, ':');
     trim(value);
     if(pdns_iequals(key,"algorithm")) {
-      algorithm = atoi(value.c_str());
-      stormap["algorithm"]=lexical_cast<string>(algorithm);
+      algorithm = pdns_stou(value);
+      stormap["algorithm"]=std::to_string(algorithm);
       continue;
     } else if (pdns_iequals(key,"pin")) {
       stormap["pin"]=value;
@@ -127,7 +127,7 @@ DNSCryptoKeyEngine* DNSCryptoKeyEngine::make(unsigned int algo)
   if(iter != makers.end())
     return (iter->second)(algo);
   else {
-    throw runtime_error("Request to create key object for unknown algorithm number "+lexical_cast<string>(algo));
+    throw runtime_error("Request to create key object for unknown algorithm number "+std::to_string(algo));
   }
 }
 
@@ -206,7 +206,7 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
   else if(algo == 14) // ECDSAP384SHA384
     bits = 384;
   else
-    throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algo));
+    throw runtime_error("Can't guess key size for algorithm "+std::to_string(algo));
 
   dckeCreate->create(bits);
 
@@ -221,8 +221,8 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
       tie(key,value)=splitField(sline, ':');
       trim(value);
       if(pdns_iequals(key,"algorithm")) {
-        algorithm = atoi(value.c_str());
-        stormap["algorithm"]=lexical_cast<string>(algorithm);
+        algorithm = pdns_stou(value);
+        stormap["algorithm"]=std::to_string(algorithm);
         continue;
       } else if (pdns_iequals(key,"pin")) {
         stormap["pin"]=value;
@@ -231,8 +231,8 @@ pair<unsigned int, unsigned int> DNSCryptoKeyEngine::testMakers(unsigned int alg
         stormap["engine"]=value;
         continue;
       } else if (pdns_iequals(key,"slot")) {
-        int slot = atoi(value.c_str());
-        stormap["slot"]=lexical_cast<string>(slot);
+        int slot = std::stoi(value);
+        stormap["slot"]=std::to_string(slot);
         continue;
       }  else if (pdns_iequals(key,"label")) {
         stormap["label"]=value;
@@ -350,7 +350,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
     dsrc.d_digest = dpk->hash(toHash);
   }
   else 
-    throw std::runtime_error("Asked to a DS of unknown digest type " + lexical_cast<string>(digest)+"\n");
+    throw std::runtime_error("Asked to a DS of unknown digest type " + std::to_string(digest)+"\n");
   
   dsrc.d_algorithm= drc.d_algorithm;
   dsrc.d_digesttype=digest;
@@ -480,7 +480,7 @@ void decodeDERIntegerSequence(const std::string& input, vector<string>& output)
     for(;;) {
       uint8_t kind = de.getByte();
       if(kind != 0x02) 
-        throw runtime_error("DER Sequence contained non-INTEGER component: "+lexical_cast<string>((unsigned int)kind) );
+        throw runtime_error("DER Sequence contained non-INTEGER component: "+std::to_string(static_cast<unsigned int>(kind)) );
       len = de.getLength();
       ret = de.getBytes(len);
       output.push_back(ret);

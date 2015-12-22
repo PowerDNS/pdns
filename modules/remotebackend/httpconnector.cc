@@ -28,7 +28,7 @@ HTTPConnector::HTTPConnector(std::map<std::string,std::string> options) {
     this->d_socket = NULL;
 
     if (options.find("timeout") != options.end()) {
-      this->timeout = boost::lexical_cast<int>(options.find("timeout")->second)/1000;
+      this->timeout = std::stoi(options.find("timeout")->second)/1000;
     }
     if (options.find("post") != options.end()) {
       std::string val = options.find("post")->second;
@@ -53,10 +53,10 @@ HTTPConnector::~HTTPConnector() {
 bool HTTPConnector::json2string(const rapidjson::Value &input, std::string &output) {
    if (input.IsString()) output = input.GetString();
    else if (input.IsNull()) output = "";
-   else if (input.IsUint64()) output = lexical_cast<std::string>(input.GetUint64());
-   else if (input.IsInt64()) output = lexical_cast<std::string>(input.GetInt64());
-   else if (input.IsUint()) output = lexical_cast<std::string>(input.GetUint());
-   else if (input.IsInt()) output = lexical_cast<std::string>(input.GetInt());
+   else if (input.IsUint64()) output = std::to_string(input.GetUint64());
+   else if (input.IsInt64()) output = std::to_string(input.GetInt64());
+   else if (input.IsUint()) output = std::to_string(input.GetUint());
+   else if (input.IsInt()) output = std::to_string(input.GetInt());
    else return false;
    return true;
 }
@@ -152,11 +152,11 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         size_t index = 0;
         for(rapidjson::Value::ConstValueIterator itr = parameters["nsset"].Begin(); itr != parameters["nsset"].End(); itr++) {
             index++;
-            ss2 << buildMemberListArgs("nsset[" + boost::lexical_cast<std::string>(index) + "]", itr) << "&";
+            ss2 << buildMemberListArgs("nsset[" + std::to_string(index) + "]", itr) << "&";
         }
         req.body = ss2.str().substr(0, ss2.str().size()-1);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "POST";
     } else if (method == "createSlaveDomain") {
         addUrlComponent(parameters, "ip", ss);
@@ -171,17 +171,17 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         size_t index = 0;
         for(rapidjson::Value::ConstValueIterator itr = parameters["rrset"].Begin(); itr != parameters["rrset"].End(); itr++) {
             index++;
-            ss2 << buildMemberListArgs("rrset[" + boost::lexical_cast<std::string>(index) + "]", itr);
+            ss2 << buildMemberListArgs("rrset[" + std::to_string(index) + "]", itr);
         }
         req.body = ss2.str();
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "PATCH";
     } else if (method == "feedRecord") {
         addUrlComponent(parameters, "trxid", ss);
         req.body = buildMemberListArgs("rr", &parameters["rr"]);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "PATCH";
     } else if (method == "feedEnts") {
         std::stringstream ss2;
@@ -191,7 +191,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         }
         req.body = ss2.str().substr(0, ss2.str().size()-1);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "PATCH";
     } else if (method == "feedEnts3") {
         std::stringstream ss2;
@@ -203,7 +203,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         }
         req.body = ss2.str().substr(0, ss2.str().size()-1);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "PATCH";
     } else if (method == "startTransaction") {
         addUrlComponent(parameters, "domain", ss);
@@ -216,7 +216,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         addUrlComponent(parameters, "domain", ss);
         req.body = buildMemberListArgs("sd", &parameters["sd"]);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "POST";
     } else if (method == "setDomainMetadata") {
         // copy all metadata values into post
@@ -230,7 +230,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
         }
         req.body = ss2.str().substr(0, ss2.str().size()-1);
         req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
-        req.headers["content-length"] = boost::lexical_cast<std::string>(req.body.size());
+        req.headers["content-length"] = std::to_string(req.body.size());
         verb = "PATCH";
     } else if (method == "removeDomainKey") {
         // this one is delete
@@ -248,7 +248,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
     } else if (method == "searchRecords" || method == "searchComments") {
         json2string(parameters["pattern"],sparam);
         req.GET()["pattern"] = sparam;
-        req.GET()["maxResults"] = boost::lexical_cast<std::string>(parameters["maxResults"].GetInt());
+        req.GET()["maxResults"] = std::to_string(parameters["maxResults"].GetInt());
         verb = "GET";
     } else {
         // perform normal get
@@ -284,7 +284,7 @@ void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP
         // simple case, POST JSON into url. nothing fancy.
         std::string out = makeStringFromDocument(input);
         req.headers["Content-Type"] = "text/javascript; charset=utf-8";
-        req.headers["Content-Length"] = boost::lexical_cast<std::string>(out.size());
+        req.headers["Content-Length"] = std::to_string(out.size());
         req.headers["accept"] = "application/json";
         req.body = out;
     } else {
@@ -348,7 +348,7 @@ int HTTPConnector::send_message(const rapidjson::Document &input) {
     } else {
       // connect using tcp
       struct addrinfo *gAddr, *gAddrPtr, hints;
-      std::string sPort = boost::lexical_cast<std::string>(req.url.port);
+      std::string sPort = std::to_string(req.url.port);
       memset(&hints,0,sizeof hints);
       hints.ai_family = AF_UNSPEC;
       hints.ai_flags = AI_ADDRCONFIG; 

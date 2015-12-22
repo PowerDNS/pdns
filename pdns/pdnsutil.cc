@@ -374,7 +374,7 @@ void dbBench(const std::string& fname)
     while(B.get(rr)) {
       hits++;
     }
-    B.lookup(QType(QType::A), DNSName(boost::lexical_cast<string>(random()))+domain);
+    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain);
     while(B.get(rr)) {
     }
     misses++;
@@ -796,7 +796,7 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
 
     cout<<(key.second.keyOrZone ? "KSK" : "ZSK")<<"     ";
 
-    spacelen = (lexical_cast<string>(key.first.getKey()->getBits()).length() >= 8) ? 1 : 8 - lexical_cast<string>(key.first.getKey()->getBits()).length();
+    spacelen = (std::to_string(key.first.getKey()->getBits()).length() >= 8) ? 1 : 8 - std::to_string(key.first.getKey()->getBits()).length();
     if (key.first.getKey()->getBits() < 1) {
       cout<<"invalid "<<endl;
       continue; 
@@ -809,7 +809,7 @@ void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = true) {
     spacelen = (algname.length() >= 13) ? 1 : 13 - algname.length();
     cout<<algname<<string(spacelen, ' ');
 
-    spacelen = (lexical_cast<string>(key.second.id).length() > 5) ? 1 : 5 - lexical_cast<string>(key.second.id).length();
+    spacelen = (std::to_string(key.second.id).length() > 5) ? 1 : 5 - std::to_string(key.second.id).length();
     cout<<key.second.id<<string(spacelen, ' ');
 
 #ifdef HAVE_P11KIT1
@@ -1478,7 +1478,7 @@ try
       cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;
       return 0;
     }
-    if (testAlgorithm(lexical_cast<int>(cmds[1])))
+    if (testAlgorithm(pdns_stou(cmds[1])))
       return 0;
     return 1;
   }
@@ -1587,7 +1587,7 @@ try
       cerr << "Syntax: pdnsutil test-speed numcores [signing-server]"<<endl;
       return 0;
     }
-    testSpeed(dk, DNSName(cmds[1]),  (cmds.size() > 3) ? cmds[3] : "", atoi(cmds[2].c_str()));
+    testSpeed(dk, DNSName(cmds[1]),  (cmds.size() > 3) ? cmds[3] : "", pdns_stou(cmds[2]));
   }
   else if(cmds[0] == "verify-crypto") {
     if(cmds.size() != 2) {
@@ -1621,7 +1621,7 @@ try
       return 0;
     }
     DNSName zone(cmds[1]);
-    unsigned int id=atoi(cmds[2].c_str());
+    unsigned int id=pdns_stou(cmds[2]);
     if(!id)
     {
       cerr<<"Invalid KEY-ID"<<endl;
@@ -1639,7 +1639,7 @@ try
       return 0;
     }
     DNSName zone(cmds[1]);
-    unsigned int id=atoi(cmds[2].c_str());
+    unsigned int id=pdns_stou(cmds[2]);
     if(!id)
     {
       cerr<<"Invalid KEY-ID"<<endl;
@@ -1683,8 +1683,8 @@ try
         active=true;
       } else if(pdns_iequals(cmds[n], "inactive") || pdns_iequals(cmds[n], "passive")) {
         active=false;
-      } else if(atoi(cmds[n].c_str())) {
-        bits = atoi(cmds[n].c_str());
+      } else if(pdns_stou(cmds[n])) {
+        bits = pdns_stou(cmds[n]);
       } else { 
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
         exit(EXIT_FAILURE);;
@@ -1706,7 +1706,7 @@ try
       return 0;
     }
     DNSName zone(cmds[1]);
-    unsigned int id=atoi(cmds[2].c_str());
+    unsigned int id=pdns_stou(cmds[2]);
     if (!dk.removeKey(zone, id)) {
        cerr<<"Cannot remove key " << id << " from " << zone <<endl;
       return 1;
@@ -1954,7 +1954,7 @@ try
     }
 
     string zone=cmds[1];
-    unsigned int id=atoi(cmds[2].c_str());
+    unsigned int id=pdns_stou(cmds[2]);
     DNSSECPrivateKey dpk=dk.getKeyById(DNSName(zone), id);
     cout << dpk.getKey()->convertToISC() <<endl;
   }  
@@ -1987,7 +1987,7 @@ try
     shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromPEMString(drc, raw));
     dpk.setKey(key);
     
-    dpk.d_algorithm = atoi(cmds[3].c_str());
+    dpk.d_algorithm = pdns_stou(cmds[3]);
     
     if(dpk.d_algorithm == 7)
       dpk.d_algorithm = 5;
@@ -2058,7 +2058,7 @@ try
     }
 
     DNSName zone(cmds[1]);
-    unsigned int id=atoi(cmds[2].c_str());
+    unsigned int id=pdns_stou(cmds[2]);
     DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
     cout << zone<<" IN DNSKEY "<<dpk.getDNSKEY().getZoneRepresentation() <<endl;
     if(dpk.d_flags == 257) {
@@ -2083,8 +2083,8 @@ try
         keyOrZone = true;
       else if((tmp_algo = shorthand2algorithm(cmds[n]))>0) {
         algorithm = tmp_algo;
-      } else if(atoi(cmds[n].c_str()))
-        bits = atoi(cmds[n].c_str());
+      } else if(pdns_stou(cmds[n]))
+        bits = pdns_stou(cmds[n]);
       else {
         cerr<<"Unknown algorithm, key flag or size '"<<cmds[n]<<"'"<<endl;
         return 0;
@@ -2105,7 +2105,7 @@ try
         else if(algorithm == 14)
           bits = 384;
         else {
-          throw runtime_error("Can't guess key size for algorithm "+lexical_cast<string>(algorithm));
+          throw runtime_error("Can't guess key size for algorithm "+std::to_string(algorithm));
         }
       }
     }
@@ -2420,7 +2420,7 @@ try
         return 1;
       }
  
-      id = boost::lexical_cast<unsigned int>(cmds[3]);
+      id = pdns_stou(cmds[3]);
       std::vector<DNSBackend::KeyData> keys; 
       if (!B.getDomainKeys(zone, 0, keys)) {
         cerr << "No keys found for zone " << zone << std::endl;
@@ -2442,7 +2442,7 @@ try
         return 1;
       }
       if (cmds.size() > 4) {
-        bits = boost::lexical_cast<int>(cmds[4]);
+        bits = pdns_stou(cmds[4]);
       }
       if (bits < 1) {
         cerr << "Invalid bit size " << bits << "given, must be positive integer";

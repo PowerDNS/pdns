@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
  }
 }
 
-bool test_dnsrecords_cc_predicate( std::runtime_error const &ex ) { return true; }
+bool test_dnsrecords_cc_predicate( std::exception const &ex ) { return true; }
 
 // these *MUST NOT* parse properly!
 BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
@@ -265,10 +265,10 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
 
     if (val.get<2>()) {
       bool success=true;
-      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_WARN_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); success=false; }, std::exception, test_dnsrecords_cc_predicate );
       if (success==false) REC_FAIL_XSUCCESS2(q.getName() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
-      BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::runtime_error, test_dnsrecords_cc_predicate );
+      BOOST_CHECK_EXCEPTION( { boost::scoped_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(q.getCode(), 1, val.get<1>())); pw.startRecord(DNSName("unit.test"), q.getCode()); drc->toPacket(pw); }, std::exception, test_dnsrecords_cc_predicate );
     }
   };
 }

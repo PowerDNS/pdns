@@ -172,7 +172,7 @@ static void emitRecord(const string& zoneName, const DNSName &DNSqname, const st
     return; // NSECs do not go in the database
 
   if((qtype == "MX" || qtype == "SRV") && g_mode!=ORACLE) {
-    prio=atoi(content.c_str());
+    prio=pdns_stou(content);
     
     string::size_type pos = content.find_first_not_of("0123456789");
     if(pos != string::npos)
@@ -237,8 +237,8 @@ static void emitRecord(const string& zoneName, const DNSName &DNSqname, const st
       stringtok(parts, content);
  
       cout<<"INSERT INTO soa(origin, ns, mbox, serial, refresh, retry, expire, minimum, ttl) VALUES("<<
-      sqlstr(toLower(zoneNameDot))<<", "<<sqlstr(parts[0])<<", "<<sqlstr(parts[1])<<", "<<atoi(parts[2].c_str())<<", "<<
-      atoi(parts[3].c_str())<<", "<<atoi(parts[4].c_str())<<", "<<atoi(parts[5].c_str())<<", "<<atoi(parts[6].c_str())<<", "<<ttl<<");\n";
+      sqlstr(toLower(zoneNameDot))<<", "<<sqlstr(parts[0])<<", "<<sqlstr(parts[1])<<", "<<pdns_stou(parts[2])<<", "<<
+      pdns_stou(parts[3])<<", "<<pdns_stou(parts[4])<<", "<<pdns_stou(parts[5])<<", "<<pdns_stou(parts[6])<<", "<<ttl<<");\n";
     }
     else
     {

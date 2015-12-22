@@ -164,7 +164,7 @@ try
 
        MOADNSParser mdp(string(creply, len));
        if (mdp.d_header.rcode != 0) {
-         throw PDNSException(string("Remote server refused: ") + boost::lexical_cast<string>(mdp.d_header.rcode));
+         throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
        }
        for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
          if(i->first.d_type != QType::TKEY) continue;
@@ -231,7 +231,7 @@ try
 
     MOADNSParser mdp(packet);
     if (mdp.d_header.rcode != 0) {
-      throw PDNSException(string("Remote server refused: ") + boost::lexical_cast<string>(mdp.d_header.rcode));
+      throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
     }
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       if (i->first.d_type == QType::TSIG) {

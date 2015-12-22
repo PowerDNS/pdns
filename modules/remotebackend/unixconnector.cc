@@ -17,7 +17,7 @@ UnixsocketConnector::UnixsocketConnector(std::map<std::string,std::string> optio
   } 
   this->timeout = 2000;
   if (options.find("timeout") != options.end()) { 
-    this->timeout = boost::lexical_cast<int>(options.find("timeout")->second);
+    this->timeout = std::stoi(options.find("timeout")->second);
   }
   this->path = options.find("path")->second;
   this->options = options;

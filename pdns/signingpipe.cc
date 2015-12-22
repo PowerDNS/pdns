@@ -161,7 +161,7 @@ pair<vector<int>, vector<int> > ChunkedSigningPipe::waitForRW(bool rd, bool wr, 
   
   int res = poll(&pfds[0], pfds.size(), (seconds < 0) ? -1 : (seconds * 1000)); // -1 = infinite
   if(res < 0)
-    unixDie("polling for activity from signers, "+lexical_cast<string>(d_sockets.size()));
+    unixDie("polling for activity from signers, "+std::to_string(d_sockets.size()));
   pair<vector<int>, vector<int> > vects;
   for(unsigned int n = 0; n < pfds.size(); ++n) 
     if(pfds[n].revents & POLLIN)

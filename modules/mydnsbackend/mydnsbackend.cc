@@ -165,7 +165,7 @@ bool MyDNSBackend::list(const DNSName &target, int zoneId, bool include_disabled
   d_origin = d_result[0][0];
   if (d_origin[d_origin.length()-1] == '.')
     d_origin.erase(d_origin.length()-1);
-  d_minimum = atol(d_result[0][1].c_str());
+  d_minimum = pdns_stou(d_result[0][1]);
 
   if (d_result.size()>1) {
     L<<Logger::Warning<<backendName<<" Found more than one matching origin for zone ID: "<<zoneId<<endl;
@@ -210,15 +210,15 @@ bool MyDNSBackend::getSOA(const DNSName& name, SOAData& soadata, DNSPacket*) {
   rrow = d_result[0];
 
   soadata.qname = name;
-  soadata.domain_id = atol(rrow[0].c_str());
+  soadata.domain_id = pdns_stou(rrow[0]);
   soadata.hostmaster = DNSName(rrow[1]);
-  soadata.serial = atol(rrow[2].c_str());
+  soadata.serial = pdns_stou(rrow[2]);
   soadata.nameserver = DNSName(rrow[3]);
-  soadata.refresh = atol(rrow[4].c_str());
-  soadata.retry = atol(rrow[5].c_str());
-  soadata.expire = atol(rrow[6].c_str());
-  soadata.default_ttl = atol(rrow[7].c_str());
-  soadata.ttl = atol(rrow[8].c_str());
+  soadata.refresh = pdns_stou(rrow[4]);
+  soadata.retry = pdns_stou(rrow[5]);
+  soadata.expire = pdns_stou(rrow[6]);
+  soadata.default_ttl = pdns_stou(rrow[7]);
+  soadata.ttl = pdns_stou(rrow[8]);
   if (d_useminimalttl) {
     soadata.ttl = std::min(soadata.ttl, soadata.default_ttl);
   }
@@ -263,9 +263,9 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
       if (d_result.empty() == false) {
         rrow = d_result[0];
-        zoneId = boost::lexical_cast<int>(rrow[0]);
+        zoneId = pdns_stou(rrow[0]);
         d_origin = stripDot(rrow[1]);
-        d_minimum = atol(rrow[2].c_str());
+        d_minimum = pdns_stou(rrow[2]);
         found = true;
         break;
       }
@@ -292,7 +292,7 @@ void MyDNSBackend::lookup(const QType &qtype, const DNSName &qname, DNSPacket *p
 
     found = true;
     d_origin = stripDot(rrow[0]);
-    d_minimum = atol(rrow[1].c_str());
+    d_minimum = pdns_stou(rrow[1]);
   }
 
   if (found) {
@@ -397,10 +397,10 @@ bool MyDNSBackend::get(DNSResourceRecord &rr) {
     if (rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::SRV)
       rr.content=rrow[2]+" "+rr.content;
 
-    rr.ttl = atol(rrow[3].c_str());
+    rr.ttl = pdns_stou(rrow[3]);
     if (d_useminimalttl)
       rr.ttl = std::min(rr.ttl, d_minimum);
-    rr.domain_id=atol(rrow[4].c_str());
+    rr.domain_id=pdns_stou(rrow[4]);
   
     rr.last_modified=0;
 

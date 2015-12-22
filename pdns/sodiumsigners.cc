@@ -38,7 +38,7 @@ private:
 void SodiumED25519DNSCryptoKeyEngine::create(unsigned int bits)
 {
   if(bits != crypto_sign_ed25519_SEEDBYTES * 8) {
-    throw runtime_error("Unsupported key length of "+lexical_cast<string>(bits)+" bits requested, SodiumED25519 class");
+    throw runtime_error("Unsupported key length of "+std::to_string(bits)+" bits requested, SodiumED25519 class");
   }
   crypto_sign_ed25519_keypair(d_pubkey, d_seckey);
 }
@@ -74,7 +74,7 @@ void SodiumED25519DNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::
     PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ=
   */
 
-  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
   string privateKey = stormap["privatekey"];
 
   if (privateKey.length() != crypto_sign_ed25519_SEEDBYTES)

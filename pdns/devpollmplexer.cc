@@ -7,7 +7,6 @@
 #include <iostream>
 #include <unistd.h>
 #include "misc.hh"
-#include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 
 #include "namespaces.hh"
@@ -75,7 +74,7 @@ void DevPollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t to
 void DevPollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
   if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
+    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
 
   struct pollfd devent;
   devent.fd=fd;

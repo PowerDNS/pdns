@@ -91,7 +91,7 @@ public:
     buffer.value = (void*)name.c_str();
     maj = gss_import_name(&min, &buffer, (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME, &comp);
     if (maj != GSS_S_COMPLETE)
-      throw PDNSException("Could not import " + name + ": " + boost::lexical_cast<std::string>(maj) + string(",") + boost::lexical_cast<std::string>(min));
+      throw PDNSException("Could not import " + name + ": " + std::to_string(maj) + string(",") + std::to_string(min));
     // do comparison
     maj = gss_compare_name(&min, d_name, comp, &result);
     gss_release_name(&min, &comp);

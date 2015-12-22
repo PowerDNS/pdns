@@ -56,7 +56,6 @@ extern SortList g_sortlist;
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/shared_array.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
 #ifdef MALLOC_TRACE
@@ -382,7 +381,7 @@ public:
   {
     socks_t::iterator i=d_socks.find(fd);
     if(i==d_socks.end()) {
-      throw PDNSException("Trying to return a socket (fd="+lexical_cast<string>(fd)+") not in the pool");
+      throw PDNSException("Trying to return a socket (fd="+std::to_string(fd)+") not in the pool");
     }
     returnSocketLocked(i);
   }
@@ -414,7 +413,7 @@ public:
       return ret;
 
     if(ret<0)
-      throw PDNSException("Making a socket for resolver (family = "+lexical_cast<string>(family)+"): "+stringerror());
+      throw PDNSException("Making a socket for resolver (family = "+std::to_string(family)+"): "+stringerror());
 
     setCloseOnExec(ret);
 
@@ -975,7 +974,7 @@ void makeControlChannelSocket(int processNum=-1)
 {
   string sockname=::arg()["socket-dir"]+"/"+s_programname;
   if(processNum >= 0)
-    sockname += "."+lexical_cast<string>(processNum);
+    sockname += "."+std::to_string(processNum);
   sockname+=".controlsocket";
   s_rcc.listen(sockname);
 
@@ -1425,7 +1424,7 @@ void makeUDPServerSockets()
 
     int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0)
-      throw PDNSException("Resolver binding to server socket on port "+ lexical_cast<string>(st.port) +" for "+ st.host+": "+stringerror());
+      throw PDNSException("Resolver binding to server socket on port "+ std::to_string(st.port) +" for "+ st.host+": "+stringerror());
 
     setNonBlocking(fd);
 
@@ -2027,7 +2026,7 @@ static void checkLinuxIPv6Limits()
 #ifdef __linux__
   string line;
   if(readFileIfThere("/proc/sys/net/ipv6/route/max_size", &line)) {
-    int lim=atoi(line.c_str());
+    int lim=std::stoi(line);
     if(lim < 16384) {
       L<<Logger::Error<<"If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to "<<lim<<" which is < 16384"<<endl;
     }

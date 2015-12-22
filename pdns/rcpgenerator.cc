@@ -27,7 +27,6 @@
 #include "dnsparser.hh"
 #include "misc.hh"
 #include "utility.hh"
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include "base32.hh"
@@ -41,6 +40,8 @@ RecordTextReader::RecordTextReader(const string& str, const string& zone) : d_st
 void RecordTextReader::xfr48BitInt(uint64_t &val)
 {
   xfr64BitInt(val);
+  if (val > 281474976710655LL)
+    throw RecordTextException("Overflow reading 48 bit integer from record content"); // fixme improve
 }
 
 void RecordTextReader::xfr64BitInt(uint64_t &val)
@@ -48,12 +49,12 @@ void RecordTextReader::xfr64BitInt(uint64_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
-  char *endptr;
-  val=strtoull(d_string.c_str() + d_pos, &endptr, 10);
+  size_t pos;
+  val=std::stoull(d_string.substr(d_pos), &pos);
   
-  d_pos = endptr - d_string.c_str();
+  d_pos += pos;
 }
 
 
@@ -62,14 +63,12 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
-  char *endptr;
-  unsigned long ret=pdns_strtoui(d_string.c_str() + d_pos, &endptr, 10);
-  if (ret == UINT_MAX && errno == ERANGE) throw RecordTextException("serial number too large in '"+d_string+"'");
-  val=ret;
-  
-  d_pos = endptr - d_string.c_str();
+  size_t pos;
+  val=pdns_stou(d_string.substr(d_pos), &pos);
+ 
+  d_pos += pos;
 }
 
 void RecordTextReader::xfrTime(uint32_t &val)
@@ -98,7 +97,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
   skipSpaces();
 
   if(!isdigit(d_string.at(d_pos)))
-    throw RecordTextException("while parsing IP address, expected digits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("while parsing IP address, expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
   uint32_t octet=0;
   val=0;
@@ -149,7 +148,7 @@ void RecordTextReader::xfrIP6(std::string &val)
     len++);
 
   if(!len)
-    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+lexical_cast<string>(d_pos)+" in '"+d_string+"'");
+    throw RecordTextException("while parsing IPv6 address, expected xdigits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
 
   // end of value is here, try parse as IPv6
   string address=d_string.substr(d_pos, len);
@@ -245,7 +244,7 @@ void RecordTextReader::xfrBlobNoSpaces(string& val, int len) {
   B64Decode(tmp, val);
   
   if (len>-1 && val.size() != static_cast<size_t>(len))
-    throw RecordTextException("Record length "+lexical_cast<string>(val.size()) + " does not match expected length '"+lexical_cast<string>(len));
+    throw RecordTextException("Record length "+std::to_string(val.size()) + " does not match expected length '"+std::to_string(len));
 }
 
 void RecordTextReader::xfrBlob(string& val, int)
@@ -273,7 +272,7 @@ static inline uint8_t hextodec(uint8_t val)
   else if(val >= 'a' && val<='f')
     return 10+(val-'a');
   else
-    throw RecordTextException("Unknown hexadecimal character '"+lexical_cast<string>(val)+"'");
+    throw RecordTextException("Unknown hexadecimal character '"+std::to_string(val)+"'");
 }
 
 
@@ -355,7 +354,7 @@ void RecordTextReader::xfrText(string& val, bool multi)
         d_pos = d_end;
         break;
       }
-      throw RecordTextException("Data field in DNS should start with quote (\") at position "+lexical_cast<string>(d_pos)+" of '"+d_string+"'");
+      throw RecordTextException("Data field in DNS should start with quote (\") at position "+std::to_string(d_pos)+" of '"+d_string+"'");
     }
     val.append(1, '"');
     while(++d_pos < d_end && d_string[d_pos]!='"') {
@@ -407,7 +406,7 @@ void RecordTextWriter::xfr48BitInt(const uint64_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  d_string+=lexical_cast<string>(val);
+  d_string+=std::to_string(val);
 }
 
 
@@ -415,7 +414,7 @@ void RecordTextWriter::xfr32BitInt(const uint32_t& val)
 {
   if(!d_string.empty())
     d_string.append(1,' ');
-  d_string+=lexical_cast<string>(val);
+  d_string+=std::to_string(val);
 }
 
 void RecordTextWriter::xfrType(const uint16_t& val)

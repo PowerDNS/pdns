@@ -34,7 +34,6 @@
 #include "zoneparser-tng.hh"
 #include <deque>
 #include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 
 ZoneParserTNG::ZoneParserTNG(const string& fname, const DNSName& zname, const string& reldir) : d_reldir(reldir), 
                                                                                                d_zonename(zname), d_defaultttl(3600), 
@@ -98,7 +97,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   if(str.empty())
     return 0;
 
-  unsigned int val=atoi(str.c_str());
+  unsigned int val=pdns_stou(str);
   char lc=toupper(str[str.length()-1]);
   if(!isdigit(lc))
     switch(lc) {
@@ -163,7 +162,7 @@ bool ZoneParserTNG::getTemplateLine()
       }
       if(c=='$') {
         if(pos + 1 == part.size() || part[pos+1]!='{') {  // a trailing $, or not followed by {
-          outpart.append(lexical_cast<string>(d_templatecounter));
+          outpart.append(std::to_string(d_templatecounter));
           continue;
         }
         
@@ -245,9 +244,9 @@ DNSName ZoneParserTNG::getZoneName()
 string ZoneParserTNG::getLineOfFile()
 {
   if (d_zonedata.size() > 0)
-    return "on line "+lexical_cast<string>(std::distance(d_zonedata.begin(), d_zonedataline))+" of given string";
+    return "on line "+std::to_string(std::distance(d_zonedata.begin(), d_zonedataline))+" of given string";
 
-  return "on line "+lexical_cast<string>(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
+  return "on line "+std::to_string(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
 }
 
 // ODD: this function never fills out the prio field! rest of pdns compensates though
@@ -444,7 +443,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         rr.content.append(1,' ');
 
       if(n > 1)
-        rr.content+=lexical_cast<string>(makeTTLFromZone(recparts[n]));
+        rr.content+=std::to_string(makeTTLFromZone(recparts[n]));
       else
         rr.content+=recparts[n];
 

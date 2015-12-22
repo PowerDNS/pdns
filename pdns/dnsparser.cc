@@ -22,7 +22,6 @@
 
 #include "dnsparser.hh"
 #include "dnswriter.hh"
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
@@ -43,9 +42,9 @@ public:
     vector<string> parts;
     stringtok(parts, zone);
     if(parts.size()!=3 && !(parts.size()==2 && equals(parts[1],"0")) )
-      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+lexical_cast<string>(parts.size())+": "+zone );
+      throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got "+std::to_string(parts.size())+": "+zone );
     const string& relevant=(parts.size() > 2) ? parts[2] : "";
-    unsigned int total=atoi(parts[1].c_str());
+    unsigned int total=pdns_stou(parts[1]);
     if(relevant.size()!=2*total)
       throw MOADNSException((boost::format("invalid unknown record length for label %s: size not equal to length field (%d != %d)") % d_dr.d_name.toString() % relevant.size() % (2*total)).str());
     string out;
@@ -240,7 +239,7 @@ void MOADNSParser::init(const char *packet, unsigned int len)
   memcpy(&d_header, packet, sizeof(dnsheader));
 
   if(d_header.opcode != Opcode::Query && d_header.opcode != Opcode::Notify && d_header.opcode != Opcode::Update)
-    throw MOADNSException("Can't parse non-query packet with opcode="+ lexical_cast<string>(d_header.opcode));
+    throw MOADNSException("Can't parse non-query packet with opcode="+ std::to_string(d_header.opcode));
 
   d_header.qdcount=ntohs(d_header.qdcount);
   d_header.ancount=ntohs(d_header.ancount);
@@ -300,8 +299,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
 
 #if 0    
     if(pr.d_pos!=contentlen) {
-      throw MOADNSException("Packet ("+d_qname+"|#"+lexical_cast<string>(d_qtype)+") has trailing garbage ("+ lexical_cast<string>(pr.d_pos) + " < " + 
-                            lexical_cast<string>(contentlen) + ")");
+      throw MOADNSException("Packet ("+d_qname+"|#"+std::to_string(d_qtype)+") has trailing garbage ("+ std::to_string(pr.d_pos) + " < " + 
+                            std::to_string(contentlen) + ")");
     }
 #endif 
   }
@@ -318,8 +317,8 @@ void MOADNSParser::init(const char *packet, unsigned int len)
       }
     }
     else {
-      throw MOADNSException("Error parsing packet of "+lexical_cast<string>(len)+" bytes (rd="+
-                            lexical_cast<string>(d_header.rd)+
+      throw MOADNSException("Error parsing packet of "+std::to_string(len)+" bytes (rd="+
+                            std::to_string(d_header.rd)+
                             "), out of bounds: "+string(re.what()));
     }
   }
@@ -622,8 +621,8 @@ private:
   {
     d_notyouroffset += by;
     if(d_notyouroffset > d_packet.length())
-      throw std::out_of_range("dns packet out of range: "+lexical_cast<string>(d_notyouroffset) +" > " 
-      + lexical_cast<string>(d_packet.length()) );
+      throw std::out_of_range("dns packet out of range: "+std::to_string(d_notyouroffset) +" > " 
+      + std::to_string(d_packet.length()) );
   }
   std::string& d_packet;
   

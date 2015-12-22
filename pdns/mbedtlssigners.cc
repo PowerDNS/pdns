@@ -206,7 +206,7 @@ std::string RSADNSCryptoKeyEngine::hash(const std::string& toHash) const
     mbedtls_sha512((unsigned char*)toHash.c_str(), toHash.length(), hash, 0);
     return string((char*)hash, sizeof(hash));
   }
-  throw runtime_error("mbed TLS hashing method can't hash algorithm "+lexical_cast<string>(d_algorithm));
+  throw runtime_error("mbed TLS hashing method can't hash algorithm "+std::to_string(d_algorithm));
 }
 
 
@@ -223,7 +223,7 @@ DNSCryptoKeyEngine::storvector_t RSADNSCryptoKeyEngine::convertToISCVector() con
     ("Exponent2",&d_context.DQ)
     ("Coefficient",&d_context.QP);
 
-  string algorithm=lexical_cast<string>(d_algorithm);
+  string algorithm=std::to_string(d_algorithm);
   switch(d_algorithm) {
     case 5:
     case 7 :
@@ -262,7 +262,7 @@ void RSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc,  std::map<std::
   places["Exponent2"]=&d_context.DQ;
   places["Coefficient"]=&d_context.QP;
   
-  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  drc.d_algorithm = pdns_stou(stormap["algorithm"]);
   
   string raw;
   for(const places_t::value_type& val :  places) {

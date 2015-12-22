@@ -70,7 +70,6 @@ uint16_t getShort(const unsigned char *p);
 uint16_t getShort(const char *p);
 uint32_t getLong(const unsigned char *p);
 uint32_t getLong(const char *p);
-uint32_t pdns_strtoui(const char *nptr, char **endptr, int base);
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
@@ -658,3 +657,5 @@ double DiffTime(const struct timespec& first, const struct timespec& second);
 double DiffTime(const struct timeval& first, const struct timeval& second);
 uid_t strToUID(const string &str);
 gid_t strToGID(const string &str);
+
+unsigned int pdns_stou(const std::string& str, size_t * idx = 0, int base = 10);

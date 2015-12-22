@@ -32,7 +32,6 @@
 // #include <netinet/in.h>
 #include "misc.hh"
 
-#include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include "dns.hh"
@@ -220,7 +219,7 @@ public:
       return iter->second.second;
     
     if(boost::starts_with(name, "TYPE"))
-        return atoi(name.c_str()+4);
+      return pdns_stou(name.substr(4));
     
     throw runtime_error("Unknown DNS type '"+name+"'");
   }
@@ -229,8 +228,8 @@ public:
   {
     t2namemap_t::const_iterator iter = getT2Namemap().find(make_pair(classnum, num));
     if(iter == getT2Namemap().end()) 
-      return "TYPE" + lexical_cast<string>(num);
-      //      throw runtime_error("Unknown DNS type with numerical id "+lexical_cast<string>(num));
+      return "TYPE" + std::to_string(num);
+      //      throw runtime_error("Unknown DNS type with numerical id "+std::to_string(num));
     return iter->second;
   }
 

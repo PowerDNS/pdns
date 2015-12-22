@@ -25,7 +25,7 @@ public:
 
     // prepare a statement
     gettimeofday(&tv,NULL);
-    this->d_stmt = string("stmt") + boost::lexical_cast<string>(tv.tv_sec) + boost::lexical_cast<string>(tv.tv_usec);
+    this->d_stmt = string("stmt") + std::to_string(tv.tv_sec) + std::to_string(tv.tv_usec);
 
     d_nparams = nparams;
  
@@ -45,12 +45,12 @@ public:
   }
 
   SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }
-  SSqlStatement* bind(const string& name, int value) { return bind(name, boost::lexical_cast<string>(value)); }
-  SSqlStatement* bind(const string& name, uint32_t value) { return bind(name, boost::lexical_cast<string>(value)); }
-  SSqlStatement* bind(const string& name, long value) { return bind(name, boost::lexical_cast<string>(value)); }
-  SSqlStatement* bind(const string& name, unsigned long value) { return bind(name, boost::lexical_cast<string>(value)); }
-  SSqlStatement* bind(const string& name, long long value) { return bind(name, boost::lexical_cast<string>(value)); }
-  SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, boost::lexical_cast<string>(value)); }
+  SSqlStatement* bind(const string& name, int value) { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, uint32_t value) { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, long value) { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, unsigned long value) { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, long long value) { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, const std::string& value) {
     allocate();
     if (d_paridx>=d_nparams) 

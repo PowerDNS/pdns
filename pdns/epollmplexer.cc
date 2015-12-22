@@ -6,7 +6,6 @@
 #include <iostream>
 #include <unistd.h>
 #include "misc.hh"
-#include <boost/lexical_cast.hpp>
 #include "syncres.hh"
 #ifdef __linux__
 #include <sys/epoll.h>
@@ -95,7 +94,7 @@ void EpollFDMultiplexer::addFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo
 void EpollFDMultiplexer::removeFD(callbackmap_t& cbmap, int fd)
 {
   if(!cbmap.erase(fd))
-    throw FDMultiplexerException("Tried to remove unlisted fd "+lexical_cast<string>(fd)+ " from multiplexer");
+    throw FDMultiplexerException("Tried to remove unlisted fd "+std::to_string(fd)+ " from multiplexer");
 
   struct epoll_event dummy;
   dummy.events = 0;

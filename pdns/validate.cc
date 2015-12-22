@@ -114,7 +114,7 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  ; // cerr<<"signature invalid"<<endl;
 	if(signature->d_type != QType::DNSKEY) {
 	  dotEdge(signature->d_signer,
-		  "DNSKEY", signature->d_signer, lexical_cast<string>(signature->d_tag),
+		  "DNSKEY", signature->d_signer, std::to_string(signature->d_tag),
 		  DNSRecordContent::NumberToType(signature->d_type), i->first.first, "", isValid ? "green" : "red");
 	  
 	}
@@ -201,7 +201,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
         auto drc=getRR<DNSKEYRecordContent> (rec);
         tkeys.insert(*drc);
 	//	cerr<<"Inserting key with tag "<<drc->getTag()<<": "<<drc->getZoneRepresentation()<<endl;
-	dotNode("DNSKEY", qname, lexical_cast<string>(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
+	dotNode("DNSKEY", qname, std::to_string(drc->getTag()), (boost::format("tag=%d, algo=%d") % drc->getTag() % static_cast<int>(drc->d_algorithm)).str());
 
         toSign.push_back(rec.d_content);
         toSignTags.push_back(drc->getTag());
@@ -231,13 +231,13 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	  //          cerr<<"got valid DNSKEY (it matches the DS) for "<<qname<<endl;
 	  
           validkeys.insert(drc);
-	  dotNode("DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
+	  dotNode("DS", qname, "" /*std::to_string(dsrc.d_tag)*/, (boost::format("tag=%d, digest algo=%d, algo=%d") % dsrc.d_tag % static_cast<int>(dsrc.d_digesttype) % static_cast<int>(dsrc.d_algorithm)).str());
         }
 	else {
 	  //	  cerr<<"DNSKEY did not match the DS, parent DS: "<<drc.getZoneRepresentation() << " ! = "<<dsrc2.getZoneRepresentation()<<endl;
 	}
         // cout<<"    subgraph "<<dotEscape("cluster "+qname)<<" { "<<dotEscape("DS "+qname)<<" -> "<<dotEscape("DNSKEY "+qname)<<" [ label = \""<<dsrc.d_tag<<"/"<<static_cast<int>(dsrc.d_digesttype)<<"\" ]; label = \"zone: "<<qname<<"\"; }"<<endl;
-	dotEdge(DNSName("."), "DS", qname, "" /*lexical_cast<string>(dsrc.d_tag)*/, "DNSKEY", qname, lexical_cast<string>(drc.getTag()), isValid ? "green" : "red");
+	dotEdge(DNSName("."), "DS", qname, "" /*std::to_string(dsrc.d_tag)*/, "DNSKEY", qname, std::to_string(drc.getTag()), isValid ? "green" : "red");
         // dotNode("DNSKEY", qname, (boost::format("tag=%d, algo=%d") % drc.getTag() % static_cast<int>(drc.d_algorithm)).str());
       }
     }
@@ -269,8 +269,8 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
 	  }
 	  for(uint16_t tag : toSignTags) {
 	    dotEdge(qname,
-		    "DNSKEY", qname, lexical_cast<string>(i->d_tag),
-		    "DNSKEY", qname, lexical_cast<string>(tag), isValid ? "green" : "red");
+		    "DNSKEY", qname, std::to_string(i->d_tag),
+		    "DNSKEY", qname, std::to_string(tag), isValid ? "green" : "red");
 	  }
 	  
           if(isValid)
@@ -328,7 +328,7 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
           dsmap.insert(make_pair(dsrc->d_tag, *dsrc));
           // dotEdge(keyqname,
           //         "DNSKEY", keyqname, ,
-          //         "DS", qname, lexical_cast<string>(dsrc.d_tag));
+          //         "DS", qname, std::to_string(dsrc.d_tag));
           // cout<<"    "<<dotEscape("DNSKEY "+keyqname)<<" -> "<<dotEscape("DS "+qname)<<";"<<endl;
         }
       }

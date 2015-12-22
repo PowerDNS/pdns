@@ -302,7 +302,7 @@ static void parseService4(const string &descr, ServiceTuple &st)
     throw PDNSException("Unable to parse '"+descr+"' as a service");
   st.host=parts[0];
   if(parts.size()>1)
-    st.port=atoi(parts[1].c_str());
+    st.port=pdns_stou(parts[1]);
 }
 
 static void parseService6(const string &descr, ServiceTuple &st)
@@ -313,7 +313,7 @@ static void parseService6(const string &descr, ServiceTuple &st)
 
   st.host=descr.substr(1, pos-1);
   if(pos + 2 < descr.length())
-    st.port=atoi(descr.c_str() + pos +2);
+    st.port=pdns_stou(descr.substr(pos+2));
 }
 
 
@@ -760,7 +760,7 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
     if(pos == string::npos || pos + 2 > addr.size() || addr[pos+1]!=':')
       return -1;
     ourAddr.assign(addr.c_str() + 1, pos-1);
-    port = atoi(addr.c_str()+pos+2);
+    port = pdns_stou(addr.substr(pos+2));
   }
   ret->sin6_scope_id=0;
   ret->sin6_family=AF_INET6;
@@ -1042,20 +1042,6 @@ bool setSocketTimestamps(int fd)
   return true; // we pretend this happened.
 }
 
-uint32_t pdns_strtoui(const char *nptr, char **endptr, int base)
-{
-#if ULONG_MAX == 4294967295
-  return strtoul(nptr, endptr, base);
-#else
-  unsigned long val = strtoul(nptr, endptr, base);
-  if (val > UINT_MAX) {
-   errno = ERANGE;
-   return UINT_MAX;
-  }
-
-  return val;
-#endif
-}
 bool setNonBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
@@ -1105,13 +1091,13 @@ uint64_t udpErrorStats(const std::string& str)
       if(parts.size() < 7)
 	break;
       if(str=="udp-rcvbuf-errors")
-	return boost::lexical_cast<uint64_t>(parts[5]);
+	return std::stoull(parts[5]);
       else if(str=="udp-sndbuf-errors")
-	return boost::lexical_cast<uint64_t>(parts[6]);
+	return std::stoull(parts[6]);
       else if(str=="udp-noport-errors")
-	return boost::lexical_cast<uint64_t>(parts[2]);
+	return std::stoull(parts[2]);
       else if(str=="udp-in-errors")
-	return boost::lexical_cast<uint64_t>(parts[3]);
+	return std::stoull(parts[3]);
       else
 	return 0;
     }
@@ -1166,7 +1152,12 @@ uint64_t getOpenFileDescriptors(const std::string&)
   struct dirent *entry;
   int ret=0;
   while((entry = readdir(dirhdl))) {
-    uint32_t num = atoi(entry->d_name);
+    uint32_t num;
+    try {
+      num = pdns_stou(entry->d_name);
+    } catch (...) {
+      continue; // was not a number.
+    }
     if(std::to_string(num) == entry->d_name)
       ret++;
   }
@@ -1189,7 +1180,7 @@ uint64_t getRealMemoryUsage(const std::string&)
   string header("Private_Dirty:");
   while(getline(ifs, line)) {
     if(boost::starts_with(line, header)) {
-      bytes += atoi(line.c_str() + header.length() +1)*1024;
+      bytes += std::stoull(line.substr(header.length() + 1))*1024;
     }
   }
   return bytes;
@@ -1235,7 +1226,6 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
   }
   return seconds + useconds/1000000.0;
 }
-
 
 uid_t strToUID(const string &str)
 {
@@ -1293,5 +1283,15 @@ gid_t strToGID(const string &str)
   }
 
   return result;
+}
+
+unsigned int pdns_stou(const std::string& str, size_t * idx, int base)
+{
+  if (str.empty()) return 0; // compability
+  unsigned long result = std::stoul(str, idx, base);
+  if (result > std::numeric_limits<unsigned int>::max()) {
+    throw std::out_of_range("stou");
+  }
+  return static_cast<unsigned int>(result);
 }
 
