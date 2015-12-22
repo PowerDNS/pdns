@@ -2550,7 +2550,7 @@ int main(int argc, char **argv)
     ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options")="no";
     ::arg().set("trace","if we should output heaps of logging. set to 'fail' to only log failing domains")="off";
     ::arg().set("dnssec", "DNSSEC mode: off/process (default)/log-fail/validate")="process";
-    ::arg().set("daemon","Operate as a daemon")="yes";
+    ::arg().set("daemon","Operate as a daemon")="no";
     ::arg().setSwitch("write-pid","Write a PID file")="yes";
     ::arg().set("loglevel","Amount of logging. Higher is more. Do not set below 3")="4";
     ::arg().set("log-common-errors","If we should log rather common errors")="yes";

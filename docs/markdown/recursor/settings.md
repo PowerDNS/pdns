@@ -144,7 +144,7 @@ When running multiple recursors on the same server, read settings from
 
 ## `daemon`
 * Boolean
-* Default: yes
+* Default: no (since 4.0.0, 'yes' before 4.0.0)
 
 Operate in the background.
 
