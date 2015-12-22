@@ -160,6 +160,7 @@ private:
 #endif
     bool getValueFromTable(lua_State *lua, const std::string& key, uint32_t& value);
     bool getValueFromTable(lua_State *lua, const std::string& key, uint16_t& value);
+    bool getValueFromTable(lua_State *lua, const std::string& key, uint8_t& value);
     bool getValueFromTable(lua_State *lua, const std::string& key, int& value);
     bool getValueFromTable(lua_State *lua, const std::string& key, bool& value);
 
