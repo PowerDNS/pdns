@@ -1,2 +1,3 @@
 #!/bin/sh
 cleandig double.example.com A dnssec
+cleandig double-txt.example.com TXT dnssec

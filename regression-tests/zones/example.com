@@ -20187,3 +20187,7 @@ host-0          IN   EUI48      00-50-56-9b-00-e7
 host-1          IN   EUI64      00-50-56-9b-00-e7-7e-57
 ;
 rhs-at-expansion	IN   CNAME      @
+
+;
+double-txt	IN	TXT	"blablabla"
+double-txt	IN	TXT	blablabla
