@@ -21,7 +21,7 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   static const DNSName rpzClientIP("rpz-client-ip"), rpzIP("rpz-ip"),
     rpzNSDname("rpz-nsdname"), rpzNSIP("rpz-nsip.");
 
-  DNSFilterEngine::Policy pol{DNSFilterEngine::PolicyKind::NoAction};
+  DNSFilterEngine::Policy pol{DNSFilterEngine::PolicyKind::NoAction, nullptr, 0};
 
   if(dr.d_type == QType::CNAME) {
     auto target=std::dynamic_pointer_cast<CNAMERecordContent>(dr.d_content)->getTarget();
