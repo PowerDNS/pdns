@@ -1229,7 +1229,7 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     cout << "Securing zone with " << k_algos[0] << " algorithm with default key size" << endl;
 
   // run secure-zone with first default algorith, then add keys
-  if(!dk.secureZone(zone, shorthand2algorithm(k_algos[0]), k_size)) {
+  if(!dk.addKey(zone, true, shorthand2algorithm(k_algos[0]), k_size)) {
     cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
     cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
     cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
