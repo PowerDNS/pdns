@@ -979,6 +979,7 @@ try
     {"pidfile",  required_argument, 0, 'p'},
     {"supervised", 0, 0, 's'},
     {"uid",  required_argument, 0, 'u'},
+    {"verbose", 0, 0, 'v'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
     {0,0,0,0} 
@@ -1010,6 +1011,7 @@ try
       cout<<endl;
       cout<<"Syntax: dnsdist [-C,--config file] [-c,--client] [-d,--daemon]\n";
       cout<<"[-p,--pidfile file] [-e,--execute cmd] [-h,--help] [-l,--local addr]\n";
+      cout<<"[-v,--verbose]\n";
       cout<<"\n";
       cout<<"-a,--acl netmask      Add this netmask to the ACL\n";
       cout<<"-C,--config file      Load configuration from 'file'\n";
@@ -1023,6 +1025,7 @@ try
       cout<<"                        (use with e.g. systemd and daemontools)\n";
       cout<<"-p,--pidfile file     Write a pidfile, works only with --daemon\n";
       cout<<"-u,--uid uid          Change the process user ID after binding sockets\n";
+      cout<<"-v,--verbose          Enable verbose mode\n";
       cout<<"\n";
       exit(EXIT_SUCCESS);
       break;
