@@ -251,11 +251,12 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 {
   int best_match_len = -1;
   bool from_cache = false;  // Was this result fetched from the cache?
+  map<DNSName,int> negCacheMap;
 
   // If not special case of caching explicitly disabled (sd->db = -1), first
   // find the best match from the cache. If DS then we need to find parent so
   // dont bother with caching as it confuses matters.
-  if( sd->db != (DNSBackend *)-1 && d_cache_ttl && p->qtype != QType::DS ) {
+  if( sd->db != (DNSBackend *)-1 && (d_cache_ttl || d_negcache_ttl)) {
       DNSName subdomain(target);
       int cstat, loops = 0;
       do {
@@ -265,7 +266,7 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
 
         cstat = cacheHas(d_question,d_answers);
 
-        if(cstat==1 && !d_answers.empty()) {
+        if(cstat==1 && !d_answers.empty() && d_cache_ttl) {
           fillSOAData(d_answers[0].content,*sd);
           sd->domain_id = d_answers[0].domain_id;
           sd->ttl = d_answers[0].ttl;
@@ -274,29 +275,50 @@ bool UeberBackend::getAuth(DNSPacket *p, SOAData *sd, const DNSName &target)
           //L<<Logger::Error<<"Best cache match: " << sd->qname << " itteration " << loops <<endl;
 
           // Found first time round this must be the best match
-          if( loops == 0 )
+          if( loops == 0  && p->qtype != QType::DS)
             return true;
 
           from_cache = true;
           best_match_len = sd->qname.countLabels();
 
-          break;
-        }
+          if ( p->qtype != QType::DS || best_match_len < (int)target.countLabels())
+            break;
+        } else if (cstat==0 && d_negcache_ttl) {
+          negCacheMap[subdomain]=1;
+        } else
+          negCacheMap[subdomain]=0;
         loops++;
       }
       while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   }
 
-  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i)
-    if((*i)->getAuth(p, sd, target, best_match_len)) {
+  for(vector<DNSBackend *>::const_iterator i=backends.begin(); i!=backends.end();++i) {
+    // Shortcut for the case that we got a direct hit - no need to go
+    // through the other backends then.
+    if( best_match_len == (int)target.countLabels() && p->qtype != QType::DS )
+      goto auth_found;
+
+    if((*i)->getAuth(p, sd, target, best_match_len, negCacheMap)) {
         best_match_len = sd->qname.countLabels(); // FIXME400
         from_cache = false;
-
-        // Shortcut for the case that we got a direct hit - no need to go
-        // through the other backends then.
-        if( best_match_len == (int)target.countLabels() )
-            goto auth_found;
     }
+  }
+
+  if( sd->db != (DNSBackend *)-1 && d_negcache_ttl) {
+    DNSName shorter(target);
+
+    d_question.qtype=QType::SOA;
+    d_question.zoneId=-1;
+    while((int)shorter.countLabels() > best_match_len ) {
+      map<DNSName,int>::iterator it = negCacheMap.find(shorter);
+      if (it == negCacheMap.end() || it->second == 0) {
+        d_question.qname=shorter;
+        addNegCache(d_question);
+      }
+      if (!shorter.chopOff())
+        break;
+    }
+  }
 
   if( best_match_len == -1 )
       return false;
