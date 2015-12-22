@@ -421,12 +421,14 @@ try
 	  continue;
 	if(rr.qtype.getCode() == QType::SOA)
 	  seenSOA=true;
-        if(!haveEmittedZone && !zpt.getZoneName().empty()){
-          emitDomain(zpt.getZoneName().toStringNoDot());
-          haveEmittedZone = true;
-        } else {
-          // We have no zonename yet, don't emit
-          continue;
+        if(!haveEmittedZone) {
+          if(!zpt.getZoneName().empty()){
+            emitDomain(zpt.getZoneName().toStringNoDot());
+            haveEmittedZone = true;
+          } else {
+            // We have no zonename yet, don't emit
+            continue;
+          }
         }
 
         emitRecord(zpt.getZoneName().toStringNoDot(), rr.qname, rr.qtype.getName(), rr.content, rr.ttl, comment);
