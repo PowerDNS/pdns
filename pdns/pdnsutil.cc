@@ -1228,13 +1228,22 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   else
     cout << "Securing zone with " << k_algos[0] << " algorithm with default key size" << endl;
 
-  // run secure-zone with first default algorith, then add keys
-  if(!dk.addKey(zone, true, shorthand2algorithm(k_algos[0]), k_size)) {
-    cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
-    cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
-    cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
-    cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!"<<endl;
+
+  DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
+
+  if(!zskset.empty())  {
+    cerr<<"There were ZSKs already for zone '"<<zone.toString()<<"', no need to add more"<<endl;
     return false;
+  }
+
+  for(vector<string>::iterator i = k_algos.begin(); i != k_algos.end(); i++) {
+    if(!dk.addKey(zone, true, shorthand2algorithm(k_algos[0]), k_size, true)) {
+      cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
+      cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
+      cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
+      cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!"<<endl;
+      return false;
+    }
   }
 
   if(!dk.isSecuredZone(zone)) {
@@ -1245,16 +1254,6 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr<<"'pdnsutil create-bind-db /path/fname'!"<<endl;
     return false;
   }
-
-  DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
-
-  if(!zskset.empty())  {
-    cerr<<"There were ZSKs already for zone '"<<zone.toString()<<"', no need to add more"<<endl;
-    return false;
-  }
-  
-  for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
-    dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
 
   for(string z_algo :  z_algos)
   {
