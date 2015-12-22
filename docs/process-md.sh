@@ -17,7 +17,7 @@ pre() {
     -e 's/\\([\$\^><])/\1/g;' \
     $file
   done
-  sed 's|\([0-9a-f]\{9\}\)\([0-9a-f]*\)|[\1](https://github.com/PowerDNS/pdns/commit/\1\2)|g' < markdown/changelog.md.raw > doc-build/changelog.md
+  sed 's|\([0-9a-f]\{9\}\)\([0-9a-f]*\)|[\1](https://github.com/PowerDNS/pdns/commit/\1\2)|g' < markdown/changelog.raw.md > doc-build/changelog.md
 }
 
 post() {
@@ -27,6 +27,11 @@ post() {
     -e 's/\<table>/<table class="table-bordered">/;' \
     -e 's/\<title>None\<\/title>/<title>PowerDNS<\/title>/' \
     {} +
+
+  # Remove files we don't need on the site
+  rm -rf html/process-* \
+        html/changelog.raw.md \
+        html/theme
 }
 
 $1
