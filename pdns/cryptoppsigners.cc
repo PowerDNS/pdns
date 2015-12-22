@@ -45,7 +45,7 @@ private:
 template<class HASHER, class CURVE, int BITS> void CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::create(unsigned int bits)
 {
   if(bits != BITS)
-    throw runtime_error("This CryptoPP class can only hosts keys of length "+to_string(BITS));
+    throw runtime_error("This CryptoPP class can only hosts keys of length "+std::to_string(BITS));
   AutoSeededRandomPool prng;
   privatekey_t* privateKey = new privatekey_t();
   CryptoPP::OID oid=CURVE();
@@ -68,7 +68,7 @@ DNSCryptoKeyEngine::storvector_t CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BI
 {
    /* Algorithm: 13 (ECDSAP256SHA256)
    PrivateKey: GU6SnQ/Ou+xC5RumuIUIuJZteXT2z0O/ok1s38Et6mQ= */
-  string algostr=to_string(d_algorithm);
+  string algostr=std::to_string(d_algorithm);
   if(d_algorithm==13) 
     algostr+=" (ECDSAP256SHA256)";
   else if(d_algorithm==14)

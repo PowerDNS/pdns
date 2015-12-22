@@ -3,6 +3,7 @@
 #include "logger.hh"
 #include "dnsparser.hh"
 #include "syncres.hh"
+#include "namespaces.hh"
 
 #if !defined(HAVE_LUA)
 
@@ -103,7 +104,7 @@ static int getFakePTRRecords(const DNSName& qname, const std::string& prefix, ve
   string newquery;
   for(int n = 0; n < 4; ++n) {
     newquery +=
-      lexical_cast<string>(strtol(parts[n*2].c_str(), 0, 16) + 16*strtol(parts[n*2+1].c_str(), 0, 16));
+      std::to_string(strtol(parts[n*2].c_str(), 0, 16) + 16*strtol(parts[n*2+1].c_str(), 0, 16));
     newquery.append(1,'.');
   }
   newquery += "in-addr.arpa.";
