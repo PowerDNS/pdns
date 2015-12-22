@@ -104,7 +104,7 @@ EOF
 			fi
 
 			# add DS records into list-all-records
-                        $PDNSUTIL --config-dir=. --config-name=remote show-zone up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
+                        $PDNSUTIL --config-dir=. --config-name=remote show-zone -v up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
 			cat $testsdir/list-all-records/expected_dnssec_part1 $testsdir/list-all-records/expected_dnssec_part2 $testsdir/list-all-records/expected_dnssec_part3 > $testsdir/list-all-records/expected_result.dnssec 
 			cp -f $testsdir/list-all-records/expected_result.dnssec $testsdir/list-all-records/expected_result.nsec3
 		fi
