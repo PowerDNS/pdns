@@ -5,7 +5,7 @@ exact license and exception used).
 All documentation can be found on http://doc.powerdns.com/
 
 This file may lag behind at times. For most recent updates, always check
-https://doc.powerdns.com/md/changelog/ and http://wiki.powerdns.com
+https://doc.powerdns.com/md/changelog/.
 
 Another good place to look for information is:
 https://doc.powerdns.com/md/appendix/compiling-powerdns/
@@ -64,9 +64,6 @@ build the recursor is first running `dist-recursor` and compiling from the `pdns
 
 When building from git `pandoc` and `zip` are build dependencies. 
 
-To build deb and rpm packages after running `dist-recursor`, run `build-recursor`. This depends on
-Lua 5.1 (liblua5.1-dev), dh-make and rpm.
-
 SOLARIS NOTES
 -------------
 Use a recent gcc. OpenCSW is a good source, as is Solaris 11 IPS.
@@ -79,7 +76,6 @@ You need to compile using gmake - regular make only appears to work, but doesn't
 
 MAC OS X NOTES
 --------------
-
 PowerDNS Authoritative Server is available through Homebrew:
 
     $ brew install pdns
@@ -100,5 +96,3 @@ For MySQL support:
 LINUX NOTES
 -----------
 None really.
-
-
