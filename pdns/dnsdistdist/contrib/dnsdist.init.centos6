@@ -17,10 +17,14 @@
 PROG=dnsdist
 DNSDIST=/usr/bin/${PROG}
 PIDFILE=/var/run/${PROG}.pid
-DNSDIST_OPTIONS="-l 127.0.0.1:53"
+DNSDIST_OPTIONS=""
 
 if [ -f /etc/default/${PROG} ]; then
   . /etc/default/${PROG}
+fi
+
+if [ -f /etc/sysconfig/${PROG} ]; then
+  . /etc/sysconfig/${PROG}
 fi
 
 RETVAL=0

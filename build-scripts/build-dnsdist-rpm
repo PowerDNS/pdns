@@ -39,9 +39,9 @@ INIT_BUILDREQUIRES='BuildRequires: systemd'
 INIT_INSTALL='install -d -m 755 %{buildroot}/%{_sysconfdir}/systemd/system/ && install -m 664 contrib/dnsdist.service %{buildroot}/%{_sysconfdir}/systemd/system/dnsdist.service'
 INIT_FILES='%{_sysconfdir}/systemd/system/dnsdist.service'
 
-# These two are the same for sysv and systemd
-DEFAULTS_INSTALL='install -d -m 755 %{buildroot}/%{_sysconfdir}/sysconfig && install -m 644 contrib/dnsdist.default %{buildroot}/%{_sysconfdir}/sysconfig/dnsdist'
-DEFAULTS_FILES='%{_sysconfdir}/sysconfig/dnsdist'
+# These two are the same for sysv and systemd (we don't install defaults files at the moment)
+DEFAULTS_INSTALL=''
+DEFAULTS_FILES=''
 
 # On some older distro's *cough* centos 6 *cough* autosetup fails
 SETUP='%autosetup -n %{name}-%{version}'

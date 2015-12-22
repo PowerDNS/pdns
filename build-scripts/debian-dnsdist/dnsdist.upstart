@@ -6,4 +6,4 @@ stop on runlevel [!2345]
 author "Pieter Lexis <pieter.lexis@powerdns.com>"
 
 # Keep the --supervised option when modifying this
-exec /usr/bin/dnsdist --supervised -l 127.0.0.1
+exec /usr/bin/dnsdist --supervised
