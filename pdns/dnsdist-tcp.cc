@@ -159,9 +159,30 @@ void* tcpClientThread(int pipefd)
         }
 
         char queryBuffer[qlen];
-        const char * query = queryBuffer;
+        const char* query = queryBuffer;
         uint16_t queryLen = qlen;
+        size_t querySize = qlen;
         readn2WithTimeout(ci.fd, queryBuffer, queryLen, g_tcpRecvTimeout);
+#ifdef HAVE_DNSCRYPT
+        std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
+
+        if (ci.cs->dnscryptCtx) {
+          dnsCryptQuery = std::make_shared<DnsCryptQuery>();
+          uint16_t decryptedQueryLen = 0;
+          vector<uint8_t> response;
+          bool decrypted = handleDnsCryptQuery(ci.cs->dnscryptCtx, queryBuffer, queryLen, dnsCryptQuery, &decryptedQueryLen, true, response);
+
+          if (!decrypted) {
+            if (response.size() > 0) {
+              if (putNonBlockingMsgLen(ci.fd, response.size(), g_tcpSendTimeout))
+                writen2WithTimeout(ci.fd, (const char *) response.data(), response.size(), g_tcpSendTimeout);
+            }
+            break;
+          }
+          queryLen = decryptedQueryLen;
+        }
+#endif
+
 	uint16_t qtype;
 	unsigned int consumed = 0;
 	DNSName qname(query, queryLen, sizeof(dnsheader), false, &qtype, 0, &consumed);
@@ -174,7 +195,7 @@ void* tcpClientThread(int pipefd)
 
 	{
 	  WriteLock wl(&g_rings.queryLock);
-	  g_rings.queryRing.push_back({now,ci.remote,qname,(uint16_t)queryLen,qtype,*dh});
+	  g_rings.queryRing.push_back({now,ci.remote,qname,queryLen,qtype,*dh});
 	}
 
 	g_stats.queries++;
@@ -263,10 +284,11 @@ void* tcpClientThread(int pipefd)
 
         if (ds->useECS) {
           uint16_t newLen = queryLen;
-          handleEDNSClientSubnet(queryBuffer, queryLen, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
+          handleEDNSClientSubnet(queryBuffer, querySize, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
           if (largerQuery.empty() == false) {
             query = largerQuery.c_str();
             queryLen = largerQuery.size();
+            querySize = largerQuery.size();
           } else {
             queryLen = newLen;
           }
@@ -325,7 +347,13 @@ void* tcpClientThread(int pipefd)
           goto retry;
         }
 
-        char answerbuffer[rlen];
+        uint16_t responseSize = rlen;
+#ifdef HAVE_DNSCRYPT
+        if (ci.cs->dnscryptCtx && (UINT16_MAX - DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE) > rlen) {
+          responseSize += DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+        }
+#endif
+        char answerbuffer[responseSize];
         readn2WithTimeout(dsock, answerbuffer, rlen, ds->tcpRecvTimeout);
         struct dnsheader* responseHeaders = (struct dnsheader*)answerbuffer;
         uint16_t * responseFlags = getFlagsFromDNSHeader(responseHeaders);
@@ -335,8 +363,8 @@ void* tcpClientThread(int pipefd)
         origFlags &= ~restoreFlagsMask;
         /* set the saved flags as they were */
         *responseFlags |= origFlags;
-        char * response = answerbuffer;
-        size_t responseLen = rlen;
+        char* response = answerbuffer;
+        uint16_t responseLen = rlen;
 
         if (ednsAdded) {
           const char * optStart = NULL;
@@ -356,8 +384,15 @@ void* tcpClientThread(int pipefd)
             else {
               /* Removing an intermediary RR could lead to compression error */
               if (rewriteResponseWithoutEDNS(response, responseLen, rewrittenResponse) == 0) {
-                response = reinterpret_cast<char*>(rewrittenResponse.data());
+#ifdef HAVE_DNSCRYPT
+                if (ci.cs->dnscryptCtx && rewrittenResponse.capacity() < responseSize && ci.cs->dnscryptCtx) {
+                  /* we preserve room for dnscrypt */
+                  rewrittenResponse.reserve(responseSize);
+                }
+#endif
+                responseSize = responseLen;
                 responseLen = rewrittenResponse.size();
+                response = reinterpret_cast<char*>(rewrittenResponse.data());
               }
               else {
                 warnlog("Error rewriting content");
@@ -368,8 +403,23 @@ void* tcpClientThread(int pipefd)
 
 	if(g_fixupCase) {
 	  string realname = qname.toDNSString();
-	  memcpy(response+12, realname.c_str(), realname.length());
+	  memcpy(response + sizeof(dnsheader), realname.c_str(), realname.length());
 	}
+
+#ifdef HAVE_DNSCRYPT
+        if (ci.cs->dnscryptCtx) {
+          uint16_t encryptedResponseLen = 0;
+          int res = ci.cs->dnscryptCtx->encryptResponse(response, responseLen, responseSize, dnsCryptQuery, true, &encryptedResponseLen);
+
+          if (res == 0) {
+            responseLen = encryptedResponseLen;
+          } else {
+            /* dropping response */
+            vinfolog("Error encrypting the response, dropping.");
+            break;
+          }
+        }
+#endif
 
         if (putNonBlockingMsgLen(ci.fd, responseLen, ds->tcpSendTimeout))
           writen2WithTimeout(ci.fd, response, responseLen, ds->tcpSendTimeout);
