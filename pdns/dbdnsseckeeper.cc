@@ -431,12 +431,6 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool
   return retkeyset;
 }
 
-bool DNSSECKeeper::secureZone(const DNSName& name, int algorithm, int size)
-{
-  clearCaches(name); // just to be sure ;)
-  return addKey(name, true, algorithm, size);
-}
-
 bool DNSSECKeeper::getPreRRSIGs(UeberBackend& db, const DNSName& signer, const DNSName& qname,
         const DNSName& wildcardname, const QType& qtype,
         DNSResourceRecord::Place signPlace, vector<DNSResourceRecord>& rrsigs, uint32_t signTTL)
