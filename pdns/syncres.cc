@@ -341,7 +341,7 @@ int SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, con
     ret=asyncresolve(ip, domain, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, res);
 
     if(ret == 0 || ret < 0) {
-      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret = "<<ret<<", mode = "<<(int)mode<<")"<<endl;
+//      cerr<< (ret < 0 ? "Transport error" : "Timeout")<<" for query to "<<ip.toString()<<" for '"<<domain.toString()<<"' (ret = "<<ret<<", mode = "<<(int)mode<<")"<<endl;
       // timeout = downgrade to EDNS
       if(ret==0 && mode != EDNSStatus::NOEDNS) {
         //	cerr<<"\tDowngrading to NOEDNS"<<endl;
