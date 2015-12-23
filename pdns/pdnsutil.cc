@@ -1150,9 +1150,9 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
       }
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
-      if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey") || g_verbose)
+      if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey") || 1)
         cout<<(value.second.keyOrZone ? "KSK" : "ZSK")<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
-      if(value.second.keyOrZone || g_verbose) {
+      if(value.second.keyOrZone || 1) {
         cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
         cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
