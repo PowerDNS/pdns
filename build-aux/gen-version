@@ -10,7 +10,7 @@ if [ "${IS_RELEASE}" = "YES" ]; then
   TAG="$(git describe --tags --exact-match 2> /dev/null | cut -d- -f 2-)"
   if [ -n "${TAG}" ]; then
     # We're on a tag
-    echo "${TAG}${DIRTY}"
+    echo "${TAG}${DIRTY}" | tee .version
     exit 0
   fi
   echo 'This is not a tag, either tag this commit or do not set $IS_RELEASE' >&2

@@ -10,6 +10,10 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
+if [ -z "$TARBALLVERSION" ]; then
+  TARBALLVERSION=${VERSION}
+fi
+
 if [ -z "$RELEASE" ];then
   echo 'Please set $RELEASE' >&2
   exit 1
@@ -22,10 +26,10 @@ set -x
 rpmdev-setuptree
 
 # This is somethat ugly...
-if [ -f pdns-recursor-${VERSION}.tar.bz2 ]; then
-  mv pdns-recursor-${VERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
+if [ -f pdns-recursor-${TARBALLVERSION}.tar.bz2 ]; then
+  mv pdns-recursor-${TARBALLVERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
 else
-  echo "pdns-recursor-${VERSION}.tar.bz2 not found" >&2
+  echo "pdns-recursor-${TARBALLVERSION}.tar.bz2 not found" >&2
   exit 1
 fi
 
@@ -112,7 +116,7 @@ Summary: Modern, advanced and high performance recursing/non authoritative name 
 Group: System Environment/Daemons
 License: GPLv2
 URL: http://powerdns.com
-Source0: ../%{name}-%{version}.tar.bz2
+Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 Source1: pdns-recursor.init
 
 Provides: powerdns-recursor = %{version}-%{release}
@@ -129,9 +133,9 @@ PowerDNS Recursor is a non authoritative/recursing DNS server. Use this
 package if you need a dns cache for your network.
 
 %prep
-%setup -q
-sed -i -e 's!SYSCONFDIR=/etc/powerdns!SYSCONFDIR=/etc/pdns-recursor!' -e 's!STRIP_BINARIES?=1!STRIP_BINARIES?=0!' $HOME/rpmbuild/BUILD/pdns-recursor-${VERSION}/Makefile.in
-sed -i -e 's!OS_SPECIFIC_INSTALL=.*!OS_SPECIFIC_INSTALL=!' $HOME/rpmbuild/BUILD/pdns-recursor-${VERSION}/sysdeps/Linux.inc
+%setup -q -n pdns-recursor-${TARBALLVERSION}
+sed -i -e 's!SYSCONFDIR=/etc/powerdns!SYSCONFDIR=/etc/pdns-recursor!' -e 's!STRIP_BINARIES?=1!STRIP_BINARIES?=0!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/Makefile.in
+sed -i -e 's!OS_SPECIFIC_INSTALL=.*!OS_SPECIFIC_INSTALL=!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/sysdeps/Linux.inc
 
 %build
 %configure
@@ -197,7 +201,7 @@ Summary: Modern, advanced and high performance recursing/non authoritative name 
 Group: System Environment/Daemons
 License: GPLv2
 URL: http://powerdns.com
-Source0: ../%{name}-%{version}.tar.bz2
+Source0: ../%{name}-${TARBALLVERSION}.tar.bz2
 
 Provides: powerdns-recursor = %{version}-%{release}
 BuildRequires: boost-devel
@@ -216,9 +220,9 @@ PowerDNS Recursor is a non authoritative/recursing DNS server. Use this
 package if you need a dns cache for your network.
 
 %prep
-%setup -q
-sed -i -e 's!SYSCONFDIR=/etc/powerdns!SYSCONFDIR=/etc/pdns-recursor!' -e 's!STRIP_BINARIES?=1!STRIP_BINARIES?=0!' $HOME/rpmbuild/BUILD/pdns-recursor-${VERSION}/Makefile.in
-sed -i -e 's!OS_SPECIFIC_INSTALL=.*!OS_SPECIFIC_INSTALL=!' $HOME/rpmbuild/BUILD/pdns-recursor-${VERSION}/sysdeps/Linux.inc
+%setup -q -n pdns-recursor-${TARBALLVERSION}
+sed -i -e 's!SYSCONFDIR=/etc/powerdns!SYSCONFDIR=/etc/pdns-recursor!' -e 's!STRIP_BINARIES?=1!STRIP_BINARIES?=0!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/Makefile.in
+sed -i -e 's!OS_SPECIFIC_INSTALL=.*!OS_SPECIFIC_INSTALL=!' $HOME/rpmbuild/BUILD/pdns-recursor-${TARBALLVERSION}/sysdeps/Linux.inc
 
 %build
 %configure

@@ -10,6 +10,10 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
+if [ -z "$TARBALLVERSION" ]; then
+  TARBALLVERSION=${VERSION}
+fi
+
 if [ -z "$RELEASE" ];then
   echo 'Please set $RELEASE' >&2
   exit 1
@@ -22,10 +26,10 @@ set -x
 rpmdev-setuptree
 
 # This is somethat ugly...
-if [ -f dnsdist-${VERSION}.tar.bz2 ]; then
-  mv dnsdist-${VERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
+if [ -f dnsdist-${TARBALLVERSION}.tar.bz2 ]; then
+  mv dnsdist-${TARBALLVERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
 else
-  echo "dnsdist-${VERSION}.tar.bz2 not found" >&2
+  echo "dnsdist-${TARBALLVERSION}.tar.bz2 not found" >&2
   exit 1
 fi
 
@@ -44,7 +48,7 @@ DEFAULTS_INSTALL=''
 DEFAULTS_FILES=''
 
 # On some older distro's *cough* centos 6 *cough* autosetup fails
-SETUP='%autosetup -n %{name}-%{version}'
+SETUP="%autosetup -n %{name}-${TARBALLVERSION}"
 
 # Some setups need rpmbuild in a 'special' env
 RPMBUILD_COMMAND='rpmbuild -bb dnsdist.spec'
@@ -60,7 +64,7 @@ if [ -f /etc/redhat-release ]; then
       INIT_BUILDREQUIRES=''
       INIT_INSTALL='install -d -m 755 %{buildroot}/%{_initrddir} && install -m 755 contrib/dnsdist.init.centos6 %{buildroot}/%{_initrddir}/dnsdist'
       INIT_FILES='%{_initrddir}/dnsdist'
-      SETUP='%setup -n %{name}-%{version}'
+      SETUP="%setup -n %{name}-${TARBALLVERSION}"
       RPMBUILD_COMMAND="scl enable devtoolset-2 -- ${RPMBUILD_COMMAND}"
       ;;
     CentOS\ Linux\ *\ 7*)
@@ -81,7 +85,7 @@ Summary: Powerful and scriptable DNS loadbalancer
 License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-Source: dnsdist-${VERSION}.tar.bz2
+Source: dnsdist-${TARBALLVERSION}.tar.bz2
 BuildRequires: readline-devel
 BuildRequires: boost-devel
 BuildRequires: lua-devel
