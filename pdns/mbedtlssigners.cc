@@ -621,13 +621,12 @@ std::string MbedECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   }
 
   /* SEC1: 4.1.3 Signing Operation */
-  const size_t rSize = mbedtls_mpi_size(&r);
-  const size_t sSize = mbedtls_mpi_size(&s);
-  const size_t sigLen = rSize + sSize;
+  const size_t mpiLen = mbedtls_mpi_size(&d_ctx.grp.P);
+  const size_t sigLen = mpiLen * 2;
 
   unsigned char sig[sigLen];
 
-  ret = mbedtls_mpi_write_binary(&r, sig, rSize);
+  ret = mbedtls_mpi_write_binary(&r, sig, mpiLen);
 
   if (ret != 0) {
     mbedtls_mpi_free(&r);
@@ -635,7 +634,7 @@ std::string MbedECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
     throw runtime_error("Error converting ECDSA signature part R to binary");
   }
 
-  ret = mbedtls_mpi_write_binary(&s, sig + rSize, sSize);
+  ret = mbedtls_mpi_write_binary(&s, sig + mpiLen, mpiLen);
 
   if (ret != 0) {
     mbedtls_mpi_free(&r);
