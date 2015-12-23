@@ -50,7 +50,9 @@ also that you'll be informed about syntax errors at compile time.
 Finally, `rec_control unload-lua-script` can be used to remove the currently
 installed script, and revert to unmodified behaviour.
 
-## Writing Lua PowerDNS Recursor scripts
+
+
+## Writing Lua PowerDNS Recursor scripts for 3.x
 Once a script is loaded, PowerDNS looks for several functions, as detailed below. All of these functions are optional.
 
 ### `function ipfilter ( remoteip )`
