@@ -33,6 +33,10 @@ typedef md_type_t mbedtls_md_type_t;
 
 #define mbedtls_mpi mpi
 
+#define mbedtls_ecdsa_context ecdsa_context
+
+#define mbedtls_ecp_group ecp_group
+#define mbedtls_ecp_group_id ecp_group_id
 
 // Functions macro
 #define mbedtls_aes_crypt_ctr aes_crypt_ctr
@@ -65,10 +69,12 @@ typedef md_type_t mbedtls_md_type_t;
 
 #define mbedtls_entropy_init entropy_init
 #define mbedtls_entropy_func entropy_func
+#define mbedtls_entropy_free entropy_free
 
 #define mbedtls_ctr_drbg_init
 #define mbedtls_ctr_drbg_seed ctr_drbg_init
 #define mbedtls_ctr_drbg_random ctr_drbg_random
+#define mbedtls_ctr_drbg_free ctr_drbg_free
 
 #define mbedtls_rsa_init rsa_init
 #define mbedtls_rsa_gen_key rsa_gen_key
@@ -81,6 +87,20 @@ typedef md_type_t mbedtls_md_type_t;
 #define mbedtls_mpi_write_binary mpi_write_binary
 #define mbedtls_mpi_read_binary mpi_read_binary
 
+#define mbedtls_ecdsa_free ecdsa_free
+#define mbedtls_ecdsa_genkey ecdsa_genkey
+#define mbedtls_ecdsa_init ecdsa_init
+#define mbedtls_ecdsa_sign_det ecdsa_sign_det
+#define mbedtls_ecdsa_verify ecdsa_verify
+
+#define mbedtls_ecp_copy ecp_copy
+#define mbedtls_ecp_group_copy ecp_group_copy
+#define mbedtls_ecp_group_load ecp_group_load
+#define mbedtls_ecp_mul ecp_mul
+#define mbedtls_ecp_point_init ecp_point_init
+#define mbedtls_ecp_point_read_binary ecp_point_read_binary
+#define mbedtls_ecp_point_write_binary ecp_point_write_binary
+#define mbedtls_ecp_group_free ecp_group_free
 
 // Functions
 #ifdef POLARSSL_BASE64_H
