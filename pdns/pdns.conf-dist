@@ -460,9 +460,9 @@
 # soa-retry-default=3600
 
 #################################
-# socket-dir	Where the controlsocket will live
+# socket-dir	Where the controlsocket will live, /var/run when unset and not chrooted
 #
-# socket-dir=/var/run
+# socket-dir=
 
 #################################
 # tcp-control-address	If set, PowerDNS can be controlled over TCP on this address

@@ -133,7 +133,17 @@ static void writePid(void)
   if(!::arg().mustDo("write-pid"))
     return;
 
-  string fname=::arg()["socket-dir"]+"/"+s_programname+".pid";
+  string fname=::arg()["socket-dir"];
+  if (::arg()["socket-dir"].empty()) {
+    if (::arg()["chroot"].empty())
+      fname = LOCALSTATEDIR;
+    else
+      fname = ::arg()["chroot"] + "/";
+  } else if (!::arg()["socket-dir"].empty() && !::arg()["chroot"].empty()) {
+    fname = ::arg()["chroot"] + ::arg()["socket-dir"];
+  }
+
+  fname += + "/" + s_programname + ".pid";
   ofstream of(fname.c_str());
   if(of)
     of<<getpid()<<endl;
@@ -347,7 +357,7 @@ static void UNIX_declareArguments()
 {
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
-  ::arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+  ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().set("chroot","If set, chroot to this directory for more security")="";
   ::arg().set("logging-facility","Log under a specific facility")="";

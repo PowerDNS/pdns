@@ -10,7 +10,7 @@ rec_control - control pdns_recursor
 
 DESCRIPTION
 -----------
-rec_control(1) allows the operator to control a running instance
+**rec_control** allows the operator to control a running instance
 of the pdns_recursor.
 
 The commands that can be passed to the recursor are described on
@@ -29,8 +29,11 @@ To dump the cache to disk, execute:
 --help
 :    provide this helpful message.
 
+--config-dir=*PATH*
+:    Directory where the recursor.conf lives.
+
 --socket-dir=*PATH*
-:    Where the controlsocket will live.
+:    Where the controlsocket will live, please use **--config-dir** instead.
 
 --socket-pid=*PID*
 :    When running in SMP mode, pid of **pdns_recursor** to control.

@@ -44,7 +44,8 @@ static void initArguments(int argc, char** argv)
 {
   arg().set("config-dir","Location of configuration directory (recursor.conf)")=SYSCONFDIR;
 
-  arg().set("socket-dir","Where the controlsocket will live")=LOCALSTATEDIR;
+  arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+" when unset and not chrooted" )="";
+  arg().set("chroot","switch to chroot jail")="";
   arg().set("process","When controlling multiple recursors, the target process number")="";
   arg().set("timeout", "Number of seconds to wait for the recursor to respond")="5";
   arg().set("config-name","Name of this virtual configuration - will rename the binary image")="";
@@ -64,9 +65,21 @@ static void initArguments(int argc, char** argv)
   
   cleanSlashes(configname);
 
-  if(!::arg().preParseFile(configname.c_str(), "socket-dir", LOCALSTATEDIR)) 
+  if(!::arg().preParseFile(configname.c_str(), "socket-dir", ""))
     cerr<<"Warning: unable to parse configuration file '"<<configname<<"'"<<endl;
+  if(!::arg().preParseFile(configname.c_str(), "chroot", ""))
+    cerr<<"Warning: unable to parse configuration file '"<<configname<<"'"<<endl;
+
   arg().laxParse(argc,argv);   // make sure the commandline wins
+
+  if (::arg()["socket-dir"].empty()) {
+    if (::arg()["chroot"].empty())
+      ::arg().set("socket-dir") = LOCALSTATEDIR;
+    else
+      ::arg().set("socket-dir") = ::arg()["chroot"] + "/";
+  } else if (!::arg()["chroot"].empty()) {
+    ::arg().set("socket-dir") = ::arg()["chroot"] + "/" + ::arg()["socket-dir"];
+  }
 }
 
 int main(int argc, char** argv)
