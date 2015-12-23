@@ -15,7 +15,7 @@ magic2 = newDN("www.magic2.com")
 -- return false to say you did not take over the question, but we'll still listen to 'variable'
 -- to selectively disable the cache
 function preresolve(dq)
-	print("Got question for "..dq.qname:toString())
+	print("Got question for "..dq.qname:toString().." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
 
 	-- note that the comparisons below are CaSe InSensiTivE and you don't have to worry about trailing dots
 	if(dq.qname:equal("magic.com"))
