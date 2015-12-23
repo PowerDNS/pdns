@@ -10,6 +10,10 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
+if [ -z "$TARBALLVERSION" ]; then
+  TARBALLVERSION=$VERSION
+fi
+
 if [ -z "$RELEASE" ];then
   echo 'Please set $RELEASE' >&2
   exit 1
@@ -22,10 +26,10 @@ set -x
 rpmdev-setuptree
 
 # This is somethat ugly...
-if [ -f pdns-${VERSION}.tar.bz2 ]; then
-  mv pdns-${VERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
+if [ -f pdns-${TARBALLVERSION}.tar.bz2 ]; then
+  mv pdns-${TARBALLVERSION}.tar.bz2 $HOME/rpmbuild/SOURCES
 else
-  echo "pdns-${VERSION}.tar.bz2 not found" >&2
+  echo "pdns-${TARBALLVERSION}.tar.bz2 not found" >&2
   exit 1
 fi
 
@@ -49,7 +53,7 @@ Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
 URL: http://powerdns.com
-Source: ../%{name}-%{version}.tar.bz2
+Source: ../%{name}-${TARBALLVERSION}.tar.bz2
 
 Requires(pre): shadow-utils
 Requires(post): /sbin/chkconfig
@@ -144,7 +148,7 @@ BuildRequires: sqlite-devel
 This package contains the SQLite backend for %{name}
 
 %prep
-%setup -q
+%setup -q -n %{name}-${TARBALLVERSION}
 
 %build
 export CPPFLAGS="-DLDAP_DEPRECATED"
@@ -287,7 +291,7 @@ Summary: A modern, advanced and high performance authoritative-only nameserver
 Group: System Environment/Daemons
 License: GPLv2
 URL: http://powerdns.com
-Source: ../pdns-%{version}.tar.bz2
+Source: ../pdns-${TARBALLVERSION}.tar.bz2
 
 Requires(pre): shadow-utils
 Requires(post): systemd-sysv
@@ -408,7 +412,7 @@ BuildRequires: sqlite-devel
 This package contains the SQLite backend for %{name}
 
 %prep
-%setup -q
+%setup -q -n %{name}-${TARBALLVERSION}
 
 %build
 export CPPFLAGS="-DLDAP_DEPRECATED"
