@@ -35,28 +35,38 @@ UNRELEASED - trial packages on [our builder](https://builder.powerdns.com) and o
 PowerDNS Authoritative Server 4.0.0 is part of [the great 4.x "Spring Cleaning"](http://blog.powerdns.com/2015/11/28/powerdns-spring-cleaning/)
 of PowerDNS which lasted through the end of 2015.
 
-As part of the general cleanup, we did the following:
+As part of the general cleanup and improvements, we did the following:
 
 - Moved to C++ 2011, a cleaner more powerful version of C++ that has allowed us to [improve the quality of implementation](http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html) in many places.
-- Implemented dedicated infrastructure for dealing with DNS names that is fully "DNS Native" and needs less escaping and unescaping
+- Implemented dedicated infrastructure for dealing with DNS names that is fully "DNS Native" and needs less escaping and unescaping.
+- All backends derived from the Generic SQL backend use [prepared statements](authoritative/backend-generic-sql.md).
+- Both the server and `pdns_control` do the right thing when `chroot`'ed.
 
 In addition to this cleanup, 4.0.0 brings the following new features:
 
-- All backends derived from the Generic SQL backend use prepared statements
-- Support for CDS/CDNSKEY and [RFC 7344](https://tools.ietf.org/html/rfc7344) key-rollovers
-- Support for the ALIAS record
-- The webserver and API are no longer marked experimental
-- DNSUpdate is no longer experimental
-- Experimental support for ed25519 DNSSEC signatures (when compiled with libsodium support)
+- A revived ODBC backend ([godbc](authoritative/backend-generic-odbc.md)).
+- Support for [CDS/CDNSKEY](authoritative/howtos.md#cds-cdnskey-key-rollover) and [RFC 7344](https://tools.ietf.org/html/rfc7344) key-rollovers.
+- Support for the [ALIAS](authoritative/howtos.md#using-alias-records) record.
+- The webserver and API are no longer marked experimental.
+- DNSUpdate is no longer experimental.
+- Default ECDSA (algorithms 13 and 14) support without external dependencies.
+- Experimental support for ed25519 DNSSEC signatures (when compiled with libsodium support).
 
 The following backend have been dropped in 4.0.0:
 
-- LMDB
-- Geo (use the [GeoIP](authoritative/backend-geoip.md) instead)
+- LMDB.
+- Geo (use the improved [GeoIP](authoritative/backend-geoip.md) instead).
 
 Important changes:
 
-- PowerDNS now listens by default on all IPv6 addresses
+- `pdnssec` has been renamed to `pdnsutil`
+- PowerDNS Authoritative Server now listens by default on all IPv6 addresses.
+- The default for `pdnsutil secure-zone` has been changed from 1 2048 bit RSA KSK and 1 1024 bit RSA ZSK to a single 256 bit ECDSA (algorithm 13, ECDSAP256SHA256) key.
+
+There are several **known issues** that will be fixed before the final 4.0.0 release:
+
+- CDS/CDNSKEY publishing does not yet work with the new default key-scheme.
+- Several thrown exceptions are not caught, causing program abortion. Please run inside a supervisor or the guardian and reports these exceptions.
 
 to be continued....
 
