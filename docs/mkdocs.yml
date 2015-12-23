@@ -64,7 +64,7 @@ pages:
     - 'Manpage: pdns_recursor.1': manpages/pdns_recursor.1.md
     - 'Manpage: rec_control.1': manpages/rec_control.1.md
     - Performance Tuning: recursor/performance.md
-    - Scripting: recursor/scripting4.md
+    - Scripting: recursor/scripting.md
     - DNS64 support: recursor/dns64.md
     - Internals: recursor/internals.md
     - List of Settings: recursor/settings.md
