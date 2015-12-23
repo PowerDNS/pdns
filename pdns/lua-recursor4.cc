@@ -176,6 +176,8 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   d_lw->registerMember("qname", &DNSQuestion::qname);
   d_lw->registerMember("qtype", &DNSQuestion::qtype);
+  d_lw->registerMember("localaddr", &DNSQuestion::local);
+  d_lw->registerMember("remoteaddr", &DNSQuestion::remote);
   d_lw->registerMember("rcode", &DNSQuestion::rcode);
   d_lw->registerMember("variable", &DNSQuestion::variable);
   d_lw->registerMember("followupFunction", &DNSQuestion::followupFunction);
