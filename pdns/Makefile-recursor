@@ -24,6 +24,8 @@ dns_random.o pubsuffix.o ext/mbedtls/library/aes.o ext/mbedtls/library/base64.o 
 ext/mbedtls/library/md5.o ext/mbedtls/library/sha1.o ext/mbedtls/library/sha256.o  \
 ext/mbedtls/library/sha512.o ext/mbedtls/library/md.o ext/mbedtls/library/md_wrap.o \
 ext/mbedtls/library/ripemd160.o ext/mbedtls/library/rsa.o \
+ext/mbedtls/library/ecdsa.o ext/mbedtls/library/ecp.o ext/mbedtls/library/ecp_curves.o \
+ext/mbedtls/library/hmac_drbg.o ext/mbedtls/library/asn1write.o \
 ext/mbedtls/library/bignum.o ext/mbedtls/library/oid.o ext/mbedtls/library/asn1parse.o  \
 ext/mbedtls/library/ctr_drbg.o ext/mbedtls/library/entropy.o ext/mbedtls/library/entropy_poll.o\
 ext/mbedtls/library/timing.o \
