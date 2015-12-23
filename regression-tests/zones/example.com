@@ -1,7 +1,7 @@
 $TTL 120
 $ORIGIN example.com.
 @	100000	IN	SOA	ns1.example.com.	ahu.example.com. (
-			2000081501
+			2847484148
 			8H ; refresh
 			2H ; retry
 			1W ; expire
