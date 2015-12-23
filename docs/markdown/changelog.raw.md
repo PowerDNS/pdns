@@ -13,21 +13,26 @@ As part of the general cleanup, we did the following:
 - Moved ACLs to a dedicated Netmask Tree
 - Implemented a version of [RCU](https://en.wikipedia.org/wiki/Read-copy-update) for configuration changes
 - Instrumented our use of the memory allocator, reduced number of malloc calls substantially.
+- The Lua hook infrastructure was redone using LuaWrapper; old scripts will no longer work, but new scripts are easier to write under the new interface.
 
 In addition to this cleanup, which has many internal benefits and solves longstanding issues with escaped domain names, 4.0.0 brings the following major new features:
 
 - RPZ aka Response Policy Zone support
 - IXFR slaving in the PowerDNS Recursor for RPZ
-- DNSSEC processing in Recursor (authoritative has had this for years)
+- DNSSEC processing in Recursor (Authoritative has had this for years)
 - DNSSEC validation
-- EDNS Client Subnet support in PowerDNS Recursor (authoritative has had this for years)
+- EDNS Client Subnet support in PowerDNS Recursor (Authoritative has had this for years)
 - Lua asynchronous queries for per-IP/per-domain status
 - Caches that can now be wiped per whole zone instead of per name
 - Statistics on authoritative server response times (split for IPv4 and IPv6)
 - APIs are no longer marked as 'experimental' and had one final URL change
-- New metric: tcp-answer-bytes to measure DNS TCP/IP bandwidth 
+- New metric: tcp-answer-bytes to measure DNS TCP/IP bandwidth, and many other new metrics
 
-.. to be continued
+Please be aware that beyond the items listed here, there have been heaps of tiny changes. As always, please carefully test a new release before deploying it.
+
+As of alpha1, we are aware of the following brokenness:
+
+- The validator misjudges the DNSSEC status of many domains. Please report such errors if you find them.
 
 # PowerDNS Authoritative Server 4.0.0
 UNRELEASED - trial packages on [our builder](https://builder.powerdns.com) and on [our repositories](https://repo.powerdns.com).
