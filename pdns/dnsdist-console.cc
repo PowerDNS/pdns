@@ -229,8 +229,6 @@ char** my_completion( const char * text , int start,  int end)
   else
     rl_bind_key('\t',rl_abort);
  
-  if(!matches)
-    rl_bind_key('\t', rl_abort);
   return matches;
 }
 }
