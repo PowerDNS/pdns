@@ -77,7 +77,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"Allow", (int)DNSAction::Action::Allow}, 
       {"HeaderModify", (int)DNSAction::Action::HeaderModify},
       {"Pool", (int)DNSAction::Action::Pool}, 
-      {"None",(int)DNSAction::Action::Pool}}
+      {"None",(int)DNSAction::Action::None},
+      {"Delay", (int)DNSAction::Action::Delay}}
     );
   
   g_lua.writeFunction("newServer", 
