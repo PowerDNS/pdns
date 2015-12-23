@@ -12,6 +12,10 @@
 #define MBEDTLS_RSA_PRIVATE RSA_PRIVATE
 #define MBEDTLS_RSA_PUBLIC RSA_PUBLIC
 
+#define MBEDTLS_ECP_DP_SECP256R1 POLARSSL_ECP_DP_SECP256R1
+#define MBEDTLS_ECP_DP_SECP384R1 POLARSSL_ECP_DP_SECP384R1
+#define MBEDTLS_ECP_MAX_PT_LEN POLARSSL_ECP_MAX_PT_LEN
+#define MBEDTLS_ECP_PF_UNCOMPRESSED POLARSSL_ECP_PF_UNCOMPRESSED
 
 // Types
 #define mbedtls_aes_context aes_context
@@ -94,13 +98,14 @@ typedef md_type_t mbedtls_md_type_t;
 #define mbedtls_ecdsa_verify ecdsa_verify
 
 #define mbedtls_ecp_copy ecp_copy
+#define mbedtls_ecp_group_init ecp_group_init
 #define mbedtls_ecp_group_copy ecp_group_copy
-#define mbedtls_ecp_group_load ecp_group_load
+#define mbedtls_ecp_group_load ecp_use_known_dp
+#define mbedtls_ecp_group_free ecp_group_free
 #define mbedtls_ecp_mul ecp_mul
 #define mbedtls_ecp_point_init ecp_point_init
 #define mbedtls_ecp_point_read_binary ecp_point_read_binary
 #define mbedtls_ecp_point_write_binary ecp_point_write_binary
-#define mbedtls_ecp_group_free ecp_group_free
 
 // Functions
 #ifdef POLARSSL_BASE64_H
