@@ -77,8 +77,9 @@ DNSCryptoKeyEngine::storvector_t CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BI
   storvect.push_back(make_pair("Algorithm", algostr));
   
   const CryptoPP::Integer& pe=d_key->GetPrivateExponent();
-  unsigned char buffer[pe.MinEncodedSize()];
-  pe.Encode(buffer, pe.MinEncodedSize());
+  size_t len = BITS/8;
+  unsigned char buffer[len];
+  pe.Encode(buffer, len);
   storvect.push_back(make_pair("PrivateKey", string((char*)buffer, sizeof(buffer))));
   return storvect;
 }
@@ -114,11 +115,12 @@ std::string CryptoPPECDSADNSCryptoKeyEngine<HASHER,CURVE,BITS>::getPublicKeyStri
 
   const CryptoPP::Integer& qx = q.x;
   const CryptoPP::Integer& qy = q.y;
-  
-  unsigned char buffer[qx.MinEncodedSize() + qy.MinEncodedSize()];
-  qx.Encode(buffer, qx.MinEncodedSize());
-  qy.Encode(buffer + qx.MinEncodedSize(), qy.MinEncodedSize());
-  
+
+  size_t len = BITS/8;
+  unsigned char buffer[len*2];
+  qx.Encode(buffer, len);
+  qy.Encode(buffer + len, len);
+
   return string((char*)buffer, sizeof(buffer));
 }
 template<class HASHER, class CURVE, int BITS>
