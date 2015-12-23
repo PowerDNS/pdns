@@ -97,7 +97,7 @@
 #################################
 # default-ksk-algorithms	Default KSK algorithms
 #
-# default-ksk-algorithms=rsasha256
+# default-ksk-algorithms=
 
 #################################
 # default-ksk-size	Default KSK size (0 means default)

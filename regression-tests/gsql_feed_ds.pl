@@ -13,7 +13,7 @@ my $sqlcmd = shift;
 
 die "Usage: $0 domain parent pdnsutil sqlcmd" unless($domain and $parent and $pdnsutil and $sqlcmd);
 
-open IN, "-|", "$pdnsutil show-zone $domain 2>&1";
+open IN, "-|", "$pdnsutil show-zone -v $domain 2>&1";
 
 my $recs = [];
 

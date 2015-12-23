@@ -136,7 +136,7 @@ void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+s_programname+".conf";
   cleanSlashes(configname);
 
-  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="rsasha256";
+  ::arg().set("default-ksk-algorithms","Default KSK algorithms")="";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
   ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
@@ -1193,16 +1193,12 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
      throw runtime_error("KSK key size must be equal to or greater than 0");
   }
 
-  if (k_algos.size() < 1) {
-     throw runtime_error("No algorithm(s) given for KSK");
+  if (k_algos.size() < 1 && z_algos.size() < 1) {
+     throw runtime_error("Zero algorithms given for KSK+ZSK in total");
   }
 
   if (z_size < 0) {
      throw runtime_error("ZSK key size must be equal to or greater than 0");
-  }
-
-  if (z_algos.size() < 1) {
-     throw runtime_error("No algorithm(s) given for ZSK");
   }
 
   if(dk.isSecuredZone(zone)) {
@@ -1224,17 +1220,45 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   if (k_size)
-    cout << "Securing zone with " << k_algos[0] << " algorithm with key size " << k_size << endl;
+    cout << "Securing zone with key size " << k_size << endl;
   else
-    cout << "Securing zone with " << k_algos[0] << " algorithm with default key size" << endl;
+    cout << "Securing zone with default key size" << endl;
 
-  // run secure-zone with first default algorith, then add keys
-  if(!dk.secureZone(zone, shorthand2algorithm(k_algos[0]), k_size)) {
-    cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
-    cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
-    cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
-    cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!"<<endl;
+
+  DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
+
+  if(!zskset.empty())  {
+    cerr<<"There were ZSKs already for zone '"<<zone.toString()<<"', no need to add more"<<endl;
     return false;
+  }
+
+  for(auto &k_algo: k_algos) {
+    cout << "Adding KSK with algorithm " << k_algo << endl;
+
+    int algo = shorthand2algorithm(k_algo);
+
+    if(!dk.addKey(zone, true, algo, k_size, true)) {
+      cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
+      cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
+      cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
+      cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!"<<endl;
+      return false;
+    }
+  }
+
+  for(auto &z_algo :  z_algos)
+  {
+    cout << "Adding ZSK with algorithm " << z_algo << endl;
+
+    int algo = shorthand2algorithm(z_algo);
+
+    if(!dk.addKey(zone, false, algo, z_size, true)) {
+      cerr<<"No backend was able to secure '"<<zone.toString()<<"', most likely because no DNSSEC"<<endl;
+      cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
+      cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
+      cerr<<"'gpgsql-dnssec' flag. Also make sure the schema has been updated for DNSSEC!"<<endl;
+      return false;
+    }
   }
 
   if(!dk.isSecuredZone(zone)) {
@@ -1244,22 +1268,6 @@ bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     cerr<<"it to use DNSSEC with 'bind-dnssec-db=/path/fname' and"<<endl;
     cerr<<"'pdnsutil create-bind-db /path/fname'!"<<endl;
     return false;
-  }
-
-  DNSSECKeeper::keyset_t zskset=dk.getKeys(zone, false);
-
-  if(!zskset.empty())  {
-    cerr<<"There were ZSKs already for zone '"<<zone.toString()<<"', no need to add more"<<endl;
-    return false;
-  }
-  
-  for(vector<string>::iterator i = k_algos.begin()+1; i != k_algos.end(); i++)
-    dk.addKey(zone, true, shorthand2algorithm(*i), k_size, true); // obvious errors will have been caught above
-
-  for(string z_algo :  z_algos)
-  {
-    int algo = shorthand2algorithm(z_algo);
-    dk.addKey(zone, false, algo, z_size);
   }
 
   // rectifyZone(dk, zone);
