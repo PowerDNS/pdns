@@ -19,7 +19,7 @@ http://xs.powerdns.com/dnsdist/ (but see 'Packaged' below for more links).
 Compiling
 ---------
 `dnsdist` depends on boost, Lua or luajit and a pretty recent C++
-compiler (g++ 4.8 or higher, clang 3.5). It can optionally use libsodium
+compiler (g++ 4.8 or higher, clang 3.5 or higher). It can optionally use libsodium
 for encrypted communications with its client.
 
 To compile on CentOS 6 / RHEL6, use this script to install a working compiler:
@@ -36,8 +36,8 @@ On other recent platforms, installing a Lua and the system C++ compiler should b
 
 Packaged
 --------
-We build packages for dnsdist on our [repositories](https://repo.powerdns.com). In addition
-dnsdist has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
+We build packages for `dnsdist` on our [repositories](https://repo.powerdns.com). In addition
+`dnsdist` has been packaged for FreeBSD and can be found on https://freshports.org/dns/dnsdist
 
 Examples
 --------
@@ -79,7 +79,7 @@ $ dig -t aaaa powerdns.com @127.0.0.1 -p 5200 +short
 2001:888:2000:1d::2
 ```
 
-Note that dnsdist offered us a prompt above, and on it we can get some
+Note that `dnsdist` offered us a prompt above, and on it we can get some
 statistics:
 
 ```
@@ -124,7 +124,7 @@ To force a server down, try:
 ```
 
 The 'DOWN' in all caps means it was forced down. A lower case 'down'
-would've meant that dnsdist itself had concluded the server was down.
+would've meant that `dnsdist` itself had concluded the server was down.
 Similarly, setUp() forces a server to be up, and setAuto() returns it to the
 default availability-probing.
 
@@ -146,7 +146,7 @@ newServer {address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.
 ```
 
 In order to provide the downstream server with the address of the real client,
-or at least the one talking to dnsdist, the 'useClientSubnet' parameter can be used
+or at least the one talking to `dnsdist`, the 'useClientSubnet' parameter can be used
 when declaring a new server. This parameter indicates whether an EDNS Client Subnet option
 should be added to the request. If the incoming request already contains an EDNS Client Subnet value,
 it will not be overriden unless setECSOverride is set to true. The source prefix-length may be
@@ -176,7 +176,7 @@ newServer {address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10}
 
 Webserver
 ---------
-To visually interact with dnsdist, try adding:
+To visually interact with `dnsdist`, try adding:
 ```
 webserver("127.0.0.1:8083", "supersecret")
 ```
@@ -258,6 +258,29 @@ Current actions are:
  * Delay a response by n milliseconds
  * Modify query to remove RD bit
 
+Rules can be added via:
+ * addAction(DNS rule)
+ * addAnyTCRule()
+ * addDelay(DNS rule, delay in milliseconds)
+ * addDisableValidationRule(DNS rule)
+ * addDomainBlock(domain)
+ * addDomainSpoof(domain, IPv4[, IPv6])
+ * addLuaAction(DNS rule, lua function)
+ * addNoRecurseRule(DNS rule)
+ * addPoolRule(DNS rule, destination pool)
+ * addQPSLimit(DNS rule, qps limit)
+ * addQPSPoolRule(DNS rule, qps limit, destination pool)
+
+A DNS rule can be:
+ * an AllRule
+ * an AndRule
+ * a MaxQPSIPRule
+ * a MaxQPSRule
+ * a NetmaskGroupRule
+ * a QTypeRule
+ * a RegexRule
+ * a SuffixMatchNodeRule
+
 More power
 ----------
 More powerful things can be achieved by defining a function called
@@ -266,13 +289,13 @@ on any reason it wants. If you return 'true' from there, the query will get
 blocked.
 
 A demo on how to do this and many other things can be found on
-https://github.com/ahupowerdns/pdns/blob/dnsname/pdns/dnsdistconf.lua and 
+https://github.com/powerdns/pdns/blob/master/pdns/dnsdistconf.lua and
 the exact definition of `blockFilter()` is at the end of this document.
 
 ANY or whatever to TC
 ---------------------
 The `blockFilter()` also gets passed read/writable copy of the DNS Header.
-If you invoke setQR(1) on that, dnsdist knows you turned the packet into
+If you invoke setQR(1) on that, `dnsdist` knows you turned the packet into
 a response, and will send the answer directly to the original client.
 
 If you also called setTC(1), this will tell the remote client to move to
@@ -316,7 +339,7 @@ addAction(MaxQPSIPRule(5), TCAction())
 This will respectively drop traffic exceeding that 5 QPS limit per IP or range, or return it with TC=1, forcing
 clients to fall back to TCP/IP.
 
-To turn this per IP or range limit into a global limt, use MaxQPSRule(5000) instead of MaxQPSIPRule.
+To turn this per IP or range limit into a global limit, use MaxQPSRule(5000) instead of MaxQPSIPRule.
 
 Lua actions in rules
 --------------------
@@ -340,6 +363,16 @@ function luarule(remote, qname, qtype, dh, len)
         end
 end
 ```
+
+Valid return values for `LuaAction` functions are:
+ * DNSAction.Allow: let the query pass, skipping other rules
+ * DNSAction.Delay: delay the response for the specified milliseconds (UDP-only)
+ * DNSAction.Drop: drop the query
+ * DNSAction.HeaderModify: indicate that the query has been turned into a response
+ * DNSAction.None: continue to the next rule
+ * DNSAction.Nxdomain: return a response with a NXDomain rcode
+ * DNSAction.Pool: use the specified pool to forward this query
+ * DNSAction.Spoof: currently not implemented, see addDomainSpoof() and SpoofAction()
 
 DNSSEC
 ------
@@ -376,7 +409,18 @@ This is still much in flux, but for now, try:
  * `topQueries(20)`: shows the top-20 queries
  * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
+ * `topBandwidth(20)`: shows the top-20 clients in term of total bandwidth (queries + responses) consumed
+ * `grepq(Netmask|DNS Name [, n])`: shows the queries and responses matching the specified client address or range (Netmask), or the specified DNS Name
 
+For example:
+```
+> grepq("127.0.0.1/24")
+-11.9   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A             RD    Question
+-11.7   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A     175.6    RD    Non-Existent domain
+> grepq("powerdns.com")
+-38.7   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A             RD    Question
+-38.6   127.0.0.1:52599                                 16127 nxdomain.powerdns.com.    A     175.6    RD    Non-Existent domain
+```
 
 Live histogram of latency
 -------------------------
@@ -529,9 +573,33 @@ Please note that, without libsodium support, 'makeKey()' will return
 setKey("plaintext") and the communication between the client and the
 server will not be encrypted.
 
+Configuration management
+------------------------
+
+At every time, `dnsdist` is capable of printing every configuration changes
+made since its start, using the `delta` command:
+```
+> setACL("192.0.2.0/24")
+> showACL()
+192.0.2.0/24
+> delta()
+# Wed Dec 23 2015 15:15:35 CET
+setACL("192.0.2.0/24")
+> addACL("127.0.0.1/8")
+> showACL()
+192.0.2.0/24
+127.0.0.1/8
+> delta()
+# Wed Dec 23 2015 15:15:35 CET
+setACL("192.0.2.0/24")
+# Wed Dec 23 2015 15:15:44 CET
+addACL("127.0.0.1/8")
+>
+```
+
 ACL, who can use dnsdist
 ------------------------
-For safety reasons, by default only private networks can use dnsdist, see below
+For safety reasons, by default only private networks can use `dnsdist`, see below
 how to query and change the ACL:
 
 ```
@@ -559,7 +627,7 @@ Where 'ourname' can be used to override your hostname, and '30' is the
 reporting interval in seconds.  The last two arguments can be omitted.  The
 latest version of [PowerDNS
 Metronome](https://github.com/ahupowerdns/metronome) comes with attractive
-graphs for dnsdist by default.
+graphs for `dnsdist` by default.
 
 DNSCrypt
 --------
@@ -616,7 +684,7 @@ The '.' means 'order' is a data member, while the ':' meand addPool is a member 
 Here are all functions:
 
  * Practical
-   * `shutdown()`: shut down dnsdist
+   * `shutdown()`: shut down `dnsdist`
    * quit or ^D: exit the console
    * `webserver(address, password)`: launch a webserver with stats on that address with that password
  * ACL related:
@@ -663,23 +731,47 @@ instantiate a server with additional parameters
    * `setUp()`: force this server to be UP
    * `isUp()`: if this server is available
  * Server member data:
-   * `upStatus`: if dnsdist considers this server available (overridden by `setDown()` and `setUp()`)
+   * `upStatus`: if `dnsdist` considers this server available (overridden by `setDown()` and `setUp()`)
    * `order`: order of this server in order-based server selection policies
    * `weight`: weight of this server in weighted server selection policies
  * Rule related:
+   * `AllRule()`: matches all traffic
+   * `AndRule()`: matches if all sub-rules matches
+   * `DNSSECRule()`: matches queries with the DO flag set
+   * `MaxQPSIPRule(qps, v4Mask=32, v6Mask=64)`: matches traffic exceeding the qps limit per subnet
+   * `MaxQPSRule(qps)`: matches traffic not exceeding this qps limit
+   * `NetmaskGroupRule()`: matches traffic from the specified network range
+   * `QTypeRule(qtype)`: matches queries with the specified qtype
+   * `RegexRule(regex)`: matches the query name against the supplied regex
+   * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
+ * Rule management related:
    * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
    * `rmRule(n)`: remove rule n
    * `mvRule(from, to)`: move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule,
      in which case the rule will be moved to the last position.
+   * `topRule()`: move the last rule to the first position
  * Built-in Actions for Rules:
    * `AllowAction()`: let these packets go through
-   * `DropAction()`: drop these packets
-   * `NoRecurseAction()`: strip RD bit from the question, let it go through
-   * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
+   * `DelayAction()`: delay the response by the specified amount of milliseconds (UDP-only)
    * `DisableValidationAction()`: set the CD bit in the question, let it go through
+   * `DropAction()`: drop these packets
+   * `LogAction()`: Log a line for each query, to the specified file if any, to the console (require verbose) otherwise
+   * `NoRecurseAction()`: strip RD bit from the question, let it go through
+   * `PoolAction()`: set the packet into the specified pool
+   * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
+   * `QPSAction()`: drop these packets if the QPS limits are exceeded
+   * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
+   * `SpoofAction()`: forge a response with the specified IPv4 (for an A query). If you specify both an IPv4 and an IPv6, IPv4 will be used for A and IPv6 for an AAAA.
+   * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
    * addAnyTCRule(): generate TC=1 answers to ANY queries, moving them to TCP
+   * addDomainSpoof(domain, ip[, ip6]): generate answers for A queries using the ip parameter. If ip6 is supplied, generate answers for AAAA queries too
+   * addDisableValidationRule(domain): set the CD flags to 1 for all queries matching the specified domain
+   * addNoRecurseRule(domain): clear the RD flag for all queries matching the specified domain
    * setDNSSECPool(): move queries requesting DNSSEC processing to this pool
+ * Policy member data:
+   * `name`: the policy name
+   * `policy`: the policy function
  * Pool related:
    * `addPoolRule(domain, pool)`: send queries to this domain to that pool
    * `addPoolRule({domain, domain}, pool)`: send queries to these domains to that pool
@@ -711,11 +803,18 @@ instantiate a server with additional parameters
    * `addDelay(domain, n)`: delay answers within that domain by n milliseconds
    * `addDelay({domain, domain}, n)`: delay answers within those domains (together) by n milliseconds
    * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
-   * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds     
+   * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds
+ * Dynamic block related:
+   * `addDynBlocks({netmask, netmask}, reason [, duration])`: add a dynamic block with a message and an optional duration in seconds
+   * `clearDynBlocks()`: remove all dynamic block rules
+   * `showDynBlocks()`: show current dynamic block rules
+   * `setDynBlockNMG()`: set the dynamic block rules
  * Answer changing functions:
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
+   * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
+     * `newCA(address)`: return a new ComboAddress
      * `tostring()`: return in human-friendly format
    * DNSName related:
      * `newDNSName(name)`: make a DNSName based on this .-terminated name
@@ -728,6 +827,9 @@ instantiate a server with additional parameters
      * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
      * member `getCD()`: get checking disabled flag
      * member `setCD(bool)`: set checking disabled flag
+   * DynBlock related
+     * `newNMG()`: return a new NetmaskTree<DynBlock>
+     * member `add(ComboAddress, msg[, seconds])`: insert a new address into a DynBlock
    * NetmaskGroup related
      * nothing yet
    * QPSLimiter related:
