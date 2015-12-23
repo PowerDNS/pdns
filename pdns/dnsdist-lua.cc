@@ -1034,6 +1034,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
   g_lua.writeFunction("testCrypto", [](boost::optional<string> optTestMsg)
    {
      setLuaNoSideEffect();
+#ifdef HAVE_LIBSODIUM
      try {
        string testmsg;
 
@@ -1064,7 +1065,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
      }
      catch(...) {
        g_outputBuffer="Crypto failed..\n";
-     }});
+     }
+#else
+     g_outputBuffer="Crypto not available.\n";
+#endif
+   });
 
   g_lua.writeFunction("setTCPRecvTimeout", [](int timeout) { g_tcpRecvTimeout=timeout; });
 
