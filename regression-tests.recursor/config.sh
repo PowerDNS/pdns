@@ -413,6 +413,7 @@ module-dir=../../../regression-tests/modules
 launch=bind
 daemon=no
 local-address=$dir
+local-ipv6=
 bind-config=named.conf
 no-shuffle
 socket-dir=.
