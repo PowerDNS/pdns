@@ -177,11 +177,36 @@ extern "C" {
 char* my_generator(const char* text, int state)
 {
   string t(text);
-  vector<string> words{"showRules()", "shutdown()", "rmRule(", "mvRule(", "addACL(", "addLocal(", "setServerPolicy(", "setServerPolicyLua(",
-      "newServer(", "rmServer(", "showServers()", "show(", "newDNSName(", "newSuffixMatchNode(", "controlSocket(", "topClients(", "showResponseLatency()", 
-      "newQPSLimiter(", "makeKey()", "setKey(", "testCrypto()", "addAnyTCRule()", "showServerPolicy()", "setACL(", "showACL()", "addDomainBlock(", 
-      "addPoolRule(", "addQPSLimit(", "topResponses(", "topQueries(", "topRule()", "setDNSSECPool(", "setECSOverride(", "setECSSourcePrefixV4(",
-      "setECSSourcePrefixV6(", "addDelay(", "setTCPRecvTimeout(", "setTCPSendTimeout(", "setMaxTCPClientThreads(", "setMaxUDPOutstanding(" };
+  /* to keep it readable, we try to keep only 4 keywords per line
+     and to start a new line when the first letter changes */
+  vector<string> words{"addACL(", "addAction(", "addAnyTCRule()", "addDelay(",
+      "addDisableValidationRule(", "addDNSCryptBind(", "addDomainBlock(",
+      "addDomainSpoof(", "addDynBlocks(", "addLocal(", "addLuaAction(",
+      "addNoRecurseRule(", "addPoolRule(", "addQPSLimit(", "addQPSPoolRule(",
+      "AllRule(", "AndRule(",
+      "benchRule(",
+      "carbonServer(", "controlSocket(", "clearDynBlocks()",
+      "DelayAction(", "delta()", "DisableValidationAction(", "DropAction(",
+      "dumpStats()",
+      "firstAvailable", "fixupCase(",
+      "generateDNSCryptCertificate(", "generateDNSCryptProviderKeys(", "getPoolServers(", "getResponseRing(",
+      "getServer(", "getServers()", "grepq(",
+      "leastOutstanding", "LogAction(",
+      "makeKey()", "MaxQPSIPRule(", "MaxQPSRule(", "mvRule(",
+      "newDNSName(", "newQPSLimiter(", "newServer(", "newServerPolicy(",
+      "newSuffixMatchNode(", "NoRecurseAction(",
+      "PoolAction(",
+      "RegexRule(", "rmRule(", "rmServer(", "roundrobin",
+      "QTypeRule(",
+      "setACL(", "setDNSSECPool(", "setDynBlockNMG(", "setECSOverride(",
+      "setECSSourcePrefixV4(", "setECSSourcePrefixV6(", "setKey(", "setLocal(",
+      "setMaxTCPClientThreads(", "setMaxUDPOutstanding(", "setServerPolicy(", "setServerPolicyLua(",
+      "setTCPRecvTimeout(", "setTCPSendTimeout(", "show(", "showACL()",
+      "showDNSCryptBinds()", "showDynBlocks()", "showResponseLatency()", "showRules()",
+      "showServerPolicy()", "showServers()", "shutdown()", "SpoofAction(",
+      "TCAction(", "testCrypto()", "topBandwidth(", "topClients(",
+      "topQueries(", "topResponses(", "topRule()", "truncateTC(",
+      "webserver(", "whashed", "wrandom" };
   static int s_counter=0;
   int counter=0;
   if(!state)
@@ -204,8 +229,6 @@ char** my_completion( const char * text , int start,  int end)
   else
     rl_bind_key('\t',rl_abort);
  
-  if(!matches)
-    rl_bind_key('\t', rl_abort);
   return matches;
 }
 }
