@@ -256,7 +256,6 @@ void* tcpClientThread(int pipefd)
 	case DNSAction::Action::Spoof:
 	  ;
 	case DNSAction::Action::HeaderModify:
-	  dh->qr=true;
 	  break;
 	case DNSAction::Action::Allow:
 	case DNSAction::Action::None:

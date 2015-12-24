@@ -633,7 +633,6 @@ try
       case DNSAction::Action::Spoof:
 	;
       case DNSAction::Action::HeaderModify:
-	dh->qr=true;
 	break;
       case DNSAction::Action::Delay:
 	delayMsec = static_cast<int>(pdns_stou(ruleresult)); // sorry
