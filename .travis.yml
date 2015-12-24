@@ -194,7 +194,7 @@ script:
   - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both
   - ./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow
   - ./timestamp ./start-test-stop 5300 bind-hybrid-nsec3
-  - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
+  #ecdsa - ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11
 
   - ./timestamp ./start-test-stop 5300 geoip
   - ./timestamp ./start-test-stop 5300 geoip-nsec3-narrow
