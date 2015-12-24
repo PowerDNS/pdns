@@ -44,7 +44,9 @@ public:
   static DNSBackend *maker();
   
 private:
-  shared_ptr<CoWrapper> d_coproc;
+  void launch();
+  void cleanup();
+  unique_ptr<CoWrapper> d_coproc;
   DNSName d_qname;
   QType d_qtype;
   Regex* d_regex;

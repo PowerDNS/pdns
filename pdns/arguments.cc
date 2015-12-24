@@ -255,7 +255,7 @@ int ArgvMap::asNum(const string &arg, int def)
   cptr_orig = params[arg].c_str();
   retval = static_cast<int>(strtol(cptr_orig, &cptr_ret, 0));
   if (!retval && cptr_ret == cptr_orig)
-   throw ArgException("'"+arg+string("' is not valid number"));
+   throw ArgException("'"+arg+"' value '"+string(cptr_orig) + string( "' is not a valid number"));
 
   return retval;
 }
