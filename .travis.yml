@@ -304,6 +304,7 @@ script:
   - test ! -s ./failed_tests
   - cd ..
 
+  - rm -f regression-tests/zones/*-slave.* #FIXME
 
   - git status
   - git status | grep -q clean
