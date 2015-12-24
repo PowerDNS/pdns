@@ -1,5 +1,5 @@
 0	d.test.com.	IN	DNAME	3600	d2.test2.com.
-0	d.test.com.	IN	RRSIG	3600	DNAME 8 3 3600 [expiry] [inception] [keytag] test.com. ...
+0	d.test.com.	IN	RRSIG	3600	DNAME 13 3 3600 [expiry] [inception] [keytag] test.com. ...
 0	www.d.test.com.	IN	CNAME	3600	www.d2.test2.com.
 1	.	IN	NS	518400	a.root-servers.net.
 1	.	IN	NS	518400	b.root-servers.net.

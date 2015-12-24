@@ -1,13 +1,6 @@
 --- ldns-verify-zone -V2 test.com
 RETVAL: 0
 
---- validns test.com
-RETVAL: 0
-
---- jdnssec-verifyzone test.com
-zone verified.
-RETVAL: 0
-
 --- named-checkzone test.com
 zone test.com/IN: test.com/MX 'smtp-servers.test.com' has no address records (A or AAAA)
 zone test.com/IN: sub.test.test.com/NS 'ns-test.example.net.test.com' has no address records (A or AAAA)
@@ -18,26 +11,12 @@ RETVAL: 0
 --- ldns-verify-zone -V2 test.dyndns
 RETVAL: 0
 
---- validns test.dyndns
-RETVAL: 0
-
---- jdnssec-verifyzone test.dyndns
-zone verified.
-RETVAL: 0
-
 --- named-checkzone test.dyndns
 zone test.dyndns/IN: loaded serial 2012060701 (DNSSEC signed)
 OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 wtest.com
-RETVAL: 0
-
---- validns wtest.com
-RETVAL: 0
-
---- jdnssec-verifyzone wtest.com
-zone verified.
 RETVAL: 0
 
 --- named-checkzone wtest.com
@@ -49,26 +28,12 @@ RETVAL: 0
 --- ldns-verify-zone -V2 dnssec-parent.com
 RETVAL: 0
 
---- validns dnssec-parent.com
-RETVAL: 0
-
---- jdnssec-verifyzone dnssec-parent.com
-zone verified.
-RETVAL: 0
-
 --- named-checkzone dnssec-parent.com
 zone dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
 OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 delegated.dnssec-parent.com
-RETVAL: 0
-
---- validns delegated.dnssec-parent.com
-RETVAL: 0
-
---- jdnssec-verifyzone delegated.dnssec-parent.com
-zone verified.
 RETVAL: 0
 
 --- named-checkzone delegated.dnssec-parent.com
@@ -79,26 +44,12 @@ RETVAL: 0
 --- ldns-verify-zone -V2 secure-delegated.dnssec-parent.com
 RETVAL: 0
 
---- validns secure-delegated.dnssec-parent.com
-RETVAL: 0
-
---- jdnssec-verifyzone secure-delegated.dnssec-parent.com
-zone verified.
-RETVAL: 0
-
 --- named-checkzone secure-delegated.dnssec-parent.com
 zone secure-delegated.dnssec-parent.com/IN: loaded serial 2005092501 (DNSSEC signed)
 OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 minimal.com
-RETVAL: 0
-
---- validns minimal.com
-RETVAL: 0
-
---- jdnssec-verifyzone minimal.com
-zone verified.
 RETVAL: 0
 
 --- named-checkzone minimal.com
@@ -109,26 +60,12 @@ RETVAL: 0
 --- ldns-verify-zone -V2 tsig.com
 RETVAL: 0
 
---- validns tsig.com
-RETVAL: 0
-
---- jdnssec-verifyzone tsig.com
-zone verified.
-RETVAL: 0
-
 --- named-checkzone tsig.com
 zone tsig.com/IN: loaded serial 2000081501 (DNSSEC signed)
 OK
 RETVAL: 0
 
 --- ldns-verify-zone -V2 stest.com
-RETVAL: 0
-
---- validns stest.com
-RETVAL: 0
-
---- jdnssec-verifyzone stest.com
-zone verified.
 RETVAL: 0
 
 --- named-checkzone stest.com

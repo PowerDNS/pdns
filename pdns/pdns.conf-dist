@@ -132,7 +132,7 @@
 #################################
 # default-zsk-algorithms	Default ZSK algorithms
 #
-# default-zsk-algorithms=rsasha256
+# default-zsk-algorithms=ecdsa256
 
 #################################
 # default-zsk-size	Default ZSK size (0 means default)

@@ -170,7 +170,7 @@ void declareArguments()
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY RRs from backend during DNSKEY synthesis")="no";
   ::arg().set("default-ksk-algorithms","Default KSK algorithms")="";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
-  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="rsasha256";
+  ::arg().set("default-zsk-algorithms","Default ZSK algorithms")="ecdsa256";
   ::arg().set("default-zsk-size","Default ZSK size (0 means default)")="0";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
 
