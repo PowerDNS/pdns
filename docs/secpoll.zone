@@ -1,4 +1,4 @@
-@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015110901 10800 3600 604800 10800
+@       86400   IN  SOA powerdnssec1.ds9a.nl. ahu.ds9a.nl. 2015122501 10800 3600 604800 10800
 @       3600    IN  NS  powerdnssec1.ds9a.nl.
 @       3600    IN  NS  powerdnssec2.ds9a.nl.
 ; Auth
@@ -13,6 +13,7 @@ auth-3.4.4.security-status                              60 IN TXT "3 Upgrade now
 auth-3.4.5.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-02/ and https://doc.powerdns.com/md/security/powerdns-advisory-2015-03/"
 auth-3.4.6.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-03/"
 auth-3.4.7.security-status                              60 IN TXT "1 OK"
+auth-4.0.0-alpha1.security-status                       60 IN TXT "1 OK"
 
 ; Auth Debian
 auth-3.4.1-2.debian.security-status                     60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/md/security/powerdns-advisory-2015-02/"
@@ -71,6 +72,7 @@ recursor-3.7.0.security-status                          60 IN TXT "3 Upgrade now
 recursor-3.7.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.7.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
 recursor-3.7.3.security-status                          60 IN TXT "1 OK"
+recursor-4.0.0-alpha1.security-status                   60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/md/security/powerdns-advisory-2015-01/"
