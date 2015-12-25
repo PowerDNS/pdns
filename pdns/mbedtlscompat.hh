@@ -78,7 +78,11 @@ typedef md_type_t mbedtls_md_type_t;
 #define mbedtls_ctr_drbg_init
 #define mbedtls_ctr_drbg_seed ctr_drbg_init
 #define mbedtls_ctr_drbg_random ctr_drbg_random
+#if POLARSSL_VERSION_NUMBER >= 0x01030800
 #define mbedtls_ctr_drbg_free ctr_drbg_free
+#else
+#define mbedtls_ctr_drbg_free
+#endif
 
 #define mbedtls_rsa_init rsa_init
 #define mbedtls_rsa_gen_key rsa_gen_key
