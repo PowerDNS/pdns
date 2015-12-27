@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "iputils.hh"
 #include "dnsname.hh"
+#include <atomic>
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
 class RecursorControlChannel
