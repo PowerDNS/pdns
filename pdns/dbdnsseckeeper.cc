@@ -367,6 +367,38 @@ bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH_CDNSKEY", vector<string>());
 }
 
+/**
+ * Returns all keys that are used to sign the DNSKEY RRSet in a zone
+ *
+ * @param zone         DNSName of the zone
+ * @return             a keyset_t with all keys that are used to sign the DNSKEY
+ *                     RRSet (these are the entrypoint(s) to the zone)
+ */
+DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zone)
+{
+  DNSSECKeeper::keyset_t ret;
+  DNSSECKeeper::keyset_t keys = getKeys(zone);
+
+  set<int> algoHasKSK;
+
+  for(DNSSECKeeper::keyset_t::value_type& keymeta : keys) {
+    if(keymeta.second.active && keymeta.second.keyOrZone) {
+      // KSKs should always be returned
+      ret.push_back(keymeta);
+      algoHasKSK.insert(keymeta.first.d_algorithm);
+    }
+  }
+
+  // Now add ZSK EntryPoints
+  for(auto const &keymeta : keys) {
+    // Skip inactive keys, KSKs and algos that have a KSK
+    if (!keymeta.second.active || keymeta.second.keyOrZone || algoHasKSK.count(keymeta.first.d_algorithm))
+      continue;
+    ret.push_back(keymeta);
+  }
+  return ret;
+}
+
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, boost::tribool allOrKeyOrZone, bool useCache)
 {
   unsigned int now = time(0);

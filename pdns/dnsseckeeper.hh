@@ -71,6 +71,7 @@ public:
   }
   bool isSecuredZone(const DNSName& zone);
   static uint64_t dbdnssecCacheSizes(const std::string& str);  
+  keyset_t getEntryPoints(const DNSName& zone);
   keyset_t getKeys(const DNSName& zone, boost::tribool allOrKeyOrZone = boost::indeterminate, bool useCache = true);
   DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
   bool addKey(const DNSName& zname, bool keyOrZone, int algorithm=5, int bits=0, bool active=true);

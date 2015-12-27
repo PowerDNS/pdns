@@ -92,6 +92,10 @@ securezone ()
                   $PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
                 else
                   $PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
+                  if [ "${zone: 0:20}" = "cdnskey-cds-test.com" ]; then
+                    $PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
+                    $PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
+                  fi
                 fi
 	fi
 }

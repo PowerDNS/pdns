@@ -133,34 +133,27 @@ void PacketHandler::addRootReferral(DNSPacket* r)
 }
 
 /**
- * This adds DNSKEY records to the answer packet. Returns true if one was added.
- * The optional doCDNSKEY parameter signifies that we need to add a CDNSKEY (RFC 7344)
- * instead of DNSKEY.
+ * This adds CDNSKEY records to the answer packet. Returns true if one was added.
  *
  * @param p          Pointer to the DNSPacket containing the original question
  * @param r          Pointer to the DNSPacket where the records should be inserted into
- * @param sd         SOAData of the zone for which DNSKEY records sets should be added
- * @param doCDNSKEY  When set to true, add CDNSKEYs instead of DNSKEYs
+ * @param sd         SOAData of the zone for which CDNSKEY records sets should be added
  * @return           bool that shows if any records were added
 **/
-bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd, bool doCDNSKEY=false)
+bool PacketHandler::addCDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
 {
   string publishCDNSKEY;
   d_dk.getFromMeta(p->qdomain, "PUBLISH_CDNSKEY", publishCDNSKEY);
-  if (doCDNSKEY && publishCDNSKEY != "1")
+  if (publishCDNSKEY != "1")
     return false;
 
   DNSResourceRecord rr;
   bool haveOne=false;
   DNSSECPrivateKey dpk;
 
-  DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
-  for(const auto& value: keyset) {
-    if (doCDNSKEY && !value.second.keyOrZone) {
-      // Don't send out CDNSKEY records for ZSKs
-      continue;
-    }
-    rr.qtype=doCDNSKEY ? QType::CDNSKEY : QType::DNSKEY;
+  DNSSECKeeper::keyset_t entryPoints = d_dk.getEntryPoints(p->qdomain);
+  for(const auto& value: entryPoints) {
+    rr.qtype=QType::CDNSKEY;
     rr.ttl=sd.default_ttl;
     rr.qname=p->qdomain;
     rr.content=value.first.getDNSKEY().getZoneRepresentation();
@@ -170,10 +163,44 @@ bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd, boo
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    if(doCDNSKEY)
-      B.lookup(QType(QType::CDNSKEY), p->qdomain, p, sd.domain_id);
-    else
-      B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
+    B.lookup(QType(QType::CDNSKEY), p->qdomain, p, sd.domain_id);
+
+    while(B.get(rr)) {
+      rr.ttl=sd.default_ttl;
+      r->addRecord(rr);
+      haveOne=true;
+    }
+  }
+  return haveOne;
+}
+
+/**
+ * This adds DNSKEY records to the answer packet. Returns true if one was added.
+ *
+ * @param p          Pointer to the DNSPacket containing the original question
+ * @param r          Pointer to the DNSPacket where the records should be inserted into
+ * @param sd         SOAData of the zone for which DNSKEY records sets should be added
+ * @return           bool that shows if any records were added
+**/
+bool PacketHandler::addDNSKEY(DNSPacket *p, DNSPacket *r, const SOAData& sd)
+{
+  DNSResourceRecord rr;
+  bool haveOne=false;
+  DNSSECPrivateKey dpk;
+
+  DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
+  for(const auto& value: keyset) {
+    rr.qtype=QType::DNSKEY;
+    rr.ttl=sd.default_ttl;
+    rr.qname=p->qdomain;
+    rr.content=value.first.getDNSKEY().getZoneRepresentation();
+    rr.auth=true;
+    r->addRecord(rr);
+    haveOne=true;
+  }
+
+  if(::arg().mustDo("direct-dnskey")) {
+    B.lookup(QType(QType::DNSKEY), p->qdomain, p, sd.domain_id);
 
     while(B.get(rr)) {
       rr.ttl=sd.default_ttl;
@@ -213,13 +240,9 @@ bool PacketHandler::addCDS(DNSPacket *p, DNSPacket *r, const SOAData& sd)
   bool haveOne=false;
   DNSSECPrivateKey dpk;
 
-  DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p->qdomain);
+  DNSSECKeeper::keyset_t keyset = d_dk.getEntryPoints(p->qdomain);
 
   for(auto const &value : keyset) {
-    if (!value.second.keyOrZone) {
-      // Don't send out CDS records for ZSKs
-      continue;
-    }
     for(auto const &digestAlgo : digestAlgos){
       rr.content=makeDSFromDNSKey(p->qdomain, value.first.getDNSKEY(), std::stoi(digestAlgo)).getZoneRepresentation();
       r->addRecord(rr);
@@ -1024,11 +1047,11 @@ void PacketHandler::completeANYRecords(DNSPacket *p, DNSPacket*r, SOAData& sd, c
 
   if(!d_dk.isSecuredZone(sd.qname))
     return;
-    
+
   addNSECX(p, r, target, DNSName(), sd.qname, 5);
   if(sd.qname == p->qdomain) {
     addDNSKEY(p, r, sd);
-    addDNSKEY(p, r, sd, true);
+    addCDNSKEY(p, r, sd);
     addCDS(p, r, sd);
     addNSEC3PARAM(p, r, sd);
   }
@@ -1283,7 +1306,7 @@ DNSPacket *PacketHandler::questionOrRecurse(DNSPacket *p, bool *shouldRecurse)
       }
       else if(p->qtype.getCode() == QType::CDNSKEY)
       {
-        if(addDNSKEY(p,r, sd, true))
+        if(addCDNSKEY(p,r, sd))
           goto sendit;
       }
       else if(p->qtype.getCode() == QType::CDS)

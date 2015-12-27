@@ -664,6 +664,10 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
   dk.getFromMeta(q->qdomain, "PUBLISH_CDNSKEY", publishCDNSKEY);
   dk.getFromMeta(q->qdomain, "PUBLISH_CDS", publishCDS);
   vector<DNSResourceRecord> cds, cdnskey;
+  DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(q->qdomain);
+  set<uint32_t> entryPointIds;
+  for (auto const& value : entryPoints)
+    entryPointIds.insert(value.second.id);
 
   for(const DNSSECKeeper::keyset_t::value_type& value :  keys) {
     rr.qtype = QType(QType::DNSKEY);
@@ -676,7 +680,7 @@ int TCPNameserver::doAXFR(const DNSName &target, shared_ptr<DNSPacket> q, int ou
     csp.submit(rr);
 
     // generate CDS and CDNSKEY records
-    if(value.second.keyOrZone){
+    if(entryPointIds.count(value.second.id) > 0){
       if(publishCDNSKEY == "1") {
         rr.qtype=QType(QType::CDNSKEY);
         rr.content = value.first.getDNSKEY().getZoneRepresentation();
