@@ -1042,23 +1042,18 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   vector<Comment> result_c;
   map<int,DomainInfo> zoneIdZone;
   map<int,DomainInfo>::iterator val;
-  Document doc;
-
-  doc.SetArray();
+  Json::array doc;
 
   B.getAllDomains(&domains, true);
 
   for(const DomainInfo di: domains)
   {
     if (ents < maxEnts && sm.match(di.zone)) {
-      Value object;
-      object.SetObject();
-      Value jzoneId(apiZoneNameToId(di.zone).c_str(), doc.GetAllocator()); // copy
-      object.AddMember("object_type", "zone", doc.GetAllocator());
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(di.zone.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jzoneName, doc.GetAllocator());
-      doc.PushBack(object, doc.GetAllocator());
+      doc.push_back(Json::object {
+        { "object_type", "zone" },
+        { "zone_id", apiZoneNameToId(di.zone) },
+        { "name", di.zone.toString() }
+      });
       ents++;
     }
     zoneIdZone[di.id] = di; // populate cache
@@ -1068,24 +1063,19 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   {
     for(const DNSResourceRecord& rr: result_rr)
     {
-      Value object;
-      object.SetObject();
-      object.AddMember("object_type", "record", doc.GetAllocator());
+      auto object = Json::object {
+        { "object_type", "record" },
+        { "name", rr.qname.toString() },
+        { "type", rr.qtype.getName() },
+        { "ttl", (double)rr.ttl },
+        { "disabled", rr.disabled },
+        { "content", makeApiRecordContent(rr.qtype, rr.content) }
+      };
       if ((val = zoneIdZone.find(rr.domain_id)) != zoneIdZone.end()) {
-        Value jzoneId(apiZoneNameToId(val->second.zone).c_str(), doc.GetAllocator()); // copy
-        object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-        Value zname(val->second.zone.toString().c_str(), doc.GetAllocator()); // copy
-        object.AddMember("zone", zname, doc.GetAllocator()); // copy
+        object["zone_id"] = apiZoneNameToId(val->second.zone);
+        object["zone"] = val->second.zone.toString();
       }
-      Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jname, doc.GetAllocator());
-      Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("type", jtype, doc.GetAllocator());
-      object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-      object.AddMember("disabled", rr.disabled, doc.GetAllocator());
-      Value jcontent(makeApiRecordContent(rr.qtype, rr.content).c_str(), doc.GetAllocator()); // copy
-      object.AddMember("content", jcontent, doc.GetAllocator());
-      doc.PushBack(object, doc.GetAllocator());
+      doc.push_back(object);
     }
   }
 
@@ -1093,20 +1083,16 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   {
     for(const Comment &c: result_c)
     {
-      Value object;
-      object.SetObject();
-      object.AddMember("object_type", "comment", doc.GetAllocator());
+      auto object = Json::object {
+        { "object_type", "comment" },
+        { "name", c.qname },
+        { "content", c.content }
+      };
       if ((val = zoneIdZone.find(c.domain_id)) != zoneIdZone.end()) {
-        Value jzoneId(apiZoneNameToId(val->second.zone).c_str(), doc.GetAllocator()); // copy
-        object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-        Value zname(val->second.zone.toString().c_str(), doc.GetAllocator()); // copy
-        object.AddMember("zone", zname, doc.GetAllocator()); // copy
+        object["zone_id"] = apiZoneNameToId(val->second.zone);
+        object["zone"] = val->second.zone.toString();
       }
-      Value jname(c.qname.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jname, doc.GetAllocator());
-      Value jcontent(c.content.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("content", jcontent, doc.GetAllocator());
-      doc.PushBack(object, doc.GetAllocator());
+      doc.push_back(object);
     }
   }
 
