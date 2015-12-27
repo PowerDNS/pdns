@@ -166,6 +166,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
+
+  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) {
+      return ComboAddress::addressOnlyEqual()(lhs, rhs);
+    });
+  
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
 			 {
