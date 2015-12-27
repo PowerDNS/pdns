@@ -4,8 +4,9 @@
 /pdns.sqlite3
 /*.controlsocket
 /named.conf
+/pdns.conf
 /*.pyc
-acl.conf
-acl.list
-recursor.conf
-rec-conf.d
+/acl.conf
+/acl.list
+/recursor.conf
+/rec-conf.d
