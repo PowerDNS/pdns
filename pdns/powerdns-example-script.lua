@@ -11,15 +11,25 @@ malwareset:add("nl")
 
 magic2 = newDN("www.magic2.com")
 
+
+magicMetric = getMetric("magic")
+
 -- shows the various ways of blocking, dropping, changing questions
 -- return false to say you did not take over the question, but we'll still listen to 'variable'
 -- to selectively disable the cache
 function preresolve(dq)
 	print("Got question for "..dq.qname:toString().." from "..dq.remoteaddr:toString().." to "..dq.localaddr:toString())
 
+	loc = newCA("127.0.0.1")
+	if(dq.remoteaddr:equal(loc))
+	then
+		print("Query from loopback")
+	end
+
 	-- note that the comparisons below are CaSe InSensiTivE and you don't have to worry about trailing dots
 	if(dq.qname:equal("magic.com"))
 	then
+		magicMetric:inc()
 		print("Magic!")
 	else
 		print("not magic..")
@@ -78,7 +88,7 @@ end
 
 
 badips = newNMG()
-badips:addMask("127.0.0.0/8")
+badips:addMask("127.1.0.0/16")
 
 -- this check is applied before any packet parsing is done
 function ipfilter(loc, rem)

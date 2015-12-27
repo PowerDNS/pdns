@@ -4,7 +4,7 @@
 #include "dnsparser.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
-
+#include "rec_channel.hh" 
 #if !defined(HAVE_LUA)
 
 RecursorLua4::RecursorLua4(const std::string &fname)
@@ -154,7 +154,16 @@ void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& cont
 {
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
 }
-  
+
+struct DynMetric
+{
+  std::atomic<unsigned long>* ptr;
+  void inc() { (*ptr)++; }
+  void incBy(unsigned int by) { (*ptr)+= by; }
+  unsigned long get() { return *ptr; }
+  void set(unsigned long val) { *ptr =val; }
+};
+
 RecursorLua4::RecursorLua4(const std::string& fname)
 {
   d_lw = new LuaContext;
@@ -241,6 +250,16 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
   d_lw->writeVariable("pdns", pd);
+
+  d_lw->writeFunction("getMetric", [](const std::string& str) {
+      return DynMetric{getDynMetric(str)};
+    });
+
+  d_lw->registerFunction("inc", &DynMetric::inc);
+  d_lw->registerFunction("incBy", &DynMetric::incBy);
+  d_lw->registerFunction("set", &DynMetric::set);
+  d_lw->registerFunction("get", &DynMetric::get);
+  
   
   ifstream ifs(fname);
   if(!ifs) {
