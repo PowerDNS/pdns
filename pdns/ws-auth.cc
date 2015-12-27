@@ -794,11 +794,7 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   }
 
   if (req->accept_json) {
-    Document doc;
-    doc.SetObject();
-    Value val(ss.str().c_str(), doc.GetAllocator()); // copy
-    doc.AddMember("zone", val, doc.GetAllocator());
-    resp->body = makeStringFromDocument(doc);
+    resp->setBody(Json::object { { "zone", ss.str() } });
   } else {
     resp->headers["Content-Type"] = "text/plain; charset=us-ascii";
     resp->body = ss.str();
