@@ -113,7 +113,7 @@ int g_tcpSendTimeout{2};
 
 bool g_truncateTC{1};
 bool g_fixupCase{0};
-static void truncateTC(const char* packet, unsigned int* len)
+static void truncateTC(const char* packet, uint16_t* len)
 try
 {
   unsigned int consumed;
@@ -153,23 +153,24 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
 #else
   char packet[4096];
 #endif
+  static_assert(sizeof(packet) <= UINT16_MAX, "Packet size should fit in a uint16_t");
   const uint16_t rdMask = 1 << FLAGS_RD_OFFSET;
   const uint16_t cdMask = 1 << FLAGS_CD_OFFSET;
   const uint16_t restoreFlagsMask = UINT16_MAX & ~(rdMask | cdMask);
   vector<uint8_t> rewrittenResponse;
   
   struct dnsheader* dh = (struct dnsheader*)packet;
-  int len;
   for(;;) {
-    len = recv(state->fd, packet, sizeof(packet), 0);
+    ssize_t got = recv(state->fd, packet, sizeof(packet), 0);
     char * response = packet;
-    size_t responseLen = len;
 #ifdef HAVE_DNSCRYPT
     uint16_t responseSize = sizeof(packet);
 #endif
 
-    if(len < (signed)sizeof(dnsheader))
+    if (got < (ssize_t) sizeof(dnsheader))
       continue;
+
+    size_t responseLen = (size_t) got;
 
     if(dh->id >= state->idStates.size())
       continue;
@@ -188,7 +189,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
     }
 
     if(dh->tc && g_truncateTC) {
-      truncateTC(packet, (unsigned int*)&len);
+      truncateTC(packet, (uint16_t*) &responseLen);
     }
     uint16_t * flags = getFlagsFromDNSHeader(dh);
     uint16_t origFlags = ids->origFlags;
@@ -270,7 +271,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)len, *dh});
+      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh});
     }
     if(dh->rcode == RCode::ServFail)
       g_stats.servfailResponses++;
