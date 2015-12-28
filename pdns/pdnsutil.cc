@@ -1140,6 +1140,11 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
   bool narrow;
   bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
   
+  DNSSECKeeper::keyset_t entryPointKeys=dk.getEntryPoints(zone);
+  set<uint32_t> entryPointIds;
+  for (auto const& value : entryPointKeys)
+    entryPointIds.insert(value.second.id);
+
   DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
   if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
      cerr << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
@@ -1221,9 +1226,9 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
       }
       cout<<"ID = "<<value.second.id<<" ("<<(value.second.keyOrZone ? "KSK" : "ZSK")<<"), tag = "<<value.first.getDNSKEY().getTag();
       cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive ( " + algname + " ) "<<endl;
-      if(value.second.keyOrZone || ::arg().mustDo("direct-dnskey") || 1)
+      if(entryPointIds.count(value.second.id) > 0 || ::arg().mustDo("direct-dnskey"))
         cout<<(value.second.keyOrZone ? "KSK" : "ZSK")<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
-      if(value.second.keyOrZone || 1) {
+      if(entryPointIds.count(value.second.id) > 0) {
         cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
         cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, value.first.getDNSKEY(), 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         try {
