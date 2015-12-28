@@ -114,25 +114,18 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
 
   vector<string> items = ::arg().list();
   string value;
-  Document doc;
-  doc.SetArray();
-  for(const string& item :  items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
+  Json::array doc;
+  for(const string& item : items) {
     if(item.find("password") != string::npos)
       value = "***";
     else
       value = ::arg()[item];
 
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+    doc.push_back(Json::object {
+      { "type", "ConfigSetting" },
+      { "name", item },
+      { "value", value },
+    });
   }
   resp->setBody(doc);
 }
