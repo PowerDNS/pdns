@@ -51,6 +51,21 @@ void HttpRequest::json(rapidjson::Document& document)
   }
 }
 
+json11::Json HttpRequest::json()
+{
+  string err;
+  if(this->body.empty()) {
+    L<<Logger::Debug<<"HTTP: JSON document expected in request body, but body was empty" << endl;
+    throw HttpBadRequestException();
+  }
+  json11::Json doc = json11::Json::parse(this->body, err);
+  if (doc.is_null()) {
+    L<<Logger::Debug<<"HTTP: parsing of JSON document failed:" << err << endl;
+    throw HttpBadRequestException();
+  }
+  return doc;
+}
+
 bool HttpRequest::compareAuthorization(const string &expected_password)
 {
   // validate password
@@ -85,6 +100,11 @@ bool HttpRequest::compareHeader(const string &header_name, const string &expecte
 void HttpResponse::setBody(rapidjson::Document& document)
 {
   this->body = makeStringFromDocument(document);
+}
+
+void HttpResponse::setBody(const json11::Json& document)
+{
+  document.dump(this->body);
 }
 
 static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)

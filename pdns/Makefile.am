@@ -1,3 +1,5 @@
+JSON11_LIBS = -L$(top_srcdir)/ext/json11 -ljson11
+
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/rapidjson/include \
@@ -207,7 +209,8 @@ pdns_server_LDADD = \
 	@modulelibs@ \
 	$(LIBDL) \
 	$(MBEDTLS_LIBS) \
-	$(YAHTTP_LIBS)
+	$(YAHTTP_LIBS) \
+	$(JSON11_LIBS)
 
 if BOTAN110
 pdns_server_SOURCES += botan110signers.cc botansigners.cc
@@ -307,7 +310,8 @@ pdnsutil_LDADD = \
 	$(LIBDL) \
 	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
-	$(YAHTTP_LIBS)
+	$(YAHTTP_LIBS) \
+	$(JSON11_LIBS)
 
 if BOTAN110
 pdnsutil_SOURCES += botan110signers.cc botansigners.cc
@@ -374,7 +378,7 @@ zone2sql_SOURCES = \
 	zone2sql.cc \
 	zoneparser-tng.cc
 
-zone2sql_LDADD = $(MBEDTLS_LIBS)
+zone2sql_LDADD = $(MBEDTLS_LIBS) $(JSON11_LIBS)
 
 zone2json_SOURCES = \
 	arguments.cc \
@@ -400,7 +404,7 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDADD = $(MBEDTLS_LIBS) -L$(top_srcdir)/ext/json11 -ljson11
+zone2json_LDADD = $(MBEDTLS_LIBS) $(JSON11_LIBS)
 
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc
@@ -1157,7 +1161,8 @@ pdns_recursor_SOURCES = \
 
 pdns_recursor_LDADD = \
 	$(MBEDTLS_LIBS) \
-	$(YAHTTP_LIBS)
+	$(YAHTTP_LIBS) \
+	$(JSON11_LIBS)
 
 if PKCS11
 pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh

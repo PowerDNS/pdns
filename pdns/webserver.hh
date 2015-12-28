@@ -29,6 +29,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "json11.hpp"
 #include "namespaces.hh"
 #include "sstuff.hh"
 
@@ -42,6 +43,7 @@ public:
   bool accept_html;
   bool complete;
   void json(rapidjson::Document& document);
+  json11::Json json();
 
   // checks password _only_.
   bool compareAuthorization(const string &expected_password);
@@ -54,6 +56,7 @@ public:
   HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
 
   void setBody(rapidjson::Document& document);
+  void setBody(const json11::Json& document);
 };
 
 

@@ -31,6 +31,7 @@
 #include "rapidjson/writer.h"
 
 using namespace rapidjson;
+using json11::Json;
 
 int intFromJson(const Value& container, const char* key)
 {
@@ -63,6 +64,31 @@ int intFromJson(const Value& container, const char* key, const int default_value
   }
 }
 
+int intFromJson(const Json container, const std::string& key)
+{
+  auto val = container[key];
+  if (val.is_number()) {
+    return val.int_value();
+  } else if (val.is_string()) {
+    return std::stoi(val.string_value());
+  } else {
+    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
+  }
+}
+
+int intFromJson(const Json container, const std::string& key, const int default_value)
+{
+  auto val = container[key];
+  if (val.is_number()) {
+    return val.int_value();
+  } else if (val.is_string()) {
+    return std::stoi(val.string_value());
+  } else {
+    // TODO: check if value really isn't present
+    return default_value;
+  }
+}
+
 string stringFromJson(const Value& container, const char* key)
 {
   if (!container.IsObject()) {
@@ -71,6 +97,16 @@ string stringFromJson(const Value& container, const char* key)
   const Value& val = container[key];
   if (val.IsString()) {
     return val.GetString();
+  } else {
+    throw JsonException("Key '" + string(key) + "' not present or not a String");
+  }
+}
+
+string stringFromJson(const Json container, const std::string &key)
+{
+  const Json val = container[key];
+  if (val.is_string()) {
+    return val.string_value();
   } else {
     throw JsonException("Key '" + string(key) + "' not present or not a String");
   }
@@ -111,6 +147,26 @@ bool boolFromJson(const rapidjson::Value& container, const char* key, const bool
   const Value& val = container[key];
   if (val.IsBool()) {
     return val.GetBool();
+  } else {
+    return default_value;
+  }
+}
+
+bool boolFromJson(const json11::Json container, const std::string& key)
+{
+  auto val = container[key];
+  if (val.is_bool()) {
+    return val.bool_value();
+  } else {
+    throw JsonException("Key '" + string(key) + "' not present or not a Bool");
+  }
+}
+
+bool boolFromJson(const json11::Json container, const std::string& key, const bool default_value)
+{
+  auto val = container[key];
+  if (val.is_bool()) {
+    return val.bool_value();
   } else {
     return default_value;
   }

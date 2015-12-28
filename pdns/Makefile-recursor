@@ -4,7 +4,7 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/mbedtls/include -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
+CXXFLAGS:= $(CXXFLAGS) -Iext/rapidjson/include -I$(CURDIR)/ext/mbedtls/include -I$(CURDIR)/ext/json11 -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
 CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/mbedtls/include -pthread -DHAVE_CONFIG_H
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @CF_STACK@ @LD_PIE@
 STRIP_BINARIES?=1
@@ -29,6 +29,7 @@ ext/mbedtls/library/hmac_drbg.o ext/mbedtls/library/asn1write.o \
 ext/mbedtls/library/bignum.o ext/mbedtls/library/oid.o ext/mbedtls/library/asn1parse.o  \
 ext/mbedtls/library/ctr_drbg.o ext/mbedtls/library/entropy.o ext/mbedtls/library/entropy_poll.o\
 ext/mbedtls/library/timing.o \
+ext/json11/json11.o \
 lua-recursor4.o randomhelper.o recpacketcache.o dns.o \
 reczones.o base32.o nsecrecords.o json.o ws-recursor.o ws-api.o \
 version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yahttp/router.o \
@@ -119,7 +120,7 @@ clean: binclean
 	-rm -f dep *~ *.gcda *.gcno optional/*.gcda optional/*.gcno
 
 binclean:
-	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/library/*.o ext/yahttp/yahttp/*.o
+	-rm -f *.o pdns_hw pdns_recursor rec_control optional/*.o build-stamp ext/library/*.o ext/yahttp/yahttp/*.o ext/json11/*.o
 
 dep:
 	$(CXX) $(CXXFLAGS) -MM -MG *.cc *.hh > $@
