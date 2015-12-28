@@ -1153,11 +1153,20 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
     cout << "keys: "<<endl;
     sort(keys.begin(),keys.end());
     reverse(keys.begin(),keys.end());
+    bool shown=false;
     for(const auto& key : keys) {
       string algname;
       algorithm2name(key.d_algorithm,algname);
-      cout << "tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm<<endl;
-      cout << (key.d_flags == 257 ? "KSK" : "ZSK") << " DNSKEY = " << key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
+      int bits;
+      if (key.d_key[0] == 0)
+        bits = *(uint16_t*)(key.d_key.c_str()+1);
+      else
+        bits = *(uint8_t*)key.d_key.c_str();
+      bits = (key.d_key.size() - (bits+1))*8;
+      cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
+      cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
+      if (shown) continue;
+      shown=true;
       cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       try {
