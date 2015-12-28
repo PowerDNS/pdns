@@ -79,8 +79,6 @@ strcasestr(const char *s1, const char *s2)
 
 #endif // HAVE_STRCASESTR
 
-using namespace rapidjson;
-
 static Json getServerDetail() {
   return Json::object {
     { "type", "Server" },
@@ -184,21 +182,14 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   map<string,string> items;
   productServerStatisticsFetch(items);
 
-  Document doc;
-  doc.SetArray();
+  Json::array doc;
   typedef map<string, string> items_t;
-  for(const items_t::value_type& item :  items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-
-    Value jname(item.first.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    Value jvalue(item.second.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+  for(const items_t::value_type& item : items) {
+    doc.push_back(Json::object {
+      { "type", "StatisticItem" },
+      { "name", item.first },
+      { "value", item.second },
+    });
   }
 
   resp->setBody(doc);
