@@ -137,7 +137,7 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-static string logGrep(const string& q, const string& fname, const string& prefix)
+static Json logGrep(const string& q, const string& fname, const string& prefix)
 {
   FILE* ptr = fopen(fname.c_str(), "r");
   if(!ptr) {
@@ -169,14 +169,11 @@ static string logGrep(const string& q, const string& fname, const string& prefix
     }
   }
 
-  Document doc;
-  doc.SetArray();
-  if(!lines.empty()) {
-    for(const string& line :  lines) {
-      doc.PushBack(line.c_str(), doc.GetAllocator());
-    }
+  Json::array items;
+  for(const string& line : lines) {
+    items.push_back(line);
   }
-  return makeStringFromDocument(doc);
+  return items;
 }
 
 void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
@@ -184,7 +181,7 @@ void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   string prefix = " " + s_programname + "[";
-  resp->body = logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix);
+  resp->setBody(logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix));
 }
 
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
