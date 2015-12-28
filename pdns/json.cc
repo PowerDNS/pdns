@@ -179,23 +179,3 @@ string makeStringFromDocument(const Document& doc)
   doc.Accept(w);
   return string(output.GetString(), output.Size());
 }
-
-string returnJsonError(const string& error)
-{
-  Document doc;
-  doc.SetObject();
-  Value jerror(error.c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("error", jerror, doc.GetAllocator());
-  return makeStringFromDocument(doc);
-}
-
-/* success response */
-string returnJsonMessage(const string& message)
-{
-  Document doc;
-  doc.SetObject();
-  Value jmessage;
-  jmessage.SetString(message.c_str());
-  doc.AddMember("result", jmessage, doc.GetAllocator());
-  return makeStringFromDocument(doc);
-}

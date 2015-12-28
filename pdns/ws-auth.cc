@@ -798,7 +798,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 
   random_shuffle(di.masters.begin(), di.masters.end());
   Communicator.addSuckRequest(zonename, di.masters.front());
-  resp->body = returnJsonMessage("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front());
+  resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front());
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
@@ -815,7 +815,7 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   if(!Communicator.notifyDomain(zonename))
     throw ApiException("Failed to add to the queue - see server log");
 
-  resp->body = returnJsonMessage("Notification queued");
+  resp->setSuccessResult("Notification queued");
 }
 
 static void makePtr(const DNSResourceRecord& rr, DNSResourceRecord* ptr) {

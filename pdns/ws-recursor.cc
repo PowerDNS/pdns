@@ -499,8 +499,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     resp->setBody(Json::object { { "entries", entries } });
     return;
   } else {
-    resp->status = 404;
-    resp->body = returnJsonError("Command '"+command+"' not found");
+    resp->setErrorResult("Command '"+command+"' not found", 404);
   }
 }
 

@@ -57,6 +57,8 @@ public:
 
   void setBody(rapidjson::Document& document);
   void setBody(const json11::Json& document);
+  void setErrorResult(const std::string& message, const int status);
+  void setSuccessResult(const std::string& message, const int status = 200);
 };
 
 

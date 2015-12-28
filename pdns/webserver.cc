@@ -107,6 +107,18 @@ void HttpResponse::setBody(const json11::Json& document)
   document.dump(this->body);
 }
 
+void HttpResponse::setErrorResult(const std::string& message, const int status)
+{
+  setBody(json11::Json::object { { "error", message } });
+  this->status = status;
+}
+
+void HttpResponse::setSuccessResult(const std::string& message, const int status)
+{
+  setBody(json11::Json::object { { "result", message } });
+  this->status = status;
+}
+
 static void bareHandlerWrapper(WebServer::HandlerFunction handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses
@@ -166,12 +178,10 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
     resp->status = 200;
     handler(req, resp);
   } catch (ApiException &e) {
-    resp->body = returnJsonError(e.what());
-    resp->status = 422;
+    resp->setErrorResult(e.what(), 422);
     return;
   } catch (JsonException &e) {
-    resp->body = returnJsonError(e.what());
-    resp->status = 422;
+    resp->setErrorResult(e.what(), 422);
     return;
   }
 
@@ -281,7 +291,7 @@ HttpResponse WebServer::handleRequest(HttpRequest req)
       resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
     } else if (req.accept_json) {
       resp.headers["Content-Type"] = "application/json";
-      resp.body = returnJsonError(what);
+      resp.setErrorResult(what, resp.status);
     } else {
       resp.headers["Content-Type"] = "text/plain; charset=utf-8";
       resp.body = what;
