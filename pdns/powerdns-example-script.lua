@@ -91,8 +91,9 @@ badips = newNMG()
 badips:addMask("127.1.0.0/16")
 
 -- this check is applied before any packet parsing is done
-function ipfilter(loc, rem)
-	print("ipfilter called, rem: ", rem:toString(), badips:match(rem))
+function ipfilter(rem, loc, dh)
+	print("ipfilter called, rem: ", rem:toString(), "loc: ",loc:toString(),"match:", badips:match(rem))
+	print("id: ",dh:getID(), "aa: ", dh:getAA(), "ad: ", dh:getAD(), "arcount: ", dh:getARCOUNT())
 	return badips:match(rem)
 end
 
