@@ -329,20 +329,16 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if (q.empty())
     throw ApiException("Query q can't be blank");
 
-  Document doc;
-  doc.SetArray();
-
-  for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
+  Json::array doc;
+  for(const SyncRes::domainmap_t::value_type& val : *t_sstorage->domainmap) {
     string zoneId = apiZoneNameToId(val.first);
-    if (pdns_ci_find(val.first.toString(), q) != string::npos) {
-      Value object;
-      object.SetObject();
-      object.AddMember("type", "zone", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jzoneName, doc.GetAllocator());
-      doc.PushBack(object, doc.GetAllocator());
+    string zoneName = val.first.toString();
+    if (pdns_ci_find(zoneName, q) != string::npos) {
+      doc.push_back(Json::object {
+        { "type", "zone" },
+        { "zone_id", zoneId },
+        { "name", zoneName }
+      });
     }
 
     // if zone name is an exact match, don't bother with returning all records/comments in it
@@ -352,23 +348,17 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
     const SyncRes::AuthDomain& zone = val.second;
 
-    for(const SyncRes::AuthDomain::records_t::value_type& rr :  zone.d_records) {
+    for(const SyncRes::AuthDomain::records_t::value_type& rr : zone.d_records) {
       if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.d_content->getZoneRepresentation(), q) == string::npos)
         continue;
 
-      Value object;
-      object.SetObject();
-      object.AddMember("type", "record", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
-      Value jname(rr.d_name.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jname, doc.GetAllocator());
-      Value jcontent(rr.d_content->getZoneRepresentation().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("content", jcontent, doc.GetAllocator());
-
-      doc.PushBack(object, doc.GetAllocator());
+      doc.push_back(Json::object {
+        { "type", "record" },
+        { "zone_id", zoneId },
+        { "zone_name", zoneName },
+        { "name", rr.d_name.toString() },
+        { "content", rr.d_content->getZoneRepresentation() }
+      });
     }
   }
   resp->setBody(doc);
