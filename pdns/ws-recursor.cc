@@ -373,10 +373,10 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, false));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, false));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon, false));
-  map<string, string> object;
-  object["count"] = std::to_string(count);
-  object["result"] = "Flushed cache.";
-  resp->body = returnJsonObject(object);
+  resp->setBody(Json::object {
+    { "count", count },
+    { "result", "Flushed cache." }
+  });
 }
 
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)

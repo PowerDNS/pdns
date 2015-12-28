@@ -1086,11 +1086,10 @@ void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
 
   extern PacketCache PC;
   int count = PC.purgeExact(canon);
-
-  map<string, string> object;
-  object["count"] = std::to_string(count);
-  object["result"] = "Flushed cache.";
-  resp->body = returnJsonObject(object);
+  resp->setBody(Json::object {
+    { "count", count },
+    { "result", "Flushed cache." }
+  });
 }
 
 void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)

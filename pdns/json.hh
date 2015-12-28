@@ -27,7 +27,6 @@
 #include "rapidjson/document.h"
 #include "json11.hpp"
 
-std::string returnJsonObject(const std::map<std::string, std::string>& items);
 std::string returnJsonError(const std::string& error);
 std::string returnJsonMessage(const std::string& message);
 std::string makeStringFromDocument(const rapidjson::Document& doc);
