@@ -386,68 +386,62 @@ void productServerStatisticsFetch(map<string,string>& out)
   out["uptime"] = std::to_string(time(0) - s_starttime);
 }
 
-static void gatherRecords(const Value& container, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
+static void gatherRecords(const Json container, vector<DNSResourceRecord>& new_records, vector<DNSResourceRecord>& new_ptrs) {
   UeberBackend B;
   DNSResourceRecord rr;
-  const Value& records = container["records"];
-  if (records.IsArray()) {
-    for (SizeType idx = 0; idx < records.Size(); ++idx) {
-      const Value& record = records[idx];
-      rr.qname = apiNameToDNSName(stringFromJson(record, "name"));
-      rr.qtype = stringFromJson(record, "type");
-      string content = stringFromJson(record, "content");
-      rr.auth = 1;
-      rr.ttl = intFromJson(record, "ttl");
-      rr.disabled = boolFromJson(record, "disabled");
+  for(auto record : container["records"].array_items()) {
+    rr.qname = apiNameToDNSName(stringFromJson(record, "name"));
+    rr.qtype = stringFromJson(record, "type");
+    string content = stringFromJson(record, "content");
+    rr.auth = 1;
+    rr.ttl = intFromJson(record, "ttl");
+    rr.disabled = boolFromJson(record, "disabled");
 
-      if (rr.qtype.getCode() == 0) {
-        throw ApiException("Record "+rr.qname.toString()+"/"+stringFromJson(record, "type")+" is of unknown type");
-      }
-
-      // validate that the client sent something we can actually parse, and require that data to be dotted.
-      try {
-        //shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, content));
-        //string tmp = drc->serialize(rr.qname);
-        if (rr.qtype.getCode() != QType::AAAA) {
-          string tmp = makeApiRecordContent(rr.qtype, content);
-          if (!pdns_iequals(tmp, content)) {
-            throw std::runtime_error("Not in expected format (parsed as '"+tmp+"')");
-          }
-        } else {
-          struct in6_addr tmpbuf;
-          if (inet_pton(AF_INET6, content.c_str(), &tmpbuf) != 1 || content.find('.') != string::npos) {
-            throw std::runtime_error("Invalid IPv6 address");
-          }
-        }
-        rr.content = makeBackendRecordContent(rr.qtype, content);
-      }
-      catch(std::exception& e)
-      {
-        throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+content+"': "+e.what());
-      }
-
-      if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
-          boolFromJson(record, "set-ptr", false) == true) {
-        DNSResourceRecord ptr;
-        makePtr(rr, &ptr);
-
-        // verify that there's a zone for the PTR
-        DNSPacket fakePacket;
-        SOAData sd;
-        fakePacket.qtype = QType::PTR;
-        if (!B.getAuth(&fakePacket, &sd, ptr.qname))
-          throw ApiException("Could not find domain for PTR '"+ptr.qname.toString()+"' requested for '"+ptr.content+"'");
-
-        ptr.domain_id = sd.domain_id;
-        new_ptrs.push_back(ptr);
-      }
-
-      new_records.push_back(rr);
+    if (rr.qtype.getCode() == 0) {
+      throw ApiException("Record "+rr.qname.toString()+"/"+stringFromJson(record, "type")+" is of unknown type");
     }
+
+    // validate that the client sent something we can actually parse, and require that data to be dotted.
+    try {
+      if (rr.qtype.getCode() != QType::AAAA) {
+        string tmp = makeApiRecordContent(rr.qtype, content);
+        if (!pdns_iequals(tmp, content)) {
+          throw std::runtime_error("Not in expected format (parsed as '"+tmp+"')");
+        }
+      } else {
+        struct in6_addr tmpbuf;
+        if (inet_pton(AF_INET6, content.c_str(), &tmpbuf) != 1 || content.find('.') != string::npos) {
+          throw std::runtime_error("Invalid IPv6 address");
+        }
+      }
+      rr.content = makeBackendRecordContent(rr.qtype, content);
+    }
+    catch(std::exception& e)
+    {
+      throw ApiException("Record "+rr.qname.toString()+"/"+rr.qtype.getName()+" '"+content+"': "+e.what());
+    }
+
+    if ((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) &&
+        boolFromJson(record, "set-ptr", false) == true) {
+      DNSResourceRecord ptr;
+      makePtr(rr, &ptr);
+
+      // verify that there's a zone for the PTR
+      DNSPacket fakePacket;
+      SOAData sd;
+      fakePacket.qtype = QType::PTR;
+      if (!B.getAuth(&fakePacket, &sd, ptr.qname))
+        throw ApiException("Could not find domain for PTR '"+ptr.qname.toString()+"' requested for '"+ptr.content+"'");
+
+      ptr.domain_id = sd.domain_id;
+      new_ptrs.push_back(ptr);
+    }
+
+    new_records.push_back(rr);
   }
 }
 
-static void gatherComments(const Value& container, vector<Comment>& new_comments, bool use_name_type_from_container) {
+static void gatherComments(const Json container, vector<Comment>& new_comments, bool use_name_type_from_container) {
   Comment c;
   if (use_name_type_from_container) {
     c.qname = stringFromJson(container, "name");
@@ -455,43 +449,38 @@ static void gatherComments(const Value& container, vector<Comment>& new_comments
   }
 
   time_t now = time(0);
-  const Value& comments = container["comments"];
-  if (comments.IsArray()) {
-    for(SizeType idx = 0; idx < comments.Size(); ++idx) {
-      const Value& comment = comments[idx];
-      if (!use_name_type_from_container) {
-        c.qname = stringFromJson(comment, "name");
-        c.qtype = stringFromJson(comment, "type");
-      }
-      c.modified_at = intFromJson(comment, "modified_at", now);
-      c.content = stringFromJson(comment, "content");
-      c.account = stringFromJson(comment, "account");
-      new_comments.push_back(c);
+  for (auto comment : container["comments"].array_items()) {
+    if (!use_name_type_from_container) {
+      c.qname = stringFromJson(comment, "name");
+      c.qtype = stringFromJson(comment, "type");
     }
+    c.modified_at = intFromJson(comment, "modified_at", now);
+    c.content = stringFromJson(comment, "content");
+    c.account = stringFromJson(comment, "account");
+    new_comments.push_back(c);
   }
 }
 
-static void updateDomainSettingsFromDocument(const DomainInfo& di, const DNSName& zonename, Document& document) {
-  string master;
-  const Value &masters = document["masters"];
-  if (masters.IsArray()) {
-    for (SizeType i = 0; i < masters.Size(); ++i) {
-      master += masters[i].GetString();
-      master += " ";
-    }
+static void updateDomainSettingsFromDocument(const DomainInfo& di, const DNSName& zonename, const Json document) {
+  string zonemaster;
+  for(auto value : document["masters"].array_items()) {
+    string master = value.string_value();
+    if (master.empty())
+      throw ApiException("Master can not be an empty string");
+    zonemaster += master + " ";
   }
 
   di.backend->setKind(zonename, DomainInfo::stringToKind(stringFromJson(document, "kind")));
-  di.backend->setMaster(zonename, master);
+  di.backend->setMaster(zonename, zonemaster);
 
-  if (document["soa_edit_api"].IsString()) {
-    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", document["soa_edit_api"].GetString());
+  if (document["soa_edit_api"].is_string()) {
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", document["soa_edit_api"].string_value());
   }
-  if (document["soa_edit"].IsString()) {
-    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].GetString());
+  if (document["soa_edit"].is_string()) {
+    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT", document["soa_edit"].string_value());
   }
-  if (document["account"].IsString()) {
-    di.backend->setAccount(zonename, document["account"].GetString());
+  if (document["account"].is_string()) {
+    di.backend->setAccount(zonename, document["account"].string_value());
   }
 }
 
@@ -549,10 +538,10 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   resp->setBody(doc);
 }
 
-static void gatherRecordsFromZone(const Value &container, vector<DNSResourceRecord>& new_records, DNSName zonename) {
+static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, DNSName zonename) {
   DNSResourceRecord rr;
   vector<string> zonedata;
-  stringtok(zonedata, stringFromJson(container, "zone"), "\r\n");
+  stringtok(zonedata, zonestring, "\r\n");
 
   ZoneParserTNG zpt(zonedata, zonename);
 
@@ -580,12 +569,11 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   DNSSECKeeper dk;
   if (req->method == "POST" && !::arg().mustDo("api-readonly")) {
     DomainInfo di;
-    Document document;
-    req->json(document);
+    auto document = req->json();
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
     apiCheckNameAllowedCharacters(zonename.toString());
 
-    string zonestring = stringFromJson(document, "zone", "");
+    string zonestring = document["zone"].string_value();
 
     bool exists = B.getDomainInfo(zonename, di);
     if(exists)
@@ -594,24 +582,22 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // validate 'kind' is set
     DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
 
-    const Value &records = document["records"];
-    if (records.IsArray() && zonestring != "")
+    auto records = document["records"];
+    if (records.is_array() && zonestring != "")
       throw ApiException("You cannot give zonedata AND records");
 
-    const Value &nameservers = document["nameservers"];
-    if (!nameservers.IsArray() && zonekind != DomainInfo::Slave)
+    auto nameservers = document["nameservers"];
+    if (!nameservers.is_array() && zonekind != DomainInfo::Slave)
       throw ApiException("Nameservers list must be given (but can be empty if NS records are supplied)");
 
     string soa_edit_api_kind;
-    if (document["soa_edit_api"].IsString()) {
-      soa_edit_api_kind = document["soa_edit_api"].GetString();
+    if (document["soa_edit_api"].is_string()) {
+      soa_edit_api_kind = document["soa_edit_api"].string_value();
     }
     else {
       soa_edit_api_kind = "DEFAULT";
     }
-    string soa_edit_kind;
-    if (document["soa_edit"].IsString())
-      soa_edit_kind = document["soa_edit"].GetString();
+    string soa_edit_kind = document["soa_edit"].string_value();
 
     // if records/comments are given, load and check them
     bool have_soa = false;
@@ -619,15 +605,15 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     vector<Comment> new_comments;
     vector<DNSResourceRecord> new_ptrs;
 
-    if (records.IsArray()) {
+    if (records.is_array()) {
       gatherRecords(document, new_records, new_ptrs);
     } else if (zonestring != "") {
-      gatherRecordsFromZone(document, new_records, zonename);
+      gatherRecordsFromZone(zonestring, new_records, zonename);
     }
 
     gatherComments(document, new_comments, false);
 
-    for(auto& rr :  new_records) {
+    for(auto& rr : new_records) {
       if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
         throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.getName()+": Name is out of zone");
       apiCheckNameAllowedCharacters(rr.qname.toString());
@@ -651,7 +637,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
       string soa = (boost::format("%s %s %lu")
         % ::arg()["default-soa-name"]
         % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zonename).toString() : ::arg()["default-soa-mail"])
-        % intFromJson(document, "serial", 0)
+        % document["serial"].int_value()
       ).str();
       SOAData sd;
       fillSOAData(soa, sd);  // fills out default values for us
@@ -664,22 +650,20 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
 
     // create NS records if nameservers are given
-    if (nameservers.IsArray()) {
-      for (SizeType i = 0; i < nameservers.Size(); ++i) {
-        if (!nameservers[i].IsString())
-          throw ApiException("Nameservers must be strings");
-        string nameserver = nameservers[i].GetString();
-        if (!isCanonical(nameserver))
-          throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
-        try {
-          // ensure the name parses
-          autorr.content = DNSName(nameserver).toStringNoDot();
-        } catch (...) {
-          throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
-        }
-        autorr.qtype = "NS";
-        new_records.push_back(autorr);
+    for (auto value : nameservers.array_items()) {
+      string nameserver = value.string_value();
+      if (nameserver.empty())
+        throw ApiException("Nameservers must be non-empty strings");
+      if (!isCanonical(nameserver))
+        throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
+      try {
+        // ensure the name parses
+        autorr.content = DNSName(nameserver).toStringNoDot();
+      } catch (...) {
+        throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
       }
+      autorr.qtype = "NS";
+      new_records.push_back(autorr);
     }
 
     // no going back after this
@@ -732,10 +716,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-    Document document;
-    req->json(document);
-
-    updateDomainSettingsFromDocument(di, zonename, document);
+    updateDomainSettingsFromDocument(di, zonename, req->json());
 
     fillZone(zonename, resp);
     return;
@@ -885,11 +866,10 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
   vector<Comment> new_comments;
   vector<DNSResourceRecord> new_ptrs;
 
-  Document document;
-  req->json(document);
+  Json document = req->json();
 
-  const Value& rrsets = document["rrsets"];
-  if (!rrsets.IsArray())
+  auto rrsets = document["rrsets"];
+  if (!rrsets.is_array())
     throw ApiException("No rrsets given in update request");
 
   di.backend->startTransaction(zonename);
@@ -901,8 +881,7 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
-    for(SizeType rrsetIdx = 0; rrsetIdx < rrsets.Size(); ++rrsetIdx) {
-      const Value& rrset = rrsets[rrsetIdx];
+    for (auto rrset : rrsets.array_items()) {
       string changetype;
       QType qtype;
       DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
@@ -943,8 +922,8 @@ static void patchZone(HttpRequest* req, HttpResponse* resp) {
           c.domain_id = di.id;
         }
 
-        bool replace_records = rrset["records"].IsArray();
-        bool replace_comments = rrset["comments"].IsArray();
+        bool replace_records = rrset["records"].is_array();
+        bool replace_comments = rrset["comments"].is_array();
 
         if (!replace_records && !replace_comments) {
           throw ApiException("No change for RRset " + qname.toString() + "/" + qtype.getName());
