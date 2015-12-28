@@ -226,7 +226,7 @@ void GSQLBackend::setFresh(uint32_t domain_id)
 
 bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
 {
-  if (!isOurDomain(domain)) return false;
+  if (!isOurDomain(&domain)) return false;
 
   try {
     d_MasterOfDomainsZoneQuery_stmt->
@@ -259,7 +259,7 @@ bool GSQLBackend::isMaster(const DNSName &domain, const string &ip)
 
 bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
 {
-  if (!isOurDomain(domain)) return false;
+  if (!isOurDomain(&domain)) return false;
 
   try {
     d_UpdateMasterOfZoneQuery_stmt->
@@ -276,7 +276,7 @@ bool GSQLBackend::setMaster(const DNSName &domain, const string &ip)
 
 bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
 {
-  if (!isOurDomain(domain)) return false;
+  if (!isOurDomain(&domain)) return false;
 
   try {
     d_UpdateKindOfZoneQuery_stmt->
@@ -293,7 +293,7 @@ bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind ki
 
 bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
 {
-  if (!isOurDomain(domain)) return false;
+  if (!isOurDomain(&domain)) return false;
 
   try {
     d_UpdateAccountOfZoneQuery_stmt->
@@ -310,7 +310,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
 
 bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di)
 {
-  if (!isOurDomain(domain)) return false;
+  if (!isOurDomain(&domain)) return false;
 
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type,account */
@@ -453,7 +453,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
 {
   if(!d_dnssecQueries)
     return false;
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   if (!ordername.empty()) {
     if (qtype == QType::ANY) {
@@ -517,7 +517,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
 
 bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, const DNSName& zonename, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   if(remove) {
     try {
@@ -574,7 +574,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const string& qnam
 {
   if(!d_dnssecQueries)
     return false;
-  if (!isOurDomain(DNSName(""),id)) return false;
+  if (!isOurDomain(nullptr,id)) return false;
 
   // cerr<<"gsql before/after called for id="<<id<<", qname='"<<qname<<"'"<<endl;
   after.clear();
@@ -673,7 +673,7 @@ int GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key)
 {
   if(!d_dnssecQueries)
     return -1;
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_AddDomainKeyQuery_stmt->
@@ -694,7 +694,7 @@ bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)
 {
   if(!d_dnssecQueries)
     return false;
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_ActivateDomainKeyQuery_stmt->
@@ -713,7 +713,7 @@ bool GSQLBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
 {
   if(!d_dnssecQueries)
     return false;
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_DeactivateDomainKeyQuery_stmt->
@@ -732,7 +732,7 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
 {
   if(!d_dnssecQueries)
     return false;
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_RemoveDomainKeyQuery_stmt->
@@ -842,7 +842,7 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::vec
 {
   if(!d_dnssecQueries)
     return false;
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_ListDomainKeysQuery_stmt->
@@ -885,7 +885,7 @@ void GSQLBackend::alsoNotifies(const DNSName &domain, set<string> *ips)
 
 bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_GetAllDomainMetadataQuery_stmt->
@@ -944,7 +944,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 {
   if(!d_dnssecQueries && isDnssecDomainMetadata(kind))
     return false;
-  if (!isOurDomain(name)) return false;
+  if (!isOurDomain(&name)) return false;
 
   try {
     d_ClearDomainMetadataQuery_stmt->
@@ -1016,7 +1016,7 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt
 
 bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabled)
 {
-  if (!isOurDomain(target, domain_id)) return false;
+  if (!isOurDomain(&target, domain_id)) return false;
 
   DLOG(L<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
@@ -1037,7 +1037,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
 }
 
 bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   string wildzone = "%." + stripDot(zone.toString());  // tolower()?
 
@@ -1251,7 +1251,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
 
 bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   try {
     if (qt != QType::ANY) {
@@ -1349,7 +1349,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord &r, string *ordername)
 
 bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
 {
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   for(const auto& nt: nonterm) {
     try {
@@ -1371,7 +1371,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
 {
   if(!d_dnssecQueries)
       return false;
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   string ordername;
 
@@ -1404,7 +1404,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bo
 
 bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
 {
-  if (domain_id >=0 && !isOurDomain(DNSName(""), domain_id)) return false;
+  if (domain_id >=0 && !isOurDomain(nullptr, domain_id)) return false;
 
   try {
     d_db->startTransaction();
@@ -1446,7 +1446,7 @@ bool GSQLBackend::abortTransaction()
 
 bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, time_t& serial)
 {
-  if (!isOurDomain(DNSName(""), sd.domain_id)) return false;
+  if (!isOurDomain(nullptr, sd.domain_id)) return false;
   if (d_ZoneLastChangeQuery.empty()) {
     // query not set => fall back to default impl
     return DNSBackend::calculateSOASerial(domain, sd, serial);
@@ -1475,7 +1475,7 @@ bool GSQLBackend::calculateSOASerial(const DNSName& domain, const SOAData& sd, t
 
 bool GSQLBackend::listComments(const uint32_t domain_id)
 {
-  if (!isOurDomain(DNSName(""), domain_id)) return false;
+  if (!isOurDomain(nullptr, domain_id)) return false;
 
   try {
     d_query_name = "list-comments-query";
@@ -1698,11 +1698,15 @@ void GSQLBackend::extractComment(const SSqlStatement::row_t& row, Comment& comme
  comment.content = row[5];
 }
 
-bool GSQLBackend::isOurDomain(const DNSName &zone, int domain_id) {
+bool GSQLBackend::isOurDomain(const DNSName *zone, int domain_id) {
   try {
     d_IsOurDomainQuery_stmt->
-      bind("id", domain_id)->
-      bind("zone", zone)->
+      bind("id", domain_id);
+      if (zone)
+        d_IsOurDomainQuery_stmt->bind("zone", *zone);
+      else
+        d_IsOurDomainQuery_stmt->bindNull("zone");
+      d_IsOurDomainQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
