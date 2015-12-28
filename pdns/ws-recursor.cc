@@ -439,33 +439,22 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
       rcounts.insert(make_pair(-i->second, i->first));
 
-    Document doc;
-    doc.SetObject();
-    Value entries;
-    entries.SetArray();
+    Json::array entries;
     unsigned int tot=0, totIncluded=0;
     for(const rcounts_t::value_type& q :  rcounts) {
-      Value arr;
-
-      arr.SetArray();
       totIncluded-=q.first;
-      arr.PushBack(-q.first, doc.GetAllocator());
-      arr.PushBack(q.second.first.toString().c_str(), doc.GetAllocator());
-      arr.PushBack(DNSRecordContent::NumberToType(q.second.second).c_str(), doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        -q.first, q.second.first.toString(), DNSRecordContent::NumberToType(q.second.second)
+      });
       if(tot++>=100)
 	break;
     }
     if(queries.size() != totIncluded) {
-      Value arr;
-      arr.SetArray();
-      arr.PushBack((unsigned int)(queries.size()-totIncluded), doc.GetAllocator());
-      arr.PushBack("", doc.GetAllocator());
-      arr.PushBack("", doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        (int)(queries.size() - totIncluded), "", ""
+      });
     }
-    doc.AddMember("entries", entries, doc.GetAllocator());
-    resp->setBody(doc);
+    resp->setBody(Json::object { { "entries", entries } });
     return;
   }
   else if(command == "get-remote-ring") {
@@ -491,34 +480,23 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
       rcounts.insert(make_pair(-i->second, i->first));
 
-
-    Document doc;
-    doc.SetObject();
-    Value entries;
-    entries.SetArray();
+    Json::array entries;
     unsigned int tot=0, totIncluded=0;
     for(const rcounts_t::value_type& q :  rcounts) {
       totIncluded-=q.first;
-      Value arr;
-
-      arr.SetArray();
-      arr.PushBack(-q.first, doc.GetAllocator());
-      Value jname(q.second.toString().c_str(), doc.GetAllocator()); // copy
-      arr.PushBack(jname, doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        -q.first, q.second.toString()
+      });
       if(tot++>=100)
 	break;
     }
     if(queries.size() != totIncluded) {
-      Value arr;
-      arr.SetArray();
-      arr.PushBack((unsigned int)(queries.size()-totIncluded), doc.GetAllocator());
-      arr.PushBack("", doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        (int)(queries.size() - totIncluded), "", ""
+      });
     }
 
-    doc.AddMember("entries", entries, doc.GetAllocator());
-    resp->setBody(doc);
+    resp->setBody(Json::object { { "entries", entries } });
     return;
   } else {
     resp->status = 404;
