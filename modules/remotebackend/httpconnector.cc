@@ -7,8 +7,8 @@
 #include <fcntl.h>
 
 #include <sstream>
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include "pdns/lock.hh"
 
 #ifndef UNIX_PATH_MAX
@@ -277,12 +277,14 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const rapi
     req.headers["accept"] = "application/json";
 }
 
-
 void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP::Request& req) {
+    rapidjson::StringBuffer output;
+    rapidjson::Writer<rapidjson::StringBuffer> w(output);
     if (this->d_post_json) {
         req.setup("POST", d_url);
         // simple case, POST JSON into url. nothing fancy.
-        std::string out = makeStringFromDocument(input);
+        input.Accept(w);
+        std::string out(output.GetString(), output.Size());
         req.headers["Content-Type"] = "text/javascript; charset=utf-8";
         req.headers["Content-Length"] = std::to_string(out.size());
         req.headers["accept"] = "application/json";
@@ -290,8 +292,6 @@ void HTTPConnector::post_requestbuilder(const rapidjson::Document &input, YaHTTP
     } else {
         std::stringstream url,content;
         // call url/method.suffix
-        rapidjson::StringBuffer output;
-        rapidjson::Writer<rapidjson::StringBuffer> w(output);
         input["parameters"].Accept(w);
         url << d_url << "/" << input["method"].GetString() << d_url_suffix;
         req.setup("POST", url.str());
