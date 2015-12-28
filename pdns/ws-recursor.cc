@@ -123,51 +123,39 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   if (iter == t_sstorage->domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  Document doc;
-  doc.SetObject();
-
   const SyncRes::AuthDomain& zone = iter->second;
+
+  Json::array servers;
+  for(const ComboAddress& server : zone.d_servers) {
+    servers.push_back(server.toStringWithPort());
+  }
+
+  Json::array records;
+  for(const SyncRes::AuthDomain::records_t::value_type& dr : zone.d_records) {
+    records.push_back(Json::object {
+      { "name", dr.d_name.toString() },
+      { "type", DNSRecordContent::NumberToType(dr.d_type) },
+      { "ttl", (double)dr.d_ttl },
+      { "content", dr.d_content->getZoneRepresentation() }
+    });
+  }
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
   string zoneId = apiZoneNameToId(iter->first);
-  Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("id", jzoneid, doc.GetAllocator());
-  string url = "/api/v1/servers/localhost/zones/" + zoneId;
-  Value jurl(url.c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("url", jurl, doc.GetAllocator());
-  Value jzonename(iter->first.toString().c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("name", jzonename, doc.GetAllocator());
-  doc.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
-  Value servers;
-  servers.SetArray();
-  for(const ComboAddress& server :  zone.d_servers) {
-    Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
-    servers.PushBack(value, doc.GetAllocator());
-  }
-  doc.AddMember("servers", servers, doc.GetAllocator());
-  bool rd = zone.d_servers.empty() ? false : zone.d_rdForward;
-  doc.AddMember("recursion_desired", rd, doc.GetAllocator());
-
-  Value records;
-  records.SetArray();
-  for(const SyncRes::AuthDomain::records_t::value_type& dr :  zone.d_records) {
-    Value object;
-    object.SetObject();
-    Value jname(dr.d_name.toString().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("name", jname, doc.GetAllocator());
-    Value jtype(DNSRecordContent::NumberToType(dr.d_type).c_str(), doc.GetAllocator()); // copy
-    object.AddMember("type", jtype, doc.GetAllocator());
-    object.AddMember("ttl", dr.d_ttl, doc.GetAllocator());
-    Value jcontent(dr.d_content->getZoneRepresentation().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("content", jcontent, doc.GetAllocator());
-    records.PushBack(object, doc.GetAllocator());
-  }
-  doc.AddMember("records", records, doc.GetAllocator());
+  Json::object doc = {
+    { "id", zoneId },
+    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
+    { "name", iter->first.toString() },
+    { "kind", zone.d_servers.empty() ? "Native" : "Forwarded" },
+    { "servers", servers },
+    { "recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward },
+    { "records", records }
+  };
 
   resp->setBody(doc);
 }
 
-static void doCreateZone(const Value& document)
+static void doCreateZone(const Json document)
 {
   if (::arg()["api-config-dir"].empty()) {
     throw ApiException("Config Option \"api-config-dir\" must be set");
@@ -176,7 +164,7 @@ static void doCreateZone(const Value& document)
   DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
   apiCheckNameAllowedCharacters(zonename.toString());
 
-  string singleIPTarget = stringFromJson(document, "single_target_ip", "");
+  string singleIPTarget = document["single_target_ip"].string_value();
   string kind = toUpper(stringFromJson(document, "kind"));
   bool rd = boolFromJson(document, "recursion_desired");
   string confbasename = "zone-" + apiZoneNameToId(zonename);
@@ -210,19 +198,19 @@ static void doCreateZone(const Value& document)
 
     apiWriteConfigFile(confbasename, "auth-zones+=" + zonename.toString() + "=" + zonefilename);
   } else if (kind == "FORWARDED") {
-    const Value &servers = document["servers"];
-    if (kind == "FORWARDED" && (!servers.IsArray() || servers.Size() == 0))
-      throw ApiException("Need at least one upstream server when forwarding");
-
     string serverlist;
-    if (servers.IsArray()) {
-      for (SizeType i = 0; i < servers.Size(); ++i) {
-        if (!serverlist.empty()) {
-          serverlist += ";";
-        }
-        serverlist += servers[i].GetString();
+    for (auto value : document["servers"].array_items()) {
+      string server = value.string_value();
+      if (server == "") {
+        throw ApiException("Forwarded-to server must not be an empty string");
       }
+      if (!serverlist.empty()) {
+        serverlist += ";";
+      }
+      serverlist += server;
     }
+    if (serverlist == "")
+      throw ApiException("Need at least one upstream server when forwarding");
 
     if (rd) {
       apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename.toString() + "=" + serverlist);
@@ -262,8 +250,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Config Option \"api-config-dir\" must be set");
     }
 
-    Document document;
-    req->json(document);
+    Json document = req->json();
 
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
 
@@ -281,33 +268,23 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  Document doc;
-  doc.SetArray();
-
+  Json::array doc;
   for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
-    Value jdi;
-    jdi.SetObject();
+    Json::array servers;
+    for(const ComboAddress& server : zone.d_servers) {
+      servers.push_back(server.toStringWithPort());
+    }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
-    Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
-    jdi.AddMember("id", jzoneid, doc.GetAllocator());
-    string url = "/api/v1/servers/localhost/zones/" + zoneId;
-    Value jurl(url.c_str(), doc.GetAllocator()); // copy
-    jdi.AddMember("url", jurl, doc.GetAllocator());
-    Value jzonename(val.first.toString().c_str(), doc.GetAllocator()); // copy
-    jdi.AddMember("name", jzonename, doc.GetAllocator());
-    jdi.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
-    Value servers;
-    servers.SetArray();
-    for(const ComboAddress& server :  zone.d_servers) {
-      Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
-      servers.PushBack(value, doc.GetAllocator());
-    }
-    jdi.AddMember("servers", servers, doc.GetAllocator());
-    bool rd = zone.d_servers.empty() ? false : zone.d_rdForward;
-    jdi.AddMember("recursion_desired", rd, doc.GetAllocator());
-    doc.PushBack(jdi, doc.GetAllocator());
+    doc.push_back(Json::object {
+      { "id", zoneId },
+      { "url", "/api/v1/servers/localhost/zones/" + zoneId },
+      { "name", val.first.toString() },
+      { "kind", zone.d_servers.empty() ? "Native" : "Forwarded" },
+      { "servers", servers },
+      { "recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward }
+    });
   }
   resp->setBody(doc);
 }
@@ -321,8 +298,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
-    Document document;
-    req->json(document);
+    Json document = req->json();
 
     doDeleteZone(zonename);
     doCreateZone(document);
