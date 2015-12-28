@@ -306,31 +306,22 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
   return makeRecordContent(qtype, content, true);
 }
 
-static void fillZoneInfo(const DomainInfo& di, Value& jdi, Document& doc) {
+static Json::object getZoneInfo(const DomainInfo& di) {
   DNSSECKeeper dk;
-  jdi.SetObject();
-  // id is the canonical lookup key, which doesn't actually match the name (in some cases)
   string zoneId = apiZoneNameToId(di.zone);
-  Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-  jdi.AddMember("id", jzoneId, doc.GetAllocator());
-  string url = "api/v1/servers/localhost/zones/" + zoneId;
-  Value jurl(url.c_str(), doc.GetAllocator()); // copy
-  jdi.AddMember("url", jurl, doc.GetAllocator());
-  Value jname(di.zone.toString().c_str(), doc.GetAllocator()); // copy
-  jdi.AddMember("name", jname, doc.GetAllocator());
-  jdi.AddMember("kind", di.getKindString(), doc.GetAllocator());
-  jdi.AddMember("dnssec", dk.isSecuredZone(di.zone), doc.GetAllocator());
-  jdi.AddMember("account", di.account.c_str(), doc.GetAllocator());
-  Value masters;
-  masters.SetArray();
-  for(const string& master :  di.masters) {
-    Value value(master.c_str(), doc.GetAllocator());
-    masters.PushBack(value, doc.GetAllocator());
-  }
-  jdi.AddMember("masters", masters, doc.GetAllocator());
-  jdi.AddMember("serial", di.serial, doc.GetAllocator());
-  jdi.AddMember("notified_serial", di.notified_serial, doc.GetAllocator());
-  jdi.AddMember("last_check", (unsigned int) di.last_check, doc.GetAllocator());
+  return Json::object {
+    // id is the canonical lookup key, which doesn't actually match the name (in some cases)
+    { "id", zoneId },
+    { "url", "api/v1/servers/localhost/zones/" + zoneId },
+    { "name", di.zone.toString() },
+    { "kind", di.getKindString() },
+    { "dnssec", dk.isSecuredZone(di.zone) },
+    { "account", di.account },
+    { "masters", di.masters },
+    { "serial", (double)di.serial },
+    { "notified_serial", (double)di.notified_serial },
+    { "last_check", (double)di.last_check }
+  };
 }
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp) {
@@ -339,59 +330,47 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp) {
   if(!B.getDomainInfo(zonename, di))
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  Document doc;
-  fillZoneInfo(di, doc, doc);
-  // extra stuff fillZoneInfo doesn't do for us (more expensive)
+  Json::object doc = getZoneInfo(di);
+  // extra stuff getZoneInfo doesn't do for us (more expensive)
   string soa_edit_api;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api);
-  doc.AddMember("soa_edit_api", soa_edit_api.c_str(), doc.GetAllocator());
+  doc["soa_edit_api"] = soa_edit_api;
   string soa_edit;
   di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit);
-  doc.AddMember("soa_edit", soa_edit.c_str(), doc.GetAllocator());
+  doc["soa_edit"] = soa_edit;
 
   // fill records
   DNSResourceRecord rr;
-  Value records;
-  records.SetArray();
+  Json::array records;
   di.backend->list(zonename, di.id, true); // incl. disabled
   while(di.backend->get(rr)) {
     if (!rr.qtype.getCode())
       continue; // skip empty non-terminals
 
-    Value object;
-    object.SetObject();
-    Value jname(rr.qname.toString().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("name", jname, doc.GetAllocator());
-    Value jtype(rr.qtype.getName().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("type", jtype, doc.GetAllocator());
-    object.AddMember("ttl", rr.ttl, doc.GetAllocator());
-    object.AddMember("disabled", rr.disabled, doc.GetAllocator());
-    Value jcontent(makeApiRecordContent(rr.qtype, rr.content).c_str(), doc.GetAllocator()); // copy
-    object.AddMember("content", jcontent, doc.GetAllocator());
-    records.PushBack(object, doc.GetAllocator());
+    records.push_back(Json::object {
+      { "name", rr.qname.toString() },
+      { "type", rr.qtype.getName() },
+      { "ttl", (double)rr.ttl },
+      { "disabled", rr.disabled },
+      { "content", makeApiRecordContent(rr.qtype, rr.content) }
+    });
   }
-  doc.AddMember("records", records, doc.GetAllocator());
+  doc["records"] = records;
 
   // fill comments
   Comment comment;
-  Value comments;
-  comments.SetArray();
+  Json::array comments;
   di.backend->listComments(di.id);
   while(di.backend->getComment(comment)) {
-    Value object;
-    object.SetObject();
-    Value jname(comment.qname.c_str(), doc.GetAllocator()); // copy
-    object.AddMember("name", jname, doc.GetAllocator());
-    Value jtype(comment.qtype.getName().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("type", jtype, doc.GetAllocator());
-    object.AddMember("modified_at", (unsigned int) comment.modified_at, doc.GetAllocator());
-    Value jaccount(comment.account.c_str(), doc.GetAllocator()); // copy
-    object.AddMember("account", jaccount, doc.GetAllocator());
-    Value jcontent(comment.content.c_str(), doc.GetAllocator()); // copy
-    object.AddMember("content", jcontent, doc.GetAllocator());
-    comments.PushBack(object, doc.GetAllocator());
+    comments.push_back(Json::object {
+      { "name", comment.qname },
+      { "type", comment.qtype.getName() },
+      { "modified_at", (double)comment.modified_at },
+      { "account", comment.account },
+      { "content", comment.content }
+    });
   }
-  doc.AddMember("comments", comments, doc.GetAllocator());
+  doc["comments"] = comments;
 
   resp->setBody(doc);
 }
@@ -736,13 +715,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   vector<DomainInfo> domains;
   B.getAllDomains(&domains, true); // incl. disabled
 
-  Document doc;
-  doc.SetArray();
-
-  for(const DomainInfo& di :  domains) {
-    Value jdi;
-    fillZoneInfo(di, jdi, doc);
-    doc.PushBack(jdi, doc.GetAllocator());
+  Json::array doc;
+  for(const DomainInfo& di : domains) {
+    doc.push_back(getZoneInfo(di));
   }
   resp->setBody(doc);
 }
