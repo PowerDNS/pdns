@@ -34,9 +34,6 @@
 #include "misc.hh"
 #include "syncres.hh"
 #include "dnsparser.hh"
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
 #include "json11.hpp"
 #include "webserver.hh"
 #include "ws-api.hh"
@@ -44,7 +41,6 @@
 
 extern __thread FDMultiplexer* t_fdm;
 
-using namespace rapidjson;
 using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)

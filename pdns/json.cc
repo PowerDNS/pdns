@@ -26,43 +26,7 @@
 #include "namespaces.hh"
 #include "misc.hh"
 
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
-
-using namespace rapidjson;
 using json11::Json;
-
-int intFromJson(const Value& container, const char* key)
-{
-  if (!container.IsObject()) {
-    throw JsonException("Container was not an object.");
-  }
-  const Value& val = container[key];
-  if (val.IsInt()) {
-    return val.GetInt();
-  } else if (val.IsString()) {
-    return std::stoi(val.GetString());
-  } else {
-    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
-  }
-}
-
-int intFromJson(const Value& container, const char* key, const int default_value)
-{
-  if (!container.IsObject()) {
-    throw JsonException("Container was not an object.");
-  }
-  const Value& val = container[key];
-  if (val.IsInt()) {
-    return val.GetInt();
-  } else if (val.IsString()) {
-    return std::stoi(val.GetString());
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
-}
 
 int intFromJson(const Json container, const std::string& key)
 {
@@ -89,19 +53,6 @@ int intFromJson(const Json container, const std::string& key, const int default_
   }
 }
 
-string stringFromJson(const Value& container, const char* key)
-{
-  if (!container.IsObject()) {
-    throw JsonException("Container was not an object.");
-  }
-  const Value& val = container[key];
-  if (val.IsString()) {
-    return val.GetString();
-  } else {
-    throw JsonException("Key '" + string(key) + "' not present or not a String");
-  }
-}
-
 string stringFromJson(const Json container, const std::string &key)
 {
   const Json val = container[key];
@@ -112,47 +63,7 @@ string stringFromJson(const Json container, const std::string &key)
   }
 }
 
-string stringFromJson(const Value& container, const char* key, const string& default_value)
-{
-  if (!container.IsObject()) {
-    throw JsonException("Container was not an object.");
-  }
-  const Value& val = container[key];
-  if (val.IsString()) {
-    return val.GetString();
-  } else {
-    // TODO: check if value really isn't present
-    return default_value;
-  }
-}
-
-bool boolFromJson(const rapidjson::Value& container, const char* key)
-{
-  if (!container.IsObject()) {
-    throw JsonException("Container was not an object.");
-  }
-  const Value& val = container[key];
-  if (val.IsBool()) {
-    return val.GetBool();
-  } else {
-    throw JsonException("Key '" + string(key) + "' not present or not a Bool");
-  }
-}
-
-bool boolFromJson(const rapidjson::Value& container, const char* key, const bool default_value)
-{
-  if (!container.IsObject()) {
-    throw JsonException("Container was not an object.");
-  }
-  const Value& val = container[key];
-  if (val.IsBool()) {
-    return val.GetBool();
-  } else {
-    return default_value;
-  }
-}
-
-bool boolFromJson(const json11::Json container, const std::string& key)
+bool boolFromJson(const Json container, const std::string& key)
 {
   auto val = container[key];
   if (val.is_bool()) {
@@ -162,7 +73,7 @@ bool boolFromJson(const json11::Json container, const std::string& key)
   }
 }
 
-bool boolFromJson(const json11::Json container, const std::string& key, const bool default_value)
+bool boolFromJson(const Json container, const std::string& key, const bool default_value)
 {
   auto val = container[key];
   if (val.is_bool()) {
@@ -170,12 +81,4 @@ bool boolFromJson(const json11::Json container, const std::string& key, const bo
   } else {
     return default_value;
   }
-}
-
-string makeStringFromDocument(const Document& doc)
-{
-  StringBuffer output;
-  Writer<StringBuffer> w(output);
-  doc.Accept(w);
-  return string(output.GetString(), output.Size());
 }

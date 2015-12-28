@@ -70,9 +70,6 @@ cat >>$DIRNAME/config.h <<EOF
 #define HAVE_BOOST 1
 #define HAVE_MBEDTLS2 1
 EOF
-mkdir -p $DIRNAME/ext/rapidjson/include/rapidjson/internal
-cp -a ../ext/rapidjson/include/rapidjson/*.h $DIRNAME/ext/rapidjson/include/rapidjson/
-cp -a ../ext/rapidjson/include/rapidjson/internal/*.h $DIRNAME/ext/rapidjson/include/rapidjson/internal
 mkdir -p $DIRNAME/ext/mbedtls/include/mbedtls
 cp -a ../ext/mbedtls/include/mbedtls/{config.h,check_config.h,aes.h,ripemd160.h,sha1.h,md.h,md5.h,sha256.h,sha512.h,ecp.h,ecdsa.h,md_internal.h} ../ext/mbedtls/include/mbedtls/base64.h ../ext/mbedtls/include/mbedtls/platform.h ../ext/mbedtls/include/mbedtls/version.h $DIRNAME/ext/mbedtls/include/mbedtls
 cp -a ../ext/mbedtls/include/mbedtls/{entropy.h,ctr_drbg.h,hmac_drbg.h,rsa.h,ecp.h,bignum.h,oid.h,asn1.h,asn1write.h,pk.h,ecdsa.h,cipher.h,x509.h} $DIRNAME/ext/mbedtls/include/mbedtls

@@ -37,9 +37,6 @@
 #include <boost/format.hpp>
 
 #include "namespaces.hh"
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
 #include "ws-api.hh"
 #include "version.hh"
 #include "dnsseckeeper.hh"
@@ -48,7 +45,6 @@
 #include "common_startup.hh"
 
 
-using namespace rapidjson;
 using json11::Json;
 
 extern StatBag S;

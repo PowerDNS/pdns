@@ -22,21 +22,12 @@
 #pragma once // it is 2012, deal with it
 
 #include <string>
-#include <map>
 #include <stdexcept>
-#include "rapidjson/document.h"
 #include "json11.hpp"
 
-std::string makeStringFromDocument(const rapidjson::Document& doc);
-int intFromJson(const rapidjson::Value& container, const char* key);
-int intFromJson(const rapidjson::Value& container, const char* key, const int default_value);
 int intFromJson(const json11::Json container, const std::string& key);
 int intFromJson(const json11::Json container, const std::string& key, const int default_value);
-std::string stringFromJson(const rapidjson::Value& container, const char* key);
-std::string stringFromJson(const rapidjson::Value& container, const char* key, const std::string& default_value);
 std::string stringFromJson(const json11::Json container, const std::string &key);
-bool boolFromJson(const rapidjson::Value& container, const char* key);
-bool boolFromJson(const rapidjson::Value& container, const char* key, const bool default_value);
 bool boolFromJson(const json11::Json container, const std::string& key);
 bool boolFromJson(const json11::Json container, const std::string& key, const bool default_value);
 

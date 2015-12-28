@@ -39,18 +39,6 @@ struct connectionThreadData {
   Socket* client;
 };
 
-void HttpRequest::json(rapidjson::Document& document)
-{
-  if(this->body.empty()) {
-    L<<Logger::Debug<<"HTTP: JSON document expected in request body, but body was empty" << endl;
-    throw HttpBadRequestException();
-  }
-  if(document.Parse<0>(this->body.c_str()).HasParseError()) {
-    L<<Logger::Debug<<"HTTP: parsing of JSON document failed" << endl;
-    throw HttpBadRequestException();
-  }
-}
-
 json11::Json HttpRequest::json()
 {
   string err;
@@ -96,11 +84,6 @@ bool HttpRequest::compareHeader(const string &header_name, const string &expecte
   return (0==strcmp(header->second.c_str(), expected_value.c_str()));
 }
 
-
-void HttpResponse::setBody(rapidjson::Document& document)
-{
-  this->body = makeStringFromDocument(document);
-}
 
 void HttpResponse::setBody(const json11::Json& document)
 {

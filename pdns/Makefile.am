@@ -2,7 +2,6 @@ JSON11_LIBS = -L$(top_srcdir)/ext/json11 -ljson11
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
-	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(MBEDTLS_CFLAGS)
 
