@@ -49,6 +49,7 @@
 
 
 using namespace rapidjson;
+using json11::Json;
 
 extern StatBag S;
 
@@ -533,56 +534,37 @@ static void apiZoneCryptokeys(HttpRequest* req, HttpResponse* resp) {
   if (keyset.empty())
     throw ApiException("No keys for zone '"+zonename.toString()+"'");
 
-  Document doc;
-  doc.SetArray();
-
-  for(DNSSECKeeper::keyset_t::value_type value :  keyset) {
+  Json::array doc;
+  for(const DNSSECKeeper::keyset_t::value_type value : keyset) {
     if (req->parameters.count("key_id")) {
       int keyid = std::stoi(req->parameters["key_id"]);
       int curid = value.second.id;
       if (keyid != curid)
         continue;
     }
-    Value key;
-    key.SetObject();
-    key.AddMember("type", "Cryptokey", doc.GetAllocator());
-    key.AddMember("id", value.second.id, doc.GetAllocator());
-    key.AddMember("active", value.second.active, doc.GetAllocator());
-    key.AddMember("keytype", (value.second.keyOrZone ? "ksk" : "zsk"), doc.GetAllocator());
-    Value dnskey(value.first.getDNSKEY().getZoneRepresentation().c_str(), doc.GetAllocator());
-    key.AddMember("dnskey", dnskey, doc.GetAllocator());
+
+    Json::object key {
+      { "type", "Cryptokey" },
+      { "id", (int)value.second.id },
+      { "active", value.second.active },
+      { "keytype", value.second.keyOrZone ? "ksk" : "zsk" },
+      { "dnskey", value.first.getDNSKEY().getZoneRepresentation() }
+    };
+
     if (req->parameters.count("key_id")) {
       DNSSECPrivateKey dpk=dk.getKeyById(zonename, std::stoi(req->parameters["key_id"]));
-      Value content(dpk.getKey()->convertToISC().c_str(), doc.GetAllocator());
-      key.AddMember("content", content, doc.GetAllocator());
+      key["content"] = dpk.getKey()->convertToISC();
     }
 
     if (value.second.keyOrZone) {
-      Value dses;
-      dses.SetArray();
-      Value ds(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 1).getZoneRepresentation().c_str(), doc.GetAllocator());
-      dses.PushBack(ds, doc.GetAllocator());
-      Value ds2(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 2).getZoneRepresentation().c_str(), doc.GetAllocator());
-      dses.PushBack(ds2, doc.GetAllocator());
-
+      Json::array dses;
+      for(const int keyid : { 1, 2, 3, 4 })
       try {
-        Value ds3(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 3).getZoneRepresentation().c_str(), doc.GetAllocator());
-        dses.PushBack(ds3, doc.GetAllocator());
-      }
-      catch(...)
-      {
-      }
-      try {
-        Value ds4(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), 4).getZoneRepresentation().c_str(), doc.GetAllocator());
-        dses.PushBack(ds4, doc.GetAllocator());
-      }
-      catch(...)
-      {
-      }
-      key.AddMember("ds", dses, doc.GetAllocator());
+        dses.push_back(makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation());
+      } catch (...) {}
+      key["ds"] = dses;
     }
-
-    doc.PushBack(key, doc.GetAllocator());
+    doc.push_back(key);
   }
 
   resp->setBody(doc);
