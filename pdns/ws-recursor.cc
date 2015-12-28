@@ -37,6 +37,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "json11.hpp"
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
@@ -44,6 +45,7 @@
 extern __thread FDMultiplexer* t_fdm;
 
 using namespace rapidjson;
+using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
@@ -70,21 +72,16 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
 static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 {
   if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
-    Document document;
-    req->json(document);
-    const Value &jlist = document["value"];
+    Json document = req->json();
 
-    if (!document.IsObject()) {
-      throw ApiException("Supplied JSON must be an object");
-    }
-
-    if (!jlist.IsArray()) {
+    auto jlist = document["value"];
+    if (!jlist.is_array()) {
       throw ApiException("'value' must be an array");
     }
 
-    for (SizeType i = 0; i < jlist.Size(); ++i) {
+    for (auto value : jlist.array_items()) {
       try {
-        Netmask(jlist[i].GetString());
+        Netmask(value.string_value());
       } catch (NetmaskException &e) {
         throw ApiException(e.reason);
       }
@@ -97,8 +94,8 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     // Clear allow-from, and provide a "parent" value
     ss << "allow-from=" << endl;
-    for (SizeType i = 0; i < jlist.Size(); ++i) {
-      ss << "allow-from+=" << jlist[i].GetString() << endl;
+    for (auto value : jlist.array_items()) {
+      ss << "allow-from+=" << value.string_value() << endl;
     }
 
     apiWriteConfigFile("allow-from", ss.str());
@@ -111,24 +108,13 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
   }
 
   // Return currently configured ACLs
-  Document document;
-  document.SetObject();
-
-  Value jlist;
-  jlist.SetArray();
-
   vector<string> entries;
   t_allowFrom->toStringVector(&entries);
 
-  for(const string& entry :  entries) {
-    Value jentry(entry.c_str(), document.GetAllocator()); // copy
-    jlist.PushBack(jentry, document.GetAllocator());
-  }
-
-  document.AddMember("name", "allow-from", document.GetAllocator());
-  document.AddMember("value", jlist, document.GetAllocator());
-
-  resp->setBody(document);
+  resp->setBody(Json::object {
+    { "name", "allow-from" },
+    { "value", entries },
+  });
 }
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
