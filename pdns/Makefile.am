@@ -224,6 +224,11 @@ pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
 endif
 
+if OPENSSL
+pdns_server_SOURCES += opensslsigners.cc opensslsigners.hh
+pdns_server_LDADD += $(OPENSSL_LIBS)
+endif
+
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
@@ -317,6 +322,11 @@ endif
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
 pdnsutil_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if OPENSSL
+pdnsutil_SOURCES += opensslsigners.cc
+pdnsutil_LDADD += $(OPENSSL_LIBS)
 endif
 
 if SQLITE3

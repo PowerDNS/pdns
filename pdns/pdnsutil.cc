@@ -21,6 +21,9 @@
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
+#ifdef HAVE_OPENSSL
+#include "opensslsigners.hh"
+#endif
 #ifdef HAVE_SQLITE3
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
@@ -1474,11 +1477,19 @@ try
     return 0;
   }
 
+loadMainConfig(g_vm["config-dir"].as<string>());
+
+seedRandom(::arg()["entropy-source"]);
+
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
     cerr<<"Unable to initialize sodium crypto library"<<endl;
     exit(99);
   }
+#endif
+
+#ifdef HAVE_OPENSSL
+  openssl_seed();
 #endif
 
   if (cmds[0] == "test-algorithm") {
@@ -1497,7 +1508,6 @@ try
     return 1;
   }
 
-  loadMainConfig(g_vm["config-dir"].as<string>());
   reportAllTypes();
 
   if(cmds[0] == "create-bind-db") {
@@ -2154,7 +2164,6 @@ try
      }
 
      cerr << "Generating new key with " << klen << " bytes (this can take a while)" << endl;
-     seedRandom(::arg()["entropy-source"]);
      for(size_t i = 0; i < klen; i+=4) {
         *(unsigned int*)(tmpkey+i) = dns_random(0xffffffff);
      }

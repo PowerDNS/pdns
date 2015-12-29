@@ -437,8 +437,8 @@ struct LoaderStruct
   {
     // 'botansigners' inits Botan for us
     DNSCryptoKeyEngine::report(12, &GOSTDNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(13, &ECDSADNSCryptoKeyEngine::maker);
-    DNSCryptoKeyEngine::report(14, &ECDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(13, &ECDSADNSCryptoKeyEngine::maker, true);
+    DNSCryptoKeyEngine::report(14, &ECDSADNSCryptoKeyEngine::maker, true);
   }
 } loaderBotan19;
 }
