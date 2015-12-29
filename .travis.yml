@@ -248,11 +248,14 @@ script:
 
   # distribution build
   - ./build-scripts/dist-recursor
-  - cd pdns/pdns-recursor-*/
+  - cd pdns/recursordist
+  - tar xf pdns-recursor-*.tar.bz2
+  - rm -f pdns-recursor-*.tar.bz2
+  - cd pdns-recursor-*
   - ./configure
   - make -k -j3
-  - cd ..
-  - ln -s pdns-recursor*/pdns_recursor .
+  - cd ../..
+  - ln -s recursordist/pdns-recursor*/pdns_recursor .
   - cd ..
 
   # regression-tests
