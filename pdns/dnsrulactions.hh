@@ -443,7 +443,7 @@ public:
   }
 private:
   string d_fname;
-  FILE* d_fp;
+  FILE* d_fp{0};
 };
 
 
