@@ -409,7 +409,7 @@ DNS responses based on a policy loaded via a zonefile.
 
 Frequently, Response Policy Zones get to be very large, so it is customary to update them over IXFR.
 
-An RPZ can be loaded from file over slaved from a master. To load from file, use:
+An RPZ can be loaded from file or slaved from a master. To load from file, use:
 
 ```
 rpzFile("filename", ..settings.. )
@@ -418,7 +418,7 @@ rpzFile("filename", ..settings.. )
 To slave from a master and start IXFR to get updates, use:
 
 ```
-rpzMaster("1.2.3.4", "policy.rpz", ..settings..)
+rpzMaster("192.0.2.4", "policy.rpz", ..settings..)
 ```
 
 In this example, 'policy.rpz' denotes the name of the zone to query for. 
