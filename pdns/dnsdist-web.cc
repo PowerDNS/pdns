@@ -38,7 +38,7 @@ bool compareAuthorization(YaHTTP::Request& req, const string &expected_password)
 static void connectionThread(int sock, ComboAddress remote, string password)
 {
   using namespace json11;
-  infolog("Webserver handling connection from %s", remote.toStringWithPort());
+  vinfolog("Webserver handling connection from %s", remote.toStringWithPort());
   FILE* fp=0;
   fp=fdopen(sock, "r");
   try {
