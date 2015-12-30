@@ -26,7 +26,6 @@ AS_IF([test "x$LUAPC" = "x" -a "x$LUAJITPC" = "x"], [
 ])
 
 AX_CXX_COMPILE_STDCXX_11(ext,mandatory)
-AC_DEFINE([HAVE_MBEDTLS2], [1], [Defined if mbed TLS version 2.x.x is used])
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
 AC_ARG_ENABLE([hardening],

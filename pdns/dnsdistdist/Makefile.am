@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(SANITIZER_FLAGS) -I$(CURDIR)/ext/mbedtls/include -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
+AM_CPPFLAGS = -I pdns $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\"
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -63,12 +63,7 @@ dnsdist_SOURCES = \
 	ext/luawrapper/include/LuaContext.hpp \
 	ext/json11/json11.cpp \
 	ext/json11/json11.hpp \
-	ext/incbin/incbin.h \
-	ext/mbedtls/include/mbedtls/config.h \
-	ext/mbedtls/include/mbedtls/check_config.h \
-	ext/mbedtls/include/mbedtls/base64.h \
-	ext/mbedtls/include/mbedtls/platform.h \
-	ext/mbedtls/library/base64.c
+	ext/incbin/incbin.h
 
 dnsdist_LDFLAGS = \
 	$(AM_LDFLAGS) \
