@@ -5,13 +5,15 @@ resolving behaviour using simple scripts written in the
 version of the scripting API.
 
 These scripts can be used to quickly override dangerous domains, fix things
-that are wrong, for load balancing or for legal or commercial purposes.
+that are wrong, for load balancing or for legal or commercial purposes. The scripts can also protect 
+you or your users from malicious traffic.
 
 Lua is extremely fast and lightweight, easily supporting hundreds of
 thousands of queries per second. The Lua language is explained very
 well in the excellent book [Programming in Lua](http://www.amazon.com/exec/obidos/ASIN/859037985X/lua-pilindex-20).
 
-For extra performance, a Just In Time compiled version of Lua called LuaJIT is supported.
+For extra performance, a Just In Time compiled version of Lua called
+[LuaJIT](http://luajit.org/) is supported.
 
 Queries can be intercepted in many places: 
 
@@ -31,7 +33,7 @@ files and binaries may be found near the top of the `Makefile`, or passed
 to `configure`.
 
 **note**: Only one script can be loaded at the same time. If you load a different
-script, the current one will be replaced!
+script, the current one will be replaced (safely)!
 
 If Lua support is available, a script can be configured either via the
 configuration file, or at runtime via the `rec_control` tool.  Scripts can
@@ -56,15 +58,20 @@ installed script, and revert to unmodified behaviour.
 
 ## Writing Lua PowerDNS Recursor scripts for version 4.x
 **Note**: This describes the Lua scripts as supported by 4.x. They are very different than the ones from 3.x, but
-tend to be faster and more correct. For 3.x, see XXX.
+tend to be faster and more correct.
+
+To get a quick start, we have supplied a sample script that showcases all functionality described below. Please
+find it [here](https://github.com/PowerDNS/pdns/blob/master/pdns/powerdns-example-script.lua). 
 
 In the 4.x API, addresses and DNS Names are not passed as strings but as native objects. This allows for
-easy checking against netmasks and domain sets. It also means that to print such names, the ":tostring" 
+easy checking against netmasks and domain sets. It also means that to print such names, the `:toString` 
 method must be used.
+
+Comparing IP addresses and DNSNames is not done with '==' but with the `:equal` method. 
 
 Once a script is loaded, PowerDNS looks for several functions, as detailed below. All of these functions are optional.
 
-### `function ipfilter ( remoteip, localip )`
+### `function ipfilter ( remoteip, localip, dh )`
 This hook gets queried immediately after consulting the packet cache, but before
 parsing the DNS packet. If this hook returns something else than false, the packet is dropped. 
 However, because this check is after the packet cache, the IP address might still receive answers
@@ -74,17 +81,26 @@ With this hook, undesired traffic can be dropped rapidly before using precious C
 for parsing.
 
 `remoteip` is the IP(v6) address of the requestor, `localip` is the address on which the query arrived.
+`dh` is the DNS Header of the query, and it offers the following methods:
 
-As an example, to filter all queries coming from 1.2.3.0/24:
+* `getRD()`, `getAA()`, `getAD()`, `getCD()`, `getRD()`, `getRD()`, `getTC()`: query these bits from the DNS Header
+* `getRCODE()`: get the RCODE of the query
+* `getOPCODE()`: get the OPCODE of the query
+* `getID()`: get the ID of the query
+
+As an example, to filter all queries coming from 1.2.3.0/24, or with the AD bit set:
 
 ```
 badips = newNMG()
 badips:addMask("1.2.3.0/24")
 
-function ipfilter(loc, rem)
-	return badips:match(rem)
+function ipfilter(rem, loc, dh)
+	return badips:match(rem) or dh:getAD()
 end
 ```
+
+This hook does not get the full DNSQuestion object as described below, since filling out the fields
+would require packet parsing, which is what we are trying to prevent with `ipfilter`.
 
 ### The DNSQuestion object
 The following functions all receive a DNSQuestion object, which contains details about
@@ -181,6 +197,7 @@ Useful 'rcodes' include 0 for "no error", `pdns.NXDOMAIN` for
 
 ## Helpful functions
 
+### Netmask Groups
 IP addresses are passed to Lua in native format. They can be matched against netmasks objects like this:
 ```
 nmg = newNMG()
@@ -192,6 +209,39 @@ if nmg:match(dq.remote) then
 end
 ```
 
+### DNSName 
+DNSNames are passed to various functions, and they sport the following methods:
+
+* `:equal`: use this to compare two DNSNames in DNS native fashion. So 'PoWeRdNs.COM' matches 'powerdns.com'
+* `:isPartOf`: returns true if a is a part of b. So: `newDN("www.powerdns.com"):isPartOf(newDN("CoM."))` returns true
+
+To make your own DNSName, use newDN("domain.name").
+
+### IP Addresses
+We move IP addresses around in native format, called ComboAddress within PowerDNS. ComboAddresses can be IPv4 or IPv6,
+and unless you want to know, you don't need to. You can make a ComboAddress with: `newCA("::1")`, and you can compare 
+it against a NetmaskGroup as described above.
+
+To compare the address (so not the port) of two ComboAddresses, use `:equal`. 
+
+### Metrics
+You can custom metrics which will be shown in the output of 'rec_control get-all' and sent to the metrics server over the Carbon protocol,
+and also appear in the JSON HTTP API. 
+
+Create a custom metric with: `myMetric= getMetric("name")`. This metric sports the following metrics:
+
+* `:inc()`: increase metric by 1
+* `:incBy(amount)`: increase metric by amount
+* `:set(to)`: set metric to value to
+* `:get()`: get value of metric
+
+Metrics are shared across all of PowerDNS and are fully atomic and high performance. The myMetric object is effectively a
+pointer to an atomic value. 
+
+Note that metrics live in the same namespace as 'system' metrics. So if you generate one that overlaps with a PowerDNS stock
+metric, you will get double output and weird results. 
+
+### Logging
 To log messages with the main PowerDNS Recursor process, use
 `pdnslog(message)`.  Available since version 3.2.  pdnslog can also write
 out to a syslog loglevel if specified.  Use `pdnslog(message,
@@ -228,6 +278,8 @@ setting dq.followupFunction to "followCNAMERecords" and followupDomain to
 
 
 ## Some sample scripts
+The full sample script can be found [here](https://github.com/PowerDNS/pdns/blob/master/pdns/powerdns-example-script.lua).
+
 ### Dropping all traffic from botnet-infected users
 Frequently, DoS attacks are performed where specific IP addresses are attacked, 
 often by queries coming in from open resolvers. These queries then lead to a lot of 

@@ -779,6 +779,7 @@ void startDoResolve(void *p)
 	
 
 	(*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	
       }
     }
   haveAnswer:;
@@ -1135,6 +1136,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
      g_stats.ipv6qcounter++;
 
   string response;
+  const struct dnsheader* dh = (struct dnsheader*)question.c_str();
   try {
     uint32_t age;
 #ifdef MALLOC_TRACE
@@ -1149,7 +1151,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
     */
 #endif
     bool needsDNSSEC=false;
-    const struct dnsheader* dh = (struct dnsheader*)question.c_str();
+
     if(dh->arcount) {
       unsigned int consumed=0;
       DNSName qname(question.c_str(), question.length(), sizeof(dnsheader), false, 0, 0, &consumed);
@@ -1194,10 +1196,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   }
 
   if(t_pdl->get()) {
-    struct dnsheader dh;
-    memcpy(&dh, response.c_str(), sizeof(dh));
-    
-    if((*t_pdl)->ipfilter(fromaddr, destaddr, dh)) {
+    if((*t_pdl)->ipfilter(fromaddr, destaddr, *dh)) {
       if(!g_quiet)
 	L<<Logger::Notice<<t_id<<" ["<<MT->getTid()<<"/"<<MT->numProcesses()<<"] DROPPED question from "<<fromaddr.toStringWithPort()<<" based on policy"<<endl;
       g_stats.policyDrops++;

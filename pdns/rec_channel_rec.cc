@@ -37,7 +37,8 @@ pthread_mutex_t g_carbon_config_lock=PTHREAD_MUTEX_INITIALIZER;
 map<string, const uint32_t*> d_get32bitpointers;
 map<string, const uint64_t*> d_get64bitpointers;
 map<string, function< uint32_t() > >  d_get32bitmembers;
-
+pthread_mutex_t d_dynmetricslock = PTHREAD_MUTEX_INITIALIZER;
+map<string, std::atomic<unsigned long>* > d_dynmetrics;
 void addGetStat(const string& name, const uint32_t* place)
 {
   d_get32bitpointers[name]=place;
@@ -51,6 +52,18 @@ void addGetStat(const string& name, function<uint32_t ()> f )
   d_get32bitmembers[name]=f;
 }
 
+std::atomic<unsigned long>* getDynMetric(const std::string& str)
+{
+  Lock l(&d_dynmetricslock);
+  auto f = d_dynmetrics.find(str);
+  if(f != d_dynmetrics.end())
+    return f->second;
+
+  auto ret = new std::atomic<unsigned long>();
+  d_dynmetrics[str]= ret;
+  return ret;
+}
+
 optional<uint64_t> get(const string& name) 
 {
   optional<uint64_t> ret;
@@ -62,6 +75,11 @@ optional<uint64_t> get(const string& name)
   if(d_get32bitmembers.count(name))
     return d_get32bitmembers.find(name)->second();
 
+  Lock l(&d_dynmetricslock);
+  auto f =rplookup(d_dynmetrics, name);
+  if(f)
+    return (*f)->load();
+  
   return ret;
 }
 
@@ -80,6 +98,9 @@ map<string,string> getAllStatsMap()
       continue; // too slow for 'get-all'
     ret.insert(make_pair(the32bitmembers.first, std::to_string(the32bitmembers.second())));
   }
+  Lock l(&d_dynmetricslock);
+  for(const auto& a : d_dynmetrics)
+    ret.insert({a.first, std::to_string(*a.second)});
   return ret;
 }
 

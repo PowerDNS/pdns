@@ -4,7 +4,7 @@
 #include "dnsparser.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
-
+#include "rec_channel.hh" 
 #if !defined(HAVE_LUA)
 
 RecursorLua4::RecursorLua4(const std::string &fname)
@@ -154,10 +154,34 @@ void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& cont
 {
   addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
 }
-  
+
+struct DynMetric
+{
+  std::atomic<unsigned long>* ptr;
+  void inc() { (*ptr)++; }
+  void incBy(unsigned int by) { (*ptr)+= by; }
+  unsigned long get() { return *ptr; }
+  void set(unsigned long val) { *ptr =val; }
+};
+
 RecursorLua4::RecursorLua4(const std::string& fname)
 {
   d_lw = new LuaContext;
+
+  d_lw->registerFunction<int(dnsheader::*)()>("getID", [](dnsheader& dh) { return dh.id; });
+  d_lw->registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) { return dh.cd; });
+  d_lw->registerFunction<bool(dnsheader::*)()>("getTC", [](dnsheader& dh) { return dh.tc; });
+  d_lw->registerFunction<bool(dnsheader::*)()>("getRA", [](dnsheader& dh) { return dh.ra; });
+  d_lw->registerFunction<bool(dnsheader::*)()>("getAD", [](dnsheader& dh) { return dh.ad; });
+  d_lw->registerFunction<bool(dnsheader::*)()>("getAA", [](dnsheader& dh) { return dh.aa; });
+  d_lw->registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) { return dh.rd; });
+  d_lw->registerFunction<int(dnsheader::*)()>("getRCODE", [](dnsheader& dh) { return dh.rcode; });
+  d_lw->registerFunction<int(dnsheader::*)()>("getOPCODE", [](dnsheader& dh) { return dh.opcode; });
+  d_lw->registerFunction<int(dnsheader::*)()>("getQDCOUNT", [](dnsheader& dh) { return ntohs(dh.qdcount); });
+  d_lw->registerFunction<int(dnsheader::*)()>("getANCOUNT", [](dnsheader& dh) { return ntohs(dh.ancount); });
+  d_lw->registerFunction<int(dnsheader::*)()>("getNSCOUNT", [](dnsheader& dh) { return ntohs(dh.nscount); });
+  d_lw->registerFunction<int(dnsheader::*)()>("getARCOUNT", [](dnsheader& dh) { return ntohs(dh.arcount); });
+
   d_lw->writeFunction("newDN", [](const std::string& dom){ return DNSName(dom); });  
   d_lw->registerFunction("isPartOf", &DNSName::isPartOf);
   d_lw->registerFunction<bool(DNSName::*)(const std::string&)>("equal",
@@ -166,6 +190,11 @@ RecursorLua4::RecursorLua4(const std::string& fname)
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
+
+  d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) {
+      return ComboAddress::addressOnlyEqual()(lhs, rhs);
+    });
+  
   d_lw->writeFunction("newNMG", []() { return NetmaskGroup(); });
   d_lw->registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
 			 {
@@ -236,6 +265,16 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   for(const auto& n : QType::names)
     pd.push_back({n.first, n.second});
   d_lw->writeVariable("pdns", pd);
+
+  d_lw->writeFunction("getMetric", [](const std::string& str) {
+      return DynMetric{getDynMetric(str)};
+    });
+
+  d_lw->registerFunction("inc", &DynMetric::inc);
+  d_lw->registerFunction("incBy", &DynMetric::incBy);
+  d_lw->registerFunction("set", &DynMetric::set);
+  d_lw->registerFunction("get", &DynMetric::get);
+  
   
   ifstream ifs(fname);
   if(!ifs) {
@@ -282,7 +321,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& ns, const ComboAddress& reque
 bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader& dh)
 {
   if(d_ipfilter)
-    return d_ipfilter({remote}, {local});
+    return d_ipfilter(remote, local, dh);
   return false; // don't block
 }
 

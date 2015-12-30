@@ -49,7 +49,7 @@ private:
   typedef std::function<bool(std::shared_ptr<DNSQuestion>)> luacall_t;
   luacall_t d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(luacall_t& func, const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& res, int& ret, bool* variable);
-  typedef std::function<bool(ComboAddress,ComboAddress)> ipfilter_t;
+  typedef std::function<bool(ComboAddress,ComboAddress, struct dnsheader)> ipfilter_t;
   ipfilter_t d_ipfilter;
 };
 

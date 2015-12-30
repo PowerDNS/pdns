@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "iputils.hh"
 #include "dnsname.hh"
+#include <atomic>
 
 /** this class is used both to send and answer channel commands to the PowerDNS Recursor */
 class RecursorControlChannel
@@ -50,4 +51,5 @@ std::vector<ComboAddress>* pleaseGetRemotes();
 std::vector<ComboAddress>* pleaseGetServfailRemotes();
 std::vector<ComboAddress>* pleaseGetLargeAnswerRemotes();
 DNSName getRegisteredName(const DNSName& dom);
+std::atomic<unsigned long>* getDynMetric(const std::string& str);
 #endif 
