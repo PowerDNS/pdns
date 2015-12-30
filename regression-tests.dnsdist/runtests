@@ -13,5 +13,7 @@ fi
 export DNSDISTBIN
 
 set -e
-set -x
-nosetests --with-xunit "$@"
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+nosetests --with-xunit

@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 . ./vars
 

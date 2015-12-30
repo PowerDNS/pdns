@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 
 export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}

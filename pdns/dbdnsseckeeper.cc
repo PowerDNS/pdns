@@ -370,18 +370,18 @@ bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
 /**
  * Returns all keys that are used to sign the DNSKEY RRSet in a zone
  *
- * @param zone         DNSName of the zone
+ * @param zname        DNSName of the zone
  * @return             a keyset_t with all keys that are used to sign the DNSKEY
  *                     RRSet (these are the entrypoint(s) to the zone)
  */
-DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zone)
+DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
 {
   DNSSECKeeper::keyset_t ret;
-  DNSSECKeeper::keyset_t keys = getKeys(zone);
+  DNSSECKeeper::keyset_t keys = getKeys(zname);
 
   set<int> algoHasKSK;
 
-  for(DNSSECKeeper::keyset_t::value_type& keymeta : keys) {
+  for(auto const &keymeta : keys) {
     if(keymeta.second.active && keymeta.second.keyOrZone) {
       // KSKs should always be returned
       ret.push_back(keymeta);

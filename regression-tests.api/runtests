@@ -8,5 +8,7 @@ python -V
 pip install -r requirements.txt
 
 set -e
-set -x
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
 exec ./runtests.py "$@"
