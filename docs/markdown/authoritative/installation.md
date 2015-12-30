@@ -84,12 +84,40 @@ Remove any earlier [`launch`](settings.md#launch) statements. Also remove the **
 Now start PowerDNS using the monitor command:
 
 ```
-# /etc/init.d/pdns monitor
-(...)
-15:31:30 About to create 3 backend threads
-15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
-15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
-15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+$ sudo service pdns monitor
+Dec 27 22:44:55 Reading random entropy from '/dev/urandom'
+Dec 27 22:44:55 This is module gmysqlbackend.so reporting
+Dec 27 22:44:55 This is a standalone pdns
+Dec 27 22:44:55 UDP server bound to 0.0.0.0:53
+Dec 27 22:44:55 TCP server bound to 0.0.0.0:53
+Dec 27 22:44:55 PowerDNS Authoritative Server 3.3
+(jenkins@autotest.powerdns.com) (C) 2001-2013 PowerDNS.COM BV
+Dec 27 22:44:55 Using 64-bits mode. Built on 20150430173516 by
+root@comet.buildd, gcc 4.8.2.
+Dec 27 22:44:55 PowerDNS comes with ABSOLUTELY NO WARRANTY. This is
+free software, and you are welcome to redistribute it according to the
+terms of the GPL version 2.
+Dec 27 22:44:55 Set effective group id to 113
+Dec 27 22:44:55 Set effective user id to 108
+Dec 27 22:44:55 Creating backend connection for TCP
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+% Dec 27 22:44:55 About to create 3 backend threads for UDP
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 gmysql Connection successful. Connected to database
+'pdns' on 'localhost'.
+Dec 27 22:44:55 Done launching threads, ready to distribute questions
 ```
 
 This is as to be expected - we did not yet add anything to MySQL for PDNS to read from. At this point you may also see other errors which indicate that PDNS either could not find your MySQL server or was unable to connect to it. Fix these before proceeding.
