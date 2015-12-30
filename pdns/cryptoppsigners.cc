@@ -192,8 +192,8 @@ struct LoaderStruct
 {
   LoaderStruct()
   {
-    DNSCryptoKeyEngine::report(13, &CryptoPPECDSADNSCryptoKeyEngine<SHA256, WrapperSECP256R1, 256>::maker);
-    DNSCryptoKeyEngine::report(14, &CryptoPPECDSADNSCryptoKeyEngine<SHA384, WrapperSECP384R1, 384>::maker);
+    DNSCryptoKeyEngine::report(13, &CryptoPPECDSADNSCryptoKeyEngine<SHA256, WrapperSECP256R1, 256>::maker, true);
+    DNSCryptoKeyEngine::report(14, &CryptoPPECDSADNSCryptoKeyEngine<SHA384, WrapperSECP384R1, 384>::maker, true);
   }
 } loaderCryptoPP;
 }

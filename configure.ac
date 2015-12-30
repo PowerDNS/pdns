@@ -106,6 +106,13 @@ AC_CHECK_HEADERS(
 	[have_mmap=no]
 )
 
+AX_CHECK_OPENSSL([
+	AM_CONDITIONAL([OPENSSL], [true])
+	AC_DEFINE(HAVE_OPENSSL, [1], [Define to 1 if you openssl])
+	],[
+	AM_CONDITIONAL([OPENSSL], [false])
+	]
+)
 
 PDNS_CHECK_READLINE
 PDNS_CHECK_RAGEL

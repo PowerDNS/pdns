@@ -364,7 +364,7 @@ If set to a digit, logging is performed under this LOCAL facility. See
 * Available since 4.0.0
 
 If set, and Lua support is compiled in, this will load an additional configuration file
-for newer features and more complicated setups. Currently the only supported additional feature is:
+for newer features and more complicated setups. 
 
 ### `addSortList`
 Sortlist is a complicated feature which allows for the ordering of A and
@@ -403,6 +403,33 @@ addSortList("17.50.0.0/16", {"17.238.240.0/24", "17.138.149.200",
 In other words: each IP address is put within quotes, and are separated by
 commas instead of semicolons. For the rest everything is identical.
 
+### Response Policy Zone (RPZ)
+Response Policy Zone is an open standard developed by ISC, the authors of the BIND nameserver, to modify
+DNS responses based on a policy loaded via a zonefile.
+
+Frequently, Response Policy Zones get to be very large, so it is customary to update them over IXFR.
+
+An RPZ can be loaded from file or slaved from a master. To load from file, use:
+
+```
+rpzFile("filename", ..settings.. )
+```
+
+To slave from a master and start IXFR to get updates, use:
+
+```
+rpzMaster("192.0.2.4", "policy.rpz", ..settings..)
+```
+
+In this example, 'policy.rpz' denotes the name of the zone to query for. 
+
+Settings can contain:
+
+* defpol = Policy.Custom, Policy.Drop, Policy.NXDOMAIN, Policy.NODATA, Policy.Truncate, Policy.NoAction
+* defcontent = CNAME field to return in case of defpol=Policy.Custom
+* defttl = the TTL of the CNAME field to be synthesized
+
+If no settings are included, the RPZ is taken literally with no overrides applied.
 
 ## `lua-dns-script`
 * Path
