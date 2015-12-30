@@ -2154,7 +2154,7 @@ boost::optional<Netmask> getEDNSSubnetMask(const ComboAddress& local, const DNSN
 {
   if(local.sin4.sin_family != AF_INET || local.sin4.sin_addr.s_addr) { // detect unset 'requestor'
     if(g_ednsdomains.check(dn) || g_ednssubnets.match(rem)) {
-      int bits =local.sin4.sin_family == AF_INET ? 24 : 64;
+      int bits =local.sin4.sin_family == AF_INET ? 24 : 56;
       ComboAddress trunc(local);
       trunc.truncate(bits);
       return boost::optional<Netmask>(Netmask(trunc, bits));
