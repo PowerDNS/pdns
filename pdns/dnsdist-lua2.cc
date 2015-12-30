@@ -233,17 +233,33 @@ void moreLua()
   g_lua.writeFunction("grepq", [](const std::string& s, boost::optional<unsigned int> limit) {
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
-      try 
-      {
-        nm = Netmask(s);
-      }
-      catch(...) {
-        try { dn=DNSName(s); }
-        catch(...) 
-          {
-            g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
+      vector<string> sparts;
+      stringtok(sparts, s, ",");
+      for(vector<string>::const_iterator i=sparts.begin(); i!=sparts.end(); ++i) {
+        try
+        {
+          Netmask n(*i);
+          if (nm) {
+            g_outputBuffer = "Only one netmask is allowed in expression";
             return;
           }
+          nm = n;
+        }
+        catch(...) {
+          try {
+            DNSName d(*i);
+            if (dn) {
+              g_outputBuffer = "Only one domain name is allowed in expression";
+              return;
+            }
+            dn = d;
+          }
+          catch(...)
+            {
+              g_outputBuffer = "Could not parse '"+*i+"' as domain name or netmask";
+              return;
+            }
+        }
       }
 
       decltype(g_rings.queryRing) qr;
@@ -274,7 +290,7 @@ void moreLua()
       g_outputBuffer+= (fmt % "Time" % "Client" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
 
       for(const auto& c : qr) {
-        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
+        if (static_cast<vector<string>::size_type>((nm && nm->match(c.requestor)) + (dn && c.name.isPartOf(*dn)))==sparts.size()) {
           QType qt(c.qtype);
           out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
 
@@ -287,7 +303,7 @@ void moreLua()
 
       string extra;
       for(const auto& c : rr) {
-        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
+        if (static_cast<vector<string>::size_type>((nm && nm->match(c.requestor)) + (dn && c.name.isPartOf(*dn)))==sparts.size()) {
           QType qt(c.qtype);
 	  if(!c.dh.rcode)
 	    extra=". " +std::to_string(htons(c.dh.ancount))+ " answers";
