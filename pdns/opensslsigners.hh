@@ -5,7 +5,7 @@
 
 #include "dns_random.hh"
 
-/* pthread OpemSSL locking */
+/* pthread locking */
 
 static pthread_mutex_t *locks;
 
@@ -43,16 +43,19 @@ void openssl_thread_cleanup()
   OPENSSL_free(locks);
 }
 
+
+/* seeding PRNG */
+
 void openssl_seed()
-{ 
+{
   std::string entropy;
   entropy.reserve(1024);
-  
+
   unsigned int r;
   for(int i=0; i<1024; i+=4) {
     r=dns_random(0xffffffff);
     entropy.append((const char*)&r, 4);
   }
-  
+
   RAND_seed((const unsigned char*)entropy.c_str(), 1024);
 }

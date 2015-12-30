@@ -326,7 +326,7 @@ pdnsutil_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 if OPENSSL
-pdnsutil_SOURCES += opensslsigners.cc
+pdnsutil_SOURCES += opensslsigners.cc opensslsigners.hh
 pdnsutil_LDFLAGS += $(OPENSSL_LDFLAGS)
 pdnsutil_LDADD += $(OPENSSL_LIBS)
 endif

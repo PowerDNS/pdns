@@ -32,7 +32,7 @@
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 8
+#serial 8 (PowerDNS modified)
 
 AU_ALIAS([CHECK_SSL], [AX_CHECK_OPENSSL])
 AC_DEFUN([AX_CHECK_OPENSSL], [
@@ -53,10 +53,10 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
             # then use that information and don't search ssldirs
             AC_PATH_PROG([PKG_CONFIG], [pkg-config])
             if test x"$PKG_CONFIG" != x""; then
-                OPENSSL_LDFLAGS=`$PKG_CONFIG openssl --libs-only-L 2>/dev/null`
+                OPENSSL_LDFLAGS=`$PKG_CONFIG libcryptol --libs-only-L 2>/dev/null`
                 if test $? = 0; then
-                    OPENSSL_LIBS=`$PKG_CONFIG openssl --libs-only-l 2>/dev/null`
-                    OPENSSL_INCLUDES=`$PKG_CONFIG openssl --cflags-only-I 2>/dev/null`
+                    OPENSSL_LIBS=`$PKG_CONFIG libcrypto --libs-only-l 2>/dev/null`
+                    OPENSSL_INCLUDES=`$PKG_CONFIG libcrypto --cflags-only-I 2>/dev/null`
                     found=true
                 fi
             fi
@@ -75,11 +75,11 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
     if ! $found; then
         OPENSSL_INCLUDES=
         for ssldir in $ssldirs; do
-            AC_MSG_CHECKING([for openssl/ssl.h in $ssldir])
-            if test -f "$ssldir/include/openssl/ssl.h"; then
+            AC_MSG_CHECKING([for openssl/crypto.h in $ssldir])
+            if test -f "$ssldir/include/openssl/crypto.h"; then
                 OPENSSL_INCLUDES="-I$ssldir/include"
                 OPENSSL_LDFLAGS="-L$ssldir/lib"
-                OPENSSL_LIBS="-lssl -lcrypto"
+                OPENSSL_LIBS="-lcrypto"
                 found=true
                 AC_MSG_RESULT([yes])
                 break
@@ -106,7 +106,7 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
     LIBS="$OPENSSL_LIBS $LIBS"
     CPPFLAGS="$OPENSSL_INCLUDES $CPPFLAGS"
     AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([#include <openssl/ssl.h>], [SSL_new(NULL)])],
+        [AC_LANG_PROGRAM([#include <openssl/crypto.h>], [CRYPTO_free(NULL)])],
         [
             AC_MSG_RESULT([yes])
             $1
@@ -122,4 +122,3 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
     AC_SUBST([OPENSSL_LIBS])
     AC_SUBST([OPENSSL_LDFLAGS])
 ])
-
