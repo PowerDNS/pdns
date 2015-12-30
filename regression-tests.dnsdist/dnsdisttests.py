@@ -2,6 +2,7 @@
 
 import clientsubnetoption
 import dns
+import dns.message
 import Queue
 import os
 import socket
