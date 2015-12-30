@@ -166,7 +166,7 @@ void moreLua()
                            int actualSeconds = seconds ? *seconds : 10;
 			   until.tv_sec += actualSeconds; 
 			   for(const auto& capair : m) {
-			     unsigned int count;
+			     unsigned int count = 0;
 			     if(auto got = slow.lookup(Netmask(capair.first))) {
 			       if(until < got->second.until) // had a longer policy
 				 continue;

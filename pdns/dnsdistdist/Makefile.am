@@ -113,5 +113,6 @@ testrunner_LDFLAGS = \
 testrunner_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(LIBSODIUM_LIBS) \
-	$(RT_LIBS)
+	$(RT_LIBS) \
+	$(SANITIZER_FLAGS)
 

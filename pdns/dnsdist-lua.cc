@@ -760,7 +760,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	return;
       ComboAddress local(address);
       try {
-	int sock = socket(local.sin4.sin_family, SOCK_STREAM, 0);
+	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 	SBind(sock, local);
 	SListen(sock, 5);
@@ -788,7 +788,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
       
       try {
-	int sock = socket(local.sin4.sin_family, SOCK_STREAM, 0);
+	int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
 	SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
 	SBind(sock, local);
 	SListen(sock, 5);
