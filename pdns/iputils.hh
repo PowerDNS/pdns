@@ -657,7 +657,7 @@ public:
       }
       if (node) {
         for(auto it = _nodes.begin(); it != _nodes.end(); it++)
-           if (node->node4.get() == *it) _nodes.erase(it);
+           if (node->node6.get() == *it) _nodes.erase(it);
         node->node6.reset();
       }
     }
