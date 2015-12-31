@@ -83,7 +83,7 @@ class DNSDistTest(unittest.TestCase):
 
         if shutUp:
             with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
+                cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdDevNull)
         else:
             cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True)
 

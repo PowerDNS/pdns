@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0);
 
   BOOST_CHECK_EQUAL(mdp.d_qname.toString(), "2.name.");
-  BOOST_CHECK_EQUAL(mdp.d_qclass, QClass::IN);
-  BOOST_CHECK_EQUAL(mdp.d_qtype, QType::TXT);
+  BOOST_CHECK(mdp.d_qclass == QClass::IN);
+  BOOST_CHECK(mdp.d_qtype == QType::TXT);
 }
 
 // invalid plaintext query (A)
@@ -184,8 +184,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0);
 
   BOOST_CHECK_EQUAL(mdp.d_qname, name);
-  BOOST_CHECK_EQUAL(mdp.d_qclass, QClass::IN);
-  BOOST_CHECK_EQUAL(mdp.d_qtype, QType::AAAA);
+  BOOST_CHECK(mdp.d_qclass == QClass::IN);
+  BOOST_CHECK(mdp.d_qtype == QType::AAAA);
 }
 
 // valid encrypted query with not enough room
@@ -276,8 +276,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0);
 
   BOOST_CHECK_EQUAL(mdp.d_qname, name);
-  BOOST_CHECK_EQUAL(mdp.d_qclass, QClass::IN);
-  BOOST_CHECK_EQUAL(mdp.d_qtype, QType::AAAA);
+  BOOST_CHECK(mdp.d_qclass == QClass::IN);
+  BOOST_CHECK(mdp.d_qtype == QType::AAAA);
 }
 
 // valid encrypted query with wrong key
