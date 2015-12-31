@@ -483,6 +483,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new LogAction(fname));
     });
 
+  g_lua.writeFunction("RCodeAction", [](int rcode) {
+      return std::shared_ptr<DNSAction>(new RCodeAction(rcode));
+    });
 
   g_lua.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<int> ipv4trunc, boost::optional<int> ipv6trunc) {
       return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, ipv4trunc.get_value_or(32), ipv6trunc.get_value_or(64)));
@@ -501,6 +504,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new RegexRule(str));
     });
 
+  g_lua.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn) {
+      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn));
+    });
 
   g_lua.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<int> times_, boost::optional<string> suffix_)  {
       setLuaNoSideEffect();

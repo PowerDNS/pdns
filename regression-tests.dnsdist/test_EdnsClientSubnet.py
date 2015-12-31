@@ -9,7 +9,7 @@ from dnsdisttests import DNSDistTest
 
 class TestEdnsClientSubnetNoOverride(DNSDistTest):
     """
-    DNSdist is configured to add the EDNS0 Client Subnet
+    dnsdist is configured to add the EDNS0 Client Subnet
     option, but only if it's not already present in the
     original query.
     """
@@ -162,7 +162,7 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
 
 class TestEdnsClientSubnetOverride(DNSDistTest):
     """
-    DNSdist is configured to add the EDNS0 Client Subnet
+    dnsdist is configured to add the EDNS0 Client Subnet
     option, overwriting any existing value.
     """
 

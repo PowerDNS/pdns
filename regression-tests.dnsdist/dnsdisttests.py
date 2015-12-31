@@ -27,14 +27,19 @@ class DNSDistTest(unittest.TestCase):
     _toResponderQueue = Queue.Queue()
     _fromResponderQueue = Queue.Queue()
     _dnsdist = None
+    _responsesCounter = {}
 
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[])
+        # clear counters
+        for key in cls._responsesCounter:
+            cls._responsesCounter[key] = 0
+
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort])
         cls._UDPResponder.setDaemon(True)
         cls._UDPResponder.start()
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[])
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort])
         cls._TCPResponder.setDaemon(True)
         cls._TCPResponder.start()
 
@@ -77,10 +82,17 @@ class DNSDistTest(unittest.TestCase):
             cls._dnsdist.wait()
 
     @classmethod
-    def UDPResponder(cls):
+    def ResponderIncrementCounter(cls):
+        if threading.currentThread().name in cls._responsesCounter:
+            cls._responsesCounter[threading.currentThread().name] += 1
+        else:
+            cls._responsesCounter[threading.currentThread().name] = 1
+
+    @classmethod
+    def UDPResponder(cls, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        sock.bind(("127.0.0.1", cls._testServerPort))
+        sock.bind(("127.0.0.1", port))
         while True:
             data, addr = sock.recvfrom(4096)
             request = dns.message.from_wire(data)
@@ -91,6 +103,7 @@ class DNSDistTest(unittest.TestCase):
                 response = cls._toResponderQueue.get()
                 response.id = request.id
                 cls._fromResponderQueue.put(request)
+                cls.ResponderIncrementCounter()
             else:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
@@ -100,16 +113,15 @@ class DNSDistTest(unittest.TestCase):
                                             request.question[0].rdtype,
                                             '127.0.0.1')
                 response.answer.append(rrset)
-
             sock.sendto(response.to_wire(), addr)
         sock.close()
 
     @classmethod
-    def TCPResponder(cls):
+    def TCPResponder(cls, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         try:
-            sock.bind(("127.0.0.1", cls._testServerPort))
+            sock.bind(("127.0.0.1", port))
         except socket.error as e:
             print("Error binding in the TCP responder: %s" % str(e))
             sys.exit(1)
@@ -128,6 +140,7 @@ class DNSDistTest(unittest.TestCase):
                 response = cls._toResponderQueue.get()
                 response.id = request.id
                 cls._fromResponderQueue.put(request)
+                cls.ResponderIncrementCounter()
             else:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)

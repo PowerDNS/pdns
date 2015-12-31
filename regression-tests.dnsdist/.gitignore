@@ -2,6 +2,6 @@
 /*.xml
 /*.pid
 /*.pyc
-dnsdist_ecs*.conf
+dnsdist_*.conf
 .dnsdist_history
 .history
