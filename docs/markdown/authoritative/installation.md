@@ -84,12 +84,13 @@ Remove any earlier [`launch`](settings.md#launch) statements. Also remove the **
 Now start PowerDNS using the monitor command:
 
 ```
-# /etc/init.d/pdns monitor
+# service pdns monitor
 (...)
-15:31:30 About to create 3 backend threads
-15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
-15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
-15:31:30 [gMySQLbackend] Failed to connect to database: Error: Unknown database 'pdns'
+Dec 30 13:40:09 About to create 3 backend threads for UDP
+Dec 30 13:40:09 gmysql Connection failed: Unable to connect to database: Access denied for user 'hubert'@'localhost' to database 'pdns-non-existant'
+Dec 30 13:40:09 Caught an exception instantiating a backend: Unable to launch gmysql connection: Unable to connect to database: Access denied for user 'hubert'@'localhost' to database 'pdns-non-existant'
+Dec 30 13:40:09 Cleaning up
+Dec 30 13:40:10 Done launching threads, ready to distribute questions
 ```
 
 This is as to be expected - we did not yet add anything to MySQL for PDNS to read from. At this point you may also see other errors which indicate that PDNS either could not find your MySQL server or was unable to connect to it. Fix these before proceeding.
