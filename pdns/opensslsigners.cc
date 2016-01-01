@@ -13,7 +13,7 @@ class OpenSSLECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 {
 public:
   explicit OpenSSLECDSADNSCryptoKeyEngine(unsigned int algo) : DNSCryptoKeyEngine(algo)
-  {RAND_cleanup();
+  {
 
     int ret = RAND_status();
     if (ret != 1) {
