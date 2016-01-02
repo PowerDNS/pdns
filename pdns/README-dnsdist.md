@@ -174,6 +174,21 @@ parameters to `newServer`:
 newServer {address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10}
 ```
 
+Configuration management
+------------------------
+At startup, configuration is read from the command line and the
+configuration file.  The config can also be inspected and changed from the
+console.  Sadly, our architecture does not allow us to serialize the running
+configuration for you. However, we do try to offer the next best thing:
+`delta()`.
+
+`delta()` shows all commands entered that changed the configuration. So
+adding a new downstream server with `newServer()` would show up, but
+`showServers()` or even `delta()` itself would not.
+
+It is suggested to study the output of `delta()` carefully before appending
+it to your configuration file. 
+
 Webserver
 ---------
 To visually interact with `dnsdist`, try adding:
@@ -409,8 +424,8 @@ This is still much in flux, but for now, try:
  * `topQueries(20)`: shows the top-20 queries
  * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
- * `topBandwidth(20)`: shows the top-20 clients in term of total bandwidth (queries + responses) consumed
  * `grepq(Netmask|DNS Name [, n])`: shows the queries and responses matching the specified client address or range (Netmask), or the specified DNS Name
+ * `topBandwidth(top)`: get top-`top` clients that consume the most bandwidth over length of ringbuffer
 
 For example:
 ```
@@ -812,6 +827,14 @@ instantiate a server with additional parameters
  * Answer changing functions:
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
    * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
+ * Dynamic Block related:
+   * `clearDynBlocks()`: clear all dynamic blocks
+   * `showDynBlocks()`: show dynamic blocks in force
+   * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+   * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
+   * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
+   * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
+   * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `newCA(address)`: return a new ComboAddress
@@ -831,7 +854,11 @@ instantiate a server with additional parameters
      * `newNMG()`: return a new NetmaskTree<DynBlock>
      * member `add(ComboAddress, msg[, seconds])`: insert a new address into a DynBlock
    * NetmaskGroup related
-     * nothing yet
+     * function `newNMG()`: returns a NetmaskGroup
+     * member `addMask(mask)`: adds `mask` to the NetmaskGroup
+     * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
+     * member `clear()`: clears the NetmaskGroup
+     * member `size()`: returns number of netmasks in this NetmaskGroup
    * QPSLimiter related:
      * `newQPSLimiter(rate, burst)`: configure a QPS limiter with that rate and that burst capacity
      * member `check()`: check if this QPSLimiter has a token for us. If yes, you must use it.

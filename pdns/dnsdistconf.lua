@@ -46,8 +46,16 @@ addDomainBlock("isis.")
 
 block=newDNSName("powerdns.org.")
 -- called before we distribute a question
+
+truncateNMG = newNMG()
+truncateNMG:addMask("213.244.0.0/16")
+truncateNMG:addMask("2001:503:ba3e::2:30")
+truncateNMG:addMask("fe80::/16")
+
+print(string.format("Have %d entries in truncate NMG", truncateNMG:size()))
+
 function blockFilter(remote, qname, qtype, dh)
-	 if(qtype==255) 
+	 if(qtype==255 or truncateNMG:match(remote)) 
 	 then
 --	        print("any query, tc=1")
 		dh:setTC(true)
