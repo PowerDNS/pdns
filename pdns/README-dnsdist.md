@@ -174,6 +174,21 @@ parameters to `newServer`:
 newServer {address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10}
 ```
 
+Configuration management
+------------------------
+At startup, configuration is read from the command line and the
+configuration file.  The config can also be inspected and changed from the
+console.  Sadly, our architecture does not allow us to serialize the running
+configuration for you. However, we do try to offer the next best thing:
+`delta()`.
+
+`delta()` shows all commands entered that changed the configuration. So
+adding a new downstream server with `newServer()` would show up, but
+`showServers()` or even `delta()` itself would not.
+
+It is suggested to study the output of `delta()` carefully before appending
+it to your configuration file. 
+
 Webserver
 ---------
 To visually interact with `dnsdist`, try adding:
@@ -409,8 +424,8 @@ This is still much in flux, but for now, try:
  * `topQueries(20)`: shows the top-20 queries
  * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
- * `topBandwidth(20)`: shows the top-20 clients in term of total bandwidth (queries + responses) consumed
  * `grepq(Netmask|DNS Name [, n])`: shows the queries and responses matching the specified client address or range (Netmask), or the specified DNS Name
+ * `topBandwidth(top)`: get top-`top` clients that consume the most bandwidth over length of ringbuffer
 
 For example:
 ```
