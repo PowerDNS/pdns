@@ -264,6 +264,13 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(!::arg().mustDo("master"))
       return "PowerDNS not configured as master";
 
+  DNSName domain;
+  try {
+    domain = DNSName(parts[1]);
+  } catch (...) {
+    return "Failed to parse domain as valid DNS name";
+  }
+
   try {
     ComboAddress ca(parts[2]);
   } catch(...)
@@ -271,8 +278,8 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
     return "Unable to convert '"+parts[2]+"' to an IP address";
   }
   
-  L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<parts[1]<<"' received from operator"<<endl;
-  Communicator.notify(DNSName(parts[1]), parts[2]);
+  L<<Logger::Warning<<"Notification request to host "<<parts[2]<<" for domain '"<<domain<<"' received from operator"<<endl;
+  Communicator.notify(domain, parts[2]);
   return "Added to queue";
 }
 
