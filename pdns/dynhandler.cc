@@ -270,9 +270,6 @@ string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
   return "Added to queue";
 }
 
-// XXX DNSName pain - if you pass us something that is not DNS,  you'll get an exception here, which you never got before
-// and I bet we don't report it well to the user...
-
 string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
 {
   extern CommunicatorClass Communicator;
@@ -301,6 +298,12 @@ string DLNotifyHandler(const vector<string>&parts, Utility::pid_t ppid)
       return itoa(notified)+" out of "+itoa(total)+" zones added to queue - see log";
     return "Added "+itoa(total)+" MASTER zones to queue";
   } else {
+    DNSName domain;
+    try {
+      domain = DNSName(parts[1]);
+    } catch (...) {
+      return "Failed to parse domain as valid DNS name";
+    }
     if(!Communicator.notifyDomain(DNSName(parts[1])))
       return "Failed to add to the queue - see log";
     return "Added to queue";
