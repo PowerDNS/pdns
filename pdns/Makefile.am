@@ -162,7 +162,6 @@ pdns_server_SOURCES = \
 	lua-auth.cc lua-auth.hh \
 	lua-pdns.cc lua-pdns.hh lua-iputils.cc \
 	mastercommunicator.cc \
-	mbedtlscompat.hh \
 	md5.hh \
 	misc.cc misc.hh \
 	nameserver.cc nameserver.hh \
@@ -171,7 +170,6 @@ pdns_server_SOURCES = \
 	packetcache.cc packetcache.hh \
 	packethandler.cc packethandler.hh \
 	pdnsexception.hh \
-	mbedtlssigners.cc \
 	qtype.cc qtype.hh \
 	randomhelper.cc \
 	rcpgenerator.cc \
@@ -206,7 +204,6 @@ pdns_server_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
-	$(MBEDTLS_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS)
 
@@ -223,6 +220,11 @@ endif
 if LIBSODIUM
 pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if MBEDTLS
+pdns_server_SOURCES += mbedtlssigners.cc mbedtlscompat.hh
+pdns_server_LDADD += $(MBEDTLS_LIBS)
 endif
 
 if OPENSSL
@@ -280,12 +282,10 @@ pdnsutil_SOURCES = \
         iputils.cc iputils.hh \
 	json.cc \
 	logger.cc \
-	mbedtlscompat.hh \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	packetcache.cc \
 	pdnsutil.cc \
-	mbedtlssigners.cc \
 	qtype.cc \
 	randomhelper.cc \
 	rcpgenerator.cc rcpgenerator.hh \
@@ -307,7 +307,6 @@ pdnsutil_LDADD = \
 	@moduleobjects@ \
 	@modulelibs@ \
 	$(LIBDL) \
-	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS)
@@ -325,6 +324,11 @@ endif
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
 pdnsutil_LDADD += $(LIBSODIUM_LIBS)
+endif
+
+if MBEDTLS
+pdnsutil_SOURCES += mbedtlssigners.cc mbedtlscompat.hh
+pdnsutil_LDADD += $(MBEDTLS_LIBS)
 endif
 
 if OPENSSL
@@ -378,7 +382,8 @@ zone2sql_SOURCES = \
 	zone2sql.cc \
 	zoneparser-tng.cc
 
-zone2sql_LDADD = $(MBEDTLS_LIBS) $(JSON11_LIBS)
+zone2sql_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS) $(JSON11_LIBS)
+zone2sql_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 zone2json_SOURCES = \
 	arguments.cc \
@@ -404,7 +409,8 @@ zone2json_SOURCES = \
 	zone2json.cc \
 	zoneparser-tng.cc
 
-zone2json_LDADD = $(MBEDTLS_LIBS) $(JSON11_LIBS)
+zone2json_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS) $(JSON11_LIBS)
+zone2json_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 # pkglib_LTLIBRARIES = iputils.la
 # iputils_la_SOURCES = lua-iputils.cc
@@ -439,7 +445,8 @@ zone2ldap_SOURCES = \
 	zone2ldap.cc \
 	zoneparser-tng.cc
 
-zone2ldap_LDADD = $(MBEDTLS_LIBS)
+zone2ldap_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+zone2ldap_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 sdig_SOURCES = \
 	base32.cc \
@@ -463,7 +470,8 @@ sdig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-sdig_LDADD = $(MBEDTLS_LIBS)
+sdig_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+sdig_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 calidns_SOURCES = \
 	base32.cc \
@@ -486,8 +494,8 @@ calidns_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-calidns_LDADD = $(MBEDTLS_LIBS)
-calidns_LDFLAGS=$(THREADFLAGS) 
+calidns_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+calidns_LDFLAGS = $(AM_LDFLAGS) $(THREADFLAGS) $(OPENSSL_LDFLAGS)
 
 dumresp_SOURCES = \
 	dnslabeltext.cc \
@@ -531,7 +539,8 @@ saxfr_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-saxfr_LDADD = $(MBEDTLS_LIBS)
+saxfr_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+saxfr_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 if PKCS11
 saxfr_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -570,7 +579,8 @@ ixplore_SOURCES = \
 	statbag.cc \
 	unix_utility.cc zoneparser-tng.cc
 
-ixplore_LDADD = $(MBEDTLS_LIBS)
+ixplore_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+ixplore_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 if PKCS11
 ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -604,10 +614,12 @@ dnstcpbench_SOURCES = \
 
 dnstcpbench_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnstcpbench_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nsec3dig_SOURCES = \
@@ -632,7 +644,8 @@ nsec3dig_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-nsec3dig_LDADD = $(MBEDTLS_LIBS)
+nsec3dig_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+nsec3dig_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 if PKCS11
 nsec3dig_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -657,7 +670,6 @@ toysdig_SOURCES = \
 	gss_context.cc gss_context.hh \
 	logger.cc \
 	mbedtlscompat.hh \
-	mbedtlssigners.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
 	qtype.cc \
@@ -671,7 +683,9 @@ toysdig_SOURCES = \
 	validate.cc validate.hh
 
 
-toysdig_LDADD = $(MBEDTLS_LIBS)
+toysdig_LDFLAGS = $(AM_LDFLAGS)
+toysdig_LDADD =
+
 if GSS_TSIG
 toysdig_LDADD += $(GSS_LIBS)
 endif
@@ -684,6 +698,17 @@ endif
 if PKCS11
 toysdig_SOURCES += pkcs11signers.cc pkcs11signers.hh
 toysdig_LDADD += $(P11KIT1_LIBS)
+endif
+
+if MBEDTLS
+toysdig_SOURCES += mbedtlssigners.cc mbedtlscompat.hh
+toysdig_LDADD += $(MBEDTLS_LIBS)
+endif
+
+if OPENSSL
+toysdig_SOURCES += opensslsigners.cc opensslsigners.hh
+toysdig_LDADD += $(OPENSSL_LIBS)
+toysdig_LDFLAGS += $(OPENSSL_LDFLAGS)
 endif
 
 
@@ -714,7 +739,8 @@ tsig_tests_SOURCES = \
 	tsig-tests.cc \
 	unix_utility.cc
 
-tsig_tests_LDADD = $(MBEDTLS_LIBS)
+tsig_tests_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
+tsig_tests_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 
 if PKCS11
 tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -724,6 +750,7 @@ endif
 if GSS_TSIG
 tsig_tests_LDADD += $(GSS_LIBS)
 endif
+
 speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -743,7 +770,8 @@ speedtest_SOURCES = \
 	statbag.cc \
 	unix_utility.cc
 
-speedtest_LDADD = $(MBEDTLS_LIBS) \
+speedtest_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+speedtest_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS) \
 	$(RT_LIBS)
 
 dnswasher_SOURCES = \
@@ -780,10 +808,12 @@ dnsbulktest_SOURCES = \
 
 dnsbulktest_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsbulktest_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscan_SOURCES = \
@@ -808,7 +838,11 @@ dnsscan_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsscan_LDADD = $(MBEDTLS_LIBS)
+dnsscan_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
+
+dnsscan_LDADD = $(MBEDTLS_LIBS) $(OPENSSL_LIBS)
 
 dnsreplay_SOURCES = \
 	anadns.hh \
@@ -834,10 +868,12 @@ dnsreplay_SOURCES = \
 
 dnsreplay_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsreplay_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nproxy_SOURCES = \
@@ -863,10 +899,12 @@ nproxy_SOURCES = \
 
 nproxy_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 nproxy_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 notify_SOURCES = \
@@ -893,10 +931,12 @@ notify_SOURCES = \
 
 notify_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 notify_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsscope_SOURCES = \
@@ -924,10 +964,12 @@ dnsscope_SOURCES = \
 
 dnsscope_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 
 dnsscope_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 dnsgram_SOURCES = \
@@ -951,7 +993,13 @@ dnsgram_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsgram_LDADD = $(MBEDTLS_LIBS)
+dnsgram_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
+
+dnsgram_LDADD = \
+	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS)
 
 dnsdemog_SOURCES = \
 	base32.cc \
@@ -974,7 +1022,13 @@ dnsdemog_SOURCES = \
 	unix_utility.cc \
 	utility.hh
 
-dnsdemog_LDADD = $(MBEDTLS_LIBS)
+dnsdemog_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
+
+dnsdemog_LDADD = \
+	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS)
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
@@ -1046,10 +1100,12 @@ testrunner_SOURCES = \
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) 
 
 testrunner_LDADD = \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(RT_LIBS) \
 	$(LIBDL)
@@ -1082,7 +1138,6 @@ pdns_recursor_SOURCES = \
 	lua-recursor4.cc lua-recursor4.hh \
 	lwres.cc lwres.hh \
 	mbedtlscompat.hh \
-	mbedtlssigners.cc \
 	misc.cc \
 	mtasker.hh \
 	nsecrecords.cc \
@@ -1118,9 +1173,10 @@ pdns_recursor_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 pdns_recursor_LDADD = \
-	$(MBEDTLS_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS)
+
+pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
 
 if PKCS11
 pdns_recursor_SOURCES += pkcs11signers.cc pkcs11signers.hh
@@ -1132,8 +1188,16 @@ pdns_recursor_SOURCES += botan110signers.cc botansigners.cc
 pdns_recursor_LDADD += $(BOTAN110_LIBS)
 endif
 
+if MBEDTLS
+pdns_recursor_SOURCES += mbedtlssigners.cc mbedtlscompat.hh
+pdns_recursor_LDADD += $(MBEDTLS_LIBS)
+endif
 
-pdns_recursor_LDFLAGS = $(AM_LDFLAGS)
+if OPENSSL
+pdns_recursor_SOURCES += opensslsigners.cc opensslsigners.hh
+pdns_recursor_LDADD += $(OPENSSL_LIBS)
+pdns_recursor_LDFLAGS += $(OPENSSL_LDFLAGS)
+endif
 
 if MALLOC_TRACE
 pdns_recursor_SOURCES += malloctrace.cc malloctrace.hh 
@@ -1209,14 +1273,16 @@ nodist_dnsdist_SOURCES = \
 	../ext/json11/json11.cpp
 
 dnsdist_LDFLAGS = \
-	$(AM_LDFLAGS) 
+	$(AM_LDFLAGS) \
+	$(OPENSSL_LDFLAGS)
 
 dnsdist_LDADD = \
 	$(LUA_LIBS) \
 	$(LIBEDIT_LIBS) \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
-	$(LIBSODIUM_LIBS)
+	$(LIBSODIUM_LIBS) \
+	$(OPENSSL_LIBS)
 
 htmlfiles.h: $(srcdir)/dnsdistdist/html/*
 	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@

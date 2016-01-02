@@ -2,6 +2,7 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/rapidjson/include \
 	$(YAHTTP_CFLAGS) \
 	$(MBEDTLS_CFLAGS) \
+	$(OPENSSL_CFLAGS) \
 	$(LIBZMQ_CFLAGS)
 
 AM_LDFLAGS = $(THREADFLAGS)
@@ -129,6 +130,7 @@ libtestremotebackend_la_CPPFLAGS = $(AM_CPPFLAGS)
 libtestremotebackend_la_LIBADD = \
 	$(YAHTTP_LIBS) \
 	$(MBEDTLS_LIBS) \
+	$(OPENSSL_LIBS) \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
