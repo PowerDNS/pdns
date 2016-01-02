@@ -235,18 +235,24 @@ string DLNotifyRetrieveHandler(const vector<string>&parts, Utility::pid_t ppid)
   if(parts.size()!=2)
     return "syntax: retrieve domain";
 
-  const string& domain=parts[1];
+  DNSName domain;
+  try {
+    domain = DNSName(parts[1]);
+  } catch (...) {
+    return "Failed to parse domain as valid DNS name";
+  }
+
   DomainInfo di;
   UeberBackend B;
-  if(!B.getDomainInfo(DNSName(domain), di))
-    return "Domain '"+domain+"' unknown";
+  if(!B.getDomainInfo(domain, di))
+    return "Domain '"+domain.toString()+"' unknown";
   
   if(di.masters.empty())
-    return "Domain '"+domain+"' is not a slave domain (or has no master defined)";
+    return "Domain '"+domain.toString()+"' is not a slave domain (or has no master defined)";
 
   random_shuffle(di.masters.begin(), di.masters.end());
-  Communicator.addSuckRequest(DNSName(domain), di.masters.front());
-  return "Added retrieval request for '"+domain+"' from master "+di.masters.front();
+  Communicator.addSuckRequest(domain, di.masters.front());
+  return "Added retrieval request for '"+domain.toString()+"' from master "+di.masters.front();
 }
 
 string DLNotifyHostHandler(const vector<string>&parts, Utility::pid_t ppid)
