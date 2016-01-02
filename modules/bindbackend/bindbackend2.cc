@@ -257,13 +257,14 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
   BB2DomainInfo bbd;
   safeGetBBDomainInfo(d_transaction_id, &bbd);
 
-  string name=bbd.d_name.toStringNoDot();
-  string qname=rr.qname.toStringNoDot();
+  string name=bbd.d_name.toString();
+  string qname=rr.qname.toString();
 
   if(!stripDomainSuffix(&qname, name))
     throw DBException("out-of-zone data '"+qname+".' during AXFR of zone '"+name+".'");
 
-  string content=rr.content;
+  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), 1, rr.content));
+  string content = drc->getZoneRepresentation();
 
   // SOA needs stripping too! XXX FIXME - also, this should not be here I think
   switch(rr.qtype.getCode()) {
@@ -272,8 +273,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord &rr, string *ordername)
   case QType::CNAME:
   case QType::DNAME:
   case QType::NS:
-    if(!stripDomainSuffix(&content, name))
-      content=stripDot(content)+".";
+    stripDomainSuffix(&content, name);
     // falltrough
   default:
     *d_of<<qname<<"\t"<<rr.ttl<<"\t"<<rr.qtype.getName()<<"\t"<<content<<endl;
