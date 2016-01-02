@@ -10,34 +10,11 @@ from dnsdisttests import DNSDistTest
 
 class TestAdvancedFixupCase(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     truncateTC(true)
     fixupCase(true)
     newServer{address="127.0.0.1:%s"}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_fixupcase.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_fixupcase.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testAdvancedFixupCase(self):
         """
@@ -77,33 +54,10 @@ class TestAdvancedFixupCase(DNSDistTest):
 
 class TestAdvancedRemoveRD(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     addNoRecurseRule("norecurse.advanced.tests.powerdns.com.")
     newServer{address="127.0.0.1:%s"}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_noRD.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_noRD.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testAdvancedNoRD(self):
         """
@@ -174,33 +128,10 @@ class TestAdvancedRemoveRD(DNSDistTest):
 
 class TestAdvancedAddCD(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     addDisableValidationRule("setcd.advanced.tests.powerdns.com.")
     newServer{address="127.0.0.1:%s"}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_setCD.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_setCD.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testAdvancedSetCD(self):
         """
@@ -270,33 +201,10 @@ class TestAdvancedAddCD(DNSDistTest):
 
 class TestAdvancedSpoof(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     addDomainSpoof("spoof.tests.powerdns.com.", "192.0.2.1", "2001:DB8::1")
     newServer{address="127.0.0.1:%s"}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_spoof.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_spoof.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testSpoofA(self):
         """
@@ -355,33 +263,10 @@ class TestAdvancedSpoof(DNSDistTest):
 
 class TestAdvancedPoolRouting(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="real"}
     addPoolRule("pool.tests.powerdns.com", "real")
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_pool.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_pool.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testPolicyPool(self):
         """
@@ -427,8 +312,8 @@ class TestAdvancedPoolRouting(DNSDistTest):
 
 class TestAdvancedRoundRobinLB(DNSDistTest):
 
-    _dnsDistPort = 5340
     _testServer2Port = 5351
+    _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
     s1 = newServer{address="127.0.0.1:%s"}
@@ -436,28 +321,6 @@ class TestAdvancedRoundRobinLB(DNSDistTest):
     s2 = newServer{address="127.0.0.1:%s"}
     s2:setUp()
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_rr_lb.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_rr_lb.conf', 'w') as conf:
-            conf.write(cls._config_template % (str(cls._testServerPort), str(cls._testServer2Port)))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     @classmethod
     def startResponders(cls):
@@ -519,8 +382,8 @@ class TestAdvancedRoundRobinLB(DNSDistTest):
 
 class TestAdvancedRoundRobinLBOneDown(DNSDistTest):
 
-    _dnsDistPort = 5340
     _testServer2Port = 5351
+    _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
     s1 = newServer{address="127.0.0.1:%s"}
@@ -528,28 +391,6 @@ class TestAdvancedRoundRobinLBOneDown(DNSDistTest):
     s2 = newServer{address="127.0.0.1:%s"}
     s2:setDown()
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_rr_lb_down.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_rr_lb_down.conf', 'w') as conf:
-            conf.write(cls._config_template % (str(cls._testServerPort), str(cls._testServer2Port)))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testRRWithOneDown(self):
         """
@@ -594,32 +435,10 @@ class TestAdvancedRoundRobinLBOneDown(DNSDistTest):
 
 class TestAdvancedACL(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_acl.conf --acl 192.0.2.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_acl.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
+    _acl = ['192.0.2.1/32']
 
     def testACLBlocked(self):
         """
@@ -638,33 +457,10 @@ class TestAdvancedACL(DNSDistTest):
 
 class TestAdvancedDelay(DNSDistTest):
 
-    _dnsDistPort = 5340
     _config_template = """
     addAction(AllRule(), DelayAction(1000))
     newServer{address="127.0.0.1:%s"}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_delay.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_delay.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testDelayed(self):
         """
