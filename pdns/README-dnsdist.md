@@ -827,6 +827,14 @@ instantiate a server with additional parameters
  * Answer changing functions:
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
    * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
+ * Dynamic Block related:
+   * `clearDynBlocks()`: clear all dynamic blocks
+   * `showDynBlocks()`: show dynamic blocks in force
+   * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
+   * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
+   * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
+   * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
+   * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `newCA(address)`: return a new ComboAddress
