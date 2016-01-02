@@ -854,7 +854,11 @@ instantiate a server with additional parameters
      * `newNMG()`: return a new NetmaskTree<DynBlock>
      * member `add(ComboAddress, msg[, seconds])`: insert a new address into a DynBlock
    * NetmaskGroup related
-     * nothing yet
+     * function `newNMG()`: returns a NetmaskGroup
+     * member `addMask(mask)`: adds `mask` to the NetmaskGroup
+     * member `match(ComboAddress)`: checks if ComboAddress is matched by this NetmaskGroup
+     * member `clear()`: clears the NetmaskGroup
+     * member `size()`: returns number of netmasks in this NetmaskGroup
    * QPSLimiter related:
      * `newQPSLimiter(rate, burst)`: configure a QPS limiter with that rate and that burst capacity
      * member `check()`: check if this QPSLimiter has a token for us. If yes, you must use it.

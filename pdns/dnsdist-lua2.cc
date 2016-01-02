@@ -121,21 +121,18 @@ void moreLua()
 {
   typedef NetmaskTree<DynBlock> nmts_t;
   g_lua.writeFunction("newCA", [](const std::string& name) { return ComboAddress(name); });
-  g_lua.writeFunction("newNMG", []() { return nmts_t(); });
-  g_lua.registerFunction<void(nmts_t::*)(const ComboAddress&, const std::string&, boost::optional<int> seconds)>("add", 
-														 [](nmts_t& s, const ComboAddress& ca, const std::string& msg, boost::optional<int> seconds) 
-							       { 
-								 struct timespec until;
-								 clock_gettime(CLOCK_MONOTONIC, &until);
-								 until.tv_sec += seconds ? *seconds : 10;
-								 
-								 s.insert(Netmask(ca)).second={msg, until};
-							       });
 
-  g_lua.writeFunction("setDynBlockNMG", [](const nmts_t& nmg) {
-      setLuaSideEffect();
-      g_dynblockNMG.setState(nmg);
-    });
+
+  g_lua.writeFunction("newNMG", []() { return NetmaskGroup(); });
+  g_lua.registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
+			 {
+			   nmg.addMask(mask);
+			 });
+
+  g_lua.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
+  g_lua.registerFunction("size", &NetmaskGroup::size);  
+  g_lua.registerFunction("clear", &NetmaskGroup::clear);  
+
 
   g_lua.writeFunction("showDynBlocks", []() {
       setLuaNoSideEffect();
