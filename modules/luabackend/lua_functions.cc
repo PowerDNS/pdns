@@ -161,9 +161,6 @@ void register_lua_functions(lua_State *lua) {
     lua_pushinteger(lua, Logger::All);
     lua_setglobal(lua, "log_all");
 
-    lua_pushinteger(lua, Logger::NTLog);
-    lua_setglobal(lua, "log_ntlog");
-
     lua_pushinteger(lua, Logger::Alert);
     lua_setglobal(lua, "log_alert");
 

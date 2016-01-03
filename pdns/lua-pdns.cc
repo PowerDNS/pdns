@@ -172,8 +172,6 @@ void pushSyslogSecurityLevelTable(lua_State* lua)
 // this function takes the global lua_state from the PowerDNSLua constructor and populates it with the syslog enums values
   lua_pushnumber(lua, Logger::All);
   lua_setfield(lua, -2, "All");
-  lua_pushnumber(lua, Logger::NTLog);
-  lua_setfield(lua, -2, "NTLog");
   lua_pushnumber(lua, Logger::Alert);
   lua_setfield(lua, -2, "Alert");
   lua_pushnumber(lua, Logger::Critical);
