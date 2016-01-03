@@ -830,29 +830,19 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {
-      SHA1Summer sha;
-      sha.feed(msg);
-      return sha.get();
+      return pdns_sha1sum(msg);
     }
     case 8: {
-      SHA256Summer sha;
-      sha.feed(msg);
-      return sha.get();
+      return pdns_sha256sum(msg);
     }
     case 10: {
-      SHA512Summer sha;
-      sha.feed(msg);
-      return sha.get();
+      return pdns_sha512sum(msg);
     }
     case 13: {
-      SHA256Summer sha;
-      sha.feed(msg);
-      return sha.get();
+      return pdns_sha256sum(msg);
     }
     case 14: {
-      SHA384Summer sha;
-      sha.feed(msg);
-      return sha.get();
+      return pdns_sha384sum(msg);
     }
     };
   };

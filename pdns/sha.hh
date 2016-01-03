@@ -7,87 +7,67 @@
 #include <mbedtls/sha1.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
-#else
+#elif defined(HAVE_MBEDTLS)
 #include <polarssl/sha1.h>
 #include <polarssl/sha256.h>
 #include <polarssl/sha512.h>
 #include "mbedtlscompat.hh"
+#elif defined(HAVE_OPENSSL)
+#include <openssl/sha.h>
+#else
+#error "No SHA implementation found"
 #endif
 
-class SHA1Summer
+inline std::string pdns_sha1sum(const std::string& input)
 {
-public:
-   SHA1Summer() { mbedtls_sha1_starts(&d_context); };
-   void feed(const std::string &str) { feed(str.c_str(), str.length()); };
-   void feed(const char *ptr, size_t len) { mbedtls_sha1_update(&d_context, reinterpret_cast<const unsigned char*>(ptr), len); };
-   const std::string get() const {
-     mbedtls_sha1_context ctx2;
-     unsigned char result[20] = {0};
-     ctx2=d_context;
-     mbedtls_sha1_finish(&ctx2, result);
-     return std::string(result, result + sizeof result);
-   };
-   SHA1Summer(const SHA1Summer&) = delete;
-   SHA1Summer& operator=(const SHA1Summer&) = delete;
-private:
-   mbedtls_sha1_context d_context;
-};
+  unsigned char result[20] = {0};
+#ifdef HAVE_MBEDTLS
+  mbedtls_sha1(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
+#elif defined(HAVE_OPENSSL)
+  SHA1(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
+#else
+#error "No sha1 implementation found"
+#endif
+  return std::string(result, result + sizeof result);
+}
 
-class SHA256Summer
+inline std::string pdns_sha256sum(const std::string& input)
 {
-public:
-   SHA256Summer() { mbedtls_sha256_starts(&d_context, 0); };
-   void feed(const std::string &str) { feed(str.c_str(), str.length()); };
-   void feed(const char *ptr, size_t len) { mbedtls_sha256_update(&d_context, reinterpret_cast<const unsigned char*>(ptr), len); };
-   const std::string get() const {
-     mbedtls_sha256_context ctx2;
-     unsigned char result[32] = {0};
-     ctx2=d_context;
-     mbedtls_sha256_finish(&ctx2, result);
-     return std::string(result, result + 32);
-   };
-   SHA256Summer(const SHA256Summer&) = delete;
-   SHA256Summer& operator=(const SHA256Summer&) = delete;
-private:
-   mbedtls_sha256_context d_context;
-};
+  unsigned char result[32] = {0};
+#ifdef HAVE_MBEDTLS
+  mbedtls_sha256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result, 0);
+#elif defined(HAVE_OPENSSL)
+  SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
+#else
+#error "No sha256 implementation found"
+#endif
+  return std::string(result, result + sizeof result);
+}
 
-class SHA384Summer
+inline std::string pdns_sha384sum(const std::string& input)
 {
-public:
-   SHA384Summer() { mbedtls_sha512_starts(&d_context, 1); };
-   void feed(const std::string &str) { feed(str.c_str(), str.length()); };
-   void feed(const char *ptr, size_t len) { mbedtls_sha512_update(&d_context, reinterpret_cast<const unsigned char*>(ptr), len); };
-   const std::string get() const {
-     mbedtls_sha512_context ctx2;
-     unsigned char result[64] = {0};
-     ctx2 = d_context;
-     mbedtls_sha512_finish(&ctx2, result);
-     return std::string(result, result + 48);
-   };
-   SHA384Summer(const SHA384Summer&) = delete;
-   SHA384Summer& operator=(const SHA384Summer&) = delete;
-private:
-   mbedtls_sha512_context d_context;
-};
+  unsigned char result[48] = {0};
+#ifdef HAVE_MBEDTLS
+  mbedtls_sha512(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result, 1);
+#elif defined(HAVE_OPENSSL)
+  SHA384(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
+#else
+#error "No sha384 implementation found"
+#endif
+  return std::string(result, result + sizeof result);
+}
 
-class SHA512Summer
+inline std::string pdns_sha512sum(const std::string& input)
 {
-public:
-   SHA512Summer() { mbedtls_sha512_starts(&d_context, 0); };
-   void feed(const std::string &str) { feed(str.c_str(), str.length()); };
-   void feed(const char *ptr, size_t len) { mbedtls_sha512_update(&d_context, reinterpret_cast<const unsigned char*>(ptr), len); };
-   const std::string get() const {
-     mbedtls_sha512_context ctx2;
-     unsigned char result[64] = {0};
-     ctx2=d_context;
-     mbedtls_sha512_finish(&ctx2, result);
-     return std::string(result, result + sizeof result);
-   };
-   SHA512Summer(const SHA512Summer&) = delete;
-   SHA512Summer& operator=(const SHA512Summer&) = delete;
-private:
-   mbedtls_sha512_context d_context;
-};
+  unsigned char result[64] = {0};
+#ifdef HAVE_MBEDTLS
+  mbedtls_sha512(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result, 0);
+#elif defined(HAVE_OPENSSL)
+  SHA512(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
+#else
+#error "No sha512 implementation found"
+#endif
+  return std::string(result, result + sizeof result);
+}
 
 #endif /* sha.hh */
