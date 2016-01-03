@@ -4,8 +4,8 @@ BINDIR=/usr/bin/
 SYSCONFDIR=/etc/powerdns/
 LOCALSTATEDIR=/var/run/
 OPTFLAGS?=-O3
-CXXFLAGS:= $(CXXFLAGS) -I$(CURDIR)/ext/mbedtls/include -I$(CURDIR)/ext/json11 -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
-CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -I$(CURDIR)/ext/mbedtls/include -pthread -DHAVE_CONFIG_H
+CXXFLAGS:= $(CXXFLAGS) -I$(CURDIR)/ext/json11 -Wall @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(OPTFLAGS) $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -Iext/yahttp -DHAVE_CONFIG_H
+CFLAGS:=$(CFLAGS) -Wall $(OPTFLAGS) @CF_PIE@ @CF_FORTIFY@ @CF_STACK@ $(PROFILEFLAGS) $(ARCHFLAGS) -pthread -DHAVE_CONFIG_H
 LDFLAGS:=$(LDFLAGS) $(ARCHFLAGS) -pthread @LD_RELRO@ @CF_STACK@ @LD_PIE@
 STRIP_BINARIES?=1
 
@@ -20,22 +20,14 @@ PDNS_RECURSOR_OBJECTS=syncres.o misc.o unix_utility.o qtype.o logger.o \
 arguments.o lwres.o pdns_recursor.o recursor_cache.o dnsparser.o \
 dnswriter.o dnsrecords.o rcpgenerator.o base64.o zoneparser-tng.o \
 rec_channel.o rec_channel_rec.o selectmplexer.o sillyrecords.o \
-dns_random.o pubsuffix.o ext/mbedtls/library/aes.o ext/mbedtls/library/base64.o dnslabeltext.o \
-ext/mbedtls/library/md5.o ext/mbedtls/library/sha1.o ext/mbedtls/library/sha256.o  \
-ext/mbedtls/library/sha512.o ext/mbedtls/library/md.o ext/mbedtls/library/md_wrap.o \
-ext/mbedtls/library/ripemd160.o ext/mbedtls/library/rsa.o \
-ext/mbedtls/library/ecdsa.o ext/mbedtls/library/ecp.o ext/mbedtls/library/ecp_curves.o \
-ext/mbedtls/library/hmac_drbg.o ext/mbedtls/library/asn1write.o \
-ext/mbedtls/library/bignum.o ext/mbedtls/library/oid.o ext/mbedtls/library/asn1parse.o  \
-ext/mbedtls/library/ctr_drbg.o ext/mbedtls/library/entropy.o ext/mbedtls/library/entropy_poll.o\
-ext/mbedtls/library/timing.o \
+dns_random.o pubsuffix.o dnslabeltext.o \
 ext/json11/json11.o \
 lua-recursor4.o randomhelper.o recpacketcache.o dns.o \
 reczones.o base32.o nsecrecords.o json.o ws-recursor.o ws-api.o \
 version.o responsestats.o webserver.o ext/yahttp/yahttp/reqresp.o ext/yahttp/yahttp/router.o \
 rec-carbon.o secpoll-recursor.o iputils.o dnsname.o \
 rpzloader.o filterpo.o resolver.o ixfr.o dnssecinfra.o gss_context.o \
-ednssubnet.o validate.o validate-recursor.o mbedtlssigners.o \
+ednssubnet.o validate.o validate-recursor.o opensslsigners.o \
 rec-lua-conf.o sortlist.o
 
 REC_CONTROL_OBJECTS=rec_channel.o rec_control.o arguments.o misc.o \
@@ -74,6 +66,7 @@ endif
 
 
 LDFLAGS += $(PROFILEFLAGS) $(STATICFLAGS)
+LDFLAGS += -lcrypto
 
 CXXFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
 CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"' -DLOCALSTATEDIR='"$(LOCALSTATEDIR)"'
