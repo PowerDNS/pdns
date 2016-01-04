@@ -977,7 +977,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
 
-  g_lua.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  g_lua.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
 
   g_lua.writeFunction("showResponseLatency", []() {

@@ -424,8 +424,10 @@ This is still much in flux, but for now, try:
  * `topQueries(20)`: shows the top-20 queries
  * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
  * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
- * `grepq(Netmask|DNS Name [, n])`: shows the queries and responses matching the specified client address or range (Netmask), or the specified DNS Name
- * `topBandwidth(top)`: get top-`top` clients that consume the most bandwidth over length of ringbuffer
+ * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
+ * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
+ * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
+ * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels
 
 For example:
 ```
