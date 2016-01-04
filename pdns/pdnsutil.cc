@@ -933,6 +933,24 @@ int createZone(const DNSName &zone) {
     cerr<<"Domain '"<<zone.toString()<<"' was not created!"<<endl;
     return 1;
   }
+
+  DNSResourceRecord rr;
+  rr.qname = zone;
+  rr.auth = 1;
+  rr.ttl = ::arg().asNum("default-ttl");
+  rr.qtype = "SOA";
+  string soa = (boost::format("%s %s 1")
+    % ::arg()["default-soa-name"]
+    % (::arg().isEmpty("default-soa-mail") ? (DNSName("hostmaster.") + zone).toString() : ::arg()["default-soa-mail"])
+  ).str();
+  SOAData sd;
+  fillSOAData(soa, sd);  // fills out default values for us
+  rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), 1, serializeSOAData(sd))->getZoneRepresentation(true);
+  rr.domain_id = di.id;
+  di.backend->startTransaction(zone, di.id);
+  di.backend->feedRecord(rr);
+  di.backend->commitTransaction();
+
   return 1;
 }
 
