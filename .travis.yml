@@ -280,13 +280,14 @@ script:
   - cd pdns/dnsdistdist
   - tar xf dnsdist*.tar.bz2
   - cd dnsdist-*
-  - ./configure --enable-unit-tests
+  - ./configure --enable-unit-tests --enable-libsodium --enable-dnscrypt
   - make -k -j3
   - ./testrunner
   - cp ./dnsdist ../../../regression-tests.dnsdist/
   - cd ../../../regression-tests.dnsdist
   - DNSDISTBIN=./dnsdist ./runtests
   - rm -f ./dnsdist
+  - rm -f ./DNSCryptResolver.cert ./DNSCryptResolver.key
   - cd ..
   - rm -rf pdns/dnsdistdist/dnsdist-*/
 

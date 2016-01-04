@@ -372,12 +372,12 @@ public:
 };
 
 using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
-typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policy_t;
+typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policyfunc_t;
 
 struct ServerPolicy
 {
   string name;
-  policy_t policy;
+  policyfunc_t policy;
 };
 
 struct CarbonConfig

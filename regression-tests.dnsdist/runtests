@@ -8,10 +8,10 @@ python -V
 pip install -r requirements.txt
 
 if [ -z "${DNSDISTBIN}" ]; then
-    DNSDISTBIN="../pdns/dnsdistdist/dnsdist-*/dnsdist"
+    DNSDISTBIN=$(ls ../pdns/dnsdistdist/dnsdist-*/dnsdist)
 fi
 export DNSDISTBIN
 
 set -e
 set -x
-nosetests --with-xunit
+nosetests --with-xunit "$@"

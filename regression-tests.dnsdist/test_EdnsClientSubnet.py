@@ -14,7 +14,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
     original query.
     """
 
-    _dnsDistPort = 5340
     _config_template = """
     truncateTC(true)
     block=newDNSName("powerdns.org.")
@@ -28,28 +27,6 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
     end
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_ecs_no_override.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_ecs_no_override.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testWithoutEDNS(self):
         """
@@ -166,7 +143,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
     option, overwriting any existing value.
     """
 
-    _dnsDistPort = 5340
     _config_template = """
     truncateTC(true)
     block=newDNSName("powerdns.org.")
@@ -183,28 +159,6 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
     setECSSourcePrefixV6(56)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
     """
-
-    _dnsdistcmd = (os.environ['DNSDISTBIN'] + " -C dnsdist_ecs_override.conf --acl 127.0.0.1/32 -l 127.0.0.1:" + str(_dnsDistPort)).split()
-
-    @classmethod
-    def startDNSDist(cls, shutUp=True):
-        print("Launching dnsdist..")
-        with open('dnsdist_ecs_override.conf', 'w') as conf:
-            conf.write(cls._config_template % str(cls._testServerPort))
-
-        print(' '.join(cls._dnsdistcmd))
-        if shutUp:
-            with open(os.devnull, 'w') as fdDevNull:
-                cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True, stdout=fdDevNull, stderr=fdDevNull)
-        else:
-            cls._dnsdist = subprocess.Popen(cls._dnsdistcmd, close_fds=True)
-
-        time.sleep(1)
-
-        if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
-            sys.exit(cls._dnsdist.returncode)
 
     def testWithoutEDNS(self):
         """

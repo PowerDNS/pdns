@@ -1570,7 +1570,7 @@ seedRandom(::arg()["entropy-source"]);
     dbBench(cmds.size() > 1 ? cmds[1] : "");
   }
   else if (cmds[0] == "check-all-zones") {
-    bool exitOnError = (cmds[1] == "exit-on-error");
+    bool exitOnError = ((cmds.size() > 2 ? cmds[1] : "") == "exit-on-error");
     exit(checkAllZones(dk, exitOnError));
   }
   else if (cmds[0] == "list-all-zones") {
@@ -1614,7 +1614,6 @@ seedRandom(::arg()["entropy-source"]);
     }
     verifyCrypto(cmds[1]);
   }
-
   else if(cmds[0] == "show-zone") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnsutil show-zone ZONE"<<endl;

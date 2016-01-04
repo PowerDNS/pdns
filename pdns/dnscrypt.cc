@@ -382,7 +382,22 @@ int DnsCryptContext::encryptResponse(char* response, uint16_t responseLen, uint1
 
   if (!tcp && query->paddedLen < responseLen) {
     struct dnsheader* dh = (struct dnsheader*) response;
-    responseLen = query->paddedLen;
+    size_t questionSize = 0;
+
+    if (responseLen > sizeof(dnsheader)) {
+      unsigned int consumed = 0;
+      DNSName qname(response, responseLen, sizeof(dnsheader), false, 0, 0, &consumed);
+      if (consumed > 0) {
+        questionSize = consumed + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
+      }
+    }
+
+    responseLen = sizeof(dnsheader) + questionSize;
+
+    if (responseLen > query->paddedLen) {
+      responseLen = query->paddedLen;
+    }
+    dh->ancount = dh->arcount = dh->nscount = 0;
     dh->tc = 1;
   }
 

@@ -323,7 +323,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       setLuaSideEffect();
       g_policy.setState(policy);
     });
-  g_lua.writeFunction("setServerPolicyLua", [](string name, policy_t policy)  {
+  g_lua.writeFunction("setServerPolicyLua", [](string name, policyfunc_t policy)  {
       setLuaSideEffect();
       g_policy.setState(ServerPolicy{name, policy});
     });
@@ -338,7 +338,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.registerMember("name", &ServerPolicy::name);
   g_lua.registerMember("policy", &ServerPolicy::policy);
-  g_lua.writeFunction("newServerPolicy", [](string name, policy_t policy) { return ServerPolicy{name, policy};});
+  g_lua.writeFunction("newServerPolicy", [](string name, policyfunc_t policy) { return ServerPolicy{name, policy};});
   g_lua.writeVariable("firstAvailable", ServerPolicy{"firstAvailable", firstAvailable});
   g_lua.writeVariable("roundrobin", ServerPolicy{"roundrobin", roundrobin});
   g_lua.writeVariable("wrandom", ServerPolicy{"wrandom", wrandom});
