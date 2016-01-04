@@ -1008,7 +1008,7 @@ void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pkt
       execute();
   }
   catch(SSqlException &e) {
-    throw DBException("GSQLBackend lookup query:"+e.txtReason());
+    throw DBException("GSQLBackend lookup query: "+e.txtReason());
   }
 
   d_qname=qname;
@@ -1245,7 +1245,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo> *domains, bool include_disabl
     d_getAllDomainsQuery_stmt->reset();
   }
   catch (SSqlException &e) {
-    throw DBException("Database error trying to retrieve all domains:" + e.txtReason());
+    throw DBException("Database error trying to retrieve all domains: " + e.txtReason());
   }
 }
 
