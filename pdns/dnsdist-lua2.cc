@@ -380,6 +380,30 @@ void moreLua()
 #endif
     });
 
+    g_lua.writeFunction("printDNSCryptProviderFingerprint", [](const std::string& publicKeyFile) {
+        setLuaNoSideEffect();
+#ifdef HAVE_DNSCRYPT
+        unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
+
+        try {
+          ifstream file(publicKeyFile);
+          file.read((char *) &publicKey, sizeof(publicKey));
+
+          if (file.fail())
+            throw std::runtime_error("Invalid dnscrypt provider public key file " + publicKeyFile);
+
+          file.close();
+          g_outputBuffer="Provider fingerprint is: " + DnsCryptContext::getProviderFingerprint(publicKey) + "\n";
+        }
+        catch(std::exception& e) {
+          errlog(e.what());
+          g_outputBuffer="Error: "+string(e.what())+"\n";
+        }
+#else
+      g_outputBuffer="Error: DNSCrypt support is not enabled.\n";
+#endif
+    });
+
     g_lua.writeFunction("generateDNSCryptCertificate", [](const std::string& providerPrivateKeyFile, const std::string& certificateFile, const std::string privateKeyFile, uint32_t serial, time_t begin, time_t end) {
         setLuaNoSideEffect();
 #ifdef HAVE_DNSCRYPT

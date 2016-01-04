@@ -11,7 +11,7 @@ int handleDnsCryptQuery(DnsCryptContext* ctx, char* packet, uint16_t len, std::s
   ctx->parsePacket(packet, len, query, tcp, decryptedQueryLen);
 
   if (query->valid == false) {
-    vinfolog("Dropping DnsCrypt invalid query");
+    vinfolog("Dropping DNSCrypt invalid query");
     return false;
   }
 
