@@ -4,8 +4,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sstream>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 #include "remotebackend.hh"
 
 PipeConnector::PipeConnector(std::map<std::string,std::string> options) {

@@ -7,8 +7,6 @@
 #include <fcntl.h>
 
 #include <sstream>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 #include "pdns/lock.hh"
 
 #ifndef UNIX_PATH_MAX

@@ -9,8 +9,6 @@
 #include <fcntl.h>
 
 #include <sstream>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 
 ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   rapidjson::Value val;

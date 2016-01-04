@@ -11,8 +11,7 @@
 #include "pdns/pdnsexception.hh"
 #include "pdns/sstuff.hh"
 #include "pdns/ueberbackend.hh"
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/document.h>
+#include "pdns/json.hh"
 #include "yahttp/yahttp.hpp"
 #include <sstream>
 

@@ -1,5 +1,5 @@
 AM_CPPFLAGS += \
-	-I$(top_srcdir)/ext/rapidjson/include \
+	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
 	$(MBEDTLS_CFLAGS) \
 	$(LIBZMQ_CFLAGS)

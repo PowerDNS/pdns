@@ -18,8 +18,7 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 #include "pdns/dnsrecords.hh"
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/document.h>
+#include "pdns/json.hh"
 #include "pdns/statbag.hh"
 #include "pdns/packetcache.hh"
 

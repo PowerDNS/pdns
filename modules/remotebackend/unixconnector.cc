@@ -4,8 +4,6 @@
 #include "remotebackend.hh"
 #include <sys/socket.h>
 #include <sstream>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 #include "pdns/lock.hh" 
 #include <unistd.h>
 #include <fcntl.h>
