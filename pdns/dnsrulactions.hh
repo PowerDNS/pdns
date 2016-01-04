@@ -428,9 +428,9 @@ public:
   }
   DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, string* ruleresult) const override
   {
-    if(!d_fp) 
+    if(!d_fp) {
       vinfolog("Packet from %s for %s %s with id %d", remote.toStringWithPort(), qname.toString(), QType(qtype).getName(), dh->id);
-    else {
+    } else {
       string out = qname.toDNSString();
       fwrite(out.c_str(), 1, out.size(), d_fp);
       fwrite((void*)&qtype, 1, 2, d_fp);
