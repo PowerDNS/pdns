@@ -830,16 +830,21 @@ void* maintThread()
       for(IDState& ids  : dss->idStates) { // timeouts
         if(ids.origFD >=0 && ids.age++ > 2) {
           ids.age = 0;
-          ids.origFD = -1;
           dss->reuseds++;
           --dss->outstanding;
-	  struct timespec ts;
-	  clock_gettime(CLOCK_MONOTONIC, &ts);
-	  std::lock_guard<std::mutex> lock(g_rings.respMutex);
+          struct timespec ts;
+          clock_gettime(CLOCK_MONOTONIC, &ts);
+
           struct dnsheader fake;
           memset(&fake, 0, sizeof(fake));
           fake.id = ids.origID;
-	  g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote});
+
+          std::lock_guard<std::mutex> lock(g_rings.respMutex);
+          g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote});
+          g_stats.downstreamTimeouts++; // this is an 'actively' discovered timeout
+          // we keep track of 'reuseds' seperately
+
+          ids.origFD = -1; // don't touch 'ids' beyond this point!
         }          
       }
     }
