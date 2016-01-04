@@ -233,17 +233,23 @@ void moreLua()
   g_lua.writeFunction("grepq", [](const std::string& s, boost::optional<unsigned int> limit) {
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
+      unsigned int msec=0;
       try 
       {
         nm = Netmask(s);
       }
       catch(...) {
-        try { dn=DNSName(s); }
-        catch(...) 
-          {
-            g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
-            return;
-          }
+        if(boost::ends_with(s,"ms") && sscanf(s.c_str(), "%ums", &msec)) {
+          ;
+        }
+        else {
+          try { dn=DNSName(s); }
+          catch(...) 
+            {
+              g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
+              return;
+            }
+        }
       }
 
       decltype(g_rings.queryRing) qr;
@@ -270,13 +276,13 @@ void moreLua()
             
       std::multimap<struct timespec, string> out;
 
-      boost::format      fmt("%-7.1f %-47s %-5d %-25s %-5s %-4.1f %-2s %-2s %-2s %s\n");
-      g_outputBuffer+= (fmt % "Time" % "Client" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
+      boost::format      fmt("%-7.1f %-47s %-12s %-5d %-25s %-5s %-4.1f %-2s %-2s %-2s %s\n");
+      g_outputBuffer+= (fmt % "Time" % "Client" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
 
       for(const auto& c : qr) {
-        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
+        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)) )  {
           QType qt(c.qtype);
-          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
+          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % "" % htons(c.dh.id) % c.name.toString() % qt.getName()  % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") %  "Question").str() )) ;
 
           if(limit && *limit==++num)
             break;
@@ -287,13 +293,16 @@ void moreLua()
 
       string extra;
       for(const auto& c : rr) {
-        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn)))  {
+        if((nm && nm->match(c.requestor)) || (dn && c.name.isPartOf(*dn))  || (msec && (c.usec/1000 > msec)) )  {
           QType qt(c.qtype);
 	  if(!c.dh.rcode)
 	    extra=". " +std::to_string(htons(c.dh.ancount))+ " answers";
 	  else 
 	    extra.clear();
-          out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+          if(c.usec != std::numeric_limits<decltype(c.usec)>::max())
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % (c.usec/1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
+          else
+            out.insert(make_pair(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % c.ds.toStringWithPort() % htons(c.dh.id) % c.name.toString()  % qt.getName()  % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd? "RD" : "") % (c.dh.aa? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str()  )) ;
 
           if(limit && *limit==++num)
             break;

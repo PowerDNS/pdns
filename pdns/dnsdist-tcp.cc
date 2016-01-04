@@ -429,7 +429,7 @@ void* tcpClientThread(int pipefd)
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
         {
           std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({answertime,  ci.remote, qname, qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh});
+          g_rings.respRing.push_back({answertime,  ci.remote, qname, qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
         }
 
         largerQuery.clear();

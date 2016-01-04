@@ -231,6 +231,7 @@ struct Rings {
     unsigned int usec;
     unsigned int size;
     struct dnsheader dh;
+    ComboAddress ds; // who handled it
   };
   boost::circular_buffer<Response> respRing;
   std::mutex respMutex;

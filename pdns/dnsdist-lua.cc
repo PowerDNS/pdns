@@ -65,6 +65,57 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
     return std::make_shared<NetmaskGroupRule>(nmg);
 }
 
+std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(unsigned int top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred) 
+{
+  setLuaNoSideEffect();
+  map<DNSName, int> counts;
+  unsigned int total=0;
+  {
+    std::lock_guard<std::mutex> lock(g_rings.respMutex);
+    if(!labels) {
+      for(const auto& a : g_rings.respRing) {
+        if(!pred(a))
+          continue;
+        counts[a.name]++;
+        total++;
+      }
+    }
+    else {
+      unsigned int lab = *labels;
+      for(auto a : g_rings.respRing) {
+        if(!pred(a))
+          continue;
+        
+        a.name.trimToLabels(lab);
+        counts[a.name]++;
+        total++;
+      }
+      
+    }
+  }
+  //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
+  vector<pair<int, DNSName>> rcounts;
+  rcounts.reserve(counts.size());
+  for(const auto& c : counts) 
+    rcounts.push_back(make_pair(c.second, c.first));
+  
+  sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
+                                          const decltype(rcounts)::value_type& b) {
+         return b.first < a.first;
+       });
+  
+  std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+  unsigned int count=1, rest=0;
+  for(const auto& rc : rcounts) {
+    if(count==top+1)
+      rest+=rc.first;
+    else
+      ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
+  }
+  ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+  return ret;
+}
+
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config)
 {
   g_launchWork= new vector<std::function<void(void)>>();
@@ -915,57 +966,18 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
     });
 
   g_lua.writeFunction("getTopResponses", [](unsigned int top, unsigned int kind, boost::optional<int> labels) {
-      setLuaNoSideEffect();
-      map<DNSName, int> counts;
-      unsigned int total=0;
-      {
-	std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	if(!labels) {
-	  for(const auto& a : g_rings.respRing) {
-	    if(a.dh.rcode!=kind)
-	      continue;
-	    counts[a.name]++;
-	    total++;
-	  }
-	}
-	else {
-	  unsigned int lab = *labels;
-	  for(auto a : g_rings.respRing) {
-	    if(a.dh.rcode!=kind)
-	      continue;
-
-	    a.name.trimToLabels(lab);
-	    counts[a.name]++;
-	    total++;
-	  }
-	  
-	}
-      }
-      //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
-      vector<pair<int, DNSName>> rcounts;
-      rcounts.reserve(counts.size());
-      for(const auto& c : counts) 
-	rcounts.push_back(make_pair(c.second, c.first));
-
-      sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, 
-					      const decltype(rcounts)::value_type& b) {
-	     return b.first < a.first;
-	   });
-
-      std::unordered_map<int, vector<boost::variant<string,double>>> ret;
-      unsigned int count=1, rest=0;
-      for(const auto& rc : rcounts) {
-	if(count==top+1)
-	  rest+=rc.first;
-	else
-	  ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
-      }
-      ret.insert({count, {"Rest", rest, 100.0*rest/total}});
-      return ret;
-
+      return getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
     });
 
   g_lua.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+
+
+  g_lua.writeFunction("getSlowResponses", [](unsigned int top, unsigned int msec, boost::optional<int> labels) {
+      return getGenResponses(top, labels, [msec](const Rings::Response& r) { return r.usec > msec*1000; });
+    });
+
+
+  g_lua.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
 
   g_lua.writeFunction("showResponseLatency", []() {
