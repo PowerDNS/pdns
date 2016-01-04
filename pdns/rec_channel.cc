@@ -118,7 +118,7 @@ void RecursorControlChannel::send(const std::string& msg, const std::string* rem
     remoteaddr.sun_path[sizeof(remoteaddr.sun_path)-1] = '\0';
 
     if(::sendto(d_fd, msg.c_str(), msg.length(), 0, (struct sockaddr*) &remoteaddr, sizeof(remoteaddr) ) < 0)
-      throw PDNSException("Unable to send message over control channel '"+*remote+"': "+string(strerror(errno)));
+      throw PDNSException("Unable to send message over control channel '"+string(remoteaddr.sun_path)+"': "+string(strerror(errno)));
   }
   else if(::send(d_fd, msg.c_str(), msg.length(), 0) < 0)
     throw PDNSException("Unable to send message over control channel: "+string(strerror(errno)));
