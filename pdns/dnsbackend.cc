@@ -209,13 +209,13 @@ vector<DNSBackend *>BackendMakerClass::all(bool metadataOnly)
     L<<Logger::Error<<"Cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
-    throw;
+    exit(1);
   } catch(...) {
     // and cleanup
     L<<Logger::Error<<"Caught an exception instantiating a backend, cleaning up"<<endl;
     for(vector<DNSBackend *>::const_iterator i=ret.begin();i!=ret.end();++i)
       delete *i;
-    throw;
+    exit(1);
   }
 
   return ret;
