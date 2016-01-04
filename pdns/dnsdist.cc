@@ -271,7 +271,7 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
       std::lock_guard<std::mutex> lock(g_rings.respMutex);
-      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh});
+      g_rings.respRing.push_back({ts, ids->origRemote, ids->qname, ids->qtype, (unsigned int)udiff, (unsigned int)got, *dh, state->remote});
     }
     if(dh->rcode == RCode::ServFail)
       g_stats.servfailResponses++;
@@ -836,7 +836,10 @@ void* maintThread()
 	  struct timespec ts;
 	  clock_gettime(CLOCK_MONOTONIC, &ts);
 	  std::lock_guard<std::mutex> lock(g_rings.respMutex);
-	  g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, 0, 2000000, 0});
+          struct dnsheader fake;
+          memset(&fake, 0, sizeof(fake));
+          fake.id = ids.origID;
+	  g_rings.respRing.push_back({ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote});
         }          
       }
     }
