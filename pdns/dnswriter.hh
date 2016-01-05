@@ -87,7 +87,7 @@ public:
   void xfr8BitInt(uint8_t val);
 
   void xfrName(const DNSName& label, bool compress=false, bool noDot=false);
-  void xfrText(const string& text, bool multi=false);
+  void xfrText(const string& text, bool multi=false, bool lenField=true);
   void xfrBlob(const string& blob, int len=-1);
   void xfrBlobNoSpaces(const string& blob, int len=-1);
   void xfrHexBlob(const string& blob, bool keepReading=false);

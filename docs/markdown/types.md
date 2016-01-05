@@ -196,6 +196,10 @@ When a TXT record is longer than 255 characters/bytes (excluding possible enclos
 quotes), PowerDNS will cut up the content into 255 character/byte chunks for
 transmission to the client.
 
+## URI
+The URI record, specified in [RFC 7553](http://tools.ietf.org/html/rfc7553), is
+used to publish mappings from hostnames to URIs.
+
 ## Other types
 The following, rarely used or obsolete record types, are also supported:
 
