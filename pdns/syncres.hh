@@ -610,9 +610,9 @@ public:
   {
     return d_fd;
   }
-  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state;
-  int qlen;
-  int bytesread;
+  enum stateenum {BYTE0, BYTE1, GETQUESTION, DONE} state{BYTE0};
+  uint16_t qlen{0};
+  uint16_t bytesread{0};
   const ComboAddress d_remote;
   char data[65535]; // damn
 

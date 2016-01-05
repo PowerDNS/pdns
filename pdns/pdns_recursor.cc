@@ -945,7 +945,7 @@ void startDoResolve(void *p)
       g_stats.answersSlow++;
 
     uint64_t newLat=(uint64_t)(spent*1000000);
-    newLat = min(newLat,(uint64_t)(g_networkTimeoutMsec*1000)); // outliers of several minutes exist..
+    newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
     g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
@@ -1005,7 +1005,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
   if(conn->state==TCPConnection::BYTE0) {
-    int bytes=recv(conn->getFD(), conn->data, 2, 0);
+    ssize_t bytes=recv(conn->getFD(), conn->data, 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) {
@@ -1019,7 +1019,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    int bytes=recv(conn->getFD(), conn->data+1, 1, 0);
+    ssize_t bytes=recv(conn->getFD(), conn->data+1, 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
@@ -1033,13 +1033,13 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    int bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
-    if(!bytes || bytes < 0) {
+    ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
+    if(!bytes || bytes < 0 || bytes > UINT16_MAX) {
       L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
       return;
     }
-    conn->bytesread+=bytes;
+    conn->bytesread+=(uint16_t)bytes;
     if(conn->bytesread==conn->qlen) {
       t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
 
@@ -1085,7 +1085,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
   int newsock=(int)accept(fd, (struct sockaddr*)&addr, &addrlen);
-  if(newsock>0) {
+  if(newsock>=0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
       closesocket(newsock);
@@ -1639,8 +1639,10 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
     ThreadMSG* tmsg = new ThreadMSG();
     tmsg->func = func;
     tmsg->wantAnswer = true;
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+      delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
+    }
 
     string* resp;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
@@ -1668,8 +1670,10 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   tmsg->func = func;
   tmsg->wantAnswer = false;
 
-  if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+  if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+    delete tmsg;
     unixDie("write to thread pipe returned wrong size or error");
+  }
 }
 
 void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
@@ -1743,9 +1747,10 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
     tmsg->func = boost::bind(voider<T>, func);
     tmsg->wantAnswer = true;
 
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+      delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
-
+    }
 
     T* resp;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))

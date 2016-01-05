@@ -69,7 +69,10 @@ static dState getDenial(cspmap_t &validrrsets, DNSName qname, uint16_t qtype)
         if(qtype == QType::DS && optout) return INSECURE;
       }
   }
-  dState ret;
+  /* NODATA is not really appropriate here, but we
+     just need to return something else than INSECURE.
+  */
+  dState ret = NODATA;
   return ret;
 }
 

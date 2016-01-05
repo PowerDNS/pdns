@@ -158,6 +158,8 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     } else {
       // try to make socket
       sock = makeQuerySocket(local, true);
+      if (sock < 0)
+        throw ResolverException("Unable to create socket to "+remote.toStringWithPort()+": "+stringerror());
       setNonBlocking( sock );
       locals[lstr] = sock;
     }
@@ -385,6 +387,8 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   d_sock = -1;
   try {
     d_sock = makeQuerySocket(local, false); // make a TCP socket
+    if (d_sock < 0)
+      throw ResolverException("Error creating socket for AXFR request to "+d_remote.toStringWithPort());
     d_buf = shared_array<char>(new char[65536]);
     d_remote = remote; // mostly for error reporting
     this->connect();
@@ -430,6 +434,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
   catch(...) {
     if(d_sock >= 0)
       close(d_sock);
+    d_sock = -1;
     throw;
   }
 }
