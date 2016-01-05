@@ -308,7 +308,14 @@ for a in $modules; do
 done
 
 for a in $dynmodules; do
-  moduledirs="$moduledirs ${a}backend"
+  AC_MSG_CHECKING([whether we can build dynamic module "${a}"])
+  if [[ -d "$srcdir/modules/${a}backend" ]]; then
+    AC_MSG_RESULT([yes])
+    moduledirs="$moduledirs ${a}backend"
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" doesn't exist! Please review --with-dynmodules parameter for supported values.])
+  fi
 done
 
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
