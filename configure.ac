@@ -299,12 +299,19 @@ PDNS_CHECK_SQLITE3
 AM_CONDITIONAL([SQLITE3], [test "x$needsqlite3" = "xyes"])
 
 for a in $modules; do
-  moduledirs="$moduledirs ${a}backend"
+  AC_MSG_CHECKING([whether we can build module "${a}"])
+  if [[ -d "$srcdir/modules/${a}backend" ]]; then
+    AC_MSG_RESULT([yes])
+    moduledirs="$moduledirs ${a}backend"
 
-  for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`; do
-    moduleobjects="$moduleobjects ../modules/${a}backend/$b"
-  done
-  modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
+    for b in `cat $srcdir/modules/${a}backend/OBJECTFILES`; do
+      moduleobjects="$moduleobjects ../modules/${a}backend/$b"
+    done
+    modulelibs="$modulelibs `cat $srcdir/modules/${a}backend/OBJECTLIBS`"
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([Do not know how to build module "$a", "$srcdir/modules/${a}backend" doesn't exist! Please review --with-modules parameter for supported values.])
+  fi
 done
 
 for a in $dynmodules; do
