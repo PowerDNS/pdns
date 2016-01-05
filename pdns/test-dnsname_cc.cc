@@ -3,6 +3,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/std/map.hpp>
 #include <numeric>
+#include <math.h>
 #include "dnsname.hh"
 #include "misc.hh"
 #include "dnswriter.hh"

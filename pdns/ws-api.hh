@@ -23,9 +23,6 @@
 #define PDNS_WSAPI_HH
 
 #include <map>
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
 #include "webserver.hh"
 
 void apiServer(HttpRequest* req, HttpResponse* resp);

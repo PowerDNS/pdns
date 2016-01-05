@@ -30,8 +30,8 @@
 
 #include <iostream>
 #include <stdio.h>
+#include "json11.hpp"
 #include "namespaces.hh"
-#include "json.hh"
 #include "dns.hh"
 #include "arguments.hh"
 #include "bindparserclasses.hh"
@@ -156,12 +156,13 @@ static void emitRecord(const string& zoneName, const DNSName &DNSqname, const st
     string::size_type pos = comment.find("json={");
     if(pos!=string::npos) {
       string json = comment.substr(pos+5);
-      rapidjson::Document document;
-      if(document.Parse<0>(json.c_str()).HasParseError())
-        throw runtime_error("Could not parse JSON '"+json+"'");
+      string err;
+      auto document = json11::Json::parse(json, err);
+      if(document.is_null())
+        throw runtime_error("Could not parse JSON '"+json+"': " + err);
 
-      disabled=boolFromJson(document, "disabled", false);
-      recordcomment=stringFromJson(document, "comment", "");
+      disabled=document["disabled"].bool_value();
+      recordcomment=document["comment"].string_value();
     }
   }
 

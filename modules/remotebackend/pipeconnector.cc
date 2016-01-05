@@ -3,6 +3,9 @@
 #endif
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sstream>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include "remotebackend.hh"
 
 PipeConnector::PipeConnector(std::map<std::string,std::string> options) {
@@ -117,8 +120,10 @@ void PipeConnector::launch() {
 
 int PipeConnector::send_message(const rapidjson::Document &input)
 {
-   std::string line;
-   line = makeStringFromDocument(input);
+   rapidjson::StringBuffer output;
+   rapidjson::Writer<rapidjson::StringBuffer> w(output);
+   input.Accept(w);
+   auto line = std::string(output.GetString(), output.Size());
    launch();
 
    line.append(1,'\n');

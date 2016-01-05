@@ -1,6 +1,7 @@
 import json
 import time
 import unittest
+from copy import deepcopy
 from test_helper import ApiTestCase, unique_zone_name, is_auth, is_recursor, eq_zone_dict, get_db_records
 
 
@@ -1285,3 +1286,26 @@ class RecursorZones(ApiTestCase):
         print r.json()
         # should return zone, SOA
         self.assertEquals(len(r.json()), 2)
+
+
+@unittest.skipIf(not is_auth(), "Not applicable")
+class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
+
+    def test_get_keys(self):
+        r = self.session.get(
+            self.url("/api/v1/servers/localhost/zones/powerdnssec.org./cryptokeys"))
+        self.assert_success_json(r)
+        keys = r.json()
+        self.assertGreater(len(keys), 0)
+
+        key0 = deepcopy(keys[0])
+        del key0['dnskey']
+        expected = {
+            u'active': True,
+            u'type': u'Cryptokey',
+            u'keytype': u'zsk',
+            u'id': 1}
+        self.assertEquals(key0, expected)
+
+        keydata = keys[0]['dnskey'].split()
+        self.assertEqual(len(keydata), 4)

@@ -9,8 +9,8 @@
 #include <fcntl.h>
 
 #include <sstream>
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 ZeroMQConnector::ZeroMQConnector(std::map<std::string,std::string> options) {
   rapidjson::Value val;
@@ -65,8 +65,10 @@ ZeroMQConnector::~ZeroMQConnector() {
 };
 
 int ZeroMQConnector::send_message(const rapidjson::Document &input) {
-   std::string line;
-   line = makeStringFromDocument(input);
+   rapidjson::StringBuffer output;
+   rapidjson::Writer<rapidjson::StringBuffer> w(output);
+   input.Accept(w);
+   auto line = std::string(output.GetString(), output.Size());
    zmq_msg_t message;
 
    zmq_msg_init_size(&message, line.size()+1);
