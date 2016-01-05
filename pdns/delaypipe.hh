@@ -38,7 +38,6 @@ public:
   void submit(T& t, int msec); //!< don't try for more than 4294 msec
 
 private:
-  std::thread d_thread;
   void worker();
   struct Combo
   {
@@ -60,6 +59,7 @@ private:
   };
   std::multimap<struct timespec, T, tscomp> d_work;
   void gettime(struct timespec* ts);
+  std::thread d_thread;
 };
 
 #include "delaypipe.cc"
