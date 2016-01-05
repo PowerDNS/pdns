@@ -15,13 +15,13 @@ static vector<std::function<void(void)>>* g_launchWork;
 class LuaAction : public DNSAction
 {
 public:
-  typedef std::function<std::tuple<int, string>(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len)> func_t;
+  typedef std::function<std::tuple<int, string>(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t len, uint16_t bufferSize)> func_t;
   LuaAction(LuaAction::func_t func) : d_func(func)
   {}
 
-  Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, string* ruleresult) const override
+  Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
   {
-    auto ret = d_func(remote, qname, qtype, dh, len);
+    auto ret = d_func(remote, qname, qtype, dh, len, bufferSize);
     if(ruleresult)
       *ruleresult=std::get<1>(ret);
     return (Action)std::get<0>(ret);
@@ -437,6 +437,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	return std::shared_ptr<DNSAction>(new SpoofAction(ComboAddress(a)));
     });
 
+  g_lua.writeFunction("SpoofCNAMEAction", [](const string& a) {
+      return std::shared_ptr<DNSAction>(new SpoofAction(a));
+    });
+
   g_lua.writeFunction("addDomainSpoof", [](const std::string& domain, const std::string& ip, boost::optional<string> ip6) { 
       setLuaSideEffect();
       SuffixMatchNode smn;
@@ -461,6 +465,23 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
     });
 
+  g_lua.writeFunction("addDomainCNAMESpoof", [](const std::string& domain, const std::string& cname) {
+      setLuaSideEffect();
+      SuffixMatchNode smn;
+      try
+      {
+	smn.add(DNSName(domain));
+      }
+      catch(std::exception& e) {
+	g_outputBuffer="Error parsing parameters: "+string(e.what());
+	return;
+      }
+      g_rulactions.modify([&smn,&cname](decltype(g_rulactions)::value_type& rulactions) {
+	  rulactions.push_back({
+	      std::make_shared<SuffixMatchNodeRule>(smn),
+		std::make_shared<SpoofAction>(cname)  });
+	});
+    });
 
   g_lua.writeFunction("DropAction", []() {
       return std::shared_ptr<DNSAction>(new DropAction);

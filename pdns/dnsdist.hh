@@ -366,7 +366,7 @@ class DNSAction
 {
 public:
   enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, Delay, None};
-  virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, string* ruleresult) const =0;
+  virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const =0;
   virtual string toString() const = 0;
 };
 
