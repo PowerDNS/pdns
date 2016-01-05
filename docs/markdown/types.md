@@ -31,6 +31,11 @@ mechanisms on a zone's apex. See the [howto](authoritative/howtos.md#using-alias
 for information on how to configure PowerDNS to serve records synthesized from
 ALIAS records.
 
+## CAA
+Since 4.0.0. The "Certification Authority Authorization" record, specified in
+[RFC 6844](https://tools.ietf.org/html/rfc6844), is used to specify Certificate
+Authorities that may issue certificates for a domain.
+
 ## CERT
 Specialised record type for storing certificates, defined in
 [RFC 2538](http://tools.ietf.org/html/rfc2538).
