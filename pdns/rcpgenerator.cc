@@ -372,6 +372,21 @@ void RecordTextReader::xfrText(string& val, bool multi, bool lenField)
   }
 }
 
+void RecordTextReader::xfrUnquotedText(string& val, bool lenField)
+{
+  val.clear();
+  val.reserve(d_end - d_pos);
+
+  if(!val.empty())
+    val.append(1, ' ');
+
+  skipSpaces();
+  val.append(1, d_string[d_pos]);
+  while(++d_pos < d_end && d_string[d_pos] != ' '){
+    val.append(1, d_string[d_pos]);
+  }
+}
+
 void RecordTextReader::xfrType(uint16_t& val)
 {
   skipSpaces();
@@ -555,6 +570,12 @@ void RecordTextWriter::xfrText(const string& val, bool multi, bool lenField)
   d_string.append(val);
 }
 
+void RecordTextWriter::xfrUnquotedText(const string& val, bool lenField)
+{
+  if(!d_string.empty())
+    d_string.append(1,' ');
+  d_string.append(val);
+}
 
 #ifdef TESTING
 

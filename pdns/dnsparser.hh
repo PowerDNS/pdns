@@ -129,6 +129,10 @@ public:
     text=getText(multi, lenField);
   }
 
+  void xfrUnquotedText(string &text, bool lenField){
+    text=getUnquotedText(lenField);
+  }
+
   void xfrBlob(string& blob);
   void xfrBlobNoSpaces(string& blob, int len);
   void xfrBlob(string& blob, int length);
@@ -142,6 +146,7 @@ public:
 
   DNSName getName();
   string getText(bool multi, bool lenField);
+  string getUnquotedText(bool lenField);
 
   uint16_t d_pos;
 

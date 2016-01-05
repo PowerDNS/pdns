@@ -172,6 +172,17 @@ void DNSPacketWriter::xfrText(const string& text, bool, bool lenField)
   }
 }
 
+void DNSPacketWriter::xfrUnquotedText(const string& text, bool lenField)
+{
+  if(text.empty()) {
+    d_record.push_back(0);
+    return;
+  }
+  if(lenField)
+    d_record.push_back(text.length());
+  d_record.insert(d_record.end(), text.c_str(), text.c_str() + text.length());
+}
+
 /* FIXME400: check that this beats a map */
 DNSPacketWriter::lmap_t::iterator find(DNSPacketWriter::lmap_t& nmap, const DNSName& name)
 {

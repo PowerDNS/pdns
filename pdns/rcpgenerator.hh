@@ -54,6 +54,7 @@ public:
 
   void xfrName(DNSName& val, bool compress=false, bool noDot=false);
   void xfrText(string& val, bool multi=false, bool lenField=true);
+  void xfrUnquotedText(string& val, bool lenField=true);
   void xfrHexBlob(string& val, bool keepReading=false);
   void xfrBase32HexBlob(string& val);
 
@@ -85,6 +86,7 @@ public:
   void xfrType(const uint16_t& val);
   void xfrName(const DNSName& val, bool compress=false, bool noDot=false);
   void xfrText(const string& val, bool multi=false, bool lenField=true);
+  void xfrUnquotedText(const string& val, bool lenField=true);
   void xfrBlobNoSpaces(const string& val, int len=-1);
   void xfrBlob(const string& val, int len=-1);
   void xfrHexBlob(const string& val, bool keepReading=false);

@@ -467,6 +467,22 @@ string PacketReader::getText(bool multi, bool lenField)
   return ret;
 }
 
+string PacketReader::getUnquotedText(bool lenField)
+{
+  int16_t stop_at;
+  if(lenField)
+    stop_at = (uint8_t)d_content.at(d_pos) + d_pos + 1;
+  else
+    stop_at = d_recordlen;
+
+  if(stop_at == d_pos)
+    return "";
+
+  d_pos++;
+  string ret(&d_content.at(d_pos), &d_content.at(stop_at));
+  d_pos = stop_at;
+  return ret;
+}
 
 void PacketReader::xfrBlob(string& blob)
 try
