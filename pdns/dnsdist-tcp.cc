@@ -158,10 +158,13 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        char queryBuffer[qlen];
+        /* if the query is small, allocate a bit more
+           memory to be able to spoof the content,
+           or to add ECS without allocating a new buffer */
+        size_t querySize = qlen <= 4096 ? qlen + 512 : qlen;
+        char queryBuffer[querySize];
         const char* query = queryBuffer;
         uint16_t queryLen = qlen;
-        size_t querySize = qlen;
         readn2WithTimeout(ci.fd, queryBuffer, queryLen, g_tcpRecvTimeout);
 #ifdef HAVE_DNSCRYPT
         std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
@@ -232,7 +235,7 @@ void* tcpClientThread(int pipefd)
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
 	  if(lr.first->matches(ci.remote, qname, qtype, dh, queryLen)) {
-	    action=(*lr.second)(ci.remote, qname, qtype, dh, queryLen, &ruleresult);
+	    action=(*lr.second)(ci.remote, qname, qtype, dh, queryLen, querySize, &ruleresult);
 	    if(action != DNSAction::Action::None) {
 	      lr.first->d_matches++;
 	      break;

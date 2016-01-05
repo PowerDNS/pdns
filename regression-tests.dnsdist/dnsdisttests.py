@@ -141,12 +141,22 @@ class DNSDistTest(unittest.TestCase):
             else:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
-                rrset = dns.rrset.from_text(request.question[0].name,
-                                            3600,
-                                            request.question[0].rdclass,
-                                            request.question[0].rdtype,
-                                            '127.0.0.1')
-                response.answer.append(rrset)
+                if request.question[0].rdclass == dns.rdataclass.IN:
+                    if request.question[0].rdtype == dns.rdatatype.A:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '127.0.0.1')
+                    elif request.question[0].rdtype == dns.rdatatype.AAAA:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '::1')
+                if rrset:
+                    response.answer.append(rrset)
+
             sock.sendto(response.to_wire(), addr)
         sock.close()
 
@@ -178,12 +188,21 @@ class DNSDistTest(unittest.TestCase):
             else:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
-                rrset = dns.rrset.from_text(request.question[0].name,
-                                            3600,
-                                            request.question[0].rdclass,
-                                            request.question[0].rdtype,
-                                            '127.0.0.1')
-                response.answer.append(rrset)
+                if request.question[0].rdclass == dns.rdataclass.IN:
+                    if request.question[0].rdtype == dns.rdatatype.A:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '127.0.0.1')
+                    elif request.question[0].rdtype == dns.rdatatype.AAAA:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '::1')
+                if rrset:
+                    response.answer.append(rrset)
 
             wire = response.to_wire()
             conn.send(struct.pack("!H", len(wire)))
