@@ -18,7 +18,8 @@ pages:
     - End of life statements: end-of-life.md
   - Authoritative:
     - Introduction: authoritative/index.md
-    - Installing and Running: authoritative/installation.md
+    - Installing PowerDNS: authoritative/installation.md
+    - Running PowerDNS: authoritative/running.md
     - Upgrade Notes: authoritative/upgrading.md
     - Modes of Operation: authoritative/modes-of-operation.md
     - Domain metadata: authoritative/domainmetadata.md
