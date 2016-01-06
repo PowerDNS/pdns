@@ -87,10 +87,14 @@ class DNSDistTest(unittest.TestCase):
         else:
             cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True)
 
-        time.sleep(1)
+        if 'DNSDIST_FAST_TESTS' in os.environ:
+            delay = 0.5
+        else:
+            delay = 2
+        time.sleep(delay)
 
         if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
+            cls._dnsdist.kill()
             cls._dnsdist.wait()
             sys.exit(cls._dnsdist.returncode)
 
@@ -111,8 +115,16 @@ class DNSDistTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if 'DNSDIST_FAST_TESTS' in os.environ:
+            delay = 0.1
+        else:
+            delay = 1
         if cls._dnsdist:
             cls._dnsdist.terminate()
+            if cls._dnsdist.poll() is None:
+                time.sleep(delay)
+                if cls._dnsdist.poll() is None:
+                    cls._dnsdist.kill()
             cls._dnsdist.wait()
 
     @classmethod
@@ -240,10 +252,10 @@ class DNSDistTest(unittest.TestCase):
         if useQueue:
             cls._toResponderQueue.put(response)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1", cls._dnsDistPort))
-
         if timeout:
             sock.settimeout(timeout)
+
+        sock.connect(("127.0.0.1", cls._dnsDistPort))
 
         try:
             wire = query.to_wire()

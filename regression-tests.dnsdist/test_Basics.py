@@ -14,10 +14,10 @@ class TestBasics(DNSDistTest):
         """
         name = 'blockeda.tests.powerdns.org.'
         query = dns.message.make_query(name, 'A', 'IN')
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
     def testAWithECS(self):
@@ -88,11 +88,11 @@ class TestBasics(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.flags |= dns.flags.TC
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
@@ -138,11 +138,11 @@ class TestBasics(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
@@ -158,11 +158,11 @@ class TestBasics(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.NOTIMP)
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
