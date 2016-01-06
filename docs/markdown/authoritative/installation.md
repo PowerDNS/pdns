@@ -2,6 +2,7 @@
 Installation of the PowerDNS Authoritative server on UNIX systems can be done in several ways:
 
   * Binary packages provided by your distribution
+  * Binary packages provided by PowerDNS on [repo.powerdns.com](https://repo.powerdns.com)
   * Using the statically linked binary packages provided on the [website](https://www.powerdns.com/downloads.html)
   * Compiling from source
 
