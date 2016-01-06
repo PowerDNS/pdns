@@ -25,7 +25,6 @@
 using namespace boost::multi_index;
 StatBag S;
 
-
 ArgvMap &arg()
 {
   static ArgvMap theArg;
@@ -57,10 +56,19 @@ typedef multi_index_container<
     >
   >records_t;
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr)
+uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const DNSName& tsigalgo=DNSName(), const DNSName& tsigname=DNSName(), const std::string& tsigsecret="")
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
+  if(!tsigalgo.empty()) {
+    TSIGRecordContent trc;
+    trc.d_algoName = tsigalgo;
+    trc.d_time = time((time_t*)NULL);
+    trc.d_fudge = 300;
+    trc.d_origID=ntohs(pw.getHeader()->id);
+    trc.d_eRcode=0;
+    addTSIG(pw, &trc, tsigname, tsigsecret, "", false);
+  }
   
   Socket s(master.sin4.sin_family, SOCK_DGRAM);
   s.connect(master);
@@ -175,11 +183,10 @@ try
   string command;
   if(argc < 5 || (command=argv[1], (command!="diff" && command !="track"))) {
     cerr<<"Syntax: ixplore diff zone file1 file2"<<endl;
-    cerr<<"Syntax: ixplore track IP-address port zone directory"<<endl;
+    cerr<<"Syntax: ixplore track IP-address port zone directory [tsigkey tsigalgo tsigsecret]"<<endl;
     exit(EXIT_FAILURE);
   }
   if(command=="diff") {
-
     records_t before, after;
     DNSName zone(argv[2]);
     cout<<"Loading before from "<<argv[3]<<endl;
@@ -222,6 +229,19 @@ try
 
   cout<<"Loading zone, our highest available serial is "<< ourSerial<<endl;
 
+  DNSName tsigkey, tsigalgo;
+  if(argc > 6)
+    tsigkey=DNSName(toLower(argv[6]));
+  if(argc > 7)
+    tsigalgo=DNSName(toLower(argv[7]));
+  string tsigsecret;
+  if(argc > 8) {
+    if(B64Decode(argv[8], tsigsecret) < 0) {
+      cerr<<"Could not decode tsig secret!"<<endl;
+      exit(EXIT_FAILURE);
+    }
+  }
+
   try {
     if(!ourSerial)
       throw std::runtime_error("There is no local zone available");
@@ -242,6 +262,8 @@ try
     time_t last=0;
     while(axfr.getChunk(nop, &chunk)) {
       for(auto& dr : chunk) {
+        if(dr.d_type == QType::TSIG)
+          continue;
 	dr.d_name.makeUsRelative(zone);
 	records.insert(dr);
 	nrecords++;
@@ -266,7 +288,7 @@ try
     cout<<"Checking for update, our serial number is "<<ourSerial<<".. ";
     cout.flush();
     shared_ptr<SOARecordContent> sr;
-    uint32_t serial = getSerialFromMaster(master, zone, sr);
+    uint32_t serial = getSerialFromMaster(master, zone, sr, tsigalgo, tsigkey, tsigsecret);
     if(ourSerial == serial) {
       cout<<"still up to date, their serial is "<<serial<<", sleeping "<<sr->d_st.refresh<<" seconds"<<endl;
       sleep(sr->d_st.refresh);
@@ -274,7 +296,7 @@ try
     }
 
     cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-    auto deltas = getIXFRDeltas(master, zone, ourSoa);
+    auto deltas = getIXFRDeltas(master, zone, ourSoa, tsigalgo, tsigkey, tsigsecret);
     cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
     for(const auto& delta : deltas) {

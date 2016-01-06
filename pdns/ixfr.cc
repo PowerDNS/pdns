@@ -2,9 +2,9 @@
 #include "sstuff.hh"
 #include "dns_random.hh"
 #include "dnsrecords.hh"
+#include "dnssecinfra.hh"
 
-
-vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr)
+vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, const DNSName& tsigalgo, const DNSName& tsigname, const std::string& tsigsecret)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
   vector<uint8_t> packet;
@@ -12,10 +12,19 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
   pw.getHeader()->qr=0;
   pw.getHeader()->rd=0;
   pw.getHeader()->id=dns_random(0xffff);
-  pw.startRecord(zone, QType::SOA, 3600, QClass::IN, DNSResourceRecord::AUTHORITY);
+  pw.startRecord(zone, QType::SOA, 0, QClass::IN, DNSResourceRecord::AUTHORITY);
   oursr.d_content->toPacket(pw);
+
   pw.commit();
-  
+  if(!tsigalgo.empty()) {
+    TSIGRecordContent trc;
+    trc.d_algoName = tsigalgo;
+    trc.d_time = time((time_t*)NULL);
+    trc.d_fudge = 300;
+    trc.d_origID=ntohs(pw.getHeader()->id);
+    trc.d_eRcode=0;
+    addTSIG(pw, &trc, tsigname, tsigsecret, "", false);
+  }
   uint16_t len=htons(packet.size());
   string msg((const char*)&len, 2);
   msg.append((const char*)&packet[0], packet.size());
@@ -45,8 +54,13 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
     char reply[len]; 
     readn2(s.getHandle(), reply, len);
     MOADNSParser mdp(string(reply, len));
+    if(mdp.d_header.rcode) 
+      throw std::runtime_error("Got an error trying to IXFR zone '"+zone.toString()+"' from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
+
     //    cout<<"Got a response, rcode: "<<mdp.d_header.rcode<<", got "<<mdp.d_answers.size()<<" answers"<<endl;
     for(auto& r: mdp.d_answers) {
+      if(r.first.d_type == QType::TSIG) 
+        continue;
       //      cout<<r.first.d_name<< " " <<r.first.d_content->getZoneRepresentation()<<endl;
       r.first.d_name = r.first.d_name.makeRelative(zone);
       records.push_back(r.first);
