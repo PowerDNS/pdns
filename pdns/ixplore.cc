@@ -70,6 +70,9 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
   string reply;
   s.read(reply);
   MOADNSParser mdp(reply);
+  if(mdp.d_header.rcode) {
+    throw std::runtime_error("Unable to retrieve SOA serial from master '"+master.toStringWithPort()+"': "+RCode::to_s(mdp.d_header.rcode));
+  }
   for(const auto& r: mdp.d_answers) {
     if(r.first.d_type == QType::SOA) {
       sr = std::dynamic_pointer_cast<SOARecordContent>(r.first.d_content);
@@ -229,8 +232,8 @@ try
   catch(std::exception& e) {
     cout<<"Could not load zone from disk: "<<e.what()<<endl;
     cout<<"Retrieving latest from master "<<master.toStringWithPort()<<endl;
-    ComboAddress local("0.0.0.0");
-    AXFRRetriever axfr(master, zone, DNSName(), DNSName(), "", &local);
+    ComboAddress local = master.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::");
+    AXFRRetriever axfr(master, zone, tsigkey, tsigalgo, tsigsecret, &local);
     unsigned int nrecords=0;
     Resolver::res_t nop;
     vector<DNSRecord> chunk;
