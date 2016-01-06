@@ -1,9 +1,7 @@
 # Serving authoritative DNSSEC data
-(only available in PowerDNS 3.0 and beyond, not yet available in the PowerDNS Recursor)
-
 PowerDNS contains support for DNSSEC, enabling the easy serving of DNSSEC secured data, with minimal administrative overhead.
 
-In PowerDNSSEC, DNS and signatures and keys are (usually) treated as separate entities. The domain & record storage is thus almost completely devoid of DNSSEC record types.
+In PowerDNS, DNS and signatures and keys are (usually) treated as separate entities. The domain & record storage is thus almost completely devoid of DNSSEC record types.
 
 Instead, keying material is stored separately, allowing operators to focus on the already complicated task of keeping DNS data correct. In practice, DNSSEC related material is often stored within the same database, but within separate tables.
 
@@ -19,7 +17,7 @@ $ pdnsutil rectify-zone powerdnssec.org
 Alternatively, PowerDNS can serve pre-signed zones, without knowledge of private keys.
 
 # A brief introduction to DNSSEC
-DNSSEC is a complicated subject, but it is not required to know all the ins and outs of this protocol to be able to use PowerDNSSEC. In this section, we explain the core concepts that are needed to operate a PowerDNSSEC installation.
+DNSSEC is a complicated subject, but it is not required to know all the ins and outs of this protocol to be able to use PowerDNS. In this section, we explain the core concepts that are needed to operate a PowerDNSSEC installation.
 
 Zone material is enhanced with signatures using 'keys'. Such a signature (called an RRSIG) is a cryptographic guarantee that the data served is the original data. DNSSEC keys are asymmetric (RSA, DSA or GOST), the public part is published over DNS and is called a DNSKEY record, and is used for verification. The private part is used for signing and is never published.
 
@@ -37,33 +35,33 @@ In DNSSEC parlance we therefore sign a record that says 'there are no domains be
 
 So alternatively, we can say that if a certain mathematical operation (an 'iterated salted hash') is performed on a question, that no valid answers exist that have as outcome of this operation an answer between two very large numbers. This leads to the same 'proof of non-existence'. This solution is called NSEC3.
 
-A PowerDNSSEC zone can either be operated in NSEC or in one of two NSEC3 modes ('inclusive' and 'narrow').
+A PowerDNS zone can either be operated in NSEC or in one of two NSEC3 modes ('inclusive' and 'narrow').
 
 # Profile, Supported Algorithms, Record Types & Modes of operation
-PowerDNSSEC aims to serve unexciting, standards compliant, DNSSEC information. One goal is to have relevant parts of our output be identical or equivalent to important fellow-traveller software like NLNetLabs' NSD.
+PowerDNS aims to serve unexciting, standards compliant, DNSSEC information. One goal is to have relevant parts of our output be identical or equivalent to important fellow-traveller software like NLNetLabs' NSD.
 
-Particularly, if a PowerDNSSEC secured zone is transferred via AXFR, it should be able to contain the same records as when that zone was signed using `ldns-signzone` using the same keys and settings.
+Particularly, if a PowerDNS secured zone is transferred via AXFR, it should be able to contain the same records as when that zone was signed using `ldns-signzone` using the same keys and settings.
 
 PowerDNS supports serving pre-signed zones, as well as online ('live') signed operations. In the last case, Signature Rollover and Key Maintenance are fully managed by PowerDNS.
 
 ## Supported Algorithms
 Supported Algorithms (See the [IANA website](http://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml#dns-sec-alg-numbers-1) for more information):
--   DS records (algorithm 1, 2, 3)
--   RSASHA1 (algorithm 5, algorithm 7)
--   RSASHA256 (algorithm 8)
--   RSASHA512 (algorithm 10)
--   ECC-GOST (algorithm 12)
--   ECDSA (algorithm 13 and 14)
+- DS records (algorithm 1, 2, 3)
+- RSASHA1 (algorithm 5, algorithm 7)
+- RSASHA256 (algorithm 8)
+- RSASHA512 (algorithm 10)
+- ECC-GOST (algorithm 12)
+- ECDSA (algorithm 13 and 14)
 
 This corresponds to:
--   [RFC 4033](http://tools.ietf.org/html/rfc4033): DNS Security Introduction and Requirements
--   [RFC 4034](http://tools.ietf.org/html/rfc4034): Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions
--   [RFC 4035](http://tools.ietf.org/html/rfc4035): Protocol Modifications for the DNS Security Extensions
--   [RFC 4509](http://tools.ietf.org/html/rfc4509): Use of SHA-256 in DNSSEC Delegation Signer (DS) Resource Records (RRs)
--   [RFC 5155](http://tools.ietf.org/html/rfc5155): DNS Security (DNSSEC) Hashed Authenticated Denial of Existence
--   [RFC 5702](http://tools.ietf.org/html/rfc5702): Use of SHA-2 Algorithms with RSA in DNSKEY and RRSIG Resource Records for DNSSEC
--   [RFC 5933](http://tools.ietf.org/html/rfc5933): Use of GOST Signature Algorithms in DNSKEY and RRSIG Resource Records for DNSSEC
--   [RFC 6605](http://tools.ietf.org/html/rfc6605): Elliptic Curve Digital Signature Algorithm (DSA) for DNSSEC
+- [RFC 4033](http://tools.ietf.org/html/rfc4033): DNS Security Introduction and Requirements
+- [RFC 4034](http://tools.ietf.org/html/rfc4034): Resource Records for the DNS Security Extensions, Protocol Modifications for the DNS Security Extensions
+- [RFC 4035](http://tools.ietf.org/html/rfc4035): Protocol Modifications for the DNS Security Extensions
+- [RFC 4509](http://tools.ietf.org/html/rfc4509): Use of SHA-256 in DNSSEC Delegation Signer (DS) Resource Records (RRs)
+- [RFC 5155](http://tools.ietf.org/html/rfc5155): DNS Security (DNSSEC) Hashed Authenticated Denial of Existence
+- [RFC 5702](http://tools.ietf.org/html/rfc5702): Use of SHA-2 Algorithms with RSA in DNSKEY and RRSIG Resource Records for DNSSEC
+- [RFC 5933](http://tools.ietf.org/html/rfc5933): Use of GOST Signature Algorithms in DNSKEY and RRSIG Resource Records for DNSSEC
+- [RFC 6605](http://tools.ietf.org/html/rfc6605): Elliptic Curve Digital Signature Algorithm (DSA) for DNSSEC
 
 # DNSSEC Modes of Operation
 Traditionally, DNSSEC signatures have been added to unsigned zones, and then this signed zone could be served by any DNSSEC capable authoritative server. PowerDNS supports this mode fully.
@@ -72,7 +70,7 @@ In addition, PowerDNS supports taking care of the signing itself, in which case 
 
 For relevant tradeoffs, please see [Security](#security) and [Performance](#performance.html).
 
-PowerDNSSEC can operate in several modes. In the simplest situation, there is a single "SQL" database that contains, in separate tables, all domain data, keying material and other DNSSEC related settings.
+PowerDNS can operate in several modes. In the simplest situation, there is a single "SQL" database that contains, in separate tables, all domain data, keying material and other DNSSEC related settings.
 
 This database is then replicated to all PowerDNS instances, which all serve identical records, keys and signatures.
 
@@ -80,24 +78,24 @@ In this mode of operation, care should be taken that the database replication oc
 
 Such a single replicated database requires no further attention beyond monitoring already required during non-DNSSEC operations.
 
-## PowerDNSSEC Pre-signed records
+## PowerDNS Pre-signed records
 In this mode, PowerDNS serves zones that already contain DNSSEC records. Such zones can either be slaved from a remote master, or can be signed using tools like OpenDNSSEC, ldns-signzone or dnssec-signzone.
 
-## PowerDNSSEC Front-signing
-As a special feature, PowerDNSSEC can operate as a signing server which operates as a slave to an unsigned master.
+## PowerDNS Front-signing
+As a special feature, PowerDNS can operate as a signing server which operates as a slave to an unsigned master.
 
 In this way, if keying material is available for an unsigned zone that is retrieved from a master server, this keying material will be used when serving data from this zone.
 
 As part of the zone retrieval, the equivalent of 'pdnsutil rectify-zone' is run to make sure that all DNSSEC-related fields are set correctly.
 
-## PowerDNSSEC BIND-mode operation
+## PowerDNS BIND-mode operation
 Starting with PowerDNS 3.1, the bindbackend can manage keys in an SQLite3 database without launching a separate gsqlite3 backend.
 
 To use this mode, add "bind-dnssec-db=/var/db/bind-dnssec-db.sqlite3" to pdns.conf, and run "pdnsutil create-bind-db /var/db/bind-dnssec-db.sqlite3". Then, restart PowerDNS.
 
 After this, you can use "pdnsutil secure-zone" and all other pdnsutil commands on your BIND zones without trouble.
 
-## PowerDNSSEC hybrid BIND-mode operation
+## PowerDNS hybrid BIND-mode operation
 **Warning**: This mode is only supported in 3.0, 3.0.1 and 3.4.0 and up! In 3.1 to 3.3.1, the bindbackend always did its own key storage. In 3.4.0 and up hybrid bind mode operation is optional and enabled with the bindbackend `hybrid` config option.
 
 PowerDNS can also operate based on 'BIND'-style zone & configuration files. This 'bindbackend' has full knowledge of DNSSEC, but has no native way of storing keying material.
@@ -143,7 +141,7 @@ Additionally, NSEC and NSEC3 in non-narrow mode require ordering data in order t
 
 Finally, two new tables are needed. DNSSEC keying material is stored in the 'cryptokeys' table (in a portable standard format). Domain metadata is stored in the 'domainmetadata' table. This includes NSEC3 settings.
 
-Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or [the PowerDNSSEC wiki](http://wiki.powerdns.com/trac/wiki/PDNSUTIL) for the update statements), the `pdnsutil` tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
+Once the database schema has been changed for DNSSEC usage (see the relevant backend chapters or [the PowerDNS wiki](http://wiki.powerdns.com/trac/wiki/PDNSUTIL) for the update statements), the `pdnsutil` tool can be used to fill out keying details, and 'rectify' the auth and ordername fields.
 
 In short, `pdnsutil secure-zone powerdnssec.org ; pdnsutil rectify-zone powerdnssec.org` will deliver a correctly NSEC signed zone.
 
@@ -167,8 +165,8 @@ If all keys are imported using this tool, a zone will serve mostly identical rec
 
 **Note**: Within PowerDNS, the 'algorithm' for RSASHA1 keys is modulated based on the NSEC3 setting. So if an algorithm=7 key is imported in a zone with no configured NSEC3, it will appear as algorithm 5!
 
-# Records, Keys, signatures, hashes within PowerDNSSEC in online signing mode
-Within PowerDNSSEC live signing, keys are stored separately from the zone records. Zone data are only combined with signatures and keys when requests come in over the internet.
+# Records, Keys, signatures, hashes within PowerDNS in online signing mode
+Within PowerDNS live signing, keys are stored separately from the zone records. Zone data are only combined with signatures and keys when requests come in over the internet.
 
 Each zone can have a number of keys associated with it, with varying key lengths. Typically 1 or at most 2 of these keys are employed as actual Zone Signing Keys (ZSKs). During normal operations, this means that only 1 ZSK is 'active', and the other is inactive.
 
@@ -176,7 +174,7 @@ Should it be desired to 'roll over' to a new key, both keys can temporarily be a
 
 As elucidated above, there are several ways in which DNSSEC can deny the existence of a record, and this setting too is stored away from zone records, and lives with the DNSSEC keying material.
 
-In order to facilitate interoperability with existing technologies, PowerDNSSEC keys can be imported and exported in industry standard formats.
+In order to facilitate interoperability with existing technologies, PowerDNS keys can be imported and exported in industry standard formats.
 
 Keys and hashes are configured using the 'pdnsutil' tool, which is described next.
 
@@ -206,7 +204,7 @@ from the SOA records *minimum* field. When using NSEC3, the TTL of the NSEC3PARA
 record is also derived from that field.
 
 # `pdnsutil`
-`pdnsutil` (previously called `pdnssec`) is a powerful command that is the operator-friendly gateway into PowerDNSSEC configuration. Behind the scenes, `pdnsutil` manipulates a PowerDNS backend database, which also means that for many databases, `pdnsutil` can be run remotely, and can configure key material on different servers.
+`pdnsutil` (previously called `pdnssec`) is a powerful command that is the operator-friendly gateway into PowerDNS configuration. Behind the scenes, `pdnsutil` manipulates a PowerDNS backend database, which also means that for many databases, `pdnsutil` can be run remotely, and can configure key material on different servers.
 
 For a list of available commands, see the [manpage](../manpages/pdnsutil.1.md).
 
@@ -241,7 +239,7 @@ If any of the conditions outlined above is not met, DNSSEC service will suffer o
 In addition, the larger your DNS answers, the more critical the above becomes. It is therefore advised not to provision too many keys, or keys that are unnecessarily large.
 
 # Operational instructions
-In this chapter various DNSSEC transitions are discussed, and how to execute them within PowerDNSSEC.
+In this chapter various DNSSEC transitions are discussed, and how to execute them within PowerDNS.
 
 ## Publishing a DS
 To publish a DS to a parent zone, utilize 'pdnsutil show-zone' and take the DS from its output, and transfer it securely to your parent zone.
@@ -409,7 +407,7 @@ Instructions on how to use CryptAS [`Athena IDProtect Key USB Token V2J`](http:/
 From 3.3.1 and up, PowerDNS support secure DNSSEC transfers as described in [draft-koch-dnsop-dnssec-operator-change](https://datatracker.ietf.org/doc/draft-koch-dnsop-dnssec-operator-change/). If the [`direct-dnskey`](settings.md#direct-dnskey) option is enabled the foreign DNSKEY records stored in the database are added to the keyset and signed with the KSK. Without the direct-dnskey option DNSKEY records in the database are silently ignored.
 
 # Security
-During typical PowerDNSSEC operation, the private part of the signing keys are 'online', which can be compared to operating an HTTPS server, where the certificate is available on the webserver for cryptographic purposes.
+During typical PowerDNS operation, the private part of the signing keys are 'online', which can be compared to operating an HTTPS server, where the certificate is available on the webserver for cryptographic purposes.
 
 In some settings, having such (private) keying material available online is considered undesirable. In this case, consider running in pre-signed mode.
 
@@ -419,7 +417,7 @@ DNSSEC has a performance impact, mostly measured in terms of additional memory u
 Please see [Large Scale DNSSEC Best Current Practices](http://wiki.powerdns.com/trac/wiki/LargeScaleDNSSECBCP) for the most up to date information.
 
 # Thanks to, acknowledgements
-PowerDNSSEC has been made possible by the help & contributions of many people. We would like to thank:
+PowerDNS has been made possible by the help & contributions of many people. We would like to thank:
 
 - Peter Koch (DENIC)
 - Olaf Kolkman (NLNetLabs)

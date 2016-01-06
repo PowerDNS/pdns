@@ -50,7 +50,7 @@ Like all other records, it is not terminated by a dot. A sample might be
 
 ## DNSKEY
 The DNSKEY DNSSEC record type is fully supported, as described in [RFC 4034](https://tools.ietf.org/html/rfc4034).
-Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
+Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## DNAME
 The DNAME record, as specified in [RFC 6672](http://tools.ietf.org/html/rfc6672)
@@ -59,7 +59,7 @@ to be set to `yes` for PowerDNS to process these records.
 
 ## DS
 The DS DNSSEC record type is fully supported, as described in [RFC 4034](https://tools.ietf.org/html/rfc4034).
-Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
+Enabeling DNSSEC for domains can be done with [`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## HINFO
 Hardware Info record, used to specify CPU and operating system. Stored with a
@@ -96,7 +96,7 @@ Nameserver record. Specifies nameservers for a domain. Stored plainly:
 ## NSEC, NSEC3, NSEC3PARAM
 The NSEC, NSEC3 and NSEC3PARAM DNSSEC record type are fully supported, as described
 in [RFC 4034](http://tools.ietf.org/html/rfc4034). To enable DNSSEC, use
-[`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNSSEC command & control").
+[`pdnsutil`](authoritative/dnssec.md#pdnsutil "'pdnsutil' for PowerDNS command & control").
 
 ## OPENPGPKEY
 Since 3.4.7. The OPENPGPKEY records, specified in [RFC TBD](https://tools.ietf.org/html/draft-ietf-dane-openpgpkey-06),

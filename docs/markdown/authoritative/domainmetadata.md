@@ -80,7 +80,7 @@ When serving this zone, modify the SOA serial number in one of several ways.
 Mostly useful to get slaves to re-transfer a zone regularly to get fresh RRSIGs.
 
 Inception refers to the time the RRSIGs got updated in
-[live-signing mode](dnssec.md#records-keys-signatures-hashes-within-powerdnssec-in-online-signing-mode).
+[live-signing mode](dnssec.md#records-keys-signatures-hashes-within-powerdns-in-online-signing-mode).
 This happens every week (see [Signatures](dnssec.md#signatures)). The inception
 time does not depend on local timezone, but some modes below will use localtime
 for representation.
