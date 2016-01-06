@@ -34,6 +34,7 @@ This is truly an override and sends a notification to an arbitrary IP address. C
 On launch, PDNS requests from all backends a list of domains which have not been checked recently for changes. This should happen every '**refresh**' seconds, as specified in the SOA record. All domains that are unfresh are then checked for changes over at their master. If the [SOA](../types.md#soa) serial number there is higher, the domain is retrieved and inserted into the database. In any case, after the check the domain is declared 'fresh', and will only be checked again after '**refresh**' seconds have passed.
 
 **Warning**: Slave support is OFF by default, turn it on by adding [`slave`](settings.md#slave) to the configuration.
+**Note**: When running PowerDNS via the provided systemd service file, [`ProtectSystem`](http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=) is set to `full`, this means PowerDNS is unable to write to e.g. `/etc` and `/home`, possibly being unable to write AXFR's zones.
 
 PDNS also reacts to notifies by immediately checking if the zone has updated and if so, retransfering it.
 

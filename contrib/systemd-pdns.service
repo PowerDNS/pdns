@@ -13,6 +13,8 @@ PrivateTmp=true
 PrivateDevices=true
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID
 NoNewPrivileges=true
+# ProtectSystem=full will disallow write access to /etc and /usr, possibly
+# not being able to write slaved-zones into sqlite3 or zonefiles.
 ProtectSystem=full
 ProtectHome=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
