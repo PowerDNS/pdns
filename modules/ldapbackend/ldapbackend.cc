@@ -93,7 +93,7 @@ bool LdapBackend::list( const DNSName& target, int domain_id, bool include_disab
         try
         {
         	m_qname = target;
-        	m_axfrqlen = target.toStringNoDot().length();
+        	m_axfrqlen = target.toStringRootDot().length();
         	m_adomain = m_adomains.end();   // skip loops in get() first time
 
         	return (this->*m_list_fcnt)( target, domain_id );
@@ -127,7 +127,7 @@ inline bool LdapBackend::list_simple( const DNSName& target, int domain_id )
 
 
         dn = getArg( "basedn" );
-        qesc = toLower( m_pldap->escape( target.toString() ) );
+        qesc = toLower( m_pldap->escape( target.toStringRootDot() ) );
 
         // search for SOARecord of target
         filter = strbind( ":target:", "&(associatedDomain=" + qesc + ")(sOARecord=*)", getArg( "filter-axfr" ) );
@@ -174,7 +174,7 @@ void LdapBackend::lookup( const QType &qtype, const DNSName &qname, DNSPacket *d
         	m_qname = qname;
         	m_adomain = m_adomains.end();   // skip loops in get() first time
 
-        	if( m_qlog ) { L.log( "Query: '" + qname.toString() + "|" + qtype.getName() + "'", Logger::Error ); }
+        	if( m_qlog ) { L.log( "Query: '" + qname.toStringRootDot() + "|" + qtype.getName() + "'", Logger::Error ); }
         	(this->*m_lookup_fcnt)( qtype, qname, dnspkt, zoneid );
         }
         catch( LDAPTimeout &lt )
@@ -203,7 +203,7 @@ void LdapBackend::lookup_simple( const QType &qtype, const DNSName &qname, DNSPa
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-        qesc = toLower( m_pldap->escape( qname.toString() ) );
+        qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
         filter = "associatedDomain=" + qesc;
 
         if( qtype.getCode() != QType::ANY )
@@ -231,7 +231,7 @@ void LdapBackend::lookup_strict( const QType &qtype, const DNSName &qname, DNSPa
         const char* attronly[] = { NULL, "dNSTTL", "modifyTimestamp", NULL };
 
 
-        qesc = toLower( m_pldap->escape( qname.toString() ) );
+        qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
         stringtok( parts, qesc, "." );
         len = qesc.length();
 
@@ -275,7 +275,7 @@ void LdapBackend::lookup_tree( const QType &qtype, const DNSName &qname, DNSPack
         vector<string> parts;
 
 
-        qesc = toLower( m_pldap->escape( qname.toString() ) );
+        qesc = toLower( m_pldap->escape( qname.toStringRootDot() ) );
         filter = "associatedDomain=" + qesc;
 
         if( qtype.getCode() != QType::ANY )
@@ -352,7 +352,7 @@ inline bool LdapBackend::prepare_simple()
         	if( m_result.count( "associatedDomain" ) )
         	{
         		for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
+        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
 				  m_adomains.push_back( DNSName(*i) );
         			}
         		}
@@ -381,7 +381,7 @@ inline bool LdapBackend::prepare_strict()
         	if( m_result.count( "associatedDomain" ) )
         	{
         		for(auto i = m_result["associatedDomain"].begin(); i != m_result["associatedDomain"].end(); i++ ) {
-        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toString() /* ugh */ ) {
+        			if( i->size() >= m_axfrqlen && i->substr( i->size() - m_axfrqlen, m_axfrqlen ) == m_qname.toStringRootDot() /* ugh */ ) {
 				  m_adomains.push_back( DNSName(*i) );
         			}
         		}
