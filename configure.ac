@@ -64,9 +64,7 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
-AC_SEARCH_LIBS([socket], [socket])
-AC_SEARCH_LIBS([gethostent], [nsl])
-AC_SEARCH_LIBS([inet_aton], [resolv])
+AX_LIB_SOCKET_NSL
 
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static dlopen])
