@@ -7,6 +7,7 @@
 #include <fstream>
 #include "dnswriter.hh"
 #include "lock.hh"
+#include <net/if.h>
 
 using std::thread;
 
@@ -139,6 +140,8 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			if(client) {
 			  return std::make_shared<DownstreamState>(ComboAddress());
 			}
+			ComboAddress sourceAddr;
+			unsigned int sourceItf = 0;
 			if(auto address = boost::get<string>(&pvars)) {
 			  std::shared_ptr<DownstreamState> ret;
 			  try {
@@ -173,16 +176,63 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			  return ret;
 			}
 			auto vars=boost::get<newserver_t>(pvars);
+
+			if(vars.count("source")) {
+			  /* handle source in the following forms:
+			     - v4 address ("192.0.2.1")
+			     - v6 address ("2001:DB8::1")
+			     - interface name ("eth0")
+			     - v4 address and interface name ("192.0.2.1@eth0")
+			     - v6 address and interface name ("2001:DB8::1@eth0")
+			  */
+			  const string source = boost::get<string>(vars["source"]);
+			  bool parsed = false;
+			  std::string::size_type pos = source.find("@");
+			  if (pos == std::string::npos) {
+			    /* no '@', try to parse that as a valid v4/v6 address */
+			    try {
+			      sourceAddr = ComboAddress(source);
+			      parsed = true;
+			    }
+			    catch(...)
+			    {
+			    }
+			  }
+
+			  if (parsed == false)
+			  {
+			    /* try to parse as interface name, or v4/v6@itf */
+			    string itfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+			    unsigned int itfIdx = if_nametoindex(itfName.c_str());
+
+			    if (itfIdx != 0) {
+			      if (pos == 0 || pos == std::string::npos) {
+			        /* "eth0" or "@eth0" */
+			        sourceItf = itfIdx;
+			      }
+			      else {
+			        /* "192.0.2.1@eth0" */
+			        sourceAddr = ComboAddress(source.substr(0, pos));
+			        sourceItf = itfIdx;
+			      }
+			    }
+			    else
+			    {
+			      warnlog("Dismissing source %s because '%s' is not a valid interface name", source, itfName);
+			    }
+			  }
+			}
+
 			std::shared_ptr<DownstreamState> ret;
 			try {
-			  ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53));
+			  ret=std::make_shared<DownstreamState>(ComboAddress(boost::get<string>(vars["address"]), 53), sourceAddr, sourceItf);
 			}
 			catch(std::exception& e) {
 			  g_outputBuffer="Error creating new server: "+string(e.what());
 			  errlog("Error creating new server with address %s: %s", boost::get<string>(vars["address"]), e.what());
 			  return ret;
 			}
-			
+
 			if(vars.count("qps")) {
 			  int qps=std::stoi(boost::get<string>(vars["qps"]));
 			  ret->qps=QPSLimiter(qps, qps);
