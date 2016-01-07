@@ -92,8 +92,9 @@ badips:addMask("127.1.0.0/16")
 
 -- this check is applied before any packet parsing is done
 function ipfilter(rem, loc, dh)
-	print("ipfilter called, rem: ", rem:toString(), "loc: ",loc:toString(),"match:", badips:match(rem))
+	print("ipfilter called, rem: ", rem:toStringWithPort(), "loc: ",loc:toStringWithPort(),"match:", badips:match(rem))
 	print("id: ",dh:getID(), "aa: ", dh:getAA(), "ad: ", dh:getAD(), "arcount: ", dh:getARCOUNT())
+	print("ports: ",rem:getPort(),loc:getPort())
 	return badips:match(rem)
 end
 

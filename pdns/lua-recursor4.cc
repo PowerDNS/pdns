@@ -189,6 +189,9 @@ RecursorLua4::RecursorLua4(const std::string& fname)
   d_lw->registerFunction("__eq", &DNSName::operator==);
 
   d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
+  d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
+  d_lw->registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
+
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
 
   d_lw->registerFunction<bool(ComboAddress::*)(const ComboAddress&)>("equal", [](const ComboAddress& lhs, const ComboAddress& rhs) {
