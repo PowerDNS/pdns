@@ -3118,7 +3118,7 @@ Developers: this version is compatible with 1.99.11 backends.
 -   Added a limit on the simultaneous numbers of TCP connections to accept (**max-tcp-connections**). Defaults to 10.
 
 ## Bugs fixed
--   When operating in virtual hosting mode (See [Virtual hosting](authoritative/virtual.md "Virtual hosting")), the additional init.d scripts would not function correctly and interface with other pdns instances.
+-   When operating in virtual hosting mode (See [Virtual hosting](authoritative/running.md#virtual-hosting "Virtual hosting")), the additional init.d scripts would not function correctly and interface with other pdns instances.
 -   PDNS neglected to conserve case on answers. So a query for WwW.PoWeRdNs.CoM would get an answer listing the address of www.powerdns.com. While this did not confuse resolvers, it is better to conserve case. This has semantic consequences for all backends, which the documentation now spells out.
 -   PostgreSQL backend was case sensitive and returned only answers in case an exact match was found. The Generic PostgreSQL backend is now officially all lower case and zone2sql in PostgreSQL mode enforces this. Documentation has been been updated to reflect the case change. Thanks to Maikel Verheijen of Ladot for spotting this!
 -   Documentation bug - postgresql create/index statements created a duplicate index. If you've previously copy pasted the commands and not noticed the error, execute **CREATE INDEX rec\_name\_index ON records(name)** to remedy. Thanks to Jeff Miller for reporting this. This also lead to depressingly slow 'ANY' lookups for those of you doing benchmarks.

@@ -145,7 +145,7 @@ this depends on `SYSCONFDIR` during compile-time.
 * String
 
 Name of this virtual configuration - will rename the binary image. See
-["Virtual hosting"](virtual.md).
+["Virtual hosting"](running.md#virtual-hosting).
 
 ## `control-console`
 Debugging switch - don't use.
@@ -739,7 +739,7 @@ compile-time (usually `/var/run` or `/run`). See
 
 This path will also contain the pidfile for this instance of PowerDNS called
 `pdns.pid` by default. See [`config-name`](#config-name) and
-[Virtual Hosting](virtual.md) how this can differ.
+[Virtual Hosting](running.md#virtual-hosting) how this can differ.
 
 ## `strict-rfc-axfrs`
 * Boolean
