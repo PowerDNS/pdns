@@ -33,6 +33,7 @@ pages:
     - Recursion with the Authoritative Server: authoritative/recursion.md
     - Serving DNSSEC Signed Data: authoritative/dnssec.md
     - List of Settings: authoritative/settings.md
+    - 'Manpage: zone2json.1': manpages/zone2json.1.md
     - 'Manpage: zone2ldap.1': manpages/zone2ldap.1.md
     - 'Manpage: zone2sql.1': manpages/zone2sql.1.md
     - 'Manpage: pdns_control.1': manpages/pdns_control.1.md
