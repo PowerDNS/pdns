@@ -211,9 +211,10 @@ union ComboAddress {
   string toString() const
   {
     char host[1024];
-    getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST);
-      
-    return host;
+    if(sin4.sin_family && !getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST))
+      return host;
+    else
+      return "invalid";
   }
 
   string toStringWithPort() const
