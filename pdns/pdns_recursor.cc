@@ -606,8 +606,6 @@ void startDoResolve(void *p)
 	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
       haveEDNS=true;
     }
-    ComboAddress local;
-    listenSocketsAddresses_t::const_iterator lociter;
     vector<DNSRecord> ret;
     vector<uint8_t> packet;
 
@@ -661,16 +659,6 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    local.sin4.sin_family = dc->d_remote.sin4.sin_family;
-
-    lociter = g_listenSocketsAddresses.find(dc->d_socket);
-    if(lociter != g_listenSocketsAddresses.end()) {
-      local = lociter->second;
-    }
-    else {
-      socklen_t len = local.getSocklen();
-      getsockname(dc->d_socket, (sockaddr*)&local, &len); // if this fails, we're ok with it
-    }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
 
@@ -714,7 +702,7 @@ void startDoResolve(void *p)
     }
 
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
@@ -772,13 +760,13 @@ void startDoResolve(void *p)
                   if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
                 if(i == ret.cend())
-                  (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+                  (*t_pdl)->nodata(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	}
 	else if(res == RCode::NXDomain)
-	  (*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	  (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	
 
-	(*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	(*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	
       }
     }
@@ -1057,6 +1045,13 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       dc->d_tcp=true;
       dc->setRemote(&conn->d_remote);
+      ComboAddress dest;
+      memset(&dest, 0, sizeof(dest));
+      dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
+      socklen_t len = dest.getSocklen();
+      getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
+      dc->setLocal(dest);
+
       if(dc->d_mdp.d_header.qr) {
         delete dc;
         g_stats.ignoredCount++;
@@ -1216,7 +1211,6 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->setSocket(fd);
   dc->setRemote(&fromaddr);
   dc->setLocal(destaddr);
-
   dc->d_tcp=false;
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc
   return 0;
@@ -1274,7 +1268,22 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
 	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
-	HarvestDestinationAddress(&msgh, &dest);
+        auto loc = rplookup(g_listenSocketsAddresses, fd);
+	if(HarvestDestinationAddress(&msgh, &dest)) {
+          // but.. need to get port too
+          if(loc) 
+            dest.sin4.sin_port = loc->sin4.sin_port;
+        }
+        else {
+          if(loc) {
+            dest = *loc;
+          }
+          else {
+            dest.sin4.sin_family = fromaddr.sin4.sin_family;
+            socklen_t len = dest.getSocklen();
+            getsockname(fd, (sockaddr*)&dest, &len); // if this fails, we're ok with it
+          }
+        }
         if(g_weDistributeQueries)
           distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, dest, tv, fd));
         else
@@ -1412,7 +1421,6 @@ void makeUDPServerSockets()
 	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
       }
     }
-
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET6, fd);
 
@@ -1421,7 +1429,8 @@ void makeUDPServerSockets()
     setSocketReceiveBuffer(fd, 250000);
     sin.sin4.sin_port = htons(st.port);
 
-    int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
+    int socklen=sin.getSocklen();
+
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0)
       throw PDNSException("Resolver binding to server socket on port "+ std::to_string(st.port) +" for "+ st.host+": "+stringerror());
 
