@@ -847,7 +847,9 @@ instantiate a server with additional parameters
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `newCA(address)`: return a new ComboAddress
+     * `getPort()`: return the port number
      * `tostring()`: return in human-friendly format
+     * `tostringWithPort()`: return in human-friendly format, with port number
    * DNSName related:
      * `newDNSName(name)`: make a DNSName based on this .-terminated name
      * member `isPartOf(dnsname)`: is this dnsname part of that dnsname

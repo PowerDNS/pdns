@@ -55,6 +55,7 @@ truncateNMG:addMask("fe80::/16")
 print(string.format("Have %d entries in truncate NMG", truncateNMG:size()))
 
 function blockFilter(remote, qname, qtype, dh)
+	 print(string.format("Got query from %s, (%s) port number: %d", remote:tostring(), remote:tostringWithPort(), remote:getPort()))
 	 if(qtype==255 or truncateNMG:match(remote)) 
 	 then
 --	        print("any query, tc=1")

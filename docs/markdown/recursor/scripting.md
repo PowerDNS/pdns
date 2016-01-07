@@ -65,7 +65,7 @@ find it [here](https://github.com/PowerDNS/pdns/blob/master/pdns/powerdns-exampl
 
 In the 4.x API, addresses and DNS Names are not passed as strings but as native objects. This allows for
 easy checking against netmasks and domain sets. It also means that to print such names, the `:toString` 
-method must be used.
+method must be used (or even `:toStringWithPort` for addresses).
 
 Comparing IP addresses and DNSNames is not done with '==' but with the `:equal` method. 
 
@@ -178,7 +178,7 @@ A minimal sample script:
 ```
 function nxdomain(dq)
 	print("Intercepting NXDOMAIN for: ",dq.qname:toString())
-	if dq.qtype == pdns.A 
+	if dq.qtype == pdns.A
 	then
 		dq.rcode=0 -- make it a normal answer
 		dq:addAnswer(pdns.A, "192.168.1.1")
@@ -223,6 +223,9 @@ and unless you want to know, you don't need to. You can make a ComboAddress with
 it against a NetmaskGroup as described above.
 
 To compare the address (so not the port) of two ComboAddresses, use `:equal`. 
+
+To convert an address to human-friendly representation, use `:toString()` or `:toStringWithPort()`. To 
+get only the port number, use `:getPort()`.
 
 ### Metrics
 You can custom metrics which will be shown in the output of 'rec_control get-all' and sent to the metrics server over the Carbon protocol,
