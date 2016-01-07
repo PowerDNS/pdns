@@ -62,7 +62,7 @@ newServer({address="2620:0:ccd::2", name="dns1", qps=10})
 newServer("192.168.1.2")
 setServerPolicy(firstAvailable) -- first server within its QPS limit
 
-$ dnsdist --local=0.0.0.0:5200 --daemon=no
+$ dnsdist --local=0.0.0.0:5200
 Marking downstream [2001:4860:4860::8888]:53 as 'up'
 Marking downstream [2001:4860:4860::8844]:53 as 'up'
 Marking downstream [2620:0:ccc::2]:53 as 'up'
@@ -590,10 +590,11 @@ Running it for real
 First run on the command line, and generate a key:
 
 ```
-# dnsdist --daemon-no
+# dnsdist
 > makeKey()
 setKey("sepuCcHcQnSAZgNbNPCCpDWbujZ5esZJmrt/wh6ldkQ=")
 ```
+
 Now add this setKey line to `dnsdistconf.lua`, and also add:
 
 ```
@@ -602,7 +603,7 @@ controlSocket("0.0.0.0") -- or add portnumber too
 
 Then start `dnsdist` as a daemon, and then connect to it:
 ```
-# dnsdist
+# dnsdist --daemon
 # dnsdist --client
 > 
 ```
