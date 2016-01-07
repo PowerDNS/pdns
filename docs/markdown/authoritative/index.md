@@ -6,7 +6,6 @@ Examples of backends include relational databases, other DNS data formats and co
 # Backends
 PowerDNS has the concepts of 'backends'. A backend is a datastore that the server will consult that contains DNS records (and some meta-data).
 The backends range from database backends (Mysql, PostgreSQL, Oracle) and Bind-zonefiles to co-processes and JSON API's.
-For more in-depth information, see [Modules & Backends](internals.md#modules-backends) in the documentation on internals.
 
 Multiple backends can be enabled in the configuration by using the [`launch`](settings.md#launch) option. Each backend can be configured separetly.
 

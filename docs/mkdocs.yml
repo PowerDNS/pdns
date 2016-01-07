@@ -26,7 +26,6 @@ pages:
     - Dynamic DNS Update: authoritative/dnsupdate.md
     - Using TSIG for AXFR: authoritative/tsig.md
     - Various How To's: authoritative/howtos.md
-    - Internals: authoritative/internals.md
     - Virtual Hosting: authoritative/virtual.md
     - Performance Tuning and Monitoring: authoritative/performance.md
     - Migrating to PowerDNS: authoritative/migration.md

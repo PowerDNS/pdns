@@ -46,7 +46,7 @@ documentation for your backend to see how it processes changes in zones.
 
 To help deal with slaves that may have missed notifications, or have failed to
 respond to them, several override commands are available via the
-[`pdns_control`](../authoritative/internals.md#pdnscontrol) tool:
+[`pdns_control`](../authoritative/running.md#pdnscontrol) tool:
 
 * `pdns_control notify <domain>`
 This instructs PDNS to notify all IP addresses it considers to be slaves of this domain.
@@ -77,7 +77,7 @@ with either BerkeleyDB or InnoDB meets this requirement, as do PostgreSQL and
 Oracle. The Bindbackend implements transaction semantics by renaming files if and
 only if they have been retrieved completely and parsed correctly.
 
-Slave operation can also be programmed using several [`pdns_control`](internals.md#pdnscontrol)
+Slave operation can also be programmed using several [`pdns_control`](running.md#pdnscontrol)
 commands. The `retrieve` command is especially useful as it triggers an immediate
 retrieval of the zone from the configured master.
 

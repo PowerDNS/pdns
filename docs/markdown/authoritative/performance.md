@@ -14,7 +14,7 @@ This is done with the [`distributor-threads`](settings.md#distributor-threads) s
 
 Another very important setting is [`cache-ttl`](settings.md#cache-ttl). PDNS caches entire packets it sends out so as to save the time to query backends to assemble all data. The default setting of 20 seconds may be low for high traffic sites, a value of 60 seconds rarely leads to problems.
 
-Some PDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](internals.md#pdns_control)` purge` to selectively or globally notify PDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
+Some PDNS operators set cache-ttl to many hours or even days, and use [`pdns_control`](running.md#pdns_control)` purge` to selectively or globally notify PDNS of changes made in the backend. Also look at the [Query Cache](#query-cache) described in this chapter. It may materially improve your performance.
 
 To determine if PDNS is unable to keep up with packets, determine the value of the [`qsize-q`](../common/logging.md#counters) variable. This represents the number of packets waiting for database attention. During normal operations the queue should be small.
 
