@@ -59,6 +59,7 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 #endif
 
+// for illumos
 #ifdef BE_64
 
 #define htobe16(x) BE_16(x)
