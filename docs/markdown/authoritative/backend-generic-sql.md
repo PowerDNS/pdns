@@ -52,6 +52,13 @@ large installations may need to raise this value. Once a domain has been checked
 it will not be checked before its SOA refresh timer has expired. Domains whose
 status is unknown get checked every 60 seconds by default.
 
+PowerDNS has support for multiple masters per zone, separate master IP addresses
+by commas:
+
+```
+INSERT INTO domains (name, master, type) VALUES ('example.com', '198.51.100.6, 2001:0DB8:15:4AF::4', 'SLAVE');
+```
+
 ## Superslave operation
 To configure a supermaster with IP address 203.0.113.53 which lists this
 installation as 'autoslave.example.com', issue the following:

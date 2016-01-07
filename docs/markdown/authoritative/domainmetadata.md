@@ -16,10 +16,10 @@ tries to allow all potential slaves in.
 Example:
 
 ```
-sql> select id from domains where name='example.com';
+select id from domains where name='example.com';
 7
-sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
-sql> insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
+insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','AUTO-NS');
+insert into domainmetadata (domain_id, kind, content) values (7,'ALLOW-AXFR-FROM','2001:db8::/48');
 ```
 
 ## AXFR-SOURCE
@@ -32,16 +32,16 @@ See the documentation on [Dynamic DNS update](dnsupdate.md)
 When notifying this domain, also notify this nameserver (can occur multiple times).
 
 ## AXFR-MASTER-TSIG
-Use this named TSIG key to retrieve this zone from its master (see
-[Provisioning signed notification and AXFR requests](modes-of-operation.md#provisioning-signed-notification-and-axfr-requests)).
+Use this named TSIG key to retrieve this zone from its master, see
+[Provisioning signed notification and AXFR requests](tsig.md#provisioning-signed-notification-and-axfr-requests).
 
 ## GSS-ALLOW-AXFR-PRINCIPAL
 Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 `host/something@REALM`, `DNS/something@REALM` or `user@REALM`. (See
-[GSS-TSIG support](gss-tsig.md)).
+[GSS-TSIG support](tsig.md#gss-tsig-support)).
 
 ## GSS-ACCEPTOR-PRINCIPAL
-Use this principal for accepting GSS context. (See [GSS-TSIG support](gss-tsig.md)).
+Use this principal for accepting GSS context. (See [GSS-TSIG support](tsig.md#gss-tsig-support)).
 
 ## LUA-AXFR-SCRIPT
 Script to be used to edit incoming AXFRs, see [Modifying a slave zone using a script](modes-of-operation.md#modifying-a-slave-zone-using-a-script).
@@ -96,8 +96,8 @@ Available modes are:
 * NONE: Ignore [`default-soa-edit`](settings.md#default-soa-edit) and/or [`default-soa-edit-signed`](settings.md#default-soa-edit-signed) setings.
 
 ## TSIG-ALLOW-AXFR
-Allow these named TSIG keys to AXFR this zone (see [Provisioning outbound AXFR access](modes-of-operation.md#provisioning-outbound-axfr-access)).
+Allow these named TSIG keys to AXFR this zone, see [Provisioning outbound AXFR access](tsig.md#provisioning-outbound-axfr-access).
 
 ## TSIG-ALLOW-DNSUPDATE
-This setting allows you to set the TSIG key required to do an DNS update. If
-GSS-TSIG is enabled, you can put kerberos principals here as well.
+This setting allows you to set the TSIG key required to do an [DNS update](dnsupdate.md). If
+[GSS-TSIG](tsig.md#gss-tsig) is enabled, you can put kerberos principals here as well.
