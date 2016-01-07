@@ -12,7 +12,8 @@ gmysql-dbname=pdns
 gmysql-password=mysecretpassword
 ```
 
-Remove any earlier [`launch`](settings.md#launch) statements. Also remove the **bind-example-zones** statement as the **bind** module is no longer launched.
+Remove any earlier [`launch`](settings.md#launch) statements and other configuration
+statements for backends.
 
 **Warning**: Make sure that you can actually resolve the hostname of your database without accessing the database! It is advised to supply an IP address here to prevent chicken/egg problems!
 

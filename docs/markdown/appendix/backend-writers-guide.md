@@ -266,20 +266,15 @@ Returns the exact value of a parameter.
 ### `int getArgAsNum(const string &key)`
 Returns the numerical value of a parameter. Uses `atoi()` internally
 
-Sample usage from the BindBackend, using the [`bind-example-zones`](../authoritative/backend-bind.md#bind-example-zones) and [`bind-config`](../authoritative/backend-bind.md#bind-config) parameters.
+Sample usage from the BindBackend: getting the 'check-interval' setting:
 
 ```
-  if(mustDo("example-zones")) {
-    insert(0,"www.example.com","A","192.0.2.4");
-    /* ... */
-  }
-
-  if(!getArg("config").empty()) {
-    BindParser BP;
-
-    BP.parse(getArg("config"));
-  }
-
+if(!safeGetBBDomainInfo(i->name, &bbd)) {
+  bbd.d_id=domain_id++;
+  bbd.setCheckInterval(getArgAsNum("check-interval"));
+  bbd.d_lastnotified=0;
+  bbd.d_loaded=false;
+}
 ```
 
 ## Read/write slave-capable backends
