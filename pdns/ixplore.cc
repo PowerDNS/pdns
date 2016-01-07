@@ -56,18 +56,18 @@ typedef multi_index_container<
     >
   >records_t;
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const DNSName& tsigalgo=DNSName(), const DNSName& tsigname=DNSName(), const std::string& tsigsecret="")
+uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt = TSIGTriplet())
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
-  if(!tsigalgo.empty()) {
+  if(!tt.algo.empty()) {
     TSIGRecordContent trc;
-    trc.d_algoName = tsigalgo;
+    trc.d_algoName = tt.algo;
     trc.d_time = time((time_t*)NULL);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, &trc, tsigname, tsigsecret, "", false);
+    addTSIG(pw, &trc, tt.name, tt.secret, "", false);
   }
   
   Socket s(master.sin4.sin_family, SOCK_DGRAM);
@@ -229,14 +229,14 @@ try
 
   cout<<"Loading zone, our highest available serial is "<< ourSerial<<endl;
 
-  DNSName tsigkey, tsigalgo;
+  TSIGTriplet tt;
   if(argc > 6)
-    tsigkey=DNSName(toLower(argv[6]));
+    tt.name=DNSName(toLower(argv[6]));
   if(argc > 7)
-    tsigalgo=DNSName(toLower(argv[7]));
-  string tsigsecret;
+    tt.algo=DNSName(toLower(argv[7]));
+
   if(argc > 8) {
-    if(B64Decode(argv[8], tsigsecret) < 0) {
+    if(B64Decode(argv[8], tt.secret) < 0) {
       cerr<<"Could not decode tsig secret!"<<endl;
       exit(EXIT_FAILURE);
     }
@@ -253,7 +253,7 @@ try
     cout<<"Could not load zone from disk: "<<e.what()<<endl;
     cout<<"Retrieving latest from master "<<master.toStringWithPort()<<endl;
     ComboAddress local = master.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::");
-    AXFRRetriever axfr(master, zone, tsigkey, tsigalgo, tsigsecret, &local);
+    AXFRRetriever axfr(master, zone, tt, &local);
     unsigned int nrecords=0;
     Resolver::res_t nop;
     vector<DNSRecord> chunk;
@@ -288,7 +288,7 @@ try
     cout<<"Checking for update, our serial number is "<<ourSerial<<".. ";
     cout.flush();
     shared_ptr<SOARecordContent> sr;
-    uint32_t serial = getSerialFromMaster(master, zone, sr, tsigalgo, tsigkey, tsigsecret);
+    uint32_t serial = getSerialFromMaster(master, zone, sr, tt);
     if(ourSerial == serial) {
       cout<<"still up to date, their serial is "<<serial<<", sleeping "<<sr->d_st.refresh<<" seconds"<<endl;
       sleep(sr->d_st.refresh);
@@ -296,7 +296,7 @@ try
     }
 
     cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-    auto deltas = getIXFRDeltas(master, zone, ourSoa, tsigalgo, tsigkey, tsigsecret);
+    auto deltas = getIXFRDeltas(master, zone, ourSoa, tt);
     cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
     for(const auto& delta : deltas) {

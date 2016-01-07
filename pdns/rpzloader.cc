@@ -97,11 +97,14 @@ void RPZRecordToPolicy(const DNSRecord& dr, DNSFilterEngine& target, bool addOrR
   }
 }
 
-shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, int place)
+shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const DNSName& zone, DNSFilterEngine& target, boost::optional<DNSFilterEngine::Policy> defpol, int place,  const TSIGTriplet& tt)
 {
   L<<Logger::Warning<<"Loading RPZ zone '"<<zone<<"' from "<<master.toStringWithPort()<<endl;
-  ComboAddress local("0.0.0.0");
-  AXFRRetriever axfr(master, zone, DNSName(), DNSName(), "", &local);
+  if(!tt.name.empty())
+    L<<Logger::Warning<<"With TSIG key '"<<tt.name<<"' of algorithm '"<<tt.algo<<"'"<<endl;
+
+  ComboAddress local= master.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::"); // should be configurable
+  AXFRRetriever axfr(master, zone, tt, &local);
   unsigned int nrecords=0;
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
@@ -109,12 +112,13 @@ shared_ptr<SOARecordContent> loadRPZFromServer(const ComboAddress& master, const
   shared_ptr<SOARecordContent> sr;
   while(axfr.getChunk(nop, &chunk)) {
     for(auto& dr : chunk) {
+      if(dr.d_type==QType::NS || dr.d_type==QType::TSIG) {
+	continue;
+      }
+
       dr.d_name.makeUsRelative(zone);
       if(dr.d_type==QType::SOA) {
 	sr = std::dynamic_pointer_cast<SOARecordContent>(dr.d_content);
-	continue;
-      }
-      if(dr.d_type==QType::NS) {
 	continue;
       }
 

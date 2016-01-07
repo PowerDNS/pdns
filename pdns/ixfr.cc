@@ -4,7 +4,7 @@
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh"
 
-vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, const DNSName& tsigalgo, const DNSName& tsigname, const std::string& tsigsecret)
+vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, const TSIGTriplet& tt)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
   vector<uint8_t> packet;
@@ -16,14 +16,14 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
   oursr.d_content->toPacket(pw);
 
   pw.commit();
-  if(!tsigalgo.empty()) {
+  if(!tt.algo.empty()) {
     TSIGRecordContent trc;
-    trc.d_algoName = tsigalgo;
+    trc.d_algoName = tt.algo;
     trc.d_time = time((time_t*)NULL);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, &trc, tsigname, tsigsecret, "", false);
+    addTSIG(pw, &trc, tt.name, tt.secret, "", false);
   }
   uint16_t len=htons(packet.size());
   string msg((const char*)&len, 2);

@@ -317,17 +317,18 @@ string reloadAuthAndForwards()
 }
 
 
-void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent> oursr) 
+void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const TSIGTriplet& tt, shared_ptr<SOARecordContent> oursr) 
 {
+  int refresh = oursr->d_st.refresh;
   for(;;) {
     DNSRecord dr;
     dr.d_content=oursr;
 
-    sleep(oursr->d_st.refresh);
+    sleep(refresh);
     
     L<<Logger::Info<<"Getting IXFR deltas for "<<zone<<" from "<<master.toStringWithPort()<<", our serial: "<<std::dynamic_pointer_cast<SOARecordContent>(dr.d_content)->d_st.serial<<endl;
 
-    auto deltas = getIXFRDeltas(master, zone, dr);
+    auto deltas = getIXFRDeltas(master, zone, dr, tt);
     if(deltas.empty())
       continue;
     L<<Logger::Info<<"Processing "<<deltas.size()<<" delta"<<addS(deltas)<<" for RPZ "<<zone<<endl;

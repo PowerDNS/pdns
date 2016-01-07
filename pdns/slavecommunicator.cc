@@ -81,15 +81,16 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     }
     uint32_t domain_id=di.id;
 
-
-    DNSName tsigkeyname, tsigalgorithm;
-    string tsigsecret;
-    if(dk.getTSIGForAccess(domain, remote, &tsigkeyname)) {
+    TSIGTriplet tt;
+    if(dk.getTSIGForAccess(domain, remote, &tt.name)) {
       string tsigsecret64;
-      if(B.getTSIGKey(tsigkeyname, &tsigalgorithm, &tsigsecret64)) {
-        B64Decode(tsigsecret64, tsigsecret);
+      if(B.getTSIGKey(tt.name, &tt.algo, &tsigsecret64)) {
+        if(B64Decode(tsigsecret64, tt.secret)) {
+          L<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tt.name<<"' for domain '"<<domain<<"' not found"<<endl;
+          return;
+        }
       } else {
-        L<<Logger::Error<<"TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"' not found"<<endl;
+        L<<Logger::Error<<"TSIG key '"<<tt.name<<"' for domain '"<<domain<<"' not found"<<endl;
         return;
       }
     }
@@ -151,7 +152,7 @@ void CommunicatorClass::suck(const DNSName &domain,const string &remote)
     vector<DNSResourceRecord> rrs;
 
     ComboAddress raddr(remote, 53);
-    AXFRRetriever retriever(raddr, domain, tsigkeyname, tsigalgorithm, tsigsecret, (laddr.sin4.sin_family == 0) ? NULL : &laddr);
+    AXFRRetriever retriever(raddr, domain, tt, (laddr.sin4.sin_family == 0) ? NULL : &laddr);
     Resolver::res_t recs;
     while(retriever.getChunk(recs)) {
       if(first) {

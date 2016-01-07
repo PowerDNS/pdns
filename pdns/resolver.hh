@@ -84,11 +84,9 @@ class AXFRRetriever : public boost::noncopyable
 {
   public:
     AXFRRetriever(const ComboAddress& remote,
-        const DNSName& zone,
-        const DNSName& tsigkeyname=DNSName(),
-        const DNSName& tsigalgorithm=DNSName(),
-        const string& tsigsecret=string(),
-        const ComboAddress* laddr = NULL);
+                  const DNSName& zone,
+                  const TSIGTriplet& tt = TSIGTriplet(),
+                  const ComboAddress* laddr = NULL);
 	~AXFRRetriever();
     int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0);  
   
@@ -103,8 +101,7 @@ class AXFRRetriever : public boost::noncopyable
     int d_soacount;
     ComboAddress d_remote;
     
-    DNSName d_tsigkeyname;
-    string d_tsigsecret;
+    TSIGTriplet d_tt;
     string d_prevMac; // RFC2845 4.4
     string d_signData;
     uint32_t d_tsigPos;
