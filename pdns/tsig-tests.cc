@@ -93,7 +93,11 @@ try
 #endif
   seedRandom("/dev/urandom");
   cerr<<"Keyname: '"<<keyname.toString()<<"', algo: '"<<trc.d_algoName.toString()<<"', key: '"<<Base64Encode(key)<<"'\n";
-  AXFRRetriever axfr(dest, DNSName("b.aa"), keyname, DNSName("hmac-md5"), key);
+  TSIGTriplet tt;
+  tt.name=keyname;
+  tt.algo=DNSName("hmac-md5");
+  tt.secret=key;
+  AXFRRetriever axfr(dest, DNSName("b.aa"), tt);
   vector<DNSResourceRecord> res;
   while(axfr.getChunk(res)) {
   }
