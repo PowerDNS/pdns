@@ -53,6 +53,31 @@ int intFromJson(const Json container, const std::string& key, const int default_
   }
 }
 
+double doubleFromJson(const Json container, const std::string& key)
+{
+  auto val = container[key];
+  if (val.is_number()) {
+    return val.number_value();
+  } else if (val.is_string()) {
+    return std::stod(val.string_value());
+  } else {
+    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
+  }
+}
+
+double doubleFromJson(const Json container, const std::string& key, const double default_value)
+{
+  auto val = container[key];
+  if (val.is_number()) {
+    return val.number_value();
+  } else if (val.is_string()) {
+    return std::stod(val.string_value());
+  } else {
+    // TODO: check if value really isn't present
+    return default_value;
+  }
+}
+
 string stringFromJson(const Json container, const std::string &key)
 {
   const Json val = container[key];
