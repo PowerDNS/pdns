@@ -244,24 +244,24 @@ void OpenSSLECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
 
   int ret = EC_KEY_set_private_key(d_eckey, prv_key);
   if (ret != 1) {
-    BN_free(prv_key);
+    BN_clear_free(prv_key);
     throw runtime_error(getName()+" setting private key failed");
   }
 
   EC_POINT *pub_key = EC_POINT_new(d_ecgroup);
   if (pub_key == NULL) {
-    BN_free(prv_key);
+    BN_clear_free(prv_key);
     throw runtime_error(getName()+" allocation of public key point failed");
   }
 
   ret = EC_POINT_mul(d_ecgroup, pub_key, prv_key, NULL, NULL, d_ctx);
   if (ret != 1) {
     EC_POINT_free(pub_key);
-    BN_free(prv_key);
+    BN_clear_free(prv_key);
     throw runtime_error(getName()+" computing public key from private failed");
   }
 
-  BN_free(prv_key);
+  BN_clear_free(prv_key);
 
   ret = EC_KEY_set_public_key(d_eckey, pub_key);
   if (ret != 1) {
