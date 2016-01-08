@@ -34,16 +34,14 @@
 #include "misc.hh"
 #include "syncres.hh"
 #include "dnsparser.hh"
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
+#include "json11.hpp"
 #include "webserver.hh"
 #include "ws-api.hh"
 #include "logger.hh"
 
 extern __thread FDMultiplexer* t_fdm;
 
-using namespace rapidjson;
+using json11::Json;
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
@@ -70,21 +68,16 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
 static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 {
   if (req->method == "PUT" && !::arg().mustDo("api-readonly")) {
-    Document document;
-    req->json(document);
-    const Value &jlist = document["value"];
+    Json document = req->json();
 
-    if (!document.IsObject()) {
-      throw ApiException("Supplied JSON must be an object");
-    }
-
-    if (!jlist.IsArray()) {
+    auto jlist = document["value"];
+    if (!jlist.is_array()) {
       throw ApiException("'value' must be an array");
     }
 
-    for (SizeType i = 0; i < jlist.Size(); ++i) {
+    for (auto value : jlist.array_items()) {
       try {
-        Netmask(jlist[i].GetString());
+        Netmask(value.string_value());
       } catch (NetmaskException &e) {
         throw ApiException(e.reason);
       }
@@ -97,8 +90,8 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
 
     // Clear allow-from, and provide a "parent" value
     ss << "allow-from=" << endl;
-    for (SizeType i = 0; i < jlist.Size(); ++i) {
-      ss << "allow-from+=" << jlist[i].GetString() << endl;
+    for (auto value : jlist.array_items()) {
+      ss << "allow-from+=" << value.string_value() << endl;
     }
 
     apiWriteConfigFile("allow-from", ss.str());
@@ -111,24 +104,13 @@ static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
   }
 
   // Return currently configured ACLs
-  Document document;
-  document.SetObject();
-
-  Value jlist;
-  jlist.SetArray();
-
   vector<string> entries;
   t_allowFrom->toStringVector(&entries);
 
-  for(const string& entry :  entries) {
-    Value jentry(entry.c_str(), document.GetAllocator()); // copy
-    jlist.PushBack(jentry, document.GetAllocator());
-  }
-
-  document.AddMember("name", "allow-from", document.GetAllocator());
-  document.AddMember("value", jlist, document.GetAllocator());
-
-  resp->setBody(document);
+  resp->setBody(Json::object {
+    { "name", "allow-from" },
+    { "value", entries },
+  });
 }
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
@@ -137,51 +119,39 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   if (iter == t_sstorage->domainmap->end())
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
-  Document doc;
-  doc.SetObject();
-
   const SyncRes::AuthDomain& zone = iter->second;
+
+  Json::array servers;
+  for(const ComboAddress& server : zone.d_servers) {
+    servers.push_back(server.toStringWithPort());
+  }
+
+  Json::array records;
+  for(const SyncRes::AuthDomain::records_t::value_type& dr : zone.d_records) {
+    records.push_back(Json::object {
+      { "name", dr.d_name.toString() },
+      { "type", DNSRecordContent::NumberToType(dr.d_type) },
+      { "ttl", (double)dr.d_ttl },
+      { "content", dr.d_content->getZoneRepresentation() }
+    });
+  }
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
   string zoneId = apiZoneNameToId(iter->first);
-  Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("id", jzoneid, doc.GetAllocator());
-  string url = "/api/v1/servers/localhost/zones/" + zoneId;
-  Value jurl(url.c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("url", jurl, doc.GetAllocator());
-  Value jzonename(iter->first.toString().c_str(), doc.GetAllocator()); // copy
-  doc.AddMember("name", jzonename, doc.GetAllocator());
-  doc.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
-  Value servers;
-  servers.SetArray();
-  for(const ComboAddress& server :  zone.d_servers) {
-    Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
-    servers.PushBack(value, doc.GetAllocator());
-  }
-  doc.AddMember("servers", servers, doc.GetAllocator());
-  bool rd = zone.d_servers.empty() ? false : zone.d_rdForward;
-  doc.AddMember("recursion_desired", rd, doc.GetAllocator());
-
-  Value records;
-  records.SetArray();
-  for(const SyncRes::AuthDomain::records_t::value_type& dr :  zone.d_records) {
-    Value object;
-    object.SetObject();
-    Value jname(dr.d_name.toString().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("name", jname, doc.GetAllocator());
-    Value jtype(DNSRecordContent::NumberToType(dr.d_type).c_str(), doc.GetAllocator()); // copy
-    object.AddMember("type", jtype, doc.GetAllocator());
-    object.AddMember("ttl", dr.d_ttl, doc.GetAllocator());
-    Value jcontent(dr.d_content->getZoneRepresentation().c_str(), doc.GetAllocator()); // copy
-    object.AddMember("content", jcontent, doc.GetAllocator());
-    records.PushBack(object, doc.GetAllocator());
-  }
-  doc.AddMember("records", records, doc.GetAllocator());
+  Json::object doc = {
+    { "id", zoneId },
+    { "url", "/api/v1/servers/localhost/zones/" + zoneId },
+    { "name", iter->first.toString() },
+    { "kind", zone.d_servers.empty() ? "Native" : "Forwarded" },
+    { "servers", servers },
+    { "recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward },
+    { "records", records }
+  };
 
   resp->setBody(doc);
 }
 
-static void doCreateZone(const Value& document)
+static void doCreateZone(const Json document)
 {
   if (::arg()["api-config-dir"].empty()) {
     throw ApiException("Config Option \"api-config-dir\" must be set");
@@ -190,7 +160,7 @@ static void doCreateZone(const Value& document)
   DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
   apiCheckNameAllowedCharacters(zonename.toString());
 
-  string singleIPTarget = stringFromJson(document, "single_target_ip", "");
+  string singleIPTarget = document["single_target_ip"].string_value();
   string kind = toUpper(stringFromJson(document, "kind"));
   bool rd = boolFromJson(document, "recursion_desired");
   string confbasename = "zone-" + apiZoneNameToId(zonename);
@@ -224,19 +194,19 @@ static void doCreateZone(const Value& document)
 
     apiWriteConfigFile(confbasename, "auth-zones+=" + zonename.toString() + "=" + zonefilename);
   } else if (kind == "FORWARDED") {
-    const Value &servers = document["servers"];
-    if (kind == "FORWARDED" && (!servers.IsArray() || servers.Size() == 0))
-      throw ApiException("Need at least one upstream server when forwarding");
-
     string serverlist;
-    if (servers.IsArray()) {
-      for (SizeType i = 0; i < servers.Size(); ++i) {
-        if (!serverlist.empty()) {
-          serverlist += ";";
-        }
-        serverlist += servers[i].GetString();
+    for (auto value : document["servers"].array_items()) {
+      string server = value.string_value();
+      if (server == "") {
+        throw ApiException("Forwarded-to server must not be an empty string");
       }
+      if (!serverlist.empty()) {
+        serverlist += ";";
+      }
+      serverlist += server;
     }
+    if (serverlist == "")
+      throw ApiException("Need at least one upstream server when forwarding");
 
     if (rd) {
       apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename.toString() + "=" + serverlist);
@@ -276,8 +246,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Config Option \"api-config-dir\" must be set");
     }
 
-    Document document;
-    req->json(document);
+    Json document = req->json();
 
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
 
@@ -295,33 +264,23 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  Document doc;
-  doc.SetArray();
-
+  Json::array doc;
   for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
-    Value jdi;
-    jdi.SetObject();
+    Json::array servers;
+    for(const ComboAddress& server : zone.d_servers) {
+      servers.push_back(server.toStringWithPort());
+    }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
-    Value jzoneid(zoneId.c_str(), doc.GetAllocator()); // copy
-    jdi.AddMember("id", jzoneid, doc.GetAllocator());
-    string url = "/api/v1/servers/localhost/zones/" + zoneId;
-    Value jurl(url.c_str(), doc.GetAllocator()); // copy
-    jdi.AddMember("url", jurl, doc.GetAllocator());
-    Value jzonename(val.first.toString().c_str(), doc.GetAllocator()); // copy
-    jdi.AddMember("name", jzonename, doc.GetAllocator());
-    jdi.AddMember("kind", zone.d_servers.empty() ? "Native" : "Forwarded", doc.GetAllocator());
-    Value servers;
-    servers.SetArray();
-    for(const ComboAddress& server :  zone.d_servers) {
-      Value value(server.toStringWithPort().c_str(), doc.GetAllocator());
-      servers.PushBack(value, doc.GetAllocator());
-    }
-    jdi.AddMember("servers", servers, doc.GetAllocator());
-    bool rd = zone.d_servers.empty() ? false : zone.d_rdForward;
-    jdi.AddMember("recursion_desired", rd, doc.GetAllocator());
-    doc.PushBack(jdi, doc.GetAllocator());
+    doc.push_back(Json::object {
+      { "id", zoneId },
+      { "url", "/api/v1/servers/localhost/zones/" + zoneId },
+      { "name", val.first.toString() },
+      { "kind", zone.d_servers.empty() ? "Native" : "Forwarded" },
+      { "servers", servers },
+      { "recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward }
+    });
   }
   resp->setBody(doc);
 }
@@ -335,8 +294,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Could not find domain '"+zonename.toString()+"'");
 
   if(req->method == "PUT" && !::arg().mustDo("api-readonly")) {
-    Document document;
-    req->json(document);
+    Json document = req->json();
 
     doDeleteZone(zonename);
     doCreateZone(document);
@@ -367,20 +325,16 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   if (q.empty())
     throw ApiException("Query q can't be blank");
 
-  Document doc;
-  doc.SetArray();
-
-  for(const SyncRes::domainmap_t::value_type& val :  *t_sstorage->domainmap) {
+  Json::array doc;
+  for(const SyncRes::domainmap_t::value_type& val : *t_sstorage->domainmap) {
     string zoneId = apiZoneNameToId(val.first);
-    if (pdns_ci_find(val.first.toString(), q) != string::npos) {
-      Value object;
-      object.SetObject();
-      object.AddMember("type", "zone", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jzoneName, doc.GetAllocator());
-      doc.PushBack(object, doc.GetAllocator());
+    string zoneName = val.first.toString();
+    if (pdns_ci_find(zoneName, q) != string::npos) {
+      doc.push_back(Json::object {
+        { "type", "zone" },
+        { "zone_id", zoneId },
+        { "name", zoneName }
+      });
     }
 
     // if zone name is an exact match, don't bother with returning all records/comments in it
@@ -390,23 +344,17 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 
     const SyncRes::AuthDomain& zone = val.second;
 
-    for(const SyncRes::AuthDomain::records_t::value_type& rr :  zone.d_records) {
+    for(const SyncRes::AuthDomain::records_t::value_type& rr : zone.d_records) {
       if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.d_content->getZoneRepresentation(), q) == string::npos)
         continue;
 
-      Value object;
-      object.SetObject();
-      object.AddMember("type", "record", doc.GetAllocator());
-      Value jzoneId(zoneId.c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_id", jzoneId, doc.GetAllocator());
-      Value jzoneName(val.first.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("zone_name", jzoneName, doc.GetAllocator());
-      Value jname(rr.d_name.toString().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("name", jname, doc.GetAllocator());
-      Value jcontent(rr.d_content->getZoneRepresentation().c_str(), doc.GetAllocator()); // copy
-      object.AddMember("content", jcontent, doc.GetAllocator());
-
-      doc.PushBack(object, doc.GetAllocator());
+      doc.push_back(Json::object {
+        { "type", "record" },
+        { "zone_id", zoneId },
+        { "zone_name", zoneName },
+        { "name", rr.d_name.toString() },
+        { "content", rr.d_content->getZoneRepresentation() }
+      });
     }
   }
   resp->setBody(doc);
@@ -421,10 +369,10 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
   int count = broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeCache, canon, false));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipePacketCache, canon, false));
   count += broadcastAccFunction<uint64_t>(boost::bind(pleaseWipeAndCountNegCache, canon, false));
-  map<string, string> object;
-  object["count"] = std::to_string(count);
-  object["result"] = "Flushed cache.";
-  resp->body = returnJsonObject(object);
+  resp->setBody(Json::object {
+    { "count", count },
+    { "result", "Flushed cache." }
+  });
 }
 
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
@@ -487,33 +435,22 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
       rcounts.insert(make_pair(-i->second, i->first));
 
-    Document doc;
-    doc.SetObject();
-    Value entries;
-    entries.SetArray();
+    Json::array entries;
     unsigned int tot=0, totIncluded=0;
     for(const rcounts_t::value_type& q :  rcounts) {
-      Value arr;
-
-      arr.SetArray();
       totIncluded-=q.first;
-      arr.PushBack(-q.first, doc.GetAllocator());
-      arr.PushBack(q.second.first.toString().c_str(), doc.GetAllocator());
-      arr.PushBack(DNSRecordContent::NumberToType(q.second.second).c_str(), doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        -q.first, q.second.first.toString(), DNSRecordContent::NumberToType(q.second.second)
+      });
       if(tot++>=100)
 	break;
     }
     if(queries.size() != totIncluded) {
-      Value arr;
-      arr.SetArray();
-      arr.PushBack((unsigned int)(queries.size()-totIncluded), doc.GetAllocator());
-      arr.PushBack("", doc.GetAllocator());
-      arr.PushBack("", doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        (int)(queries.size() - totIncluded), "", ""
+      });
     }
-    doc.AddMember("entries", entries, doc.GetAllocator());
-    resp->setBody(doc);
+    resp->setBody(Json::object { { "entries", entries } });
     return;
   }
   else if(command == "get-remote-ring") {
@@ -539,38 +476,26 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse *resp)
     for(counts_t::const_iterator i=counts.begin(); i != counts.end(); ++i)
       rcounts.insert(make_pair(-i->second, i->first));
 
-
-    Document doc;
-    doc.SetObject();
-    Value entries;
-    entries.SetArray();
+    Json::array entries;
     unsigned int tot=0, totIncluded=0;
     for(const rcounts_t::value_type& q :  rcounts) {
       totIncluded-=q.first;
-      Value arr;
-
-      arr.SetArray();
-      arr.PushBack(-q.first, doc.GetAllocator());
-      Value jname(q.second.toString().c_str(), doc.GetAllocator()); // copy
-      arr.PushBack(jname, doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        -q.first, q.second.toString()
+      });
       if(tot++>=100)
 	break;
     }
     if(queries.size() != totIncluded) {
-      Value arr;
-      arr.SetArray();
-      arr.PushBack((unsigned int)(queries.size()-totIncluded), doc.GetAllocator());
-      arr.PushBack("", doc.GetAllocator());
-      entries.PushBack(arr, doc.GetAllocator());
+      entries.push_back(Json::array {
+        (int)(queries.size() - totIncluded), "", ""
+      });
     }
 
-    doc.AddMember("entries", entries, doc.GetAllocator());
-    resp->setBody(doc);
+    resp->setBody(Json::object { { "entries", entries } });
     return;
   } else {
-    resp->status = 404;
-    resp->body = returnJsonError("Command '"+command+"' not found");
+    resp->setErrorResult("Command '"+command+"' not found", 404);
   }
 }
 

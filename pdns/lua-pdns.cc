@@ -230,7 +230,7 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRec
     if(!getFromTable(lua, "qclass", tmpnum))
       rr.d_class = QClass::IN;
     else {
-      rr.d_class = static_cast<DNSResourceRecord::Place>(tmpnum);
+      rr.d_class = tmpnum;
     }
 
 

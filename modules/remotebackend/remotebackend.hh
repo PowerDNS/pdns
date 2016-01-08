@@ -6,7 +6,6 @@
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
 #include "pdns/dnspacket.hh"
-#include "pdns/json.hh"
 #include "pdns/logger.hh"
 #include "pdns/namespaces.hh"
 #include "pdns/pdnsexception.hh"

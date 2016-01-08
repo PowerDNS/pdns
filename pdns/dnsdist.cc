@@ -305,11 +305,13 @@ void* responderThread(std::shared_ptr<DownstreamState> state)
   return 0;
 }
 
-DownstreamState::DownstreamState(const ComboAddress& remote_): checkName("a.root-servers.net."), checkType(QType::A), mustResolve(false)
+DownstreamState::DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf_): remote(remote_), sourceAddr(sourceAddr_), sourceItf(sourceItf_)
 {
-  remote = remote_;
-  
   fd = SSocket(remote.sin4.sin_family, SOCK_DGRAM, 0);
+  if (!IsAnyAddress(sourceAddr)) {
+    SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
+    SBind(fd, sourceAddr);
+  }
   SConnect(fd, remote);
   idStates.resize(g_maxOutstanding);
   sw.start();
@@ -481,6 +483,20 @@ int getEDNSZ(const char* packet, unsigned int len)
   return 0x100 * (*z) + *(z+1);
 }
 
+static ssize_t udpClientSendRequestToBackend(DownstreamState* ss, const int sd, const char* request, const size_t requestLen)
+{
+  if (ss->sourceItf == 0) {
+    return send(sd, request, requestLen, 0);
+  }
+
+  struct msghdr msgh;
+  struct iovec iov;
+  char cbuf[256];
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), const_cast<char*>(request), requestLen, &ss->remote);
+  addCMsgSrcAddr(&msgh, cbuf, &ss->sourceAddr, ss->sourceItf);
+  return sendmsg(sd, &msgh, 0);
+}
+
 // listens to incoming queries, sends out to downstream servers, noting the intended return path 
 static void* udpClientThread(ClientState* cs)
 try
@@ -611,7 +627,7 @@ try
 
       for(const auto& lr : *localRulactions) {
 	if(lr.first->matches(remote, qname, qtype, dh, len)) {
-	  action=(*lr.second)(remote, qname, qtype, dh, len, &ruleresult);
+	  action=(*lr.second)(remote, qname, qtype, dh, len, querySize, &ruleresult);
 	  if(action != DNSAction::Action::None) {
 	    lr.first->d_matches++;
 	    break;
@@ -722,10 +738,10 @@ try
       }
 
       if (largerQuery.empty()) {
-        ret = send(ss->fd, query, len, 0);
+        ret = udpClientSendRequestToBackend(ss, ss->fd, query, len);
       }
       else {
-        ret = send(ss->fd, largerQuery.c_str(), largerQuery.size(), 0);
+        ret = udpClientSendRequestToBackend(ss, ss->fd, largerQuery.c_str(), largerQuery.size());
         largerQuery.clear();
       }
 
@@ -759,24 +775,30 @@ catch(...)
 }
 
 
-bool upCheck(const ComboAddress& remote, const DNSName& checkName, const QType& checkType, bool mustResolve)
+static bool upCheck(DownstreamState& ds)
 try
 {
   vector<uint8_t> packet;
-  DNSPacketWriter dpw(packet, checkName, checkType.getCode());
+  DNSPacketWriter dpw(packet, ds.checkName, ds.checkType.getCode());
   dnsheader * requestHeader = dpw.getHeader();
   requestHeader->rd=true;
 
-  Socket sock(remote.sin4.sin_family, SOCK_DGRAM);
+  Socket sock(ds.remote.sin4.sin_family, SOCK_DGRAM);
   sock.setNonBlocking();
-  sock.connect(remote);
-  sock.write((char*)&packet[0], packet.size());  
+  if (!IsAnyAddress(ds.sourceAddr)) {
+    sock.setReuseAddr();
+    sock.bind(ds.sourceAddr);
+  }
+  sock.connect(ds.remote);
+  ssize_t sent = udpClientSendRequestToBackend(&ds, sock.getHandle(), (char*)&packet[0], packet.size());
+  if (sent < 0)
+    return false;
+
   int ret=waitForRWData(sock.getHandle(), true, 1, 0);
   if(ret < 0 || !ret) // error, timeout, both are down!
     return false;
   string reply;
-  ComboAddress dest=remote;
-  sock.recvFrom(reply, dest);
+  sock.recvFrom(reply, ds.remote);
 
   const dnsheader * responseHeader = (const dnsheader *) reply.c_str();
 
@@ -789,7 +811,7 @@ try
     return false;
   if (responseHeader->rcode == RCode::ServFail)
     return false;
-  if (mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused))
+  if (ds.mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused))
     return false;
 
   // XXX fixme do bunch of checking here etc 
@@ -814,7 +836,7 @@ void* maintThread()
 
     for(auto& dss : g_dstates.getCopy()) { // this points to the actual shared_ptrs!
       if(dss->availability==DownstreamState::Availability::Auto) {
-	bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
+	bool newState=upCheck(*dss);
 	if(newState != dss->upStatus) {
 	  warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
 	}
@@ -1240,7 +1262,7 @@ try
 
   for(auto& dss : g_dstates.getCopy()) { // it is a copy, but the internal shared_ptrs are the real deal
     if(dss->availability==DownstreamState::Availability::Auto) {
-      bool newState=upCheck(dss->remote, dss->checkName, dss->checkType, dss->mustResolve);
+      bool newState=upCheck(*dss);
       warnlog("Marking downstream %s as '%s'", dss->getNameWithAddr(), newState ? "up" : "down");
       dss->upStatus = newState;
     }

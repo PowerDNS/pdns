@@ -103,7 +103,6 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/dnsrecords.cc \
 	../../pdns/dnssecinfra.cc \
 	../../pdns/ednssubnet.cc \
-	../../pdns/json.hh ../../pdns/json.cc \
 	../../pdns/logger.cc \
 	../../pdns/misc.cc \
 	../../pdns/nsecrecords.cc \

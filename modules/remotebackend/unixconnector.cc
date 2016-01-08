@@ -3,6 +3,9 @@
 #endif
 #include "remotebackend.hh"
 #include <sys/socket.h>
+#include <sstream>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include "pdns/lock.hh" 
 #include <unistd.h>
 #include <fcntl.h>
@@ -33,11 +36,11 @@ UnixsocketConnector::~UnixsocketConnector() {
 }
 
 int UnixsocketConnector::send_message(const rapidjson::Document &input) {
-  std::string data;
-  int rv;
-  data = makeStringFromDocument(input);
-  data = data + "\n";
-  rv = this->write(data);
+  rapidjson::StringBuffer output;
+  rapidjson::Writer<rapidjson::StringBuffer> w(output);
+  input.Accept(w);
+  auto data = std::string(output.GetString(), output.Size()) + "\n";
+  int rv = this->write(data);
   if (rv == -1)
     return -1;
   return rv;

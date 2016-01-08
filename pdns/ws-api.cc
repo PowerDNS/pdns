@@ -36,6 +36,7 @@
 #include <iomanip>
 
 extern string s_programname;
+using json11::Json;
 
 #ifndef HAVE_STRCASESTR
 
@@ -78,31 +79,23 @@ strcasestr(const char *s1, const char *s2)
 
 #endif // HAVE_STRCASESTR
 
-using namespace rapidjson;
-
-static void fillServerDetail(Value& out, Value::AllocatorType& allocator)
-{
-  Value jdaemonType(productTypeApiType().c_str(), allocator);
-  out.SetObject();
-  out.AddMember("type", "Server", allocator);
-  out.AddMember("id", "localhost", allocator);
-  out.AddMember("url", "/api/v1/servers/localhost", allocator);
-  out.AddMember("daemon_type", jdaemonType, allocator);
-  Value jversion(getPDNSVersion().c_str(), allocator);
-  out.AddMember("version", jversion, allocator);
-  out.AddMember("config_url", "/api/v1/servers/localhost/config{/config_setting}", allocator);
-  out.AddMember("zones_url", "/api/v1/servers/localhost/zones{/zone}", allocator);
+static Json getServerDetail() {
+  return Json::object {
+    { "type", "Server" },
+    { "id", "localhost" },
+    { "url", "/api/v1/servers/localhost" },
+    { "daemon_type", productTypeApiType() },
+    { "version", getPDNSVersion() },
+    { "config_url", "/api/v1/servers/localhost/config{/config_setting}" },
+    { "zones_url", "/api/v1/servers/localhost/zones{/zone}" }
+  };
 }
 
 void apiServer(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  Document doc;
-  doc.SetArray();
-  Value server;
-  fillServerDetail(server, doc.GetAllocator());
-  doc.PushBack(server, doc.GetAllocator());
+  Json doc = Json::array {getServerDetail()};
   resp->setBody(doc);
 }
 
@@ -110,9 +103,7 @@ void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
-  Document doc;
-  fillServerDetail(doc, doc.GetAllocator());
-  resp->setBody(doc);
+  resp->setBody(getServerDetail());
 }
 
 void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
@@ -121,30 +112,23 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
 
   vector<string> items = ::arg().list();
   string value;
-  Document doc;
-  doc.SetArray();
-  for(const string& item :  items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "ConfigSetting", doc.GetAllocator());
-
-    Value jname(item.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
+  Json::array doc;
+  for(const string& item : items) {
     if(item.find("password") != string::npos)
       value = "***";
     else
       value = ::arg()[item];
 
-    Value jvalue(value.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+    doc.push_back(Json::object {
+      { "type", "ConfigSetting" },
+      { "name", item },
+      { "value", value },
+    });
   }
   resp->setBody(doc);
 }
 
-static string logGrep(const string& q, const string& fname, const string& prefix)
+static Json logGrep(const string& q, const string& fname, const string& prefix)
 {
   FILE* ptr = fopen(fname.c_str(), "r");
   if(!ptr) {
@@ -176,14 +160,11 @@ static string logGrep(const string& q, const string& fname, const string& prefix
     }
   }
 
-  Document doc;
-  doc.SetArray();
-  if(!lines.empty()) {
-    for(const string& line :  lines) {
-      doc.PushBack(line.c_str(), doc.GetAllocator());
-    }
+  Json::array items;
+  for(const string& line : lines) {
+    items.push_back(line);
   }
-  return makeStringFromDocument(doc);
+  return items;
 }
 
 void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
@@ -191,7 +172,7 @@ void apiServerSearchLog(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   string prefix = " " + s_programname + "[";
-  resp->body = logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix);
+  resp->setBody(logGrep(req->getvars["q"], ::arg()["api-logfile"], prefix));
 }
 
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
@@ -201,21 +182,14 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   map<string,string> items;
   productServerStatisticsFetch(items);
 
-  Document doc;
-  doc.SetArray();
+  Json::array doc;
   typedef map<string, string> items_t;
-  for(const items_t::value_type& item :  items) {
-    Value jitem;
-    jitem.SetObject();
-    jitem.AddMember("type", "StatisticItem", doc.GetAllocator());
-
-    Value jname(item.first.c_str(), doc.GetAllocator());
-    jitem.AddMember("name", jname, doc.GetAllocator());
-
-    Value jvalue(item.second.c_str(), doc.GetAllocator());
-    jitem.AddMember("value", jvalue, doc.GetAllocator());
-
-    doc.PushBack(jitem, doc.GetAllocator());
+  for(const items_t::value_type& item : items) {
+    doc.push_back(Json::object {
+      { "type", "StatisticItem" },
+      { "name", item.first },
+      { "value", item.second },
+    });
   }
 
   resp->setBody(doc);

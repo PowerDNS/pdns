@@ -16,10 +16,10 @@ newServer("2001:4860:4860::8888", 1)
 newServer("2001:4860:4860::8844",1) 
 newServer("2620:0:ccc::2", 10) 
 newServer("2620:0:ccd::2", 10) 
-newServer{address="192.168.1.2", qps=1000, order=2}
-newServer{address="192.168.1.79:5300", order=2}
-newServer{address="127.0.0.1:5300", order=3}
-newServer{address="192.168.1.30:5300", pool="abuse"}
+newServer({address="192.168.1.2", qps=1000, order=2})
+newServer({address="192.168.1.79:5300", order=2})
+newServer({address="127.0.0.1:5300", order=3})
+newServer({address="192.168.1.30:5300", pool="abuse"})
 
 addPoolRule({"ezdns.it.", "xxx."}, "abuse")
 addPoolRule("192.168.1.0/24", "abuse")
@@ -55,6 +55,7 @@ truncateNMG:addMask("fe80::/16")
 print(string.format("Have %d entries in truncate NMG", truncateNMG:size()))
 
 function blockFilter(remote, qname, qtype, dh)
+	 print(string.format("Got query from %s, (%s) port number: %d", remote:tostring(), remote:tostringWithPort(), remote:getPort()))
 	 if(qtype==255 or truncateNMG:match(remote)) 
 	 then
 --	        print("any query, tc=1")
@@ -82,8 +83,8 @@ end
 
 -- setServerPolicyLua("luaroundrobin", luaroundrobin)
 
-newServer{address="2001:888:2000:1d::2", pool={"auth", "dnssec"}}
-newServer{address="2a01:4f8:110:4389::2", pool={"auth", "dnssec"}}
+newServer({address="2001:888:2000:1d::2", pool={"auth", "dnssec"}})
+newServer({address="2a01:4f8:110:4389::2", pool={"auth", "dnssec"}})
 --setDNSSECPool("dnssec")
 --topRule()
 

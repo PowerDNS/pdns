@@ -606,8 +606,6 @@ void startDoResolve(void *p)
 	maxanswersize = min(edo.d_packetsize, g_udpTruncationThreshold);
       haveEDNS=true;
     }
-    ComboAddress local;
-    listenSocketsAddresses_t::const_iterator lociter;
     vector<DNSRecord> ret;
     vector<uint8_t> packet;
 
@@ -661,16 +659,6 @@ void startDoResolve(void *p)
     if(!dc->d_mdp.d_header.rd)
       sr.setCacheOnly();
 
-    local.sin4.sin_family = dc->d_remote.sin4.sin_family;
-
-    lociter = g_listenSocketsAddresses.find(dc->d_socket);
-    if(lociter != g_listenSocketsAddresses.end()) {
-      local = lociter->second;
-    }
-    else {
-      socklen_t len = local.getSocklen();
-      getsockname(dc->d_socket, (sockaddr*)&local, &len); // if this fails, we're ok with it
-    }
 
     // if there is a RecursorLua active, and it 'took' the query in preResolve, we don't launch beginResolve
 
@@ -714,7 +702,7 @@ void startDoResolve(void *p)
     }
 
 
-    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
+    if(!t_pdl->get() || !(*t_pdl)->preresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer)) {
       try {
         res = sr.beginResolve(dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), dc->d_mdp.d_qclass, ret);
       }
@@ -772,13 +760,13 @@ void startDoResolve(void *p)
                   if(i->d_type == dc->d_mdp.d_qtype && i->d_place == DNSResourceRecord::ANSWER)
                           break;
                 if(i == ret.cend())
-                  (*t_pdl)->nodata(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+                  (*t_pdl)->nodata(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	}
 	else if(res == RCode::NXDomain)
-	  (*t_pdl)->nxdomain(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	  (*t_pdl)->nxdomain(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	
 
-	(*t_pdl)->postresolve(dc->d_remote,local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
+	(*t_pdl)->postresolve(dc->d_remote, dc->d_local, dc->d_mdp.d_qname, QType(dc->d_mdp.d_qtype), ret, res, &variableAnswer);
 	
       }
     }
@@ -873,7 +861,7 @@ void startDoResolve(void *p)
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
       if(dc->d_local.sin4.sin_family)
-	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local);
+	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
       else
         msgh.msg_control=NULL;
       sendmsg(dc->d_socket, &msgh, 0);
@@ -945,7 +933,7 @@ void startDoResolve(void *p)
       g_stats.answersSlow++;
 
     uint64_t newLat=(uint64_t)(spent*1000000);
-    newLat = min(newLat,(uint64_t)(g_networkTimeoutMsec*1000)); // outliers of several minutes exist..
+    newLat = min(newLat,(uint64_t)(((uint64_t) g_networkTimeoutMsec)*1000)); // outliers of several minutes exist..
     g_stats.avgLatencyUsec=(1-1.0/g_latencyStatSize)*g_stats.avgLatencyUsec + (float)newLat/g_latencyStatSize;
     // no worries, we do this for packet cache hits elsewhere
     //    cout<<dc->d_mdp.d_qname<<"\t"<<MT->getUsec()<<"\t"<<sr.d_outqueries<<endl;
@@ -1005,7 +993,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   shared_ptr<TCPConnection> conn=any_cast<shared_ptr<TCPConnection> >(var);
 
   if(conn->state==TCPConnection::BYTE0) {
-    int bytes=recv(conn->getFD(), conn->data, 2, 0);
+    ssize_t bytes=recv(conn->getFD(), conn->data, 2, 0);
     if(bytes==1)
       conn->state=TCPConnection::BYTE1;
     if(bytes==2) {
@@ -1019,7 +1007,7 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::BYTE1) {
-    int bytes=recv(conn->getFD(), conn->data+1, 1, 0);
+    ssize_t bytes=recv(conn->getFD(), conn->data+1, 1, 0);
     if(bytes==1) {
       conn->state=TCPConnection::GETQUESTION;
       conn->qlen=(((unsigned char)conn->data[0]) << 8)+ (unsigned char)conn->data[1];
@@ -1033,13 +1021,13 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     }
   }
   else if(conn->state==TCPConnection::GETQUESTION) {
-    int bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
-    if(!bytes || bytes < 0) {
+    ssize_t bytes=recv(conn->getFD(), conn->data + conn->bytesread, conn->qlen - conn->bytesread, 0);
+    if(!bytes || bytes < 0 || bytes > UINT16_MAX) {
       L<<Logger::Error<<"TCP client "<< conn->d_remote.toString() <<" disconnected while reading question body"<<endl;
       t_fdm->removeReadFD(fd);
       return;
     }
-    conn->bytesread+=bytes;
+    conn->bytesread+=(uint16_t)bytes;
     if(conn->bytesread==conn->qlen) {
       t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
 
@@ -1057,6 +1045,13 @@ void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
       dc->d_tcp=true;
       dc->setRemote(&conn->d_remote);
+      ComboAddress dest;
+      memset(&dest, 0, sizeof(dest));
+      dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
+      socklen_t len = dest.getSocklen();
+      getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
+      dc->setLocal(dest);
+
       if(dc->d_mdp.d_header.qr) {
         delete dc;
         g_stats.ignoredCount++;
@@ -1085,7 +1080,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t& )
   ComboAddress addr;
   socklen_t addrlen=sizeof(addr);
   int newsock=(int)accept(fd, (struct sockaddr*)&addr, &addrlen);
-  if(newsock>0) {
+  if(newsock>=0) {
     if(MT->numProcesses() > g_maxMThreads) {
       g_stats.overCapacityDrops++;
       closesocket(newsock);
@@ -1174,7 +1169,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
       if(destaddr.sin4.sin_family) {
-	addCMsgSrcAddr(&msgh, cbuf, &destaddr);
+	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
       }
       else {
         msgh.msg_control=NULL;
@@ -1216,7 +1211,6 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
   dc->setSocket(fd);
   dc->setRemote(&fromaddr);
   dc->setLocal(destaddr);
-
   dc->d_tcp=false;
   MT->makeThread(startDoResolve, (void*) dc); // deletes dc
   return 0;
@@ -1274,7 +1268,22 @@ void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 	HarvestTimestamp(&msgh, &tv);
 	ComboAddress dest;
 	memset(&dest, 0, sizeof(dest)); // this makes sure we igore this address if not returned by recvmsg above
-	HarvestDestinationAddress(&msgh, &dest);
+        auto loc = rplookup(g_listenSocketsAddresses, fd);
+	if(HarvestDestinationAddress(&msgh, &dest)) {
+          // but.. need to get port too
+          if(loc) 
+            dest.sin4.sin_port = loc->sin4.sin_port;
+        }
+        else {
+          if(loc) {
+            dest = *loc;
+          }
+          else {
+            dest.sin4.sin_family = fromaddr.sin4.sin_family;
+            socklen_t len = dest.getSocklen();
+            getsockname(fd, (sockaddr*)&dest, &len); // if this fails, we're ok with it
+          }
+        }
         if(g_weDistributeQueries)
           distributeAsyncFunction(question, boost::bind(doProcessUDPQuestion, question, fromaddr, dest, tv, fd));
         else
@@ -1412,7 +1421,6 @@ void makeUDPServerSockets()
 	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
       }
     }
-
     if( ::arg().mustDo("non-local-bind") )
 	Utility::setBindAny(AF_INET6, fd);
 
@@ -1421,7 +1429,8 @@ void makeUDPServerSockets()
     setSocketReceiveBuffer(fd, 250000);
     sin.sin4.sin_port = htons(st.port);
 
-    int socklen=sin.sin4.sin_family==AF_INET ? sizeof(sin.sin4) : sizeof(sin.sin6);
+    int socklen=sin.getSocklen();
+
     if (::bind(fd, (struct sockaddr *)&sin, socklen)<0)
       throw PDNSException("Resolver binding to server socket on port "+ std::to_string(st.port) +" for "+ st.host+": "+stringerror());
 
@@ -1639,8 +1648,10 @@ void broadcastFunction(const pipefunc_t& func, bool skipSelf)
     ThreadMSG* tmsg = new ThreadMSG();
     tmsg->func = func;
     tmsg->wantAnswer = true;
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+      delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
+    }
 
     string* resp;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
@@ -1668,8 +1679,10 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   tmsg->func = func;
   tmsg->wantAnswer = false;
 
-  if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+  if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+    delete tmsg;
     unixDie("write to thread pipe returned wrong size or error");
+  }
 }
 
 void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
@@ -1743,9 +1756,10 @@ template<class T> T broadcastAccFunction(const boost::function<T*()>& func, bool
     tmsg->func = boost::bind(voider<T>, func);
     tmsg->wantAnswer = true;
 
-    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg))
+    if(write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+      delete tmsg;
       unixDie("write to thread pipe returned wrong size or error");
-
+    }
 
     T* resp;
     if(read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))

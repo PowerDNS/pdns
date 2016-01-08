@@ -203,6 +203,7 @@ class TestAdvancedSpoof(DNSDistTest):
 
     _config_template = """
     addDomainSpoof("spoof.tests.powerdns.com.", "192.0.2.1", "2001:DB8::1")
+    addDomainCNAMESpoof("cnamespoof.tests.powerdns.com.", "cname.tests.powerdns.com.")
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -223,12 +224,12 @@ class TestAdvancedSpoof(DNSDistTest):
                                     '192.0.2.1')
         expectedResponse.answer.append(rrset)
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
@@ -250,16 +251,42 @@ class TestAdvancedSpoof(DNSDistTest):
                                     '2001:DB8::1')
         expectedResponse.answer.append(rrset)
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertTrue(receivedResponse)
         receivedResponse.id = expectedResponse.id
         self.assertEquals(expectedResponse, receivedResponse)
 
+    def testSpoofCNAME(self):
+        """
+        Send an A query for "cnamespoof.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'cnamespoof.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'cname.tests.powerdns.com.')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
 
 class TestAdvancedPoolRouting(DNSDistTest):
 
@@ -304,10 +331,10 @@ class TestAdvancedPoolRouting(DNSDistTest):
         name = 'notpool.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
 class TestAdvancedRoundRobinLB(DNSDistTest):
@@ -424,7 +451,6 @@ class TestAdvancedRoundRobinLBOneDown(DNSDistTest):
             self.assertEquals(query, receivedQuery)
             self.assertEquals(response, receivedResponse)
 
-        print(TestAdvancedRoundRobinLB._responsesCounter)
         total = 0
         for key in TestAdvancedRoundRobinLB._responsesCounter:
             value = TestAdvancedRoundRobinLB._responsesCounter[key]
@@ -449,10 +475,10 @@ class TestAdvancedACL(DNSDistTest):
         name = 'tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
 
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=2.0)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
         self.assertEquals(receivedResponse, None)
 
 class TestAdvancedDelay(DNSDistTest):

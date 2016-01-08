@@ -55,14 +55,14 @@ Here is a more complete configuration:
 
 ```
 $ cat /etc/dnsdist.conf
-newServer {address="2001:4860:4860::8888", qps=1}
-newServer {address="2001:4860:4860::8844", qps=1} 
-newServer {address="2620:0:ccc::2", qps=10}
-newServer {address="2620:0:ccd::2", name="dns1", qps=10}
+newServer({address="2001:4860:4860::8888", qps=1})
+newServer({address="2001:4860:4860::8844", qps=1})
+newServer({address="2620:0:ccc::2", qps=10})
+newServer({address="2620:0:ccd::2", name="dns1", qps=10})
 newServer("192.168.1.2")
 setServerPolicy(firstAvailable) -- first server within its QPS limit
 
-$ dnsdist --local=0.0.0.0:5200 --daemon=no
+$ dnsdist --local=0.0.0.0:5200
 Marking downstream [2001:4860:4860::8888]:53 as 'up'
 Marking downstream [2001:4860:4860::8844]:53 as 'up'
 Marking downstream [2620:0:ccc::2]:53 as 'up'
@@ -142,7 +142,7 @@ of `newServer` is set to true, a response will only be considered valid if
 its RCODE differs from NXDomain, ServFail and Refused.
 
 ```
-newServer {address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true}
+newServer({address="192.0.2.1", checkType="AAAA", checkName="a.root-servers.net.", mustResolve=true})
 ```
 
 In order to provide the downstream server with the address of the real client,
@@ -171,8 +171,28 @@ The same kind of timeouts is enforced on the TCP connections to the downstream s
 The default value of 30s can be modified by passing the `tcpRecvTimeout` and `tcpSendTimeout`
 parameters to `newServer`:
 ```
-newServer {address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10}
+newServer({address="192.0.2.1", tcpRecvTimeout=10, tcpSendTimeout=10})
 ```
+
+Source address
+--------------
+
+In multi-homed setups, it can be useful to be able to select the source address or the outgoing
+interface used by `dnsdist` to contact a downstream server.
+This can be done by using the `source` parameter:
+```
+newServer({address="192.0.2.1", source="192.0.2.127"})
+newServer({address="192.0.2.1", source="eth1"})
+newServer({address="192.0.2.1", source="192.0.2.127@eth1"})
+```
+
+The supported values for `source` are:
+ * an IPv4 or IPv6 address, which must exist on the system
+ * an interface name
+ * an IPv4 or IPv6 address followed by '@' then an interface name
+
+Specifying the interface name is only supported on system having IP_PKTINFO.
+
 
 Configuration management
 ------------------------
@@ -188,6 +208,26 @@ adding a new downstream server with `newServer()` would show up, but
 
 It is suggested to study the output of `delta()` carefully before appending
 it to your configuration file. 
+
+```
+> setACL("192.0.2.0/24")
+> showACL()
+192.0.2.0/24
+> delta()
+# Wed Dec 23 2015 15:15:35 CET
+setACL("192.0.2.0/24")
+> addACL("127.0.0.1/8")
+> showACL()
+192.0.2.0/24
+127.0.0.1/8
+> delta()
+# Wed Dec 23 2015 15:15:35 CET
+setACL("192.0.2.0/24")
+# Wed Dec 23 2015 15:15:44 CET
+addACL("127.0.0.1/8")
+>
+```
+
 
 Webserver
 ---------
@@ -213,7 +253,7 @@ this:
 Or we configure a server pool dedicated to receiving the nasty stuff:
 
 ```
-> newServer{address="192.168.1.3", pool="abuse"}
+> newServer({address="192.168.1.3", pool="abuse"})
 > addPoolRule({"sh43353.cn.", "ezdns.it."}, "abuse")
 ```
 
@@ -280,6 +320,7 @@ Rules can be added via:
  * addDisableValidationRule(DNS rule)
  * addDomainBlock(domain)
  * addDomainSpoof(domain, IPv4[, IPv6])
+ * addDomainCNAMESpoof(domain, CNAME)
  * addLuaAction(DNS rule, lua function)
  * addNoRecurseRule(DNS rule)
  * addPoolRule(DNS rule, destination pool)
@@ -393,8 +434,8 @@ DNSSEC
 ------
 To provide DNSSEC service from a separate pool, try:
 ```
-newServer{address="2001:888:2000:1d::2", pool="dnssec"}
-newServer{address="2a01:4f8:110:4389::2", pool="dnssec"}
+newServer({address="2001:888:2000:1d::2", pool="dnssec"})
+newServer({address="2a01:4f8:110:4389::2", pool="dnssec"})
 setDNSSECPool("dnssec")
 topRule()
 ```
@@ -421,12 +462,12 @@ Inspecting live traffic
 -----------------------
 This is still much in flux, but for now, try:
 
- * `topQueries(20)`: shows the top-20 queries
- * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
- * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
  * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
  * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
  * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
+ * `topQueries(20)`: shows the top-20 queries
+ * `topQueries(20,2)`: shows the top-20 two-level domain queries (so `topQueries(20,1)` only shows TLDs)
+ * `topResponses(20, 2)`: top-20 servfail responses (use ,3 for NXDOMAIN)
  * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels
 
 For example:
@@ -546,7 +587,7 @@ Split horizon
 To implement a split horizon, try:
 
 ```
-authServer=newServer{address="2001:888:2000:1d::2", pool="auth"}
+authServer=newServer({address="2001:888:2000:1d::2", pool="auth"})
 
 function splitSetup(servers, remote, qname, qtype, dh)
 	 if(dh:getRD() == false)
@@ -569,10 +610,11 @@ Running it for real
 First run on the command line, and generate a key:
 
 ```
-# dnsdist --daemon-no
+# dnsdist
 > makeKey()
 setKey("sepuCcHcQnSAZgNbNPCCpDWbujZ5esZJmrt/wh6ldkQ=")
 ```
+
 Now add this setKey line to `dnsdistconf.lua`, and also add:
 
 ```
@@ -581,7 +623,7 @@ controlSocket("0.0.0.0") -- or add portnumber too
 
 Then start `dnsdist` as a daemon, and then connect to it:
 ```
-# dnsdist
+# dnsdist --daemon
 # dnsdist --client
 > 
 ```
@@ -589,30 +631,6 @@ Then start `dnsdist` as a daemon, and then connect to it:
 Please note that, without libsodium support, 'makeKey()' will return
 setKey("plaintext") and the communication between the client and the
 server will not be encrypted.
-
-Configuration management
-------------------------
-
-At every time, `dnsdist` is capable of printing every configuration changes
-made since its start, using the `delta` command:
-```
-> setACL("192.0.2.0/24")
-> showACL()
-192.0.2.0/24
-> delta()
-# Wed Dec 23 2015 15:15:35 CET
-setACL("192.0.2.0/24")
-> addACL("127.0.0.1/8")
-> showACL()
-192.0.2.0/24
-127.0.0.1/8
-> delta()
-# Wed Dec 23 2015 15:15:35 CET
-setACL("192.0.2.0/24")
-# Wed Dec 23 2015 15:15:44 CET
-addACL("127.0.0.1/8")
->
-```
 
 ACL, who can use dnsdist
 ------------------------
@@ -650,7 +668,7 @@ DNSCrypt
 --------
 `dnsdist`, when compiled with --enable-dnscrypt, can be used as a DNSCrypt server,
 uncurving queries before forwarding them to downstream servers and curving responses back.
-To make `dnsdist` listen to incoming DNSCrypt queries on 127.0.0.1 port 443,
+To make `dnsdist` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443,
 with a provider name of "2.providername", using a resolver certificate and associated key
 stored respectively in the `resolver.cert` and `resolver.key` files, the `addDnsCryptBind()`
 directive can be used:
@@ -729,8 +747,12 @@ Here are all functions:
    * `controlSocket(addr)`: open a control socket on this address / connect to this address in client mode
  * Diagnostics and statistics
    * `dumpStats()`: print all statistics we gather
+   * `grepq(Netmask|DNS Name|100ms [, n])`: shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms
+   * `grepq({"::1", "powerdns.com", "100ms"} [, n])`: shows the last n queries and responses matching the specified client address AND range (Netmask) AND the specified DNS Name AND slower than 100ms
    * `topQueries(n[, labels])`: show top 'n' queries, as grouped when optionally cut down to 'labels' labels
    * `topResponses(n, kind[, labels])`: show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=ServFail), as grouped when optionally cut down to 'labels' labels
+   * `topSlow([top][, limit][, labels])`: show `top` queries slower than `limit` milliseconds, grouped by last `labels` labels   
+   * `topBandwidth(top)`: show top-`top` clients that consume the most bandwidth over length of ringbuffer
    * `showResponseLatency()`: show a plot of the response time latency distribution
  * Logging related
    * `infolog(string)`: log at level info
@@ -738,7 +760,7 @@ Here are all functions:
    * `errlog(string)`: log at level error
  * Server related:
    * `newServer("ip:port")`: instantiate a new downstream server with default settings
-   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false, useClientSubnet=true})`:
+   * `newServer({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface"})`:
 instantiate a server with additional parameters
    * `showServers()`: output all servers
    * `getServer(n)`: returns server with index n 
@@ -785,14 +807,16 @@ instantiate a server with additional parameters
    * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
    * `QPSAction()`: drop these packets if the QPS limits are exceeded
    * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
-   * `SpoofAction()`: forge a response with the specified IPv4 (for an A query). If you specify both an IPv4 and an IPv6, IPv4 will be used for A and IPv6 for an AAAA.
+   * `SpoofAction()`: forge a response with the specified IPv4 (for an A query). If you specify both an IPv4 and an IPv6, IPv4 will be used for A and IPv6 for an AAAA
+   * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
    * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
-   * addAnyTCRule(): generate TC=1 answers to ANY queries, moving them to TCP
-   * addDomainSpoof(domain, ip[, ip6]): generate answers for A queries using the ip parameter. If ip6 is supplied, generate answers for AAAA queries too
-   * addDisableValidationRule(domain): set the CD flags to 1 for all queries matching the specified domain
-   * addNoRecurseRule(domain): clear the RD flag for all queries matching the specified domain
-   * setDNSSECPool(): move queries requesting DNSSEC processing to this pool
+   * `addAnyTCRule()`: generate TC=1 answers to ANY queries, moving them to TCP
+   * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter. If ip6 is supplied, generate answers for AAAA queries too
+   * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
+   * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
+   * `addNoRecurseRule(domain)`: clear the RD flag for all queries matching the specified domain
+   * `setDNSSECPool()`: move queries requesting DNSSEC processing to this pool
  * Policy member data:
    * `name`: the policy name
    * `policy`: the policy function
@@ -828,11 +852,6 @@ instantiate a server with additional parameters
    * `addDelay({domain, domain}, n)`: delay answers within those domains (together) by n milliseconds
    * `addDelay(netmask, n)`: delay answers within that netmask by n milliseconds
    * `addDelay({netmask, netmask}, n)`: delay answers within those netmasks (together) by n milliseconds
- * Dynamic block related:
-   * `addDynBlocks({netmask, netmask}, reason [, duration])`: add a dynamic block with a message and an optional duration in seconds
-   * `clearDynBlocks()`: remove all dynamic block rules
-   * `showDynBlocks()`: show current dynamic block rules
-   * `setDynBlockNMG()`: set the dynamic block rules
  * Answer changing functions:
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
    * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
@@ -847,7 +866,9 @@ instantiate a server with additional parameters
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:
      * `newCA(address)`: return a new ComboAddress
+     * `getPort()`: return the port number
      * `tostring()`: return in human-friendly format
+     * `tostringWithPort()`: return in human-friendly format, with port number
    * DNSName related:
      * `newDNSName(name)`: make a DNSName based on this .-terminated name
      * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
@@ -859,9 +880,6 @@ instantiate a server with additional parameters
      * member `setQR(bool)`: set Query Response flag (setQR(true) indicates an *answer* packet)
      * member `getCD()`: get checking disabled flag
      * member `setCD(bool)`: set checking disabled flag
-   * DynBlock related
-     * `newNMG()`: return a new NetmaskTree<DynBlock>
-     * member `add(ComboAddress, msg[, seconds])`: insert a new address into a DynBlock
    * NetmaskGroup related
      * function `newNMG()`: returns a NetmaskGroup
      * member `addMask(mask)`: adds `mask` to the NetmaskGroup
@@ -872,14 +890,20 @@ instantiate a server with additional parameters
      * `newQPSLimiter(rate, burst)`: configure a QPS limiter with that rate and that burst capacity
      * member `check()`: check if this QPSLimiter has a token for us. If yes, you must use it.
    * SuffixMatchNode related:
-     * newSuffixMatchNode(): returns a new SuffixMatchNode
+     * `newSuffixMatchNode()`: returns a new SuffixMatchNode
      * member `check(DNSName)`: returns true if DNSName is matched by this group
      * member `add(DNSName)`: add this DNSName to the node
  * Tuning related:
-   * setTCPRecvTimeout(n): set the read timeout on TCP connections from the client, in seconds.
-   * setTCPSendTimeout(n): set the write timeout on TCP connections from the client, in seconds.
-   * setMaxTCPClientThreads(n): set the maximum of TCP client threads, handling TCP connections.
-   * setMaxUDPOutstanding(n): set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time.
+   * `setTCPRecvTimeout(n)`: set the read timeout on TCP connections from the client, in seconds
+   * `setTCPSendTimeout(n)`: set the write timeout on TCP connections from the client, in seconds
+   * `setMaxTCPClientThreads(n)`: set the maximum of TCP client threads, handling TCP connections
+   * `setMaxUDPOutstanding(n)`: set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time
+ * DNSCrypt related:
+   * `addDNSCryptBind("127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key"):` listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of "provider name", using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files
+   * `generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key"):` generate a new provider keypair
+   * `generateDNSCryptCertificate("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil):` generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key
+   * `printDNSCryptProviderFingerprint("/path/to/providerPublic.key")`: display the fingerprint of the provided resolver public key
+   * `showDNSCryptBinds():`: display the currently configured DNSCrypt binds
 
 All hooks
 ---------

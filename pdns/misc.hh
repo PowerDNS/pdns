@@ -587,7 +587,8 @@ private:
 };
 
 union ComboAddress;
-void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source);
+/* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
+void addCMsgSrcAddr(struct msghdr* msgh, void* cmsgbuf, const ComboAddress* source, int itfIndex);
 
 unsigned int getFilenumLimit(bool hardOrSoft=0);
 void setFilenumLimit(unsigned int lim);

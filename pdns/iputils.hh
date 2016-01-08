@@ -211,9 +211,10 @@ union ComboAddress {
   string toString() const
   {
     char host[1024];
-    getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST);
-      
-    return host;
+    if(sin4.sin_family && !getnameinfo((struct sockaddr*) this, getSocklen(), host, sizeof(host),0, 0, NI_NUMERICHOST))
+      return host;
+    else
+      return "invalid";
   }
 
   string toStringWithPort() const
@@ -657,7 +658,7 @@ public:
       }
       if (node) {
         for(auto it = _nodes.begin(); it != _nodes.end(); it++)
-           if (node->node4.get() == *it) _nodes.erase(it);
+           if (node->node6.get() == *it) _nodes.erase(it);
         node->node6.reset();
       }
     }
@@ -811,6 +812,8 @@ bool HarvestDestinationAddress(struct msghdr* msgh, ComboAddress* destination);
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, char* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendfromto(int sock, const char* data, int len, int flags, const ComboAddress& from, const ComboAddress& to);
+ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf);
+
 #endif
 
 extern template class NetmaskTree<bool>;

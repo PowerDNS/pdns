@@ -776,7 +776,7 @@ namespace {
 
 void sortPublicSuffixList()
 {
-  for(const char** p=&g_pubsuffix; *p; ++p) {
+  for(const char** p=g_pubsuffix; *p; ++p) {
     string low=toLower(*p);
 
     vector<string> parts;

@@ -87,17 +87,21 @@ class DNSDistTest(unittest.TestCase):
         else:
             cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True)
 
-        time.sleep(1)
+        if 'DNSDIST_FAST_TESTS' in os.environ:
+            delay = 0.5
+        else:
+            delay = 2
+        time.sleep(delay)
 
         if cls._dnsdist.poll() is not None:
-            cls._dnsdist.terminate()
-            cls._dnsdist.wait()
+            cls._dnsdist.kill()
             sys.exit(cls._dnsdist.returncode)
 
     @classmethod
     def setUpSockets(cls):
         print("Setting up UDP socket..")
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls._sock.settimeout(2.0)
         cls._sock.connect(("127.0.0.1", cls._dnsDistPort))
 
     @classmethod
@@ -111,9 +115,17 @@ class DNSDistTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if 'DNSDIST_FAST_TESTS' in os.environ:
+            delay = 0.1
+        else:
+            delay = 1
         if cls._dnsdist:
             cls._dnsdist.terminate()
-            cls._dnsdist.wait()
+            if cls._dnsdist.poll() is None:
+                time.sleep(delay)
+                if cls._dnsdist.poll() is None:
+                    cls._dnsdist.kill()
+                cls._dnsdist.wait()
 
     @classmethod
     def ResponderIncrementCounter(cls):
@@ -141,13 +153,25 @@ class DNSDistTest(unittest.TestCase):
             else:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
-                rrset = dns.rrset.from_text(request.question[0].name,
-                                            3600,
-                                            request.question[0].rdclass,
-                                            request.question[0].rdtype,
-                                            '127.0.0.1')
-                response.answer.append(rrset)
+                if request.question[0].rdclass == dns.rdataclass.IN:
+                    if request.question[0].rdtype == dns.rdatatype.A:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '127.0.0.1')
+                    elif request.question[0].rdtype == dns.rdatatype.AAAA:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '::1')
+                if rrset:
+                    response.answer.append(rrset)
+
+            sock.settimeout(2.0)
             sock.sendto(response.to_wire(), addr)
+            sock.settimeout(None)
         sock.close()
 
     @classmethod
@@ -163,6 +187,7 @@ class DNSDistTest(unittest.TestCase):
         sock.listen(100)
         while True:
             (conn, address) = sock.accept()
+            conn.settimeout(2.0)
             data = conn.recv(2)
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
@@ -178,12 +203,21 @@ class DNSDistTest(unittest.TestCase):
             else:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
-                rrset = dns.rrset.from_text(request.question[0].name,
-                                            3600,
-                                            request.question[0].rdclass,
-                                            request.question[0].rdtype,
-                                            '127.0.0.1')
-                response.answer.append(rrset)
+                if request.question[0].rdclass == dns.rdataclass.IN:
+                    if request.question[0].rdtype == dns.rdatatype.A:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '127.0.0.1')
+                    elif request.question[0].rdtype == dns.rdatatype.AAAA:
+                        rrset = dns.rrset.from_text(request.question[0].name,
+                                                    3600,
+                                                    request.question[0].rdclass,
+                                                    request.question[0].rdtype,
+                                                    '::1')
+                if rrset:
+                    response.answer.append(rrset)
 
             wire = response.to_wire()
             conn.send(struct.pack("!H", len(wire)))
@@ -221,10 +255,10 @@ class DNSDistTest(unittest.TestCase):
         if useQueue:
             cls._toResponderQueue.put(response)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1", cls._dnsDistPort))
-
         if timeout:
             sock.settimeout(timeout)
+
+        sock.connect(("127.0.0.1", cls._dnsDistPort))
 
         try:
             wire = query.to_wire()

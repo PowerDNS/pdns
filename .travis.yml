@@ -285,7 +285,7 @@ script:
   - ./testrunner
   - cp ./dnsdist ../../../regression-tests.dnsdist/
   - cd ../../../regression-tests.dnsdist
-  - DNSDISTBIN=./dnsdist ./runtests
+  - DNSDISTBIN=./dnsdist ./runtests -v
   - rm -f ./dnsdist
   - rm -f ./DNSCryptResolver.cert ./DNSCryptResolver.key
   - cd ..
