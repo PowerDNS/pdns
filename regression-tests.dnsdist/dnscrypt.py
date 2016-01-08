@@ -63,7 +63,7 @@ class DNSCryptClient:
 
         return result
 
-    def __init__(self, providerName, providerFingerprint, resolverAddress, resolverPort=443):
+    def __init__(self, providerName, providerFingerprint, resolverAddress, resolverPort=443, timeout=2):
         self._providerName = providerName
         self._providerFingerprint = providerFingerprint.lower().replace(':', '').decode('hex')
         self._resolverAddress = resolverAddress
@@ -73,8 +73,8 @@ class DNSCryptClient:
 
         addrType = self._addrToSocketType(self._resolverAddress)
         self._sock = socket.socket(addrType, socket.SOCK_DGRAM)
+        self._sock.settimeout(timeout)
         self._sock.connect((self._resolverAddress, self._resolverPort))
-        self._sock.settimeout(2)
 
     def _sendQuery(self, queryContent):
         self._sock.send(queryContent)

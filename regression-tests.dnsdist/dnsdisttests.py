@@ -95,13 +95,13 @@ class DNSDistTest(unittest.TestCase):
 
         if cls._dnsdist.poll() is not None:
             cls._dnsdist.kill()
-            cls._dnsdist.wait()
             sys.exit(cls._dnsdist.returncode)
 
     @classmethod
     def setUpSockets(cls):
         print("Setting up UDP socket..")
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls._sock.settimeout(2.0)
         cls._sock.connect(("127.0.0.1", cls._dnsDistPort))
 
     @classmethod
@@ -125,7 +125,7 @@ class DNSDistTest(unittest.TestCase):
                 time.sleep(delay)
                 if cls._dnsdist.poll() is None:
                     cls._dnsdist.kill()
-            cls._dnsdist.wait()
+                cls._dnsdist.wait()
 
     @classmethod
     def ResponderIncrementCounter(cls):
@@ -169,7 +169,9 @@ class DNSDistTest(unittest.TestCase):
                 if rrset:
                     response.answer.append(rrset)
 
+            sock.settimeout(2.0)
             sock.sendto(response.to_wire(), addr)
+            sock.settimeout(None)
         sock.close()
 
     @classmethod
@@ -185,6 +187,7 @@ class DNSDistTest(unittest.TestCase):
         sock.listen(100)
         while True:
             (conn, address) = sock.accept()
+            conn.settimeout(2.0)
             data = conn.recv(2)
             (datalen,) = struct.unpack("!H", data)
             data = conn.recv(datalen)
