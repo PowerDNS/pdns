@@ -45,11 +45,15 @@ using std::atomic;
    Let's start naively.
 */
 
-static int setupTCPDownstream(const ComboAddress& remote)
+static int setupTCPDownstream(shared_ptr<DownstreamState> ds)
 {  
-  vinfolog("TCP connecting to downstream %s", remote.toStringWithPort());
-  int sock = SSocket(remote.sin4.sin_family, SOCK_STREAM, 0);
-  SConnect(sock, remote);
+  vinfolog("TCP connecting to downstream %s", ds->remote.toStringWithPort());
+  int sock = SSocket(ds->remote.sin4.sin_family, SOCK_STREAM, 0);
+  if (!IsAnyAddress(ds->sourceAddr)) {
+    SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
+    SBind(sock, ds->sourceAddr);
+  }
+  SConnect(sock, ds->remote);
   setNonBlocking(sock);
   return sock;
 }
@@ -100,6 +104,20 @@ try
 {
   uint16_t raw = htons(len);
   int ret = writen2WithTimeout(fd, &raw, sizeof raw, timeout);
+  return ret == sizeof raw;
+}
+catch(...) {
+  return false;
+}
+
+static bool sendNonBlockingMsgLen(int fd, uint16_t len, int timeout, ComboAddress& dest, ComboAddress& local, unsigned int localItf)
+try
+{
+  if (localItf == 0)
+    return putNonBlockingMsgLen(fd, len, timeout);
+
+  uint16_t raw = htons(len);
+  ssize_t ret = sendMsgWithTimeout(fd, (char*) &raw, sizeof raw, timeout, dest, local, localItf);
   return ret == sizeof raw;
 }
 catch(...) {
@@ -297,7 +315,7 @@ void* tcpClientThread(int pipefd)
         }
 
 	if(sockets.count(ds->remote) == 0) {
-	  dsock=sockets[ds->remote]=setupTCPDownstream(ds->remote);
+	  dsock=sockets[ds->remote]=setupTCPDownstream(ds);
 	}
 	else
 	  dsock=sockets[ds->remote];
@@ -322,21 +340,26 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if(!putNonBlockingMsgLen(dsock, queryLen, ds->tcpSendTimeout)) {
+        if(!sendNonBlockingMsgLen(dsock, queryLen, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
-          sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
+          sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
           goto retry;
         }
 
         try {
-          writen2WithTimeout(dsock, query, queryLen, ds->tcpSendTimeout);
+          if (ds->sourceItf == 0) {
+            writen2WithTimeout(dsock, query, queryLen, ds->tcpSendTimeout);
+          }
+          else {
+            sendMsgWithTimeout(dsock, query, queryLen, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf);
+          }
         }
         catch(const runtime_error& e) {
           vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
-          sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
+          sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
           goto retry;
         }
@@ -344,7 +367,7 @@ void* tcpClientThread(int pipefd)
         if(!getNonBlockingMsgLen(dsock, &rlen, ds->tcpRecvTimeout)) {
 	  vinfolog("Downstream connection to %s died on us phase 2, getting a new one!", ds->getName());
           close(dsock);
-          sockets[ds->remote]=dsock=setupTCPDownstream(ds->remote);
+          sockets[ds->remote]=dsock=setupTCPDownstream(ds);
           downstream_failures++;
           goto retry;
         }

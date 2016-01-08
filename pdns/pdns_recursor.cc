@@ -861,7 +861,7 @@ void startDoResolve(void *p)
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
       if(dc->d_local.sin4.sin_family)
-	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local);
+	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
       else
         msgh.msg_control=NULL;
       sendmsg(dc->d_socket, &msgh, 0);
@@ -1169,7 +1169,7 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
       if(destaddr.sin4.sin_family) {
-	addCMsgSrcAddr(&msgh, cbuf, &destaddr);
+	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
       }
       else {
         msgh.msg_control=NULL;

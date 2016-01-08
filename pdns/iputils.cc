@@ -134,7 +134,7 @@ int sendfromto(int sock, const char* data, int len, int flags, const ComboAddres
   msgh.msg_namelen = to.getSocklen();
 
   if(from.sin4.sin_family) {
-    addCMsgSrcAddr(&msgh, cbuf, &from);
+    addCMsgSrcAddr(&msgh, cbuf, &from, 0);
   }
   else {
     msgh.msg_control=NULL;
@@ -190,4 +190,46 @@ void ComboAddress::truncate(unsigned int bits)
   *place &= (~((1<<bitsleft)-1));
 }
 
+ssize_t sendMsgWithTimeout(int fd, const char* buffer, size_t len, int timeout, ComboAddress& dest, const ComboAddress& local, unsigned int localItf)
+{
+  struct msghdr msgh;
+  struct iovec iov;
+  char cbuf[256];
+  bool firstTry = true;
+  fillMSGHdr(&msgh, &iov, cbuf, sizeof(cbuf), const_cast<char*>(buffer), len, &dest);
+  addCMsgSrcAddr(&msgh, cbuf, &local, localItf);
+
+  do {
+    ssize_t written = sendmsg(fd, &msgh, 0);
+
+    if (written > 0)
+      return written;
+
+    if (errno == EAGAIN) {
+      if (firstTry) {
+        int res = waitForRWData(fd, false, timeout, 0);
+        if (res > 0) {
+          /* there is room available */
+          firstTry = false;
+        }
+        else if (res == 0) {
+          throw runtime_error("Timeout while waiting to write data");
+        } else {
+          throw runtime_error("Error while waiting for room to write data");
+        }
+      }
+      else {
+        throw runtime_error("Timeout while waiting to write data");
+      }
+    }
+    else {
+      unixDie("failed in write2WithTimeout");
+    }
+  }
+  while (firstTry);
+
+  return 0;
+}
+
 template class NetmaskTree<bool>;
+

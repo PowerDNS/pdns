@@ -278,15 +278,17 @@ extern TCPClientCollection g_tcpclientthreads;
 
 struct DownstreamState
 {
-  DownstreamState(const ComboAddress& remote_);
+  DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf);
+  DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0) {}
 
   int fd;            
   std::thread tid;
   ComboAddress remote;
   QPSLimiter qps;
   vector<IDState> idStates;
-  DNSName checkName;
-  QType checkType;
+  ComboAddress sourceAddr;
+  DNSName checkName{"a.root-servers.net."};
+  QType checkType{QType::A};
   std::atomic<uint64_t> idOffset{0};
   std::atomic<uint64_t> sendErrors{0};
   std::atomic<uint64_t> outstanding{0};
@@ -305,11 +307,12 @@ struct DownstreamState
   int weight{1};
   int tcpRecvTimeout{30};
   int tcpSendTimeout{30};
+  unsigned int sourceItf{0};
   uint16_t retries{5};
   StopWatch sw;
   set<string> pools;
   enum class Availability { Up, Down, Auto} availability{Availability::Auto};
-  bool mustResolve;
+  bool mustResolve{false};
   bool upStatus{false};
   bool useECS{false};
   bool isUp() const

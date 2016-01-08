@@ -278,7 +278,7 @@ void DNSProxy::mainloop(void)
         msgh.msg_namelen = i->second.remote.getSocklen();
 
         if(i->second.anyLocal) {
-          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr());
+          addCMsgSrcAddr(&msgh, cbuf, i->second.anyLocal.get_ptr(), 0);
         }
         if(sendmsg(i->second.outsock, &msgh, 0) < 0)
           L<<Logger::Warning<<"dnsproxy.cc: Error sending reply with sendmsg (socket="<<i->second.outsock<<"): "<<strerror(errno)<<endl;
