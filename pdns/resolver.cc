@@ -366,12 +366,10 @@ void Resolver::getSoaSerial(const string &ipport, const DNSName &domain, uint32_
 }
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
-        const DNSName& domain,
-        const DNSName& tsigkeyname,
-        const DNSName& tsigalgorithm, 
-        const string& tsigsecret,
-        const ComboAddress* laddr)
-: d_tsigkeyname(tsigkeyname), d_tsigsecret(tsigsecret), d_tsigPos(0), d_nonSignedMessages(0)
+                             const DNSName& domain,
+                             const TSIGTriplet& tt, 
+                             const ComboAddress* laddr)
+  : d_tt(tt), d_tsigPos(0), d_nonSignedMessages(0)
 {
   ComboAddress local;
   if (laddr != NULL) {
@@ -398,16 +396,16 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     DNSPacketWriter pw(packet, domain, QType::AXFR);
     pw.getHeader()->id = dns_random(0xffff);
   
-    if(!tsigkeyname.empty()) {
-      if (tsigalgorithm == DNSName("hmac-md5"))
-        d_trc.d_algoName = tsigalgorithm + DNSName("sig-alg.reg.int");
+    if(!tt.name.empty()) {
+      if (tt.algo == DNSName("hmac-md5"))
+        d_trc.d_algoName = tt.algo + DNSName("sig-alg.reg.int");
       else
-        d_trc.d_algoName = tsigalgorithm;
+        d_trc.d_algoName = tt.algo;
       d_trc.d_time = time(0);
       d_trc.d_fudge = 300;
       d_trc.d_origID=ntohs(pw.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pw, &d_trc, tsigkeyname, tsigsecret, "", false);
+      addTSIG(pw, &d_trc, tt.name, tt.secret, "", false);
     }
   
     uint16_t replen=htons(packet.size());
@@ -476,7 +474,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
     if (answer.first.d_type == QType::SOA)
       d_soacount++;
  
-  if(!d_tsigkeyname.empty()) { // TSIG verify message
+  if(!d_tt.name.empty()) { // TSIG verify message
     // If we have multiple messages, we need to concatenate them together. We also need to make sure we know the location of 
     // the TSIG record so we can remove it in makeTSIGMessageFromTSIGPacket
     d_signData.append(d_buf.get(), len);
@@ -506,13 +504,13 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
 
     if (checkTSIG) {
       if (theirMac.empty())
-        throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tsigkeyname.toString()+"'");
+        throw ResolverException("No TSIG on AXFR response from "+d_remote.toStringWithPort()+" , should be signed with TSIG key '"+d_tt.name.toString()+"'");
 
       string message;
       if (!d_prevMac.empty()) {
-        message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tsigkeyname, d_trc, d_prevMac, true, d_signData.size()-len);
+        message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tt.name, d_trc, d_prevMac, true, d_signData.size()-len);
       } else {
-        message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tsigkeyname, d_trc, d_trc.d_mac, false);
+        message = makeTSIGMessageFromTSIGPacket(d_signData, d_tsigPos, d_tt.name, d_trc, d_trc.d_mac, false);
       }
 
       TSIGHashEnum algo;
@@ -521,16 +519,16 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records) //
       }
 
       if (algo == TSIG_GSS) {
-        GssContext gssctx(d_tsigkeyname);
-        if (!gss_verify_signature(d_tsigkeyname, message, theirMac)) {
-          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname.toString()+"'");
+        GssContext gssctx(d_tt.name);
+        if (!gss_verify_signature(d_tt.name, message, theirMac)) {
+          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tt.name.toString()+"'");
         }
       } else {
-        string ourMac=calculateHMAC(d_tsigsecret, message, algo);
+        string ourMac=calculateHMAC(d_tt.secret, message, algo);
 
         // ourMac[0]++; // sabotage == for testing :-)
         if(ourMac != theirMac) {
-          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tsigkeyname.toString()+"'");
+          throw ResolverException("Signature failed to validate on AXFR response from "+d_remote.toStringWithPort()+" signed with TSIG key '"+d_tt.name.toString()+"'");
         }
       }
 

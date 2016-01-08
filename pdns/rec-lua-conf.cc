@@ -12,6 +12,7 @@
 #include "filterpo.hh"
 #include "syncres.hh"
 #include "rpzloader.hh"
+#include "base64.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs; 
 
@@ -119,8 +120,11 @@ void loadRecursorLuaConfig(const std::string& fname)
   Lua.writeFunction("rpzMaster", [&lci](const string& master_, const string& zone_, const boost::optional<std::unordered_map<string,boost::variant<int, string>>>& options) {
       try {
 	boost::optional<DNSFilterEngine::Policy> defpol;
+        TSIGTriplet tt;
+        int refresh=0;
 	if(options) {
 	  auto& have = *options;
+
 	  if(have.count("defpol")) {
 	    //	    cout<<"Set a default policy"<<endl;
 	    defpol=DNSFilterEngine::Policy();
@@ -140,12 +144,23 @@ void loadRecursorLuaConfig(const std::string& fname)
 
 	    }
 	  }
-	    
+	  if(have.count("tsigname")) {
+            tt.name=DNSName(toLower(boost::get<string>(constGet(have, "tsigname"))));
+            tt.algo=DNSName(toLower(boost::get<string>(constGet(have, "tsigalgo"))));
+            if(B64Decode(boost::get<string>(constGet(have, "tsigsecret")), tt.secret))
+              throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
+          }
+          if(have.count("refresh")) {
+            refresh = boost::get<int>(constGet(have,"refresh"));
+          }
 	}
 	ComboAddress master(master_, 53);
 	DNSName zone(zone_);
-	auto sr=loadRPZFromServer(master,zone, lci.dfe, defpol, 0);
-	std::thread t(RPZIXFRTracker, master, zone, sr);
+
+	auto sr=loadRPZFromServer(master,zone, lci.dfe, defpol, 0, tt);
+        if(refresh)
+          sr->d_st.refresh=refresh;
+	std::thread t(RPZIXFRTracker, master, zone, tt, sr);
 	t.detach();
       }
       catch(std::exception& e) {
