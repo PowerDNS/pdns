@@ -93,9 +93,11 @@ bool boolFromJson(const Json container, const std::string& key)
   auto val = container[key];
   if (val.is_bool()) {
     return val.bool_value();
-  } else {
-    throw JsonException("Key '" + string(key) + "' not present or not a Bool");
+  } else if (val.is_number())  {
+    if (val.int_value() == 1) return true;
+    else if (val.int_value() == 0) return false;
   }
+  throw JsonException("Key '" + string(key) + "' not present or not a Bool");
 }
 
 bool boolFromJson(const Json container, const std::string& key, const bool default_value)
@@ -103,7 +105,9 @@ bool boolFromJson(const Json container, const std::string& key, const bool defau
   auto val = container[key];
   if (val.is_bool()) {
     return val.bool_value();
-  } else {
-    return default_value;
+  } else if (val.is_number())  {
+    if (val.int_value() == 1) return true;
+    else if (val.int_value() == 0) return false;
   }
+  return default_value;
 }
