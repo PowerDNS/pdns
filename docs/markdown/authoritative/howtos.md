@@ -29,7 +29,7 @@ Dec 30 13:40:09 Cleaning up
 Dec 30 13:40:10 Done launching threads, ready to distribute questions
 ```
 
-This is as to be expected - we did not yet add anything to MySQL for PDNS to read from. At this point you may also see other errors which indicate that PDNS either could not find your MySQL server or was unable to connect to it. Fix these before proceeding.
+This is as to be expected - we did not yet add anything to MySQL for PowerDNS to read from. At this point you may also see other errors which indicate that PowerDNS either could not find your MySQL server or was unable to connect to it. Fix these before proceeding.
 
 General MySQL knowledge is assumed in this chapter, please do not interpret these commands as DBA advice!
 
@@ -40,7 +40,7 @@ Connect to MySQL as a user with sufficient privileges and issue the following co
 !!include=../modules/gmysqlbackend/schema.mysql.sql
 ```
 
-Now we have a database and an empty table. PDNS should now be able to launch in monitor mode and display no errors:
+Now we have a database and an empty table. PowerDNS should now be able to launch in monitor mode and display no errors:
 
 ```
 # /etc/init.d/pdns monitor
@@ -110,7 +110,7 @@ timedout-packets=0,udp-answers=7,udp-queries=7,
 %
 ```
 
-The actual numbers will vary somewhat. Now enter `QUIT` and start PDNS as a regular daemon, and check launch status:
+The actual numbers will vary somewhat. Now enter `QUIT` and start PowerDNS as a regular daemon, and check launch status:
 
 ```
 # /etc/init.d/pdns start
@@ -126,7 +126,7 @@ tcp-queries=0,timedout-packets=0,udp-answers=0,udp-queries=0,
 You now have a working database driven nameserver! To convert other zones already present, use the [`zone2sql`](migration.md#zone2sql) tool.
 
 ## Common problems
-Most problems involve PDNS not being able to connect to the database.
+Most problems involve PowerDNS not being able to connect to the database.
 
 ### Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)
 Your MySQL installation is probably defaulting to another location for its socket. Can be resolved by figuring out this location (often `/var/run/mysqld.sock`), and specifying it in the configuration file with the [`gmysql-socket`](backend-generic-mysql.md#gmysql-socket) parameter.
@@ -134,21 +134,21 @@ Your MySQL installation is probably defaulting to another location for its socke
 Another solution is to not connect to the socket, but to 127.0.0.1, which can be achieved by specifying [`gmysql-host=127.0.0.1`](backend-generic-mysql.md#gmysql-host).
 
 ### Host 'x.y.z.w' is not allowed to connect to this MySQL server
-These errors are generic MySQL errors. Solve them by trying to connect to your MySQL database with the MySQL console utility `mysql` with the parameters specified to PDNS. Consult the MySQL documentation.
+These errors are generic MySQL errors. Solve them by trying to connect to your MySQL database with the MySQL console utility `mysql` with the parameters specified to PowerDNS. Consult the MySQL documentation.
 
 ## Typical Errors after Installing
 At this point some things may have gone wrong. Typical errors include:
 
 ### binding to UDP socket: Address already in use
-This means that another nameserver is listening on port 53 already. You can resolve this problem by determining if it is safe to shutdown the nameserver already present, and doing so. If uncertain, it is also possible to run PDNS on another port. To do so, add [`local-port=5300`](settings.md#local-port) to `pdns.conf`, and try again. This however implies that you can only test your nameserver as clients expect the nameserver to live on port 53.
+This means that another nameserver is listening on port 53 already. You can resolve this problem by determining if it is safe to shutdown the nameserver already present, and doing so. If uncertain, it is also possible to run PowerDNS on another port. To do so, add [`local-port=5300`](settings.md#local-port) to `pdns.conf`, and try again. This however implies that you can only test your nameserver as clients expect the nameserver to live on port 53.
 
 ### binding to UDP socket: Permission denied
-You must be superuser in order to be able to bind to port 53. If this is not a possibility, it is also possible to run PDNS on another port. To do so, add [`local-port=5300`](settings.md#local-port) to `pdns.conf`, and try again. This however implies that you can only test your nameserver as clients expect the nameserver to live on port 53.
+You must be superuser in order to be able to bind to port 53. If this is not a possibility, it is also possible to run PowerDNS on another port. To do so, add [`local-port=5300`](settings.md#local-port) to `pdns.conf`, and try again. This however implies that you can only test your nameserver as clients expect the nameserver to live on port 53.
 
 ### Unable to launch, no backends configured for querying
-PDNS did not find the `launch=bind` instruction in pdns.conf.
+PowerDNS did not find the `launch=bind` instruction in pdns.conf.
 
-### Multiple IP addresses on your server, PDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
+### Multiple IP addresses on your server, PowerDNS sending out answers on the wrong one, Massive amounts of 'recvfrom gave error, ignoring: Connection refused'
 If you have multiple IP addresses on the internet on one machine, UNIX often sends out answers over another interface than which the packet came in on. In such cases, use [`local-address`](settings.md#local-address) to bind to specific IP addresses, which can be comma separated. The second error comes from remotes disregarding answers to questions it didn't ask to that IP address and sending back ICMP errors.
 
 # Using ALIAS records

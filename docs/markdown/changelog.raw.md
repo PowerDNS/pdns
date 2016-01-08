@@ -2626,11 +2626,11 @@ This version is almost entirely about recursion with major changes to both the p
 
 Sadly, due to [technical reasons](http://sources.redhat.com/ml/libc-alpha/2003-01/msg00245.html), compiling the pdns recursor and pdns authoritative nameserver into one binary is not immediately possible. During the release of 2.9.4 we stated that the recursing nameserver would be integrated in the next release - this won't happen now.
 
-However, this turns out to not be that bad at all. The recursor can now be restarted without having to restart the rest of the nameserver, for example. Cooperation between the both halves of PDNS is also almost seamless. As a result, 'non-lazy recursion' has been dropped. See [Recursion](authoritative/recursion.md "Recursion") for more details.
+However, this turns out to not be that bad at all. The recursor can now be restarted without having to restart the rest of the nameserver, for example. Cooperation between the both halves of PowerDNS is also almost seamless. As a result, 'non-lazy recursion' has been dropped. See [Recursion](authoritative/recursion.md "Recursion") for more details.
 
 Furthermore, the recursor only works on Linux, Windows and Solaris (not entirely). FreeBSD does not support the required functions. If you know any important FreeBSD people, plea with them to support set/get/swapcontext! Alternatively, FreeBSD coders could read the solution presented here [in figure 5](http://www.eng.uwaterloo.ca/~ejones/software/threading.html).
 
-The 'Contributor of the Month' award goes to Mark Bergsma who has responded to our plea for help with the label compressor and contributed a wonderfully simple and right fix that allows PDNS to compress just as well as other nameservers out there. An honorary mention goes to Ueli Heuer who, despite having no C++ experience, submitted an excellent SRV record implementation.
+The 'Contributor of the Month' award goes to Mark Bergsma who has responded to our plea for help with the label compressor and contributed a wonderfully simple and right fix that allows PowerDNS to compress just as well as other nameservers out there. An honorary mention goes to Ueli Heuer who, despite having no C++ experience, submitted an excellent SRV record implementation.
 
 Excellent work was also performed by Michel Stol, the Windows guy, in fixing all our non-portable stuff again. Christof Meerwald has also done wonderful work in porting MTasker to Windows, which was then used by Michel to get the recursor functioning on Windows.
 
@@ -2852,7 +2852,7 @@ From this release onwards, we'll concentrate on stabilising for the 3.0 release.
 This version fixes some very long standing issues and adds a few new features. If you are still running 2.6, upgrade yesterday. If you were running 2.6.1, an upgrade is still strongly advised.
 
 ## Features
--   The controlsocket is now readable and writable by the 'setgid' user. This allows for non-root access to PDNS which is nice for mrtg or cricket graphs.
+-   The controlsocket is now readable and writable by the 'setgid' user. This allows for non-root access to PowerDNS which is nice for mrtg or cricket graphs.
 -   MySQL backend (the non-generic one) gains the ability to read from a different table using the **mysql-table** setting.
 -   pipe backend now has a configurable timeout using the **pipe-timeout** setting. Thanks to Steve Bromwich for pointing out the need for this.
 -   Experimental backtraces. If PowerDNS crashes, it will log a lot of numbers and sometimes more to the syslog. If you see these, please report them to us. Only available under Linux.
@@ -2872,9 +2872,9 @@ This version fixes some very long standing issues and adds a few new features. I
 Quick fix release for a big cache problem.
 
 # Version 2.6
-Performance release. A lot of work has been done to raise PDNS performance to staggering levels in order to take part in benchmarketing efforts. Together with our as yet unnamed partner, PDNS has been benchmarked at 60.000 mostly cached queries/second on off the shelf PC hardware. Uncached performance was 17.000 uncached DNS queries/second on the .ORG domain.
+Performance release. A lot of work has been done to raise PowerDNS performance to staggering levels in order to take part in benchmarketing efforts. Together with our as yet unnamed partner, PowerDNS has been benchmarked at 60.000 mostly cached queries/second on off the shelf PC hardware. Uncached performance was 17.000 uncached DNS queries/second on the .ORG domain.
 
-Performance has been increased by both making PDNS itself quicker but also by lowering the number of backend queries typically needed. Operators will typically see PDNS taking less CPU and the backend seeing less load.
+Performance has been increased by both making PowerDNS itself quicker but also by lowering the number of backend queries typically needed. Operators will typically see PowerDNS taking less CPU and the backend seeing less load.
 
 Furthermore, some real bugs were fixed. A couple of undocumented performance switches may appear in --help output but you are advised to stay away from these.
 
@@ -2908,7 +2908,7 @@ And some small changes
 -   **pdns\_control ccounts** command outputs statistics on what is in the cache, which is useful to help optimize your caching strategy.
 
 # Version 2.5
-An important release which has seen quite a lot of trial and error testing. As a result, PDNS can now run with a huge cache and concurrent invalidations. This is useful when running of a slower database or under high traffic load with a fast database.
+An important release which has seen quite a lot of trial and error testing. As a result, PowerDNS can now run with a huge cache and concurrent invalidations. This is useful when running of a slower database or under high traffic load with a fast database.
 
 Furthermore, the gpgsql2 backend has been validated for use and will soon supplant the gpgsql backend entirely. This also bodes well for the gmysql backend which is the same code.
 
@@ -2917,7 +2917,7 @@ Also, a large amount of issues biting large scale slave operators were addressed
 ## New features
 -   Query cache. The old Packet Cache only cached entire questions and their answers. This is very CPU efficient but does not lead to maximum hitrate. Two packets both needing to resolve smtp.you.com internally would not benefit from any caching. Furthermore, many different DNS queries lead to the same backend queries, like 'SOA for .COM?'.
 
-    PDNS now also caches backend queries, but only those having no answer (the majority) and those having one answer (almost the rest).
+    PowerDNS now also caches backend queries, but only those having no answer (the majority) and those having one answer (almost the rest).
 
     In tests, these additional caches appear to halve the database backend load numerically and perhaps even more in terms of CPU load. Often, queries with no answer are more expensive than those having one.
 
@@ -2933,7 +2933,7 @@ Also, a large amount of issues biting large scale slave operators were addressed
 ## Enhancements
 -   Packet Cache is now case insensitive, leading to a higher hitrate because identical queries only differing in case now both match. Care is taken to restore the proper case in the answer sent out.
 -   Packet Cache stores packets more efficiently now, savings are estimated at 50%.
--   The Packet Cache is now asynchronous which means that PDNS continues to answer questions while the cache is busy being purged or queried. Incidentally this will mean a cache miss where previously the question would wait until the cache became available again.
+-   The Packet Cache is now asynchronous which means that PowerDNS continues to answer questions while the cache is busy being purged or queried. Incidentally this will mean a cache miss where previously the question would wait until the cache became available again.
 
     The upshot of this is that operators can call **pdns\_control purge** as often as desired without fearing performance loss. Especially the full, non-specific, purge was sped up tremendously.
 
@@ -2969,7 +2969,7 @@ This version fixes some stability issues with malformed or malcrafted packets. A
 ## Bugs fixed
 -   Failure to connect to database in master/slave communicator thread could lead to an unclean reload, fixed.
 
-Documentation: added details for **strict-rfc-axfrs**. This feature can be used if very old clients need to be able to do zone transfers with PDNS. Very slow.
+Documentation: added details for **strict-rfc-axfrs**. This feature can be used if very old clients need to be able to do zone transfers with PowerDNS. Very slow.
 
 # Version 2.3
 
@@ -2991,9 +2991,9 @@ Developers: this version is compatible with the pdns-2.1 development kit, availa
 
 Again a big release. PowerDNS is seeing some larger deployments in more demanding environments and these are helping shake out remaining issues, especially with recursing backends.
 
-The big news is that wildcard CNAMEs are now supported, an oft requested feature and nearly the only part in which PDNS differed from BIND in authoritative capabilities.
+The big news is that wildcard CNAMEs are now supported, an oft requested feature and nearly the only part in which PowerDNS differed from BIND in authoritative capabilities.
 
-If you were seeing signal 6 errors in PDNS causing reloads and intermittent service disruptions, please upgrade to this version.
+If you were seeing signal 6 errors in PowerDNS causing reloads and intermittent service disruptions, please upgrade to this version.
 
 For operators of PowerDNS Express trying to host .DE domains, the very special **soa-serial-offset** feature has been added to placate the new DENIC requirement that the SOA serial be at least six digits. PowerDNS Express uses the SOA serial as an actual serial and not to insert dates and hence often has single digit soa serial numbers, causing big problems with .DE redelegations.
 
@@ -3002,7 +3002,7 @@ For operators of PowerDNS Express trying to host .DE domains, the very special *
 -   Malformed or shortened TCP recursion queries would cause a signal 6 and a reload. Same for EOF from the TCP recursing backend. Thanks to Simon Kirby and Mike Benoit of NetNation for helping debug this.
 -   Timeouts on the TCP recursing backend were far too long, leading to possible exhaustion of TCP resolving threads.
 -   **pdns\_control purge domain** accidentally cleaned all packets with that name as a prefix. Thanks to Simon Kirby for spotting this.
--   Improved exception error logging - in some circumstances PDNS would not properly log the cause of an exception, which hampered problem resolution.
+-   Improved exception error logging - in some circumstances PowerDNS would not properly log the cause of an exception, which hampered problem resolution.
 
 ## New features
 -   Wildcard CNAMEs now work as expected!
@@ -3014,9 +3014,9 @@ This is a somewhat bigger release due to pressing demands from customers. An upg
 
 Developers: this version has a new pdns-2.1 development kit, available on <http://downloads.powerdns.com/releases/dev>. See also [Backend writers' guide](appendix/backend-writers-guide.md).
 
-**Warning**: Most users will run a static version of PDNS which has no dependencies on external libraries. However, some may need to run the dynamic version. This warning applies to these users.
+**Warning**: Most users will run a static version of PowerDNS which has no dependencies on external libraries. However, some may need to run the dynamic version. This warning applies to these users.
 
-To run the dynamic version of PDNS, which is needed for backend drivers which are only available in source form, gcc 3.0 is required. RedHat 7.2 comes with gcc 3.0 as an optional component, RedHat 7.3 does not. However, the RedHat 7.2 Update gcc rpms install just fine on RedHat 7.3. For Debian, we suggest running 'woody' and installing the g++-3.0 package. We expect to release a FreeBSD dynamic version shortly.
+To run the dynamic version of PowerDNS, which is needed for backend drivers which are only available in source form, gcc 3.0 is required. RedHat 7.2 comes with gcc 3.0 as an optional component, RedHat 7.3 does not. However, the RedHat 7.2 Update gcc rpms install just fine on RedHat 7.3. For Debian, we suggest running 'woody' and installing the g++-3.0 package. We expect to release a FreeBSD dynamic version shortly.
 
 ## Bugs fixed
 -   RPM releases sometimes overwrote previous configuration files. Thanks to Jorn Ekkelenkamp of Hubris/ISP Services for reporting this.
@@ -3048,7 +3048,7 @@ Developers: this version is compatible with 1.99.11 backends.
 
 Bugfixes
 -   zone2sql refused to work under some circumstances, taking 100% cpu and not functioning. Thanks to Andrew Clark and Mike Benoit for reporting this.
--   Fixed a stability issue where malformed packets could force PDNS to reload. Present in all earlier 2.0 versions.
+-   Fixed a stability issue where malformed packets could force PowerDNS to reload. Present in all earlier 2.0 versions.
 
 # Version 2.0 Release Candidate 2
 Mostly bugfixes, no really new features.
@@ -3082,7 +3082,7 @@ Developers: this version is compatible with 1.99.11 backends.
     -   The Darwin version has been developed on Mac OS X 10.2 (6C35). Other versions may or may not work.
     -   Currently only the random, bind, mysql and pdns backends are included.
     -   The menu based installer script does not work, you will have to edit pathconfig by hand as outlined in chapter 2.
-    -   On Mac OS X Client, PDNS will fail to start because a system service is already bound to port 53.
+    -   On Mac OS X Client, PowerDNS will fail to start because a system service is already bound to port 53.
 
     This version is distributed as a compressed tar file. You should follow the generic UNIX installation instructions.
 
@@ -3119,7 +3119,7 @@ Developers: this version is compatible with 1.99.11 backends.
 
 ## Bugs fixed
 -   When operating in virtual hosting mode (See [Virtual hosting](authoritative/running.md#virtual-hosting "Virtual hosting")), the additional init.d scripts would not function correctly and interface with other pdns instances.
--   PDNS neglected to conserve case on answers. So a query for WwW.PoWeRdNs.CoM would get an answer listing the address of www.powerdns.com. While this did not confuse resolvers, it is better to conserve case. This has semantic consequences for all backends, which the documentation now spells out.
+-   PowerDNS neglected to conserve case on answers. So a query for WwW.PoWeRdNs.CoM would get an answer listing the address of www.powerdns.com. While this did not confuse resolvers, it is better to conserve case. This has semantic consequences for all backends, which the documentation now spells out.
 -   PostgreSQL backend was case sensitive and returned only answers in case an exact match was found. The Generic PostgreSQL backend is now officially all lower case and zone2sql in PostgreSQL mode enforces this. Documentation has been been updated to reflect the case change. Thanks to Maikel Verheijen of Ladot for spotting this!
 -   Documentation bug - postgresql create/index statements created a duplicate index. If you've previously copy pasted the commands and not noticed the error, execute **CREATE INDEX rec\_name\_index ON records(name)** to remedy. Thanks to Jeff Miller for reporting this. This also lead to depressingly slow 'ANY' lookups for those of you doing benchmarks.
 
@@ -3128,15 +3128,15 @@ Developers: this version is compatible with 1.99.11 backends.
 -   pdns\_control now has a 'version' command. See [Section 1.1, “pdns\_control”](authoritative/running.md#pdnscontrol "1.1. pdns_control").
 
 # Version 1.99.11 Prerelease
-This release is important because it is the first release which is accompanied by an Open Source Backend Development Kit, allowing external developers to write backends for PDNS. Furthermore, a few bugs have been fixed
+This release is important because it is the first release which is accompanied by an Open Source Backend Development Kit, allowing external developers to write backends for PowerDNS. Furthermore, a few bugs have been fixed
 
--   Lines with only whitespace in zone files confused PDNS (thanks Henk Wevers)
--   PDNS did not properly parse TTLs with symbolic suffixes in zone files, ie 2H instead of 7200 (thanks Henk Wevers)
+-   Lines with only whitespace in zone files confused PowerDNS (thanks Henk Wevers)
+-   PowerDNS did not properly parse TTLs with symbolic suffixes in zone files, ie 2H instead of 7200 (thanks Henk Wevers)
 
 # Version 1.99.10 Prerelease
 **IMPORTANT**: there has been a tiny license change involving free public webbased dns hosting, check out the changes before deploying!
 
-PDNS is now feature complete, or very nearly so. Besides adding features, a lot of 'fleshing out' work is done now. There is an important performance bug fix which may have lead to disappointing benchmarks - so if you saw any of that, please try either this version or 1.99.8 which also does not have the bug.
+PowerDNS is now feature complete, or very nearly so. Besides adding features, a lot of 'fleshing out' work is done now. There is an important performance bug fix which may have lead to disappointing benchmarks - so if you saw any of that, please try either this version or 1.99.8 which also does not have the bug.
 
 This version has been very stable for us on multiple hosts, as was 1.99.9.
 
@@ -3150,26 +3150,26 @@ PostgreSQL users should be aware that while 1.99.10 works with the schema as pre
 -   **Zone2sql** printed a debugging statement on range $GENERATE commands. Thanks to Rene van Valkenburg for spotting this.
 
 ## Features
--   PDNS can now act as a master, sending out notifications in case of changes and allowing slaves to AXFR. Big rewording of replication support, domains are now either 'native', 'master' or 'slave'. See [Master/Slave operation & replication](authoritative/modes-of-operation.md "Master/Slave operation & replication") for lots of details.
+-   PowerDNS can now act as a master, sending out notifications in case of changes and allowing slaves to AXFR. Big rewording of replication support, domains are now either 'native', 'master' or 'slave'. See [Master/Slave operation & replication](authoritative/modes-of-operation.md "Master/Slave operation & replication") for lots of details.
 -   **Zone2sql** in PostgreSQL mode now populates the 'domains' table for easy master, slave or native replication support.
 -   Ability to run on IPv6 transport only
--   Logging can now happen under a 'facility' so all PDNS messages appear in their own file. See [Operational logging using syslog](common/logging.md "Operational logging using syslog").
--   Different OS releases of PDNS now get different install path defaults. Thanks to Mark Lastdrager for nagging about this and to Nero Imhard and Frederique Rijsdijk for suggesting saner defaults.
+-   Logging can now happen under a 'facility' so all PowerDNS messages appear in their own file. See [Operational logging using syslog](common/logging.md "Operational logging using syslog").
+-   Different OS releases of PowerDNS now get different install path defaults. Thanks to Mark Lastdrager for nagging about this and to Nero Imhard and Frederique Rijsdijk for suggesting saner defaults.
 -   Infrastructure for 'also-notify' statements added.
 
 # Version 1.99.9 Early Access Prerelease
 This is again a feature and an infrastructure release. We are nearly feature complete and will soon start work on the backends to make sure that they are all master, slave and 'superslave' capable.
 
 ## Bugs fixed
--   PDNS sometimes sent out duplicate replies for packets passed to the recursing backend. Mostly a problem on SMP systems. Thanks to Mike Benoit for noticing this.
--   Out-of-bailiwick CNAMEs (ie, a CNAME to a domain not in PDNS) caused a 'ServFail' packet in 1.99.8, indicating failure, leading to hosts not resolving. Thanks to Martin Gillstrom for noticing this.
+-   PowerDNS sometimes sent out duplicate replies for packets passed to the recursing backend. Mostly a problem on SMP systems. Thanks to Mike Benoit for noticing this.
+-   Out-of-bailiwick CNAMEs (ie, a CNAME to a domain not in PowerDNS) caused a 'ServFail' packet in 1.99.8, indicating failure, leading to hosts not resolving. Thanks to Martin Gillstrom for noticing this.
 -   Zone2sql balked at zones edited under operating systems terminating files with ^Z (Windows). Thanks Brian Willcott for reporting this.
 -   PostgreSQL backend logged the password used to connect. Now only does so in case of failure to connect. Thanks to 'Webspider' for noticing this.
 -   Debian unstable distribution wrongly depended on home compiled PostgreSQL libraries. Thanks to Konrad Wojas for noticing this.
 
 ## Features
 -   When operating as a slave, AAAA records are now supported in the zone. They were already supported in master zones.
--   IPv6 transport support - PDNS can now listen on an IPv6 socket using the **local-ipv6** setting.
+-   IPv6 transport support - PowerDNS can now listen on an IPv6 socket using the **local-ipv6** setting.
 -   Very silly randombackend added which appears in the documentation as a sample backend. See [Backend writers' guide](appendix/backend-writers-guide.md).
 -   When transferring a slave zone from a master, out of zone data is now rejected. Malicious operators might try to insert bad records otherwise.
 -   'Supermaster' support for automatic provisioning from masters. See [Supermaster automatic provisioning of slaves](authoritative/modes-of-operation.md#supermaster "Supermaster automatic provisioning of slaves").
@@ -3190,7 +3190,7 @@ A lot of infrastructure work gearing up to 2.0. Some stability bugs fixed and a 
 -   SOA fields were not always properly filled in, causing default values to go out on the wire
 -   Obscure bug triggered by malicious packets (we know who you are) in SOA finding code fixed.
 -   Magic serial number calculation contained a double free leading to instability.
--   Standards violation, questions for domains for which PDNS was unauthoritative now get a SERVFAIL answer. Thanks to the IETF Namedroppers list for helping out with this.
+-   Standards violation, questions for domains for which PowerDNS was unauthoritative now get a SERVFAIL answer. Thanks to the IETF Namedroppers list for helping out with this.
 -   Slowly launching backends were being relaunched at a great rate when queries were coming in while launching backends.
 -   MySQL-on-unix-domain-socket on SMP systems was overwhelmed by the quick connection rate on launch, inserted a small 50ms delay.
 -   Some SMP problems appear to be compiler related. Shifted to GCC 3.0.4 for Linux.
@@ -3324,7 +3324,7 @@ Features present in this document, but disabled or withheld from the current rel
 Some of these features will be present in newer releases.
 
 # Version 1.99.3 Early Access Prerelease
-The big news in this release is the BindBackend which is now capable of parsing many more named.conf Bind configurations. Furthermore, PDNS has successfully parsed very large named.confs with large numbers of small domains, as well as small numbers of large domains (TLD).
+The big news in this release is the BindBackend which is now capable of parsing many more named.conf Bind configurations. Furthermore, PowerDNS has successfully parsed very large named.confs with large numbers of small domains, as well as small numbers of large domains (TLD).
 
 Zone transfers are now also much improved.
 
@@ -3402,7 +3402,7 @@ Features present in this document, but disabled or withheld from the current rel
 Some of these features will be present in newer releases.
 
 # Version 1.99.1 Early Access Prerelease
-This is the first public release of what is going to become PDNS 2.0. As such, it is not of production quality. Even PowerDNS-the-company does not run this yet.
+This is the first public release of what is going to become PowerDNS 2.0. As such, it is not of production quality. Even PowerDNS-the-company does not run this yet.
 
 Stability may be an issue as well as performance. This version has a tendency to log a bit too much which slows the nameserver down a lot.
 

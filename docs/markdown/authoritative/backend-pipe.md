@@ -17,7 +17,7 @@ The PipeBackend allows for easy dynamic resolution based on a 'Coprocess' which 
 
 The PipeBackend is primarily meant for allowing rapid development of new
 backends without tight integration with PowerDNS.  It allows end-users to
-write PDNS backends in any language.  A perl sample is provided.  The
+write PowerDNS backends in any language.  A perl sample is provided.  The
 PipeBackend is also very well suited for dynamic resolution of queries. 
 Example applications include DNS based load balancing, geo-direction, DNS
 based failover with low TTLs.

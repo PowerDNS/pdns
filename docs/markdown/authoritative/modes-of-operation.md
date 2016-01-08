@@ -1,22 +1,22 @@
-PDNS offers full master and slave semantics for replicating domain information.
-Furthermore, PDNS can benefit from native database replication.
+PowerDNS offers full master and slave semantics for replicating domain information.
+Furthermore, PowerDNS can benefit from native database replication.
 
 # Native replication
 Native replication is the default, unless other operation is specifically
-configured. Native replication basically means that PDNS will not send out DNS
-update notifications, nor will react to them. PDNS assumes that the backend is
+configured. Native replication basically means that PowerDNS will not send out DNS
+update notifications, nor will react to them. PowerDNS assumes that the backend is
 taking care of replication unaided.
 
 MySQL replication has proven to be very robust and well suited, even over
-transatlantic connections between badly peering ISPs. Other PDNS users employ
+transatlantic connections between badly peering ISPs. Other PowerDNS users employ
 Oracle replication which also works very well.
 
 To use native replication, configure your backend storage to do the replication
-and do not configure PDNS to do so.
+and do not configure PowerDNS to do so.
 
 # Master operation
-When operating as a master, PDNS sends out notifications of changes to slaves,
-which react to these notifications by querying PDNS to see if the zone changed,
+When operating as a master, PowerDNS sends out notifications of changes to slaves,
+which react to these notifications by querying PowerDNS to see if the zone changed,
 and transferring its contents if it has. Notifications are a way to promptly
 propagate zone changes to slaves, as described in [RFC 1996](http://tools.ietf.org/html/rfc1996).
 Since version 4.0.0, the NOTIFY messages have a TSIG record added (transaction
@@ -49,7 +49,7 @@ respond to them, several override commands are available via the
 [`pdns_control`](../authoritative/running.md#pdnscontrol) tool:
 
 * `pdns_control notify <domain>`
-This instructs PDNS to notify all IP addresses it considers to be slaves of this domain.
+This instructs PowerDNS to notify all IP addresses it considers to be slaves of this domain.
 
 * `pdns_control notify-host <domain> <ip-address>`
 This is truly an override and sends a notification to an arbitrary IP address.
@@ -57,7 +57,7 @@ Can be used in [`also-notify`](settings.md#also-notify) situations or when Power
 has trouble figuring out who to notify - which may happen in contrived configurations.
 
 # Slave operation
-On launch, PDNS requests from all backends a list of domains which have not been
+On launch, PowerDNS requests from all backends a list of domains which have not been
 checked recently for changes. This should happen every '**refresh**' seconds, as
 specified in the SOA record. All domains that are unfresh are then checked for
 changes over at their master. If the [SOA](../types.md#soa) serial number there
@@ -88,7 +88,7 @@ list all master servers separated by commas in the 'master' field of the domains
 Since version 4.0.0, PowerDNS requires that masters sign their notifications. During transition and interoperation with other nameservers, you can use options **allow-unsigned-notify** to permit unsigned notifications. For 4.0.0 this is turned off by default, but it might be turned on permanently in future releases.
 
 ## Supermaster: automatic provisioning of slaves
-PDNS can recognize so called 'supermasters'. A supermaster is a host which is
+PowerDNS can recognize so called 'supermasters'. A supermaster is a host which is
 master for domains and for which we are to be a slave. When a master (re)loads a
 domain, it sends out a notification to its slaves. Normally, such a notification
 is only accepted if PowerDNS already knows that it is a slave for a domain.

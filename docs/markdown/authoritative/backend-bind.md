@@ -13,9 +13,9 @@
 |Module name|bind|
 |Launch|bind|
 
-The BindBackend started life as a demonstration of the versatility of PDNS but quickly gained in importance when there appeared to be demand for a Bind 'work-alike'.
+The BindBackend started life as a demonstration of the versatility of PowerDNS but quickly gained in importance when there appeared to be demand for a Bind 'work-alike'.
 
-The BindBackend parses a Bind-style `named.conf` and extracts information about zones from it. It makes no attempt to honour other configuration flags, which you should configure (when available) using the PDNS native configuration.
+The BindBackend parses a Bind-style `named.conf` and extracts information about zones from it. It makes no attempt to honour other configuration flags, which you should configure (when available) using the PowerDNS native configuration.
 
 ## Configuration Parameters
 ### `bind-config`
@@ -57,7 +57,7 @@ will be performed until the `pdns_control reload` is given.
 
 ## pdns\_control commands
 ### `bind-add-zone <domain> <filename>`
-Add zone `domain` from `filename` to PDNS's bind backend. Zone will be loaded at
+Add zone `domain` from `filename` to PowerDNS's bind backend. Zone will be loaded at
 first request. **Note**: this does not add the zone to the [`bind-config`](#bind-config)
 file.
 

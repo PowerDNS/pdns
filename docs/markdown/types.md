@@ -1,5 +1,5 @@
 # Supported Record Types
-This chapter lists all record types PDNS supports, and how they are stored in
+This chapter lists all record types PowerDNS supports, and how they are stored in
 backends. The list is mostly alphabetical but some types are grouped.
 
 **Warning**: Host names and the MNAME of a SOA records are NEVER terminated with
@@ -130,7 +130,7 @@ The stored format is:
  primary hostmaster serial refresh retry expire default_ttl
 ```
 
-Besides the primary and the hostmaster, all fields are numerical. PDNS has a set of default values:
+Besides the primary and the hostmaster, all fields are numerical. PowerDNS has a set of default values:
 
  * primary: [`default-soa-name`](authoritative/settings.md#default-soa-name) configuration option
  * hostmaster: `hostmaster@domain-name`
@@ -141,7 +141,7 @@ Besides the primary and the hostmaster, all fields are numerical. PDNS has a set
  * default\_ttl: 3600 (1 hour)
 
 The fields have complicated and sometimes controversial meanings. The 'serial'
-field is special. If left at 0, the default, PDNS will perform an internal list
+field is special. If left at 0, the default, PowerDNS will perform an internal list
 of the domain to determine highest change\_date field of all records within the
 zone, and use that as the zone serial number. This means that the serial number
 is always raised when changes are made to the zone, as long as the change\_date
