@@ -280,6 +280,11 @@ struct DownstreamState
 {
   DownstreamState(const ComboAddress& remote_, const ComboAddress& sourceAddr_, unsigned int sourceItf);
   DownstreamState(const ComboAddress& remote_): DownstreamState(remote_, ComboAddress(), 0) {}
+  ~DownstreamState()
+  {
+    if (fd >= 0)
+      close(fd);
+  }
 
   int fd;            
   std::thread tid;
