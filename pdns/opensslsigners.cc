@@ -50,6 +50,8 @@ public:
   }
 
 private:
+  static int hashSizeToKind(size_t hashSize);
+
   RSA* d_key{NULL};
 };
 
@@ -103,6 +105,8 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
     case 10:
       algorithm += " (RSASHA512)";
       break;
+    default:
+      algorithm += " (?)";
   }
   storvect.push_back(make_pair("Algorithm", algorithm));
 
@@ -118,7 +122,7 @@ DNSCryptoKeyEngine::storvector_t OpenSSLRSADNSCryptoKeyEngine::convertToISCVecto
 
 std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& orig) const
 {
-  if (d_algorithm <= 7) {
+  if (d_algorithm == 5 || d_algorithm == 7) {
     /* RSA SHA1 */
     unsigned char hash[SHA_DIGEST_LENGTH];
     SHA1((unsigned char*) orig.c_str(), orig.length(), hash);
@@ -140,23 +144,28 @@ std::string OpenSSLRSADNSCryptoKeyEngine::hash(const std::string& orig) const
   throw runtime_error(getName()+" does not support hash operation for algorithm "+std::to_string(d_algorithm));
 }
 
+int OpenSSLRSADNSCryptoKeyEngine::hashSizeToKind(const size_t hashSize)
+{
+  switch(hashSize) {
+    case SHA_DIGEST_LENGTH:
+      return NID_sha1;
+    case SHA256_DIGEST_LENGTH:
+      return NID_sha256;
+    case SHA384_DIGEST_LENGTH:
+      return NID_sha384;
+    case SHA512_DIGEST_LENGTH:
+      return NID_sha512;
+    default:
+      throw runtime_error("OpenSSL RSA does not handle hash of size " + std::to_string(hashSize));
+  }
+}
 
 std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
   string hash = this->hash(msg);
-  int hashKind;
+  int hashKind = hashSizeToKind(hash.size());
   unsigned char signature[RSA_size(d_key)];
   unsigned int signatureLen = 0;
-
-  if (hash.size() == SHA_DIGEST_LENGTH) {
-    hashKind = NID_sha1;
-  }
-  else if (hash.size() == SHA256_DIGEST_LENGTH) {
-    hashKind = NID_sha256;
-  }
-  else {
-    hashKind = NID_sha512;
-  }
 
   int res = RSA_sign(hashKind, (unsigned char*) hash.c_str(), hash.length(), signature, &signatureLen, d_key);
   if (res != 1) {
@@ -170,17 +179,7 @@ std::string OpenSSLRSADNSCryptoKeyEngine::sign(const std::string& msg) const
 bool OpenSSLRSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
 {
   string hash = this->hash(msg);
-  int hashKind;
-
-  if (hash.size() == SHA_DIGEST_LENGTH) {
-    hashKind = NID_sha1;
-  }
-  else if (hash.size() == SHA256_DIGEST_LENGTH) {
-    hashKind = NID_sha256;
-  }
-  else {
-    hashKind = NID_sha512;
-  }
+  int hashKind = hashSizeToKind(hash.size());
 
   int ret = RSA_verify(hashKind, (const unsigned char*) hash.c_str(), hash.length(), (unsigned char*) signature.c_str(), signature.length(), d_key);
 
@@ -265,6 +264,13 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
   string raw;
   for(const places_t::value_type& val :  places) {
     raw=stormap[toLower(val.first)];
+
+    if (!val.second)
+      continue;
+
+    if (*val.second)
+      BN_clear_free(*val.second);
+
     *val.second = BN_bin2bn((unsigned char*) raw.c_str(), raw.length(), NULL);
     if (!*val.second) {
       throw runtime_error(getName()+" error loading " + val.first);
@@ -284,15 +290,37 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
 void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
 {
   string exponent, modulus;
+  const size_t inputLen = input.length();
   const unsigned char* raw = (const unsigned char*)input.c_str();
 
-  if (raw[0] != 0) {
-    exponent = input.substr(1, raw[0]);
-    modulus = input.substr(raw[0]+1);
-  } else {
-    exponent = input.substr(3, raw[1]*0xff + raw[2]);
-    modulus = input.substr(3+ raw[1]*0xff + raw[2]);
+  if (inputLen < 1) {
+    throw runtime_error(getName()+" invalid input size for the public key");
   }
+
+  if (raw[0] != 0) {
+    const size_t exponentSize = raw[0];
+    if (inputLen < (exponentSize + 2)) {
+      throw runtime_error(getName()+" invalid input size for the public key");
+    }
+    exponent = input.substr(1, exponentSize);
+    modulus = input.substr(exponentSize + 1);
+  } else {
+    if (inputLen < 3) {
+      throw runtime_error(getName()+" invalid input size for the public key");
+    }
+    const size_t exponentSize = raw[1]*0xff + raw[2];
+    if (inputLen < (exponentSize + 4)) {
+      throw runtime_error(getName()+" invalid input size for the public key");
+    }
+    exponent = input.substr(3, exponentSize);
+    modulus = input.substr(exponentSize + 3);
+  }
+
+  if (d_key->e)
+    BN_free(d_key->e);
+
+  if (d_key->n)
+    BN_free(d_key->n);
 
   d_key->e = BN_bin2bn((unsigned char*)exponent.c_str(), exponent.length(), NULL);
   if (!d_key->e) {
