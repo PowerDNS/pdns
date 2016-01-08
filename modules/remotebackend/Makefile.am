@@ -6,6 +6,8 @@ AM_CPPFLAGS += \
 
 AM_LDFLAGS = $(THREADFLAGS)
 
+JSON11_LIBS = -L$(top_srcdir)/ext/json11 -ljson11
+
 EXTRA_DIST = \
 	OBJECTFILES \
 	OBJECTLIBS \
@@ -44,7 +46,7 @@ libremotebackend_la_SOURCES = \
 
 libremotebackend_la_LDFLAGS = -module -avoid-version
 
-libremotebackend_la_LIBADD = $(YAHTTP_LIBS)
+libremotebackend_la_LIBADD = $(YAHTTP_LIBS) $(JSON11_LIBS)
 
 if REMOTEBACKEND_ZEROMQ
 libremotebackend_la_LIBADD += $(LIBZMQ_LIBS)
@@ -118,6 +120,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/rcpgenerator.cc \
 	../../pdns/unix_utility.cc \
 	../../pdns/gss_context.cc ../../pdns/gss_context.hh \
+	../../pdns/json.hh ../../pdns/json.cc \
 	httpconnector.cc \
 	pipeconnector.cc \
 	unixconnector.cc \
@@ -132,7 +135,7 @@ libtestremotebackend_la_LIBADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
 	$(BOOST_SERIALIZATION_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
-	$(LIBDL)
+	$(LIBDL) $(JSON11_LIBS)
 
 libtestremotebackend_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
