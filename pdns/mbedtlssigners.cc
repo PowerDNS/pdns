@@ -375,24 +375,19 @@ public:
 
     int ret = mbedtls_ctr_drbg_seed(&d_ctr_drbg, mbedtls_entropy_func, &d_entropy, custom, sizeof(custom) - 1);
     if (ret != 0) {
-      throw runtime_error("Entropy gathering for key generation failed");
+      throw runtime_error(getName()+" entropy gathering for key generation failed");
     }
-
-    mbedtls_ecp_group_id groupId;
 
     if(d_algorithm == 13) {
-      groupId = MBEDTLS_ECP_DP_SECP256R1;
+      d_groupId = MBEDTLS_ECP_DP_SECP256R1;
+      d_bits = 256;
     }
     else if(d_algorithm == 14){
-      groupId = MBEDTLS_ECP_DP_SECP384R1;
+      d_groupId = MBEDTLS_ECP_DP_SECP384R1;
+      d_bits = 384;
     }
     else {
-      throw runtime_error("Unknown algo "+std::to_string(d_algorithm)+" from ECDSA class");
-    }
-
-    int res = mbedtls_ecp_group_load(&d_ctx.grp, groupId);
-    if (res != 0) {
-      throw runtime_error("Error loading EC group for algo "+std::to_string(d_algorithm));
+      throw runtime_error(getName()+" unknown algo "+std::to_string(d_algorithm));
     }
   }
 
@@ -402,14 +397,14 @@ public:
     int ret = mbedtls_ecp_copy(&d_ctx.Q, &orig.d_ctx.Q);
 
     if (ret != 0) {
-      throw runtime_error("EC point copy failed");
+      throw runtime_error(getName()+" EC point copy failed");
     }
 
     mbedtls_mpi_init(&d_ctx.d);
     ret = mbedtls_mpi_copy(&d_ctx.d, &orig.d_ctx.d);
 
     if (ret != 0) {
-      throw runtime_error("ECDSA key copy failed");
+      throw runtime_error(getName()+" key copy failed");
     }
   }
 
@@ -443,38 +438,33 @@ private:
   mbedtls_ecdsa_context d_ctx;
   mbedtls_entropy_context d_entropy;
   mbedtls_ctr_drbg_context d_ctr_drbg;
+  mbedtls_ecp_group_id d_groupId;
+  unsigned int d_bits;
 };
 
 void MbedECDSADNSCryptoKeyEngine::create(unsigned int bits)
 {
-  mbedtls_ecp_group_id groupId;
-
-  if(bits == 256) {
-    groupId = MBEDTLS_ECP_DP_SECP256R1;
-  }
-  else if(bits == 384){
-    groupId = MBEDTLS_ECP_DP_SECP384R1;
-  }
-  else {
-    throw runtime_error("Unknown key length of "+std::to_string(bits)+" bits requested from ECDSA class");
+  if (bits != d_bits) {
+    throw runtime_error(getName()+" invalid key length of "+std::to_string(bits)+" bits requested");
   }
 
-  int res = mbedtls_ecdsa_genkey(&d_ctx, groupId, &mbedtls_ctr_drbg_random, &d_ctr_drbg);
-  if (res != 0) {
-    throw runtime_error("Key generation failed");
+  mbedtls_ecdsa_free(&d_ctx);
+  mbedtls_ecdsa_init(&d_ctx);
+  int ret = mbedtls_ecp_group_load(&d_ctx.grp, d_groupId);
+
+  if (ret != 0) {
+    throw runtime_error(getName()+" error loading EC group for algo "+std::to_string(d_algorithm));
+  }
+
+  ret = mbedtls_ecdsa_genkey(&d_ctx, d_groupId, &mbedtls_ctr_drbg_random, &d_ctr_drbg);
+  if (ret != 0) {
+    throw runtime_error(getName()+" key generation failed");
   }
 }
 
 int MbedECDSADNSCryptoKeyEngine::getBits() const
 {
-  if (d_algorithm == 13) {
-    return 256;
-  }
-  else if (d_algorithm == 14) {
-    return 384;
-  }
-
-  return -1;
+  return d_bits;
 }
 
 DNSCryptoKeyEngine::storvector_t MbedECDSADNSCryptoKeyEngine::convertToISCVector() const
@@ -498,7 +488,7 @@ DNSCryptoKeyEngine::storvector_t MbedECDSADNSCryptoKeyEngine::convertToISCVector
   int ret = mbedtls_mpi_write_binary(&d_ctx.d, tmp, sizeof(tmp));
 
   if (ret != 0) {
-    throw runtime_error("Error converting ECDSA Private Key to binary");
+    throw runtime_error(getName()+" error converting private Key to binary");
   }
 
   storvect.push_back(make_pair("PrivateKey", string((char*) tmp, sizeof(tmp))));
@@ -511,20 +501,28 @@ void MbedECDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<
   drc.d_algorithm = atoi(stormap["algorithm"].c_str());
 
   if (drc.d_algorithm != d_algorithm) {
-    throw runtime_error("Tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key!");
+    throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key!");
+  }
+
+  mbedtls_ecdsa_free(&d_ctx);
+  mbedtls_ecdsa_init(&d_ctx);
+  int ret = mbedtls_ecp_group_load(&d_ctx.grp, d_groupId);
+
+  if (ret != 0) {
+    throw runtime_error(getName()+" error loading EC group for algo "+std::to_string(d_algorithm));
   }
 
   string privateKey = stormap["privatekey"];
-  int ret = mbedtls_mpi_read_binary(&d_ctx.d, (unsigned char*) privateKey.c_str(), privateKey.length());
+  ret = mbedtls_mpi_read_binary(&d_ctx.d, (unsigned char*) privateKey.c_str(), privateKey.length());
   if (ret != 0)  {
-    throw runtime_error("Reading ECDSA private key from binary failed");
+    throw runtime_error(getName()+" reading private key from binary failed");
   }
 
   /* compute the public key */
   ret = mbedtls_ecp_mul(&d_ctx.grp, &d_ctx.Q, &d_ctx.d, &d_ctx.grp.G, &mbedtls_ctr_drbg_random, &d_ctr_drbg);
 
   if (ret != 0)  {
-    throw runtime_error("Computing ECDSA public key from private failed");
+    throw runtime_error(getName()+" computing public key from private failed");
   }
 }
 
@@ -536,7 +534,7 @@ std::string MbedECDSADNSCryptoKeyEngine::getPubKeyHash() const
   int ret = mbedtls_ecp_point_write_binary(&d_ctx.grp, &d_ctx.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &binaryPointLen, binaryPoint, sizeof(binaryPoint));
 
   if (ret != 0) {
-    throw runtime_error("Exporting ECP point to binary failed");
+    throw runtime_error(getName()+" exporting ECP point to binary failed");
   }
 
   mbedtls_sha1_context ctx;
@@ -557,7 +555,7 @@ std::string MbedECDSADNSCryptoKeyEngine::getPublicKeyString() const
   int ret = mbedtls_ecp_point_write_binary(&d_ctx.grp, &d_ctx.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &binaryPointLen, binaryPoint, sizeof(binaryPoint));
 
   if (ret != 0) {
-    throw runtime_error("Exporting ECP point to binary failed");
+    throw runtime_error(getName()+" exporting ECP point to binary failed");
   }
 
   /* we skip the first byte as the other signers use
@@ -575,10 +573,18 @@ void MbedECDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string&input)
   ecdsaPoint.assign((const char*) uncompressed, sizeof(uncompressed));
   ecdsaPoint.append(input);
 
-  int ret = mbedtls_ecp_point_read_binary(&d_ctx.grp, &d_ctx.Q, (unsigned char*) ecdsaPoint.c_str(), ecdsaPoint.length());
+  mbedtls_ecdsa_free(&d_ctx);
+  mbedtls_ecdsa_init(&d_ctx);
+  int ret = mbedtls_ecp_group_load(&d_ctx.grp, d_groupId);
 
   if (ret != 0) {
-    throw runtime_error("Reading ECP point from binary failed");
+    throw runtime_error(getName()+" error loading EC group for algo "+std::to_string(d_algorithm));
+  }
+
+  ret = mbedtls_ecp_point_read_binary(&d_ctx.grp, &d_ctx.Q, (unsigned char*) ecdsaPoint.c_str(), ecdsaPoint.length());
+
+  if (ret != 0) {
+    throw runtime_error(getName()+" reading ECP point from binary failed");
   }
 }
 
@@ -607,7 +613,7 @@ std::string MbedECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
     mbedtls_ecp_group_free(&tempGroup);
-    throw runtime_error("Error copying ECDSA group");
+    throw runtime_error(getName()+" error copying group");
   }
 
   ret = mbedtls_ecdsa_sign_det(&tempGroup, &r, &s, &d_ctx.d, (const unsigned char*) hash.c_str(), hash.length(), hashKind);
@@ -617,7 +623,7 @@ std::string MbedECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   if (ret != 0) {
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
-    throw runtime_error("ECDSA signature failed");
+    throw runtime_error(getName()+ " signature failed");
   }
 
   /* SEC1: 4.1.3 Signing Operation */
@@ -631,7 +637,7 @@ std::string MbedECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   if (ret != 0) {
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
-    throw runtime_error("Error converting ECDSA signature part R to binary");
+    throw runtime_error(getName()+" error converting signature part R to binary");
   }
 
   ret = mbedtls_mpi_write_binary(&s, sig + mpiLen, mpiLen);
@@ -639,7 +645,7 @@ std::string MbedECDSADNSCryptoKeyEngine::sign(const std::string& msg) const
   if (ret != 0) {
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
-    throw runtime_error("Error converting ECDSA signature part S to binary");
+    throw runtime_error(getName()+" error converting signature part S to binary");
   }
 
   mbedtls_mpi_free(&r);
@@ -662,7 +668,7 @@ std::string MbedECDSADNSCryptoKeyEngine::hash(const std::string& orig) const
     return string((char*) hash, sizeof(hash));
   }
 
-  throw runtime_error("mbedTLS ECDSA does not support hash size of "+std::to_string(getBits()));
+  throw runtime_error(getName()+" does not support hash size of "+std::to_string(getBits()));
 }
 
 bool MbedECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::string& signature) const
@@ -676,21 +682,21 @@ bool MbedECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::stri
   mbedtls_mpi_init(&s);
 
   if (signature.length() < (mpiLen * 2)) {
-    throw runtime_error("Invalid ECDSA signature size");
+    throw runtime_error(getName()+ " invalid signature size");
   }
 
   int ret = mbedtls_mpi_read_binary(&r, (unsigned char*) signature.c_str(), mpiLen);
   if (ret != 0)  {
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
-    throw runtime_error("Reading ECDSA signature part R from binary failed");
+    throw runtime_error(getName()+" reading signature part R from binary failed");
   }
 
   ret = mbedtls_mpi_read_binary(&s, (unsigned char*) signature.c_str() + mpiLen, mpiLen);
   if (ret != 0)  {
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
-    throw runtime_error("Reading ECDSA signature part S from binary failed");
+    throw runtime_error(getName()+" reading signature part S from binary failed");
   }
 
   mbedtls_ecp_group tempGroup;
@@ -702,7 +708,7 @@ bool MbedECDSADNSCryptoKeyEngine::verify(const std::string& msg, const std::stri
     mbedtls_mpi_free(&r);
     mbedtls_mpi_free(&s);
     mbedtls_ecp_group_free(&tempGroup);
-    throw runtime_error("Error copying ECDSA group");
+    throw runtime_error(getName()+ " error copying group");
   }
 
   ret = mbedtls_ecdsa_verify(&tempGroup, (const unsigned char*) hash.c_str(), hash.length(), &d_ctx.Q, &r, &s);
