@@ -19,6 +19,10 @@ void doClient(ComboAddress server, const std::string& command)
 {
   cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   int fd=socket(server.sin4.sin_family, SOCK_STREAM, 0);
+  if (fd < 0) {
+    cerr<<"Unable to connect to "<<server.toStringWithPort()<<endl;
+    return;
+  }
   SConnect(fd, server);
 
   SodiumNonce theirs, ours;
@@ -40,6 +44,7 @@ void doClient(ComboAddress server, const std::string& command)
     msg.assign(resp.get(), len);
     msg=sodDecryptSym(msg, g_key, theirs);
     cout<<msg<<endl;
+    close(fd);
     return; 
   }
 
@@ -206,7 +211,8 @@ char* my_generator(const char* text, int state)
       "showDNSCryptBinds()", "showDynBlocks()", "showResponseLatency()", "showRules()",
       "showServerPolicy()", "showServers()", "shutdown()", "SpoofAction(",
       "TCAction(", "testCrypto()", "topBandwidth(", "topClients(",
-      "topQueries(", "topResponses(", "topRule()", "truncateTC(",
+      "topQueries(", "topResponses(", "topRule()", "topSlow(",
+      "truncateTC(",
       "webserver(", "whashed", "wrandom" };
   static int s_counter=0;
   int counter=0;

@@ -113,7 +113,7 @@ std::unordered_map<int, vector<boost::variant<string,double>>> getGenResponses(u
     else
       ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
   }
-  ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+  ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
   return ret;
 }
 
@@ -966,7 +966,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	else
 	  g_outputBuffer += (fmt % (count++) % rc.second.toString() % rc.first % (100.0*rc.first/total)).str();
       }
-      g_outputBuffer += (fmt % (count) % "Rest" % rest % (100.0*rest/total)).str();
+      g_outputBuffer += (fmt % (count) % "Rest" % rest % (total > 0 ? 100.0*rest/total : 100.0)).str();
     });
 
   g_lua.writeFunction("getTopQueries", [](unsigned int top, boost::optional<int> labels) {
@@ -1008,7 +1008,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 	else
 	  ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
       }
-      ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+      ret.insert({count, {"Rest", rest, total > 0 ? 100.0*rest/total : 100.0}});
       return ret;
 
     });

@@ -208,8 +208,9 @@ void moreLua()
 
     });
 
-  g_lua.writeFunction("topBandwidth", [](unsigned int top) {
+  g_lua.writeFunction("topBandwidth", [](boost::optional<unsigned int> top_) {
       setLuaNoSideEffect();
+      auto top = top_.get_value_or(10);
       auto res = g_rings.getTopBandwidth(top);
       boost::format fmt("%7d  %s\n");
       for(const auto& l : res) {
