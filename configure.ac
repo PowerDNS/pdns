@@ -64,9 +64,7 @@ AS_IF([test "x$enable_hardening" != "xno"], [
   AC_LD_RELRO
 ])
 
-AC_SEARCH_LIBS([socket], [socket])
-AC_SEARCH_LIBS([gethostent], [nsl])
-AC_SEARCH_LIBS([inet_aton], [resolv])
+AX_LIB_SOCKET_NSL
 
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static dlopen])
@@ -393,6 +391,7 @@ AC_MSG_NOTICE([CFLAGS: $CFLAGS])
 AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])
 AC_MSG_NOTICE([CXXFLAGS: $CXXFLAGS])
 AC_MSG_NOTICE([LDFLAGS: $LDFLAGS])
+AC_MSG_NOTICE([LIBS: $LIBS])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([BOOST_CPPFLAGS: $BOOST_CPPFLAGS])
 AC_MSG_NOTICE([])
