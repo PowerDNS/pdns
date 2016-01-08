@@ -18,11 +18,6 @@ public:
     if (ret != 1) {
       throw runtime_error(getName()+" insufficient entropy");
     }
-
-    d_key = RSA_new();
-    if (d_key == NULL) {
-      throw runtime_error(getName()+" allocation of key structure failed");
-    }
   }
 
   ~OpenSSLRSADNSCryptoKeyEngine()
@@ -71,11 +66,23 @@ void OpenSSLRSADNSCryptoKeyEngine::create(unsigned int bits)
     throw runtime_error(getName()+" key generation failed while setting e");
   }
 
-  res = RSA_generate_key_ex(d_key, bits, e, NULL);
+  RSA* key = RSA_new();
+  if (key == NULL) {
+    BN_free(e);
+    throw runtime_error(getName()+" allocation of key structure failed");
+  }
+
+  res = RSA_generate_key_ex(key, bits, e, NULL);
   BN_free(e);
   if (res == 0) {
+    RSA_free(key);
     throw runtime_error(getName()+" key generation failed");
   }
+
+  if (d_key)
+    RSA_free(d_key);
+
+  d_key = key;
 }
 
 
@@ -245,19 +252,21 @@ std::string OpenSSLRSADNSCryptoKeyEngine::getPublicKeyString() const
 
 void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
 {
-  string sline;
-  string key,value;
   typedef map<string, BIGNUM**> places_t;
   places_t places;
+  RSA* key = RSA_new();
+  if (key == NULL) {
+    throw runtime_error(getName()+" allocation of key structure failed");
+  }
 
-  places["Modulus"]=&d_key->n;
-  places["PublicExponent"]=&d_key->e;
-  places["PrivateExponent"]=&d_key->d;
-  places["Prime1"]=&d_key->p;
-  places["Prime2"]=&d_key->q;
-  places["Exponent1"]=&d_key->dmp1;
-  places["Exponent2"]=&d_key->dmq1;
-  places["Coefficient"]=&d_key->iqmp;
+  places["Modulus"]=&key->n;
+  places["PublicExponent"]=&key->e;
+  places["PrivateExponent"]=&key->d;
+  places["Prime1"]=&key->p;
+  places["Prime2"]=&key->q;
+  places["Exponent1"]=&key->dmp1;
+  places["Exponent2"]=&key->dmq1;
+  places["Coefficient"]=&key->iqmp;
 
   drc.d_algorithm = pdns_stou(stormap["algorithm"]);
 
@@ -273,18 +282,26 @@ void OpenSSLRSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map
 
     *val.second = BN_bin2bn((unsigned char*) raw.c_str(), raw.length(), NULL);
     if (!*val.second) {
+      RSA_free(key);
       throw runtime_error(getName()+" error loading " + val.first);
     }
   }
 
   if (drc.d_algorithm != d_algorithm) {
+    RSA_free(key);
     throw runtime_error(getName()+" tried to feed an algorithm "+std::to_string(drc.d_algorithm)+" to a "+std::to_string(d_algorithm)+" key");
   }
 
-  int ret = RSA_check_key(d_key);
+  int ret = RSA_check_key(key);
   if (ret != 1) {
+    RSA_free(key);
     throw runtime_error(getName()+" invalid public key");
   }
+
+  if (d_key)
+    RSA_free(d_key);
+
+  d_key = key;
 }
 
 void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
@@ -316,22 +333,27 @@ void OpenSSLRSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& input)
     modulus = input.substr(exponentSize + 3);
   }
 
-  if (d_key->e)
-    BN_free(d_key->e);
+  RSA* key = RSA_new();
+  if (key == NULL) {
+    throw runtime_error(getName()+" allocation of key structure failed");
+  }
 
-  if (d_key->n)
-    BN_free(d_key->n);
-
-  d_key->e = BN_bin2bn((unsigned char*)exponent.c_str(), exponent.length(), NULL);
-  if (!d_key->e) {
+  key->e = BN_bin2bn((unsigned char*)exponent.c_str(), exponent.length(), NULL);
+  if (!key->e) {
+    RSA_free(key);
     throw runtime_error(getName()+" error loading e value of public key");
   }
-  d_key->n = BN_bin2bn((unsigned char*)modulus.c_str(), modulus.length(), NULL);
-  if (!d_key->n) {
+  key->n = BN_bin2bn((unsigned char*)modulus.c_str(), modulus.length(), NULL);
+  if (!key->n) {
+    RSA_free(key);
     throw runtime_error(getName()+" error loading n value of public key");
   }
   /* we cannot use RSA_check_key(), because it requires the private key information
      to be present. */
+  if (d_key)
+    RSA_free(d_key);
+
+  d_key = key;
 }
 
 class OpenSSLECDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
