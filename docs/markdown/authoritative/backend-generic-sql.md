@@ -146,6 +146,8 @@ if you wish to calculate ordername and auth without using pdns-rectify.
 
 ## Domain and zone manipulation
 
+- `is-our-domain-query`: Checks if the domain (either id or name) is in the 'domains' table. This query is run before any other (possibly heavy) query.
+
 - `insert-zone-query`: Add a new NATIVE domain.
 - `update-kind-query`: Called to update the type of domain.
 - `delete-zone-query` Called to delete all records of a zone. Used before an incoming AXFR.
