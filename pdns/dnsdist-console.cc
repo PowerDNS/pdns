@@ -211,7 +211,8 @@ char* my_generator(const char* text, int state)
       "showDNSCryptBinds()", "showDynBlocks()", "showResponseLatency()", "showRules()",
       "showServerPolicy()", "showServers()", "shutdown()", "SpoofAction(",
       "TCAction(", "testCrypto()", "topBandwidth(", "topClients(",
-      "topQueries(", "topResponses(", "topRule()", "truncateTC(",
+      "topQueries(", "topResponses(", "topRule()", "topSlow(",
+      "truncateTC(",
       "webserver(", "whashed", "wrandom" };
   static int s_counter=0;
   int counter=0;
