@@ -198,10 +198,11 @@ class Handler
         db do |tx|
            sql = "DELETE FROM domainmetadata WHERE domain_id = ?"
            tx.execute(sql, [d_id]) 
-           break if args["value"].nil?
-           sql = "INSERT INTO domainmetadata (domain_id,kind,content) VALUES(?,?,?)"
-           args["value"].each do |value|
-             tx.execute(sql,[d_id, args["kind"], value])
+           unless args["value"].nil?
+             sql = "INSERT INTO domainmetadata (domain_id,kind,content) VALUES(?,?,?)"
+             args["value"].each do |value|
+               tx.execute(sql,[d_id, args["kind"], value])
+             end
            end
         end
 	return true
