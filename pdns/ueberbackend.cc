@@ -534,8 +534,8 @@ void UeberBackend::lookup(const QType &qtype,const DNSName &qname, DNSPacket *pk
   d_ancount=0;
 
   if(!backends.size()) {
-    L<<Logger::Error<<Logger::NTLog<<"No database backends available - unable to answer questions."<<endl;
-    stale=true; // please recycle us! 
+    L<<Logger::Error<<"No database backends available - unable to answer questions."<<endl;
+    stale=true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
   else {

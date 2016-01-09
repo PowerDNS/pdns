@@ -210,7 +210,7 @@ time_t CommunicatorClass::doNotifications()
       }
     }
     else
-      L<<Logger::Error<<Logger::NTLog<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
+      L<<Logger::Error<<"Notification for "<<domain<<" to "<<ip<<" failed after retries"<<endl;
   }
 
   return d_nq.earliest();

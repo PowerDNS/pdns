@@ -76,7 +76,6 @@ void TCPNameserver::go()
     s_P=new PacketHandler;
   }
   catch(PDNSException &ae) {
-    L<<Logger::Error<<Logger::NTLog<<"TCP server is unable to launch backends - will try again when questions come in"<<endl;
     L<<Logger::Error<<"TCP server is unable to launch backends - will try again when questions come in: "<<ae.reason<<endl;
   }
   pthread_create(&d_tid, 0, launcher, static_cast<void *>(this));
@@ -1243,7 +1242,7 @@ void TCPNameserver::thread()
             L<<Logger::Error<<"TCP question accept error: "<<strerror(errno)<<endl;
             
             if(errno==EMFILE) {
-              L<<Logger::Error<<Logger::NTLog<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
+              L<<Logger::Error<<"TCP handler out of filedescriptors, exiting, won't recover from this"<<endl;
               exit(1);
             }
           }
@@ -1254,7 +1253,7 @@ void TCPNameserver::thread()
             int room;
             d_connectionroom_sem->getValue( &room);
             if(room<1)
-              L<<Logger::Warning<<Logger::NTLog<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
+              L<<Logger::Warning<<"Limit of simultaneous TCP connections reached - raise max-tcp-connections"<<endl;
 
             if(pthread_create(&tid, 0, &doConnection, reinterpret_cast<void*>(fd))) {
               L<<Logger::Error<<"Error creating thread: "<<stringerror()<<endl;
