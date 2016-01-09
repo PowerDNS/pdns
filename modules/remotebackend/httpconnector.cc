@@ -96,6 +96,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
     // set the correct type of request based on method
     if (method == "activateDomainKey" || method == "deactivateDomainKey") {
         // create an empty post
+        req.preparePost();
         verb = "POST";
     } else if (method == "setTSIGKey") {
         req.POST()["algorithm"] = parameters["algorithm"].string_value();
@@ -180,9 +181,11 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
     } else if (method == "startTransaction") {
         addUrlComponent(parameters, "domain", ss);
         addUrlComponent(parameters, "trxid", ss);
+        req.preparePost();
         verb = "POST";
     } else if (method == "commitTransaction" || method == "abortTransaction") {
         addUrlComponent(parameters, "trxid", ss);
+        req.preparePost();
         verb = "POST";
     } else if (method == "calculateSOASerial") {
         addUrlComponent(parameters, "domain", ss);
@@ -233,7 +236,7 @@ void HTTPConnector::restful_requestbuilder(const std::string &method, const Json
            member == "real-remote" ||
            member == "zone-id")) {
         std::string hdr = "x-remotebackend-" + member;
-        req.headers[hdr] = pair.second.string_value();
+        req.headers[hdr] = asString(pair.second);
       }
     };
 
