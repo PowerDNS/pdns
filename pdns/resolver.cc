@@ -184,10 +184,10 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const DNSName &domain
 static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t origQtype, uint16_t id, Resolver::res_t* result)
 {
   result->clear();
-  
-  if(mdp.d_header.rcode) 
+
+  if(mdp.d_header.rcode)
     return mdp.d_header.rcode;
-      
+
   if(origQname.countLabels()) {  // not AXFR
     if(mdp.d_header.id != id) 
       throw ResolverException("Remote nameserver replied with wrong id");
@@ -196,28 +196,17 @@ static int parseResult(MOADNSParser& mdp, const DNSName& origQname, uint16_t ori
     if(mdp.d_qname != origQname)
       throw ResolverException(string("resolver: received an answer to another question (")+mdp.d_qname.toString()+"!="+ origQname.toString()+".)");
   }
-    
+
   vector<DNSResourceRecord> ret;
   DNSResourceRecord rr;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
     rr.qname = i->first.d_name;
     rr.qtype = i->first.d_type;
     rr.ttl = i->first.d_ttl;
-    rr.content = i->first.d_content->getZoneRepresentation();
-    switch(rr.qtype.getCode()) {
-      case QType::SRV:
-      case QType::MX:
-        if (rr.content.size() >= 2 && *(rr.content.rbegin()+1) == ' ')
-          break;
-      case QType::CNAME:
-      case QType::DNAME:
-      case QType::NS:
-        if(!rr.content.empty())
-          boost::erase_tail(rr.content, 1);
-    }
+    rr.content = i->first.d_content->getZoneRepresentation(true);
     result->push_back(rr);
   }
-  
+
   return 0;
 }
 
