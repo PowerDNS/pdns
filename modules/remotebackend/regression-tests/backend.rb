@@ -103,6 +103,7 @@ class Handler
           end
         rescue Exception => e
           e.backtrace
+          return false, [e.message]
         end
         break
      end
