@@ -148,6 +148,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 			{"weight", (int)a->weight}, 
 			  {"order", (int)a->order}, 
 			    {"pools", pools},
+                {"latency", (int)(a->latencyUsec/1000.0)},
 			      {"queries", (int)a->queries}};
       
 	servers.push_back(server);
