@@ -188,5 +188,15 @@ class RemoteBackend : public DNSBackend
       if (value.is_string()) return value.string_value();
       throw JsonException("Json value not convertible to String");
     };
+
+    bool asBool(const Json& value) {
+      if (value.is_bool()) return value.bool_value();
+      try {
+        string val = asString(value);
+        if (val == "0") return false;
+        if (val == "1") return true;
+      } catch (JsonException) {};
+      throw JsonException("Json value not convertible to boolean");
+    };
 };
 #endif

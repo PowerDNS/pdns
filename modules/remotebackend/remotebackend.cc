@@ -357,7 +357,7 @@ bool RemoteBackend::getDomainKeys(const DNSName& name, unsigned int kind, std::v
      DNSBackend::KeyData key;
      key.id = intFromJson(jsonKey, "id");
      key.flags = intFromJson(jsonKey, "flags");
-     key.active = boolFromJson(jsonKey, "active");
+     key.active = asBool(jsonKey["active"]);
      key.content = stringFromJson(jsonKey, "content");
      keys.push_back(key);
    }
