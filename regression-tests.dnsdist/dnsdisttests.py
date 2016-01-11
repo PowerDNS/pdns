@@ -28,6 +28,8 @@ class DNSDistTest(unittest.TestCase):
     _testServerPort = 5350
     _toResponderQueue = Queue.Queue()
     _fromResponderQueue = Queue.Queue()
+    _queueTimeout = 1
+    _dnsdistStartupDelay = 2
     _dnsdist = None
     _responsesCounter = {}
     _config_template = """
@@ -54,9 +56,6 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
-        # clear counters
-        for key in cls._responsesCounter:
-            cls._responsesCounter[key] = 0
 
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort])
         cls._UDPResponder.setDaemon(True)
@@ -90,7 +89,8 @@ class DNSDistTest(unittest.TestCase):
         if 'DNSDIST_FAST_TESTS' in os.environ:
             delay = 0.5
         else:
-            delay = 2
+            delay = cls._dnsdistStartupDelay
+
         time.sleep(delay)
 
         if cls._dnsdist.poll() is not None:
@@ -142,15 +142,19 @@ class DNSDistTest(unittest.TestCase):
         while True:
             data, addr = sock.recvfrom(4096)
             request = dns.message.from_wire(data)
+            answered = False
             if len(request.question) != 1:
                 print("Skipping query with question count %d" % (len(request.question)))
                 continue
             if str(request.question[0].name).endswith('tests.powerdns.com.') and not cls._toResponderQueue.empty():
-                response = cls._toResponderQueue.get()
-                response.id = request.id
-                cls._fromResponderQueue.put(request)
-                cls.ResponderIncrementCounter()
-            else:
+                response = cls._toResponderQueue.get(True, cls._queueTimeout)
+                if response:
+                    response.id = request.id
+                    cls._fromResponderQueue.put(request, True, cls._queueTimeout)
+                    cls.ResponderIncrementCounter()
+                    answered = True
+
+            if not answered:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
                 if request.question[0].rdclass == dns.rdataclass.IN:
@@ -186,6 +190,7 @@ class DNSDistTest(unittest.TestCase):
 
         sock.listen(100)
         while True:
+            answered = False
             (conn, address) = sock.accept()
             conn.settimeout(2.0)
             data = conn.recv(2)
@@ -196,11 +201,14 @@ class DNSDistTest(unittest.TestCase):
                 print("Skipping query with question count %d" % (len(request.question)))
                 continue
             if str(request.question[0].name).endswith('tests.powerdns.com.') and not cls._toResponderQueue.empty():
-                response = cls._toResponderQueue.get()
-                response.id = request.id
-                cls._fromResponderQueue.put(request)
-                cls.ResponderIncrementCounter()
-            else:
+                response = cls._toResponderQueue.get(True, cls._queueTimeout)
+                if response:
+                    response.id = request.id
+                    cls._fromResponderQueue.put(request, True, cls._queueTimeout)
+                    cls.ResponderIncrementCounter()
+                    answered = True
+
+            if not answered:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
                 if request.question[0].rdclass == dns.rdataclass.IN:
@@ -228,7 +236,7 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def sendUDPQuery(cls, query, response, useQueue=True, timeout=2.0):
         if useQueue:
-            cls._toResponderQueue.put(response)
+            cls._toResponderQueue.put(response, True, timeout)
 
         if timeout:
             cls._sock.settimeout(timeout)
@@ -245,7 +253,7 @@ class DNSDistTest(unittest.TestCase):
         receivedQuery = None
         message = None
         if useQueue and not cls._fromResponderQueue.empty():
-            receivedQuery = cls._fromResponderQueue.get(query)
+            receivedQuery = cls._fromResponderQueue.get(True, timeout)
         if data:
             message = dns.message.from_wire(data)
         return (receivedQuery, message)
@@ -253,7 +261,7 @@ class DNSDistTest(unittest.TestCase):
     @classmethod
     def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0):
         if useQueue:
-            cls._toResponderQueue.put(response)
+            cls._toResponderQueue.put(response, True, timeout)
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if timeout:
             sock.settimeout(timeout)
@@ -280,7 +288,22 @@ class DNSDistTest(unittest.TestCase):
         receivedQuery = None
         message = None
         if useQueue and not cls._fromResponderQueue.empty():
-            receivedQuery = cls._fromResponderQueue.get(query)
+            receivedQuery = cls._fromResponderQueue.get(True, timeout)
         if data:
             message = dns.message.from_wire(data)
         return (receivedQuery, message)
+
+    def setUp(self):
+        # This function is called before every tests
+
+        # Clear the responses counters
+        for key in self._responsesCounter:
+            self._responsesCounter[key] = 0
+
+        # Make sure the queues are empty, in case
+        # a previous test failed
+        while not self._toResponderQueue.empty():
+            self._toResponderQueue.get(False)
+
+        while not self._fromResponderQueue.empty():
+            self._toResponderQueue.get(False)

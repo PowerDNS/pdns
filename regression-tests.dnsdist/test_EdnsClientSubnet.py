@@ -30,6 +30,8 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
 
     def testWithoutEDNS(self):
         """
+        ECS: No existing EDNS
+
         Send a query without EDNS, check that the query
         received by the responder has the correct ECS value
         and that the response received from dnsdist does not
@@ -67,6 +69,8 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
 
     def testWithEDNSNoECS(self):
         """
+        ECS: Existing EDNS without ECS
+
         Send a query with EDNS but no ECS value.
         Check that the query received by the responder
         has a valid ECS value and that the response
@@ -104,6 +108,8 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
 
     def testWithEDNSECS(self):
         """
+        ECS: Existing EDNS with ECS
+
         Send a query with EDNS and a crafted ECS value.
         Check that the query received by the responder
         has the initial ECS value (not overwritten)
@@ -162,6 +168,8 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 
     def testWithoutEDNS(self):
         """
+        ECS Override: No existing EDNS
+
         Send a query without EDNS, check that the query
         received by the responder has the correct ECS value
         and that the response received from dnsdist does not
@@ -199,6 +207,8 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 
     def testWithEDNSNoECS(self):
         """
+        ECS Override: Existing EDNS without ECS
+
         Send a query with EDNS but no ECS value.
         Check that the query received by the responder
         has a valid ECS value and that the response
@@ -236,6 +246,8 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 
     def testWithEDNSShorterInitialECS(self):
         """
+        ECS Override: Existing EDNS with ECS (short)
+
         Send a query with EDNS and a crafted ECS value.
         Check that the query received by the responder
         has an overwritten ECS value (not the initial one)
@@ -275,6 +287,8 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 
     def testWithEDNSLongerInitialECS(self):
         """
+        ECS Override: Existing EDNS with ECS (long)
+
         Send a query with EDNS and a crafted ECS value.
         Check that the query received by the responder
         has an overwritten ECS value (not the initial one)
@@ -314,6 +328,8 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
 
     def testWithEDNSSameSizeInitialECS(self):
         """
+        ECS Override: Existing EDNS with ECS (same)
+
         Send a query with EDNS and a crafted ECS value.
         Check that the query received by the responder
         has an overwritten ECS value (not the initial one)
