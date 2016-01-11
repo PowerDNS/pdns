@@ -453,7 +453,7 @@ int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone)
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
 
-  sd.db->list(zone, sd.domain_id, true);
+  sd.db->list(zone, sd.domain_id, false);
 
   while(sd.db->get(rr)) {
     if(!rr.qtype.getCode())
