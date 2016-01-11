@@ -68,5 +68,7 @@ vState validateRecords(const vector<DNSRecord>& recs)
   //  cerr<<"Took "<<sro.d_queries<<" queries"<<endl;
   if(validrrsets.size() == cspmap.size())
     return Secure;
+  if(keys.size())
+    return Bogus;
   return Insecure;
 }
