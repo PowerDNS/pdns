@@ -101,6 +101,16 @@ void DNSFilterEngine::assureZones(int zone)
     d_zones.resize(zone+1);
 }
 
+void DNSFilterEngine::clear(int zone)
+{
+  assureZones(zone);
+  auto& z = d_zones[zone];
+  z.qpolAddr.clear();
+  z.postpolAddr.clear();
+  z.propolName.clear();
+  z.qpolName.clear();
+}
+
 void DNSFilterEngine::addClientTrigger(const Netmask& nm, Policy pol, int zone)
 {
   assureZones(zone);

@@ -338,7 +338,10 @@ void RPZIXFRTracker(const ComboAddress& master, const DNSName& zone, const TSIGT
     for(const auto& delta : deltas) {
       const auto& remove = delta.first;
       const auto& add = delta.second;
-      
+      if(remove.empty()) {
+        L<<Logger::Warning<<"IXFR update is a whole new zone"<<endl;
+        luaconfsCopy.dfe.clear(0);
+      }
       for(const auto& rr : remove) { // should always contain the SOA
 	totremove++;
 	if(rr.d_type == QType::SOA) {

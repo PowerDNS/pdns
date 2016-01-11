@@ -4,7 +4,9 @@
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh"
 
-vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, const TSIGTriplet& tt)
+
+// if you the remove,add pairs always remove a SOA and add a new one. If you get an empty remove, it means you got an AXFR!
+vector<pair<vector<DNSRecord>, vector<DNSRecord> > > getIXFRDeltas(const ComboAddress& master, const DNSName& zone, const DNSRecord& oursr, const TSIGTriplet& tt)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
   vector<uint8_t> packet;
@@ -82,10 +84,14 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > >   getIXFRDeltas(const Combo
  done:;
   for(unsigned int pos = 1;pos < records.size();) {
     auto sr = std::dynamic_pointer_cast<SOARecordContent>(records[pos].d_content);
+    vector<DNSRecord> remove, add;
+    if(!sr) { // this is an actual AXFR!
+      return {{remove, records}};
+    }
     if(sr->d_st.serial == masterSOA->d_st.serial)
       break;
     
-    vector<DNSRecord> remove, add;
+
     remove.push_back(records[pos]); // this adds the SOA
     for(pos++; pos < records.size() && records[pos].d_type != QType::SOA; ++pos) {
       remove.push_back(records[pos]);

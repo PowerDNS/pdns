@@ -300,6 +300,7 @@ try
     cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
     for(const auto& delta : deltas) {
+    
       const auto& remove = delta.first;
       const auto& add = delta.second;
 
@@ -310,9 +311,17 @@ try
 	  newserial=std::dynamic_pointer_cast<SOARecordContent>(rr.d_content)->d_st.serial;
 	}
       }
+
       cout<<"This delta ("<<ourSerial<<" - "<<newserial<<") has "<<remove.size()<<" removals, "<<add.size()<<" additions"<<endl;
+      ofstream report(directory +"/delta."+std::to_string(ourSerial)+"-"+std::to_string(newserial));      
+      if(remove.empty()) {
+        cout<<"This delta is a whole new zone"<<endl;
+        report<<"- everything, whole new zone update follow"<<endl;
+        records.clear();
+      }
+
       bool stop=false;
-      ofstream report(directory +"/delta."+std::to_string(ourSerial)+"-"+std::to_string(newserial));
+
       for(const auto& rr : remove) {
 	report<<'-'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.d_content->getZoneRepresentation()<<endl;
 	auto range = records.equal_range(tie(rr.d_name, rr.d_type, rr.d_class, rr.d_content));
@@ -322,7 +331,6 @@ try
 	  report.flush();
 	}
 	records.erase(range.first, range.second);
-
       }
 
       for(const auto& rr : add) {
