@@ -18,6 +18,8 @@ class TestAdvancedFixupCase(DNSDistTest):
 
     def testAdvancedFixupCase(self):
         """
+        Advanced: Fixup Case
+
         Send a query with lower and upper chars,
         make the backend return a lowercase version,
         check that dnsdist fixes the response.
@@ -61,6 +63,8 @@ class TestAdvancedRemoveRD(DNSDistTest):
 
     def testAdvancedNoRD(self):
         """
+        Advanced: No RD
+
         Send a query with RD,
         check that dnsdist clears the RD flag.
         """
@@ -95,6 +99,8 @@ class TestAdvancedRemoveRD(DNSDistTest):
 
     def testAdvancedKeepRD(self):
         """
+        Advanced: No RD canary
+
         Send a query with RD for a canary domain,
         check that dnsdist does not clear the RD flag.
         """
@@ -135,6 +141,8 @@ class TestAdvancedAddCD(DNSDistTest):
 
     def testAdvancedSetCD(self):
         """
+        Advanced: Set CD
+
         Send a query with CD cleared,
         check that dnsdist set the CD flag.
         """
@@ -169,6 +177,8 @@ class TestAdvancedAddCD(DNSDistTest):
 
     def testAdvancedKeepNoCD(self):
         """
+        Advanced: Preserve CD canary
+
         Send a query without CD for a canary domain,
         check that dnsdist does not set the CD flag.
         """
@@ -209,6 +219,8 @@ class TestAdvancedSpoof(DNSDistTest):
 
     def testSpoofA(self):
         """
+        Advanced: Spoof A
+
         Send an A query to "spoof.tests.powerdns.com.",
         check that dnsdist sends a spoofed result.
         """
@@ -236,6 +248,8 @@ class TestAdvancedSpoof(DNSDistTest):
 
     def testSpoofAAAA(self):
         """
+        Advanced: Spoof AAAA
+
         Send an AAAA query to "spoof.tests.powerdns.com.",
         check that dnsdist sends a spoofed result.
         """
@@ -263,6 +277,8 @@ class TestAdvancedSpoof(DNSDistTest):
 
     def testSpoofCNAME(self):
         """
+        Advanced: Spoof CNAME
+
         Send an A query for "cnamespoof.tests.powerdns.com.",
         check that dnsdist sends a spoofed result.
         """
@@ -297,6 +313,8 @@ class TestAdvancedPoolRouting(DNSDistTest):
 
     def testPolicyPool(self):
         """
+        Advanced: Set pool by qname
+
         Send an A query to "pool.tests.powerdns.com.",
         check that dnsdist routes the query to the "real" pool.
         """
@@ -324,6 +342,8 @@ class TestAdvancedPoolRouting(DNSDistTest):
 
     def testDefaultPool(self):
         """
+        Advanced: Set pool by qname canary
+
         Send an A query to "notpool.tests.powerdns.com.",
         check that dnsdist sends no response (no servers
         in the default pool).
@@ -369,6 +389,8 @@ class TestAdvancedRoundRobinLB(DNSDistTest):
 
     def testRR(self):
         """
+        Advanced: Round Robin
+
         Send 100 A queries to "rr.tests.powerdns.com.",
         check that dnsdist routes half of it to each backend.
         """
@@ -382,10 +404,6 @@ class TestAdvancedRoundRobinLB(DNSDistTest):
                                     dns.rdatatype.A,
                                     '192.0.2.1')
         response.answer.append(rrset)
-
-        # clear counters
-        for key in TestAdvancedRoundRobinLB._responsesCounter:
-            TestAdvancedRoundRobinLB._responsesCounter[key] = 0
 
         # the round robin counter is shared for UDP and TCP,
         # so we need to do UDP then TCP to have a clean count
@@ -421,6 +439,8 @@ class TestAdvancedRoundRobinLBOneDown(DNSDistTest):
 
     def testRRWithOneDown(self):
         """
+        Advanced: Round Robin with one server down
+
         Send 100 A queries to "rr.tests.powerdns.com.",
         check that dnsdist routes all of it to the only backend up.
         """
@@ -468,6 +488,8 @@ class TestAdvancedACL(DNSDistTest):
 
     def testACLBlocked(self):
         """
+        Advanced: ACL blocked
+
         Send an A query to "tests.powerdns.com.",
         we expect no response since 127.0.0.1 is not on the
         ACL.
@@ -490,6 +512,8 @@ class TestAdvancedDelay(DNSDistTest):
 
     def testDelayed(self):
         """
+        Advanced: Delayed
+
         Send an A query to "tests.powerdns.com.",
         check that the response delay is longer than 1000 ms
         over UDP, less than that over TCP.

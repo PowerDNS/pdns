@@ -32,10 +32,11 @@ class TestDNSCrypt(DNSDistTest):
     _resolverCertificateValidFrom = time.time() - 60
     _resolverCertificateValidUntil = time.time() + 7200
     _config_params = ['_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+    _dnsdistStartupDelay = 10
 
     def testSimpleA(self):
         """
-        Send an encrypted A query.
+        DNSCrypt: encrypted A query
         """
         client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
         name = 'a.dnscrypt.tests.powerdns.com.'
@@ -64,6 +65,8 @@ class TestDNSCrypt(DNSDistTest):
 
     def testResponseLargerThanPaddedQuery(self):
         """
+        DNSCrypt: response larger than query
+
         Send a small encrypted query (don't forget to take
         the padding into account) and check that the response
         is truncated.

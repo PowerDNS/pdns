@@ -8,6 +8,8 @@ class TestBasics(DNSDistTest):
 
     def testBlockedA(self):
         """
+        Basics: Blocked A query
+
         Send an A query for the powerdns.org domain,
         which is blocked by configuration. We expect
         no response.
@@ -22,7 +24,7 @@ class TestBasics(DNSDistTest):
 
     def testAWithECS(self):
         """
-        Send an A query with an ECS value.
+        Basics: A query with an ECS value
         """
         name = 'awithecs.tests.powerdns.com.'
         ecso = clientsubnetoption.ClientSubnetOption('1.2.3.4')
@@ -50,7 +52,7 @@ class TestBasics(DNSDistTest):
 
     def testSimpleA(self):
         """
-        Send a simple A query without EDNS.
+        Basics: A query without EDNS
         """
         name = 'simplea.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
@@ -80,6 +82,8 @@ class TestBasics(DNSDistTest):
 
     def testAnyIsTruncated(self):
         """
+        Basics: Truncate ANY query
+
         dnsdist is configured to reply with TC to ANY queries,
         send an ANY query and check the result.
         """
@@ -98,6 +102,8 @@ class TestBasics(DNSDistTest):
 
     def testTruncateTC(self):
         """
+        Basics: Truncate TC
+
         dnsdist is configured to truncate TC (default),
         we make the backend send responses
         with TC set and additional content,
@@ -128,6 +134,8 @@ class TestBasics(DNSDistTest):
 
     def testRegexReturnsRefused(self):
         """
+        Basics: Refuse query matching regex
+
         dnsdist is configured to reply 'refused' for query
         matching "evil[0-9]{4,}\\.regex\\.tests\\.powerdns\\.com$".
         We send a query for evil4242.powerdns.com
@@ -148,6 +156,8 @@ class TestBasics(DNSDistTest):
 
     def testDomainAndQTypeReturnsNotImplemented(self):
         """
+        Basics: NOTIMPL for specific name and qtype
+
         dnsdist is configured to reply 'not implemented' for query
         matching "nameAndQtype.tests.powerdns.com." AND qtype TXT/
         We send a TXT query for "nameAndQtype.powerdns.com."
@@ -168,6 +178,8 @@ class TestBasics(DNSDistTest):
 
     def testDomainWithoutQTypeIsNotAffected(self):
         """
+        Basics: NOTIMPL qtype canary
+
         dnsdist is configured to reply 'not implemented' for query
         matching "nameAndQtype.tests.powerdns.com." AND qtype TXT/
         We send a A query for "nameAndQtype.tests.powerdns.com."
@@ -201,6 +213,8 @@ class TestBasics(DNSDistTest):
 
     def testOtherDomainANDQTypeIsNotAffected(self):
         """
+        Basics: NOTIMPL qname canary
+
         dnsdist is configured to reply 'not implemented' for query
         matching "nameAndQtype.tests.powerdns.com." AND qtype TXT/
         We send a TXT query for "OtherNameAndQtype.tests.powerdns.com."
