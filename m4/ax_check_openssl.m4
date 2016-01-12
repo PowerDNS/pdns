@@ -53,7 +53,7 @@ AC_DEFUN([AX_CHECK_OPENSSL], [
             # then use that information and don't search ssldirs
             AC_PATH_PROG([PKG_CONFIG], [pkg-config])
             if test x"$PKG_CONFIG" != x""; then
-                OPENSSL_LDFLAGS=`$PKG_CONFIG libcryptol --libs-only-L 2>/dev/null`
+                OPENSSL_LDFLAGS=`$PKG_CONFIG libcrypto --libs-only-L 2>/dev/null`
                 if test $? = 0; then
                     OPENSSL_LIBS=`$PKG_CONFIG libcrypto --libs-only-l 2>/dev/null`
                     OPENSSL_INCLUDES=`$PKG_CONFIG libcrypto --cflags-only-I 2>/dev/null`
