@@ -364,13 +364,6 @@ void *TCPNameserver::doConnection(void *data)
       sendPacket(reply, fd);
     }
   }
-  catch(DBException &e) {
-    Lock l(&s_plock);
-    delete s_P;
-    s_P = 0;
-
-    L<<Logger::Error<<"TCP Connection Thread unable to answer a question because of a backend error, cycling"<<endl;
-  }
   catch(PDNSException &ae) {
     Lock l(&s_plock);
     delete s_P;
