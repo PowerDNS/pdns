@@ -1620,7 +1620,7 @@ seedRandom(::arg()["entropy-source"]);
     dbBench(cmds.size() > 1 ? cmds[1] : "");
   }
   else if (cmds[0] == "check-all-zones") {
-    bool exitOnError = ((cmds.size() > 2 ? cmds[1] : "") == "exit-on-error");
+    bool exitOnError = ((cmds.size() >= 2 ? cmds[1] : "") == "exit-on-error");
     exit(checkAllZones(dk, exitOnError));
   }
   else if (cmds[0] == "list-all-zones") {
