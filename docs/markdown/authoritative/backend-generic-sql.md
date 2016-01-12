@@ -100,6 +100,50 @@ The autoserial functionality makes PowerDNS generate the SOA serial when the SOA
 serial set to `0` in the database. The serial in SOA responses is set to the
 highest value of the `change_date` field in the "records" table.
 
+
+# Handeling DNSSEC signed zones
+To enable DNSSEC processing, the `backend-dnssec` option must be set to 'yes'.
+
+## Rules for filling out DNSSEC fields
+Two additional fields in the 'records' table are important: 'auth' and 'ordername'.
+These fields are set correctly on an incoming zone transfer, and also by running
+`pdnsutil rectify-zone`.
+
+The 'auth' field should be set to '1' for data for which the zone itself is
+authoritative, which includes the SOA record and its own NS records.
+
+The 'auth' field should be 0 however for NS records which are used for delegation,
+and also for any glue (A, AAAA) records present for this purpose. Do note that
+the DS record for a secure delegation should be authoritative!
+
+The 'ordername' field needs to be filled out depending on the NSEC/NSEC3 mode.
+When running in NSEC3 'Narrow' mode, the ordername field is ignored and best
+left empty. In NSEC/NSEC3 mode, the ordername field should be NULL for any glue
+but filled in for all delegation NS records and all authoritative records. In
+NSEC3 opt-out mode, ordername is NULL for any glue and insecure delegation NS
+records, but filled in for secure delegation NS records and all authoritative records.
+
+In 'NSEC' mode, it should contain the *relative* part of a domain name, in reverse
+order, with dots replaced by spaces. So 'www.uk.powerdnssec.org' in the
+'powerdnssec.org' zone should have 'uk www' as its ordername.
+
+In 'NSEC3' non-narrow mode, the ordername should contain a lowercase base32hex
+encoded representation of the salted & iterated hash of the full record name.
+`pdnsutil hash-zone-record zone record` can be used to calculate this hash.
+
+In addition, PowerDNS fully supports empty non-terminals. If you have a zone
+example.com, and a host a.b.c.example.com in it, rectify-zone (and the AXFR
+client code) will insert b.c.example.com and c.example.com in the records table
+with type NULL (SQL NULL, not 'NULL'). Having these entries provides several benefits.
+We no longer reply NXDOMAIN for these shorter names (this was an RFC violation
+but not one that caused trouble). But more importantly, to do NSEC3 correctly,
+we need to be able to prove existence of these shorter names. The type=NULL
+records entry gives us a place to store the NSEC3 hash of these names.
+
+If your frontend does not add empty non-terminal names to records, you will get
+DNSSEC replies of 3.1-quality, which has served many people well, but might lead
+to issues in the future.
+
 # Queries
 From version 4.0.0 onward, the generic SQL backends use prepared statements for
 their queries. Before 4.0.0, queries were expanded using the C function 'snprintf'

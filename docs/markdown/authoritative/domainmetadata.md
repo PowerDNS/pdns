@@ -78,22 +78,8 @@ key rollover, see the [CDS and CDNSKEY howto](howtos.md#cds-dnskey-key-rollover)
 ## SOA-EDIT
 When serving this zone, modify the SOA serial number in one of several ways.
 Mostly useful to get slaves to re-transfer a zone regularly to get fresh RRSIGs.
-
-Inception refers to the time the RRSIGs got updated in
-[live-signing mode](dnssec.md#records-keys-signatures-hashes-within-powerdns-in-online-signing-mode).
-This happens every week (see [Signatures](dnssec.md#signatures)). The inception
-time does not depend on local timezone, but some modes below will use localtime
-for representation.
-
-Available modes are:
-
-* INCREMENT-WEEKS: Increments the serial with the number of weeks since the epoch. This should work in every setup; but the result won't look like YYYYMMDDSS anymore.
-* INCEPTION-EPOCH (available since 3.1): Sets the new SOA serial number to the maximum of the old SOA serial number, and age in seconds of the last inception. This requires your backend zone to use age in seconds as SOA serial. The result is still the age in seconds of the last change.
-* INCEPTION-INCREMENT (available since 3.3): Uses YYYYMMDDSS format for SOA serial numbers. If the SOA serial from the backend is within two days after inception, it gets incremented by two (the backend should keep SS below 98). Otherwise it uses the maximum of the backend SOA serial number and inception time in YYYYMMDD01 format. This requires your backend zone to use YYYYMMDDSS as SOA serial format. Uses localtime to find the day for inception time.
-* INCEPTION (not recommended): Sets the SOA serial to the last inception time in YYYYMMDD01 format. Uses localtime to find the day for inception time. **Warning**: The SOA serial will only change on inception day, so changes to the zone will get visible on slaves only on the following inception day.
-* INCEPTION-WEEK (not recommended): Sets the SOA serial to the number of weeks since the epoch, which is the last inception time in weeks. **Warning**: Same problem as INCEPTION
-* EPOCH: Sets the SOA serial to the number of seconds since the epoch. **Warning**: Don't combine this with AXFR - the slaves would keep refreshing all the time. If you need fast updates, sync the backend databases directly with incremental updates (or use the same database server on the slaves)
-* NONE: Ignore [`default-soa-edit`](settings.md#default-soa-edit) and/or [`default-soa-edit-signed`](settings.md#default-soa-edit-signed) setings.
+See the [DNSSEC documentation](dnssec.md#soa-edit-ensure-signature-freshness-on-slaves)
+for more information.
 
 ## TSIG-ALLOW-AXFR
 Allow these named TSIG keys to AXFR this zone, see [Provisioning outbound AXFR access](tsig.md#provisioning-outbound-axfr-access).

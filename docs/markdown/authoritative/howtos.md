@@ -176,6 +176,85 @@ When the authoritative server receives a query for the A-record for `example.net
 it will resolve the A record for `mywebapp.paas-provider.net` and serve an answer
 for `example.net` with that A record.
 
+# KSK Rollover
+Before attempting a KSK rollover, please read [RFC 6581 "DNSSEC Operational
+Practices, Version 2", section 4](https://tools.ietf.org/html/rfc6781#section-4)
+carefully to understand the terminology, actions and timelines (TTL and RRSIG
+expiry) involved in rolling a KSK.
+
+This How To describes the "Double-Signature Key Signing Key Rollover" from the
+above mentioned RFC.
+
+To start the rollover, add an **active** new KSK to the zone (example.net in this
+case):
+
+```
+pdnsutil add-zone-key example.net ksk active
+```
+
+Note that a key with same algorith as the KSK to be replaced should be created,
+as this is not an algorithm roll over.
+
+If this zone is of the type 'MASTER', increase the SOA serial. The rollover is
+now in the "New KSK" stage. Retrieve the DS record(s) for the new KSK:
+
+```
+pdnsutil show-zone example.net
+```
+
+And communicate this securely to your registrar/parent zone. Now wait until the
+new DS is published in the parent zone and at least the TLL for the DS records
+has passed. The rollover is now in the "DS Change" state and can continue to the
+"DNSKEY Removal" stage by actually deleting the old KSK.
+
+**Note**: The key-id for the old KSK is shown in the output of `pdnsutil show-zone
+example.net`.
+
+```
+pdnsutil remove-zone-key example.net KEY-ID
+```
+
+The rollover is now complete.
+
+# ZSK Rollover
+This how to describes the way to roll a ZSK that is not a secure entrypoint (a
+ZSK that is not tied to a DS record in the parent zone) using the ["RFC 6781
+Pre-Publish Zone Signing Key Rollover"](https://tools.ietf.org/html/rfc6781#section-4.1.1.1)
+method. The documentation linked above also lists the minimum time between
+stages. **PLEASE READ THAT DOCUMENT CAREFULLY**
+
+First, create a new inactive ZSK for the zone (if one already exists, you can
+skip this step), we add an ECDSA 256 bit key (algorithm 13) here:
+
+```
+pdnsutil add-zone-key example.net zsk inactive ecdsa256
+
+```
+
+You are now almost at the "new DNSKEY"-stage of the rollover, if the zone is of
+type 'MASTER' you'll need to update the SOA serial in the database and wait for
+the slaves to pickup the zone change.
+
+To change the RRSIGs on your records, the new key must be made active. Note: you
+can get the key-ids with `pdnsutil show-zone example.net`:
+
+```
+pdnsutil activate-zone-key example.net new-key-id
+pdnsutil deactivate-zone-key example.net previous-key-id
+```
+
+Again, if this is a 'MASTER'-zone, update the SOA serial. You are now at the "new
+RRSIGs" stage of the roll over.
+
+The last step is to remove the old key from the completely:
+
+```
+pdnsutil remove-zone-key example.net previous-key-id
+```
+
+Don't forget to update the SOA serial for 'MASTER' zones. The rollover is now at
+the "DNSKEY removal" stage and complete.
+
 # CDS & CDNSKEY Key Rollover
 If the upstream registry supports [RFC 7344](https://tools.ietf.org/html/rfc7344)
 key rollovers you can use several [`pdnsutil`](dnssec.md#pdnsutil) commands to do
