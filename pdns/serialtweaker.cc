@@ -46,17 +46,18 @@ bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp)
     if(rr.qtype.getCode() == QType::SOA && rr.qname == qname) {
       string kind;
       dk.getSoaEdit(qname, kind);
-      return editSOARecord(rr, kind);
+      return editSOARecord(rr, kind, qname);
     }
   }
   return false;
 }
 
-bool editSOARecord(DNSResourceRecord& rr, const string& kind) {
+bool editSOARecord(DNSResourceRecord& rr, const string& kind, const DNSName& qname) {
   if(kind.empty())
     return false;
 
   SOAData sd;
+  sd.qname = qname;
   fillSOAData(rr.content, sd);
   sd.serial = calculateEditSOA(sd, kind);
   rr.content = serializeSOAData(sd);
@@ -94,6 +95,8 @@ uint32_t calculateEditSOA(SOAData sd, const string& kind) {
     uint32_t inception = getStartOfWeek();
     if (sd.serial < inception)
       return inception;
+  } else if(!kind.empty()) {
+    L<<Logger::Warning<<"SOA-EDIT type '"<<kind<<"' for zone "<<sd.qname.toStringNoDot()<<" is unknown."<<endl;
   }
   return sd.serial;
 }

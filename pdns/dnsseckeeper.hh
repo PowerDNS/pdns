@@ -174,7 +174,7 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
 uint32_t calculateEditSOA(SOAData sd, const string& kind);
 bool editSOA(DNSSECKeeper& dk, const DNSName& qname, DNSPacket* dp);
-bool editSOARecord(DNSResourceRecord& rr, const string& kind);
+bool editSOARecord(DNSResourceRecord& rr, const string& kind, const DNSName& qname);
 // for SOA-EDIT-DNSUPDATE/API
 uint32_t calculateIncreaseSOA(SOAData sd, const string& increaseKind, const string& editKind);
 bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind);
