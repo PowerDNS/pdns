@@ -142,7 +142,7 @@ $(document).ready(function() {
         $.ajax({
             url: 'jsonstat?command=stats',
             type: 'GET',
-            dataType: 'jsonp',
+            jsonp: false,
             success: function(data, x, y) {
                 $("#questions").text(data["queries"]);
                 $("#acl-drops").text(data["acl-drops"]);
