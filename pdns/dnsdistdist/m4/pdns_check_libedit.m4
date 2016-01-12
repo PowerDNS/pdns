@@ -1,0 +1,1 @@
+../../../m4/pdns_check_libedit.m4

@@ -27,8 +27,8 @@
 #include <netinet/tcp.h>
 #include <limits>
 #include "dolog.hh"
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <readline.h>
+#include <history.h>
 #include "dnsname.hh"
 #include "dnswriter.hh"
 #include "base64.hh"

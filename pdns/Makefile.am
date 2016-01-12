@@ -3,7 +3,8 @@ JSON11_LIBS = -L$(top_srcdir)/ext/json11 -ljson11
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
-	$(MBEDTLS_CFLAGS)
+	$(MBEDTLS_CFLAGS) \
+	$(LIBEDIT_CFLAGS)
 
 AM_CXXFLAGS = \
 	-DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -647,7 +648,7 @@ dnsdist_LDFLAGS = \
 
 dnsdist_LDADD = \
 	$(LUA_LIBS) \
-	$(READLINE_LIBS) \
+	$(LIBEDIT_LIBS) \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS)
