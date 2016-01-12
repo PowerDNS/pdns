@@ -73,17 +73,17 @@ EOF
 UPDATE domains SET type = 'MASTER', notified_serial = NULL;
 EOF
 	# setup tsig keys
-        ../pdns/pdnssec --config-name=gsqlite3-master --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
-	../pdns/pdnssec --config-name=gsqlite3-slave --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
+        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
+	../pdns/pdnsutil --config-name=gsqlite3-slave --config-dir=. import-tsig-key tsig.com $ALGORITHM "$KEY"
 	../pdns/zone2sql --transactions --gsqlite --zone=zones/example.com --zone-name=example.com | sqlite3 slave.db
 	# setup supermaster
 	sqlite3 slave.db <<EOF
 UPDATE domains SET type = 'SLAVE', master = '127.0.0.1' WHERE name = 'example.com';
 EOF
 	# setup metadata on master
-        ../pdns/pdnssec --config-name=gsqlite3-master --config-dir=. set-meta example.com TSIG-ALLOW-AXFR tsig.com
-	../pdns/pdnssec --config-name=gsqlite3-master --config-dir=. set-meta test.com TSIG-ALLOW-AXFR tsig.com
-        ../pdns/pdnssec --config-name=gsqlite3-slave --config-dir=. set-meta example.com AXFR-MASTER-TSIG tsig.com
+        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta example.com TSIG-ALLOW-AXFR tsig.com
+	../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta test.com TSIG-ALLOW-AXFR tsig.com
+        ../pdns/pdnsutil --config-name=gsqlite3-slave --config-dir=. set-meta example.com AXFR-MASTER-TSIG tsig.com
 	# i suppose we are done here...
 }
 

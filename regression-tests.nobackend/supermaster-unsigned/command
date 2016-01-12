@@ -72,8 +72,8 @@ EOF
 UPDATE domains SET type = 'SLAVE', master = '127.0.0.1' WHERE name = 'example.com';
 EOF
 	# setup metadata on master
-        ../pdns/pdnssec --config-name=gsqlite3-master --config-dir=. set-meta example.com ALLOW-AXFR-FROM 127.0.0.2
-        ../pdns/pdnssec --config-name=gsqlite3-master --config-dir=. set-meta test.com ALLOW-AXFR-FROM 127.0.0.2
+        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta example.com ALLOW-AXFR-FROM 127.0.0.2
+        ../pdns/pdnsutil --config-name=gsqlite3-master --config-dir=. set-meta test.com ALLOW-AXFR-FROM 127.0.0.2
 	# i suppose we are done here...
 }
 
