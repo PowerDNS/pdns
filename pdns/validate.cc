@@ -103,8 +103,9 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  unsigned int now=time(0);
 	  if(signature->d_siginception < now && signature->d_sigexpire > now)
 	    isValid = DNSCryptoKeyEngine::makeFromPublicKeyString(l.d_algorithm, l.d_key)->verify(msg, signature->d_signature);
-	  else
+	  else {
 	    DLOG(cerr<<"signature is expired/not yet valid"<<endl);
+          }
 	}
 	catch(std::exception& e) {
 	  DLOG(cerr<<"Error validating with engine: "<<e.what()<<endl);
@@ -114,8 +115,9 @@ void validateWithKeySet(const cspmap_t& rrsets, cspmap_t& validated, const keyse
 	  //	  cerr<<"valid"<<endl;
 	  //	  cerr<<"! validated "<<i->first.first<<"/"<<DNSRecordContent::NumberToType(signature->d_type)<<endl;
 	}
-	else 
+	else {
           DLOG(cerr<<"signature invalid"<<endl);
+        }
 	if(signature->d_type != QType::DNSKEY) {
 	  dotEdge(signature->d_signer,
 		  "DNSKEY", signature->d_signer, std::to_string(signature->d_tag),
@@ -284,8 +286,9 @@ vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, keyset_t &keyset)
             validkeys=tkeys;
             break;
           }
-	  else
+	  else {
 	    DLOG(cerr<<"Validation did not succeed!"<<endl);
+          }
         }
 	//        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
       }
