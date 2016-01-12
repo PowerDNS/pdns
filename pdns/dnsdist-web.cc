@@ -74,7 +74,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       resp.headers["WWW-Authenticate"] = "basic realm=\"PowerDNS\"";
 
     }
-    else if(command=="stats") {
+    else if(req.url.path=="/jsonstat" && command=="stats") {
       resp.status=200;
 
       auto obj=Json::object {
@@ -98,7 +98,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
     }
-    else if(command=="dynblocklist") {
+    else if(req.url.path=="/jsonstat" && command=="dynblocklist") {
       resp.status=200;
  
       Json::object obj;
