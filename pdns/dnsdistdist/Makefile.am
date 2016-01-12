@@ -20,6 +20,7 @@ EXTRA_DIST=dnslabeltext.rl \
 	   delaypipe.cc delaypipe.hh \
 	   html \
 	   dnsdist.1 \
+	   dnsdist.1.md \
 	   .version \
 	   contrib
 
