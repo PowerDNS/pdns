@@ -14,7 +14,7 @@
 #include "base64.hh"
 
 
-bool compareAuthorization(YaHTTP::Request& req, const string &expected_password)
+static bool compareAuthorization(YaHTTP::Request& req, const string &expected_password)
 {
   // validate password
   YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
@@ -34,6 +34,20 @@ bool compareAuthorization(YaHTTP::Request& req, const string &expected_password)
   return auth_ok;
 }
 
+static void handleCORS(YaHTTP::Request& req, YaHTTP::Response& resp)
+{
+  YaHTTP::strstr_map_t::iterator origin = req.headers.find("Origin");
+  if (origin != req.headers.end()) {
+    if (req.method == "OPTIONS") {
+      /* Pre-flight request */
+      resp.headers["Access-Control-Allow-Methods"] = "GET";
+      resp.headers["Access-Control-Allow-Headers"] = "Authorization";
+    }
+
+    resp.headers["Access-Control-Allow-Origin"] = origin->second;
+    resp.headers["Access-Control-Allow-Credentials"] = "true";
+  }
+}
 
 static void connectionThread(int sock, ComboAddress remote, string password)
 {
@@ -67,57 +81,68 @@ static void connectionThread(int sock, ComboAddress remote, string password)
     resp.headers["X-XSS-Protection"] = "1; mode=block";
     resp.headers["Content-Security-Policy"] = "default-src 'self'; img-src *; style-src 'self' 'unsafe-inline'";
 
-    if (!compareAuthorization(req, password)) {
+    if(req.method == "OPTIONS") {
+      /* the OPTIONS method should not require auth, otherwise it breaks CORS */
+      handleCORS(req, resp);
+      resp.status=200;
+    }
+    else if (!compareAuthorization(req, password)) {
       errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, remote.toStringWithPort());
       resp.status=401;
       resp.body="<h1>Unauthorized</h1>";
       resp.headers["WWW-Authenticate"] = "basic realm=\"PowerDNS\"";
 
     }
-    else if(req.url.path=="/jsonstat" && command=="stats") {
-      resp.status=200;
-
-      auto obj=Json::object {
-	{ "packetcache-hits", 0},
-	{ "packetcache-misses", 0},
-	{ "over-capacity-drops", 0 },
-	{ "too-old-drops", 0 },
-	{ "server-policy", g_policy.getLocal()->name}
-      };
-
-      for(const auto& e : g_stats.entries) {
-	if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
-	  obj.insert({e.first, (int)(*val)->load()});
-	else if (const auto& val = boost::get<double*>(&e.second))
-	  obj.insert({e.first, (**val)});
-	else
-	  obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
-      }
-      Json my_json = obj;
-
-      resp.headers["Content-Type"] = "application/json";
-      resp.body=my_json.dump();
+    else if(req.method != "GET") {
+      resp.status=405;
     }
-    else if(req.url.path=="/jsonstat" && command=="dynblocklist") {
+    else if(req.url.path=="/jsonstat") {
+      handleCORS(req, resp);
       resp.status=200;
- 
-      Json::object obj;
-      auto slow = g_dynblockNMG.getCopy();
-      struct timespec now;
-      clock_gettime(CLOCK_MONOTONIC, &now);
-      for(const auto& e: slow) {
-	if(now < e->second.until ) {
-	  Json::object thing{{"reason", e->second.reason}, {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
-							     {"blocks", (double)e->second.blocks} };
-	  obj.insert({e->first.toString(), thing});
-	}
-      }
-      Json my_json=obj;
 
-      resp.headers["Content-Type"] = "application/json";
-      resp.body=my_json.dump();
+      if(command=="stats") {
+        auto obj=Json::object {
+          { "packetcache-hits", 0},
+          { "packetcache-misses", 0},
+          { "over-capacity-drops", 0 },
+          { "too-old-drops", 0 },
+          { "server-policy", g_policy.getLocal()->name}
+        };
+
+        for(const auto& e : g_stats.entries) {
+          if(const auto& val = boost::get<DNSDistStats::stat_t*>(&e.second))
+            obj.insert({e.first, (int)(*val)->load()});
+          else if (const auto& val = boost::get<double*>(&e.second))
+            obj.insert({e.first, (**val)});
+          else
+            obj.insert({e.first, (int)(*boost::get<DNSDistStats::statfunction_t>(&e.second))(e.first)});
+        }
+        Json my_json = obj;
+        resp.body=my_json.dump();
+        resp.headers["Content-Type"] = "application/json";
+      }
+      else if(command=="dynblocklist") {
+        Json::object obj;
+        auto slow = g_dynblockNMG.getCopy();
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        for(const auto& e: slow) {
+          if(now < e->second.until ) {
+            Json::object thing{{"reason", e->second.reason}, {"seconds", (double)(e->second.until.tv_sec - now.tv_sec)},
+							     {"blocks", (double)e->second.blocks} };
+            obj.insert({e->first.toString(), thing});
+          }
+        }
+        Json my_json = obj;
+        resp.body=my_json.dump();
+        resp.headers["Content-Type"] = "application/json";
+      }
+      else {
+        resp.status=404;
+      }
     }
     else if(req.url.path=="/api/v1/servers/localhost") {
+      handleCORS(req, resp);
       resp.status=200;
 
       Json::array servers;
