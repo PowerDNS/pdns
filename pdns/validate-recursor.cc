@@ -38,19 +38,20 @@ vState validateRecords(const vector<DNSRecord>& recs)
 
   SRRecordOracle sro;
 
+  vState state;
   if(numsigs) {
     for(const auto& csp : cspmap) {
       for(const auto& sig : csp.second.signatures) {
-	getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
-	//	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl;
+        state = getKeysFor(sro, sig->d_signer, keys); // XXX check validity here
+        //	cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys"<<endl;
       }
     }
-
+    if(state == Bogus) return state;
     validateWithKeySet(cspmap, validrrsets, keys);
   }
   else {
     //    cerr<<"no sigs, hoping for Insecure"<<endl;
-    vState state = getKeysFor(sro, recs.begin()->d_name, keys); // um WHAT DOES THIS MEAN - try first qname??
+    state = getKeysFor(sro, recs.begin()->d_name, keys); // um WHAT DOES THIS MEAN - try first qname??
     //    cerr<<"! state = "<<vStates[state]<<", now have "<<keys.size()<<" keys "<<endl;
     return state;
   }
@@ -67,5 +68,7 @@ vState validateRecords(const vector<DNSRecord>& recs)
   //  cerr<<"Took "<<sro.d_queries<<" queries"<<endl;
   if(validrrsets.size() == cspmap.size())
     return Secure;
+  if(keys.size())
+    return Bogus;
   return Insecure;
 }

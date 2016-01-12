@@ -430,6 +430,7 @@ int SyncRes::doResolve(const DNSName &qname, const QType &qtype, vector<DNSRecor
   LOG(prefix<<qname.toString()<<": No cache hit for '"<<qname.toString()<<"|"<<qtype.getName()<<"', trying to find an appropriate NS record"<<endl);
 
   DNSName subdomain(qname);
+  if(qtype == QType::DS) subdomain.chopOff();
 
   set<DNSName> nsset;
   bool flawedNSSet=false;
