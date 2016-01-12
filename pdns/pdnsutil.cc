@@ -1132,9 +1132,59 @@ bool showZone(DNSSECKeeper& dk, const DNSName& zone)
      cerr << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
   }
   
-  cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned"<<endl;
+  if (dk.isPresigned(zone)) {
+    cout <<"Zone is " << (dk.isPresigned(zone) ? "" : "not ") << "presigned"<<endl;
+    // get us some keys
+    vector<DNSKEYRecordContent> keys;
+    DNSResourceRecord rr;
 
-  if(keyset.empty())  {
+    B.lookup(QType(QType::DNSKEY), DNSName(zone));
+    while(B.get(rr)) {
+      if (rr.qtype != QType::DNSKEY) continue;
+      keys.push_back(*dynamic_cast<DNSKEYRecordContent*>(DNSKEYRecordContent::make(rr.getZoneRepresentation())));
+    }
+
+    if(keys.empty()) {
+      cerr << "No keys for zone '"<<zone.toString()<<"'."<<endl;
+      return true;
+    }
+
+    if(!haveNSEC3)
+      cout<<"Zone has NSEC semantics"<<endl;
+    else
+      cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+    cout << "keys: "<<endl;
+    sort(keys.begin(),keys.end());
+    reverse(keys.begin(),keys.end());
+    bool shown=false;
+    for(const auto& key : keys) {
+      string algname;
+      algorithm2name(key.d_algorithm,algname);
+      int bits;
+      if (key.d_key[0] == 0)
+        bits = *(uint16_t*)(key.d_key.c_str()+1);
+      else
+        bits = *(uint8_t*)key.d_key.c_str();
+      bits = (key.d_key.size() - (bits+1))*8;
+      cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
+      cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
+      if (shown) continue;
+      shown=true;
+      cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+      cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 2).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      try {
+        cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 3).getZoneRepresentation() << " ; ( GOST R 34.11-94 digest )" << endl;
+      }
+      catch(...)
+      {}
+      try {
+        cout<<"DS = "<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, 4).getZoneRepresentation() << " ; ( SHA-384 digest )" << endl;
+      }
+      catch(...)
+      {}
+    }
+  }
+  else if(keyset.empty())  {
     cerr << "No keys for zone '"<<zone.toString()<<"'."<<endl;
   }
   else {  
