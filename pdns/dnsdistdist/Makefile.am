@@ -22,7 +22,8 @@ EXTRA_DIST=dnslabeltext.rl \
 	   dnsdist.1 \
 	   dnsdist.1.md \
 	   .version \
-	   contrib
+	   contrib \
+	   build-aux/gen-version
 
 if UNIT_TESTS
 bin_PROGRAMS = dnsdist testrunner
