@@ -224,6 +224,19 @@ public:
   }
 };
 
+class AllowAction : public DNSAction
+{
+public:
+  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  {
+    return Action::Allow;
+  }
+  string toString() const override
+  {
+    return "allow";
+  }
+};
+
 
 class QPSAction : public DNSAction
 {

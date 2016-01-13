@@ -588,6 +588,10 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSAction>(new DropAction);
     });
 
+  g_lua.writeFunction("AllowAction", []() {
+      return std::shared_ptr<DNSAction>(new AllowAction);
+    });
+
   g_lua.writeFunction("DelayAction", [](int msec) {
       return std::shared_ptr<DNSAction>(new DelayAction(msec));
     });
