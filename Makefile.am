@@ -10,7 +10,6 @@ EXTRA_DIST = \
 	README \
 	.version \
 	build-aux/gen-version \
-	build-scripts/semistaticg++ \
 	codedocs/doxygen.conf \
 	contrib/powerdns.solaris.init.d \
 	contrib/systemd-pdns-recursor.service \
