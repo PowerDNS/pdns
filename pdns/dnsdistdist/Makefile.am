@@ -12,14 +12,11 @@ BUILT_SOURCES=htmlfiles.h
 htmlfiles.h: html/*
 	./incfiles > $@
 
-man_MANS=dnsdist.1
-
 EXTRA_DIST=dnslabeltext.rl \
 	   dnsdistconf.lua \
 	   README.md \
 	   delaypipe.cc delaypipe.hh \
 	   html \
-	   dnsdist.1 \
 	   dnsdist.1.md \
 	   .version \
 	   contrib \
@@ -118,3 +115,19 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(SANITIZER_FLAGS)
 
+MANPAGES=dnsdist.1
+
+dist_man_MANS=$(MANPAGES)
+
+if HAVE_PANDOC
+$(MANPAGES): %: %.md
+	$(AM_V_GEN)$(PANDOC) -s -t man $< -o $@
+else
+if HAVE_MANPAGES
+#nothing
+else
+$(MANPAGES):
+	echo "You need pandoc to generate the manpages"
+	exit 1
+endif
+endif
