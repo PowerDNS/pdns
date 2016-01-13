@@ -47,7 +47,6 @@ EXTRA_DIST = \
 	bindparser.h \
 	named.conf.parsertest \
 	pdns.conf-dist \
-	dnsdistdist/html \
 	delaypipe.hh delaypipe.cc
 
 BUILT_SOURCES = \
