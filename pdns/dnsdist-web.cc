@@ -79,7 +79,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
     resp.headers["X-Frame-Options"] = "deny";
     resp.headers["X-Permitted-Cross-Domain-Policies"] = "none";
     resp.headers["X-XSS-Protection"] = "1; mode=block";
-    resp.headers["Content-Security-Policy"] = "default-src 'self'; img-src *; style-src 'self' 'unsafe-inline'";
+    resp.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
 
     if(req.method == "OPTIONS") {
       /* the OPTIONS method should not require auth, otherwise it breaks CORS */
@@ -228,6 +228,8 @@ static void connectionThread(int sock, ComboAddress remote, string password)
         resp.headers["Content-Type"] = "text/css";
       else if(parts.back() == "js")
         resp.headers["Content-Type"] = "application/javascript";
+      else if(parts.back() == "png")
+        resp.headers["Content-Type"] = "image/png";
       resp.status=200;
     }
     else if(resp.url.path=="/") {
