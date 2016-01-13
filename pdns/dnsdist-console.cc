@@ -1,7 +1,7 @@
 #include "dnsdist.hh"
 #include "sodcrypto.hh"
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <readline.h>
+#include <history.h>
 #include <fstream>
 #include "dolog.hh"
 
@@ -233,9 +233,10 @@ char** my_completion( const char * text , int start,  int end)
   char **matches=0;
   if (start == 0)
     matches = rl_completion_matches ((char*)text, &my_generator);
-  else
-    rl_bind_key('\t',rl_abort);
- 
+
+  // skip default filename completion.
+  rl_attempted_completion_over = 1;
+
   return matches;
 }
 }
