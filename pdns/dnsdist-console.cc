@@ -188,7 +188,7 @@ char* my_generator(const char* text, int state)
       "addDisableValidationRule(", "addDNSCryptBind(", "addDomainBlock(",
       "addDomainSpoof(", "addDynBlocks(", "addLocal(", "addLuaAction(",
       "addNoRecurseRule(", "addPoolRule(", "addQPSLimit(", "addQPSPoolRule(",
-      "AllRule(", "AndRule(",
+      "AllowAction(", "AllRule(", "AndRule(",
       "benchRule(",
       "carbonServer(", "controlSocket(", "clearDynBlocks()",
       "DelayAction(", "delta()", "DisableValidationAction(", "DropAction(",
