@@ -8,7 +8,7 @@ MySQL replication has proven to be very robust and well suited, even over transa
 To use native replication, configure your backend storage to do the replication and do not configure PDNS to do so.
 
 # Master operation
-When operating as a master, PDNS sends out notifications of changes to slaves, which react to these notifications by querying PDNS to see if the zone changed, and transferring its contents if it has. Notifications are a way to promptly propagate zone changes to slaves, as described in [RFC 1996](http://tools.ietf.org/html/rfc1996). Since version 4.0, the NOTIFY messages have a TSIG record added (transaction signature) if zone has been configured to use TSIG.
+When operating as a master, PDNS sends out notifications of changes to slaves, which react to these notifications by querying PDNS to see if the zone changed, and transferring its contents if it has. Notifications are a way to promptly propagate zone changes to slaves, as described in [RFC 1996](http://tools.ietf.org/html/rfc1996). Since version 4.0, the NOTIFY messages have a TSIG record added (transaction signature) if zone has been configured to use TSIG and feature has been enabled.
 
 **Warning**: Master support is OFF by default, turn it on by adding [`master`](settings.md#master) to the configuration.
 
