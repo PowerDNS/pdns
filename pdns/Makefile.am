@@ -52,7 +52,7 @@ EXTRA_DIST = \
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	bindparser.h htmlfiles.h 
+	bindparser.h
 
 CLEANFILES = \
 	*.gcda \
@@ -99,7 +99,6 @@ EXTRA_PROGRAMS = \
 	calidns \
 	dnsbulktest \
 	dnsdemog \
-	dnsdist \
 	dnsgram \
 	dnsreplay \
 	dnsscan \
@@ -611,7 +610,11 @@ dnstcpbench_LDADD = \
 	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
-dnsdist_SOURCES = \
+if HAVE_DNSDISTDISTHTML
+BUILT_SOURCES += htmlfiles.h
+EXTRA_PROGRAMS += dnsdist
+
+nodist_dnsdist_SOURCES = \
 	base32.cc \
 	base64.hh \
 	dns.cc \
@@ -651,6 +654,10 @@ dnsdist_LDADD = \
 	$(RT_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(LIBSODIUM_LIBS)
+
+htmlfiles.h: $(srcdir)/dnsdistdist/html/*
+	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
+endif
 
 nsec3dig_SOURCES = \
 	base32.cc \
@@ -1225,9 +1232,6 @@ endif
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
-
-htmlfiles.h: $(srcdir)/dnsdistdist/html/*
-	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
 
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@
