@@ -9,9 +9,9 @@ public:
     d_qps(qps), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc)
   {}
 
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
-    ComboAddress zeroport(remote);
+    ComboAddress zeroport(*dq->remote);
     zeroport.sin4.sin_port=0;
     zeroport.truncate(zeroport.sin4.sin_family == AF_INET ? d_ipv4trunc : d_ipv6trunc);
     auto iter = d_limits.find(zeroport);
@@ -45,7 +45,7 @@ public:
   {}
 
 
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* qd) const override
   {
     return d_qps.check();
   }
@@ -69,9 +69,9 @@ public:
   {
 
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
-    return d_nmg.match(remote);
+    return d_nmg.match(*dq->remote);
   }
 
   string toString() const override
@@ -86,7 +86,7 @@ class AllRule : public DNSRule
 {
 public:
   AllRule() {}
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
     return true;
   }
@@ -106,9 +106,9 @@ public:
   {
 
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
-    return dh->cd || (getEDNSZ((const char*)dh, len) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
+    return dq->dh->cd || (getEDNSZ((const char*)dq->dh, dq->len) & EDNS_HEADER_FLAG_DO);    // turns out dig sets ad by default..
   }
 
   string toString() const override
@@ -126,11 +126,11 @@ public:
       d_rules.push_back(r.second);
   } 
 
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
     auto iter = d_rules.begin();
     for(; iter != d_rules.end(); ++iter)
-      if(!(*iter)->matches(remote, qname, qtype, dh, len))
+      if(!(*iter)->matches(dq))
         break;
     return iter == d_rules.end();
   }
@@ -159,9 +159,9 @@ public:
   {
     
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
-    return d_regex.match(qname.toStringNoDot());
+    return d_regex.match(dq->qname->toStringNoDot());
   }
 
   string toString() const override
@@ -180,9 +180,9 @@ public:
   SuffixMatchNodeRule(const SuffixMatchNode& smn) : d_smn(smn)
   {
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
-    return d_smn.check(qname);
+    return d_smn.check(*dq->qname);
   }
   string toString() const override
   {
@@ -198,9 +198,9 @@ public:
   QTypeRule(uint16_t qtype) : d_qtype(qtype)
   {
   }
-  bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const override
+  bool matches(const DNSQuestion* dq) const override
   {
-    return d_qtype == qtype;
+    return d_qtype == dq->qtype;
   }
   string toString() const override
   {
@@ -214,7 +214,7 @@ private:
 class DropAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     return Action::Drop;
   }
@@ -227,7 +227,7 @@ public:
 class AllowAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     return Action::Allow;
   }
@@ -243,7 +243,7 @@ class QPSAction : public DNSAction
 public:
   QPSAction(int limit) : d_qps(limit, limit) 
   {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     if(d_qps.check())
       return Action::Allow;
@@ -263,7 +263,7 @@ class DelayAction : public DNSAction
 public:
   DelayAction(int msec) : d_msec(msec)
   {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     *ruleresult=std::to_string(d_msec);
     return Action::Delay;
@@ -281,7 +281,7 @@ class PoolAction : public DNSAction
 {
 public:
   PoolAction(const std::string& pool) : d_pool(pool) {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     *ruleresult=d_pool;
     return Action::Pool;
@@ -300,7 +300,7 @@ class QPSPoolAction : public DNSAction
 {
 public:
   QPSPoolAction(unsigned int limit, const std::string& pool) : d_qps(limit, limit), d_pool(pool) {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     if(d_qps.check()) {
       *ruleresult=d_pool;
@@ -323,10 +323,10 @@ class RCodeAction : public DNSAction
 {
 public:
   RCodeAction(int rcode) : d_rcode(rcode) {}
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    dh->rcode = d_rcode;
-    dh->qr = true; // for good measure
+    dq->dh->rcode = d_rcode;
+    dq->dh->qr = true; // for good measure
     return Action::HeaderModify;
   }
   string toString() const override
@@ -341,10 +341,10 @@ private:
 class TCAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    dh->tc = true;
-    dh->qr = true; // for good measure
+    dq->dh->tc = true;
+    dq->dh->qr = true; // for good measure
     return Action::HeaderModify;
   }
   string toString() const override
@@ -359,8 +359,9 @@ public:
   SpoofAction(const ComboAddress& a) : d_a(a) { d_aaaa.sin4.sin_family = 0;}
   SpoofAction(const ComboAddress& a, const ComboAddress& aaaa) : d_a(a), d_aaaa(aaaa) {}
   SpoofAction(const string& cname): d_cname(cname) { d_a.sin4.sin_family = 0; d_aaaa.sin4.sin_family = 0; }
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
+    uint16_t qtype = dq->qtype;
     if(d_cname.empty() &&
        ((qtype == QType::A && d_a.sin4.sin_family == 0) ||
         (qtype == QType::AAAA && d_aaaa.sin4.sin_family == 0) || (qtype != QType::A && qtype != QType::AAAA)))
@@ -381,19 +382,19 @@ public:
 				       0, 0, 0, 60,   // TTL
 				       0, rdatalen};
 
-    DNSName ignore((char*)dh, len, sizeof(dnsheader), false, 0, 0, &consumed);
+    DNSName ignore((char*)dq->dh, dq->len, sizeof(dnsheader), false, 0, 0, &consumed);
 
-    if (bufferSize < (sizeof(dnsheader) + consumed + 4 + sizeof(recordstart) + rdatalen)) {
+    if (dq->size < (sizeof(dnsheader) + consumed + 4 + sizeof(recordstart) + rdatalen)) {
       return Action::None;
     }
 
-    dh->qr = true; // for good measure
-    dh->ra = dh->rd; // for good measure
-    dh->ad = false;
-    dh->ancount = htons(1);
-    dh->arcount = 0; // for now, forget about your EDNS, we're marching over it
+    dq->dh->qr = true; // for good measure
+    dq->dh->ra = dq->dh->rd; // for good measure
+    dq->dh->ad = false;
+    dq->dh->ancount = htons(1);
+    dq->dh->arcount = 0; // for now, forget about your EDNS, we're marching over it
 
-    char* dest = ((char*)dh) +sizeof(dnsheader) + consumed + 4;
+    char* dest = ((char*)dq->dh) +sizeof(dnsheader) + consumed + 4;
     memcpy(dest, recordstart, sizeof(recordstart));
     if(qtype==QType::A) 
       memcpy(dest+sizeof(recordstart), &d_a.sin4.sin_addr.s_addr, 4);
@@ -403,7 +404,7 @@ public:
       string wireData = d_cname.toDNSString();
       memcpy(dest+sizeof(recordstart), wireData.c_str(), wireData.length());
     }
-    len = (dest + sizeof(recordstart) + rdatalen) - (char*)dh;
+    dq->len = (dest + sizeof(recordstart) + rdatalen) - (char*)dq->dh;
     return Action::HeaderModify;
   }
   string toString() const override
@@ -432,9 +433,9 @@ private:
 class NoRecurseAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    dh->rd = false;
+    dq->dh->rd = false;
     return Action::HeaderModify;
   }
   string toString() const override
@@ -462,15 +463,15 @@ public:
     if(d_fp)
       fclose(d_fp);
   }
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
     if(!d_fp) {
-      vinfolog("Packet from %s for %s %s with id %d", remote.toStringWithPort(), qname.toString(), QType(qtype).getName(), dh->id);
+      vinfolog("Packet from %s for %s %s with id %d", dq->remote->toStringWithPort(), dq->qname->toString(), QType(dq->qtype).getName(), dq->dh->id);
     }
     else {
-      string out = qname.toDNSString();
+      string out = dq->qname->toDNSString();
       fwrite(out.c_str(), 1, out.size(), d_fp);
-      fwrite((void*)&qtype, 1, 2, d_fp);
+      fwrite((void*)&dq->qtype, 1, 2, d_fp);
     }
     return Action::None;
   }
@@ -487,9 +488,9 @@ private:
 class DisableValidationAction : public DNSAction
 {
 public:
-  DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    dh->cd = true;
+    dq->dh->cd = true;
     return Action::HeaderModify;
   }
   string toString() const override

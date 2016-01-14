@@ -410,8 +410,8 @@ table of domain suffixes.  This is identical to how `addPoolRule()` selects.
 
 The function should look like this:
 ```
-function luarule(remote, qname, qtype, dh, len)
-        if(qtype==35) -- NAPTR
+function luarule(dq)
+        if(dq.qtype==35) -- NAPTR
         then
                 return DNSAction.Pool, "abuse" -- send to abuse pool
         else
@@ -570,7 +570,7 @@ for example:
 
 ```
 counter=0
-function luaroundrobin(servers, remote, qname, qtype, dh) 
+function luaroundrobin(servers, dq)
 	 counter=counter+1
 	 return servers[1+(counter % #servers)]
 end
@@ -589,12 +589,12 @@ To implement a split horizon, try:
 ```
 authServer=newServer({address="2001:888:2000:1d::2", pool="auth"})
 
-function splitSetup(servers, remote, qname, qtype, dh)
-	 if(dh:getRD() == false)
+function splitSetup(servers, dq)
+	 if(dq.dh:getRD() == false)
 	 then
-		return leastOutstanding.policy(getPoolServers("auth"), remote, qname, qtype, dh)
+		return leastOutstanding.policy(getPoolServers("auth"), dq)
 	 else
-		return leastOutstanding.policy(servers, remote, qname, qtype, dh)
+		return leastOutstanding.policy(servers, dq)
 	 end
 end
 
@@ -873,6 +873,16 @@ instantiate a server with additional parameters
      * `newDNSName(name)`: make a DNSName based on this .-terminated name
      * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
      * member `tostring()`: return as a human friendly . terminated string
+   * DNSQuestion related:
+     * member `dh`: DNSHeader
+     * member `len`: the question length
+     * member `localaddr`: ComboAddress of the local bind this question was received on
+     * member `qname`: DNSName of this question
+     * member `qtype`: QType (as an unsigned integer) of this question
+     * member `remoteaddr`: ComboAddress of the remote client
+     * member `rcode`: RCode of this question
+     * member `size`: the total size of the buffer starting at `dh`
+     * member `tcp`: whether this question was received over a TCP socket
    * DNSHeader related
      * member `getRD()`: get recursion desired flag
      * member `setRD(bool)`: set recursion desired flag
@@ -909,10 +919,10 @@ All hooks
 ---------
 `dnsdist` can call Lua per packet if so configured, and will do so with the following hooks:
 
-  * `bool blockFilter(ComboAddress, DNSName, qtype, DNSHeader)`: if defined, called for every function. If this
+  * `bool blockFilter(ComboAddress, DNSQuestion)`: if defined, called for every function. If this
     returns true, the packet is dropped. If false is returned, `dnsdist` will check if the DNSHeader indicates
     the packet is now a query response. If so, `dnsdist` will answer the client directly with the modified packet.
-  * `server policy(candidates, ComboAddress, DNSName, qtype, DNSHeader)`: if configured with `setServerPolicyLua()` 
+  * `server policy(candidates, DNSQuestion)`: if configured with `setServerPolicyLua()`
     gets called for every packet. Candidates is a table of potential servers to pick from, ComboAddress is the 
     address of the requestor, DNSName and qtype describe name and type of query. DNSHeader meanwhile is available for 
     your inspection.

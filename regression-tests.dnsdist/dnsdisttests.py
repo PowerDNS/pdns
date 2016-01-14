@@ -41,8 +41,8 @@ class DNSDistTest(unittest.TestCase):
     mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
     addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(4))
     block=newDNSName("powerdns.org.")
-    function blockFilter(remote, qname, qtype, dh)
-        if(qname:isPartOf(block))
+    function blockFilter(dq)
+        if(dq.qname:isPartOf(block))
         then
             print("Blocking *.powerdns.org")
             return true

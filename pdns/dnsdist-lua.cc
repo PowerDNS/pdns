@@ -16,19 +16,19 @@ static vector<std::function<void(void)>>* g_launchWork;
 class LuaAction : public DNSAction
 {
 public:
-  typedef std::function<std::tuple<int, string>(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t len, uint16_t bufferSize)> func_t;
+  typedef std::function<std::tuple<int, string>(DNSQuestion* dq)> func_t;
   LuaAction(LuaAction::func_t func) : d_func(func)
   {}
 
-  Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
+  Action operator()(DNSQuestion* dq, string* ruleresult) const override
   {
-    auto ret = d_func(remote, qname, qtype, dh, len, bufferSize);
+    auto ret = d_func(dq);
     if(ruleresult)
       *ruleresult=std::get<1>(ret);
     return (Action)std::get<0>(ret);
   }
 
-  string toString() const 
+  string toString() const override
   {
     return "Lua script";
   }
@@ -658,12 +658,13 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       }
 
       int matches=0;
+      ComboAddress dummy("127.0.0.1");
       DTime dt;
       dt.set();
       for(int n=0; n < times; ++n) {
         const item& i = items[n % items.size()];
-        struct dnsheader* dh = (struct dnsheader*)&i.packet[0];
-        if(rule->matches(i.rem, i.qname, i.qtype, dh, i.packet.size()))
+        DNSQuestion dq(&i.qname, i.qtype, &i.rem, &i.rem, (struct dnsheader*)&i.packet[0], i.packet.size(), i.packet.size(), false);
+        if(rule->matches(&dq))
           matches++;
       }
       double udiff=dt.udiff();
@@ -864,9 +865,12 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 
   g_lua.registerFunction("tostring", &ComboAddress::toString);
   g_lua.registerFunction("tostringWithPort", &ComboAddress::toStringWithPort);
+  g_lua.registerFunction("toString", &ComboAddress::toString);
+  g_lua.registerFunction("toStringWithPort", &ComboAddress::toStringWithPort);
   g_lua.registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
   g_lua.registerFunction("isPartOf", &DNSName::isPartOf);
   g_lua.registerFunction<string(DNSName::*)()>("tostring", [](const DNSName&dn ) { return dn.toString(); });
+  g_lua.registerFunction<string(DNSName::*)()>("toString", [](const DNSName&dn ) { return dn.toString(); });
   g_lua.writeFunction("newDNSName", [](const std::string& name) { return DNSName(name); });
   g_lua.writeFunction("newSuffixMatchNode", []() { return SuffixMatchNode(); });
 
@@ -1177,6 +1181,19 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
         g_outputBuffer="Max UDP outstanding cannot be altered at runtime!\n";
       }
     });
+
+  /* DNSQuestion bindings */
+  /* PowerDNS DNSQuestion compat */
+  g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.local; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void) newLocal; });
+  g_lua.registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName { return *dq.qname; }, [](DNSQuestion& dq, const DNSName newName) { (void) newName; });
+  g_lua.registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });
+  g_lua.registerMember<int (DNSQuestion::*)>("rcode", [](const DNSQuestion& dq) -> int { return dq.dh->rcode; }, [](DNSQuestion& dq, int newRCode) { dq.dh->rcode = newRCode; });
+  g_lua.registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress { return *dq.remote; }, [](DNSQuestion& dq, const ComboAddress newRemote) { (void) newRemote; });
+  /* DNSDist DNSQuestion */
+  g_lua.registerMember("dh", &DNSQuestion::dh);
+  g_lua.registerMember<uint16_t (DNSQuestion::*)>("len", [](const DNSQuestion& dq) -> uint16_t { return dq.len; }, [](DNSQuestion& dq, uint16_t newlen) { dq.len = newlen; });
+  g_lua.registerMember<size_t (DNSQuestion::*)>("size", [](const DNSQuestion& dq) -> size_t { return dq.size; }, [](DNSQuestion& dq, size_t newSize) { (void) newSize; });
+  g_lua.registerMember<bool (DNSQuestion::*)>("tcp", [](const DNSQuestion& dq) -> bool { return dq.tcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
 
   g_lua.writeFunction("setMaxTCPClientThreads", [](uint64_t max) { g_maxTCPClientThreads = max; });
 

@@ -347,6 +347,20 @@ struct DownstreamState
 };
 using servers_t =vector<std::shared_ptr<DownstreamState>>;
 
+struct DNSQuestion
+{
+  DNSQuestion(const DNSName* name, uint16_t type, const ComboAddress* lc, const ComboAddress* rem, struct dnsheader* header, size_t bufferSize, uint16_t queryLen, bool isTcp): qname(name), qtype(type), local(lc), remote(rem), dh(header), size(bufferSize), len(queryLen), tcp(isTcp) {};
+
+  const DNSName* qname;
+  const uint16_t qtype;
+  const ComboAddress* local;
+  const ComboAddress* remote;
+  struct dnsheader* dh;
+  size_t size;
+  uint16_t len;
+  const bool tcp;
+};
+
 template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
 
 void* responderThread(std::shared_ptr<DownstreamState> state);
@@ -357,7 +371,7 @@ extern std::string g_outputBuffer; // locking for this is ok, as locked by g_lua
 class DNSRule
 {
 public:
-  virtual bool matches(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, int len) const =0;
+  virtual bool matches(const DNSQuestion* dq) const =0;
   virtual string toString() const = 0;
   mutable std::atomic<uint64_t> d_matches{0};
 };
@@ -375,12 +389,12 @@ class DNSAction
 {
 public:
   enum class Action { Drop, Nxdomain, Spoof, Allow, HeaderModify, Pool, Delay, None};
-  virtual Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const =0;
+  virtual Action operator()(DNSQuestion*, string* ruleresult) const =0;
   virtual string toString() const = 0;
 };
 
 using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
-typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)> policyfunc_t;
+typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
 
 struct ServerPolicy
 {
@@ -433,12 +447,12 @@ void controlThread(int fd, ComboAddress local);
 vector<std::function<void(void)>> setupLua(bool client, const std::string& config);
 NumberedServerVector getDownstreamCandidates(const servers_t& servers, const std::string& pool);
 
-std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+std::shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq);
 
-std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
-std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh);
+std::shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq);
 int getEDNSZ(const char* packet, unsigned int len);
 uint16_t getEDNSOptionCode(const char * packet, size_t len);
 void dnsdistWebserverThread(int sock, const ComboAddress& local, const string& password);
