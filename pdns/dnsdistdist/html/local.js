@@ -142,7 +142,8 @@ $(document).ready(function() {
         $.ajax({
             url: 'jsonstat?command=stats',
             type: 'GET',
-            dataType: 'jsonp',
+            dataType: 'json',
+            jsonp: false,
             success: function(data, x, y) {
                 $("#questions").text(data["queries"]);
                 $("#acl-drops").text(data["acl-drops"]);
@@ -182,7 +183,7 @@ $(document).ready(function() {
             },
         });
         
-        $.ajax({ url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json',
+        $.ajax({ url: 'api/v1/servers/localhost', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
                      $("#version").text(data["daemon_type"]+" "+data["version"]);
                      $("#acl").text(data["acl"]);
@@ -215,7 +216,7 @@ $(document).ready(function() {
   //          return;
         //      updateRingBuffers();
 
-        $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json',
+        $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
                      var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th align=left>Reason</th></tr>';
 		     var gotsome=false;
