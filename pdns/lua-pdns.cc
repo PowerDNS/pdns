@@ -239,8 +239,10 @@ void popResourceRecordsTable(lua_State *lua, const DNSName &query, vector<DNSRec
     if(!getFromTable(lua, "ttl", rr.d_ttl))
       rr.d_ttl=3600;
 
-    string qname = rr.d_name.toString();
-    if(!getFromTable(lua, "qname", qname))
+    string qname;
+    if(getFromTable(lua, "qname", qname))
+      rr.d_name = DNSName(qname);
+    else
       rr.d_name = query;
 
     if(!getFromTable(lua, "place", tmpnum))
