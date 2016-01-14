@@ -605,6 +605,27 @@ This will forward queries that don't want recursion to the pool of auth
 servers, and will apply the default load balancing policy to all other
 queries.
 
+Dynamic Rule Generation
+-----------------------
+To set dynamic rules, based on recent traffic, define a function called `maintenance()` in Lua. It will
+get called every second, and from this function you can set rules to block traffic based on statistics.
+
+As an example:
+
+```
+function maintenance()
+	addDynBlocks(exceedQRate(20, 10), "Exceeded query rate", 60)
+end
+```
+
+This will dynamically block all hosts that exceeded 20 queries/s as measured
+over the past 10 seconds, and the dynamic block will last for 60 seconds.
+
+Dynamic blocks in force are displayed with `showDynBlocks()` and can be cleared
+with `clearDynBlocks()`. Full set of `exceed` functions is listed in the table of
+all functions below.
+
+
 Running it for real
 -------------------
 First run on the command line, and generate a key:
@@ -856,6 +877,7 @@ instantiate a server with additional parameters
    * `truncateTC(bool)`: if set (default) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22.
    * `fixupCase(bool)`: if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer
  * Dynamic Block related:
+   * `maintenance()`: called every second by dnsdist if defined, call functions below from it
    * `clearDynBlocks()`: clear all dynamic blocks
    * `showDynBlocks()`: show dynamic blocks in force
    * `addDynBlocks(addresses, message[, seconds])`: block the set of addresses with message `msg`, for `seconds` seconds (10 by default)
