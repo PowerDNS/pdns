@@ -238,7 +238,7 @@ ns.2.ghost.example.net.   10 IN A   $PREFIX.19
 EOF
 
 cat > $PREFIX.17/prequery.lua <<EOF
-require 'posix'
+posix = require 'posix'
 
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
