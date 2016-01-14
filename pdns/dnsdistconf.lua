@@ -98,3 +98,8 @@ function splitSetup(servers, remote, qname, qtype, dh)
 end
 
 -- setServerPolicyLua("splitSetup", splitSetup)
+
+function maintenance()
+	addDynBlocks(exceedQRate(20, 10), "Exceeded query rate", 60)
+end
+

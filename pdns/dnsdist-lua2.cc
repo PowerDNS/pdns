@@ -164,7 +164,8 @@ void moreLua()
 			   until.tv_sec += actualSeconds; 
 			   for(const auto& capair : m) {
 			     unsigned int count = 0;
-			     if(auto got = slow.lookup(Netmask(capair.first))) {
+                             auto got = slow.lookup(Netmask(capair.first));
+			     if(got) {
 			       if(until < got->second.until) // had a longer policy
 				 continue;
 			       if(now < got->second.until) // don't inherit count on expired entry
@@ -172,7 +173,8 @@ void moreLua()
 			     }
 			     DynBlock db{msg,until};
 			     db.blocks=count;
-                             warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
+                             if(!got)
+                               warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
 			     slow.insert(Netmask(capair.first)).second=db;
 			   }
 			   g_dynblockNMG.setState(slow);
@@ -204,9 +206,15 @@ void moreLua()
 	  if(q.qtype==type)
 	    counts[q.requestor]++;
 	});
-
-
     });
+
+  g_lua.writeFunction("exceedQRate", [](unsigned int rate, int seconds) {
+      setLuaNoSideEffect();
+      return exceedQueryGen(rate, seconds, [](counts_t& counts, const Rings::Query& q) {
+          counts[q.requestor]++;
+	});
+    });
+
 
   g_lua.writeFunction("topBandwidth", [](boost::optional<unsigned int> top_) {
       setLuaNoSideEffect();

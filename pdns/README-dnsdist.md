@@ -862,6 +862,7 @@ instantiate a server with additional parameters
    * `exceedServFails(rate, seconds)`: get set of addresses that exceed `rate` servails/s over `seconds` seconds
    * `exceedNXDOMAINs(rate, seconds)`: get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds
    * `exceedRespByterate(rate, seconds)`: get set of addresses that exeeded `rate` bytes/s answers over `seconds` seconds
+   * `exceedQRate(rate, seconds)`: get set of address that exceed `rate` queries/s over `seconds` seconds
    * `exceedQTypeRate(type, rate, seconds)`: get set of address that exceed `rate` queries/s for queries of type `type` over `seconds` seconds
  * Advanced functions for writing your own policies and hooks
    * ComboAddress related:

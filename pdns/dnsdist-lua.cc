@@ -132,6 +132,11 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       {"None",(int)DNSAction::Action::None},
       {"Delay", (int)DNSAction::Action::Delay}}
     );
+
+  vector<pair<string, int> > dd;
+  for(const auto& n : QType::names)
+    dd.push_back({n.first, n.second});
+  g_lua.writeVariable("dnsdist", dd);
   
   g_lua.writeFunction("newServer", 
 		      [client](boost::variant<string,newserver_t> pvars, boost::optional<int> qps)
