@@ -10,7 +10,6 @@ set -x
 
 cd pdns/dnsdistdist
 
-./populate
 autoreconf -i
 ./configure
 make dist

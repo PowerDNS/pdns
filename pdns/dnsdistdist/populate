@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-set -x
-
-pandoc -s -t man ../../docs/manpages/dnsdist.1.md > dnsdist.1
-

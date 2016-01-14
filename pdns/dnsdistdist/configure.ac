@@ -45,6 +45,8 @@ AS_IF([test "x$enable_hardening" != "xno"], [
 
 PDNS_ENABLE_SANITIZERS
 
+PDNS_CHECK_PANDOC
+
 LDFLAGS="$RELRO_LDFLAGS $LDFLAGS"
 
 AS_IF([test "x$static" != "xyes"], [
