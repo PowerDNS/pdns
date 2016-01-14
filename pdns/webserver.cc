@@ -148,6 +148,13 @@ static void apiWrapper(WebServer::HandlerFunction handler, HttpRequest* req, Htt
 
   resp->headers["Content-Type"] = "application/json";
 
+  // security headers
+  resp->headers["X-Content-Type-Options"] = "nosniff";
+  resp->headers["X-Frame-Options"] = "deny";
+  resp->headers["X-Permitted-Cross-Domain-Policies"] = "none";
+  resp->headers["X-XSS-Protection"] = "1; mode=block";
+  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
+
   string callback;
 
   if(req->getvars.count("callback")) {
