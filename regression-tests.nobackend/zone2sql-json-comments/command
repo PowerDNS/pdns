@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# We use faketime because the comments table has a modified_at field
+${ZONE2SQL} --gsqlite --zone=zone2sql-json-comments/example.net.zone --json-comments | \
+  perl -p -e 's/[0-9]{10,12}/1234567890/g'

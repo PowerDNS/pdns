@@ -1,0 +1,7 @@
+insert into domains (name,type) values ('example.net','NATIVE');
+insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'example.net', 'SOA', 'ns1.example.net hostmaster.example.net 1 1 1 1 1', 3600, 0, 0 from domains where name='example.net';
+insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'example.net', 'NS', 'ns1.example.net.example.net', 3600, 0, 0 from domains where name='example.net';
+insert into comments (domain_id,name,type,modified_at, comment) select id, 'example.net', 'NS', 1234567890, 'Some NS record' from domains where name='example.net';
+insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'example.net', 'NS', 'ns2.example.net.example.net', 3600, 0, 1 from domains where name='example.net';
+insert into comments (domain_id,name,type,modified_at, comment) select id, 'example.net', 'NS', 1234567890, 'This one is disabled' from domains where name='example.net';
+insert into records (domain_id, name, type,content,ttl,prio,disabled) select id ,'ns1.example.net', 'A', '127.0.0.1', 3600, 0, 1 from domains where name='example.net';
