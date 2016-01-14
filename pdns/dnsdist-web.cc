@@ -75,6 +75,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
     req.getvars.erase("_"); // jQuery cache buster
 
     YaHTTP::Response resp(req);
+    const string charset = "; charset=utf-8";
     resp.headers["X-Content-Type-Options"] = "nosniff";
     resp.headers["X-Frame-Options"] = "deny";
     resp.headers["X-Permitted-Cross-Domain-Policies"] = "none";
@@ -119,7 +120,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
         }
         Json my_json = obj;
         resp.body=my_json.dump();
-        resp.headers["Content-Type"] = "application/json";
+        resp.headers["Content-Type"] = "application/json" + charset;
       }
       else if(command=="dynblocklist") {
         Json::object obj;
@@ -135,7 +136,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
         }
         Json my_json = obj;
         resp.body=my_json.dump();
-        resp.headers["Content-Type"] = "application/json";
+        resp.headers["Content-Type"] = "application/json" + charset;
       }
       else {
         resp.status=404;
@@ -214,7 +215,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	{ "acl", acl},
 	{ "local", localaddresses}
       };
-      resp.headers["Content-Type"] = "application/json";
+      resp.headers["Content-Type"] = "application/json" + charset;
       resp.body=my_json.dump();
 
     }
@@ -223,18 +224,18 @@ static void connectionThread(int sock, ComboAddress remote, string password)
       vector<string> parts;
       stringtok(parts, resp.url.path, ".");
       if(parts.back() == "html")
-        resp.headers["Content-Type"] = "text/html";
+        resp.headers["Content-Type"] = "text/html" + charset;
       else if(parts.back() == "css")
-        resp.headers["Content-Type"] = "text/css";
+        resp.headers["Content-Type"] = "text/css" + charset;
       else if(parts.back() == "js")
-        resp.headers["Content-Type"] = "application/javascript";
+        resp.headers["Content-Type"] = "application/javascript" + charset;
       else if(parts.back() == "png")
         resp.headers["Content-Type"] = "image/png";
       resp.status=200;
     }
     else if(resp.url.path=="/") {
       resp.body.assign(g_urlmap["index.html"]);
-      resp.headers["Content-Type"] = "text/html";
+      resp.headers["Content-Type"] = "text/html" + charset;
       resp.status=200;
     }
     else {
