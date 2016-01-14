@@ -120,7 +120,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
         }
         Json my_json = obj;
         resp.body=my_json.dump();
-        resp.headers["Content-Type"] = "application/json" + charset;
+        resp.headers["Content-Type"] = "application/json";
       }
       else if(command=="dynblocklist") {
         Json::object obj;
@@ -136,7 +136,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
         }
         Json my_json = obj;
         resp.body=my_json.dump();
-        resp.headers["Content-Type"] = "application/json" + charset;
+        resp.headers["Content-Type"] = "application/json";
       }
       else {
         resp.status=404;
@@ -215,7 +215,7 @@ static void connectionThread(int sock, ComboAddress remote, string password)
 	{ "acl", acl},
 	{ "local", localaddresses}
       };
-      resp.headers["Content-Type"] = "application/json" + charset;
+      resp.headers["Content-Type"] = "application/json";
       resp.body=my_json.dump();
 
     }
