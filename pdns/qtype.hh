@@ -78,7 +78,6 @@ public:
 
   static int chartocode(const char *p); //!< convert a character string to a code
 // more solaris fun
-#undef DS
   enum typeenum : uint16_t {
     A=1,
     NS=2,
