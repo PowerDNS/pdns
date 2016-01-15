@@ -154,6 +154,7 @@ script:
   - CFLAGS='-O1' CXXFLAGS='-O1' ./configure
     --with-dynmodules='bind gmysql geoip gpgsql gsqlite3 ldap lua mydns opendbx pipe random remote tinydns'
     --with-modules=''
+    --without-mbedtls
     --with-sqlite3
     --enable-libsodium
     --enable-experimental-pkcs11
