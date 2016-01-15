@@ -428,7 +428,7 @@ Valid return values for `LuaAction` functions are:
  * DNSAction.None: continue to the next rule
  * DNSAction.Nxdomain: return a response with a NXDomain rcode
  * DNSAction.Pool: use the specified pool to forward this query
- * DNSAction.Spoof: currently not implemented, see addDomainSpoof() and SpoofAction()
+ * DNSAction.Spoof: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value
 
 DNSSEC
 ------
@@ -828,12 +828,12 @@ instantiate a server with additional parameters
    * `QPSPoolAction()`: set the packet into the specified pool only if it does not exceed the specified QPS limits
    * `QPSAction()`: drop these packets if the QPS limits are exceeded
    * `RCodeAction()`: reply immediatly by turning the query into a response with the specified rcode
-   * `SpoofAction()`: forge a response with the specified IPv4 (for an A query). If you specify both an IPv4 and an IPv6, IPv4 will be used for A and IPv6 for an AAAA
+   * `SpoofAction()`: forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA). If you specify two addresses, the first one should be an IPv4 and will be used for A, the second an IPv6 for an AAAA
    * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
    * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
    * `addAnyTCRule()`: generate TC=1 answers to ANY queries, moving them to TCP
-   * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter. If ip6 is supplied, generate answers for AAAA queries too
+   * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter (AAAA if ip is an IPv6). If ip6 is supplied, generate answers for AAAA queries too
    * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
    * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
    * `addNoRecurseRule(domain)`: clear the RD flag for all queries matching the specified domain

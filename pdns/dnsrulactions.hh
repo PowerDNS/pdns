@@ -356,7 +356,16 @@ public:
 class SpoofAction : public DNSAction
 {
 public:
-  SpoofAction(const ComboAddress& a) : d_a(a) { d_aaaa.sin4.sin_family = 0;}
+  SpoofAction(const ComboAddress& a)
+  {
+    if (a.sin4.sin_family == AF_INET) {
+      d_a = a;
+      d_aaaa.sin4.sin_family = 0;
+    } else {
+      d_a.sin4.sin_family = 0;
+      d_aaaa = a;
+    }
+  }
   SpoofAction(const ComboAddress& a, const ComboAddress& aaaa) : d_a(a), d_aaaa(aaaa) {}
   SpoofAction(const string& cname): d_cname(cname) { d_a.sin4.sin_family = 0; d_aaaa.sin4.sin_family = 0; }
   DNSAction::Action operator()(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t bufferSize, string* ruleresult) const override
