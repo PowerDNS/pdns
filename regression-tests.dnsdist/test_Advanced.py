@@ -545,3 +545,141 @@ class TestAdvancedDelay(DNSDistTest):
         self.assertEquals(query, receivedQuery)
         self.assertEquals(response, receivedResponse)
         self.assertTrue((end - begin) < timedelta(0, 1));
+
+class TestAdvancedLuaSpoof(DNSDistTest):
+
+    _config_template = """
+    function spoof1rule(remote, qname, qtype, dh, len)
+        if(qtype==1) -- A
+        then
+                return DNSAction.Spoof, "192.0.2.1"
+        elseif(qtype == 28) -- AAAA
+        then
+                return DNSAction.Spoof, "2001:DB8::1"
+        else
+                return DNSAction.None, ""
+        end
+    end
+    function spoof2rule(remote, qname, qtype, dh, len)
+        return DNSAction.Spoof, "spoofedcname.tests.powerdns.com."
+    end
+    addLuaAction("luaspoof1.tests.powerdns.com.", spoof1rule)
+    addLuaAction("luaspoof2.tests.powerdns.com.", spoof2rule)
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testLuaSpoofA(self):
+        """
+        Advanced: Spoofing an A via Lua
+
+        Send an A query to "luaspoof1.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'luaspoof1.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+    def testLuaSpoofAAAA(self):
+        """
+        Advanced: Spoofing an AAAA via Lua
+
+        Send an AAAA query to "luaspoof1.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'luaspoof1.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '2001:DB8::1')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+    def testLuaSpoofAWithCNAME(self):
+        """
+        Advanced: Spoofing an A with a CNAME via Lua
+
+        Send an A query to "luaspoof2.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'luaspoof2.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'spoofedcname.tests.powerdns.com.')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+    def testLuaSpoofAAAAWithCNAME(self):
+        """
+        Advanced: Spoofing an AAAA with a CNAME via Lua
+
+        Send an AAAA query to "luaspoof2.tests.powerdns.com.",
+        check that dnsdist sends a spoofed result.
+        """
+        name = 'luaspoof2.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'spoofedcname.tests.powerdns.com.')
+        expectedResponse.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)
+
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        receivedResponse.id = expectedResponse.id
+        self.assertEquals(expectedResponse, receivedResponse)

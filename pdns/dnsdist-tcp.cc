@@ -275,7 +275,8 @@ void* tcpClientThread(int pipefd)
 	  break;
 	  
 	case DNSAction::Action::Spoof:
-	  ;
+	  spoofResponseFromString(ci.remote, qname, qtype, dh, queryLen, querySize, ruleresult);
+	  /* fall-through */;
 	case DNSAction::Action::HeaderModify:
 	  break;
 	case DNSAction::Action::Allow:
