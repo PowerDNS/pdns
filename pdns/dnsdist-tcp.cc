@@ -131,7 +131,7 @@ void* tcpClientThread(int pipefd)
   /* we get launched with a pipe on which we receive file descriptors from clients that we own
      from that point on */
      
-  typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
+  typedef std::function<bool(const DNSQuestion*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
   
   {
@@ -182,8 +182,7 @@ void* tcpClientThread(int pipefd)
         size_t querySize = qlen <= 4096 ? qlen + 512 : qlen;
         char queryBuffer[querySize];
         const char* query = queryBuffer;
-        uint16_t queryLen = qlen;
-        readn2WithTimeout(ci.fd, queryBuffer, queryLen, g_tcpRecvTimeout);
+        readn2WithTimeout(ci.fd, queryBuffer, qlen, g_tcpRecvTimeout);
 #ifdef HAVE_DNSCRYPT
         std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
 
@@ -191,7 +190,7 @@ void* tcpClientThread(int pipefd)
           dnsCryptQuery = std::make_shared<DnsCryptQuery>();
           uint16_t decryptedQueryLen = 0;
           vector<uint8_t> response;
-          bool decrypted = handleDnsCryptQuery(ci.cs->dnscryptCtx, queryBuffer, queryLen, dnsCryptQuery, &decryptedQueryLen, true, response);
+          bool decrypted = handleDnsCryptQuery(ci.cs->dnscryptCtx, queryBuffer, qlen, dnsCryptQuery, &decryptedQueryLen, true, response);
 
           if (!decrypted) {
             if (response.size() > 0) {
@@ -200,23 +199,23 @@ void* tcpClientThread(int pipefd)
             }
             break;
           }
-          queryLen = decryptedQueryLen;
+          qlen = decryptedQueryLen;
         }
 #endif
 
 	uint16_t qtype;
 	unsigned int consumed = 0;
-	DNSName qname(query, queryLen, sizeof(dnsheader), false, &qtype, 0, &consumed);
+	DNSName qname(query, qlen, sizeof(dnsheader), false, &qtype, 0, &consumed);
+	DNSQuestion dq(&qname, qtype, &ci.cs->local, &ci.remote, (dnsheader*)query, querySize, qlen, true);
 	string ruleresult;
-	struct dnsheader* dh =(dnsheader*)query;
-	const uint16_t * flags = getFlagsFromDNSHeader(dh);
+	const uint16_t * flags = getFlagsFromDNSHeader(dq.dh);
 	uint16_t origFlags = *flags;
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
 	{
 	  WriteLock wl(&g_rings.queryLock);
-	  g_rings.queryRing.push_back({now,ci.remote,qname,queryLen,qtype,*dh});
+	  g_rings.queryRing.push_back({now,ci.remote,qname,dq.len,dq.qtype,*dq.dh});
 	}
 
 	g_stats.queries++;
@@ -233,27 +232,27 @@ void* tcpClientThread(int pipefd)
 	  }
 	}
 
-        if (dh->rd) {
+        if (dq.dh->rd) {
           g_stats.rdQueries++;
         }
 
         if(blockFilter) {
 	  std::lock_guard<std::mutex> lock(g_luamutex);
 	
-	  if(blockFilter(ci.remote, qname, qtype, dh)) {
+	  if(blockFilter(&dq)) {
 	    g_stats.blockFilter++;
 	    goto drop;
           }
-          if(dh->tc && dh->qr) { // don't truncate on TCP/IP!
-            dh->tc=false;        // maybe we should just pass blockFilter the TCP status
-            dh->qr=false;
+          if(dq.dh->tc && dq.dh->qr) { // don't truncate on TCP/IP!
+            dq.dh->tc=false;        // maybe we should just pass blockFilter the TCP status
+            dq.dh->qr=false;
           }
         }
 	
 	DNSAction::Action action=DNSAction::Action::None;
 	for(const auto& lr : *localRulactions) {
-	  if(lr.first->matches(ci.remote, qname, qtype, dh, queryLen)) {
-	    action=(*lr.second)(ci.remote, qname, qtype, dh, queryLen, querySize, &ruleresult);
+	  if(lr.first->matches(&dq)) {
+	    action=(*lr.second)(&dq, &ruleresult);
 	    if(action != DNSAction::Action::None) {
 	      lr.first->d_matches++;
 	      break;
@@ -266,8 +265,8 @@ void* tcpClientThread(int pipefd)
 	  goto drop;
 
 	case DNSAction::Action::Nxdomain:
-	  dh->rcode = RCode::NXDomain;
-	  dh->qr=true;
+	  dq.dh->rcode = RCode::NXDomain;
+	  dq.dh->qr=true;
 	  g_stats.ruleNXDomain++;
 	  break;
 	case DNSAction::Action::Pool: 
@@ -285,9 +284,9 @@ void* tcpClientThread(int pipefd)
 	  break;
 	}
 	
-	if(dh->qr) { // something turned it into a response
-	  if (putNonBlockingMsgLen(ci.fd, queryLen, g_tcpSendTimeout))
-	    writen2WithTimeout(ci.fd, query, queryLen, g_tcpSendTimeout);
+	if(dq.dh->qr) { // something turned it into a response
+	  if (putNonBlockingMsgLen(ci.fd, dq.len, g_tcpSendTimeout))
+	    writen2WithTimeout(ci.fd, query, dq.len, g_tcpSendTimeout);
 
 	  g_stats.selfAnswered++;
 	  goto drop;
@@ -295,7 +294,7 @@ void* tcpClientThread(int pipefd)
 
 	{
 	  std::lock_guard<std::mutex> lock(g_luamutex);
-	  ds = localPolicy->policy(getDownstreamCandidates(g_dstates.getCopy(), pool), ci.remote, qname, qtype, dh);
+	  ds = localPolicy->policy(getDownstreamCandidates(g_dstates.getCopy(), pool), &dq);
 	}
 	int dsock;
 	if(!ds) {
@@ -304,14 +303,14 @@ void* tcpClientThread(int pipefd)
 	}
 
         if (ds->useECS) {
-          uint16_t newLen = queryLen;
-          handleEDNSClientSubnet(queryBuffer, querySize, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
+          uint16_t newLen = dq.len;
+          handleEDNSClientSubnet(queryBuffer, dq.size, consumed, &newLen, largerQuery, &ednsAdded, ci.remote);
           if (largerQuery.empty() == false) {
             query = largerQuery.c_str();
-            queryLen = largerQuery.size();
-            querySize = largerQuery.size();
+            dq.len = largerQuery.size();
+            dq.size = largerQuery.size();
           } else {
-            queryLen = newLen;
+            dq.len = newLen;
           }
         }
 
@@ -324,7 +323,7 @@ void* tcpClientThread(int pipefd)
         ds->queries++;
         ds->outstanding++;
 
-	if(qtype == QType::AXFR || qtype == QType::IXFR)  // XXX fixme we really need to do better
+	if(dq.qtype == QType::AXFR || dq.qtype == QType::IXFR)  // XXX fixme we really need to do better
 	  break;
 
         uint16_t downstream_failures=0;
@@ -341,7 +340,7 @@ void* tcpClientThread(int pipefd)
           break;
         }
 
-        if(!sendNonBlockingMsgLen(dsock, queryLen, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf)) {
+        if(!sendNonBlockingMsgLen(dsock, dq.len, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf)) {
 	  vinfolog("Downstream connection to %s died on us, getting a new one!", ds->getName());
           close(dsock);
           sockets[ds->remote]=dsock=setupTCPDownstream(ds);
@@ -351,10 +350,10 @@ void* tcpClientThread(int pipefd)
 
         try {
           if (ds->sourceItf == 0) {
-            writen2WithTimeout(dsock, query, queryLen, ds->tcpSendTimeout);
+            writen2WithTimeout(dsock, query, dq.len, ds->tcpSendTimeout);
           }
           else {
-            sendMsgWithTimeout(dsock, query, queryLen, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf);
+            sendMsgWithTimeout(dsock, query, dq.len, ds->tcpSendTimeout, ds->remote, ds->sourceAddr, ds->sourceItf);
           }
         }
         catch(const runtime_error& e) {
@@ -456,7 +455,7 @@ void* tcpClientThread(int pipefd)
         unsigned int udiff = 1000000.0*DiffTime(now,answertime);
         {
           std::lock_guard<std::mutex> lock(g_rings.respMutex);
-          g_rings.respRing.push_back({answertime,  ci.remote, qname, qtype, (unsigned int)udiff, (unsigned int)responseLen, *dh, ds->remote});
+          g_rings.respRing.push_back({answertime,  ci.remote, qname, dq.qtype, (unsigned int)udiff, (unsigned int)responseLen, *dq.dh, ds->remote});
         }
 
         largerQuery.clear();

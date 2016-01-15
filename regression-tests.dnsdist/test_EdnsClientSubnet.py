@@ -17,8 +17,8 @@ class TestEdnsClientSubnetNoOverride(DNSDistTest):
     _config_template = """
     truncateTC(true)
     block=newDNSName("powerdns.org.")
-    function blockFilter(remote, qname, qtype, dh)
-        if(qname:isPartOf(block))
+    function blockFilter(dq)
+        if(dq.qname:isPartOf(block))
         then
             print("Blocking *.powerdns.org")
             return true
@@ -152,8 +152,8 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
     _config_template = """
     truncateTC(true)
     block=newDNSName("powerdns.org.")
-    function blockFilter(remote, qname, qtype, dh)
-        if(qname:isPartOf(block))
+    function blockFilter(dq)
+        if(dq.qname:isPartOf(block))
         then
             print("Blocking *.powerdns.org")
             return true

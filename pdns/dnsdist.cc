@@ -322,17 +322,17 @@ LuaContext g_lua;
 
 GlobalStateHolder<ServerPolicy> g_policy;
 
-shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> firstAvailable(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   for(auto& d : servers) {
     if(d.second->isUp() && d.second->qps.check())
       return d.second;
   }
-  return leastOutstanding(servers, remote, qname, qtype, dh);
+  return leastOutstanding(servers, dq);
 }
 
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
-shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   vector<pair<tuple<int,int,double>, shared_ptr<DownstreamState>>> poss;
   /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
@@ -349,7 +349,7 @@ shared_ptr<DownstreamState> leastOutstanding(const NumberedServerVector& servers
   return poss.begin()->second;
 }
 
-shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   vector<pair<int, shared_ptr<DownstreamState>>> poss;
   int sum=0;
@@ -371,19 +371,19 @@ shared_ptr<DownstreamState> valrandom(unsigned int val, const NumberedServerVect
   return p->second;
 }
 
-shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> wrandom(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return valrandom(random(), servers, remote, qname, qtype, dh);
+  return valrandom(random(), servers, dq);
 }
 
 static uint32_t g_hashperturb;
-shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> whashed(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return valrandom(qname.hash(g_hashperturb), servers, remote, qname, qtype, dh);
+  return valrandom(dq->qname->hash(g_hashperturb), servers, dq);
 }
 
 
-shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh)
+shared_ptr<DownstreamState> roundrobin(const NumberedServerVector& servers, const DNSQuestion* dq)
 {
   NumberedServerVector poss;
 
@@ -520,7 +520,7 @@ try
   string largerQuery;
   uint16_t qtype;
 
-  typedef std::function<bool(ComboAddress, DNSName, uint16_t, dnsheader*)> blockfilter_t;
+  typedef std::function<bool(DNSQuestion*)> blockfilter_t;
   blockfilter_t blockFilter = 0;
   {
     std::lock_guard<std::mutex> lock(g_luamutex);
@@ -546,7 +546,6 @@ try
       std::shared_ptr<DnsCryptQuery> dnsCryptQuery = 0;
 #endif
       char* query = packet;
-      size_t querySize = sizeof(packet);
       ssize_t ret = recvmsg(cs->udpFD, &msgh, 0);
 
       cs->queries++;
@@ -570,8 +569,7 @@ try
 	continue;
       }
 
-      uint16_t len = ret;
-
+      uint16_t len = (uint16_t) ret;
 #ifdef HAVE_DNSCRYPT
       if (cs->dnscryptCtx) {
         vector<uint8_t> response;
@@ -609,11 +607,14 @@ try
       const uint16_t origFlags = *flags;
       unsigned int consumed = 0;
       DNSName qname(query, len, sizeof(dnsheader), false, &qtype, NULL, &consumed);
+
+      DNSQuestion dq(&qname, qtype, &cs->local, &remote, dh, sizeof(packet), len, false);
+
       struct timespec now;
       clock_gettime(CLOCK_MONOTONIC, &now);
       {
         WriteLock wl(&g_rings.queryLock);
-        g_rings.queryRing.push_back({now,remote,qname,len,qtype,*dh});
+        g_rings.queryRing.push_back({now,remote,qname,dq.len,dq.qtype,*dq.dh});
       }
 
       if(auto got=localDynBlock->lookup(remote)) {
@@ -628,7 +629,7 @@ try
       if(blockFilter) {
 	std::lock_guard<std::mutex> lock(g_luamutex);
 	
-	if(blockFilter(remote, qname, qtype, dh)) {
+	if(blockFilter(&dq)) {
 	  g_stats.blockFilter++;
 	  continue;
 	}
@@ -639,8 +640,8 @@ try
       string pool;
 
       for(const auto& lr : *localRulactions) {
-	if(lr.first->matches(remote, qname, qtype, dh, len)) {
-	  action=(*lr.second)(remote, qname, qtype, dh, len, querySize, &ruleresult);
+	if(lr.first->matches(&dq)) {
+	  action=(*lr.second)(&dq, &ruleresult);
 	  if(action != DNSAction::Action::None) {
 	    lr.first->d_matches++;
 	    break;
@@ -653,8 +654,8 @@ try
 	g_stats.ruleDrop++;
 	continue;
       case DNSAction::Action::Nxdomain:
-	dh->rcode = RCode::NXDomain;
-	dh->qr=true;
+	dq.dh->rcode = RCode::NXDomain;
+	dq.dh->qr=true;
 	g_stats.ruleNXDomain++;
 	break;
       case DNSAction::Action::Pool: 
@@ -673,11 +674,11 @@ try
 	break;
       }
 
-      if(dh->qr) { // something turned it into a response
+      if(dq.dh->qr) { // something turned it into a response
         char* response = query;
-        uint16_t responseLen = len;
+        uint16_t responseLen = dq.len;
 #ifdef HAVE_DNSCRYPT
-        uint16_t responseSize = querySize;
+        uint16_t responseSize = dq.size;
 #endif
         g_stats.selfAnswered++;
 
@@ -709,7 +710,7 @@ try
       auto policy=localPolicy->policy;
       {
 	std::lock_guard<std::mutex> lock(g_luamutex);
-	ss = policy(candidates, remote, qname, qtype, dh).get();
+	ss = policy(candidates, &dq).get();
       }
 
       if(!ss) {
@@ -735,7 +736,7 @@ try
       ids->origRemote = remote;
       ids->sentTime.start();
       ids->qname = qname;
-      ids->qtype = qtype;
+      ids->qtype = dq.qtype;
       ids->origDest.sin4.sin_family=0;
       ids->delayMsec = delayMsec;
       ids->origFlags = origFlags;
@@ -748,11 +749,11 @@ try
       dh->id = idOffset;
 
       if (ss->useECS) {
-        handleEDNSClientSubnet(query, querySize, consumed, &len, largerQuery, &(ids->ednsAdded), remote);
+        handleEDNSClientSubnet(query, dq.size, consumed, &dq.len, largerQuery, &(ids->ednsAdded), remote);
       }
 
       if (largerQuery.empty()) {
-        ret = udpClientSendRequestToBackend(ss, ss->fd, query, len);
+        ret = udpClientSendRequestToBackend(ss, ss->fd, query, dq.len);
       }
       else {
         ret = udpClientSendRequestToBackend(ss, ss->fd, largerQuery.c_str(), largerQuery.size());

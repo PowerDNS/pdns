@@ -26,8 +26,8 @@ addPoolRule("192.168.1.0/24", "abuse")
 
 addQPSPoolRule("com.", 100, "abuse")
 
-function luarule(remote, qname, qtype, dh, len)
-	if(qtype==35) -- NAPTR
+function luarule(dq)
+	if(dq.qtype==35) -- NAPTR
 	then
 		return DNSAction.Pool, "abuse" -- send to abuse pool
 	else
@@ -54,16 +54,16 @@ truncateNMG:addMask("fe80::/16")
 
 print(string.format("Have %d entries in truncate NMG", truncateNMG:size()))
 
-function blockFilter(remote, qname, qtype, dh)
-	 print(string.format("Got query from %s, (%s) port number: %d", remote:tostring(), remote:tostringWithPort(), remote:getPort()))
-	 if(qtype==255 or truncateNMG:match(remote)) 
+function blockFilter(dq)
+	 print(string.format("Got query from %s, (%s) port number: %d", dq.remoteaddr:toString(), dq.remoteaddr:toStringWithPort(), dq.remoteaddr:getPort()))
+	 if(dq.qtype==255 or truncateNMG:match(dq.remoteaddr))
 	 then
 --	        print("any query, tc=1")
-		dh:setTC(true)
-		dh:setQR(true)
+		dq.dh:setTC(true)
+		dq.dh:setQR(true)
 	 end
 
-	 if(qname:isPartOf(block))
+	 if(dq.qname:isPartOf(block))
 	 then
 		print("Blocking *.powerdns.org")
 		return true
@@ -76,7 +76,7 @@ blockFilter = nil -- this is how you disable a filter
 counter=0
 
 -- called to pick a downstream server, ignores 'up' status
-function luaroundrobin(servers, remote, qname, qtype, dh) 
+function luaroundrobin(servers, dq)
 	 counter=counter+1;
 	 return servers[1+(counter % #servers)]
 end
