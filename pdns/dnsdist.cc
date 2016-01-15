@@ -482,17 +482,17 @@ int getEDNSZ(const char* packet, unsigned int len)
   return 0x100 * (*z) + *(z+1);
 }
 
-void spoofResponseFromString(const ComboAddress& remote, const DNSName& qname, uint16_t qtype, dnsheader* dh, uint16_t& len, uint16_t querySize, const string& spoofContent)
+void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent)
 {
   string result;
   try {
     ComboAddress spoofAddr(spoofContent);
     SpoofAction sa(spoofAddr);
-    sa(remote, qname, qtype, dh, len, querySize, &result);
+    sa(&dq, &result);
   }
   catch(PDNSException &e) {
     SpoofAction sa(spoofContent);
-    sa(remote, qname, qtype, dh, len, querySize, &result);
+    sa(&dq, &result);
   }
 }
 
@@ -662,7 +662,7 @@ try
 	pool=ruleresult;
 	break;
       case DNSAction::Action::Spoof:
-	spoofResponseFromString(remote, qname, qtype, dh, len, querySize, ruleresult);
+	spoofResponseFromString(dq, ruleresult);
 	/* fall-through */;
       case DNSAction::Action::HeaderModify:
 	break;

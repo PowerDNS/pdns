@@ -549,18 +549,18 @@ class TestAdvancedDelay(DNSDistTest):
 class TestAdvancedLuaSpoof(DNSDistTest):
 
     _config_template = """
-    function spoof1rule(remote, qname, qtype, dh, len)
-        if(qtype==1) -- A
+    function spoof1rule(dq)
+        if(dq.qtype==1) -- A
         then
                 return DNSAction.Spoof, "192.0.2.1"
-        elseif(qtype == 28) -- AAAA
+        elseif(dq.qtype == 28) -- AAAA
         then
                 return DNSAction.Spoof, "2001:DB8::1"
         else
                 return DNSAction.None, ""
         end
     end
-    function spoof2rule(remote, qname, qtype, dh, len)
+    function spoof2rule(dq)
         return DNSAction.Spoof, "spoofedcname.tests.powerdns.com."
     end
     addLuaAction("luaspoof1.tests.powerdns.com.", spoof1rule)
