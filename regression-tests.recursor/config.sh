@@ -153,6 +153,9 @@ big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY do
 big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY Dog"
 big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOg"
 big.arthur.example.net.  3600 IN TXT "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG"
+srv.arthur.example.net.  3600 IN SRV 0 100 389 server2.example.net.
+rp.arthur.example.net.   3600 IN RP  ahu.ds9a.nl. counter
+type1234.arthur.example.net. 3600 IN TYPE1234 \# 2 4142
 EOF
 
 mkdir $PREFIX.13
