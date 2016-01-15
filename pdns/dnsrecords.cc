@@ -312,7 +312,6 @@ boilerplate_conv(OPENPGPKEY, 61,
                  conv.xfrBlob(d_keyring);
                  )
 
-#undef DS
 DSRecordContent::DSRecordContent() {}
 boilerplate_conv(DS, 43, 
                  conv.xfr16BitInt(d_tag); 

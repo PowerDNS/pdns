@@ -1,6 +1,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+/*
+ * NOTE: sys/devpoll.h relies on sigset_t being already defined so we need
+ * to include sys/signal.h *before* including sys/devpoll.h.
+ */
+#include <sys/signal.h>
 #include <sys/devpoll.h>
 #include "mplexer.hh"
 #include "sstuff.hh"
@@ -99,11 +104,15 @@ int DevPollFDMultiplexer::run(struct timeval* now)
   int ret=ioctl(d_devpollfd, DP_POLL, &dvp); 
   gettimeofday(now,0); // MANDATORY!
   
-  if(ret < 0 && errno!=EINTR)
+  if(ret < 0 && errno!=EINTR) {
+    delete[] dvp.dp_fds;
     throw FDMultiplexerException("/dev/poll returned error: "+stringerror());
+  }
 
-  if(ret < 1) // thanks AB!
+  if(ret < 1) { // thanks AB!
+    delete[] dvp.dp_fds;
     return 0;
+  }
 
   d_inrun=true;
   for(int n=0; n < ret; ++n) {

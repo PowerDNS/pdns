@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <signal.h>
 #include <ucontext.h>
+// don't pollute the namespace with the DS register (i386 only)
+#undef DS
 #include <queue>
 #include <vector>
 #include <map>
