@@ -189,7 +189,7 @@ EOF
 cat > $PREFIX.15/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == "www.marvin.example.net"
+    if qtype == pdns.A and qname == "www.marvin.example.net."
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -214,7 +214,7 @@ EOF
 cat > $PREFIX.16/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and qname == "www.trillian.example.net"
+    if qtype == pdns.A and qname == "www.trillian.example.net."
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -240,12 +240,12 @@ ns.2.ghost.example.net.   10 IN A   $PREFIX.19
 EOF
 
 cat > $PREFIX.17/prequery.lua <<EOF
-require 'posix'
+posix = require 'posix'
 
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if (string.sub(qname, -20) == ".1.ghost.example.net" and posix.stat('drop-1')) or
-       (string.sub(qname, -20) == ".2.ghost.example.net" and posix.stat('drop-2'))
+    if (string.sub(qname, -21) == ".1.ghost.example.net." and posix.stat('drop-1')) or
+       (string.sub(qname, -21) == ".2.ghost.example.net." and posix.stat('drop-2'))
     then
         dnspacket:setRcode(pdns.NXDOMAIN)
         ret = {}
@@ -272,7 +272,7 @@ i=0
 function prequery ( dnspacket )
     i = i + 1
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(qname, -24) == ".www.1.ghost.example.net"
+    if qtype == pdns.A and string.sub(qname, -25) == ".www.1.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
@@ -300,7 +300,7 @@ EOF
 cat > $PREFIX.19/prequery.lua <<EOF
 function prequery ( dnspacket )
     qname, qtype = dnspacket:getQuestion()
-    if qtype == pdns.A and string.sub(qname, -24) == ".www.2.ghost.example.net"
+    if qtype == pdns.A and string.sub(qname, -25) == ".www.2.ghost.example.net."
     then
         dnspacket:setRcode(pdns.NOERROR)
         ret = {}
