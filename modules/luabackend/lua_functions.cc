@@ -30,8 +30,14 @@
 #include <sstream>
 using namespace std;
 
+// It seems we don't want the coroutine standard library so we can't use
+// luaL_openlibs(). FIXME: is the coroutine library really that bad?
 const luaL_Reg lualibs[] = {
+#if LUA_VERSION_NUM < 502
     {"", luaopen_base},
+#else
+    {"_G", luaopen_base},
+#endif
     {LUA_LOADLIBNAME, luaopen_package},
     {LUA_TABLIBNAME, luaopen_table},
     {LUA_IOLIBNAME, luaopen_io},
@@ -39,6 +45,12 @@ const luaL_Reg lualibs[] = {
     {LUA_STRLIBNAME, luaopen_string},
     {LUA_MATHLIBNAME, luaopen_math},
     {LUA_DBLIBNAME, luaopen_debug},
+#if LUA_VERSION_NUM == 502 || defined(LUA_COMPAT_BITLIB)
+    {LUA_BITLIBNAME, luaopen_bit32},
+#endif
+#if LUA_VERSION_NUM == 503
+    {LUA_UTF8LIBNAME, luaopen_utf8},
+#endif
 //    {LUA_COLIBNAME, luaopen_coroutine},
 #ifdef USE_LUAJIT
     {"bit",     luaopen_bit},
@@ -109,7 +121,7 @@ int l_dnspacket (lua_State *lua) {
     }
 
     lua_pushstring(lua, lb->dnspacket->getRemote().c_str());
-    lua_pushnumber(lua, lb->dnspacket->getRemotePort());
+    lua_pushinteger(lua, lb->dnspacket->getRemotePort());
     lua_pushstring(lua, lb->dnspacket->getLocal().c_str());
     lua_pushstring(lua, lb->dnspacket->getRealRemote().toString().c_str());
 
@@ -151,9 +163,14 @@ void register_lua_functions(lua_State *lua) {
 
     const luaL_Reg *lib = lualibs;
     for (; lib->func; lib++) {
+#if LUA_VERSION_NUM < 502
         lua_pushcfunction(lua, lib->func);
         lua_pushstring(lua, lib->name);
         lua_call(lua, 1, 0);
+#else
+        luaL_requiref(lua, lib->name, lib->func, 1);
+        lua_pop(lua, 1);  /* remove lib */
+#endif
     }
 
     lua_gc(lua, LUA_GCRESTART, 0);
@@ -199,10 +216,10 @@ void register_lua_functions(lua_State *lua) {
 
     lua_newtable(lua);
     for(vector<QType::namenum>::const_iterator iter = QType::names.begin(); iter != QType::names.end(); ++iter) {
-	lua_pushnumber(lua, iter->second);
+	lua_pushinteger(lua, iter->second);
 	lua_setfield(lua, -2, iter->first.c_str());
     }
-    lua_pushnumber(lua, 3);
+    lua_pushinteger(lua, 3);
     lua_setfield(lua, -2, "NXDOMAIN");
     lua_setglobal(lua, "QTypes");
 }
@@ -240,7 +257,7 @@ bool LUABackend::getValueFromTable(lua_State *lua, const std::string& key, DNSNa
 }
 
 bool LUABackend::getValueFromTable(lua_State *lua, uint32_t key, string& value) {
-  lua_pushnumber(lua, key);
+  lua_pushinteger(lua, key);
   lua_gettable(lua, -2);
 
   bool ret = false;
