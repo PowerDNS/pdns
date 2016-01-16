@@ -610,55 +610,6 @@ dnstcpbench_LDADD = \
 	$(MBEDTLS_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
-if HAVE_DNSDISTDISTHTML
-BUILT_SOURCES += htmlfiles.h
-EXTRA_PROGRAMS += dnsdist
-
-nodist_dnsdist_SOURCES = \
-	base32.cc \
-	base64.hh \
-	dns.cc \
-	dnscrypt.cc dnscrypt.hh \
-	dnsparser.hh dnsparser.cc \
-	ednssubnet.cc ednssubnet.hh \
-	dnsdist.cc \
-	dnsdist-carbon.cc \
-	dnsdist-console.cc \
-	dnsdist-dnscrypt.cc \
-	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-lua.cc \
-	dnsdist-lua2.cc \
-	dnsdist-rings.cc \
-	dnsdist-tcp.cc \
-	dnsdist-web.cc \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnswriter.cc \
-	dolog.hh \
-	iputils.cc \
-	htmlfiles.h \
-	mbedtlscompat.hh \
-	misc.cc misc.hh \
-	qtype.cc \
-	sholder.hh \
-	sodcrypto.cc sodcrypto.hh \
-	sstuff.hh \
-	../ext/json11/json11.cpp
-
-dnsdist_LDFLAGS = \
-	$(AM_LDFLAGS) 
-
-dnsdist_LDADD = \
-	$(LUA_LIBS) \
-	$(LIBEDIT_LIBS) \
-	$(RT_LIBS) \
-	$(YAHTTP_LIBS) \
-	$(LIBSODIUM_LIBS)
-
-htmlfiles.h: $(srcdir)/dnsdistdist/html/*
-	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
-endif
-
 nsec3dig_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
@@ -1086,7 +1037,6 @@ testrunner_SOURCES = \
 	test-packetcache_cc.cc \
 	test-rcpgenerator_cc.cc \
 	test-sha_hh.cc \
-	test-sholder_hh.cc \
 	test-statbag_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
@@ -1220,6 +1170,57 @@ pdns_control_SOURCES = \
 	dnsname.cc \
 	dnslabeltext.cc
 
+if HAVE_DNSDISTDISTHTML
+BUILT_SOURCES += htmlfiles.h
+EXTRA_PROGRAMS += dnsdist
+
+testrunner_SOURCES += \
+	test-sholder_hh.cc
+
+nodist_dnsdist_SOURCES = \
+	base32.cc \
+	base64.hh \
+	dns.cc \
+	dnscrypt.cc dnscrypt.hh \
+	dnsparser.hh dnsparser.cc \
+	ednssubnet.cc ednssubnet.hh \
+	dnsdist.cc \
+	dnsdist-carbon.cc \
+	dnsdist-console.cc \
+	dnsdist-dnscrypt.cc \
+	dnsdist-ecs.cc dnsdist-ecs.hh \
+	dnsdist-lua.cc \
+	dnsdist-lua2.cc \
+	dnsdist-rings.cc \
+	dnsdist-tcp.cc \
+	dnsdist-web.cc \
+	dnslabeltext.cc \
+	dnsname.cc dnsname.hh \
+	dnswriter.cc \
+	dolog.hh \
+	iputils.cc \
+	htmlfiles.h \
+	mbedtlscompat.hh \
+	misc.cc misc.hh \
+	qtype.cc \
+	sholder.hh \
+	sodcrypto.cc sodcrypto.hh \
+	sstuff.hh \
+	../ext/json11/json11.cpp
+
+dnsdist_LDFLAGS = \
+	$(AM_LDFLAGS) 
+
+dnsdist_LDADD = \
+	$(LUA_LIBS) \
+	$(LIBEDIT_LIBS) \
+	$(RT_LIBS) \
+	$(YAHTTP_LIBS) \
+	$(LIBSODIUM_LIBS)
+
+htmlfiles.h: $(srcdir)/dnsdistdist/html/*
+	$(srcdir)/dnsdistdist/incfiles $(srcdir)/dnsdistdist > $@
+endif
 
 if UNIT_TESTS
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
