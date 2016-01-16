@@ -9,7 +9,7 @@
 
 RecursorLua4::RecursorLua4(const std::string &fname)
 {
-  // empty
+  throw std::runtime_error("Attempt to load a Lua script in a PowerDNS binary without Lua support");
 }
 
 bool RecursorLua4::nxdomain(const ComboAddress& remote,const ComboAddress& local, const DNSName& query, const QType& qtype, vector<DNSRecord>& ret, int& res, bool* variable)
