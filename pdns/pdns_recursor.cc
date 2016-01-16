@@ -141,6 +141,7 @@ unsigned int g_maxMThreads;
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 typedef map<int, ComboAddress> listenSocketsAddresses_t; // is shared across all threads right now
 listenSocketsAddresses_t g_listenSocketsAddresses; // is shared across all threads right now
+set<int> g_fromtosockets; // listen sockets that use 'sendfromto()' mechanism
 
 __thread MT_t* MT; // the big MTasker
 
@@ -860,11 +861,13 @@ void startDoResolve(void *p)
       struct iovec iov;
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)&*packet.begin(), packet.size(), &dc->d_remote);
-      if(dc->d_local.sin4.sin_family)
+      if(g_fromtosockets.count(dc->d_socket)) {
 	addCMsgSrcAddr(&msgh, cbuf, &dc->d_local, 0);
-      else
+      } else
         msgh.msg_control=NULL;
-      sendmsg(dc->d_socket, &msgh, 0);
+      if(sendmsg(dc->d_socket, &msgh, 0) < 0 && g_logCommonErrors) 
+        L<<Logger::Warning<<"Sending UDP reply to client "<<dc->d_remote.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
+
       if(!SyncRes::s_nopacketcache && !variableAnswer && !sr.wasVariable() ) {
         t_packetCache->insertResponsePacket(string((const char*)&*packet.begin(), packet.size()),
                                             (edo.d_Z & EDNSOpts::DNSSECOK), // ponder filtering on dnssecmode here
@@ -1168,13 +1171,14 @@ string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fr
       struct iovec iov;
       char cbuf[256];
       fillMSGHdr(&msgh, &iov, cbuf, 0, (char*)response.c_str(), response.length(), const_cast<ComboAddress*>(&fromaddr));
-      if(destaddr.sin4.sin_family) {
+      if(g_fromtosockets.count(fd)) {
 	addCMsgSrcAddr(&msgh, cbuf, &destaddr, 0);
       }
       else {
         msgh.msg_control=NULL;
       }
-      sendmsg(fd, &msgh, 0);
+      if(sendmsg(fd, &msgh, 0) < 0 && g_logCommonErrors)
+        L<<Logger::Warning<<"Sending UDP reply to client "<<fromaddr.toStringWithPort()<<" failed with: "<<strerror(errno)<<endl;
 
       if(response.length() >= sizeof(struct dnsheader)) {
         struct dnsheader dh;
@@ -1413,9 +1417,13 @@ void makeUDPServerSockets()
       L<<Logger::Warning<<"Unable to enable timestamp reporting for socket"<<endl;
 
     if(IsAnyAddress(sin)) {
-      setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));     // linux supports this, so why not - might fail on other systems
+      if(sin.sin4.sin_family == AF_INET)
+        if(!setsockopt(fd, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)))     // linux supports this, so why not - might fail on other systems
+          g_fromtosockets.insert(fd);
 #ifdef IPV6_RECVPKTINFO
-      setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+      if(sin.sin4.sin_family == AF_INET6)
+        if(!setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)))
+          g_fromtosockets.insert(fd);
 #endif
       if(sin.sin6.sin6_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
 	L<<Logger::Error<<"Failed to set IPv6 socket to IPv6 only, continuing anyhow: "<<strerror(errno)<<endl;
