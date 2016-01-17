@@ -86,6 +86,7 @@ class TestBasics(DNSDistTest):
 
         dnsdist is configured to reply with TC to ANY queries,
         send an ANY query and check the result.
+        It should be truncated over UDP, not over TCP.
         """
         name = 'any.tests.powerdns.com.'
         query = dns.message.make_query(name, 'ANY', 'IN')
@@ -96,9 +97,22 @@ class TestBasics(DNSDistTest):
         receivedResponse.id = expectedResponse.id
         self.assertEquals(receivedResponse, expectedResponse)
 
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        receivedResponse.id = expectedResponse.id
-        self.assertEquals(receivedResponse, expectedResponse)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text('any.tests.powerdns.com.',
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEquals(query, receivedQuery)
+        self.assertEquals(receivedResponse, response)
 
     def testTruncateTC(self):
         """

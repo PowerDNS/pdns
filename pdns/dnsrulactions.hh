@@ -211,6 +211,24 @@ private:
   uint16_t d_qtype;
 };
 
+class TCPRule : public DNSRule
+{
+public:
+  TCPRule(bool tcp): d_tcp(tcp)
+  {
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return dq->tcp == d_tcp;
+  }
+  string toString() const override
+  {
+    return (d_tcp ? "TCP" : "UDP");
+  }
+private:
+  bool d_tcp;
+};
+
 class DropAction : public DNSAction
 {
 public:
