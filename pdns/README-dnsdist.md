@@ -305,16 +305,16 @@ Rules have selectors and actions. Current selectors are:
 A special rule is `AndRule{rule1, rule2}`, which only matches if all of its subrules match.
 
 Current actions are:
- * Drop
- * Route to a pool
+ * Drop (DropAction)
+ * Route to a pool (PoolAction)
  * Return with TC=1 (truncated, ie, instruction to retry with TCP)
  * Force a ServFail, NotImp or Refused answer
  * Send out a crafted response (NXDOMAIN or "real" data)
- * Delay a response by n milliseconds
+ * Delay a response by n milliseconds (DelayAction)
  * Modify query to remove RD bit
 
 Rules can be added via:
- * addAction(DNS rule)
+ * addAction(DNS rule, DNS Action)
  * addAnyTCRule()
  * addDelay(DNS rule, delay in milliseconds)
  * addDisableValidationRule(DNS rule)
@@ -336,6 +336,10 @@ A DNS rule can be:
  * a QTypeRule
  * a RegexRule
  * a SuffixMatchNodeRule
+
+A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
+depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule{"be","nl","lu"}` will
+match all Benelux DNS traffic.
 
 More power
 ----------

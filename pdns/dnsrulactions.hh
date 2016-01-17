@@ -186,7 +186,7 @@ public:
   }
   string toString() const override
   {
-    return d_smn.toString();
+    return "qname=="+d_smn.toString();
   }
 private:
   SuffixMatchNode d_smn;

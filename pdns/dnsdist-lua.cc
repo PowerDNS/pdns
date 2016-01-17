@@ -311,7 +311,7 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 			return ret;
 		      } );
 
-
+  g_lua.writeFunction("makeRule", makeRule);
   g_lua.writeFunction("addAnyTCRule", []() {
       setLuaSideEffect();
       auto rules=g_rulactions.getCopy();
