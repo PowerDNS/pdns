@@ -312,10 +312,14 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
 		      } );
 
   g_lua.writeFunction("makeRule", makeRule);
+
   g_lua.writeFunction("addAnyTCRule", []() {
       setLuaSideEffect();
       auto rules=g_rulactions.getCopy();
-      rules.push_back({ std::make_shared<QTypeRule>(0xff), std::make_shared<TCAction>()});
+      std::vector<pair<int, shared_ptr<DNSRule> >> v;
+      v.push_back({1, std::make_shared<QTypeRule>(0xff)});
+      v.push_back({2, std::make_shared<TCPRule>(false)});
+      rules.push_back({ std::shared_ptr<DNSRule>(new AndRule(v)), std::make_shared<TCAction>()});
       g_rulactions.setState(rules);
     });
 
@@ -699,6 +703,9 @@ vector<std::function<void(void)>> setupLua(bool client, const std::string& confi
       return std::shared_ptr<DNSRule>(new AndRule(a));
     });
 
+  g_lua.writeFunction("TCPRule", [](bool tcp) {
+      return std::shared_ptr<DNSRule>(new TCPRule(tcp));
+    });
 
   g_lua.writeFunction("addAction", [](luadnsrule_t var, std::shared_ptr<DNSAction> ea) 
 		      {

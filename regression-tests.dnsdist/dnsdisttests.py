@@ -157,6 +157,7 @@ class DNSDistTest(unittest.TestCase):
             if not answered:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
+                rrset = None
                 if request.question[0].rdclass == dns.rdataclass.IN:
                     if request.question[0].rdtype == dns.rdatatype.A:
                         rrset = dns.rrset.from_text(request.question[0].name,
@@ -211,6 +212,7 @@ class DNSDistTest(unittest.TestCase):
             if not answered:
                 # unexpected query, or health check
                 response = dns.message.make_response(request)
+                rrset = None
                 if request.question[0].rdclass == dns.rdataclass.IN:
                     if request.question[0].rdtype == dns.rdatatype.A:
                         rrset = dns.rrset.from_text(request.question[0].name,

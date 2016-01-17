@@ -301,6 +301,7 @@ Rules have selectors and actions. Current selectors are:
  * QType (QTypeRule)
  * RegexRule on query name
  * Packet requests DNSSEC processing
+ * Query received over UDP or TCP
 
 A special rule is `AndRule{rule1, rule2}`, which only matches if all of its subrules match.
 
@@ -336,6 +337,7 @@ A DNS rule can be:
  * a QTypeRule
  * a RegexRule
  * a SuffixMatchNodeRule
+ * a TCPRule
 
 A convenience function `makeRule()` is supplied which will make a NetmaskGroupRule for you or a SuffixMatchNodeRule
 depending on how you call it. `makeRule("0.0.0.0/0")` will for example match all IPv4 traffic, `makeRule{"be","nl","lu"}` will
@@ -354,7 +356,8 @@ the exact definition of `blockFilter()` is at the end of this document.
 
 ANY or whatever to TC
 ---------------------
-The `blockFilter()` also gets passed read/writable copy of the DNS Header.
+The `blockFilter()` also gets passed read/writable copy of the DNS Header,
+via `dq.dh`.
 If you invoke setQR(1) on that, `dnsdist` knows you turned the packet into
 a response, and will send the answer directly to the original client.
 
@@ -815,6 +818,7 @@ instantiate a server with additional parameters
    * `QTypeRule(qtype)`: matches queries with the specified qtype
    * `RegexRule(regex)`: matches the query name against the supplied regex
    * `SuffixMatchNodeRule()`: matches based on a group of domain suffixes for rapid testing of membership
+   * `TCPRule(tcp)`: matches question received over TCP if `tcp` is true, over UDP otherwise
  * Rule management related:
    * `showRules()`: show all defined rules (Pool, Block, QPS, addAnyTCRule)
    * `rmRule(n)`: remove rule n
@@ -836,7 +840,7 @@ instantiate a server with additional parameters
    * `SpoofCNAMEAction()`: forge a response with the specified CNAME value
    * `TCAction()`: create answer to query with TC and RD bits set, to move to TCP/IP
  * Specialist rule generators
-   * `addAnyTCRule()`: generate TC=1 answers to ANY queries, moving them to TCP
+   * `addAnyTCRule()`: generate TC=1 answers to ANY queries received over UDP, moving them to TCP
    * `addDomainSpoof(domain, ip[, ip6])`: generate answers for A queries using the ip parameter (AAAA if ip is an IPv6). If ip6 is supplied, generate answers for AAAA queries too
    * `addDomainCNAMESpoof(domain, cname)`: generate CNAME answers for queries using the specified value
    * `addDisableValidationRule(domain)`: set the CD flags to 1 for all queries matching the specified domain
@@ -895,11 +899,14 @@ instantiate a server with additional parameters
      * `newCA(address)`: return a new ComboAddress
      * `getPort()`: return the port number
      * `tostring()`: return in human-friendly format
+     * `toString()`: alias for `tostring()`
      * `tostringWithPort()`: return in human-friendly format, with port number
+     * `toStringWithPort()`: alias for `tostringWithPort()`
    * DNSName related:
      * `newDNSName(name)`: make a DNSName based on this .-terminated name
      * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
      * member `tostring()`: return as a human friendly . terminated string
+     * member `toString()`: alias for `tostring()`
    * DNSQuestion related:
      * member `dh`: DNSHeader
      * member `len`: the question length
