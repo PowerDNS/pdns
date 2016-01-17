@@ -895,11 +895,14 @@ instantiate a server with additional parameters
      * `newCA(address)`: return a new ComboAddress
      * `getPort()`: return the port number
      * `tostring()`: return in human-friendly format
+     * `toString()`: alias for `tostring()`
      * `tostringWithPort()`: return in human-friendly format, with port number
+     * `toStringWithPort()`: alias for `tostringWithPort()`
    * DNSName related:
      * `newDNSName(name)`: make a DNSName based on this .-terminated name
      * member `isPartOf(dnsname)`: is this dnsname part of that dnsname
      * member `tostring()`: return as a human friendly . terminated string
+     * member `toString()`: alias for `tostring()`
    * DNSQuestion related:
      * member `dh`: DNSHeader
      * member `len`: the question length
