@@ -33,6 +33,12 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   
   withport = ComboAddress("[::]:5300", 53);
   BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(5300));
+
+  // Verify that 2 'empty' ComboAddresses are equal, used in syncres.hh to
+  // signal auth-zones
+  ComboAddress a = ComboAddress();
+  ComboAddress b = ComboAddress();
+  BOOST_CHECK(a == b);
 }
 
 BOOST_AUTO_TEST_CASE(test_ComboAddressTruncate) {
